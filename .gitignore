@@ -3,6 +3,7 @@
 .kotlin/
 .idea/
 **/build/
+node_modules/
 local.properties
 *.iml
 
@@ -18,6 +19,8 @@ google-services.json
 
 # Firebase local state
 .firebase/
+firebase-export/
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
+hs_err_pid*.log

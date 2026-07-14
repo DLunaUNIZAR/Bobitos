@@ -7,7 +7,7 @@
 | Nombre del producto | Bobitos |
 | Plataforma inicial | Android |
 | Estado | Implementación — fase 3 en curso |
-| Versión del documento | 0.4.0 |
+| Versión del documento | 0.5.0 |
 | Última actualización | 14 de julio de 2026 |
 | Distribución prevista | Privada |
 | Repositorio | [DLunaUNIZAR/Bobitos](https://github.com/DLunaUNIZAR/Bobitos) |
@@ -416,8 +416,8 @@ Duración estimada: 1-2 semanas.
 - [x] Configurar Git y GitHub.
 - [ ] Crear Firebase de desarrollo en región europea.
 - [ ] Activar Authentication y Firestore.
-- [ ] Configurar reglas inicialmente cerradas.
-- [ ] Configurar Firebase Emulator Suite.
+- [x] Configurar reglas inicialmente cerradas.
+- [x] Configurar Firebase Emulator Suite.
 
 **Criterio de salida:** la app navega, compila y se conecta de forma segura al entorno de desarrollo.
 
@@ -665,6 +665,8 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 14/07/2026 | Edición de contenido para todos los miembros | Modelo colaborativo para compra, tareas y calendario |
 | 14/07/2026 | Notificaciones push fuera del MVP | Mantener menor complejidad y coste inicial |
 | 14/07/2026 | Identificador `com.dlunaunizar.bobitos` | Nombre único y estable para el proyecto Android |
+| 14/07/2026 | Proyecto ficticio local `demo-bobitos` | Probar Auth y Firestore sin credenciales, recursos remotos ni facturación |
+| 14/07/2026 | Firestore remoto de desarrollo en `europe-southwest1` | Mantener los datos en Madrid y reducir la latencia para los usuarios iniciales |
 
 ## 16. Próximas decisiones
 
@@ -680,3 +682,4 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 0.2.0 | 14/07/2026 | Confirmación del nombre Bobitos y asociación con el repositorio público de GitHub |
 | 0.3.0 | 14/07/2026 | Cierre de decisiones funcionales y creación de especificación, permisos, flujos y modelo de datos |
 | 0.4.0 | 14/07/2026 | Inicio de implementación: proyecto Android, arquitectura base y navegación provisional |
+| 0.5.0 | 14/07/2026 | Firebase local: conexión Android, Emulator Suite, reglas cerradas, datos de prueba y pruebas automatizadas |

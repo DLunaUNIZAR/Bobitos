@@ -2,7 +2,7 @@
 
 Bobitos es una aplicación Android privada para coordinar la vida cotidiana de familias, parejas y pisos compartidos mediante espacios independientes y sincronizados prácticamente en tiempo real.
 
-> El proyecto se encuentra en implementación. La base Android y la navegación provisional ya están disponibles.
+> El proyecto se encuentra en implementación. La base Android, la navegación provisional y el entorno Firebase local ya están disponibles.
 
 ## Objetivo
 
@@ -143,8 +143,11 @@ Aplicación revisada, firmada, documentada y preparada para el canal privado ele
 .
 ├── README.md
 ├── PROJECT_PLAN.md
+├── firebase.json
+├── firestore.rules
 ├── docs/
 │   ├── ARCHITECTURE.md
+│   ├── FIREBASE_DEVELOPMENT.md
 │   ├── FUNCTIONAL_SPEC.md
 │   ├── PERMISSIONS.md
 │   ├── USER_FLOWS.md
@@ -160,7 +163,7 @@ Aplicación revisada, firmada, documentada y preparada para el canal privado ele
 └── settings.gradle.kts
 ```
 
-Firebase y sus archivos de configuración se añadirán en una fase posterior. Las pantallas no dependerán directamente de Firebase.
+La configuración versionada de Firebase corresponde únicamente a los emuladores locales. Las credenciales de proyectos reales quedan fuera del repositorio y las pantallas no dependen directamente de Firebase.
 
 ## Desarrollo local
 
@@ -169,6 +172,7 @@ Firebase y sus archivos de configuración se añadirán en una fase posterior. L
 - Android Studio compatible con Android Gradle Plugin 9.2.1.
 - JDK 17; puede utilizarse el incluido en Android Studio.
 - Android SDK 37.0.
+- Node.js 20 o posterior y JDK 21 para Firebase Emulator Suite.
 
 ### Ejecución
 
@@ -176,7 +180,16 @@ Firebase y sus archivos de configuración se añadirán en una fase posterior. L
 2. Seleccionar un emulador o dispositivo Android.
 3. Ejecutar la configuración `app`.
 
-La versión actual usa un repositorio en memoria con datos de demostración. No requiere Firebase ni credenciales.
+La versión actual mantiene los datos funcionales en memoria, pero las compilaciones `debug` ya inicializan Firebase Authentication y Firestore contra los emuladores locales. No requiere credenciales reales.
+
+### Firebase local
+
+```bash
+npm install
+npm run emulators
+```
+
+La configuración, los datos de prueba y la separación entre entornos están descritos en [FIREBASE_DEVELOPMENT.md](docs/FIREBASE_DEVELOPMENT.md).
 
 ### Verificación
 
@@ -203,6 +216,7 @@ La publicación mediante APK privado puede realizarse sin coste. Google Play req
 - [Roles y permisos](docs/PERMISSIONS.md)
 - [Flujos de usuario](docs/USER_FLOWS.md)
 - [Modelo de datos](docs/DATA_MODEL.md)
+- [Firebase de desarrollo y emuladores](docs/FIREBASE_DEVELOPMENT.md)
 - Guía de contribución: pendiente.
 - [Arquitectura y convenciones](docs/ARCHITECTURE.md)
 
