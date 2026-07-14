@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Bobitos</string>
+    <string name="spaces_title">Tus espacios</string>
+    <string name="spaces_description">Elige el espacio que quieres organizar.</string>
+    <plurals name="space_members">
+        <item quantity="one">%1$d miembro</item>
+        <item quantity="other">%1$d miembros</item>
+    </plurals>
+    <string name="spaces_empty">Todavía no perteneces a ningún espacio.</string>
+    <string name="change_space">Espacios</string>
+    <string name="generic_loading">Cargando…</string>
+    <string name="generic_error">No se ha podido cargar la información.</string>
+    <string name="shopping_title">Compra</string>
+    <string name="shopping_placeholder">La lista de la compra compartida aparecerá aquí.</string>
+    <string name="tasks_title">Tareas</string>
+    <string name="tasks_placeholder">Las tareas asignables del espacio aparecerán aquí.</string>
+    <string name="calendar_title">Calendario</string>
+    <string name="calendar_placeholder">Los eventos compartidos del espacio aparecerán aquí.</string>
+    <string name="development_placeholder">Pantalla provisional</string>
+</resources>

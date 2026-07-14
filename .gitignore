@@ -1,0 +1,23 @@
+# Android Studio and Gradle
+.gradle/
+.kotlin/
+.idea/
+**/build/
+local.properties
+*.iml
+
+# Local operating-system files
+.DS_Store
+
+# Signing and credentials
+*.jks
+*.keystore
+keystore.properties
+secrets.properties
+google-services.json
+
+# Firebase local state
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log

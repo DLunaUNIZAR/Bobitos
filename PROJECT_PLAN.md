@@ -6,8 +6,8 @@
 | --- | --- |
 | Nombre del producto | Bobitos |
 | Plataforma inicial | Android |
-| Estado | Planificación |
-| Versión del documento | 0.3.0 |
+| Estado | Implementación — fase 3 en curso |
+| Versión del documento | 0.4.0 |
 | Última actualización | 14 de julio de 2026 |
 | Distribución prevista | Privada |
 | Repositorio | [DLunaUNIZAR/Bobitos](https://github.com/DLunaUNIZAR/Bobitos) |
@@ -408,12 +408,12 @@ Duración estimada: 1-2 semanas.
 
 Duración estimada: 1-2 semanas.
 
-- [ ] Crear el proyecto Android.
-- [ ] Elegir el identificador definitivo de la aplicación.
-- [ ] Configurar Compose, Material 3 y navegación.
-- [ ] Definir la estructura de paquetes.
-- [ ] Configurar Hilt, Coroutines y StateFlow.
-- [ ] Configurar Git y GitHub.
+- [x] Crear el proyecto Android.
+- [x] Elegir el identificador de la aplicación: `com.dlunaunizar.bobitos`.
+- [x] Configurar Compose, Material 3 y navegación.
+- [x] Definir la estructura de paquetes.
+- [x] Configurar Hilt, Coroutines y StateFlow.
+- [x] Configurar Git y GitHub.
 - [ ] Crear Firebase de desarrollo en región europea.
 - [ ] Activar Authentication y Firestore.
 - [ ] Configurar reglas inicialmente cerradas.
@@ -664,6 +664,7 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 14/07/2026 | Eventos visibles para todo el espacio | Los participantes son informativos y no limitan el acceso |
 | 14/07/2026 | Edición de contenido para todos los miembros | Modelo colaborativo para compra, tareas y calendario |
 | 14/07/2026 | Notificaciones push fuera del MVP | Mantener menor complejidad y coste inicial |
+| 14/07/2026 | Identificador `com.dlunaunizar.bobitos` | Nombre único y estable para el proyecto Android |
 
 ## 16. Próximas decisiones
 
@@ -678,3 +679,4 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 0.1.0 | 14/07/2026 | Creación inicial del plan, fases, hitos, alcance y arquitectura |
 | 0.2.0 | 14/07/2026 | Confirmación del nombre Bobitos y asociación con el repositorio público de GitHub |
 | 0.3.0 | 14/07/2026 | Cierre de decisiones funcionales y creación de especificación, permisos, flujos y modelo de datos |
+| 0.4.0 | 14/07/2026 | Inicio de implementación: proyecto Android, arquitectura base y navegación provisional |

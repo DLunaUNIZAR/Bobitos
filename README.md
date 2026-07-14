@@ -2,7 +2,7 @@
 
 Bobitos es una aplicación Android privada para coordinar la vida cotidiana de familias, parejas y pisos compartidos mediante espacios independientes y sincronizados prácticamente en tiempo real.
 
-> El proyecto se encuentra actualmente en fase de planificación.
+> El proyecto se encuentra en implementación. La base Android y la navegación provisional ya están disponibles.
 
 ## Objetivo
 
@@ -16,7 +16,7 @@ La aplicación está diseñada para mantener un coste de infraestructura de 0 �
 
 ## Estado del proyecto
 
-`Planificación — Fase 0 completada`
+`Implementación — Fase 3 en curso`
 
 El alcance, la arquitectura y la hoja de ruta inicial están documentados en [PROJECT_PLAN.md](PROJECT_PLAN.md).
 
@@ -137,37 +137,52 @@ Lista de la compra, tareas, calendario, gestión de miembros y eliminación de c
 
 Aplicación revisada, firmada, documentada y preparada para el canal privado elegido.
 
-## Estructura prevista del repositorio
+## Estructura actual del repositorio
 
 ```text
 .
 ├── README.md
 ├── PROJECT_PLAN.md
 ├── docs/
+│   ├── ARCHITECTURE.md
 │   ├── FUNCTIONAL_SPEC.md
 │   ├── PERMISSIONS.md
 │   ├── USER_FLOWS.md
 │   └── DATA_MODEL.md
 ├── app/
-│   └── src/
-├── functions/          # Solo si se aprueba el backend opcional
-├── firestore.rules
-├── firestore.indexes.json
-└── firebase.json
+│   └── src/main/java/com/dlunaunizar/bobitos/
+│       ├── app/
+│       ├── core/
+│       ├── data/
+│       └── feature/
+├── gradle/
+├── build.gradle.kts
+└── settings.gradle.kts
 ```
 
-La estructura podrá modificarse cuando se cree el proyecto Android real.
+Firebase y sus archivos de configuración se añadirán en una fase posterior. Las pantallas no dependerán directamente de Firebase.
 
 ## Desarrollo local
 
-El proyecto todavía no contiene código ejecutable. Cuando comience la implementación, esta sección incluirá:
+### Requisitos
 
-- Requisitos de Android Studio y Java.
-- Configuración del proyecto Firebase de desarrollo.
-- Variables y archivos locales necesarios.
-- Ejecución de Firebase Emulator Suite.
-- Compilación y ejecución de la app.
-- Pruebas automatizadas.
+- Android Studio compatible con Android Gradle Plugin 9.2.1.
+- JDK 17; puede utilizarse el incluido en Android Studio.
+- Android SDK 37.0.
+
+### Ejecución
+
+1. Abrir el repositorio desde Android Studio y esperar a que finalice la sincronización de Gradle.
+2. Seleccionar un emulador o dispositivo Android.
+3. Ejecutar la configuración `app`.
+
+La versión actual usa un repositorio en memoria con datos de demostración. No requiere Firebase ni credenciales.
+
+### Verificación
+
+```bash
+./gradlew testDebugUnitTest lintDebug assembleDebug
+```
 
 ## Costes
 
@@ -189,7 +204,7 @@ La publicación mediante APK privado puede realizarse sin coste. Google Play req
 - [Flujos de usuario](docs/USER_FLOWS.md)
 - [Modelo de datos](docs/DATA_MODEL.md)
 - Guía de contribución: pendiente.
-- Decisiones de arquitectura: se añadirán cuando comience la implementación.
+- [Arquitectura y convenciones](docs/ARCHITECTURE.md)
 
 ## Licencia
 
