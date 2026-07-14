@@ -7,7 +7,7 @@
 | Nombre del producto | Bobitos |
 | Plataforma inicial | Android |
 | Estado | Planificación |
-| Versión del documento | 0.2.0 |
+| Versión del documento | 0.3.0 |
 | Última actualización | 14 de julio de 2026 |
 | Distribución prevista | Privada |
 | Repositorio | [DLunaUNIZAR/Bobitos](https://github.com/DLunaUNIZAR/Bobitos) |
@@ -74,7 +74,7 @@ Crear una aplicación Android útil y estable que permita a pequeños grupos pri
 - Invitaciones privadas mediante código o enlace.
 - Lista y gestión de miembros.
 - Lista de la compra en tiempo real.
-- Tareas compartidas y asignables.
+- Lista de tareas con un responsable asignable.
 - Calendario compartido básico.
 - Indicador de conexión.
 - Modo sin conexión de solo lectura.
@@ -122,14 +122,19 @@ Crear una aplicación Android útil y estable que permita a pequeños grupos pri
 - Abandonar el espacio.
 - No puede cambiar roles, expulsar miembros ni eliminar el espacio.
 
-### 4.2. Reglas pendientes de concretar
+### 4.2. Reglas confirmadas
 
-- [ ] Decidir si una invitación será de un solo uso o podrá admitir varios usos.
-- [ ] Definir la caducidad predeterminada de una invitación.
-- [ ] Decidir si el propietario podrá impedir temporalmente nuevas invitaciones.
-- [ ] Definir el proceso exacto para transferir la propiedad.
-- [ ] Definir qué ocurre con el contenido creado por un usuario que abandona el espacio.
-- [ ] Definir qué ocurre si el propietario solicita eliminar su cuenta.
+- [x] Las invitaciones serán de un solo uso.
+- [x] Las invitaciones caducarán a las 72 horas.
+- [x] Solo podrán aceptarlas cuentas con correo verificado.
+- [x] El propietario deberá transferir la propiedad o eliminar el espacio antes de abandonarlo.
+- [x] Los productos comprados permanecerán al final de la lista hasta que un miembro pulse “Limpiar comprados”.
+- [x] La lista de la compra no tendrá un responsable asignado.
+- [x] Cada tarea tendrá un único responsable principal en el MVP.
+- [x] Los eventos serán visibles para todo el espacio y podrán tener participantes opcionales.
+- [x] Cualquier miembro podrá editar compra, tareas y eventos.
+- [x] Las notificaciones push quedarán fuera del MVP.
+- [x] El canal de distribución se decidirá durante la beta.
 
 ## 5. Requisitos funcionales
 
@@ -173,6 +178,7 @@ Crear una aplicación Android útil y estable que permita a pequeños grupos pri
 - Marcarlo como comprado.
 - Desmarcarlo.
 - Mostrar quién lo añadió y quién lo marcó.
+- No asignar la compra ni sus productos a un responsable.
 - Eliminarlo o archivarlo.
 - Mostrar primero los productos pendientes.
 - Limpiar los productos comprados.
@@ -181,7 +187,8 @@ Crear una aplicación Android útil y estable que permita a pequeños grupos pri
 
 - Crear una tarea.
 - Introducir título y descripción.
-- Asignarla a uno o varios miembros.
+- Asignarla a un único responsable principal.
+- Permitir reasignarla a otro miembro activo.
 - Añadir fecha límite y prioridad.
 - Completar y reabrir la tarea.
 - Mostrar quién la creó y completó.
@@ -194,6 +201,7 @@ Crear una aplicación Android útil y estable que permita a pequeños grupos pri
 - Definir fecha y hora inicial y final.
 - Crear eventos de día completo.
 - Seleccionar participantes.
+- Mantener todos los eventos visibles para todos los miembros, participen o no.
 - Añadir descripción y color.
 - Mostrar una vista mensual.
 - Mostrar una vista de agenda.
@@ -356,12 +364,12 @@ La elección definitiva de distribución se tomará durante la fase de beta.
 Duración estimada: 1 semana.
 
 - [x] Confirmar el nombre del producto: Bobitos.
-- [ ] Cerrar el alcance del MVP.
-- [ ] Crear la matriz de roles y permisos.
-- [ ] Resolver el ciclo de vida de espacios e invitaciones.
-- [ ] Redactar historias de usuario.
-- [ ] Definir criterios de aceptación.
-- [ ] Revisar el modelo de datos inicial.
+- [x] Cerrar el alcance del MVP.
+- [x] Crear la matriz de roles y permisos.
+- [x] Resolver el ciclo de vida de espacios e invitaciones.
+- [x] Redactar flujos de usuario.
+- [x] Definir criterios de aceptación.
+- [x] Revisar el modelo de datos inicial.
 
 **Criterio de salida:** no quedan decisiones funcionales importantes ambiguas para construir el primer prototipo.
 
@@ -475,7 +483,7 @@ Duración estimada: 1-2 semanas.
 Duración estimada: 2 semanas.
 
 - [ ] Crear, editar y eliminar tareas.
-- [ ] Asignar miembros.
+- [ ] Asignar un responsable principal.
 - [ ] Añadir fecha límite y prioridad.
 - [ ] Completar y reabrir tareas.
 - [ ] Mostrar autor y usuario que completa.
@@ -649,16 +657,19 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 14/07/2026 | Sin archivos ni fotos en el MVP | Reducir coste, complejidad y datos personales |
 | 14/07/2026 | El producto se llamará Bobitos | Nombre definitivo confirmado |
 | 14/07/2026 | Repositorio público `DLunaUNIZAR/Bobitos` | Ubicación definitiva del código y la documentación |
+| 14/07/2026 | Invitaciones de un solo uso durante 72 horas | Reducir accesos accidentales y simplificar su ciclo de vida |
+| 14/07/2026 | Correo verificado para aceptar invitaciones | Evitar miembros con identidades no verificadas |
+| 14/07/2026 | Compra compartida sin responsable | La lista representa una necesidad común, no una asignación |
+| 14/07/2026 | Una persona responsable por tarea | Mantener una responsabilidad clara en el MVP |
+| 14/07/2026 | Eventos visibles para todo el espacio | Los participantes son informativos y no limitan el acceso |
+| 14/07/2026 | Edición de contenido para todos los miembros | Modelo colaborativo para compra, tareas y calendario |
+| 14/07/2026 | Notificaciones push fuera del MVP | Mantener menor complejidad y coste inicial |
 
 ## 16. Próximas decisiones
 
-- [ ] Código o enlace de invitación y número de usos.
-- [ ] Caducidad de invitaciones.
-- [ ] Política de archivo y borrado de productos comprados.
-- [ ] Forma exacta de asignación de tareas a varios miembros.
 - [ ] Colores y diseño visual.
-- [ ] Necesidad real de notificaciones con la app cerrada.
 - [ ] Distribución mediante APK o Google Play.
+- [ ] Necesidad de notificaciones push después de validar el MVP.
 
 ## 17. Historial del documento
 
@@ -666,3 +677,4 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | --- | --- | --- |
 | 0.1.0 | 14/07/2026 | Creación inicial del plan, fases, hitos, alcance y arquitectura |
 | 0.2.0 | 14/07/2026 | Confirmación del nombre Bobitos y asociación con el repositorio público de GitHub |
+| 0.3.0 | 14/07/2026 | Cierre de decisiones funcionales y creación de especificación, permisos, flujos y modelo de datos |
