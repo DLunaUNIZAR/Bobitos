@@ -46,4 +46,8 @@ Esta navegación es funcional pero provisional: se ajustará cuando se cierre el
 
 `InMemorySpaceRepository` permite ejecutar y probar la estructura sin servicios externos ni credenciales. Se sustituirá mediante inyección por una implementación Firebase en las fases de autenticación y espacios.
 
-Los archivos locales, claves y credenciales no deben añadirse al repositorio. La configuración de Firebase de desarrollo se documentará cuando se incorpore.
+En compilaciones `debug`, `FirebaseInitializer` crea una aplicación Firebase para el proyecto ficticio `demo-bobitos` y conecta Authentication y Firestore a Emulator Suite. Firestore usa caché en memoria para evitar mezclar datos locales entre ejecuciones. Este arranque prepara la infraestructura, pero todavía no sustituye al repositorio en memoria.
+
+Las compilaciones `release` no inicializan el proyecto ficticio ni se conectan a emuladores. La configuración de un proyecto real se incorporará explícitamente cuando se habilite el entorno remoto.
+
+Los archivos locales, claves y credenciales no deben añadirse al repositorio. La configuración y los comandos del entorno local se mantienen en [FIREBASE_DEVELOPMENT.md](FIREBASE_DEVELOPMENT.md).

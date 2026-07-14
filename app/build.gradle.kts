@@ -21,8 +21,20 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("boolean", "USE_FIREBASE_EMULATORS", "true")
+            buildConfigField("String", "FIREBASE_PROJECT_ID", "\"demo-bobitos\"")
+            buildConfigField("String", "FIREBASE_EMULATOR_HOST", "\"10.0.2.2\"")
+            buildConfigField("int", "FIREBASE_AUTH_EMULATOR_PORT", "9099")
+            buildConfigField("int", "FIREBASE_FIRESTORE_EMULATOR_PORT", "8080")
+        }
         release {
             isMinifyEnabled = false
+            buildConfigField("boolean", "USE_FIREBASE_EMULATORS", "false")
+            buildConfigField("String", "FIREBASE_PROJECT_ID", "\"\"")
+            buildConfigField("String", "FIREBASE_EMULATOR_HOST", "\"\"")
+            buildConfigField("int", "FIREBASE_AUTH_EMULATOR_PORT", "0")
+            buildConfigField("int", "FIREBASE_FIRESTORE_EMULATOR_PORT", "0")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -31,6 +43,7 @@ android {
     }
 
     buildFeatures {
+        buildConfig = true
         compose = true
     }
 
@@ -54,6 +67,10 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.kotlinx.coroutines.android)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
