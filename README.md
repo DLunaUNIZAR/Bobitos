@@ -110,6 +110,15 @@ Cuando el dispositivo no tenga conexión:
 
 La planificación detallada, los criterios de salida y las estimaciones se mantienen en [PROJECT_PLAN.md](PROJECT_PLAN.md).
 
+## Gestión del trabajo
+
+- [Todas las issues abiertas](https://github.com/DLunaUNIZAR/Bobitos/issues)
+- [Hito 1 · Prototipo técnico multiusuario](https://github.com/DLunaUNIZAR/Bobitos/issues/15)
+- [Hito 2 · Primera beta utilizable](https://github.com/DLunaUNIZAR/Bobitos/issues/16)
+- [Hito 3 · MVP completo](https://github.com/DLunaUNIZAR/Bobitos/issues/17)
+- [Hito 4 · Versión distribuible](https://github.com/DLunaUNIZAR/Bobitos/issues/18)
+- [Hito 5 · Ampliaciones opcionales](https://github.com/DLunaUNIZAR/Bobitos/issues/19)
+
 ## Hitos
 
 ### 1. Prototipo técnico multiusuario
