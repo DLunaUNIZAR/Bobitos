@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Bobitos</string>
+    <string name="app_start_error">No se ha podido iniciar Bobitos.</string>
     <string name="spaces_title">Tus espacios</string>
     <string name="spaces_description">Elige el espacio que quieres organizar.</string>
     <plurals name="space_members">
@@ -18,4 +19,49 @@
     <string name="calendar_title">Calendario</string>
     <string name="calendar_placeholder">Los eventos compartidos del espacio aparecerán aquí.</string>
     <string name="development_placeholder">Pantalla provisional</string>
+    <string name="auth_login_title">Inicia sesión</string>
+    <string name="auth_login_subtitle">Accede a tus espacios privados de Bobitos.</string>
+    <string name="auth_register_title">Crea tu cuenta</string>
+    <string name="auth_register_subtitle">Usaremos tu nombre para identificarte dentro de tus espacios.</string>
+    <string name="auth_reset_title">Recupera tu contraseña</string>
+    <string name="auth_reset_subtitle">Si existe una cuenta con ese correo, recibirás un enlace para cambiar la contraseña.</string>
+    <string name="auth_verify_title">Verifica tu correo</string>
+    <string name="auth_verify_subtitle">Abre el enlace de verificación enviado a %1$s. Después vuelve a Bobitos.</string>
+    <string name="auth_email_label">Correo electrónico</string>
+    <string name="auth_password_label">Contraseña</string>
+    <string name="auth_password_confirmation_label">Repite la contraseña</string>
+    <string name="auth_display_name_label">Nombre visible</string>
+    <string name="auth_sign_in">Entrar</string>
+    <string name="auth_sign_up">Crear cuenta</string>
+    <string name="auth_no_account">¿Aún no tienes cuenta?</string>
+    <string name="auth_already_account">¿Ya tienes cuenta?</string>
+    <string name="auth_forgot_password">He olvidado mi contraseña</string>
+    <string name="auth_send_reset">Enviar enlace</string>
+    <string name="auth_back_to_login">Volver al inicio de sesión</string>
+    <string name="auth_resend_verification">Reenviar correo</string>
+    <string name="auth_resend_verification_wait">Reenviar en %1$d s</string>
+    <string name="auth_verification_completed">Ya he verificado mi correo</string>
+    <string name="auth_sign_out">Cerrar sesión</string>
+    <string name="auth_show_password">Ver</string>
+    <string name="auth_hide_password">Ocultar</string>
+    <string name="profile_title">Perfil</string>
+    <string name="profile_email_value">Correo: %1$s</string>
+    <string name="profile_verified">Correo verificado</string>
+    <string name="profile_save">Guardar nombre</string>
+    <string name="profile_open">Perfil</string>
+    <string name="navigate_back">Atrás</string>
+    <string name="auth_error_display_name_required">Introduce tu nombre.</string>
+    <string name="auth_error_display_name_too_long">El nombre no puede superar 60 caracteres.</string>
+    <string name="auth_error_invalid_email">Introduce una dirección de correo válida.</string>
+    <string name="auth_error_password_too_short">La contraseña debe tener al menos 8 caracteres.</string>
+    <string name="auth_error_passwords_do_not_match">Las contraseñas no coinciden.</string>
+    <string name="auth_error_email_in_use">No se ha podido crear la cuenta con esos datos.</string>
+    <string name="auth_error_invalid_credentials">No se ha podido iniciar sesión. Revisa los datos introducidos.</string>
+    <string name="auth_error_network">No hay conexión con Firebase. Inténtalo de nuevo.</string>
+    <string name="auth_error_too_many_requests">Se han realizado demasiados intentos. Espera unos minutos.</string>
+    <string name="auth_error_unexpected">No se ha podido completar la operación.</string>
+    <string name="auth_notice_verification_sent">Correo de verificación enviado.</string>
+    <string name="auth_notice_not_verified">El correo todavía no aparece como verificado.</string>
+    <string name="auth_notice_reset_requested">Si existe una cuenta con ese correo, recibirás un enlace de recuperación.</string>
+    <string name="auth_notice_profile_updated">Nombre actualizado.</string>
 </resources>

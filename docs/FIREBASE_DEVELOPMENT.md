@@ -55,7 +55,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 npm run test:emulators
 ```
 
-La prueba levanta y detiene los servicios necesarios, crea un usuario en Authentication y verifica que Firestore rechaza tanto una lectura no autenticada como una autenticada mientras las reglas permanezcan cerradas.
+La prueba levanta y detiene los servicios necesarios y comprueba cinco comportamientos: alta de usuario, verificación de correo, recuperación y cambio de contraseña, rechazo de una lectura Firestore no autenticada y rechazo de una lectura autenticada mientras las reglas permanezcan cerradas.
 
 ## Datos locales
 

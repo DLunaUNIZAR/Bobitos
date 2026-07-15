@@ -20,6 +20,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.app.AppUiState
+import com.dlunaunizar.bobitos.core.model.AuthUser
+import com.dlunaunizar.bobitos.feature.auth.AuthActionUiState
+import com.dlunaunizar.bobitos.feature.auth.ProfileScreen
 import com.dlunaunizar.bobitos.feature.calendar.CalendarScreen
 import com.dlunaunizar.bobitos.feature.shopping.ShoppingScreen
 import com.dlunaunizar.bobitos.feature.spaces.SpacesScreen
@@ -29,7 +32,12 @@ import com.dlunaunizar.bobitos.feature.tasks.TasksScreen
 fun BobitosNavHost(
     navController: NavHostController,
     uiState: AppUiState,
+    authUser: AuthUser,
+    authActionState: AuthActionUiState,
     onSpaceSelected: (String) -> Unit,
+    onUpdateDisplayName: (String) -> Unit,
+    onSignOut: () -> Unit,
+    onClearAuthFeedback: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val spaceName = uiState.selectedSpace?.name ?: stringResource(R.string.app_name)
@@ -42,6 +50,10 @@ fun BobitosNavHost(
         composable(BobitosDestination.Spaces.route) {
             SpacesScreen(
                 state = uiState.spaces,
+                onProfileClick = {
+                    onClearAuthFeedback()
+                    navController.navigateToProfile()
+                },
                 onSpaceSelected = { space ->
                     onSpaceSelected(space.id)
                     navController.navigate(BobitosDestination.Shopping.route) {
@@ -59,6 +71,10 @@ fun BobitosNavHost(
                 spaceName = spaceName,
                 onDestinationSelected = navController::navigateToWorkspace,
                 onSwitchSpace = navController::navigateToSpaces,
+                onProfile = {
+                    onClearAuthFeedback()
+                    navController.navigateToProfile()
+                },
             ) {
                 ShoppingScreen()
             }
@@ -70,6 +86,10 @@ fun BobitosNavHost(
                 spaceName = spaceName,
                 onDestinationSelected = navController::navigateToWorkspace,
                 onSwitchSpace = navController::navigateToSpaces,
+                onProfile = {
+                    onClearAuthFeedback()
+                    navController.navigateToProfile()
+                },
             ) {
                 TasksScreen()
             }
@@ -81,9 +101,24 @@ fun BobitosNavHost(
                 spaceName = spaceName,
                 onDestinationSelected = navController::navigateToWorkspace,
                 onSwitchSpace = navController::navigateToSpaces,
+                onProfile = {
+                    onClearAuthFeedback()
+                    navController.navigateToProfile()
+                },
             ) {
                 CalendarScreen()
             }
+        }
+
+        composable(BobitosDestination.Profile.route) {
+            ProfileScreen(
+                user = authUser,
+                actionState = authActionState,
+                onUpdateDisplayName = onUpdateDisplayName,
+                onSignOut = onSignOut,
+                onBack = { navController.popBackStack() },
+                onClearFeedback = onClearAuthFeedback,
+            )
         }
     }
 }
@@ -95,6 +130,7 @@ private fun WorkspaceScaffold(
     spaceName: String,
     onDestinationSelected: (BobitosDestination) -> Unit,
     onSwitchSpace: () -> Unit,
+    onProfile: () -> Unit,
     content: @Composable () -> Unit,
 ) {
     Scaffold(
@@ -111,6 +147,9 @@ private fun WorkspaceScaffold(
                     }
                 },
                 actions = {
+                    TextButton(onClick = onProfile) {
+                        Text(text = stringResource(R.string.profile_open))
+                    }
                     TextButton(onClick = onSwitchSpace) {
                         Text(text = stringResource(R.string.change_space))
                     }
@@ -155,6 +194,12 @@ private fun NavHostController.navigateToSpaces() {
         popUpTo(BobitosDestination.Shopping.route) {
             inclusive = true
         }
+        launchSingleTop = true
+    }
+}
+
+private fun NavHostController.navigateToProfile() {
+    navigate(BobitosDestination.Profile.route) {
         launchSingleTop = true
     }
 }

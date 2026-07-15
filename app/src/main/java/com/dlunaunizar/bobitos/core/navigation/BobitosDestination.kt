@@ -28,6 +28,11 @@ enum class BobitosDestination(
         titleRes = R.string.calendar_title,
         iconText = "📅",
     ),
+    Profile(
+        route = "profile",
+        titleRes = R.string.profile_title,
+        iconText = "P",
+    ),
     ;
 
     companion object {

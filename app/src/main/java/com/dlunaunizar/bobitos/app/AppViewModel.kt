@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.app
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.data.repository.AuthRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -15,21 +16,25 @@ import kotlinx.coroutines.flow.stateIn
 
 @HiltViewModel
 class AppViewModel @Inject constructor(
+    authRepository: AuthRepository,
     spaceRepository: SpaceRepository,
 ) : ViewModel() {
     private val selectedSpaceId = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<AppUiState> = combine(
+        authRepository.currentUser,
         spaceRepository.spaces,
         selectedSpaceId,
-    ) { spaces, selectedId ->
+    ) { authUser, spaces, selectedId ->
         AppUiState(
+            authUser = UiState.Content(authUser),
             spaces = UiState.Content(spaces),
             selectedSpace = spaces.firstOrNull { it.id == selectedId },
         )
     }.catch { error ->
         emit(
             AppUiState(
+                authUser = UiState.Error(error.message),
                 spaces = UiState.Error(error.message),
             ),
         )
@@ -43,4 +48,3 @@ class AppViewModel @Inject constructor(
         selectedSpaceId.value = spaceId
     }
 }
-
