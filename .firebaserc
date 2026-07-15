@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "demo-bobitos"
+    "default": "demo-bobitos",
+    "dev": "bobitos-dev"
   }
 }

@@ -7,8 +7,8 @@
 | Nombre del producto | Bobitos |
 | Plataforma inicial | Android |
 | Estado | Implementación — fase 3 en curso |
-| Versión del documento | 0.5.0 |
-| Última actualización | 14 de julio de 2026 |
+| Versión del documento | 0.5.1 |
+| Última actualización | 15 de julio de 2026 |
 | Distribución prevista | Privada |
 | Repositorio | [DLunaUNIZAR/Bobitos](https://github.com/DLunaUNIZAR/Bobitos) |
 | Visibilidad del repositorio | Pública |
@@ -414,7 +414,8 @@ Duración estimada: 1-2 semanas.
 - [x] Definir la estructura de paquetes.
 - [x] Configurar Hilt, Coroutines y StateFlow.
 - [x] Configurar Git y GitHub.
-- [ ] Crear Firebase de desarrollo en región europea.
+- [x] Crear el proyecto Firebase de desarrollo `bobitos-dev` en el plan Spark.
+- [ ] Crear Firestore de desarrollo en `europe-southwest1`.
 - [ ] Activar Authentication y Firestore.
 - [x] Configurar reglas inicialmente cerradas.
 - [x] Configurar Firebase Emulator Suite.
@@ -667,6 +668,8 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 14/07/2026 | Identificador `com.dlunaunizar.bobitos` | Nombre único y estable para el proyecto Android |
 | 14/07/2026 | Proyecto ficticio local `demo-bobitos` | Probar Auth y Firestore sin credenciales, recursos remotos ni facturación |
 | 14/07/2026 | Firestore remoto de desarrollo en `europe-southwest1` | Mantener los datos en Madrid y reducir la latencia para los usuarios iniciales |
+| 15/07/2026 | Proyecto remoto `bobitos-dev` (`853960607744`) en Spark | Disponer de un entorno real separado sin activar servicios de pago |
+| 15/07/2026 | Google Analytics activado sin integrar su SDK en Android | Mantener disponible la opción gratuita sin recopilar telemetría durante el MVP |
 
 ## 16. Próximas decisiones
 
@@ -683,3 +686,4 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 0.3.0 | 14/07/2026 | Cierre de decisiones funcionales y creación de especificación, permisos, flujos y modelo de datos |
 | 0.4.0 | 14/07/2026 | Inicio de implementación: proyecto Android, arquitectura base y navegación provisional |
 | 0.5.0 | 14/07/2026 | Firebase local: conexión Android, Emulator Suite, reglas cerradas, datos de prueba y pruebas automatizadas |
+| 0.5.1 | 15/07/2026 | Registro del proyecto remoto `bobitos-dev`, alias de entorno y decisión sobre Analytics |

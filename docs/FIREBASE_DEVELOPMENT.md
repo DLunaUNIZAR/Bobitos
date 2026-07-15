@@ -5,7 +5,7 @@ Bobitos usa dos entornos separados:
 | Entorno | Proyecto | Uso | Datos o facturación reales |
 | --- | --- | --- | --- |
 | Local | `demo-bobitos` | Desarrollo y pruebas automatizadas | No |
-| Desarrollo remoto | `bobitos-dev-<sufijo>` | Pruebas posteriores entre dispositivos | Sí, dentro de Spark |
+| Desarrollo remoto | `bobitos-dev` (n.º `853960607744`) | Pruebas posteriores entre dispositivos | Sí, dentro de Spark |
 
 El prefijo `demo-` identifica un proyecto ficticio de Firebase Emulator Suite. Los comandos locales fallan antes de acceder accidentalmente a recursos reales y no requieren iniciar sesión en Firebase.
 
@@ -63,20 +63,31 @@ La prueba levanta y detiene los servicios necesarios, crea un usuario en Authent
 
 ## Proyecto remoto de desarrollo
 
-La creación se realizará en Firebase Console cuando sea necesario validar varios dispositivos reales:
+El proyecto remoto de desarrollo ya está creado en el plan Spark:
 
-1. Crear un proyecto con un identificador global único similar a `bobitos-dev-<sufijo>` y mantener el plan Spark.
-2. Registrar una aplicación Android con el identificador `com.dlunaunizar.bobitos`.
-3. Habilitar Authentication mediante correo y contraseña.
-4. Crear una base Cloud Firestore Standard en `europe-southwest1` (Madrid) con reglas cerradas.
-5. Descargar `google-services.json` en `app/` sin versionarlo; el patrón ya está incluido en `.gitignore`.
+| Campo | Valor |
+| --- | --- |
+| ID del proyecto | `bobitos-dev` |
+| Número del proyecto | `853960607744` |
+| Google Analytics | Activado en Firebase; SDK Android no integrado |
+
+Estado de la configuración remota:
+
+- [x] Crear el proyecto `bobitos-dev` en el plan Spark.
+- [ ] Registrar una aplicación Android con el identificador `com.dlunaunizar.bobitos`.
+- [ ] Habilitar Authentication mediante correo y contraseña.
+- [ ] Crear una base Cloud Firestore Standard en `europe-southwest1` (Madrid) con reglas cerradas.
+- [ ] Descargar `google-services.json` en `app/` sin versionarlo; el patrón ya está incluido en `.gitignore`.
 
 La región de Firestore no puede cambiarse después de crear la base. No deben activarse Blaze, Cloud Functions, autenticación SMS ni otros servicios de pago para completar esta fase.
+
+Google Analytics está habilitado a nivel de proyecto, pero Bobitos no incluye actualmente su SDK ni envía eventos. Cualquier integración futura requerirá una decisión explícita y su correspondiente revisión de privacidad.
 
 ## Política de configuración
 
 - Los identificadores deben coincidir entre `.firebaserc`, Android y los comandos de pruebas.
 - `demo-bobitos` nunca se usará como proyecto remoto.
+- El alias `dev` identifica exclusivamente el proyecto remoto `bobitos-dev`.
 - Las reglas se prueban localmente antes de desplegarse.
 - `google-services.json`, claves privadas y datos reales no se suben al repositorio.
 - Las compilaciones `release` no usan la configuración ficticia de los emuladores.
