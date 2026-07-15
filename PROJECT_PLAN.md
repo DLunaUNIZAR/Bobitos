@@ -7,7 +7,7 @@
 | Nombre del producto | Bobitos |
 | Plataforma inicial | Android |
 | Estado | Implementación — fase 3 en curso |
-| Versión del documento | 0.5.1 |
+| Versión del documento | 0.5.2 |
 | Última actualización | 15 de julio de 2026 |
 | Distribución prevista | Privada |
 | Repositorio | [DLunaUNIZAR/Bobitos](https://github.com/DLunaUNIZAR/Bobitos) |
@@ -415,8 +415,9 @@ Duración estimada: 1-2 semanas.
 - [x] Configurar Hilt, Coroutines y StateFlow.
 - [x] Configurar Git y GitHub.
 - [x] Crear el proyecto Firebase de desarrollo `bobitos-dev` en el plan Spark.
-- [ ] Crear Firestore de desarrollo en `europe-southwest1`.
-- [ ] Activar Authentication y Firestore.
+- [x] Registrar la aplicación Android `com.dlunaunizar.bobitos`.
+- [x] Crear Firestore de desarrollo en `europe-southwest1`.
+- [x] Activar Authentication y Firestore.
 - [x] Configurar reglas inicialmente cerradas.
 - [x] Configurar Firebase Emulator Suite.
 
@@ -687,3 +688,4 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 0.4.0 | 14/07/2026 | Inicio de implementación: proyecto Android, arquitectura base y navegación provisional |
 | 0.5.0 | 14/07/2026 | Firebase local: conexión Android, Emulator Suite, reglas cerradas, datos de prueba y pruebas automatizadas |
 | 0.5.1 | 15/07/2026 | Registro del proyecto remoto `bobitos-dev`, alias de entorno y decisión sobre Analytics |
+| 0.5.2 | 15/07/2026 | Finalización del entorno remoto: aplicación Android, Authentication y Firestore en Madrid |

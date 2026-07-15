@@ -74,10 +74,10 @@ El proyecto remoto de desarrollo ya está creado en el plan Spark:
 Estado de la configuración remota:
 
 - [x] Crear el proyecto `bobitos-dev` en el plan Spark.
-- [ ] Registrar una aplicación Android con el identificador `com.dlunaunizar.bobitos`.
-- [ ] Habilitar Authentication mediante correo y contraseña.
-- [ ] Crear una base Cloud Firestore Standard en `europe-southwest1` (Madrid) con reglas cerradas.
-- [ ] Descargar `google-services.json` en `app/` sin versionarlo; el patrón ya está incluido en `.gitignore`.
+- [x] Registrar una aplicación Android con el identificador `com.dlunaunizar.bobitos`.
+- [x] Habilitar Authentication mediante correo y contraseña.
+- [x] Crear una base Cloud Firestore Standard en `europe-southwest1` (Madrid) con reglas cerradas.
+- [x] Descargar `google-services.json` en `app/` sin versionarlo; el patrón ya está incluido en `.gitignore`.
 
 La región de Firestore no puede cambiarse después de crear la base. No deben activarse Blaze, Cloud Functions, autenticación SMS ni otros servicios de pago para completar esta fase.
 
