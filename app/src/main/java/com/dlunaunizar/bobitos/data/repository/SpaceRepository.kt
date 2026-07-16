@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.data.repository
 
 import com.dlunaunizar.bobitos.core.model.SpaceMember
+import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import kotlinx.coroutines.flow.Flow
 
@@ -8,6 +9,8 @@ interface SpaceRepository {
     val spaces: Flow<List<SpaceSummary>>
 
     fun members(spaceId: String): Flow<List<SpaceMember>>
+
+    fun invitations(spaceId: String): Flow<List<SpaceInvitation>>
 
     suspend fun createSpace(name: String): String
 
@@ -18,6 +21,12 @@ interface SpaceRepository {
     suspend fun removeMember(spaceId: String, userId: String)
 
     suspend fun transferOwnership(spaceId: String, newOwnerId: String)
+
+    suspend fun createInvitation(spaceId: String): SpaceInvitation
+
+    suspend fun revokeInvitation(invitationId: String)
+
+    suspend fun acceptInvitation(code: String): String
 }
 
 enum class SpaceFailure {
@@ -30,6 +39,12 @@ enum class SpaceFailure {
     OwnerMustTransfer,
     CannotRemoveOwner,
     InvalidNewOwner,
+    InvalidInvitationCode,
+    InvitationNotFound,
+    InvitationAlreadyUsed,
+    InvitationRevoked,
+    InvitationExpired,
+    SpaceFull,
     PermissionDenied,
     Network,
     Unknown,

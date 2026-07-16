@@ -18,6 +18,10 @@ service cloud.firestore {
       return /databases/$(database)/documents/spaces/$(spaceId);
     }
 
+    function invitationPath(invitationId) {
+      return /databases/$(database)/documents/invitations/$(invitationId);
+    }
+
     function activeMembership(spaceId, userId) {
       return exists(membershipPath(spaceId, userId))
         && get(membershipPath(spaceId, userId)).data.spaceId == spaceId
@@ -116,13 +120,44 @@ service cloud.firestore {
         && (targetUserId == request.auth.uid || isOwner(spaceId));
     }
 
+    function validMemberCountIncrease(spaceId) {
+      let targetUserId = request.resource.data.lastMembershipChangeUserId;
+      let membershipAfter = getAfter(membershipPath(spaceId, targetUserId));
+      let invitationId = membershipAfter.data.joinedViaInvitationId;
+      let invitationBefore = get(invitationPath(invitationId));
+      let invitationAfter = getAfter(invitationPath(invitationId));
+      return verifiedUser()
+        && targetUserId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "memberCount",
+          "lastMembershipChangeUserId",
+          "updatedAt"
+        ])
+        && resource.data.memberCount is int
+        && resource.data.memberCount < 10
+        && request.resource.data.memberCount == resource.data.memberCount + 1
+        && request.resource.data.updatedAt == request.time
+        && !exists(membershipPath(spaceId, targetUserId))
+        && membershipAfter.data.spaceId == spaceId
+        && membershipAfter.data.userId == targetUserId
+        && membershipAfter.data.role == "MEMBER"
+        && membershipAfter.data.status == "ACTIVE"
+        && invitationBefore.data.spaceId == spaceId
+        && invitationBefore.data.status == "ACTIVE"
+        && invitationBefore.data.expiresAt > request.time
+        && invitationAfter.data.status == "USED"
+        && invitationAfter.data.usedBy == targetUserId
+        && invitationAfter.data.usedAt == request.time;
+    }
+
     match /spaces/{spaceId} {
       allow get: if isActiveMember(spaceId);
       allow list: if false;
       allow create: if validNewSpace(spaceId);
       allow update: if validSpaceRename(spaceId)
         || validOwnershipTransfer(spaceId)
-        || validMemberCountDecrease(spaceId);
+        || validMemberCountDecrease(spaceId)
+        || validMemberCountIncrease(spaceId);
       allow delete: if false;
 
       match /tasks/{taskId} {
@@ -151,7 +186,8 @@ service cloud.firestore {
           "displayName",
           "role",
           "status",
-          "joinedAt"
+          "joinedAt",
+          "joinedViaInvitationId"
         ])
         && membershipId == request.resource.data.spaceId + "_" + request.resource.data.userId
         && request.resource.data.displayName is string
@@ -167,6 +203,7 @@ service cloud.firestore {
         && validMembershipDocument(membershipId)
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.role == "OWNER"
+        && !request.resource.data.keys().hasAny(["joinedViaInvitationId"])
         && request.resource.data.joinedAt == request.time
         && !exists(spacePath(spaceId))
         && createdSpace.data.ownerId == request.auth.uid
@@ -213,15 +250,126 @@ service cloud.firestore {
         && spaceAfter.data.updatedAt == request.time;
     }
 
+    function validInvitationMembership(membershipId) {
+      let spaceId = request.resource.data.spaceId;
+      let invitationId = request.resource.data.joinedViaInvitationId;
+      let invitationBefore = get(invitationPath(invitationId));
+      let invitationAfter = getAfter(invitationPath(invitationId));
+      let spaceBefore = get(spacePath(spaceId));
+      let spaceAfter = getAfter(spacePath(spaceId));
+      return verifiedUser()
+        && validMembershipDocument(membershipId)
+        && request.resource.data.keys().hasAny(["joinedViaInvitationId"])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.role == "MEMBER"
+        && request.resource.data.joinedAt == request.time
+        && invitationId is string
+        && invitationBefore.data.spaceId == spaceId
+        && invitationBefore.data.status == "ACTIVE"
+        && invitationBefore.data.expiresAt > request.time
+        && invitationAfter.data.status == "USED"
+        && invitationAfter.data.usedBy == request.auth.uid
+        && invitationAfter.data.usedAt == request.time
+        && spaceBefore.data.memberCount < 10
+        && spaceAfter.data.memberCount == spaceBefore.data.memberCount + 1
+        && spaceAfter.data.lastMembershipChangeUserId == request.auth.uid
+        && spaceAfter.data.updatedAt == request.time;
+    }
+
     match /memberships/{membershipId} {
-      allow get, list: if verifiedUser()
+      allow get: if verifiedUser()
         && (
           resource.data.userId == request.auth.uid
           || isActiveMember(resource.data.spaceId)
         );
-      allow create: if validInitialOwnerMembership(membershipId);
+      allow list: if verifiedUser()
+        && (
+          resource.data.userId == request.auth.uid
+          || isActiveMember(resource.data.spaceId)
+        );
+      allow create: if validInitialOwnerMembership(membershipId)
+        || validInvitationMembership(membershipId);
       allow update: if validOwnershipRoleChange(resource.data.spaceId);
       allow delete: if validMembershipRemoval(resource.data.spaceId);
+    }
+
+    function validNewInvitation(invitationId) {
+      return verifiedUser()
+        && invitationId.matches('^[A-Z2-7]{32}$')
+        && request.resource.data.keys().hasAll([
+          "spaceId",
+          "createdBy",
+          "createdAt",
+          "expiresAt",
+          "status",
+          "usedBy",
+          "usedAt",
+          "revokedAt"
+        ])
+        && request.resource.data.keys().hasOnly([
+          "spaceId",
+          "createdBy",
+          "createdAt",
+          "expiresAt",
+          "status",
+          "usedBy",
+          "usedAt",
+          "revokedAt"
+        ])
+        && request.resource.data.spaceId is string
+        && isOwner(request.resource.data.spaceId)
+        && get(spacePath(request.resource.data.spaceId)).data.memberCount < 10
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time + duration.value(71, 'h')
+        && request.resource.data.expiresAt <= request.time + duration.value(72, 'h')
+        && request.resource.data.status == "ACTIVE"
+        && request.resource.data.usedBy == null
+        && request.resource.data.usedAt == null
+        && request.resource.data.revokedAt == null;
+    }
+
+    function validInvitationConsumption(invitationId) {
+      let spaceId = resource.data.spaceId;
+      let membershipAfter = getAfter(membershipPath(spaceId, request.auth.uid));
+      let spaceBefore = get(spacePath(spaceId));
+      let spaceAfter = getAfter(spacePath(spaceId));
+      return verifiedUser()
+        && resource.data.status == "ACTIVE"
+        && resource.data.expiresAt > request.time
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["status", "usedBy", "usedAt"])
+        && request.resource.data.status == "USED"
+        && request.resource.data.usedBy == request.auth.uid
+        && request.resource.data.usedAt == request.time
+        && membershipAfter.data.joinedViaInvitationId == invitationId
+        && membershipAfter.data.userId == request.auth.uid
+        && membershipAfter.data.spaceId == spaceId
+        && membershipAfter.data.role == "MEMBER"
+        && membershipAfter.data.status == "ACTIVE"
+        && spaceBefore.data.memberCount < 10
+        && spaceAfter.data.memberCount == spaceBefore.data.memberCount + 1
+        && spaceAfter.data.lastMembershipChangeUserId == request.auth.uid
+        && spaceAfter.data.updatedAt == request.time;
+    }
+
+    function validInvitationRevocation() {
+      return isOwner(resource.data.spaceId)
+        && resource.data.status == "ACTIVE"
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["status", "revokedAt"])
+        && request.resource.data.status == "REVOKED"
+        && request.resource.data.revokedAt == request.time;
+    }
+
+    match /invitations/{invitationId} {
+      allow get: if verifiedUser();
+      allow list: if verifiedUser() && isOwner(resource.data.spaceId);
+      allow create: if validNewInvitation(invitationId);
+      allow update: if validInvitationConsumption(invitationId)
+        || validInvitationRevocation();
+      allow delete: if false;
     }
 
     function validPendingTaskUnassignment(spaceId) {

@@ -55,7 +55,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 npm run test:emulators
 ```
 
-La prueba levanta y detiene los servicios necesarios. Además del ciclo de Authentication, valida creación atómica de espacios, correo verificado, aislamiento frente a usuarios ajenos, consultas de membresías, renombrado por rol, transferencia completa, rechazo de transferencias parciales, salida y expulsión seguras y desasignación de tareas pendientes.
+La prueba levanta y detiene los servicios necesarios. Además del ciclo de Authentication y la gestión segura de espacios, valida tokens de invitación, consultas limitadas, correo verificado, caducidad, revocación, uso único, límite de 10 miembros y aceptación simultánea desde dos cuentas.
 
 ## Datos locales
 

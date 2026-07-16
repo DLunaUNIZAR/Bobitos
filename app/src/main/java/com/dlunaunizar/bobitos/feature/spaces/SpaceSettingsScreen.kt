@@ -5,9 +5,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -30,20 +32,27 @@ import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.SpaceMember
+import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SpaceRole
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 @Composable
 fun SpaceSettingsScreen(
     space: SpaceSummary,
     currentUserId: String,
     state: SpaceManagementUiState,
-    onObserveMembers: (String) -> Unit,
-    onStopObservingMembers: () -> Unit,
+    onObserveSpaceSettings: (String, Boolean) -> Unit,
+    onStopObservingSpaceSettings: () -> Unit,
     onRenameSpace: (String, String) -> Unit,
     onLeaveSpace: (String) -> Unit,
     onRemoveMember: (String, String) -> Unit,
     onTransferOwnership: (String, String) -> Unit,
+    onCreateInvitation: (String) -> Unit,
+    onRevokeInvitation: (String) -> Unit,
+    onShareInvitation: (SpaceInvitation) -> Unit,
     onClearFeedback: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -51,9 +60,9 @@ fun SpaceSettingsScreen(
     var showRenameDialog by rememberSaveable { mutableStateOf(false) }
     var pendingAction by remember { mutableStateOf<MemberAction?>(null) }
 
-    DisposableEffect(space.id) {
-        onObserveMembers(space.id)
-        onDispose(onStopObservingMembers)
+    DisposableEffect(space.id, space.role) {
+        onObserveSpaceSettings(space.id, space.role == SpaceRole.OWNER)
+        onDispose(onStopObservingSpaceSettings)
     }
 
     Column(
@@ -99,6 +108,16 @@ fun SpaceSettingsScreen(
             ) {
                 Text(text = stringResource(R.string.space_rename))
             }
+
+            HorizontalDivider()
+            OwnerInvitations(
+                invitations = state.invitations,
+                spaceIsFull = space.memberCount >= 10,
+                actionsEnabled = !state.isLoading,
+                onCreateInvitation = { onCreateInvitation(space.id) },
+                onRevokeInvitation = onRevokeInvitation,
+                onShareInvitation = onShareInvitation,
+            )
         }
 
         HorizontalDivider()
@@ -191,6 +210,124 @@ fun SpaceSettingsScreen(
                 pendingAction = null
             },
         )
+    }
+}
+
+@Composable
+private fun OwnerInvitations(
+    invitations: UiState<List<SpaceInvitation>>,
+    spaceIsFull: Boolean,
+    actionsEnabled: Boolean,
+    onCreateInvitation: () -> Unit,
+    onRevokeInvitation: (String) -> Unit,
+    onShareInvitation: (SpaceInvitation) -> Unit,
+) {
+    Text(
+        text = stringResource(R.string.invitation_section_title),
+        style = MaterialTheme.typography.titleLarge,
+    )
+    Text(
+        text = stringResource(R.string.invitation_section_description),
+        style = MaterialTheme.typography.bodyMedium,
+    )
+    Button(
+        onClick = onCreateInvitation,
+        enabled = actionsEnabled && !spaceIsFull,
+    ) {
+        Text(text = stringResource(R.string.invitation_create))
+    }
+    if (spaceIsFull) {
+        Text(
+            text = stringResource(R.string.invitation_space_full_explanation),
+            style = MaterialTheme.typography.bodySmall,
+        )
+    }
+
+    when (invitations) {
+        UiState.Loading -> CircularProgressIndicator()
+        is UiState.Error -> Text(
+            text = invitations.message ?: stringResource(R.string.generic_error),
+            color = MaterialTheme.colorScheme.error,
+        )
+        is UiState.Content -> {
+            if (invitations.value.isEmpty()) {
+                Text(text = stringResource(R.string.invitation_empty))
+            } else {
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = 280.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(invitations.value, key = SpaceInvitation::id) { invitation ->
+                        InvitationCard(
+                            invitation = invitation,
+                            actionsEnabled = actionsEnabled,
+                            onRevoke = { onRevokeInvitation(invitation.id) },
+                            onShare = { onShareInvitation(invitation) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InvitationCard(
+    invitation: SpaceInvitation,
+    actionsEnabled: Boolean,
+    onRevoke: () -> Unit,
+    onShare: () -> Unit,
+) {
+    val expired = invitation.isExpired()
+    val formatter = remember {
+        DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
+            .withZone(ZoneId.systemDefault())
+    }
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = stringResource(
+                    if (expired) {
+                        R.string.invitation_expired_label
+                    } else {
+                        R.string.invitation_active_label
+                    },
+                ),
+                style = MaterialTheme.typography.labelLarge,
+                color = if (expired) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.primary
+                },
+            )
+            SelectionContainer {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(text = stringResource(R.string.invitation_code_value, invitation.code))
+                    Text(text = invitation.link, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            Text(
+                text = stringResource(
+                    R.string.invitation_expires_value,
+                    formatter.format(invitation.expiresAt),
+                ),
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(
+                    onClick = onShare,
+                    enabled = actionsEnabled && !expired,
+                ) {
+                    Text(text = stringResource(R.string.invitation_share))
+                }
+                TextButton(onClick = onRevoke, enabled = actionsEnabled) {
+                    Text(text = stringResource(R.string.invitation_revoke))
+                }
+            }
+        }
     }
 }
 

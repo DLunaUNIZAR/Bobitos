@@ -7,7 +7,7 @@
 | Nombre del producto | Bobitos |
 | Plataforma inicial | Android |
 | Estado | Implementación — fase 5 en curso |
-| Versión del documento | 0.7.0 |
+| Versión del documento | 0.8.0 |
 | Última actualización | 16 de julio de 2026 |
 | Distribución prevista | Privada |
 | Repositorio | [DLunaUNIZAR/Bobitos](https://github.com/DLunaUNIZAR/Bobitos) |
@@ -444,7 +444,7 @@ Duración estimada: 2-3 semanas.
 
 - [x] Crear, listar, seleccionar y renombrar espacios.
 - [x] Implementar propietario y miembro.
-- [ ] Generar, aceptar y revocar invitaciones.
+- [x] Generar, aceptar y revocar invitaciones.
 - [x] Mostrar y administrar miembros.
 - [x] Implementar abandono, expulsión y transferencia de propiedad.
 - [ ] Implementar eliminación del espacio.
@@ -690,3 +690,5 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 0.5.0 | 14/07/2026 | Firebase local: conexión Android, Emulator Suite, reglas cerradas, datos de prueba y pruebas automatizadas |
 | 0.5.1 | 15/07/2026 | Registro del proyecto remoto `bobitos-dev`, alias de entorno y decisión sobre Analytics |
 | 0.5.2 | 15/07/2026 | Finalización del entorno remoto: aplicación Android, Authentication y Firestore en Madrid |
+| 0.7.0 | 16/07/2026 | Espacios múltiples, roles, miembros, persistencia del espacio activo y operaciones atómicas de gestión |
+| 0.8.0 | 16/07/2026 | Invitaciones privadas de 160 bits, códigos y deep links, caducidad, revocación, consumo atómico y pruebas de concurrencia |

@@ -1,11 +1,11 @@
 # Modelo de datos inicial de Bobitos
 
-> Diseño provisional para Cloud Firestore. Deberá validarse con Firebase Emulator Suite antes de considerarse definitivo.
+> Diseño implementado para espacios, membresías e invitaciones. Los módulos compartidos continúan siendo provisionales.
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Espacios y membresías implementados; módulos compartidos provisionales |
-| Versión | 0.2.0 |
+| Estado | Espacios, membresías e invitaciones implementados; módulos compartidos provisionales |
+| Versión | 0.3.0 |
 | Fecha | 16 de julio de 2026 |
 
 ## 1. Objetivos
@@ -108,6 +108,7 @@ displayName: string
 role: "OWNER" | "MEMBER"
 status: "ACTIVE"
 joinedAt: timestamp
+joinedViaInvitationId: string | ausente
 ```
 
 ### Consultas previstas
@@ -123,6 +124,7 @@ joinedAt: timestamp
 - `displayName` es una copia visible del nombre en el momento de crear la membresía. Evita exponer perfiles globales de otros usuarios y podrá sincronizarse al editar el perfil en una fase posterior.
 - El propietario no puede eliminar su membresía. Debe transferir la propiedad antes de abandonar el espacio.
 - La transferencia actualiza `ownerId` y los dos roles en una única transacción.
+- `joinedViaInvitationId` solo existe en membresías creadas al consumir una invitación y permite validar la operación conjunta en Security Rules.
 
 ## 7. Invitaciones
 
@@ -142,18 +144,20 @@ expiresAt: timestamp
 status: "ACTIVE" | "USED" | "REVOKED"
 usedBy: string | null
 usedAt: timestamp | null
+revokedAt: timestamp | null
 ```
 
 ### Token
 
-- Debe ser criptográficamente aleatorio y suficientemente largo.
-- El enlace será la forma preferida de compartirlo.
-- El código manual será una representación legible del mismo secreto.
-- No se permitirá listar invitaciones mediante consultas generales desde el cliente.
+- Se generan 160 bits con `SecureRandom` y se codifican como 32 caracteres Base32.
+- El enlace usa `bobitos://invite/{inviteToken}` y abre directamente la aplicación Android.
+- El código manual agrupa el mismo secreto en bloques de cuatro caracteres.
+- Una cuenta verificada puede recuperar una invitación únicamente si conoce el token.
+- Solo el propietario puede listar invitaciones y la consulta debe estar limitada por `spaceId`; los listados generales son rechazados.
 
 ### Caducidad
 
-- `expiresAt` será exactamente 72 horas posterior a `createdAt`.
+- El cliente solicita una vigencia de 72 horas. Las reglas limitan `expiresAt` al intervalo entre 71 y 72 horas desde `request.time` para absorber el pequeño desfase entre el reloj del dispositivo y el servidor sin permitir vigencias arbitrarias.
 - No es necesario cambiar `status` a `EXPIRED`: la caducidad se calcula comparando la hora del servidor.
 - Una invitación es válida si está `ACTIVE`, no ha caducado y todavía no tiene `usedBy`.
 
@@ -164,6 +168,7 @@ La operación deberá:
 1. Actualizar la invitación a `USED`.
 2. Establecer `usedBy` y `usedAt`.
 3. Crear la membresía del usuario.
+4. Incrementar `memberCount` y registrar `lastMembershipChangeUserId`.
 
 Las Security Rules deberán comprobar el resultado conjunto mediante una escritura atómica y `getAfter()` o una estrategia equivalente validada en el emulador.
 
@@ -345,6 +350,7 @@ La regla deberá verificar:
 
 - Membresías por `userId + status`.
 - Membresías por `spaceId + status`.
+- Invitaciones por `spaceId + status`.
 - Compra por `purchased + createdAt`.
 - Tareas por `status + dueAt`.
 - Tareas por `assigneeId + status + dueAt`.
@@ -354,7 +360,7 @@ Solo se crearán los índices que requieran las consultas reales.
 
 ## 15. Preguntas técnicas para el prototipo
 
-- [ ] Validar aceptación atómica de invitaciones únicamente con Security Rules.
+- [x] Validar aceptación atómica de invitaciones únicamente con Security Rules.
 - [ ] Elegir representación definitiva de eventos de día completo.
 - [ ] Diseñar consulta eficiente para eventos que atraviesan el intervalo visible.
 - [ ] Validar la eliminación por lotes de un espacio sin Cloud Functions.

@@ -31,6 +31,8 @@ import {
   where,
   writeBatch,
   collection,
+  increment,
+  runTransaction,
 } from "firebase/firestore";
 
 const projectId = "demo-bobitos";
@@ -278,6 +280,162 @@ test("el propietario puede expulsar a un miembro con la misma operación segura"
   await assertSucceeds(batch.commit());
 });
 
+test("solo el propietario crea invitaciones de 72 horas", async () => {
+  await seedSpace("invite-create", "invite-owner", ["invite-member"]);
+  const owner = verifiedFirestore("invite-owner");
+  const member = verifiedFirestore("invite-member");
+
+  await assertSucceeds(
+    createInvitation(owner, "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567", "invite-create", "invite-owner"),
+  );
+  await assertFails(
+    createInvitation(member, "BCDEFGHIJKLMNOPQRSTUVWXYZ234567A", "invite-create", "invite-member"),
+  );
+});
+
+test("el token permite get pero nunca un listado general de invitaciones", async () => {
+  await seedSpace("invite-list-a", "list-a-owner");
+  await seedSpace("invite-list-b", "list-b-owner");
+  const ownerA = verifiedFirestore("list-a-owner");
+  const ownerB = verifiedFirestore("list-b-owner");
+  const outsider = verifiedFirestore("invite-list-outsider");
+  const tokenA = "CDEFGHIJKLMNOPQRSTUVWXYZ234567AB";
+  const tokenB = "DEFGHIJKLMNOPQRSTUVWXYZ234567ABC";
+  await createInvitation(ownerA, tokenA, "invite-list-a", "list-a-owner");
+  await createInvitation(ownerB, tokenB, "invite-list-b", "list-b-owner");
+
+  await assertSucceeds(getDoc(doc(outsider, "invitations", tokenA)));
+  await assertSucceeds(
+    getDocs(
+      query(
+        collection(ownerA, "invitations"),
+        where("spaceId", "==", "invite-list-a"),
+        where("status", "==", "ACTIVE"),
+      ),
+    ),
+  );
+  await assertFails(getDocs(collection(ownerA, "invitations")));
+  await assertFails(
+    getDoc(doc(unverifiedFirestore("invite-unverified"), "invitations", tokenA)),
+  );
+});
+
+test("aceptar una invitación consume el token y crea la membresía atómicamente", async () => {
+  await seedSpace("invite-accept", "accept-owner");
+  const owner = verifiedFirestore("accept-owner");
+  const guest = verifiedFirestore("accept-guest");
+  const token = "EFGHIJKLMNOPQRSTUVWXYZ234567ABCD";
+  await createInvitation(owner, token, "invite-accept", "accept-owner");
+
+  await assertSucceeds(acceptInvitation(guest, token, "accept-guest"));
+  const [invitation, membership, space] = await Promise.all([
+    getDoc(doc(guest, "invitations", token)),
+    getDoc(doc(guest, "memberships", "invite-accept_accept-guest")),
+    getDoc(doc(guest, "spaces", "invite-accept")),
+  ]);
+
+  assert.equal(invitation.data().status, "USED");
+  assert.equal(invitation.data().usedBy, "accept-guest");
+  assert.equal(membership.data().joinedViaInvitationId, token);
+  assert.equal(space.data().memberCount, 2);
+});
+
+test("una invitación usada no puede aceptarse de nuevo", async () => {
+  await seedSpace("invite-used", "used-owner");
+  const owner = verifiedFirestore("used-owner");
+  const firstGuest = verifiedFirestore("used-first");
+  const secondGuest = verifiedFirestore("used-second");
+  const token = "FGHIJKLMNOPQRSTUVWXYZ234567ABCDE";
+  await createInvitation(owner, token, "invite-used", "used-owner");
+  await acceptInvitation(firstGuest, token, "used-first");
+
+  await assertFails(acceptInvitation(secondGuest, token, "used-second"));
+});
+
+test("una invitación revocada o caducada es rechazada", async () => {
+  await seedSpace("invite-invalid", "invalid-owner");
+  const owner = verifiedFirestore("invalid-owner");
+  const guest = verifiedFirestore("invalid-guest");
+  const revokedToken = "GHIJKLMNOPQRSTUVWXYZ234567ABCDEF";
+  const expiredToken = "HIJKLMNOPQRSTUVWXYZ234567ABCDEFG";
+  await createInvitation(owner, revokedToken, "invite-invalid", "invalid-owner");
+  await assertSucceeds(
+    updateDoc(doc(owner, "invitations", revokedToken), {
+      status: "REVOKED",
+      revokedAt: serverTimestamp(),
+    }),
+  );
+  await seedInvitation(expiredToken, "invite-invalid", "invalid-owner", {
+    expiresAt: Timestamp.fromMillis(Date.now() - 60_000),
+  });
+
+  await assertFails(acceptInvitation(guest, revokedToken, "invalid-guest"));
+  await assertFails(acceptInvitation(guest, expiredToken, "invalid-guest"));
+});
+
+test("dos cuentas simultáneas solo pueden consumir una invitación una vez", async () => {
+  await seedSpace("invite-race", "race-owner");
+  const owner = verifiedFirestore("race-owner");
+  const guestA = verifiedFirestore("race-guest-a");
+  const guestB = verifiedFirestore("race-guest-b");
+  const token = "IJKLMNOPQRSTUVWXYZ234567ABCDEFGH";
+  await createInvitation(owner, token, "invite-race", "race-owner");
+
+  const results = await Promise.allSettled([
+    acceptInvitation(guestA, token, "race-guest-a"),
+    acceptInvitation(guestB, token, "race-guest-b"),
+  ]);
+
+  assert.equal(results.filter((result) => result.status === "fulfilled").length, 1);
+  assert.equal(results.filter((result) => result.status === "rejected").length, 1);
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const firestore = context.firestore();
+    const [space, invitation, memberships] = await Promise.all([
+      getDoc(doc(firestore, "spaces", "invite-race")),
+      getDoc(doc(firestore, "invitations", token)),
+      getDocs(
+        query(
+          collection(firestore, "memberships"),
+          where("spaceId", "==", "invite-race"),
+        ),
+      ),
+    ]);
+    assert.equal(space.data().memberCount, 2);
+    assert.equal(invitation.data().status, "USED");
+    assert.equal(memberships.size, 2);
+  });
+});
+
+test("un miembro existente abre el espacio sin duplicar su membresía", async () => {
+  await seedSpace("invite-existing", "existing-owner", ["existing-member"]);
+  const owner = verifiedFirestore("existing-owner");
+  const member = verifiedFirestore("existing-member");
+  const token = "JKLMNOPQRSTUVWXYZ234567ABCDEFGHI";
+  await createInvitation(owner, token, "invite-existing", "existing-owner");
+
+  const spaceId = await acceptInvitation(member, token, "existing-member");
+  const [space, invitation] = await Promise.all([
+    getDoc(doc(member, "spaces", "invite-existing")),
+    getDoc(doc(member, "invitations", token)),
+  ]);
+
+  assert.equal(spaceId, "invite-existing");
+  assert.equal(space.data().memberCount, 2);
+  assert.equal(invitation.data().status, "ACTIVE");
+});
+
+test("un espacio con 10 miembros no admite invitaciones ni nuevas membresías", async () => {
+  const members = Array.from({ length: 9 }, (_, index) => `full-member-${index}`);
+  await seedSpace("invite-full", "full-owner", members);
+  const owner = verifiedFirestore("full-owner");
+  const guest = verifiedFirestore("full-guest");
+  const token = "KLMNOPQRSTUVWXYZ234567ABCDEFGHIJ";
+
+  await assertFails(createInvitation(owner, token, "invite-full", "full-owner"));
+  await seedInvitation(token, "invite-full", "full-owner");
+  await assertFails(acceptInvitation(guest, token, "full-guest"));
+});
+
 function verifiedFirestore(uid) {
   return testEnvironment.authenticatedContext(uid, {
     email: `${uid}@bobitos.invalid`,
@@ -312,6 +470,86 @@ function createSpace(firestore, spaceId, userId) {
     joinedAt: serverTimestamp(),
   });
   return batch.commit();
+}
+
+function createInvitation(firestore, invitationId, spaceId, ownerId) {
+  return setDoc(doc(firestore, "invitations", invitationId), {
+    spaceId,
+    createdBy: ownerId,
+    createdAt: serverTimestamp(),
+    expiresAt: Timestamp.fromMillis(Date.now() + 72 * 60 * 60 * 1000 - 5_000),
+    status: "ACTIVE",
+    usedBy: null,
+    usedAt: null,
+    revokedAt: null,
+  });
+}
+
+function acceptInvitation(firestore, invitationId, userId) {
+  return getDoc(doc(firestore, "invitations", invitationId)).then(async (initialInvitation) => {
+    if (!initialInvitation.exists()) throw new Error("Invitation not found");
+    const initialSpaceId = initialInvitation.data().spaceId;
+    const memberships = await getDocs(
+      query(
+        collection(firestore, "memberships"),
+        where("userId", "==", userId),
+        where("status", "==", "ACTIVE"),
+      ),
+    );
+    if (memberships.docs.some((membership) => membership.data().spaceId === initialSpaceId)) {
+      return initialSpaceId;
+    }
+
+    return consumeInvitation(firestore, invitationId, userId);
+  });
+}
+
+function consumeInvitation(firestore, invitationId, userId) {
+  return runTransaction(firestore, async (transaction) => {
+    const invitationReference = doc(firestore, "invitations", invitationId);
+    const invitation = await transaction.get(invitationReference);
+    if (!invitation.exists()) throw new Error("Invitation not found");
+    const spaceId = invitation.data().spaceId;
+    const membershipReference = doc(firestore, "memberships", `${spaceId}_${userId}`);
+
+    transaction.update(invitationReference, {
+      status: "USED",
+      usedBy: userId,
+      usedAt: serverTimestamp(),
+    });
+    transaction.set(membershipReference, {
+      spaceId,
+      userId,
+      displayName: userId,
+      role: "MEMBER",
+      status: "ACTIVE",
+      joinedAt: serverTimestamp(),
+      joinedViaInvitationId: invitationId,
+    });
+    transaction.update(doc(firestore, "spaces", spaceId), {
+      memberCount: increment(1),
+      lastMembershipChangeUserId: userId,
+      updatedAt: serverTimestamp(),
+    });
+    return spaceId;
+  });
+}
+
+async function seedInvitation(invitationId, spaceId, ownerId, overrides = {}) {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const now = Timestamp.now();
+    await setDoc(doc(context.firestore(), "invitations", invitationId), {
+      spaceId,
+      createdBy: ownerId,
+      createdAt: now,
+      expiresAt: Timestamp.fromMillis(Date.now() + 72 * 60 * 60 * 1000),
+      status: "ACTIVE",
+      usedBy: null,
+      usedAt: null,
+      revokedAt: null,
+      ...overrides,
+    });
+  });
 }
 
 async function seedSpace(spaceId, ownerId, memberIds = [], task = null) {
