@@ -1,9 +1,27 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 }
+
+val googleServicesFile = file("google-services.json")
+if (googleServicesFile.isFile) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.isFile) {
+        keystorePropertiesFile.inputStream().use(::load)
+    }
+}
+val releaseSigningKeys = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+val hasReleaseSigning = releaseSigningKeys.all { !keystoreProperties.getProperty(it).isNullOrBlank() }
+val betaVersionCode = providers.gradleProperty("VERSION_CODE").orNull?.toIntOrNull() ?: 1
+val betaVersionName = providers.gradleProperty("VERSION_NAME").orNull ?: "0.1.0-beta.1"
 
 android {
     namespace = "com.dlunaunizar.bobitos"
@@ -14,10 +32,21 @@ android {
         applicationId = "com.dlunaunizar.bobitos"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = betaVersionCode
+        versionName = betaVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
     }
 
     buildTypes {
@@ -30,6 +59,7 @@ android {
         }
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
             buildConfigField("boolean", "USE_FIREBASE_EMULATORS", "false")
             buildConfigField("String", "FIREBASE_PROJECT_ID", "\"\"")
             buildConfigField("String", "FIREBASE_EMULATOR_HOST", "\"\"")
@@ -57,6 +87,25 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+}
+
+val verifyBetaConfiguration = tasks.register("verifyBetaConfiguration") {
+    group = "verification"
+    description = "Comprueba la configuración local necesaria para firmar y distribuir la beta."
+    doLast {
+        check(googleServicesFile.isFile) {
+            "Falta app/google-services.json. Descárgalo desde el proyecto bobitos-dev de Firebase."
+        }
+        check(hasReleaseSigning) {
+            "Falta keystore.properties o alguna propiedad de firma requerida. Consulta docs/BETA_DISTRIBUTION.md."
+        }
+    }
+}
+
+tasks.matching {
+    it.name in setOf("assembleRelease", "bundleRelease")
+}.configureEach {
+    dependsOn(verifyBetaConfiguration)
 }
 
 dependencies {

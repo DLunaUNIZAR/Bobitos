@@ -16,6 +16,10 @@ local.properties
 keystore.properties
 secrets.properties
 google-services.json
+firebase-app-distribution-credentials.json
+
+# Private beta participants
+testers.txt
 
 # Firebase local state
 .firebase/
