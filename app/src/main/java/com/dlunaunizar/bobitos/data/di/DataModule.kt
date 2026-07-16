@@ -6,6 +6,8 @@ import com.dlunaunizar.bobitos.data.repository.DataStoreActiveSpaceRepository
 import com.dlunaunizar.bobitos.data.repository.FirebaseAuthRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreSpaceRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
+import com.dlunaunizar.bobitos.data.repository.FirestoreShoppingRepository
+import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.connectivity.AndroidConnectivityRepository
 import com.dlunaunizar.bobitos.data.connectivity.ConnectivityRepository
 import com.dlunaunizar.bobitos.data.sync.FirestoreSyncRepository
@@ -30,6 +32,12 @@ abstract class DataModule {
     abstract fun bindSpaceRepository(
         repository: FirestoreSpaceRepository,
     ): SpaceRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindShoppingRepository(
+        repository: FirestoreShoppingRepository,
+    ): ShoppingRepository
 
     @Binds
     @Singleton

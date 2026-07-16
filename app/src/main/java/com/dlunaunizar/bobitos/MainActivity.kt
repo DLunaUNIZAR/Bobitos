@@ -14,6 +14,7 @@ import com.dlunaunizar.bobitos.core.designsystem.theme.BobitosTheme
 import com.dlunaunizar.bobitos.core.model.InvitationCode
 import com.dlunaunizar.bobitos.feature.auth.AuthViewModel
 import com.dlunaunizar.bobitos.feature.spaces.SpacesViewModel
+import com.dlunaunizar.bobitos.feature.shopping.ShoppingViewModel
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +24,7 @@ class MainActivity : ComponentActivity() {
     private val viewModel: AppViewModel by viewModels()
     private val authViewModel: AuthViewModel by viewModels()
     private val spacesViewModel: SpacesViewModel by viewModels()
+    private val shoppingViewModel: ShoppingViewModel by viewModels()
     private val pendingInvitationCode = MutableStateFlow<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,6 +36,7 @@ class MainActivity : ComponentActivity() {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
             val authActionState by authViewModel.uiState.collectAsStateWithLifecycle()
             val spaceManagementState by spacesViewModel.uiState.collectAsStateWithLifecycle()
+            val shoppingState by shoppingViewModel.uiState.collectAsStateWithLifecycle()
             val invitationCode by pendingInvitationCode.collectAsStateWithLifecycle()
 
             BobitosTheme {
@@ -41,6 +44,7 @@ class MainActivity : ComponentActivity() {
                     uiState = uiState,
                     authActionState = authActionState,
                     spaceManagementState = spaceManagementState,
+                    shoppingState = shoppingState,
                     onSpaceSelected = viewModel::selectSpace,
                     onRealtimeScopeChanged = viewModel::setRealtimeScope,
                     onCreateSpace = spacesViewModel::createSpace,
@@ -58,6 +62,14 @@ class MainActivity : ComponentActivity() {
                     pendingInvitationCode = invitationCode,
                     onInvitationCodeConsumed = { pendingInvitationCode.value = null },
                     onClearSpaceFeedback = spacesViewModel::clearFeedback,
+                    onObserveShopping = shoppingViewModel::observe,
+                    onStopObservingShopping = shoppingViewModel::stopObserving,
+                    onAddShoppingItem = shoppingViewModel::addItem,
+                    onUpdateShoppingItem = shoppingViewModel::updateItem,
+                    onSetShoppingItemPurchased = shoppingViewModel::setPurchased,
+                    onDeleteShoppingItem = shoppingViewModel::deleteItem,
+                    onClearPurchasedShoppingItems = shoppingViewModel::clearPurchased,
+                    onClearShoppingFeedback = shoppingViewModel::clearFeedback,
                     onSignIn = authViewModel::signIn,
                     onRegister = authViewModel::register,
                     onPasswordReset = authViewModel::sendPasswordReset,

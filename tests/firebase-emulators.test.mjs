@@ -474,6 +474,189 @@ test("un espacio con 10 miembros no admite invitaciones ni nuevas membresías", 
   await assertFails(acceptInvitation(guest, token, "full-guest"));
 });
 
+test("todos los miembros pueden crear, editar y eliminar productos", async () => {
+  await seedSpace("shopping-crud", "shopping-owner", ["shopping-member"]);
+  const member = verifiedFirestore("shopping-member");
+  const outsider = verifiedFirestore("shopping-outsider");
+  const itemReference = doc(member, "spaces", "shopping-crud", "shoppingItems", "milk");
+
+  await assertSucceeds(
+    setDoc(itemReference, shoppingItem("shopping-member", { name: "Leche" })),
+  );
+  await assertSucceeds(
+    updateDoc(itemReference, {
+      name: "Leche entera",
+      quantity: "2 litros",
+      notes: "Sin lactosa",
+      updatedBy: "shopping-member",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertFails(
+    getDoc(doc(outsider, "spaces", "shopping-crud", "shoppingItems", "milk")),
+  );
+  await assertSucceeds(writeBatch(member).delete(itemReference).commit());
+});
+
+test("los productos no admiten assigneeId ni campos ajenos al contrato", async () => {
+  await seedSpace("shopping-schema", "schema-owner");
+  const owner = verifiedFirestore("schema-owner");
+
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "shopping-schema", "shoppingItems", "assigned"),
+      shoppingItem("schema-owner", { assigneeId: "schema-owner" }),
+    ),
+  );
+});
+
+test("marcar y desmarcar conserva una atribución coherente", async () => {
+  await seedSpace("shopping-mark", "mark-owner", ["mark-member"]);
+  await seedShoppingItem("shopping-mark", "bread", "mark-owner");
+  const member = verifiedFirestore("mark-member");
+  const itemReference = doc(member, "spaces", "shopping-mark", "shoppingItems", "bread");
+
+  await assertFails(
+    updateDoc(itemReference, {
+      purchased: true,
+      purchasedBy: "mark-owner",
+      purchasedByName: "mark-owner",
+      purchasedAt: serverTimestamp(),
+      updatedBy: "mark-member",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertSucceeds(
+    updateDoc(itemReference, {
+      purchased: true,
+      purchasedBy: "mark-member",
+      purchasedByName: "mark-member",
+      purchasedAt: serverTimestamp(),
+      updatedBy: "mark-member",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertSucceeds(
+    updateDoc(itemReference, {
+      purchased: false,
+      purchasedBy: null,
+      purchasedByName: null,
+      purchasedAt: null,
+      updatedBy: "mark-member",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+
+  const item = await getDoc(itemReference);
+  assert.equal(item.data().purchased, false);
+  assert.equal(item.data().purchasedBy, null);
+});
+
+test("dos clientes reciben la lista de la compra en tiempo real", async () => {
+  await seedSpace("shopping-realtime", "shopping-live-owner", ["shopping-live-member"]);
+  const owner = verifiedFirestore("shopping-live-owner");
+  const member = verifiedFirestore("shopping-live-member");
+  const memberItems = collection(member, "spaces", "shopping-realtime", "shoppingItems");
+
+  await new Promise((resolve, reject) => {
+    let initialSnapshotReceived = false;
+    const timeout = setTimeout(() => {
+      unsubscribe();
+      reject(new Error("El segundo cliente no recibió el producto en tiempo real"));
+    }, 5_000);
+    const unsubscribe = onSnapshot(
+      memberItems,
+      (snapshot) => {
+        if (!initialSnapshotReceived) {
+          initialSnapshotReceived = true;
+          setDoc(
+            doc(owner, "spaces", "shopping-realtime", "shoppingItems", "apples"),
+            shoppingItem("shopping-live-owner", { name: "Manzanas" }),
+          ).catch(reject);
+          return;
+        }
+        if (snapshot.docs.some((item) => item.data().name === "Manzanas")) {
+          clearTimeout(timeout);
+          unsubscribe();
+          resolve();
+        }
+      },
+      (error) => {
+        clearTimeout(timeout);
+        reject(error);
+      },
+    );
+  });
+});
+
+test("ediciones simultáneas de campos distintos no corrompen el producto", async () => {
+  await seedSpace("shopping-edits", "edit-owner", ["edit-member"]);
+  await seedShoppingItem("shopping-edits", "rice", "edit-owner");
+  const owner = verifiedFirestore("edit-owner");
+  const member = verifiedFirestore("edit-member");
+
+  await Promise.all([
+    updateDoc(doc(owner, "spaces", "shopping-edits", "shoppingItems", "rice"), {
+      quantity: "2 paquetes",
+      updatedBy: "edit-owner",
+      updatedAt: serverTimestamp(),
+    }),
+    updateDoc(doc(member, "spaces", "shopping-edits", "shoppingItems", "rice"), {
+      notes: "Integral",
+      updatedBy: "edit-member",
+      updatedAt: serverTimestamp(),
+    }),
+  ]);
+
+  const item = await getDoc(
+    doc(owner, "spaces", "shopping-edits", "shoppingItems", "rice"),
+  );
+  assert.equal(item.data().quantity, "2 paquetes");
+  assert.equal(item.data().notes, "Integral");
+});
+
+test("limpiar comprados no borra un producto desmarcado simultáneamente", async () => {
+  await seedSpace("shopping-clear", "clear-owner", ["clear-member"]);
+  await seedShoppingItem("shopping-clear", "keep", "clear-owner", { purchased: true });
+  await seedShoppingItem("shopping-clear", "delete", "clear-owner", { purchased: true });
+  const owner = verifiedFirestore("clear-owner");
+  const member = verifiedFirestore("clear-member");
+  const candidates = await getDocs(
+    query(
+      collection(owner, "spaces", "shopping-clear", "shoppingItems"),
+      where("purchased", "==", true),
+    ),
+  );
+
+  await updateDoc(doc(member, "spaces", "shopping-clear", "shoppingItems", "keep"), {
+    purchased: false,
+    purchasedBy: null,
+    purchasedByName: null,
+    purchasedAt: null,
+    updatedBy: "clear-member",
+    updatedAt: serverTimestamp(),
+  });
+  await runTransaction(owner, async (transaction) => {
+    const currentItems = [];
+    for (const candidate of candidates.docs) {
+      currentItems.push(await transaction.get(candidate.ref));
+    }
+    for (const current of currentItems) {
+      if (current.exists() && current.data().purchased === true) {
+        transaction.delete(current.ref);
+      }
+    }
+  });
+
+  const [kept, removed] = await Promise.all([
+    getDoc(doc(owner, "spaces", "shopping-clear", "shoppingItems", "keep")),
+    getDoc(doc(owner, "spaces", "shopping-clear", "shoppingItems", "delete")),
+  ]);
+  assert.equal(kept.exists(), true);
+  assert.equal(kept.data().purchased, false);
+  assert.equal(removed.exists(), false);
+});
+
 function verifiedFirestore(uid) {
   return testEnvironment.authenticatedContext(uid, {
     email: `${uid}@bobitos.invalid`,
@@ -486,6 +669,46 @@ function unverifiedFirestore(uid) {
     email: `${uid}@bobitos.invalid`,
     email_verified: false,
   }).firestore();
+}
+
+function shoppingItem(userId, overrides = {}) {
+  return {
+    name: "Producto",
+    quantity: null,
+    notes: null,
+    purchased: false,
+    createdBy: userId,
+    createdByName: userId,
+    createdAt: serverTimestamp(),
+    updatedBy: userId,
+    updatedAt: serverTimestamp(),
+    purchasedBy: null,
+    purchasedByName: null,
+    purchasedAt: null,
+    ...overrides,
+  };
+}
+
+async function seedShoppingItem(spaceId, itemId, userId, overrides = {}) {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const timestamp = Timestamp.now();
+    const purchased = overrides.purchased === true;
+    await setDoc(doc(context.firestore(), "spaces", spaceId, "shoppingItems", itemId), {
+      name: "Producto",
+      quantity: null,
+      notes: null,
+      purchased,
+      createdBy: userId,
+      createdByName: userId,
+      createdAt: timestamp,
+      updatedBy: userId,
+      updatedAt: timestamp,
+      purchasedBy: purchased ? userId : null,
+      purchasedByName: purchased ? userId : null,
+      purchasedAt: purchased ? timestamp : null,
+      ...overrides,
+    });
+  });
 }
 
 function createSpace(firestore, spaceId, userId) {

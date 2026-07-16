@@ -40,7 +40,17 @@ try {
         doc(firestore, "spaces", "demo-home", "shoppingItems", "demo-milk"),
         {
           name: "Leche",
+          quantity: "2 litros",
+          notes: "Sin lactosa",
           purchased: false,
+          createdBy: "demo-owner",
+          createdByName: "David Demo",
+          createdAt: timestamp,
+          updatedBy: "demo-owner",
+          updatedAt: timestamp,
+          purchasedBy: null,
+          purchasedByName: null,
+          purchasedAt: null,
         },
       ),
     ]);
