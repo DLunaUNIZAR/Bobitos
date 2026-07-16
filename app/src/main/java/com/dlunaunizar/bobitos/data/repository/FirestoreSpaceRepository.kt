@@ -539,6 +539,10 @@ class FirestoreSpaceRepository @Inject constructor(
                         task.reference,
                         FIELD_ASSIGNEE_ID,
                         null,
+                        FIELD_ASSIGNEE_NAME,
+                        null,
+                        FIELD_UPDATED_BY,
+                        currentUserId,
                         FIELD_UPDATED_AT,
                         FieldValue.serverTimestamp(),
                     )
@@ -658,6 +662,8 @@ class FirestoreSpaceRepository @Inject constructor(
         const val FIELD_USED_AT = "usedAt"
         const val FIELD_REVOKED_AT = "revokedAt"
         const val FIELD_ASSIGNEE_ID = "assigneeId"
+        const val FIELD_ASSIGNEE_NAME = "assigneeName"
+        const val FIELD_UPDATED_BY = "updatedBy"
         const val STATUS_ACTIVE = "ACTIVE"
         const val ROLE_OWNER = "OWNER"
         const val ROLE_MEMBER = "MEMBER"

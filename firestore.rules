@@ -258,6 +258,100 @@ service cloud.firestore {
         );
     }
 
+    function validOptionalTaskText(value, maxLength) {
+      return value == null || (value is string && value.size() <= maxLength);
+    }
+
+    function activeTaskAssignee(spaceId, userId) {
+      return userId is string
+        && exists(membershipPath(spaceId, userId))
+        && get(membershipPath(spaceId, userId)).data.status == "ACTIVE";
+    }
+
+    function validTaskShape(spaceId) {
+      return request.resource.data.keys().hasAll([
+          "title", "description", "assigneeId", "assigneeName", "dueAt",
+          "priority", "status", "createdBy", "createdByName", "createdAt",
+          "updatedBy", "updatedAt", "completedBy", "completedByName", "completedAt"
+        ])
+        && request.resource.data.keys().hasOnly([
+          "title", "description", "assigneeId", "assigneeName", "dueAt",
+          "priority", "status", "createdBy", "createdByName", "createdAt",
+          "updatedBy", "updatedAt", "completedBy", "completedByName", "completedAt"
+        ])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 120
+        && validOptionalTaskText(request.resource.data.description, 1000)
+        && activeTaskAssignee(spaceId, request.resource.data.assigneeId)
+        && request.resource.data.assigneeName is string
+        && request.resource.data.assigneeName.size() > 0
+        && request.resource.data.assigneeName.size() <= 60
+        && (request.resource.data.dueAt == null || request.resource.data.dueAt is timestamp)
+        && request.resource.data.priority in ["LOW", "MEDIUM", "HIGH"]
+        && request.resource.data.status in ["TODO", "DONE"]
+        && request.resource.data.createdBy is string
+        && request.resource.data.createdByName is string
+        && request.resource.data.createdByName.size() > 0
+        && request.resource.data.createdByName.size() <= 60
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedBy is string
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function validTaskCompletion() {
+      return (
+          request.resource.data.status == "DONE"
+          && request.resource.data.completedBy == request.auth.uid
+          && request.resource.data.completedByName is string
+          && request.resource.data.completedByName.size() > 0
+          && request.resource.data.completedByName.size() <= 60
+          && request.resource.data.completedAt == request.time
+        ) || (
+          request.resource.data.status == "TODO"
+          && request.resource.data.completedBy == null
+          && request.resource.data.completedByName == null
+          && request.resource.data.completedAt == null
+        );
+    }
+
+    function validNewTask(spaceId) {
+      return isActiveMember(spaceId)
+        && validTaskShape(spaceId)
+        && request.resource.data.status == "TODO"
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.completedBy == null
+        && request.resource.data.completedByName == null
+        && request.resource.data.completedAt == null;
+    }
+
+    function validTaskUpdate(spaceId) {
+      let statusChanged = request.resource.data.status != resource.data.status;
+      return isActiveMember(spaceId)
+        && validTaskShape(spaceId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "title", "description", "assigneeId", "assigneeName", "dueAt", "priority",
+          "status", "updatedBy", "updatedAt", "completedBy", "completedByName", "completedAt"
+        ])
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdByName == resource.data.createdByName
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time
+        && (
+          (statusChanged && validTaskCompletion())
+          || (
+            !statusChanged
+            && request.resource.data.completedBy == resource.data.completedBy
+            && request.resource.data.completedByName == resource.data.completedByName
+            && request.resource.data.completedAt == resource.data.completedAt
+          )
+        );
+    }
+
     match /spaces/{spaceId} {
       allow get: if isActiveMember(spaceId);
       allow list: if false;
@@ -270,8 +364,10 @@ service cloud.firestore {
 
       match /tasks/{taskId} {
         allow read: if isActiveMember(spaceId);
-        allow update: if validPendingTaskUnassignment(spaceId);
-        allow create, delete: if false;
+        allow create: if validNewTask(spaceId);
+        allow update: if validTaskUpdate(spaceId)
+          || validPendingTaskUnassignment(spaceId);
+        allow delete: if isActiveMember(spaceId);
       }
 
       match /shoppingItems/{itemId} {
@@ -494,9 +590,11 @@ service cloud.firestore {
         && resource.data.status == "TODO"
         && targetUserId is string
         && request.resource.data.assigneeId == null
+        && request.resource.data.assigneeName == null
+        && request.resource.data.updatedBy == request.auth.uid
         && request.resource.data.updatedAt == request.time
         && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(["assigneeId", "updatedAt"])
+          .hasOnly(["assigneeId", "assigneeName", "updatedBy", "updatedAt"])
         && exists(membershipPath(spaceId, targetUserId))
         && get(membershipPath(spaceId, targetUserId)).data.role == "MEMBER"
         && !existsAfter(membershipPath(spaceId, targetUserId))

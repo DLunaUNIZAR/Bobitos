@@ -53,6 +53,23 @@ try {
           purchasedAt: null,
         },
       ),
+      setDoc(doc(firestore, "spaces", "demo-home", "tasks", "demo-clean"), {
+        title: "Limpiar la cocina",
+        description: "Antes del fin de semana",
+        assigneeId: "demo-owner",
+        assigneeName: "David Demo",
+        dueAt: null,
+        priority: "MEDIUM",
+        status: "TODO",
+        createdBy: "demo-owner",
+        createdByName: "David Demo",
+        createdAt: timestamp,
+        updatedBy: "demo-owner",
+        updatedAt: timestamp,
+        completedBy: null,
+        completedByName: null,
+        completedAt: null,
+      }),
     ]);
   });
 

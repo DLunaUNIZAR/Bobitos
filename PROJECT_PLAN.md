@@ -6,8 +6,8 @@
 | --- | --- |
 | Nombre del producto | Bobitos |
 | Plataforma inicial | Android |
-| Estado | Implementación — fase 7 completada |
-| Versión del documento | 1.0.0 |
+| Estado | Implementación — fase 8 completada |
+| Versión del documento | 1.1.0 |
 | Última actualización | 16 de julio de 2026 |
 | Distribución prevista | Privada |
 | Repositorio | [DLunaUNIZAR/Bobitos](https://github.com/DLunaUNIZAR/Bobitos) |
@@ -486,14 +486,14 @@ Duración estimada: 1-2 semanas.
 
 Duración estimada: 2 semanas.
 
-- [ ] Crear, editar y eliminar tareas.
-- [ ] Asignar un responsable principal.
-- [ ] Añadir fecha límite y prioridad.
-- [ ] Completar y reabrir tareas.
-- [ ] Mostrar autor y usuario que completa.
-- [ ] Implementar filtros.
-- [ ] Identificar tareas próximas y vencidas.
-- [ ] Probar concurrencia y permisos.
+- [x] Crear, editar y eliminar tareas.
+- [x] Asignar un responsable principal.
+- [x] Añadir fecha límite y prioridad.
+- [x] Completar y reabrir tareas.
+- [x] Mostrar autor y usuario que completa.
+- [x] Implementar filtros.
+- [x] Identificar tareas próximas y vencidas.
+- [x] Probar concurrencia y permisos.
 
 **Criterio de salida:** los miembros pueden repartir y supervisar tareas sin ambigüedad.
 
@@ -698,3 +698,4 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 0.8.0 | 16/07/2026 | Invitaciones privadas de 160 bits, códigos y deep links, caducidad, revocación, consumo atómico y pruebas de concurrencia |
 | 0.9.0 | 16/07/2026 | Tiempo real acotado, conectividad validada, caché de solo lectura, bloqueo central de escrituras y métricas de lecturas |
 | 1.0.0 | 16/07/2026 | Lista de la compra compartida, atribución histórica, limpieza segura y pruebas multiusuario |
+| 1.1.0 | 16/07/2026 | Tareas asignables, prioridades, fechas, filtros, completado y desasignación segura |

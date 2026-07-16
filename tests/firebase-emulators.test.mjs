@@ -291,6 +291,8 @@ test("al abandonar, las tareas pendientes del miembro quedan sin responsable", a
   });
   batch.update(doc(member, "spaces", "leave-space", "tasks", "pending-task"), {
     assigneeId: null,
+    assigneeName: null,
+    updatedBy: "leaving-member",
     updatedAt: serverTimestamp(),
   });
   batch.delete(doc(member, "memberships", "leave-space_leaving-member"));
@@ -472,6 +474,105 @@ test("un espacio con 10 miembros no admite invitaciones ni nuevas membresías", 
   await assertFails(createInvitation(owner, token, "invite-full", "full-owner"));
   await seedInvitation(token, "invite-full", "full-owner");
   await assertFails(acceptInvitation(guest, token, "full-guest"));
+});
+
+test("los miembros crean, editan y reasignan tareas a miembros activos", async () => {
+  await seedSpace("tasks-crud", "tasks-owner", ["tasks-member"]);
+  const owner = verifiedFirestore("tasks-owner");
+  const member = verifiedFirestore("tasks-member");
+  const outsider = verifiedFirestore("tasks-outsider");
+  const reference = doc(owner, "spaces", "tasks-crud", "tasks", "clean");
+
+  await assertSucceeds(setDoc(reference, taskData("tasks-owner", "tasks-member")));
+  await assertSucceeds(updateDoc(doc(member, "spaces", "tasks-crud", "tasks", "clean"), {
+    title: "Limpiar cocina",
+    assigneeId: "tasks-owner",
+    assigneeName: "tasks-owner",
+    priority: "HIGH",
+    updatedBy: "tasks-member",
+    updatedAt: serverTimestamp(),
+  }));
+  await assertFails(getDoc(doc(outsider, "spaces", "tasks-crud", "tasks", "clean")));
+  await assertSucceeds(
+    writeBatch(member)
+      .delete(doc(member, "spaces", "tasks-crud", "tasks", "clean"))
+      .commit(),
+  );
+});
+
+test("una tarea no puede asignarse a un usuario ajeno", async () => {
+  await seedSpace("tasks-assignee", "assignee-owner");
+  const owner = verifiedFirestore("assignee-owner");
+  await assertFails(setDoc(
+    doc(owner, "spaces", "tasks-assignee", "tasks", "invalid"),
+    taskData("assignee-owner", "outsider"),
+  ));
+});
+
+test("cualquier miembro completa y reabre una tarea con atribución coherente", async () => {
+  await seedSpace("tasks-complete", "complete-owner", ["complete-member"]);
+  const owner = verifiedFirestore("complete-owner");
+  const member = verifiedFirestore("complete-member");
+  const reference = doc(owner, "spaces", "tasks-complete", "tasks", "laundry");
+  await setDoc(reference, taskData("complete-owner", "complete-owner"));
+
+  await assertSucceeds(updateDoc(doc(member, "spaces", "tasks-complete", "tasks", "laundry"), {
+    status: "DONE",
+    completedBy: "complete-member",
+    completedByName: "complete-member",
+    completedAt: serverTimestamp(),
+    updatedBy: "complete-member",
+    updatedAt: serverTimestamp(),
+  }));
+  await assertSucceeds(updateDoc(reference, {
+    status: "TODO",
+    completedBy: null,
+    completedByName: null,
+    completedAt: null,
+    updatedBy: "complete-owner",
+    updatedAt: serverTimestamp(),
+  }));
+});
+
+test("una atribución de completado falsa es rechazada", async () => {
+  await seedSpace("tasks-attribution", "attribution-owner", ["attribution-member"]);
+  const member = verifiedFirestore("attribution-member");
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(
+      doc(context.firestore(), "spaces", "tasks-attribution", "tasks", "task"),
+      seededTaskData("attribution-owner", "attribution-member"),
+    );
+  });
+  await assertFails(updateDoc(doc(member, "spaces", "tasks-attribution", "tasks", "task"), {
+    status: "DONE",
+    completedBy: "attribution-owner",
+    completedByName: "attribution-owner",
+    completedAt: serverTimestamp(),
+    updatedBy: "attribution-member",
+    updatedAt: serverTimestamp(),
+  }));
+});
+
+test("dos completados simultáneos dejan una única atribución válida", async () => {
+  await seedSpace("tasks-race", "task-race-owner", ["task-race-member"]);
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(
+      doc(context.firestore(), "spaces", "tasks-race", "tasks", "race"),
+      seededTaskData("task-race-owner", "task-race-member"),
+    );
+  });
+  const owner = verifiedFirestore("task-race-owner");
+  const member = verifiedFirestore("task-race-member");
+  const results = await Promise.allSettled([
+    completeTask(owner, "tasks-race", "race", "task-race-owner"),
+    completeTask(member, "tasks-race", "race", "task-race-member"),
+  ]);
+
+  const task = await getDoc(doc(owner, "spaces", "tasks-race", "tasks", "race"));
+  assert.equal(task.data().status, "DONE");
+  assert.ok(results.some((result) => result.status === "fulfilled"));
+  assert.ok(["task-race-owner", "task-race-member"].includes(task.data().completedBy));
+  assert.ok(task.data().completedAt instanceof Timestamp);
 });
 
 test("todos los miembros pueden crear, editar y eliminar productos", async () => {
@@ -689,6 +790,53 @@ function shoppingItem(userId, overrides = {}) {
   };
 }
 
+function taskData(userId, assigneeId, overrides = {}) {
+  return {
+    title: "Tarea",
+    description: null,
+    assigneeId,
+    assigneeName: assigneeId,
+    dueAt: null,
+    priority: "MEDIUM",
+    status: "TODO",
+    createdBy: userId,
+    createdByName: userId,
+    createdAt: serverTimestamp(),
+    updatedBy: userId,
+    updatedAt: serverTimestamp(),
+    completedBy: null,
+    completedByName: null,
+    completedAt: null,
+    ...overrides,
+  };
+}
+
+function completeTask(firestore, spaceId, taskId, userId) {
+  return runTransaction(firestore, async (transaction) => {
+    const reference = doc(firestore, "spaces", spaceId, "tasks", taskId);
+    const task = await transaction.get(reference);
+    if (task.data()?.status !== "TODO") return;
+    transaction.update(reference, {
+      status: "DONE",
+      completedBy: userId,
+      completedByName: userId,
+      completedAt: serverTimestamp(),
+      updatedBy: userId,
+      updatedAt: serverTimestamp(),
+    });
+  });
+}
+
+function seededTaskData(userId, assigneeId, overrides = {}) {
+  const timestamp = Timestamp.now();
+  return {
+    ...taskData(userId, assigneeId),
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    ...overrides,
+  };
+}
+
 async function seedShoppingItem(spaceId, itemId, userId, overrides = {}) {
   await testEnvironment.withSecurityRulesDisabled(async (context) => {
     const timestamp = Timestamp.now();
@@ -852,6 +1000,8 @@ async function seedSpace(spaceId, ownerId, memberIds = [], task = null) {
           title: "Tarea pendiente",
           status: "TODO",
           assigneeId: task.assigneeId,
+          assigneeName: task.assigneeId,
+          updatedBy: task.assigneeId,
           updatedAt: timestamp,
         }),
       );

@@ -39,6 +39,10 @@ import com.dlunaunizar.bobitos.feature.spaces.SpacesScreen
 import com.dlunaunizar.bobitos.feature.spaces.SpaceManagementUiState
 import com.dlunaunizar.bobitos.feature.spaces.SpaceSettingsScreen
 import com.dlunaunizar.bobitos.feature.tasks.TasksScreen
+import com.dlunaunizar.bobitos.core.model.TaskPriority
+import com.dlunaunizar.bobitos.feature.tasks.TaskFilters
+import com.dlunaunizar.bobitos.feature.tasks.TasksUiState
+import java.time.Instant
 
 @Composable
 fun BobitosNavHost(
@@ -48,6 +52,7 @@ fun BobitosNavHost(
     authActionState: AuthActionUiState,
     spaceManagementState: SpaceManagementUiState,
     shoppingState: ShoppingUiState,
+    tasksState: TasksUiState,
     onSpaceSelected: (String) -> Unit,
     onRealtimeScopeChanged: (RealtimeScope) -> Unit,
     onCreateSpace: (String) -> Unit,
@@ -73,6 +78,15 @@ fun BobitosNavHost(
     onDeleteShoppingItem: (String, String) -> Unit,
     onClearPurchasedShoppingItems: (String) -> Unit,
     onClearShoppingFeedback: () -> Unit,
+    onObserveTasks: (String) -> Unit,
+    onStopObservingTasks: () -> Unit,
+    onTaskFiltersChanged: (TaskFilters) -> Unit,
+    onCreateTask: (String, String, String?, String?, Instant?, TaskPriority) -> Unit,
+    onUpdateTask: (String, String, String, String?, String?, Instant?, TaskPriority) -> Unit,
+    onSetTaskCompleted: (String, String, Boolean) -> Unit,
+    onDeleteTask: (String, String) -> Unit,
+    onInvalidTaskDate: () -> Unit,
+    onClearTaskFeedback: () -> Unit,
     onUpdateDisplayName: (String) -> Unit,
     onSignOut: () -> Unit,
     onClearAuthFeedback: () -> Unit,
@@ -221,7 +235,28 @@ fun BobitosNavHost(
                 },
                 syncStatus = uiState.syncStatus,
             ) {
-                TasksScreen()
+                uiState.selectedSpace?.let { space ->
+                    TasksScreen(
+                        spaceId = space.id,
+                        state = tasksState,
+                        canWrite = uiState.syncStatus.canWrite,
+                        onObserve = onObserveTasks,
+                        onStopObserving = onStopObservingTasks,
+                        onFiltersChanged = onTaskFiltersChanged,
+                        onCreate = { title, description, assignee, dueAt, priority ->
+                            onCreateTask(space.id, title, description, assignee, dueAt, priority)
+                        },
+                        onUpdate = { taskId, title, description, assignee, dueAt, priority ->
+                            onUpdateTask(space.id, taskId, title, description, assignee, dueAt, priority)
+                        },
+                        onSetCompleted = { taskId, completed ->
+                            onSetTaskCompleted(space.id, taskId, completed)
+                        },
+                        onDelete = { taskId -> onDeleteTask(space.id, taskId) },
+                        onInvalidDate = onInvalidTaskDate,
+                        onClearFeedback = onClearTaskFeedback,
+                    )
+                }
             }
         }
 
