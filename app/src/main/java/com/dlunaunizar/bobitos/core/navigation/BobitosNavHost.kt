@@ -34,6 +34,7 @@ import com.dlunaunizar.bobitos.feature.auth.AuthActionUiState
 import com.dlunaunizar.bobitos.feature.auth.ProfileScreen
 import com.dlunaunizar.bobitos.feature.calendar.CalendarScreen
 import com.dlunaunizar.bobitos.feature.shopping.ShoppingScreen
+import com.dlunaunizar.bobitos.feature.shopping.ShoppingUiState
 import com.dlunaunizar.bobitos.feature.spaces.SpacesScreen
 import com.dlunaunizar.bobitos.feature.spaces.SpaceManagementUiState
 import com.dlunaunizar.bobitos.feature.spaces.SpaceSettingsScreen
@@ -46,6 +47,7 @@ fun BobitosNavHost(
     authUser: AuthUser,
     authActionState: AuthActionUiState,
     spaceManagementState: SpaceManagementUiState,
+    shoppingState: ShoppingUiState,
     onSpaceSelected: (String) -> Unit,
     onRealtimeScopeChanged: (RealtimeScope) -> Unit,
     onCreateSpace: (String) -> Unit,
@@ -63,6 +65,14 @@ fun BobitosNavHost(
     pendingInvitationCode: String?,
     onInvitationCodeConsumed: () -> Unit,
     onClearSpaceFeedback: () -> Unit,
+    onObserveShopping: (String) -> Unit,
+    onStopObservingShopping: () -> Unit,
+    onAddShoppingItem: (String, String, String?, String?) -> Unit,
+    onUpdateShoppingItem: (String, String, String, String?, String?) -> Unit,
+    onSetShoppingItemPurchased: (String, String, Boolean) -> Unit,
+    onDeleteShoppingItem: (String, String) -> Unit,
+    onClearPurchasedShoppingItems: (String) -> Unit,
+    onClearShoppingFeedback: () -> Unit,
     onUpdateDisplayName: (String) -> Unit,
     onSignOut: () -> Unit,
     onClearAuthFeedback: () -> Unit,
@@ -171,7 +181,27 @@ fun BobitosNavHost(
                 },
                 syncStatus = uiState.syncStatus,
             ) {
-                ShoppingScreen()
+                uiState.selectedSpace?.let { space ->
+                    ShoppingScreen(
+                        spaceId = space.id,
+                        state = shoppingState,
+                        canWrite = uiState.syncStatus.canWrite,
+                        onObserve = onObserveShopping,
+                        onStopObserving = onStopObservingShopping,
+                        onAdd = { name, quantity, notes ->
+                            onAddShoppingItem(space.id, name, quantity, notes)
+                        },
+                        onUpdate = { itemId, name, quantity, notes ->
+                            onUpdateShoppingItem(space.id, itemId, name, quantity, notes)
+                        },
+                        onSetPurchased = { itemId, purchased ->
+                            onSetShoppingItemPurchased(space.id, itemId, purchased)
+                        },
+                        onDelete = { itemId -> onDeleteShoppingItem(space.id, itemId) },
+                        onClearPurchased = { onClearPurchasedShoppingItems(space.id) },
+                        onClearFeedback = onClearShoppingFeedback,
+                    )
+                }
             }
         }
 

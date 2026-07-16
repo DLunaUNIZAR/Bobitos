@@ -6,8 +6,8 @@
 | --- | --- |
 | Nombre del producto | Bobitos |
 | Plataforma inicial | Android |
-| Estado | Implementación — fase 6 completada |
-| Versión del documento | 0.9.0 |
+| Estado | Implementación — fase 7 completada |
+| Versión del documento | 1.0.0 |
 | Última actualización | 16 de julio de 2026 |
 | Distribución prevista | Privada |
 | Repositorio | [DLunaUNIZAR/Bobitos](https://github.com/DLunaUNIZAR/Bobitos) |
@@ -471,14 +471,14 @@ Duración estimada: 1 semana.
 
 Duración estimada: 1-2 semanas.
 
-- [ ] Añadir, editar y eliminar productos.
-- [ ] Añadir cantidad y observaciones.
-- [ ] Marcar y desmarcar productos.
-- [ ] Registrar autor y usuario que completa.
-- [ ] Ordenar pendientes y comprados.
-- [ ] Archivar o limpiar comprados.
-- [ ] Validar entradas y conflictos básicos.
-- [ ] Probar la funcionalidad con varios dispositivos.
+- [x] Añadir, editar y eliminar productos.
+- [x] Añadir cantidad y observaciones.
+- [x] Marcar y desmarcar productos.
+- [x] Registrar autor y usuario que completa.
+- [x] Ordenar pendientes y comprados.
+- [x] Archivar o limpiar comprados.
+- [x] Validar entradas y conflictos básicos.
+- [x] Probar la funcionalidad con varios clientes conectados.
 
 **Criterio de salida:** la lista de la compra puede utilizarse diariamente por un espacio real.
 
@@ -675,6 +675,7 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 15/07/2026 | Google Analytics activado sin integrar su SDK en Android | Mantener disponible la opción gratuita sin recopilar telemetría durante el MVP |
 | 16/07/2026 | Escrituras bloqueadas hasta completar la resincronización | Evitar cambios locales pendientes y trabajar siempre sobre estado remoto actualizado |
 | 16/07/2026 | Listeners vinculados a la pantalla y al espacio activos | Reducir lecturas de Firestore y eliminar observadores duplicados |
+| 16/07/2026 | Limpieza transaccional de productos comprados | No borrar productos desmarcados por otro usuario durante la confirmación |
 
 ## 16. Próximas decisiones
 
@@ -696,3 +697,4 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 0.7.0 | 16/07/2026 | Espacios múltiples, roles, miembros, persistencia del espacio activo y operaciones atómicas de gestión |
 | 0.8.0 | 16/07/2026 | Invitaciones privadas de 160 bits, códigos y deep links, caducidad, revocación, consumo atómico y pruebas de concurrencia |
 | 0.9.0 | 16/07/2026 | Tiempo real acotado, conectividad validada, caché de solo lectura, bloqueo central de escrituras y métricas de lecturas |
+| 1.0.0 | 16/07/2026 | Lista de la compra compartida, atribución histórica, limpieza segura y pruebas multiusuario |

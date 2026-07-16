@@ -150,6 +150,114 @@ service cloud.firestore {
         && invitationAfter.data.usedAt == request.time;
     }
 
+    function validShoppingText(value, maxLength, required) {
+      return value is string
+        && value.size() <= maxLength
+        && (!required || value.size() > 0);
+    }
+
+    function validOptionalShoppingText(value, maxLength) {
+      return value == null || validShoppingText(value, maxLength, false);
+    }
+
+    function validShoppingItemShape() {
+      return request.resource.data.keys().hasAll([
+          "name",
+          "quantity",
+          "notes",
+          "purchased",
+          "createdBy",
+          "createdByName",
+          "createdAt",
+          "updatedBy",
+          "updatedAt",
+          "purchasedBy",
+          "purchasedByName",
+          "purchasedAt"
+        ])
+        && request.resource.data.keys().hasOnly([
+          "name",
+          "quantity",
+          "notes",
+          "purchased",
+          "createdBy",
+          "createdByName",
+          "createdAt",
+          "updatedBy",
+          "updatedAt",
+          "purchasedBy",
+          "purchasedByName",
+          "purchasedAt"
+        ])
+        && validShoppingText(request.resource.data.name, 120, true)
+        && validOptionalShoppingText(request.resource.data.quantity, 40)
+        && validOptionalShoppingText(request.resource.data.notes, 500)
+        && request.resource.data.purchased is bool
+        && request.resource.data.createdBy is string
+        && validShoppingText(request.resource.data.createdByName, 60, true)
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedBy is string
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function validShoppingPurchaseAttribution() {
+      return (
+          request.resource.data.purchased == true
+          && request.resource.data.purchasedBy == request.auth.uid
+          && validShoppingText(request.resource.data.purchasedByName, 60, true)
+          && request.resource.data.purchasedAt == request.time
+        ) || (
+          request.resource.data.purchased == false
+          && request.resource.data.purchasedBy == null
+          && request.resource.data.purchasedByName == null
+          && request.resource.data.purchasedAt == null
+        );
+    }
+
+    function validNewShoppingItem(spaceId) {
+      return isActiveMember(spaceId)
+        && validShoppingItemShape()
+        && request.resource.data.purchased == false
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.purchasedBy == null
+        && request.resource.data.purchasedByName == null
+        && request.resource.data.purchasedAt == null;
+    }
+
+    function validShoppingItemUpdate(spaceId) {
+      let purchaseChanged = request.resource.data.purchased != resource.data.purchased;
+      return isActiveMember(spaceId)
+        && validShoppingItemShape()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "name",
+          "quantity",
+          "notes",
+          "purchased",
+          "updatedBy",
+          "updatedAt",
+          "purchasedBy",
+          "purchasedByName",
+          "purchasedAt"
+        ])
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdByName == resource.data.createdByName
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time
+        && (
+          (purchaseChanged && validShoppingPurchaseAttribution())
+          || (
+            !purchaseChanged
+            && request.resource.data.purchasedBy == resource.data.purchasedBy
+            && request.resource.data.purchasedByName == resource.data.purchasedByName
+            && request.resource.data.purchasedAt == resource.data.purchasedAt
+          )
+        );
+    }
+
     match /spaces/{spaceId} {
       allow get: if isActiveMember(spaceId);
       allow list: if false;
@@ -164,6 +272,13 @@ service cloud.firestore {
         allow read: if isActiveMember(spaceId);
         allow update: if validPendingTaskUnassignment(spaceId);
         allow create, delete: if false;
+      }
+
+      match /shoppingItems/{itemId} {
+        allow read: if isActiveMember(spaceId);
+        allow create: if validNewShoppingItem(spaceId);
+        allow update: if validShoppingItemUpdate(spaceId);
+        allow delete: if isActiveMember(spaceId);
       }
 
       match /{document=**} {

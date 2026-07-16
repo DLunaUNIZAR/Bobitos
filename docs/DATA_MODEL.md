@@ -188,10 +188,12 @@ quantity: string | null
 notes: string | null
 purchased: boolean
 createdBy: string
+createdByName: string
 createdAt: timestamp
 updatedBy: string
 updatedAt: timestamp
 purchasedBy: string | null
+purchasedByName: string | null
 purchasedAt: timestamp | null
 ```
 
@@ -199,7 +201,10 @@ purchasedAt: timestamp | null
 
 No existirá `assigneeId`. La lista es compartida y no se asigna a nadie.
 
-`purchasedBy` solo registra quién marcó el producto, sin convertirlo en responsable.
+`createdByName` y `purchasedByName` son copias del nombre visible en el momento de la
+acción. Evitan lecturas adicionales y conservan el contexto histórico aunque el usuario
+cambie después su perfil. `purchasedBy` solo registra quién marcó el producto, sin
+convertirlo en responsable.
 
 ### Consultas previstas
 
@@ -208,7 +213,9 @@ No existirá `assigneeId`. La lista es compartida y no se asigna a nadie.
 
 ### Limpiar comprados
 
-Se ejecutará una operación por lotes sobre los elementos que sigan teniendo `purchased == true`. Si el número excede el límite de un lote, se procesará de forma paginada.
+Se consultan desde servidor los elementos con `purchased == true` y una transacción vuelve
+a leer cada candidato antes de borrarlo. Así, un producto desmarcado simultáneamente no se
+elimina. Cada ejecución procesa hasta 100 elementos; si quedasen más, se repite la operación.
 
 ## 9. Tareas
 
