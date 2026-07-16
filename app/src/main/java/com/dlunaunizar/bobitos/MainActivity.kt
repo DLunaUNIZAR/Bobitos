@@ -10,11 +10,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.app.AppViewModel
 import com.dlunaunizar.bobitos.app.BobitosApp
 import com.dlunaunizar.bobitos.core.designsystem.theme.BobitosTheme
+import com.dlunaunizar.bobitos.feature.auth.AuthViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val viewModel: AppViewModel by viewModels()
+    private val authViewModel: AuthViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,14 +24,23 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            val authActionState by authViewModel.uiState.collectAsStateWithLifecycle()
 
             BobitosTheme {
                 BobitosApp(
                     uiState = uiState,
+                    authActionState = authActionState,
                     onSpaceSelected = viewModel::selectSpace,
+                    onSignIn = authViewModel::signIn,
+                    onRegister = authViewModel::register,
+                    onPasswordReset = authViewModel::sendPasswordReset,
+                    onRefreshVerification = authViewModel::refreshEmailVerification,
+                    onResendVerification = authViewModel::resendVerificationEmail,
+                    onUpdateDisplayName = authViewModel::updateDisplayName,
+                    onSignOut = authViewModel::signOut,
+                    onClearAuthFeedback = authViewModel::clearFeedback,
                 )
             }
         }
     }
 }
-

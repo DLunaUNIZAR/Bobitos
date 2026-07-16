@@ -36,17 +36,21 @@ Las operaciones asíncronas deben representarse mediante `UiState`:
 
 Los ViewModel exponen `StateFlow` inmutable. Los composables reciben estado y callbacks; no conocen la implementación concreta del repositorio.
 
-## Navegación provisional
+## Navegación y sesión
 
-La aplicación comienza en la selección de espacio. Una vez elegido, presenta navegación inferior entre Compra, Tareas y Calendario, además de una acción para cambiar de espacio.
+`BobitosApp` actúa como barrera de sesión. Muestra el flujo de acceso cuando no existe usuario, la pantalla de verificación cuando el correo está pendiente y solo expone el contenido privado a cuentas verificadas. Al cerrar sesión desaparece inmediatamente el árbol de navegación privado.
+
+Una cuenta verificada comienza en la selección de espacio. Una vez elegido, presenta navegación inferior entre Compra, Tareas y Calendario, además de acciones para cambiar de espacio y abrir el perfil.
 
 Esta navegación es funcional pero provisional: se ajustará cuando se cierre el diseño del issue correspondiente.
 
 ## Fuente de datos actual
 
-`InMemorySpaceRepository` permite ejecutar y probar la estructura sin servicios externos ni credenciales. Se sustituirá mediante inyección por una implementación Firebase en las fases de autenticación y espacios.
+`FirebaseAuthRepository` encapsula Firebase Authentication y publica la sesión mediante `StateFlow`. Implementa registro, verificación, acceso, recuperación de contraseña, actualización de nombre y cierre de sesión. La respuesta de recuperación es deliberadamente neutra para no revelar si una cuenta existe.
 
-En compilaciones `debug`, `FirebaseInitializer` crea una aplicación Firebase para el proyecto ficticio `demo-bobitos` y conecta Authentication y Firestore a Emulator Suite. Firestore usa caché en memoria para evitar mezclar datos locales entre ejecuciones. Este arranque prepara la infraestructura, pero todavía no sustituye al repositorio en memoria.
+`InMemorySpaceRepository` mantiene por ahora los espacios de demostración. Se sustituirá mediante inyección por una implementación Firestore en la fase de espacios.
+
+En compilaciones `debug`, `FirebaseInitializer` crea una aplicación Firebase para el proyecto ficticio `demo-bobitos` y conecta Authentication y Firestore a Emulator Suite. Firestore usa caché en memoria para evitar mezclar datos locales entre ejecuciones. Authentication ya es la fuente de datos real de la sesión; Firestore todavía no sustituye al repositorio de espacios en memoria.
 
 Las compilaciones `release` no inicializan el proyecto ficticio ni se conectan a emuladores. La configuración de un proyecto real se incorporará explícitamente cuando se habilite el entorno remoto.
 

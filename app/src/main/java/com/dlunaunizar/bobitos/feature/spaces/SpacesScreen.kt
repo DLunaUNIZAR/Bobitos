@@ -13,6 +13,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,6 +28,7 @@ import com.dlunaunizar.bobitos.core.model.SpaceSummary
 fun SpacesScreen(
     state: UiState<List<SpaceSummary>>,
     onSpaceSelected: (SpaceSummary) -> Unit,
+    onProfileClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (state) {
@@ -35,6 +37,7 @@ fun SpacesScreen(
         is UiState.Content -> SpacesContent(
             spaces = state.value,
             onSpaceSelected = onSpaceSelected,
+            onProfileClick = onProfileClick,
             modifier = modifier,
         )
     }
@@ -44,6 +47,7 @@ fun SpacesScreen(
 private fun SpacesContent(
     spaces: List<SpaceSummary>,
     onSpaceSelected: (SpaceSummary) -> Unit,
+    onProfileClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -52,10 +56,19 @@ private fun SpacesContent(
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(
-            text = stringResource(R.string.spaces_title),
-            style = MaterialTheme.typography.headlineMedium,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.spaces_title),
+                style = MaterialTheme.typography.headlineMedium,
+            )
+            TextButton(onClick = onProfileClick) {
+                Text(text = stringResource(R.string.profile_open))
+            }
+        }
         Text(
             text = stringResource(R.string.spaces_description),
             style = MaterialTheme.typography.bodyLarge,

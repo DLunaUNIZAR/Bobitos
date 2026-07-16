@@ -6,8 +6,8 @@
 | --- | --- |
 | Nombre del producto | Bobitos |
 | Plataforma inicial | Android |
-| Estado | Implementación — fase 3 en curso |
-| Versión del documento | 0.5.2 |
+| Estado | Implementación — fase 4 completada |
+| Versión del documento | 0.6.0 |
 | Última actualización | 15 de julio de 2026 |
 | Distribución prevista | Privada |
 | Repositorio | [DLunaUNIZAR/Bobitos](https://github.com/DLunaUNIZAR/Bobitos) |
@@ -427,13 +427,14 @@ Duración estimada: 1-2 semanas.
 
 Duración estimada: 1-2 semanas.
 
-- [ ] Implementar registro.
-- [ ] Implementar verificación de correo.
-- [ ] Implementar inicio de sesión.
-- [ ] Implementar recuperación de contraseña.
-- [ ] Mantener y cerrar sesión.
-- [ ] Crear y editar el perfil básico.
-- [ ] Probar errores y accesos no autenticados.
+- [x] Implementar registro.
+- [x] Implementar verificación de correo y reenvío controlado.
+- [x] Implementar inicio de sesión.
+- [x] Implementar recuperación de contraseña sin enumerar cuentas.
+- [x] Mantener y cerrar sesión.
+- [x] Crear y editar el perfil básico con avatar de iniciales.
+- [x] Bloquear el contenido privado a cuentas sin verificar.
+- [x] Probar validaciones, errores y accesos no autenticados.
 
 **Criterio de salida:** un usuario puede completar de forma segura todo el ciclo de acceso.
 

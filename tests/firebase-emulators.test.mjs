@@ -7,9 +7,16 @@ import {
 } from "@firebase/rules-unit-testing";
 import { deleteApp, initializeApp } from "firebase/app";
 import {
+  applyActionCode,
+  confirmPasswordReset,
   connectAuthEmulator,
   createUserWithEmailAndPassword,
   getAuth,
+  reload,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signOut,
 } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
@@ -17,6 +24,11 @@ const projectId = "demo-bobitos";
 let testEnvironment;
 let authApp;
 let createdUser;
+let auth;
+
+const testEmail = "firebase-test@bobitos.invalid";
+const initialPassword = "bobitos-test-password";
+const updatedPassword = "bobitos-updated-password";
 
 before(async () => {
   const rules = await readFile("firestore.rules", "utf8");
@@ -35,14 +47,14 @@ before(async () => {
     `emulator-test-${Date.now()}`,
   );
 
-  const auth = getAuth(authApp);
+  auth = getAuth(authApp);
   connectAuthEmulator(auth, "http://127.0.0.1:9099", {
     disableWarnings: true,
   });
   createdUser = await createUserWithEmailAndPassword(
     auth,
-    "firebase-test@bobitos.invalid",
-    "bobitos-test-password",
+    testEmail,
+    initialPassword,
   );
 });
 
@@ -54,8 +66,33 @@ after(async () => {
 });
 
 test("Authentication permite crear una cuenta local", () => {
-  assert.equal(createdUser.user.email, "firebase-test@bobitos.invalid");
+  assert.equal(createdUser.user.email, testEmail);
   assert.ok(createdUser.user.uid);
+});
+
+test("Authentication permite verificar el correo local", async () => {
+  await sendEmailVerification(createdUser.user);
+  const code = await findOutOfBandCode("VERIFY_EMAIL");
+
+  await applyActionCode(auth, code);
+  await reload(createdUser.user);
+
+  assert.equal(createdUser.user.emailVerified, true);
+});
+
+test("Authentication permite recuperar la contraseña local", async () => {
+  await sendPasswordResetEmail(auth, testEmail);
+  const code = await findOutOfBandCode("PASSWORD_RESET");
+
+  await confirmPasswordReset(auth, code, updatedPassword);
+  await signOut(auth);
+  const result = await signInWithEmailAndPassword(
+    auth,
+    testEmail,
+    updatedPassword,
+  );
+
+  assert.equal(result.user.email, testEmail);
 });
 
 test("Firestore rechaza lecturas sin autenticar", async () => {
@@ -69,3 +106,22 @@ test("Firestore permanece cerrado incluso con autenticación", async () => {
     .firestore();
   await assertFails(getDoc(doc(firestore, "spaces", "private-space")));
 });
+
+async function findOutOfBandCode(requestType) {
+  const response = await fetch(
+    `http://127.0.0.1:9099/emulator/v1/projects/${projectId}/oobCodes`,
+  );
+  assert.equal(response.ok, true);
+  const payload = await response.json();
+  const match = payload.oobCodes
+    .slice()
+    .reverse()
+    .find(
+      (entry) =>
+        entry.email === testEmail &&
+        (entry.requestType === requestType || entry.mode === requestType),
+    );
+
+  assert.ok(match, `No existe un código ${requestType} para ${testEmail}`);
+  return match.oobCode;
+}
