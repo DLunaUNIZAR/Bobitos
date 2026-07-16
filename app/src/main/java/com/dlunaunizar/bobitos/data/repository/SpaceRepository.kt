@@ -24,6 +24,8 @@ interface SpaceRepository {
 
     suspend fun transferOwnership(spaceId: String, newOwnerId: String)
 
+    suspend fun deleteSpace(spaceId: String)
+
     suspend fun createInvitation(spaceId: String): SpaceInvitation
 
     suspend fun revokeInvitation(invitationId: String)
@@ -41,6 +43,7 @@ enum class SpaceFailure {
     OwnerMustTransfer,
     CannotRemoveOwner,
     InvalidNewOwner,
+    OnlyOwnerCanDelete,
     InvalidInvitationCode,
     InvitationNotFound,
     InvitationAlreadyUsed,

@@ -529,15 +529,15 @@ Duración estimada: 1-2 semanas. La parte push es opcional.
 
 Duración estimada: 2-3 semanas.
 
-- [ ] Auditar todas las reglas de Firestore.
-- [ ] Activar App Check.
-- [ ] Implementar eliminación de cuenta y datos.
-- [ ] Redactar política de privacidad.
-- [ ] Añadir pruebas unitarias, de integración y de interfaz.
-- [ ] Probar varios espacios y dispositivos.
-- [ ] Probar reinicios, modo avión y cambios de usuario.
-- [ ] Revisar accesibilidad.
-- [ ] Medir lecturas, escrituras y rendimiento.
+- [x] Auditar todas las reglas de Firestore.
+- [x] Integrar App Check; la exigencia remota se activará al registrar la firma de beta.
+- [x] Implementar eliminación de cuenta, anonimización y eliminación completa de espacios.
+- [x] Redactar política de privacidad.
+- [x] Añadir pruebas unitarias, de integración y de interfaz.
+- [x] Probar aislamiento entre varios espacios y usuarios.
+- [x] Probar restauración, modo sin conexión, reconexión y cambios de usuario.
+- [x] Revisar accesibilidad y desplazamiento en pantallas críticas.
+- [x] Medir listeners y documentos recibidos mediante `RealtimeMetrics`.
 
 **Criterio de salida:** no existen fallos críticos conocidos ni accesos indebidos en las pruebas.
 
@@ -678,6 +678,8 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 16/07/2026 | Limpieza transaccional de productos comprados | No borrar productos desmarcados por otro usuario durante la confirmación |
 | 16/07/2026 | Fin de evento exclusivo | Representar correctamente eventos de día completo y consultas por solapamiento |
 | 16/07/2026 | Fechas locales más instantes UTC en calendario | Evitar desplazamientos de día al cambiar de zona horaria sin perder consultas eficientes |
+| 16/07/2026 | Eliminación cliente coordinada | Mantener coste cero: reautenticación, anonimización y limpieza de espacios sin backend adicional |
+| 16/07/2026 | App Check con Play Integrity en producción | Proteger Firebase sin afectar a Emulator Suite; activar la exigencia al disponer de firma beta |
 
 ## 16. Próximas decisiones
 
@@ -702,3 +704,4 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 1.0.0 | 16/07/2026 | Lista de la compra compartida, atribución histórica, limpieza segura y pruebas multiusuario |
 | 1.1.0 | 16/07/2026 | Tareas asignables, prioridades, fechas, filtros, completado y desasignación segura |
 | 1.2.0 | 16/07/2026 | Calendario compartido, vistas mensual y agenda, participantes opcionales, UTC y consultas por intervalo |
+| 1.3.0 | 16/07/2026 | Seguridad final del MVP, eliminación de cuenta y espacios, anonimización, privacidad, App Check y pruebas cruzadas |

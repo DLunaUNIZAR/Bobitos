@@ -58,6 +58,7 @@ class MainActivity : ComponentActivity() {
                     onLeaveSpace = spacesViewModel::leaveSpace,
                     onRemoveMember = spacesViewModel::removeMember,
                     onTransferOwnership = spacesViewModel::transferOwnership,
+                    onDeleteSpace = spacesViewModel::deleteSpace,
                     onCreateInvitation = spacesViewModel::createInvitation,
                     onRevokeInvitation = spacesViewModel::revokeInvitation,
                     onAcceptInvitation = spacesViewModel::acceptInvitation,
@@ -90,6 +91,7 @@ class MainActivity : ComponentActivity() {
                     onResendVerification = authViewModel::resendVerificationEmail,
                     onUpdateDisplayName = authViewModel::updateDisplayName,
                     onSignOut = authViewModel::signOut,
+                    onDeleteAccount = authViewModel::deleteAccount,
                     onClearAuthFeedback = authViewModel::clearFeedback,
                 )
             }

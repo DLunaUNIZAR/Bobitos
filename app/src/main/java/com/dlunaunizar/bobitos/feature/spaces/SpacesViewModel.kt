@@ -110,6 +110,10 @@ class SpacesViewModel @Inject constructor(
         }
     }
 
+    fun deleteSpace(spaceId: String) {
+        runAction(SpaceUiMessage.SpaceDeleted) { spaceRepository.deleteSpace(spaceId) }
+    }
+
     fun createInvitation(spaceId: String) {
         runAction(SpaceUiMessage.InvitationCreated) {
             spaceRepository.createInvitation(spaceId)
@@ -206,6 +210,7 @@ private fun Throwable.toUiMessage(): SpaceUiMessage {
         SpaceFailure.OwnerMustTransfer -> SpaceUiMessage.OwnerMustTransfer
         SpaceFailure.CannotRemoveOwner -> SpaceUiMessage.CannotRemoveOwner
         SpaceFailure.InvalidNewOwner -> SpaceUiMessage.InvalidNewOwner
+        SpaceFailure.OnlyOwnerCanDelete -> SpaceUiMessage.OnlyOwnerCanDelete
         SpaceFailure.InvalidInvitationCode -> SpaceUiMessage.InvalidInvitationCode
         SpaceFailure.InvitationNotFound -> SpaceUiMessage.InvitationNotFound
         SpaceFailure.InvitationAlreadyUsed -> SpaceUiMessage.InvitationAlreadyUsed

@@ -258,6 +258,20 @@ service cloud.firestore {
         );
     }
 
+    function validShoppingAnonymization(spaceId) {
+      return isActiveMember(spaceId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["createdByName", "purchasedByName"])
+        && ((resource.data.createdBy == request.auth.uid
+            && request.resource.data.createdByName == "Usuario eliminado")
+          || (resource.data.createdBy != request.auth.uid
+            && request.resource.data.createdByName == resource.data.createdByName))
+        && ((resource.data.purchasedBy == request.auth.uid
+            && request.resource.data.purchasedByName == "Usuario eliminado")
+          || (resource.data.purchasedBy != request.auth.uid
+            && request.resource.data.purchasedByName == resource.data.purchasedByName));
+    }
+
     function validOptionalTaskText(value, maxLength) {
       return value == null || (value is string && value.size() <= maxLength);
     }
@@ -352,6 +366,24 @@ service cloud.firestore {
         );
     }
 
+    function validTaskAnonymization(spaceId) {
+      return isActiveMember(spaceId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["createdByName", "assigneeName", "completedByName"])
+        && ((resource.data.createdBy == request.auth.uid
+            && request.resource.data.createdByName == "Usuario eliminado")
+          || (resource.data.createdBy != request.auth.uid
+            && request.resource.data.createdByName == resource.data.createdByName))
+        && ((resource.data.assigneeId == request.auth.uid
+            && request.resource.data.assigneeName == "Usuario eliminado")
+          || (resource.data.assigneeId != request.auth.uid
+            && request.resource.data.assigneeName == resource.data.assigneeName))
+        && ((resource.data.completedBy == request.auth.uid
+            && request.resource.data.completedByName == "Usuario eliminado")
+          || (resource.data.completedBy != request.auth.uid
+            && request.resource.data.completedByName == resource.data.completedByName));
+    }
+
     function validEventShape() {
       return request.resource.data.keys().hasAll([
         "title", "description", "allDay", "startAt", "endAt", "startDate",
@@ -399,6 +431,22 @@ service cloud.firestore {
         && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
     }
 
+    function validEventAnonymization(spaceId) {
+      return isActiveMember(spaceId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["createdByName", "participantNames"])
+        && ((resource.data.createdBy == request.auth.uid
+            && request.resource.data.createdByName == "Usuario eliminado")
+          || (resource.data.createdBy != request.auth.uid
+            && request.resource.data.createdByName == resource.data.createdByName))
+        && request.resource.data.participantIds == resource.data.participantIds
+        && request.resource.data.participantNames.size() == resource.data.participantNames.size();
+    }
+
+    function deletingOwnedSpace(spaceId) {
+      return isOwner(spaceId) && !existsAfter(spacePath(spaceId));
+    }
+
     match /spaces/{spaceId} {
       allow get: if isActiveMember(spaceId);
       allow list: if false;
@@ -407,12 +455,13 @@ service cloud.firestore {
         || validOwnershipTransfer(spaceId)
         || validMemberCountDecrease(spaceId)
         || validMemberCountIncrease(spaceId);
-      allow delete: if false;
+      allow delete: if isOwner(spaceId);
 
       match /tasks/{taskId} {
         allow read: if isActiveMember(spaceId);
         allow create: if validNewTask(spaceId);
         allow update: if validTaskUpdate(spaceId)
+          || validTaskAnonymization(spaceId)
           || validPendingTaskUnassignment(spaceId);
         allow delete: if isActiveMember(spaceId);
       }
@@ -420,14 +469,16 @@ service cloud.firestore {
       match /shoppingItems/{itemId} {
         allow read: if isActiveMember(spaceId);
         allow create: if validNewShoppingItem(spaceId);
-        allow update: if validShoppingItemUpdate(spaceId);
+        allow update: if validShoppingItemUpdate(spaceId)
+          || validShoppingAnonymization(spaceId);
         allow delete: if isActiveMember(spaceId);
       }
 
       match /events/{eventId} {
         allow read: if isActiveMember(spaceId);
         allow create: if validNewEvent(spaceId);
-        allow update: if validEventUpdate(spaceId);
+        allow update: if validEventUpdate(spaceId)
+          || validEventAnonymization(spaceId);
         allow delete: if isActiveMember(spaceId);
       }
 
@@ -555,7 +606,8 @@ service cloud.firestore {
       allow create: if validInitialOwnerMembership(membershipId)
         || validInvitationMembership(membershipId);
       allow update: if validOwnershipRoleChange(resource.data.spaceId);
-      allow delete: if validMembershipRemoval(resource.data.spaceId);
+      allow delete: if validMembershipRemoval(resource.data.spaceId)
+        || deletingOwnedSpace(resource.data.spaceId);
     }
 
     function validNewInvitation(invitationId) {
@@ -634,7 +686,7 @@ service cloud.firestore {
       allow create: if validNewInvitation(invitationId);
       allow update: if validInvitationConsumption(invitationId)
         || validInvitationRevocation();
-      allow delete: if false;
+      allow delete: if isOwner(resource.data.spaceId);
     }
 
     function validPendingTaskUnassignment(spaceId) {

@@ -54,6 +54,7 @@ fun SpaceSettingsScreen(
     onLeaveSpace: (String) -> Unit,
     onRemoveMember: (String, String) -> Unit,
     onTransferOwnership: (String, String) -> Unit,
+    onDeleteSpace: (String) -> Unit,
     onCreateInvitation: (String) -> Unit,
     onRevokeInvitation: (String) -> Unit,
     onShareInvitation: (SpaceInvitation) -> Unit,
@@ -63,6 +64,7 @@ fun SpaceSettingsScreen(
 ) {
     var showRenameDialog by rememberSaveable { mutableStateOf(false) }
     var pendingAction by remember { mutableStateOf<MemberAction?>(null) }
+    var showDeleteSpaceDialog by rememberSaveable { mutableStateOf(false) }
 
     DisposableEffect(space.id, space.role) {
         onObserveSpaceSettings(space.id, space.role == SpaceRole.OWNER)
@@ -184,6 +186,10 @@ fun SpaceSettingsScreen(
                 text = stringResource(R.string.space_owner_leave_explanation),
                 style = MaterialTheme.typography.bodySmall,
             )
+            TextButton(
+                onClick = { showDeleteSpaceDialog = true },
+                enabled = !state.isLoading && canWrite,
+            ) { Text(stringResource(R.string.space_delete), color = MaterialTheme.colorScheme.error) }
         }
     }
 
@@ -216,6 +222,20 @@ fun SpaceSettingsScreen(
                 }
                 pendingAction = null
             },
+        )
+    }
+
+    if (showDeleteSpaceDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteSpaceDialog = false },
+            title = { Text(stringResource(R.string.space_delete_title)) },
+            text = { Text(stringResource(R.string.space_delete_body, space.name)) },
+            confirmButton = { Button(enabled = canWrite && !state.isLoading, onClick = {
+                onDeleteSpace(space.id); showDeleteSpaceDialog = false
+            }) { Text(stringResource(R.string.space_delete_confirm)) } },
+            dismissButton = { TextButton(onClick = { showDeleteSpaceDialog = false }) {
+                Text(stringResource(R.string.cancel))
+            } },
         )
     }
 }

@@ -5,6 +5,7 @@ import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.data.repository.AuthFailure
 import com.dlunaunizar.bobitos.data.repository.AuthRepository
 import com.dlunaunizar.bobitos.data.repository.AuthRepositoryException
+import com.dlunaunizar.bobitos.data.repository.AccountRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +25,8 @@ class AuthViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val repository = FakeAuthRepository()
-    private val viewModel = AuthViewModel(repository)
+    private val accountRepository = FakeAccountRepository()
+    private val viewModel = AuthViewModel(repository, accountRepository)
 
     @Test
     fun `valid registration trims the name and email`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -99,6 +101,23 @@ class AuthViewModelTest {
 
             assertEquals(2, repository.verificationEmailsSent)
         }
+
+    @Test fun `account deletion requires a password`() {
+        viewModel.deleteAccount("  ")
+        assertEquals(AuthUiMessage.PasswordRequired, viewModel.uiState.value.error)
+        assertNull(accountRepository.password)
+    }
+
+    @Test fun `account deletion delegates reauthentication password`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.deleteAccount("secret-password")
+        advanceUntilIdle()
+        assertEquals("secret-password", accountRepository.password)
+    }
+}
+
+private class FakeAccountRepository : AccountRepository {
+    var password: String? = null
+    override suspend fun deleteAccount(password: String) { this.password = password }
 }
 
 private class FakeAuthRepository : AuthRepository {

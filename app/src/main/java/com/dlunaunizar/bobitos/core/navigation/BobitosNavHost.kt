@@ -62,6 +62,7 @@ fun BobitosNavHost(
     onLeaveSpace: (String) -> Unit,
     onRemoveMember: (String, String) -> Unit,
     onTransferOwnership: (String, String) -> Unit,
+    onDeleteSpace: (String) -> Unit,
     onCreateInvitation: (String) -> Unit,
     onRevokeInvitation: (String) -> Unit,
     onAcceptInvitation: (String) -> Unit,
@@ -89,6 +90,7 @@ fun BobitosNavHost(
     onClearTaskFeedback: () -> Unit,
     onUpdateDisplayName: (String) -> Unit,
     onSignOut: () -> Unit,
+    onDeleteAccount: (String) -> Unit,
     onClearAuthFeedback: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -290,6 +292,7 @@ fun BobitosNavHost(
                 canWrite = uiState.syncStatus.canWrite,
                 onUpdateDisplayName = onUpdateDisplayName,
                 onSignOut = onSignOut,
+                onDeleteAccount = onDeleteAccount,
                 onBack = { navController.popBackStack() },
                 onClearFeedback = onClearAuthFeedback,
             )
@@ -309,6 +312,7 @@ fun BobitosNavHost(
                     onLeaveSpace = onLeaveSpace,
                     onRemoveMember = onRemoveMember,
                     onTransferOwnership = onTransferOwnership,
+                    onDeleteSpace = { spaceId -> onDeleteSpace(spaceId); navController.navigateToSpaces() },
                     onCreateInvitation = onCreateInvitation,
                     onRevokeInvitation = onRevokeInvitation,
                     onShareInvitation = onShareInvitation,

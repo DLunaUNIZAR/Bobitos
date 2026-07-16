@@ -149,4 +149,7 @@ internal val AuthUiMessage.stringRes: Int
         AuthUiMessage.EmailStillNotVerified -> R.string.auth_notice_not_verified
         AuthUiMessage.PasswordResetRequested -> R.string.auth_notice_reset_requested
         AuthUiMessage.ProfileUpdated -> R.string.auth_notice_profile_updated
+        AuthUiMessage.PasswordRequired -> R.string.account_error_password_required
+        AuthUiMessage.OwnerSpacesRemaining -> R.string.account_error_owner_spaces
+        AuthUiMessage.AccountDeleted -> R.string.account_notice_deleted
     }

@@ -111,6 +111,14 @@ class SpacesViewModelTest {
         assertNull(repository.acceptedCode)
         assertEquals(SpaceUiMessage.InvalidInvitationCode, viewModel.uiState.value.error)
     }
+
+    @Test fun `space deletion delegates and reports success`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel.deleteSpace("home")
+            advanceUntilIdle()
+            assertEquals("home", repository.deletedSpaceId)
+            assertEquals(SpaceUiMessage.SpaceDeleted, viewModel.uiState.value.notice)
+        }
 }
 
 private class FakeSpaceRepository : SpaceRepository {
@@ -118,6 +126,7 @@ private class FakeSpaceRepository : SpaceRepository {
     override fun space(spaceId: String): Flow<SpaceSummary?> = flowOf(null)
     var createdName: String? = null
     var acceptedCode: String? = null
+    var deletedSpaceId: String? = null
     var nextFailure: SpaceRepositoryException? = null
     var createGate: CompletableDeferred<Unit>? = null
 
@@ -148,6 +157,11 @@ private class FakeSpaceRepository : SpaceRepository {
 
     override suspend fun transferOwnership(spaceId: String, newOwnerId: String) {
         throwNextFailure()
+    }
+
+    override suspend fun deleteSpace(spaceId: String) {
+        throwNextFailure()
+        deletedSpaceId = spaceId
     }
 
     override suspend fun createInvitation(spaceId: String): SpaceInvitation {

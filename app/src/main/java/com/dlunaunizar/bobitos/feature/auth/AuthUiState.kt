@@ -22,4 +22,7 @@ enum class AuthUiMessage {
     EmailStillNotVerified,
     PasswordResetRequested,
     ProfileUpdated,
+    PasswordRequired,
+    OwnerSpacesRemaining,
+    AccountDeleted,
 }

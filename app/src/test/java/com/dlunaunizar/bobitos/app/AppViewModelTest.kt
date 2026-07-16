@@ -223,6 +223,7 @@ private class FakeAppSpaceRepository(
     override suspend fun leaveSpace(spaceId: String) = Unit
     override suspend fun removeMember(spaceId: String, userId: String) = Unit
     override suspend fun transferOwnership(spaceId: String, newOwnerId: String) = Unit
+    override suspend fun deleteSpace(spaceId: String) = Unit
     override suspend fun createInvitation(spaceId: String): SpaceInvitation = error("Not used")
     override suspend fun revokeInvitation(invitationId: String) = Unit
     override suspend fun acceptInvitation(code: String): String = "home"

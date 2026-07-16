@@ -40,6 +40,7 @@ fun BobitosApp(
     onLeaveSpace: (String) -> Unit,
     onRemoveMember: (String, String) -> Unit,
     onTransferOwnership: (String, String) -> Unit,
+    onDeleteSpace: (String) -> Unit,
     onCreateInvitation: (String) -> Unit,
     onRevokeInvitation: (String) -> Unit,
     onAcceptInvitation: (String) -> Unit,
@@ -77,6 +78,7 @@ fun BobitosApp(
     onResendVerification: () -> Unit,
     onUpdateDisplayName: (String) -> Unit,
     onSignOut: () -> Unit,
+    onDeleteAccount: (String) -> Unit,
     onClearAuthFeedback: () -> Unit,
 ) {
     when (val authState = uiState.authUser) {
@@ -125,6 +127,7 @@ fun BobitosApp(
                             onLeaveSpace = onLeaveSpace,
                             onRemoveMember = onRemoveMember,
                             onTransferOwnership = onTransferOwnership,
+                            onDeleteSpace = onDeleteSpace,
                             onCreateInvitation = onCreateInvitation,
                             onRevokeInvitation = onRevokeInvitation,
                             onAcceptInvitation = onAcceptInvitation,
@@ -152,6 +155,7 @@ fun BobitosApp(
                             onClearTaskFeedback = onClearTaskFeedback,
                             onUpdateDisplayName = onUpdateDisplayName,
                             onSignOut = onSignOut,
+                            onDeleteAccount = onDeleteAccount,
                             onClearAuthFeedback = onClearAuthFeedback,
                         )
                     }

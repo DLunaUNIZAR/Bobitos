@@ -779,6 +779,35 @@ test("un usuario externo no puede leer eventos y los intervalos inválidos se re
   await assertFails(getDoc(doc(outsider, "spaces", "calendar-private", "events", "event-1")));
 });
 
+test("el propietario elimina un espacio completo y un miembro no puede hacerlo", async () => {
+  await seedSpace("delete-space", "delete-owner", ["delete-member"]);
+  await seedShoppingItem("delete-space", "item", "delete-owner");
+  const owner = verifiedFirestore("delete-owner");
+  const member = verifiedFirestore("delete-member");
+  await assertFails(writeBatch(member).delete(doc(member, "spaces", "delete-space")).commit());
+
+  const batch = writeBatch(owner);
+  batch.delete(doc(owner, "spaces", "delete-space", "shoppingItems", "item"));
+  batch.delete(doc(owner, "memberships", "delete-space_delete-member"));
+  batch.delete(doc(owner, "memberships", "delete-space_delete-owner"));
+  batch.delete(doc(owner, "spaces", "delete-space"));
+  await assertSucceeds(batch.commit());
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    assert.equal((await getDoc(doc(context.firestore(), "spaces", "delete-space"))).exists(), false);
+    assert.equal((await getDoc(doc(context.firestore(), "memberships", "delete-space_delete-member"))).exists(), false);
+  });
+});
+
+test("un usuario puede anonimizar su nombre histórico pero no el de otro miembro", async () => {
+  await seedSpace("anonymize-space", "anon-owner", ["anon-member"]);
+  await seedShoppingItem("anonymize-space", "member-item", "anon-member");
+  const member = verifiedFirestore("anon-member");
+  const owner = verifiedFirestore("anon-owner");
+  const memberItem = doc(member, "spaces", "anonymize-space", "shoppingItems", "member-item");
+  await assertSucceeds(updateDoc(memberItem, { createdByName: "Usuario eliminado" }));
+  await assertFails(updateDoc(doc(owner, "spaces", "anonymize-space", "shoppingItems", "member-item"), { createdByName: "Nombre manipulado" }));
+});
+
 function verifiedFirestore(uid) {
   return testEnvironment.authenticatedContext(uid, {
     email: `${uid}@bobitos.invalid`,
