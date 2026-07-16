@@ -231,14 +231,17 @@ Propuesta:
 title: string
 description: string | null
 assigneeId: string | null
+assigneeName: string | null
 dueAt: timestamp | null
 priority: "LOW" | "MEDIUM" | "HIGH"
 status: "TODO" | "DONE"
 createdBy: string
+createdByName: string
 createdAt: timestamp
 updatedBy: string
 updatedAt: timestamp
 completedBy: string | null
+completedByName: string | null
 completedAt: timestamp | null
 ```
 
@@ -248,6 +251,8 @@ completedAt: timestamp | null
 - Solo habrá un responsable principal.
 - El campo admite `null` exclusivamente para tratar la salida o expulsión del responsable.
 - Una tarea sin responsable deberá destacarse para ser reasignada.
+- `assigneeName`, `createdByName` y `completedByName` conservan el nombre visible en el
+  momento de la acción y evitan lecturas adicionales para presentar la lista.
 
 ### Consultas previstas
 
