@@ -1,0 +1,9 @@
+Primera beta privada de Bobitos.
+
+- Espacios privados con invitaciones.
+- Lista de la compra compartida.
+- Tareas asignables.
+- Calendario compartido.
+- Modo sin conexión de solo lectura.
+
+Comunica cualquier error indicando el modelo del dispositivo, la versión de Android y los pasos para reproducirlo.

@@ -6,8 +6,8 @@
 | --- | --- |
 | Nombre del producto | Bobitos |
 | Plataforma inicial | Android |
-| Estado | Implementación — fase 8 completada |
-| Versión del documento | 1.1.0 |
+| Estado | Implementación — fase 12 preparada; beta real pendiente |
+| Versión del documento | 1.4.0 |
 | Última actualización | 16 de julio de 2026 |
 | Distribución prevista | Privada |
 | Repositorio | [DLunaUNIZAR/Bobitos](https://github.com/DLunaUNIZAR/Bobitos) |
@@ -134,7 +134,7 @@ Crear una aplicación Android útil y estable que permita a pequeños grupos pri
 - [x] Los eventos serán visibles para todo el espacio y podrán tener participantes opcionales.
 - [x] Cualquier miembro podrá editar compra, tareas y eventos.
 - [x] Las notificaciones push quedarán fuera del MVP.
-- [x] El canal de distribución se decidirá durante la beta.
+- [x] La beta privada se distribuirá mediante Firebase App Distribution.
 
 ## 5. Requisitos funcionales
 
@@ -352,10 +352,9 @@ Las fechas con hora se almacenarán como instantes UTC y conservarán la zona ho
 
 ### 10.2. Distribución
 
-- APK firmado compartido manualmente: 0 €, con actualizaciones manuales.
-- Google Play: pago único de registro y actualizaciones automáticas.
-
-La elección definitiva de distribución se tomará durante la fase de beta.
+- Firebase App Distribution con APK firmado: 0 €, acceso limitado a testers y avisos de actualización.
+- Google Play queda aplazado hasta que exista una razón para publicar o automatizar actualizaciones mediante la tienda.
+- La firma se conserva fuera del repositorio y se reutiliza en todas las versiones.
 
 ## 11. Fases de trabajo
 
@@ -545,9 +544,9 @@ Duración estimada: 2-3 semanas.
 
 Duración estimada: 1-2 semanas de preparación, más el periodo de prueba.
 
-- [ ] Crear una versión firmada.
+- [x] Configurar la generación obligatoria de una versión firmada.
 - [ ] Definir el grupo de beta.
-- [ ] Elegir APK privado o Google Play.
+- [x] Elegir Firebase App Distribution con APK privado.
 - [ ] Instalar en dispositivos reales.
 - [ ] Recopilar y priorizar incidencias.
 - [ ] Corregir fallos críticos.
@@ -680,11 +679,12 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 16/07/2026 | Fechas locales más instantes UTC en calendario | Evitar desplazamientos de día al cambiar de zona horaria sin perder consultas eficientes |
 | 16/07/2026 | Eliminación cliente coordinada | Mantener coste cero: reautenticación, anonimización y limpieza de espacios sin backend adicional |
 | 16/07/2026 | App Check con Play Integrity en producción | Proteger Firebase sin afectar a Emulator Suite; activar la exigencia al disponer de firma beta |
+| 16/07/2026 | Firebase App Distribution para la beta | Mantener coste cero, limitar testers y facilitar avisos de actualización sin publicar en Google Play |
 
 ## 16. Próximas decisiones
 
 - [ ] Colores y diseño visual.
-- [ ] Distribución mediante APK o Google Play.
+- [x] Distribución de beta mediante Firebase App Distribution.
 - [ ] Necesidad de notificaciones push después de validar el MVP.
 
 ## 17. Historial del documento
@@ -705,3 +705,4 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 1.1.0 | 16/07/2026 | Tareas asignables, prioridades, fechas, filtros, completado y desasignación segura |
 | 1.2.0 | 16/07/2026 | Calendario compartido, vistas mensual y agenda, participantes opcionales, UTC y consultas por intervalo |
 | 1.3.0 | 16/07/2026 | Seguridad final del MVP, eliminación de cuenta y espacios, anonimización, privacidad, App Check y pruebas cruzadas |
+| 1.4.0 | 16/07/2026 | Canal Firebase App Distribution, firma externa, versionado de beta, guía de instalación y plan de pruebas reales |

@@ -16,11 +16,11 @@ La aplicación está diseñada para mantener un coste de infraestructura de 0 �
 
 ## Estado del proyecto
 
-`Implementación — Fase 11 completada en código; pendiente activar App Check con la firma de beta`
+`Implementación — Fase 12 preparada para distribuir la primera beta privada`
 
 El alcance, la arquitectura y la hoja de ruta inicial están documentados en [PROJECT_PLAN.md](PROJECT_PLAN.md).
 
-La política aplicable al MVP está en [PRIVACY_POLICY.md](PRIVACY_POLICY.md) y la activación de protección del cliente en [docs/APP_CHECK.md](docs/APP_CHECK.md).
+La política aplicable al MVP está en [PRIVACY_POLICY.md](PRIVACY_POLICY.md), la distribución en [docs/BETA_DISTRIBUTION.md](docs/BETA_DISTRIBUTION.md) y la activación de protección del cliente en [docs/APP_CHECK.md](docs/APP_CHECK.md).
 
 Repositorio oficial: [DLunaUNIZAR/Bobitos](https://github.com/DLunaUNIZAR/Bobitos).
 
@@ -66,6 +66,7 @@ Repositorio oficial: [DLunaUNIZAR/Bobitos](https://github.com/DLunaUNIZAR/Bobito
 | Seguridad | Firebase Security Rules y App Check |
 | Backend opcional | Cloud Functions con TypeScript |
 | Notificaciones opcionales | Firebase Cloud Messaging |
+| Distribución beta | Firebase App Distribution |
 | Control de versiones | Git y GitHub |
 
 ## Arquitectura
@@ -209,7 +210,7 @@ El núcleo se diseñará para funcionar dentro del plan gratuito de Firebase:
 - Sin Cloud Functions obligatorias.
 - Consultas y listeners limitados.
 
-La publicación mediante APK privado puede realizarse sin coste. Google Play requeriría el pago único de la cuenta de desarrollador.
+La beta se distribuye mediante Firebase App Distribution sin coste. El APK es privado, está firmado y sus actualizaciones se notifican a los testers autorizados.
 
 ## Documentación
 
@@ -219,6 +220,8 @@ La publicación mediante APK privado puede realizarse sin coste. Google Play req
 - [Flujos de usuario](docs/USER_FLOWS.md)
 - [Modelo de datos](docs/DATA_MODEL.md)
 - [Firebase de desarrollo y emuladores](docs/FIREBASE_DEVELOPMENT.md)
+- [Distribución de la beta privada](docs/BETA_DISTRIBUTION.md)
+- [Plan de pruebas en dispositivos reales](docs/BETA_TEST_PLAN.md)
 - Guía de contribución: pendiente.
 - [Arquitectura y convenciones](docs/ARCHITECTURE.md)
 

@@ -12,6 +12,8 @@ Antes de distribuir la beta:
 4. Distribuir primero una compilación con App Check y observar las métricas de solicitudes válidas.
 5. Activar la aplicación de App Check para Authentication y Cloud Firestore cuando los dispositivos de beta aparezcan como válidos.
 
+La beta se distribuye fuera de Google Play mediante Firebase App Distribution. En la configuración avanzada de Play Integrity deben marcarse `PLAY_RECOGNIZED` y `LICENSED` como no requeridos, y exigir como mínimo la integridad del dispositivo. La secuencia completa está en [BETA_DISTRIBUTION.md](BETA_DISTRIBUTION.md).
+
 No debe activarse la exigencia en consola antes de registrar la firma: bloquearía también a clientes legítimos. Este último cambio remoto forma parte de la preparación de la beta porque depende de la clave y del canal de distribución elegidos en el issue #13.
 
 Referencia: [Firebase App Check con Play Integrity](https://firebase.google.com/docs/app-check/android/play-integrity-provider).
