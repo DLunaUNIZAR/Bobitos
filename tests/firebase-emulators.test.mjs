@@ -758,6 +758,27 @@ test("limpiar comprados no borra un producto desmarcado simultáneamente", async
   assert.equal(removed.exists(), false);
 });
 
+test("todos los miembros ven y editan eventos aunque no sean participantes", async () => {
+  await seedSpace("calendar-shared", "calendar-owner", ["calendar-member"]);
+  const owner = verifiedFirestore("calendar-owner");
+  const member = verifiedFirestore("calendar-member");
+  const reference = doc(owner, "spaces", "calendar-shared", "events", "event-1");
+  await assertSucceeds(setDoc(reference, eventData("calendar-owner", { participantIds: ["calendar-owner"], participantNames: ["calendar-owner"] })));
+  const memberReference = doc(member, "spaces", "calendar-shared", "events", "event-1");
+  await assertSucceeds(getDoc(memberReference));
+  await assertSucceeds(updateDoc(memberReference, { title: "Editado", updatedBy: "calendar-member", updatedAt: serverTimestamp() }));
+});
+
+test("un usuario externo no puede leer eventos y los intervalos inválidos se rechazan", async () => {
+  await seedSpace("calendar-private", "calendar-private-owner");
+  const owner = verifiedFirestore("calendar-private-owner");
+  const outsider = verifiedFirestore("calendar-outsider");
+  const reference = doc(owner, "spaces", "calendar-private", "events", "event-1");
+  await assertFails(setDoc(reference, eventData("calendar-private-owner", { endAt: Timestamp.fromMillis(1) })));
+  await assertSucceeds(setDoc(reference, eventData("calendar-private-owner")));
+  await assertFails(getDoc(doc(outsider, "spaces", "calendar-private", "events", "event-1")));
+});
+
 function verifiedFirestore(uid) {
   return testEnvironment.authenticatedContext(uid, {
     email: `${uid}@bobitos.invalid`,
@@ -770,6 +791,16 @@ function unverifiedFirestore(uid) {
     email: `${uid}@bobitos.invalid`,
     email_verified: false,
   }).firestore();
+}
+
+function eventData(userId, overrides = {}) {
+  return {
+    title: "Evento", description: null, allDay: false,
+    startAt: Timestamp.fromMillis(Date.now() + 60_000), endAt: Timestamp.fromMillis(Date.now() + 120_000),
+    startDate: null, endDateExclusive: null, timeZone: "Europe/Madrid", color: "BLUE",
+    participantIds: [], participantNames: [], createdBy: userId, createdByName: userId,
+    createdAt: serverTimestamp(), updatedBy: userId, updatedAt: serverTimestamp(), ...overrides,
+  };
 }
 
 function shoppingItem(userId, overrides = {}) {

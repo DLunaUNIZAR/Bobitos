@@ -501,14 +501,14 @@ Duración estimada: 2 semanas.
 
 Duración estimada: 2-3 semanas.
 
-- [ ] Crear, editar y eliminar eventos.
-- [ ] Implementar eventos con hora y de día completo.
-- [ ] Añadir participantes, descripción y color.
-- [ ] Implementar vista de agenda.
-- [ ] Implementar vista mensual.
-- [ ] Mostrar próximos eventos.
-- [ ] Tratar UTC, zona horaria y cambios de hora.
-- [ ] Limitar consultas por intervalos.
+- [x] Crear, editar y eliminar eventos.
+- [x] Implementar eventos con hora y de día completo.
+- [x] Añadir participantes, descripción y color.
+- [x] Implementar vista de agenda.
+- [x] Implementar vista mensual.
+- [x] Mostrar próximos eventos.
+- [x] Tratar UTC, zona horaria y cambios de hora.
+- [x] Limitar consultas por intervalos.
 
 **Criterio de salida:** el espacio dispone de un calendario básico compartido y fiable.
 
@@ -676,6 +676,8 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 16/07/2026 | Escrituras bloqueadas hasta completar la resincronización | Evitar cambios locales pendientes y trabajar siempre sobre estado remoto actualizado |
 | 16/07/2026 | Listeners vinculados a la pantalla y al espacio activos | Reducir lecturas de Firestore y eliminar observadores duplicados |
 | 16/07/2026 | Limpieza transaccional de productos comprados | No borrar productos desmarcados por otro usuario durante la confirmación |
+| 16/07/2026 | Fin de evento exclusivo | Representar correctamente eventos de día completo y consultas por solapamiento |
+| 16/07/2026 | Fechas locales más instantes UTC en calendario | Evitar desplazamientos de día al cambiar de zona horaria sin perder consultas eficientes |
 
 ## 16. Próximas decisiones
 
@@ -699,3 +701,4 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 0.9.0 | 16/07/2026 | Tiempo real acotado, conectividad validada, caché de solo lectura, bloqueo central de escrituras y métricas de lecturas |
 | 1.0.0 | 16/07/2026 | Lista de la compra compartida, atribución histórica, limpieza segura y pruebas multiusuario |
 | 1.1.0 | 16/07/2026 | Tareas asignables, prioridades, fechas, filtros, completado y desasignación segura |
+| 1.2.0 | 16/07/2026 | Calendario compartido, vistas mensual y agenda, participantes opcionales, UTC y consultas por intervalo |
