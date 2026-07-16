@@ -27,12 +27,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.model.AuthUser
+import com.dlunaunizar.bobitos.core.model.SyncStatus
+import com.dlunaunizar.bobitos.feature.common.SyncStatusBanner
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     user: AuthUser,
     actionState: AuthActionUiState,
+    syncStatus: SyncStatus,
+    canWrite: Boolean,
     onUpdateDisplayName: (String) -> Unit,
     onSignOut: () -> Unit,
     onBack: () -> Unit,
@@ -50,14 +54,17 @@ fun ProfileScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.profile_title)) },
-                navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text(stringResource(R.string.navigate_back))
-                    }
-                },
-            )
+            Column {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.profile_title)) },
+                    navigationIcon = {
+                        TextButton(onClick = onBack) {
+                            Text(stringResource(R.string.navigate_back))
+                        }
+                    },
+                )
+                SyncStatusBanner(status = syncStatus)
+            }
         },
     ) { innerPadding ->
         Column(
@@ -93,7 +100,7 @@ fun ProfileScreen(
             )
             Button(
                 onClick = { onUpdateDisplayName(displayName) },
-                enabled = !actionState.isLoading,
+                enabled = !actionState.isLoading && canWrite,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 if (actionState.isLoading) {

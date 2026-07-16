@@ -10,6 +10,7 @@ import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.data.repository.SpaceFailure
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepositoryException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import java.time.Instant
@@ -39,6 +40,7 @@ class SpacesViewModelTest {
             assertEquals("Casa", repository.createdName)
             assertEquals(SpaceUiMessage.SpaceCreated, viewModel.uiState.value.notice)
             assertFalse(viewModel.uiState.value.isLoading)
+            assertEquals(WriteStatus.SAVED, viewModel.uiState.value.writeStatus)
             assertNull(viewModel.uiState.value.error)
         }
 
@@ -48,6 +50,7 @@ class SpacesViewModelTest {
 
         assertNull(repository.createdName)
         assertEquals(SpaceUiMessage.NameRequired, viewModel.uiState.value.error)
+        assertEquals(WriteStatus.ERROR, viewModel.uiState.value.writeStatus)
     }
 
     @Test
@@ -59,6 +62,23 @@ class SpacesViewModelTest {
             advanceUntilIdle()
 
             assertEquals(SpaceUiMessage.OwnerMustTransfer, viewModel.uiState.value.error)
+        }
+
+    @Test
+    fun `connection loss while saving finishes as network error`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.createGate = CompletableDeferred()
+
+            viewModel.createSpace("Casa")
+            assertEquals(WriteStatus.SAVING, viewModel.uiState.value.writeStatus)
+
+            repository.nextFailure = SpaceRepositoryException(SpaceFailure.Network)
+            repository.createGate?.complete(Unit)
+            advanceUntilIdle()
+
+            assertEquals(WriteStatus.ERROR, viewModel.uiState.value.writeStatus)
+            assertEquals(SpaceUiMessage.NetworkError, viewModel.uiState.value.error)
+            assertFalse(viewModel.uiState.value.isLoading)
         }
 
     @Test
@@ -94,10 +114,12 @@ class SpacesViewModelTest {
 }
 
 private class FakeSpaceRepository : SpaceRepository {
-    override val spaces: Flow<List<SpaceSummary>> = flowOf(emptyList())
+    override fun spaces(): Flow<List<SpaceSummary>> = flowOf(emptyList())
+    override fun space(spaceId: String): Flow<SpaceSummary?> = flowOf(null)
     var createdName: String? = null
     var acceptedCode: String? = null
     var nextFailure: SpaceRepositoryException? = null
+    var createGate: CompletableDeferred<Unit>? = null
 
     override fun members(spaceId: String): Flow<List<SpaceMember>> = flowOf(
         listOf(SpaceMember("owner", "David", SpaceRole.OWNER)),
@@ -106,6 +128,7 @@ private class FakeSpaceRepository : SpaceRepository {
     override fun invitations(spaceId: String): Flow<List<SpaceInvitation>> = flowOf(emptyList())
 
     override suspend fun createSpace(name: String): String {
+        createGate?.await()
         throwNextFailure()
         createdName = name
         return "created"

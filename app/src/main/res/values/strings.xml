@@ -79,6 +79,9 @@
     <string name="change_space">Espacios</string>
     <string name="generic_loading">Cargando…</string>
     <string name="generic_error">No se ha podido cargar la información.</string>
+    <string name="sync_offline">Sin conexión · datos desactualizados · solo lectura</string>
+    <string name="sync_refreshing">Actualizando datos antes de permitir cambios…</string>
+    <string name="write_saving">Guardando…</string>
     <string name="shopping_title">Compra</string>
     <string name="shopping_placeholder">La lista de la compra compartida aparecerá aquí.</string>
     <string name="tasks_title">Tareas</string>

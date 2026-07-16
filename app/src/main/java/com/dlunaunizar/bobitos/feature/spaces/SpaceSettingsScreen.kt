@@ -35,6 +35,8 @@ import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SpaceRole
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
+import com.dlunaunizar.bobitos.core.model.SyncStatus
+import com.dlunaunizar.bobitos.feature.common.SyncStatusBanner
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -44,6 +46,8 @@ fun SpaceSettingsScreen(
     space: SpaceSummary,
     currentUserId: String,
     state: SpaceManagementUiState,
+    syncStatus: SyncStatus,
+    canWrite: Boolean,
     onObserveSpaceSettings: (String, Boolean) -> Unit,
     onStopObservingSpaceSettings: () -> Unit,
     onRenameSpace: (String, String) -> Unit,
@@ -89,6 +93,7 @@ fun SpaceSettingsScreen(
             text = space.name,
             style = MaterialTheme.typography.headlineMedium,
         )
+        SyncStatusBanner(status = syncStatus)
         Text(
             text = stringResource(
                 if (space.role == SpaceRole.OWNER) {
@@ -104,7 +109,7 @@ fun SpaceSettingsScreen(
         if (space.role == SpaceRole.OWNER) {
             Button(
                 onClick = { showRenameDialog = true },
-                enabled = !state.isLoading,
+                enabled = !state.isLoading && canWrite,
             ) {
                 Text(text = stringResource(R.string.space_rename))
             }
@@ -113,7 +118,7 @@ fun SpaceSettingsScreen(
             OwnerInvitations(
                 invitations = state.invitations,
                 spaceIsFull = space.memberCount >= 10,
-                actionsEnabled = !state.isLoading,
+                actionsEnabled = !state.isLoading && canWrite,
                 onCreateInvitation = { onCreateInvitation(space.id) },
                 onRevokeInvitation = onRevokeInvitation,
                 onShareInvitation = onShareInvitation,
@@ -141,7 +146,7 @@ fun SpaceSettingsScreen(
                         member = member,
                         isCurrentUser = member.userId == currentUserId,
                         canManage = space.role == SpaceRole.OWNER,
-                        actionsEnabled = !state.isLoading,
+                        actionsEnabled = !state.isLoading && canWrite,
                         onTransfer = {
                             pendingAction = MemberAction(
                                 type = MemberActionType.Transfer,
@@ -170,7 +175,7 @@ fun SpaceSettingsScreen(
                         memberName = "",
                     )
                 },
-                enabled = !state.isLoading,
+                enabled = !state.isLoading && canWrite,
             ) {
                 Text(text = stringResource(R.string.space_leave))
             }
@@ -187,6 +192,7 @@ fun SpaceSettingsScreen(
             title = stringResource(R.string.space_rename_title),
             confirmLabel = stringResource(R.string.space_rename),
             initialName = space.name,
+            enabled = canWrite,
             onDismiss = { showRenameDialog = false },
             onConfirm = { name ->
                 onRenameSpace(space.id, name)
@@ -198,6 +204,7 @@ fun SpaceSettingsScreen(
     pendingAction?.let { action ->
         ConfirmMemberActionDialog(
             action = action,
+            confirmEnabled = canWrite && !state.isLoading,
             onDismiss = { pendingAction = null },
             onConfirm = {
                 when (action.type) {
@@ -319,7 +326,7 @@ private fun InvitationCard(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(
                     onClick = onShare,
-                    enabled = actionsEnabled && !expired,
+                    enabled = !expired,
                 ) {
                     Text(text = stringResource(R.string.invitation_share))
                 }
@@ -380,6 +387,7 @@ private fun MemberCard(
 @Composable
 private fun ConfirmMemberActionDialog(
     action: MemberAction,
+    confirmEnabled: Boolean,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
@@ -404,7 +412,7 @@ private fun ConfirmMemberActionDialog(
         title = { Text(text = title) },
         text = { Text(text = body) },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
+            TextButton(onClick = onConfirm, enabled = confirmEnabled) {
                 Text(text = stringResource(R.string.confirm))
             }
         },

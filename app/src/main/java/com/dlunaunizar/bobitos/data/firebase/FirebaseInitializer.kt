@@ -7,7 +7,7 @@ import com.google.firebase.FirebaseOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
-import com.google.firebase.firestore.MemoryCacheSettings
+import com.google.firebase.firestore.PersistentCacheSettings
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -31,7 +31,11 @@ class FirebaseInitializer @Inject constructor(
                 BuildConfig.FIREBASE_FIRESTORE_EMULATOR_PORT,
             )
             firestoreSettings = FirebaseFirestoreSettings.Builder()
-                .setLocalCacheSettings(MemoryCacheSettings.newBuilder().build())
+                .setLocalCacheSettings(
+                    PersistentCacheSettings.newBuilder()
+                        .setSizeBytes(FIRESTORE_CACHE_SIZE_BYTES)
+                        .build(),
+                )
                 .build()
         }
     }
@@ -59,5 +63,6 @@ class FirebaseInitializer @Inject constructor(
     private companion object {
         const val DEMO_APPLICATION_ID = "1:000000000000:android:demo-bobitos"
         const val DEMO_API_KEY = "demo-api-key"
+        const val FIRESTORE_CACHE_SIZE_BYTES = 20L * 1024L * 1024L
     }
 }

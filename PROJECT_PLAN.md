@@ -6,8 +6,8 @@
 | --- | --- |
 | Nombre del producto | Bobitos |
 | Plataforma inicial | Android |
-| Estado | Implementación — fase 5 en curso |
-| Versión del documento | 0.8.0 |
+| Estado | Implementación — fase 6 completada |
+| Versión del documento | 0.9.0 |
 | Última actualización | 16 de julio de 2026 |
 | Distribución prevista | Privada |
 | Repositorio | [DLunaUNIZAR/Bobitos](https://github.com/DLunaUNIZAR/Bobitos) |
@@ -456,13 +456,14 @@ Duración estimada: 2-3 semanas.
 
 Duración estimada: 1 semana.
 
-- [ ] Crear listeners limitados al espacio activo.
-- [ ] Cancelar listeners innecesarios.
-- [ ] Detectar ausencia de conexión.
-- [ ] Mostrar el modo offline de solo lectura.
-- [ ] Bloquear modificaciones sin conexión.
-- [ ] Gestionar operaciones interrumpidas.
-- [ ] Actualizar datos al recuperar la conexión.
+- [x] Crear listeners limitados al espacio y pantalla activos.
+- [x] Cancelar listeners al navegar, cambiar de espacio o cerrar sesión.
+- [x] Detectar ausencia de conexión útil mediante una red validada.
+- [x] Mostrar el modo offline de solo lectura con datos desactualizados.
+- [x] Bloquear modificaciones en la interfaz y en el repositorio.
+- [x] Gestionar operaciones interrumpidas sin encolar escrituras nuevas.
+- [x] Actualizar datos desde el servidor al recuperar la conexión.
+- [x] Medir listeners activos y lecturas de resincronización en Logcat.
 
 **Criterio de salida:** dos dispositivos reflejan cambios conectados y no generan nuevos cambios desconectados.
 
@@ -672,6 +673,8 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 14/07/2026 | Firestore remoto de desarrollo en `europe-southwest1` | Mantener los datos en Madrid y reducir la latencia para los usuarios iniciales |
 | 15/07/2026 | Proyecto remoto `bobitos-dev` (`853960607744`) en Spark | Disponer de un entorno real separado sin activar servicios de pago |
 | 15/07/2026 | Google Analytics activado sin integrar su SDK en Android | Mantener disponible la opción gratuita sin recopilar telemetría durante el MVP |
+| 16/07/2026 | Escrituras bloqueadas hasta completar la resincronización | Evitar cambios locales pendientes y trabajar siempre sobre estado remoto actualizado |
+| 16/07/2026 | Listeners vinculados a la pantalla y al espacio activos | Reducir lecturas de Firestore y eliminar observadores duplicados |
 
 ## 16. Próximas decisiones
 
@@ -692,3 +695,4 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 0.5.2 | 15/07/2026 | Finalización del entorno remoto: aplicación Android, Authentication y Firestore en Madrid |
 | 0.7.0 | 16/07/2026 | Espacios múltiples, roles, miembros, persistencia del espacio activo y operaciones atómicas de gestión |
 | 0.8.0 | 16/07/2026 | Invitaciones privadas de 160 bits, códigos y deep links, caducidad, revocación, consumo atómico y pruebas de concurrencia |
+| 0.9.0 | 16/07/2026 | Tiempo real acotado, conectividad validada, caché de solo lectura, bloqueo central de escrituras y métricas de lecturas |

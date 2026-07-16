@@ -7,6 +7,9 @@ import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceRole
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
+import com.dlunaunizar.bobitos.data.sync.RealtimeMetrics
+import com.dlunaunizar.bobitos.data.sync.SyncRepository
+import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
@@ -31,17 +34,19 @@ import kotlinx.coroutines.tasks.await
 @Singleton
 class FirestoreSpaceRepository @Inject constructor(
     private val authRepository: AuthRepository,
+    private val syncRepository: SyncRepository,
+    private val realtimeMetrics: RealtimeMetrics,
 ) : SpaceRepository {
     private val firestore = FirebaseFirestore.getInstance()
 
-    override val spaces: Flow<List<SpaceSummary>> = authRepository.currentUser
-        .flatMapLatest { user ->
+    override fun spaces(): Flow<List<SpaceSummary>> =
+        authRepository.currentUser.flatMapLatest { user ->
             if (user == null || !user.isEmailVerified) {
                 flowOf(emptyList())
             } else {
                 membershipsForUser(user.id).flatMapLatest { memberships ->
                     val spaceFlows = memberships.map { membership ->
-                        observeSpace(membership)
+                        observeSpace(membership, metricScope = "space:list")
                     }
                     if (spaceFlows.isEmpty()) {
                         flowOf(emptyList())
@@ -56,7 +61,23 @@ class FirestoreSpaceRepository @Inject constructor(
             }
         }
 
+    override fun space(spaceId: String): Flow<SpaceSummary?> =
+        authRepository.currentUser.flatMapLatest { user ->
+            if (user == null || !user.isEmailVerified) {
+                flowOf(null)
+            } else {
+                observeMembership(spaceId, user.id).flatMapLatest { membership ->
+                    if (membership == null) {
+                        flowOf(null)
+                    } else {
+                        observeSpace(membership, metricScope = "space:active")
+                    }
+                }
+            }
+        }
+
     override fun members(spaceId: String): Flow<List<SpaceMember>> = callbackFlow {
+        val metricId = realtimeMetrics.listenerStarted("members:settings")
         val registration = firestore.collection(MEMBERSHIPS)
             .whereEqualTo(FIELD_SPACE_ID, spaceId)
             .whereEqualTo(FIELD_STATUS, STATUS_ACTIVE)
@@ -64,6 +85,11 @@ class FirestoreSpaceRepository @Inject constructor(
                 when {
                     error != null -> close(error.toSpaceRepositoryException())
                     snapshot != null -> {
+                        realtimeMetrics.snapshotReceived(
+                            scope = "members:settings",
+                            changedDocuments = snapshot.documentChanges.size,
+                            fromCache = snapshot.metadata.isFromCache,
+                        )
                         val members = snapshot.documents
                             .mapNotNull(DocumentSnapshot::toSpaceMember)
                             .sortedWith(
@@ -74,27 +100,41 @@ class FirestoreSpaceRepository @Inject constructor(
                     }
                 }
             }
-        awaitClose(registration::remove)
+        awaitClose {
+            registration.remove()
+            realtimeMetrics.listenerStopped(metricId)
+        }
     }
 
     override fun invitations(spaceId: String): Flow<List<SpaceInvitation>> = callbackFlow {
+        val metricId = realtimeMetrics.listenerStarted("invitations:settings")
         val registration = firestore.collection(INVITATIONS)
             .whereEqualTo(FIELD_SPACE_ID, spaceId)
             .whereEqualTo(FIELD_STATUS, INVITATION_STATUS_ACTIVE)
             .addSnapshotListener { snapshot, error ->
                 when {
                     error != null -> close(error.toSpaceRepositoryException())
-                    snapshot != null -> trySend(
-                        snapshot.documents
-                            .mapNotNull(DocumentSnapshot::toSpaceInvitation)
-                            .filter { invitation ->
-                                invitation.status == InvitationStatus.ACTIVE
-                            }
-                            .sortedByDescending(SpaceInvitation::expiresAt),
-                    )
+                    snapshot != null -> {
+                        realtimeMetrics.snapshotReceived(
+                            scope = "invitations:settings",
+                            changedDocuments = snapshot.documentChanges.size,
+                            fromCache = snapshot.metadata.isFromCache,
+                        )
+                        trySend(
+                            snapshot.documents
+                                .mapNotNull(DocumentSnapshot::toSpaceInvitation)
+                                .filter { invitation ->
+                                    invitation.status == InvitationStatus.ACTIVE
+                                }
+                                .sortedByDescending(SpaceInvitation::expiresAt),
+                        )
+                    }
                 }
             }
-        awaitClose(registration::remove)
+        awaitClose {
+            registration.remove()
+            realtimeMetrics.listenerStopped(metricId)
+        }
     }
 
     override suspend fun createSpace(name: String): String = runSpaceOperation {
@@ -223,18 +263,23 @@ class FirestoreSpaceRepository @Inject constructor(
             val invitationReference = firestore.collection(INVITATIONS).document(invitationId)
             val expiresAt = Instant.now().plus(INVITATION_VALIDITY)
 
-            invitationReference.set(
-                mapOf(
-                    FIELD_SPACE_ID to spaceId,
-                    FIELD_CREATED_BY to user.id,
-                    FIELD_CREATED_AT to FieldValue.serverTimestamp(),
-                    FIELD_EXPIRES_AT to Timestamp(Date.from(expiresAt)),
-                    FIELD_STATUS to INVITATION_STATUS_ACTIVE,
-                    FIELD_USED_BY to null,
-                    FIELD_USED_AT to null,
-                    FIELD_REVOKED_AT to null,
-                ),
-            ).await()
+            val spaceReference = firestore.collection(SPACES).document(spaceId)
+            firestore.runTransaction { transaction ->
+                checkSpaceExists(transaction.get(spaceReference))
+                transaction.set(
+                    invitationReference,
+                    mapOf(
+                        FIELD_SPACE_ID to spaceId,
+                        FIELD_CREATED_BY to user.id,
+                        FIELD_CREATED_AT to FieldValue.serverTimestamp(),
+                        FIELD_EXPIRES_AT to Timestamp(Date.from(expiresAt)),
+                        FIELD_STATUS to INVITATION_STATUS_ACTIVE,
+                        FIELD_USED_BY to null,
+                        FIELD_USED_AT to null,
+                        FIELD_REVOKED_AT to null,
+                    ),
+                )
+            }.await()
 
             SpaceInvitation(
                 id = invitationId,
@@ -330,29 +375,77 @@ class FirestoreSpaceRepository @Inject constructor(
     }
 
     private fun membershipsForUser(userId: String): Flow<List<MembershipSnapshot>> = callbackFlow {
+        val metricId = realtimeMetrics.listenerStarted("memberships:list")
         val registration = firestore.collection(MEMBERSHIPS)
             .whereEqualTo(FIELD_USER_ID, userId)
             .whereEqualTo(FIELD_STATUS, STATUS_ACTIVE)
             .addSnapshotListener { snapshot, error ->
                 when {
                     error != null -> close(error.toSpaceRepositoryException())
-                    snapshot != null -> trySend(
-                        snapshot.documents.mapNotNull { document ->
-                            val spaceId = document.getString(FIELD_SPACE_ID)
-                            val role = document.membershipRole
-                            if (spaceId == null || role == null) {
-                                null
-                            } else {
-                                MembershipSnapshot(spaceId, role)
-                            }
-                        },
-                    )
+                    snapshot != null -> {
+                        realtimeMetrics.snapshotReceived(
+                            scope = "memberships:list",
+                            changedDocuments = snapshot.documentChanges.size,
+                            fromCache = snapshot.metadata.isFromCache,
+                        )
+                        trySend(
+                            snapshot.documents.mapNotNull { document ->
+                                val spaceId = document.getString(FIELD_SPACE_ID)
+                                val role = document.membershipRole
+                                if (spaceId == null || role == null) {
+                                    null
+                                } else {
+                                    MembershipSnapshot(spaceId, role)
+                                }
+                            },
+                        )
+                    }
                 }
             }
-        awaitClose(registration::remove)
+        awaitClose {
+            registration.remove()
+            realtimeMetrics.listenerStopped(metricId)
+        }
     }
 
-    private fun observeSpace(membership: MembershipSnapshot): Flow<SpaceSummary?> = callbackFlow {
+    private fun observeMembership(
+        spaceId: String,
+        userId: String,
+    ): Flow<MembershipSnapshot?> = callbackFlow {
+        val metricId = realtimeMetrics.listenerStarted("membership:active")
+        val registration = membershipReference(spaceId, userId)
+            .addSnapshotListener { snapshot, error ->
+                when {
+                    error != null -> close(error.toSpaceRepositoryException())
+                    snapshot == null ||
+                        !snapshot.exists() ||
+                        snapshot.getString(FIELD_STATUS) != STATUS_ACTIVE -> trySend(null)
+                    else -> {
+                        realtimeMetrics.snapshotReceived(
+                            scope = "membership:active",
+                            changedDocuments = 1,
+                            fromCache = snapshot.metadata.isFromCache,
+                        )
+                        val role = snapshot.membershipRole
+                        if (role == null) {
+                            close(SpaceRepositoryException(SpaceFailure.Unknown))
+                        } else {
+                            trySend(MembershipSnapshot(spaceId, role))
+                        }
+                    }
+                }
+            }
+        awaitClose {
+            registration.remove()
+            realtimeMetrics.listenerStopped(metricId)
+        }
+    }
+
+    private fun observeSpace(
+        membership: MembershipSnapshot,
+        metricScope: String,
+    ): Flow<SpaceSummary?> = callbackFlow {
+        val metricId = realtimeMetrics.listenerStarted(metricScope)
         val registration = firestore.collection(SPACES)
             .document(membership.spaceId)
             .addSnapshotListener { snapshot, error ->
@@ -360,6 +453,11 @@ class FirestoreSpaceRepository @Inject constructor(
                     error != null -> close(error.toSpaceRepositoryException())
                     snapshot == null || !snapshot.exists() -> trySend(null)
                     else -> {
+                        realtimeMetrics.snapshotReceived(
+                            scope = metricScope,
+                            changedDocuments = 1,
+                            fromCache = snapshot.metadata.isFromCache,
+                        )
                         val name = snapshot.getString(FIELD_NAME)
                         val memberCount = snapshot.getLong(FIELD_MEMBER_COUNT)?.toInt()
                         if (name == null || memberCount == null) {
@@ -377,7 +475,10 @@ class FirestoreSpaceRepository @Inject constructor(
                     }
                 }
             }
-        awaitClose(registration::remove)
+        awaitClose {
+            registration.remove()
+            realtimeMetrics.listenerStopped(metricId)
+        }
     }
 
     private suspend fun removeMembership(
@@ -508,6 +609,25 @@ class FirestoreSpaceRepository @Inject constructor(
         }
     }
 
+    private suspend inline fun <T> runSpaceOperation(
+        crossinline operation: suspend () -> T,
+    ): T {
+        try {
+            syncRepository.requireWritable()
+            return operation()
+        } catch (error: SpaceRepositoryException) {
+            if (error.failure == SpaceFailure.Network) {
+                syncRepository.reportWriteFailure(error.cause ?: error)
+            }
+            throw error
+        } catch (error: WriteNotAllowedException) {
+            throw SpaceRepositoryException(SpaceFailure.Network, error)
+        } catch (error: Throwable) {
+            syncRepository.reportWriteFailure(error)
+            throw error.toSpaceRepositoryException()
+        }
+    }
+
     private data class MembershipSnapshot(
         val spaceId: String,
         val role: SpaceRole,
@@ -576,16 +696,6 @@ private fun DocumentSnapshot.toSpaceInvitation(): SpaceInvitation? {
         else -> return null
     }
     return SpaceInvitation(id, spaceId, expiresAt, status)
-}
-
-private suspend inline fun <T> runSpaceOperation(
-    crossinline operation: suspend () -> T,
-): T = try {
-    operation()
-} catch (error: SpaceRepositoryException) {
-    throw error
-} catch (error: Throwable) {
-    throw error.toSpaceRepositoryException()
 }
 
 private fun Throwable.toSpaceRepositoryException(): SpaceRepositoryException =

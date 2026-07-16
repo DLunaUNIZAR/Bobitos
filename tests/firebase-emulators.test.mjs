@@ -32,6 +32,7 @@ import {
   writeBatch,
   collection,
   increment,
+  onSnapshot,
   runTransaction,
 } from "firebase/firestore";
 
@@ -141,6 +142,43 @@ test("solo los miembros pueden leer un espacio privado", async () => {
 
   await assertSucceeds(getDoc(doc(member, "spaces", "private-space")));
   await assertFails(getDoc(doc(outsider, "spaces", "private-space")));
+});
+
+test("dos clientes conectados reciben cambios del espacio en tiempo real", async () => {
+  await seedSpace("realtime-space", "realtime-owner", ["realtime-member"]);
+  const owner = verifiedFirestore("realtime-owner");
+  const member = verifiedFirestore("realtime-member");
+  const memberSpace = doc(member, "spaces", "realtime-space");
+
+  await new Promise((resolve, reject) => {
+    let initialSnapshotReceived = false;
+    const timeout = setTimeout(() => {
+      unsubscribe();
+      reject(new Error("El segundo cliente no recibió el cambio en tiempo real"));
+    }, 5_000);
+    const unsubscribe = onSnapshot(
+      memberSpace,
+      (snapshot) => {
+        if (!initialSnapshotReceived) {
+          initialSnapshotReceived = true;
+          updateDoc(doc(owner, "spaces", "realtime-space"), {
+            name: "Nombre en tiempo real",
+            updatedAt: serverTimestamp(),
+          }).catch(reject);
+          return;
+        }
+        if (snapshot.data()?.name === "Nombre en tiempo real") {
+          clearTimeout(timeout);
+          unsubscribe();
+          resolve();
+        }
+      },
+      (error) => {
+        clearTimeout(timeout);
+        reject(error);
+      },
+    );
+  });
 });
 
 test("un usuario puede listar sus membresías pero no las de espacios ajenos", async () => {

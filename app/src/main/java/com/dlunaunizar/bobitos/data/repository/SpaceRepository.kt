@@ -6,7 +6,9 @@ import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import kotlinx.coroutines.flow.Flow
 
 interface SpaceRepository {
-    val spaces: Flow<List<SpaceSummary>>
+    fun spaces(): Flow<List<SpaceSummary>>
+
+    fun space(spaceId: String): Flow<SpaceSummary?>
 
     fun members(spaceId: String): Flow<List<SpaceMember>>
 

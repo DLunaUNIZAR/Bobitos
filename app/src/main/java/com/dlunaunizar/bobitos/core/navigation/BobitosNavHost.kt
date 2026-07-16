@@ -23,9 +23,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.composable
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.app.AppUiState
+import com.dlunaunizar.bobitos.app.RealtimeScope
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
+import com.dlunaunizar.bobitos.core.model.SyncStatus
+import com.dlunaunizar.bobitos.core.model.canWrite
+import com.dlunaunizar.bobitos.feature.common.SyncStatusBanner
 import com.dlunaunizar.bobitos.feature.auth.AuthActionUiState
 import com.dlunaunizar.bobitos.feature.auth.ProfileScreen
 import com.dlunaunizar.bobitos.feature.calendar.CalendarScreen
@@ -43,6 +47,7 @@ fun BobitosNavHost(
     authActionState: AuthActionUiState,
     spaceManagementState: SpaceManagementUiState,
     onSpaceSelected: (String) -> Unit,
+    onRealtimeScopeChanged: (RealtimeScope) -> Unit,
     onCreateSpace: (String) -> Unit,
     onObserveSpaceSettings: (String, Boolean) -> Unit,
     onStopObservingSpaceSettings: () -> Unit,
@@ -69,8 +74,23 @@ fun BobitosNavHost(
     val protectedRoutes = BobitosDestination.workspaceDestinations.map { it.route } +
         BobitosDestination.SpaceSettings.route
 
+    LaunchedEffect(currentRoute) {
+        onRealtimeScopeChanged(
+            when (currentRoute) {
+                null -> RealtimeScope.AUTOMATIC
+                BobitosDestination.Spaces.route -> RealtimeScope.ALL_SPACES
+                BobitosDestination.Profile.route -> RealtimeScope.PAUSED
+                else -> RealtimeScope.ACTIVE_SPACE
+            },
+        )
+    }
+
     LaunchedEffect(uiState.selectedSpace, currentRoute) {
-        if (uiState.selectedSpace == null && currentRoute in protectedRoutes) {
+        if (
+            uiState.spaces is UiState.Content &&
+            uiState.selectedSpace == null &&
+            currentRoute in protectedRoutes
+        ) {
             navController.navigateToSpaces()
         }
     }
@@ -112,6 +132,8 @@ fun BobitosNavHost(
             SpacesScreen(
                 state = uiState.spaces,
                 managementState = spaceManagementState,
+                syncStatus = uiState.syncStatus,
+                canWrite = uiState.syncStatus.canWrite,
                 onProfileClick = {
                     onClearAuthFeedback()
                     navController.navigateToProfile()
@@ -147,6 +169,7 @@ fun BobitosNavHost(
                     onClearAuthFeedback()
                     navController.navigateToProfile()
                 },
+                syncStatus = uiState.syncStatus,
             ) {
                 ShoppingScreen()
             }
@@ -166,6 +189,7 @@ fun BobitosNavHost(
                     onClearAuthFeedback()
                     navController.navigateToProfile()
                 },
+                syncStatus = uiState.syncStatus,
             ) {
                 TasksScreen()
             }
@@ -185,6 +209,7 @@ fun BobitosNavHost(
                     onClearAuthFeedback()
                     navController.navigateToProfile()
                 },
+                syncStatus = uiState.syncStatus,
             ) {
                 CalendarScreen()
             }
@@ -194,6 +219,8 @@ fun BobitosNavHost(
             ProfileScreen(
                 user = authUser,
                 actionState = authActionState,
+                syncStatus = uiState.syncStatus,
+                canWrite = uiState.syncStatus.canWrite,
                 onUpdateDisplayName = onUpdateDisplayName,
                 onSignOut = onSignOut,
                 onBack = { navController.popBackStack() },
@@ -207,6 +234,8 @@ fun BobitosNavHost(
                     space = space,
                     currentUserId = authUser.id,
                     state = spaceManagementState,
+                    syncStatus = uiState.syncStatus,
+                    canWrite = uiState.syncStatus.canWrite,
                     onObserveSpaceSettings = onObserveSpaceSettings,
                     onStopObservingSpaceSettings = onStopObservingSpaceSettings,
                     onRenameSpace = onRenameSpace,
@@ -233,33 +262,37 @@ private fun WorkspaceScaffold(
     onSwitchSpace: () -> Unit,
     onSpaceSettings: () -> Unit,
     onProfile: () -> Unit,
+    syncStatus: SyncStatus,
     content: @Composable () -> Unit,
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = spaceName,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(text = stringResource(currentDestination.titleRes))
-                    }
-                },
-                actions = {
-                    TextButton(onClick = onSpaceSettings) {
-                        Text(text = stringResource(R.string.space_settings))
-                    }
-                    TextButton(onClick = onProfile) {
-                        Text(text = stringResource(R.string.profile_open))
-                    }
-                    TextButton(onClick = onSwitchSpace) {
-                        Text(text = stringResource(R.string.change_space))
-                    }
-                },
-            )
+            Column {
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text(
+                                text = spaceName,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(text = stringResource(currentDestination.titleRes))
+                        }
+                    },
+                    actions = {
+                        TextButton(onClick = onSpaceSettings) {
+                            Text(text = stringResource(R.string.space_settings))
+                        }
+                        TextButton(onClick = onProfile) {
+                            Text(text = stringResource(R.string.profile_open))
+                        }
+                        TextButton(onClick = onSwitchSpace) {
+                            Text(text = stringResource(R.string.change_space))
+                        }
+                    },
+                )
+                SyncStatusBanner(syncStatus)
+            }
         },
         bottomBar = {
             NavigationBar {

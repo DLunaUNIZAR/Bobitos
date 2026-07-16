@@ -55,7 +55,13 @@ export PATH="$JAVA_HOME/bin:$PATH"
 npm run test:emulators
 ```
 
-La prueba levanta y detiene los servicios necesarios. Además del ciclo de Authentication y la gestión segura de espacios, valida tokens de invitación, consultas limitadas, correo verificado, caducidad, revocación, uso único, límite de 10 miembros y aceptación simultánea desde dos cuentas.
+La prueba levanta y detiene los servicios necesarios. Además del ciclo de Authentication y la gestión segura de espacios, valida tokens de invitación, consultas limitadas, correo verificado, caducidad, revocación, uso único, límite de 10 miembros, aceptación simultánea y propagación en tiempo real entre dos clientes.
+
+Para inspeccionar listeners y lecturas de resincronización durante una prueba manual:
+
+```bash
+adb logcat -s BobitosRealtime
+```
 
 ## Datos locales
 
