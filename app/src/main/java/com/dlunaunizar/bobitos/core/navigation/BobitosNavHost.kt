@@ -12,11 +12,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.composable
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.app.AppUiState
@@ -26,6 +29,8 @@ import com.dlunaunizar.bobitos.feature.auth.ProfileScreen
 import com.dlunaunizar.bobitos.feature.calendar.CalendarScreen
 import com.dlunaunizar.bobitos.feature.shopping.ShoppingScreen
 import com.dlunaunizar.bobitos.feature.spaces.SpacesScreen
+import com.dlunaunizar.bobitos.feature.spaces.SpaceManagementUiState
+import com.dlunaunizar.bobitos.feature.spaces.SpaceSettingsScreen
 import com.dlunaunizar.bobitos.feature.tasks.TasksScreen
 
 @Composable
@@ -34,27 +39,52 @@ fun BobitosNavHost(
     uiState: AppUiState,
     authUser: AuthUser,
     authActionState: AuthActionUiState,
+    spaceManagementState: SpaceManagementUiState,
     onSpaceSelected: (String) -> Unit,
+    onCreateSpace: (String) -> Unit,
+    onObserveMembers: (String) -> Unit,
+    onStopObservingMembers: () -> Unit,
+    onRenameSpace: (String, String) -> Unit,
+    onLeaveSpace: (String) -> Unit,
+    onRemoveMember: (String, String) -> Unit,
+    onTransferOwnership: (String, String) -> Unit,
+    onClearSpaceFeedback: () -> Unit,
     onUpdateDisplayName: (String) -> Unit,
     onSignOut: () -> Unit,
     onClearAuthFeedback: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val spaceName = uiState.selectedSpace?.name ?: stringResource(R.string.app_name)
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
+    val protectedRoutes = BobitosDestination.workspaceDestinations.map { it.route } +
+        BobitosDestination.SpaceSettings.route
+
+    LaunchedEffect(uiState.selectedSpace, currentRoute) {
+        if (uiState.selectedSpace == null && currentRoute in protectedRoutes) {
+            navController.navigateToSpaces()
+        }
+    }
 
     NavHost(
         navController = navController,
-        startDestination = BobitosDestination.Spaces.route,
+        startDestination = if (uiState.selectedSpace == null) {
+            BobitosDestination.Spaces.route
+        } else {
+            BobitosDestination.Shopping.route
+        },
         modifier = modifier.fillMaxSize(),
     ) {
         composable(BobitosDestination.Spaces.route) {
             SpacesScreen(
                 state = uiState.spaces,
+                managementState = spaceManagementState,
                 onProfileClick = {
                     onClearAuthFeedback()
                     navController.navigateToProfile()
                 },
                 onSpaceSelected = { space ->
+                    onClearSpaceFeedback()
                     onSpaceSelected(space.id)
                     navController.navigate(BobitosDestination.Shopping.route) {
                         popUpTo(BobitosDestination.Spaces.route) {
@@ -62,6 +92,8 @@ fun BobitosNavHost(
                         }
                     }
                 },
+                onCreateSpace = onCreateSpace,
+                onClearFeedback = onClearSpaceFeedback,
             )
         }
 
@@ -71,6 +103,10 @@ fun BobitosNavHost(
                 spaceName = spaceName,
                 onDestinationSelected = navController::navigateToWorkspace,
                 onSwitchSpace = navController::navigateToSpaces,
+                onSpaceSettings = {
+                    onClearSpaceFeedback()
+                    navController.navigate(BobitosDestination.SpaceSettings.route)
+                },
                 onProfile = {
                     onClearAuthFeedback()
                     navController.navigateToProfile()
@@ -86,6 +122,10 @@ fun BobitosNavHost(
                 spaceName = spaceName,
                 onDestinationSelected = navController::navigateToWorkspace,
                 onSwitchSpace = navController::navigateToSpaces,
+                onSpaceSettings = {
+                    onClearSpaceFeedback()
+                    navController.navigate(BobitosDestination.SpaceSettings.route)
+                },
                 onProfile = {
                     onClearAuthFeedback()
                     navController.navigateToProfile()
@@ -101,6 +141,10 @@ fun BobitosNavHost(
                 spaceName = spaceName,
                 onDestinationSelected = navController::navigateToWorkspace,
                 onSwitchSpace = navController::navigateToSpaces,
+                onSpaceSettings = {
+                    onClearSpaceFeedback()
+                    navController.navigate(BobitosDestination.SpaceSettings.route)
+                },
                 onProfile = {
                     onClearAuthFeedback()
                     navController.navigateToProfile()
@@ -120,6 +164,24 @@ fun BobitosNavHost(
                 onClearFeedback = onClearAuthFeedback,
             )
         }
+
+        composable(BobitosDestination.SpaceSettings.route) {
+            uiState.selectedSpace?.let { space ->
+                SpaceSettingsScreen(
+                    space = space,
+                    currentUserId = authUser.id,
+                    state = spaceManagementState,
+                    onObserveMembers = onObserveMembers,
+                    onStopObservingMembers = onStopObservingMembers,
+                    onRenameSpace = onRenameSpace,
+                    onLeaveSpace = onLeaveSpace,
+                    onRemoveMember = onRemoveMember,
+                    onTransferOwnership = onTransferOwnership,
+                    onClearFeedback = onClearSpaceFeedback,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+        }
     }
 }
 
@@ -130,6 +192,7 @@ private fun WorkspaceScaffold(
     spaceName: String,
     onDestinationSelected: (BobitosDestination) -> Unit,
     onSwitchSpace: () -> Unit,
+    onSpaceSettings: () -> Unit,
     onProfile: () -> Unit,
     content: @Composable () -> Unit,
 ) {
@@ -147,6 +210,9 @@ private fun WorkspaceScaffold(
                     }
                 },
                 actions = {
+                    TextButton(onClick = onSpaceSettings) {
+                        Text(text = stringResource(R.string.space_settings))
+                    }
                     TextButton(onClick = onProfile) {
                         Text(text = stringResource(R.string.profile_open))
                     }

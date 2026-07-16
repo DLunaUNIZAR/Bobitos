@@ -73,6 +73,7 @@ class FirebaseAuthRepository @Inject constructor() : AuthRepository {
     override suspend fun refreshCurrentUser(): AuthUser = runAuthOperation {
         requireCurrentUser().reload().await()
         val user = requireCurrentUser()
+        user.getIdToken(true).await()
         publish(user)
         user.toAuthUser()
     }

@@ -2,6 +2,245 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function verifiedUser() {
+      return signedIn() && request.auth.token.email_verified == true;
+    }
+
+    function membershipPath(spaceId, userId) {
+      return /databases/$(database)/documents/memberships/$(spaceId + "_" + userId);
+    }
+
+    function spacePath(spaceId) {
+      return /databases/$(database)/documents/spaces/$(spaceId);
+    }
+
+    function activeMembership(spaceId, userId) {
+      return exists(membershipPath(spaceId, userId))
+        && get(membershipPath(spaceId, userId)).data.spaceId == spaceId
+        && get(membershipPath(spaceId, userId)).data.userId == userId
+        && get(membershipPath(spaceId, userId)).data.status == "ACTIVE";
+    }
+
+    function isActiveMember(spaceId) {
+      return verifiedUser() && activeMembership(spaceId, request.auth.uid);
+    }
+
+    function isOwner(spaceId) {
+      return isActiveMember(spaceId)
+        && get(membershipPath(spaceId, request.auth.uid)).data.role == "OWNER"
+        && get(spacePath(spaceId)).data.ownerId == request.auth.uid;
+    }
+
+    function validSpaceName(name) {
+      return name is string && name.size() > 0 && name.size() <= 60;
+    }
+
+    function validNewSpace(spaceId) {
+      let ownerMembership = getAfter(membershipPath(spaceId, request.auth.uid));
+      return verifiedUser()
+        && request.resource.data.keys().hasAll([
+          "name",
+          "ownerId",
+          "createdBy",
+          "memberCount",
+          "lastMembershipChangeUserId",
+          "createdAt",
+          "updatedAt"
+        ])
+        && request.resource.data.keys().hasOnly([
+          "name",
+          "ownerId",
+          "createdBy",
+          "memberCount",
+          "lastMembershipChangeUserId",
+          "createdAt",
+          "updatedAt"
+        ])
+        && validSpaceName(request.resource.data.name)
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.memberCount == 1
+        && request.resource.data.lastMembershipChangeUserId == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && ownerMembership.data.spaceId == spaceId
+        && ownerMembership.data.userId == request.auth.uid
+        && ownerMembership.data.role == "OWNER"
+        && ownerMembership.data.status == "ACTIVE";
+    }
+
+    function validSpaceRename(spaceId) {
+      return isOwner(spaceId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["name", "updatedAt"])
+        && validSpaceName(request.resource.data.name)
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function validOwnershipTransfer(spaceId) {
+      let previousOwnerId = resource.data.ownerId;
+      let newOwnerId = request.resource.data.ownerId;
+      return isOwner(spaceId)
+        && previousOwnerId == request.auth.uid
+        && newOwnerId is string
+        && newOwnerId != previousOwnerId
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["ownerId", "updatedAt"])
+        && request.resource.data.updatedAt == request.time
+        && getAfter(membershipPath(spaceId, previousOwnerId)).data.role == "MEMBER"
+        && getAfter(membershipPath(spaceId, previousOwnerId)).data.status == "ACTIVE"
+        && getAfter(membershipPath(spaceId, newOwnerId)).data.role == "OWNER"
+        && getAfter(membershipPath(spaceId, newOwnerId)).data.status == "ACTIVE";
+    }
+
+    function validMemberCountDecrease(spaceId) {
+      let targetUserId = request.resource.data.lastMembershipChangeUserId;
+      return isActiveMember(spaceId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "memberCount",
+          "lastMembershipChangeUserId",
+          "updatedAt"
+        ])
+        && targetUserId is string
+        && resource.data.memberCount is int
+        && resource.data.memberCount > 1
+        && request.resource.data.memberCount == resource.data.memberCount - 1
+        && request.resource.data.updatedAt == request.time
+        && exists(membershipPath(spaceId, targetUserId))
+        && get(membershipPath(spaceId, targetUserId)).data.role == "MEMBER"
+        && !existsAfter(membershipPath(spaceId, targetUserId))
+        && (targetUserId == request.auth.uid || isOwner(spaceId));
+    }
+
+    match /spaces/{spaceId} {
+      allow get: if isActiveMember(spaceId);
+      allow list: if false;
+      allow create: if validNewSpace(spaceId);
+      allow update: if validSpaceRename(spaceId)
+        || validOwnershipTransfer(spaceId)
+        || validMemberCountDecrease(spaceId);
+      allow delete: if false;
+
+      match /tasks/{taskId} {
+        allow read: if isActiveMember(spaceId);
+        allow update: if validPendingTaskUnassignment(spaceId);
+        allow create, delete: if false;
+      }
+
+      match /{document=**} {
+        allow read, write: if false;
+      }
+    }
+
+    function validMembershipDocument(membershipId) {
+      return request.resource.data.keys().hasAll([
+          "spaceId",
+          "userId",
+          "displayName",
+          "role",
+          "status",
+          "joinedAt"
+        ])
+        && request.resource.data.keys().hasOnly([
+          "spaceId",
+          "userId",
+          "displayName",
+          "role",
+          "status",
+          "joinedAt"
+        ])
+        && membershipId == request.resource.data.spaceId + "_" + request.resource.data.userId
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() > 0
+        && request.resource.data.displayName.size() <= 60
+        && request.resource.data.status == "ACTIVE";
+    }
+
+    function validInitialOwnerMembership(membershipId) {
+      let spaceId = request.resource.data.spaceId;
+      let createdSpace = getAfter(spacePath(spaceId));
+      return verifiedUser()
+        && validMembershipDocument(membershipId)
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.role == "OWNER"
+        && request.resource.data.joinedAt == request.time
+        && !exists(spacePath(spaceId))
+        && createdSpace.data.ownerId == request.auth.uid
+        && createdSpace.data.createdBy == request.auth.uid
+        && createdSpace.data.memberCount == 1;
+    }
+
+    function validOwnershipRoleChange(spaceId) {
+      let previousOwnerId = get(spacePath(spaceId)).data.ownerId;
+      let newOwnerId = getAfter(spacePath(spaceId)).data.ownerId;
+      return isOwner(spaceId)
+        && newOwnerId != previousOwnerId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["role"])
+        && request.resource.data.spaceId == resource.data.spaceId
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.status == "ACTIVE"
+        && getAfter(membershipPath(spaceId, previousOwnerId)).data.role == "MEMBER"
+        && getAfter(membershipPath(spaceId, newOwnerId)).data.role == "OWNER"
+        && (
+          (
+            resource.data.userId == previousOwnerId
+            && resource.data.role == "OWNER"
+            && request.resource.data.role == "MEMBER"
+          )
+          || (
+            resource.data.userId == newOwnerId
+            && resource.data.role == "MEMBER"
+            && request.resource.data.role == "OWNER"
+          )
+        );
+    }
+
+    function validMembershipRemoval(spaceId) {
+      let targetUserId = resource.data.userId;
+      let spaceBefore = get(spacePath(spaceId));
+      let spaceAfter = getAfter(spacePath(spaceId));
+      return isActiveMember(spaceId)
+        && resource.data.status == "ACTIVE"
+        && resource.data.role == "MEMBER"
+        && (targetUserId == request.auth.uid || isOwner(spaceId))
+        && spaceAfter.data.ownerId == spaceBefore.data.ownerId
+        && spaceAfter.data.memberCount == spaceBefore.data.memberCount - 1
+        && spaceAfter.data.lastMembershipChangeUserId == targetUserId
+        && spaceAfter.data.updatedAt == request.time;
+    }
+
+    match /memberships/{membershipId} {
+      allow get, list: if verifiedUser()
+        && (
+          resource.data.userId == request.auth.uid
+          || isActiveMember(resource.data.spaceId)
+        );
+      allow create: if validInitialOwnerMembership(membershipId);
+      allow update: if validOwnershipRoleChange(resource.data.spaceId);
+      allow delete: if validMembershipRemoval(resource.data.spaceId);
+    }
+
+    function validPendingTaskUnassignment(spaceId) {
+      let targetUserId = resource.data.assigneeId;
+      let spaceAfter = getAfter(spacePath(spaceId));
+      return isActiveMember(spaceId)
+        && resource.data.status == "TODO"
+        && targetUserId is string
+        && request.resource.data.assigneeId == null
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["assigneeId", "updatedAt"])
+        && exists(membershipPath(spaceId, targetUserId))
+        && get(membershipPath(spaceId, targetUserId)).data.role == "MEMBER"
+        && !existsAfter(membershipPath(spaceId, targetUserId))
+        && spaceAfter.data.lastMembershipChangeUserId == targetUserId
+        && (targetUserId == request.auth.uid || isOwner(spaceId));
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

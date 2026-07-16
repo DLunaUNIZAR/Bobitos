@@ -55,7 +55,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 npm run test:emulators
 ```
 
-La prueba levanta y detiene los servicios necesarios y comprueba cinco comportamientos: alta de usuario, verificación de correo, recuperación y cambio de contraseña, rechazo de una lectura Firestore no autenticada y rechazo de una lectura autenticada mientras las reglas permanezcan cerradas.
+La prueba levanta y detiene los servicios necesarios. Además del ciclo de Authentication, valida creación atómica de espacios, correo verificado, aislamiento frente a usuarios ajenos, consultas de membresías, renombrado por rol, transferencia completa, rechazo de transferencias parciales, salida y expulsión seguras y desasignación de tareas pendientes.
 
 ## Datos locales
 

@@ -16,12 +16,22 @@ import com.dlunaunizar.bobitos.feature.auth.AuthActionUiState
 import com.dlunaunizar.bobitos.feature.auth.AuthNavHost
 import com.dlunaunizar.bobitos.feature.auth.EmailVerificationScreen
 import com.dlunaunizar.bobitos.feature.auth.FullScreenLoading
+import com.dlunaunizar.bobitos.feature.spaces.SpaceManagementUiState
 
 @Composable
 fun BobitosApp(
     uiState: AppUiState,
     authActionState: AuthActionUiState,
+    spaceManagementState: SpaceManagementUiState,
     onSpaceSelected: (String) -> Unit,
+    onCreateSpace: (String) -> Unit,
+    onObserveMembers: (String) -> Unit,
+    onStopObservingMembers: () -> Unit,
+    onRenameSpace: (String, String) -> Unit,
+    onLeaveSpace: (String) -> Unit,
+    onRemoveMember: (String, String) -> Unit,
+    onTransferOwnership: (String, String) -> Unit,
+    onClearSpaceFeedback: () -> Unit,
     onSignIn: (email: String, password: String) -> Unit,
     onRegister: (
         displayName: String,
@@ -62,16 +72,29 @@ fun BobitosApp(
                     )
                 }
                 else -> key("authenticated-${user.id}") {
-                    BobitosNavHost(
-                        navController = rememberNavController(),
-                        uiState = uiState,
-                        authUser = user,
-                        authActionState = authActionState,
-                        onSpaceSelected = onSpaceSelected,
-                        onUpdateDisplayName = onUpdateDisplayName,
-                        onSignOut = onSignOut,
-                        onClearAuthFeedback = onClearAuthFeedback,
-                    )
+                    when (uiState.spaces) {
+                        UiState.Loading -> FullScreenLoading()
+                        is UiState.Error -> AppLoadError(uiState.spaces.message)
+                        is UiState.Content -> BobitosNavHost(
+                            navController = rememberNavController(),
+                            uiState = uiState,
+                            authUser = user,
+                            authActionState = authActionState,
+                            spaceManagementState = spaceManagementState,
+                            onSpaceSelected = onSpaceSelected,
+                            onCreateSpace = onCreateSpace,
+                            onObserveMembers = onObserveMembers,
+                            onStopObservingMembers = onStopObservingMembers,
+                            onRenameSpace = onRenameSpace,
+                            onLeaveSpace = onLeaveSpace,
+                            onRemoveMember = onRemoveMember,
+                            onTransferOwnership = onTransferOwnership,
+                            onClearSpaceFeedback = onClearSpaceFeedback,
+                            onUpdateDisplayName = onUpdateDisplayName,
+                            onSignOut = onSignOut,
+                            onClearAuthFeedback = onClearAuthFeedback,
+                        )
+                    }
                 }
             }
         }

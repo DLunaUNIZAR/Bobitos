@@ -1,8 +1,10 @@
 package com.dlunaunizar.bobitos.data.di
 
+import com.dlunaunizar.bobitos.data.repository.ActiveSpaceRepository
 import com.dlunaunizar.bobitos.data.repository.AuthRepository
+import com.dlunaunizar.bobitos.data.repository.DataStoreActiveSpaceRepository
 import com.dlunaunizar.bobitos.data.repository.FirebaseAuthRepository
-import com.dlunaunizar.bobitos.data.repository.InMemorySpaceRepository
+import com.dlunaunizar.bobitos.data.repository.FirestoreSpaceRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import dagger.Binds
 import dagger.Module
@@ -22,6 +24,12 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindSpaceRepository(
-        repository: InMemorySpaceRepository,
+        repository: FirestoreSpaceRepository,
     ): SpaceRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindActiveSpaceRepository(
+        repository: DataStoreActiveSpaceRepository,
+    ): ActiveSpaceRepository
 }
