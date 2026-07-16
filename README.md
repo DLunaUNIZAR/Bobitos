@@ -2,7 +2,7 @@
 
 Bobitos es una aplicación Android privada para coordinar la vida cotidiana de familias, parejas y pisos compartidos mediante espacios independientes y sincronizados prácticamente en tiempo real.
 
-> El proyecto se encuentra en implementación. La compra y las tareas ya funcionan sobre la base multiusuario; el siguiente bloque es el calendario compartido.
+> El proyecto se encuentra en implementación. La compra, las tareas y el calendario compartido ya funcionan sobre la base multiusuario.
 
 ## Objetivo
 
@@ -16,7 +16,7 @@ La aplicación está diseñada para mantener un coste de infraestructura de 0 �
 
 ## Estado del proyecto
 
-`Implementación — Fase 8 completada`
+`Implementación — Fase 9 completada`
 
 El alcance, la arquitectura y la hoja de ruta inicial están documentados en [PROJECT_PLAN.md](PROJECT_PLAN.md).
 

@@ -276,7 +276,9 @@ fun BobitosNavHost(
                 },
                 syncStatus = uiState.syncStatus,
             ) {
-                CalendarScreen()
+                uiState.selectedSpace?.let { space ->
+                    CalendarScreen(spaceId = space.id, canWrite = uiState.syncStatus.canWrite)
+                }
             }
         }
 

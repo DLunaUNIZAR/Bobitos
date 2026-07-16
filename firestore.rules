@@ -352,6 +352,53 @@ service cloud.firestore {
         );
     }
 
+    function validEventShape() {
+      return request.resource.data.keys().hasAll([
+        "title", "description", "allDay", "startAt", "endAt", "startDate",
+        "endDateExclusive", "timeZone", "color", "participantIds", "participantNames",
+        "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt"
+      ]) && request.resource.data.keys().hasOnly([
+        "title", "description", "allDay", "startAt", "endAt", "startDate",
+        "endDateExclusive", "timeZone", "color", "participantIds", "participantNames",
+        "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt"
+      ])
+      && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 120
+      && (request.resource.data.description == null || (request.resource.data.description is string && request.resource.data.description.size() <= 1000))
+      && request.resource.data.allDay is bool
+      && request.resource.data.startAt is timestamp && request.resource.data.endAt is timestamp
+      && request.resource.data.startAt < request.resource.data.endAt
+      && request.resource.data.timeZone is string && request.resource.data.timeZone.size() > 0 && request.resource.data.timeZone.size() <= 64
+      && request.resource.data.color in ["BLUE", "GREEN", "ORANGE", "PURPLE", "RED", "TEAL"]
+      && request.resource.data.participantIds is list && request.resource.data.participantIds.size() <= 10
+      && request.resource.data.participantNames is list && request.resource.data.participantNames.size() == request.resource.data.participantIds.size()
+      && request.resource.data.createdBy is string && request.resource.data.createdByName is string
+      && request.resource.data.createdByName.size() > 0 && request.resource.data.createdByName.size() <= 60
+      && request.resource.data.createdAt is timestamp && request.resource.data.updatedBy is string && request.resource.data.updatedAt is timestamp
+      && ((request.resource.data.allDay == true
+          && request.resource.data.startDate is string && request.resource.data.endDateExclusive is string
+          && request.resource.data.startDate < request.resource.data.endDateExclusive)
+        || (request.resource.data.allDay == false
+          && request.resource.data.startDate == null && request.resource.data.endDateExclusive == null));
+    }
+
+    function validNewEvent(spaceId) {
+      return isActiveMember(spaceId) && validEventShape()
+        && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
+    }
+
+    function validEventUpdate(spaceId) {
+      return isActiveMember(spaceId) && validEventShape()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "title", "description", "allDay", "startAt", "endAt", "startDate",
+          "endDateExclusive", "timeZone", "color", "participantIds", "participantNames", "updatedBy", "updatedAt"
+        ])
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdByName == resource.data.createdByName
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
+    }
+
     match /spaces/{spaceId} {
       allow get: if isActiveMember(spaceId);
       allow list: if false;
@@ -374,6 +421,13 @@ service cloud.firestore {
         allow read: if isActiveMember(spaceId);
         allow create: if validNewShoppingItem(spaceId);
         allow update: if validShoppingItemUpdate(spaceId);
+        allow delete: if isActiveMember(spaceId);
+      }
+
+      match /events/{eventId} {
+        allow read: if isActiveMember(spaceId);
+        allow create: if validNewEvent(spaceId);
+        allow update: if validEventUpdate(spaceId);
         allow delete: if isActiveMember(spaceId);
       }
 
