@@ -8,6 +8,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.google.firebase.firestore.PersistentCacheSettings
+import com.google.firebase.appcheck.FirebaseAppCheck
+import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -17,7 +19,12 @@ class FirebaseInitializer @Inject constructor(
     @param:ApplicationContext private val context: Context,
 ) {
     fun initialize() {
-        if (!BuildConfig.USE_FIREBASE_EMULATORS) return
+        if (!BuildConfig.USE_FIREBASE_EMULATORS) {
+            FirebaseAppCheck.getInstance().installAppCheckProviderFactory(
+                PlayIntegrityAppCheckProviderFactory.getInstance(),
+            )
+            return
+        }
 
         val firebaseApp = getOrCreateFirebaseApp()
         FirebaseAuth.getInstance(firebaseApp).useEmulator(

@@ -6,15 +6,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,6 +44,7 @@ fun ProfileScreen(
     canWrite: Boolean,
     onUpdateDisplayName: (String) -> Unit,
     onSignOut: () -> Unit,
+    onDeleteAccount: (String) -> Unit,
     onBack: () -> Unit,
     onClearFeedback: () -> Unit,
     modifier: Modifier = Modifier,
@@ -46,6 +52,9 @@ fun ProfileScreen(
     var displayName by rememberSaveable(user.id) {
         mutableStateOf(user.displayName)
     }
+    var showDeleteAccount by rememberSaveable { mutableStateOf(false) }
+    var showPrivacy by rememberSaveable { mutableStateOf(false) }
+    var deletionPassword by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(user.displayName) {
         displayName = user.displayName
@@ -71,6 +80,7 @@ fun ProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -116,6 +126,29 @@ fun ProfileScreen(
             ) {
                 Text(stringResource(R.string.auth_sign_out))
             }
+            TextButton(onClick = { showPrivacy = true }) { Text(stringResource(R.string.privacy_policy_title)) }
+            TextButton(enabled = !actionState.isLoading && canWrite, onClick = { showDeleteAccount = true }) {
+                Text(stringResource(R.string.account_delete), color = MaterialTheme.colorScheme.error)
+            }
         }
     }
+    if (showDeleteAccount) AlertDialog(
+        onDismissRequest = { showDeleteAccount = false },
+        title = { Text(stringResource(R.string.account_delete_title)) },
+        text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.account_delete_body))
+            OutlinedTextField(deletionPassword, { deletionPassword = it; onClearFeedback() },
+                label = { Text(stringResource(R.string.auth_password_label)) },
+                visualTransformation = PasswordVisualTransformation(), singleLine = true)
+        } },
+        confirmButton = { Button(enabled = deletionPassword.isNotBlank() && !actionState.isLoading && canWrite, onClick = {
+            onDeleteAccount(deletionPassword)
+        }) { Text(stringResource(R.string.account_delete_confirm)) } },
+        dismissButton = { TextButton(onClick = { showDeleteAccount = false }) { Text(stringResource(R.string.cancel)) } },
+    )
+    if (showPrivacy) AlertDialog(
+        onDismissRequest = { showPrivacy = false }, title = { Text(stringResource(R.string.privacy_policy_title)) },
+        text = { Text(stringResource(R.string.privacy_policy_summary)) },
+        confirmButton = { TextButton(onClick = { showPrivacy = false }) { Text(stringResource(R.string.dismiss)) } },
+    )
 }

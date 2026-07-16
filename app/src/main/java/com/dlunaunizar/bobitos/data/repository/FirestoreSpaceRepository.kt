@@ -210,6 +210,42 @@ class FirestoreSpaceRepository @Inject constructor(
         )
     }
 
+    override suspend fun deleteSpace(spaceId: String) = runSpaceOperation {
+        val user = requireVerifiedUser()
+        val spaceReference = firestore.collection(SPACES).document(spaceId)
+        val space = spaceReference.get(Source.SERVER).await()
+        checkSpaceExists(space)
+        if (space.getString(FIELD_OWNER_ID) != user.id) {
+            throw SpaceRepositoryException(SpaceFailure.OnlyOwnerCanDelete)
+        }
+
+        // Firestore no elimina subcolecciones al borrar el documento padre. Se vacían
+        // explícitamente en lotes acotados y se conserva la membresía del propietario
+        // hasta la operación final para que las reglas sigan autorizando el proceso.
+        listOf(SHOPPING_ITEMS, TASKS, EVENTS).forEach { childCollection ->
+            deleteDocumentsInChunks(spaceReference.collection(childCollection).get(Source.SERVER).await().documents)
+        }
+        val invitationDocuments = firestore.collection(INVITATIONS)
+            .whereEqualTo(FIELD_SPACE_ID, spaceId).get(Source.SERVER).await().documents
+        deleteDocumentsInChunks(invitationDocuments)
+
+        val memberships = firestore.collection(MEMBERSHIPS)
+            .whereEqualTo(FIELD_SPACE_ID, spaceId).get(Source.SERVER).await().documents
+        val finalBatch = firestore.batch()
+        memberships.forEach { finalBatch.delete(it.reference) }
+        finalBatch.delete(spaceReference)
+        finalBatch.commit().await()
+        Unit
+    }
+
+    private suspend fun deleteDocumentsInChunks(documents: List<DocumentSnapshot>) {
+        documents.chunked(MAX_BATCH_DELETES).forEach { chunk ->
+            val batch = firestore.batch()
+            chunk.forEach { batch.delete(it.reference) }
+            batch.commit().await()
+        }
+    }
+
     override suspend fun transferOwnership(
         spaceId: String,
         newOwnerId: String,
@@ -643,6 +679,9 @@ class FirestoreSpaceRepository @Inject constructor(
         const val MEMBERSHIPS = "memberships"
         const val INVITATIONS = "invitations"
         const val TASKS = "tasks"
+        const val SHOPPING_ITEMS = "shoppingItems"
+        const val EVENTS = "events"
+        const val MAX_BATCH_DELETES = 400
         const val FIELD_NAME = "name"
         const val FIELD_OWNER_ID = "ownerId"
         const val FIELD_CREATED_BY = "createdBy"

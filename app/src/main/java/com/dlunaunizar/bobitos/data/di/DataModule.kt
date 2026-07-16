@@ -12,6 +12,8 @@ import com.dlunaunizar.bobitos.data.repository.FirestoreTaskRepository
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
 import com.dlunaunizar.bobitos.data.repository.CalendarRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreCalendarRepository
+import com.dlunaunizar.bobitos.data.repository.AccountRepository
+import com.dlunaunizar.bobitos.data.repository.FirebaseAccountRepository
 import com.dlunaunizar.bobitos.data.connectivity.AndroidConnectivityRepository
 import com.dlunaunizar.bobitos.data.connectivity.ConnectivityRepository
 import com.dlunaunizar.bobitos.data.sync.FirestoreSyncRepository
@@ -49,6 +51,9 @@ abstract class DataModule {
 
     @Binds @Singleton
     abstract fun bindCalendarRepository(repository: FirestoreCalendarRepository): CalendarRepository
+
+    @Binds @Singleton
+    abstract fun bindAccountRepository(repository: FirebaseAccountRepository): AccountRepository
 
     @Binds
     @Singleton

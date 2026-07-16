@@ -5,6 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.data.repository.AuthFailure
 import com.dlunaunizar.bobitos.data.repository.AuthRepository
 import com.dlunaunizar.bobitos.data.repository.AuthRepositoryException
+import com.dlunaunizar.bobitos.data.repository.AccountFailure
+import com.dlunaunizar.bobitos.data.repository.AccountRepository
+import com.dlunaunizar.bobitos.data.repository.AccountRepositoryException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Job
@@ -18,6 +21,7 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
+    private val accountRepository: AccountRepository,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(AuthActionUiState())
     val uiState: StateFlow<AuthActionUiState> = mutableUiState.asStateFlow()
@@ -140,6 +144,13 @@ class AuthViewModel @Inject constructor(
         mutableUiState.value = AuthActionUiState()
     }
 
+    fun deleteAccount(password: String) {
+        if (password.isBlank()) { showValidationError(AuthUiMessage.PasswordRequired); return }
+        runAction(successNotice = AuthUiMessage.AccountDeleted) {
+            accountRepository.deleteAccount(password)
+        }
+    }
+
     fun clearFeedback() {
         mutableUiState.update { state ->
             state.copy(error = null, notice = null)
@@ -209,6 +220,14 @@ class AuthViewModel @Inject constructor(
 private const val VERIFICATION_RESEND_COOLDOWN_SECONDS = 60
 
 private fun Throwable.toUiMessage(): AuthUiMessage {
+    val accountFailure = (this as? AccountRepositoryException)?.failure
+    if (accountFailure != null) return when (accountFailure) {
+        AccountFailure.PasswordRequired -> AuthUiMessage.PasswordRequired
+        AccountFailure.InvalidCredentials -> AuthUiMessage.InvalidCredentials
+        AccountFailure.OwnerSpacesRemaining -> AuthUiMessage.OwnerSpacesRemaining
+        AccountFailure.Network -> AuthUiMessage.NetworkError
+        AccountFailure.NotAuthenticated, AccountFailure.PermissionDenied, AccountFailure.Unknown -> AuthUiMessage.UnexpectedError
+    }
     val failure = (this as? AuthRepositoryException)?.failure
     return when (failure) {
         AuthFailure.EmailAlreadyInUse -> AuthUiMessage.EmailAlreadyInUse
