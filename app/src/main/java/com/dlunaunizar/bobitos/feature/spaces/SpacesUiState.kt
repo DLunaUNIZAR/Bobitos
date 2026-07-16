@@ -2,10 +2,13 @@ package com.dlunaunizar.bobitos.feature.spaces
 
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.SpaceMember
+import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 
 data class SpaceManagementUiState(
     val isLoading: Boolean = false,
     val members: UiState<List<SpaceMember>> = UiState.Loading,
+    val invitations: UiState<List<SpaceInvitation>> = UiState.Loading,
+    val acceptedSpaceId: String? = null,
     val error: SpaceUiMessage? = null,
     val notice: SpaceUiMessage? = null,
 )
@@ -20,6 +23,12 @@ enum class SpaceUiMessage {
     OwnerMustTransfer,
     CannotRemoveOwner,
     InvalidNewOwner,
+    InvalidInvitationCode,
+    InvitationNotFound,
+    InvitationAlreadyUsed,
+    InvitationRevoked,
+    InvitationExpired,
+    SpaceFull,
     PermissionDenied,
     NetworkError,
     UnexpectedError,
@@ -28,4 +37,7 @@ enum class SpaceUiMessage {
     SpaceLeft,
     MemberRemoved,
     OwnershipTransferred,
+    InvitationCreated,
+    InvitationRevokedNotice,
+    InvitationAccepted,
 }

@@ -18,6 +18,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -38,6 +39,9 @@ fun SpacesScreen(
     managementState: SpaceManagementUiState,
     onSpaceSelected: (SpaceSummary) -> Unit,
     onCreateSpace: (String) -> Unit,
+    onAcceptInvitation: (String) -> Unit,
+    pendingInvitationCode: String?,
+    onInvitationCodeConsumed: () -> Unit,
     onProfileClick: () -> Unit,
     onClearFeedback: () -> Unit,
     modifier: Modifier = Modifier,
@@ -50,6 +54,9 @@ fun SpacesScreen(
             managementState = managementState,
             onSpaceSelected = onSpaceSelected,
             onCreateSpace = onCreateSpace,
+            onAcceptInvitation = onAcceptInvitation,
+            pendingInvitationCode = pendingInvitationCode,
+            onInvitationCodeConsumed = onInvitationCodeConsumed,
             onProfileClick = onProfileClick,
             onClearFeedback = onClearFeedback,
             modifier = modifier,
@@ -63,11 +70,24 @@ private fun SpacesContent(
     managementState: SpaceManagementUiState,
     onSpaceSelected: (SpaceSummary) -> Unit,
     onCreateSpace: (String) -> Unit,
+    onAcceptInvitation: (String) -> Unit,
+    pendingInvitationCode: String?,
+    onInvitationCodeConsumed: () -> Unit,
     onProfileClick: () -> Unit,
     onClearFeedback: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showCreateDialog by rememberSaveable { mutableStateOf(false) }
+    var showJoinDialog by rememberSaveable { mutableStateOf(false) }
+    var invitationCode by rememberSaveable { mutableStateOf("") }
+
+    LaunchedEffect(pendingInvitationCode) {
+        pendingInvitationCode?.let { code ->
+            invitationCode = code
+            showJoinDialog = true
+            onInvitationCodeConsumed()
+        }
+    }
 
     Column(
         modifier = modifier
@@ -96,11 +116,22 @@ private fun SpacesContent(
             state = managementState,
             onDismiss = onClearFeedback,
         )
-        Button(
-            onClick = { showCreateDialog = true },
-            enabled = !managementState.isLoading,
-        ) {
-            Text(text = stringResource(R.string.space_create))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(
+                onClick = { showCreateDialog = true },
+                enabled = !managementState.isLoading,
+            ) {
+                Text(text = stringResource(R.string.space_create))
+            }
+            Button(
+                onClick = {
+                    invitationCode = ""
+                    showJoinDialog = true
+                },
+                enabled = !managementState.isLoading,
+            ) {
+                Text(text = stringResource(R.string.invitation_join))
+            }
         }
 
         if (spaces.isEmpty()) {
@@ -132,6 +163,52 @@ private fun SpacesContent(
             },
         )
     }
+
+    if (showJoinDialog) {
+        InvitationCodeDialog(
+            initialCode = invitationCode,
+            onDismiss = { showJoinDialog = false },
+            onConfirm = { code ->
+                onAcceptInvitation(code)
+                showJoinDialog = false
+            },
+        )
+    }
+}
+
+@Composable
+private fun InvitationCodeDialog(
+    initialCode: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var code by rememberSaveable(initialCode) { mutableStateOf(initialCode) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(R.string.invitation_join_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(text = stringResource(R.string.invitation_join_description))
+                OutlinedTextField(
+                    value = code,
+                    onValueChange = { code = it },
+                    label = { Text(text = stringResource(R.string.invitation_code_label)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(code) }) {
+                Text(text = stringResource(R.string.invitation_join_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(R.string.cancel))
+            }
+        },
+    )
 }
 
 @Composable

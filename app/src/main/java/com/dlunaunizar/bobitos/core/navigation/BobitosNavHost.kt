@@ -23,7 +23,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.composable
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.app.AppUiState
+import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.AuthUser
+import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.feature.auth.AuthActionUiState
 import com.dlunaunizar.bobitos.feature.auth.ProfileScreen
 import com.dlunaunizar.bobitos.feature.calendar.CalendarScreen
@@ -42,12 +44,19 @@ fun BobitosNavHost(
     spaceManagementState: SpaceManagementUiState,
     onSpaceSelected: (String) -> Unit,
     onCreateSpace: (String) -> Unit,
-    onObserveMembers: (String) -> Unit,
-    onStopObservingMembers: () -> Unit,
+    onObserveSpaceSettings: (String, Boolean) -> Unit,
+    onStopObservingSpaceSettings: () -> Unit,
     onRenameSpace: (String, String) -> Unit,
     onLeaveSpace: (String) -> Unit,
     onRemoveMember: (String, String) -> Unit,
     onTransferOwnership: (String, String) -> Unit,
+    onCreateInvitation: (String) -> Unit,
+    onRevokeInvitation: (String) -> Unit,
+    onAcceptInvitation: (String) -> Unit,
+    onShareInvitation: (SpaceInvitation) -> Unit,
+    onConsumeAcceptedSpace: () -> Unit,
+    pendingInvitationCode: String?,
+    onInvitationCodeConsumed: () -> Unit,
     onClearSpaceFeedback: () -> Unit,
     onUpdateDisplayName: (String) -> Unit,
     onSignOut: () -> Unit,
@@ -63,6 +72,30 @@ fun BobitosNavHost(
     LaunchedEffect(uiState.selectedSpace, currentRoute) {
         if (uiState.selectedSpace == null && currentRoute in protectedRoutes) {
             navController.navigateToSpaces()
+        }
+    }
+
+    LaunchedEffect(pendingInvitationCode, currentRoute) {
+        if (
+            pendingInvitationCode != null &&
+            currentRoute != null &&
+            currentRoute != BobitosDestination.Spaces.route
+        ) {
+            navController.navigateToSpaces()
+        }
+    }
+
+    val acceptedSpaceId = spaceManagementState.acceptedSpaceId
+    val acceptedSpaceAvailable = (uiState.spaces as? UiState.Content)
+        ?.value
+        ?.any { space -> space.id == acceptedSpaceId } == true
+    LaunchedEffect(acceptedSpaceId, acceptedSpaceAvailable) {
+        if (acceptedSpaceId != null && acceptedSpaceAvailable) {
+            onSpaceSelected(acceptedSpaceId)
+            onConsumeAcceptedSpace()
+            navController.navigate(BobitosDestination.Shopping.route) {
+                popUpTo(BobitosDestination.Spaces.route) { inclusive = true }
+            }
         }
     }
 
@@ -93,6 +126,9 @@ fun BobitosNavHost(
                     }
                 },
                 onCreateSpace = onCreateSpace,
+                onAcceptInvitation = onAcceptInvitation,
+                pendingInvitationCode = pendingInvitationCode,
+                onInvitationCodeConsumed = onInvitationCodeConsumed,
                 onClearFeedback = onClearSpaceFeedback,
             )
         }
@@ -171,12 +207,15 @@ fun BobitosNavHost(
                     space = space,
                     currentUserId = authUser.id,
                     state = spaceManagementState,
-                    onObserveMembers = onObserveMembers,
-                    onStopObservingMembers = onStopObservingMembers,
+                    onObserveSpaceSettings = onObserveSpaceSettings,
+                    onStopObservingSpaceSettings = onStopObservingSpaceSettings,
                     onRenameSpace = onRenameSpace,
                     onLeaveSpace = onLeaveSpace,
                     onRemoveMember = onRemoveMember,
                     onTransferOwnership = onTransferOwnership,
+                    onCreateInvitation = onCreateInvitation,
+                    onRevokeInvitation = onRevokeInvitation,
+                    onShareInvitation = onShareInvitation,
                     onClearFeedback = onClearSpaceFeedback,
                     onBack = { navController.popBackStack() },
                 )

@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.app
 import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.SpaceMember
+import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SpaceRole
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.data.repository.ActiveSpaceRepository
@@ -112,9 +113,14 @@ private class FakeAppSpaceRepository : SpaceRepository {
     )
 
     override fun members(spaceId: String): Flow<List<SpaceMember>> = MutableStateFlow(emptyList())
+    override fun invitations(spaceId: String): Flow<List<SpaceInvitation>> =
+        MutableStateFlow(emptyList())
     override suspend fun createSpace(name: String): String = "created"
     override suspend fun renameSpace(spaceId: String, name: String) = Unit
     override suspend fun leaveSpace(spaceId: String) = Unit
     override suspend fun removeMember(spaceId: String, userId: String) = Unit
     override suspend fun transferOwnership(spaceId: String, newOwnerId: String) = Unit
+    override suspend fun createInvitation(spaceId: String): SpaceInvitation = error("Not used")
+    override suspend fun revokeInvitation(invitationId: String) = Unit
+    override suspend fun acceptInvitation(code: String): String = "home"
 }

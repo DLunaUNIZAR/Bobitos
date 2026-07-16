@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.feature.spaces
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.InvitationCode
 import com.dlunaunizar.bobitos.data.repository.SpaceFailure
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepositoryException
@@ -23,11 +24,9 @@ class SpacesViewModel @Inject constructor(
     private val mutableUiState = MutableStateFlow(SpaceManagementUiState())
     val uiState: StateFlow<SpaceManagementUiState> = mutableUiState.asStateFlow()
     private var membersJob: Job? = null
-    private var observedSpaceId: String? = null
+    private var invitationsJob: Job? = null
 
-    fun observeMembers(spaceId: String) {
-        if (spaceId == observedSpaceId && membersJob?.isActive == true) return
-        observedSpaceId = spaceId
+    fun observeSpaceSettings(spaceId: String, includeInvitations: Boolean) {
         membersJob?.cancel()
         mutableUiState.update { it.copy(members = UiState.Loading) }
         membersJob = viewModelScope.launch {
@@ -43,12 +42,32 @@ class SpacesViewModel @Inject constructor(
                     }
                 }
         }
+        invitationsJob?.cancel()
+        if (includeInvitations) {
+            mutableUiState.update { it.copy(invitations = UiState.Loading) }
+            invitationsJob = viewModelScope.launch {
+                spaceRepository.invitations(spaceId)
+                    .catch { error ->
+                        mutableUiState.update { state ->
+                            state.copy(invitations = UiState.Error(error.message))
+                        }
+                    }
+                    .collect { invitations ->
+                        mutableUiState.update { state ->
+                            state.copy(invitations = UiState.Content(invitations))
+                        }
+                    }
+            }
+        } else {
+            mutableUiState.update { it.copy(invitations = UiState.Content(emptyList())) }
+        }
     }
 
-    fun stopObservingMembers() {
+    fun stopObservingSpaceSettings() {
         membersJob?.cancel()
         membersJob = null
-        observedSpaceId = null
+        invitationsJob?.cancel()
+        invitationsJob = null
     }
 
     fun createSpace(name: String) {
@@ -89,6 +108,33 @@ class SpacesViewModel @Inject constructor(
         runAction(SpaceUiMessage.OwnershipTransferred) {
             spaceRepository.transferOwnership(spaceId, newOwnerId)
         }
+    }
+
+    fun createInvitation(spaceId: String) {
+        runAction(SpaceUiMessage.InvitationCreated) {
+            spaceRepository.createInvitation(spaceId)
+        }
+    }
+
+    fun revokeInvitation(invitationId: String) {
+        runAction(SpaceUiMessage.InvitationRevokedNotice) {
+            spaceRepository.revokeInvitation(invitationId)
+        }
+    }
+
+    fun acceptInvitation(code: String) {
+        if (InvitationCode.normalize(code) == null) {
+            showValidationError(SpaceUiMessage.InvalidInvitationCode)
+            return
+        }
+        runAction(SpaceUiMessage.InvitationAccepted) {
+            val spaceId = spaceRepository.acceptInvitation(code)
+            mutableUiState.update { state -> state.copy(acceptedSpaceId = spaceId) }
+        }
+    }
+
+    fun consumeAcceptedSpace() {
+        mutableUiState.update { it.copy(acceptedSpaceId = null) }
     }
 
     fun clearFeedback() {
@@ -139,6 +185,12 @@ private fun Throwable.toUiMessage(): SpaceUiMessage {
         SpaceFailure.OwnerMustTransfer -> SpaceUiMessage.OwnerMustTransfer
         SpaceFailure.CannotRemoveOwner -> SpaceUiMessage.CannotRemoveOwner
         SpaceFailure.InvalidNewOwner -> SpaceUiMessage.InvalidNewOwner
+        SpaceFailure.InvalidInvitationCode -> SpaceUiMessage.InvalidInvitationCode
+        SpaceFailure.InvitationNotFound -> SpaceUiMessage.InvitationNotFound
+        SpaceFailure.InvitationAlreadyUsed -> SpaceUiMessage.InvitationAlreadyUsed
+        SpaceFailure.InvitationRevoked -> SpaceUiMessage.InvitationRevoked
+        SpaceFailure.InvitationExpired -> SpaceUiMessage.InvitationExpired
+        SpaceFailure.SpaceFull -> SpaceUiMessage.SpaceFull
         SpaceFailure.PermissionDenied -> SpaceUiMessage.PermissionDenied
         SpaceFailure.Network -> SpaceUiMessage.NetworkError
         SpaceFailure.Unknown,

@@ -1,9 +1,13 @@
 package com.dlunaunizar.bobitos.data.repository
 
 import com.dlunaunizar.bobitos.core.model.AuthUser
+import com.dlunaunizar.bobitos.core.model.InvitationCode
+import com.dlunaunizar.bobitos.core.model.InvitationStatus
+import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceRole
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -11,6 +15,9 @@ import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Source
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.time.Duration
+import java.time.Instant
+import java.util.Date
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -65,6 +72,26 @@ class FirestoreSpaceRepository @Inject constructor(
                             )
                         trySend(members)
                     }
+                }
+            }
+        awaitClose(registration::remove)
+    }
+
+    override fun invitations(spaceId: String): Flow<List<SpaceInvitation>> = callbackFlow {
+        val registration = firestore.collection(INVITATIONS)
+            .whereEqualTo(FIELD_SPACE_ID, spaceId)
+            .whereEqualTo(FIELD_STATUS, INVITATION_STATUS_ACTIVE)
+            .addSnapshotListener { snapshot, error ->
+                when {
+                    error != null -> close(error.toSpaceRepositoryException())
+                    snapshot != null -> trySend(
+                        snapshot.documents
+                            .mapNotNull(DocumentSnapshot::toSpaceInvitation)
+                            .filter { invitation ->
+                                invitation.status == InvitationStatus.ACTIVE
+                            }
+                            .sortedByDescending(SpaceInvitation::expiresAt),
+                    )
                 }
             }
         awaitClose(registration::remove)
@@ -187,6 +214,119 @@ class FirestoreSpaceRepository @Inject constructor(
             transaction.update(newOwnerReference, FIELD_ROLE, ROLE_OWNER)
         }.await()
         Unit
+    }
+
+    override suspend fun createInvitation(spaceId: String): SpaceInvitation =
+        runSpaceOperation {
+            val user = requireVerifiedUser()
+            val invitationId = InvitationCode.generate()
+            val invitationReference = firestore.collection(INVITATIONS).document(invitationId)
+            val expiresAt = Instant.now().plus(INVITATION_VALIDITY)
+
+            invitationReference.set(
+                mapOf(
+                    FIELD_SPACE_ID to spaceId,
+                    FIELD_CREATED_BY to user.id,
+                    FIELD_CREATED_AT to FieldValue.serverTimestamp(),
+                    FIELD_EXPIRES_AT to Timestamp(Date.from(expiresAt)),
+                    FIELD_STATUS to INVITATION_STATUS_ACTIVE,
+                    FIELD_USED_BY to null,
+                    FIELD_USED_AT to null,
+                    FIELD_REVOKED_AT to null,
+                ),
+            ).await()
+
+            SpaceInvitation(
+                id = invitationId,
+                spaceId = spaceId,
+                expiresAt = expiresAt,
+                status = InvitationStatus.ACTIVE,
+            )
+        }
+
+    override suspend fun revokeInvitation(invitationId: String) = runSpaceOperation {
+        requireVerifiedUser()
+        val invitationReference = firestore.collection(INVITATIONS).document(invitationId)
+
+        firestore.runTransaction { transaction ->
+            val invitation = transaction.get(invitationReference)
+            checkInvitationAvailable(invitation, allowExpired = true)
+            transaction.update(
+                invitationReference,
+                FIELD_STATUS,
+                INVITATION_STATUS_REVOKED,
+                FIELD_REVOKED_AT,
+                FieldValue.serverTimestamp(),
+            )
+        }.await()
+        Unit
+    }
+
+    override suspend fun acceptInvitation(code: String): String = runSpaceOperation {
+        val user = requireVerifiedUser()
+        val invitationId = InvitationCode.normalize(code)
+            ?: throw SpaceRepositoryException(SpaceFailure.InvalidInvitationCode)
+        val invitationReference = firestore.collection(INVITATIONS).document(invitationId)
+        val initialInvitation = invitationReference.get(Source.SERVER).await()
+        if (!initialInvitation.exists()) {
+            throw SpaceRepositoryException(SpaceFailure.InvitationNotFound)
+        }
+        val initialSpaceId = initialInvitation.getString(FIELD_SPACE_ID)
+            ?: throw SpaceRepositoryException(SpaceFailure.InvitationNotFound)
+        checkInvitationAvailable(initialInvitation)
+        val alreadyMember = firestore.collection(MEMBERSHIPS)
+            .whereEqualTo(FIELD_USER_ID, user.id)
+            .whereEqualTo(FIELD_STATUS, STATUS_ACTIVE)
+            .get(Source.SERVER)
+            .await()
+            .documents
+            .any { membership -> membership.getString(FIELD_SPACE_ID) == initialSpaceId }
+        if (alreadyMember) return@runSpaceOperation initialSpaceId
+
+        firestore.runTransaction { transaction ->
+            val invitation = transaction.get(invitationReference)
+            if (!invitation.exists()) {
+                throw SpaceRepositoryException(SpaceFailure.InvitationNotFound)
+            }
+            val spaceId = invitation.getString(FIELD_SPACE_ID)
+                ?: throw SpaceRepositoryException(SpaceFailure.InvitationNotFound)
+            val membershipReference = membershipReference(spaceId, user.id)
+
+            checkInvitationAvailable(invitation)
+            val spaceReference = firestore.collection(SPACES).document(spaceId)
+
+            transaction.update(
+                invitationReference,
+                FIELD_STATUS,
+                INVITATION_STATUS_USED,
+                FIELD_USED_BY,
+                user.id,
+                FIELD_USED_AT,
+                FieldValue.serverTimestamp(),
+            )
+            transaction.set(
+                membershipReference,
+                mapOf(
+                    FIELD_SPACE_ID to spaceId,
+                    FIELD_USER_ID to user.id,
+                    FIELD_DISPLAY_NAME to user.membershipDisplayName,
+                    FIELD_ROLE to ROLE_MEMBER,
+                    FIELD_STATUS to STATUS_ACTIVE,
+                    FIELD_JOINED_AT to FieldValue.serverTimestamp(),
+                    FIELD_JOINED_VIA_INVITATION_ID to invitationId,
+                ),
+            )
+            transaction.update(
+                spaceReference,
+                FIELD_MEMBER_COUNT,
+                FieldValue.increment(1),
+                FIELD_LAST_MEMBERSHIP_CHANGE_USER_ID,
+                user.id,
+                FIELD_UPDATED_AT,
+                FieldValue.serverTimestamp(),
+            )
+            spaceId
+        }.await()
     }
 
     private fun membershipsForUser(userId: String): Flow<List<MembershipSnapshot>> = callbackFlow {
@@ -344,6 +484,30 @@ class FirestoreSpaceRepository @Inject constructor(
         }
     }
 
+    private fun checkInvitationAvailable(
+        snapshot: DocumentSnapshot,
+        allowExpired: Boolean = false,
+    ) {
+        if (!snapshot.exists()) {
+            throw SpaceRepositoryException(SpaceFailure.InvitationNotFound)
+        }
+        when (snapshot.getString(FIELD_STATUS)) {
+            INVITATION_STATUS_USED -> {
+                throw SpaceRepositoryException(SpaceFailure.InvitationAlreadyUsed)
+            }
+            INVITATION_STATUS_REVOKED -> {
+                throw SpaceRepositoryException(SpaceFailure.InvitationRevoked)
+            }
+            INVITATION_STATUS_ACTIVE -> Unit
+            else -> throw SpaceRepositoryException(SpaceFailure.InvitationNotFound)
+        }
+        val expiresAt = snapshot.getTimestamp(FIELD_EXPIRES_AT)?.toDate()?.toInstant()
+            ?: throw SpaceRepositoryException(SpaceFailure.InvitationNotFound)
+        if (!allowExpired && !expiresAt.isAfter(Instant.now())) {
+            throw SpaceRepositoryException(SpaceFailure.InvitationExpired)
+        }
+    }
+
     private data class MembershipSnapshot(
         val spaceId: String,
         val role: SpaceRole,
@@ -353,6 +517,7 @@ class FirestoreSpaceRepository @Inject constructor(
         const val MAX_SPACE_NAME_LENGTH = 60
         const val SPACES = "spaces"
         const val MEMBERSHIPS = "memberships"
+        const val INVITATIONS = "invitations"
         const val TASKS = "tasks"
         const val FIELD_NAME = "name"
         const val FIELD_OWNER_ID = "ownerId"
@@ -367,11 +532,20 @@ class FirestoreSpaceRepository @Inject constructor(
         const val FIELD_ROLE = "role"
         const val FIELD_STATUS = "status"
         const val FIELD_JOINED_AT = "joinedAt"
+        const val FIELD_JOINED_VIA_INVITATION_ID = "joinedViaInvitationId"
+        const val FIELD_EXPIRES_AT = "expiresAt"
+        const val FIELD_USED_BY = "usedBy"
+        const val FIELD_USED_AT = "usedAt"
+        const val FIELD_REVOKED_AT = "revokedAt"
         const val FIELD_ASSIGNEE_ID = "assigneeId"
         const val STATUS_ACTIVE = "ACTIVE"
         const val ROLE_OWNER = "OWNER"
         const val ROLE_MEMBER = "MEMBER"
         const val TASK_STATUS_TODO = "TODO"
+        const val INVITATION_STATUS_ACTIVE = "ACTIVE"
+        const val INVITATION_STATUS_USED = "USED"
+        const val INVITATION_STATUS_REVOKED = "REVOKED"
+        val INVITATION_VALIDITY: Duration = Duration.ofHours(72)
     }
 }
 
@@ -390,6 +564,18 @@ private fun DocumentSnapshot.toSpaceMember(): SpaceMember? {
     val displayName = getString("displayName") ?: return null
     val role = membershipRole ?: return null
     return SpaceMember(userId, displayName, role)
+}
+
+private fun DocumentSnapshot.toSpaceInvitation(): SpaceInvitation? {
+    val spaceId = getString("spaceId") ?: return null
+    val expiresAt = getTimestamp("expiresAt")?.toDate()?.toInstant() ?: return null
+    val status = when (getString("status")) {
+        "ACTIVE" -> InvitationStatus.ACTIVE
+        "USED" -> InvitationStatus.USED
+        "REVOKED" -> InvitationStatus.REVOKED
+        else -> return null
+    }
+    return SpaceInvitation(id, spaceId, expiresAt, status)
 }
 
 private suspend inline fun <T> runSpaceOperation(

@@ -48,13 +48,15 @@ Esta navegación es funcional pero provisional: se ajustará cuando se cierre el
 
 `FirebaseAuthRepository` encapsula Firebase Authentication y publica la sesión mediante `StateFlow`. Implementa registro, verificación, acceso, recuperación de contraseña, actualización de nombre y cierre de sesión. La respuesta de recuperación es deliberadamente neutra para no revelar si una cuenta existe.
 
-`FirestoreSpaceRepository` observa las membresías del usuario y los documentos de sus espacios. Implementa creación, renombrado, abandono, expulsión y transferencia de propiedad mediante operaciones atómicas. Las tareas pendientes del miembro que sale quedan sin responsable dentro de la misma transacción.
+`FirestoreSpaceRepository` observa las membresías, los espacios y las invitaciones que administra un propietario. Implementa creación, renombrado, abandono, expulsión, transferencia de propiedad y el ciclo completo de invitaciones. Las tareas pendientes del miembro que sale quedan sin responsable dentro de la misma transacción.
+
+Los tokens de invitación se generan localmente con 160 bits de entropía y Base32. `MainActivity` conserva los deep links `bobitos://invite/...` hasta que la cuenta está autenticada y verificada; la navegación privada entrega después el código al flujo de aceptación.
 
 `DataStoreActiveSpaceRepository` conserva el espacio activo de forma independiente para cada UID. El valor solo se utiliza si el usuario sigue perteneciendo al espacio.
 
 En compilaciones `debug`, `FirebaseInitializer` crea una aplicación Firebase para el proyecto ficticio `demo-bobitos` y conecta Authentication y Firestore a Emulator Suite. Firestore usa caché en memoria para evitar mezclar datos locales entre ejecuciones. Authentication y Firestore son las fuentes reales de la sesión y de los espacios.
 
-Las Security Rules exigen correo verificado y una membresía activa para leer un espacio. Solo el propietario puede renombrar, expulsar o transferir la propiedad. Los cambios de propietario y las bajas de miembros se validan mediante `getAfter()` para impedir estados parciales.
+Las Security Rules exigen correo verificado y una membresía activa para leer un espacio. Solo el propietario puede renombrar, expulsar, transferir la propiedad y administrar invitaciones. El consumo de una invitación valida con `getAfter()` la transición a `USED`, la membresía nueva y el incremento del contador como una única operación. El emulador prueba además que dos cuentas simultáneas no pueden consumir el mismo token.
 
 Las compilaciones `release` no inicializan el proyecto ficticio ni se conectan a emuladores. La configuración de un proyecto real se incorporará explícitamente cuando se habilite el entorno remoto.
 

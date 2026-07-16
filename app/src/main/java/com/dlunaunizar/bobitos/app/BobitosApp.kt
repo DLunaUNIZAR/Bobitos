@@ -17,6 +17,7 @@ import com.dlunaunizar.bobitos.feature.auth.AuthNavHost
 import com.dlunaunizar.bobitos.feature.auth.EmailVerificationScreen
 import com.dlunaunizar.bobitos.feature.auth.FullScreenLoading
 import com.dlunaunizar.bobitos.feature.spaces.SpaceManagementUiState
+import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 
 @Composable
 fun BobitosApp(
@@ -25,12 +26,19 @@ fun BobitosApp(
     spaceManagementState: SpaceManagementUiState,
     onSpaceSelected: (String) -> Unit,
     onCreateSpace: (String) -> Unit,
-    onObserveMembers: (String) -> Unit,
-    onStopObservingMembers: () -> Unit,
+    onObserveSpaceSettings: (String, Boolean) -> Unit,
+    onStopObservingSpaceSettings: () -> Unit,
     onRenameSpace: (String, String) -> Unit,
     onLeaveSpace: (String) -> Unit,
     onRemoveMember: (String, String) -> Unit,
     onTransferOwnership: (String, String) -> Unit,
+    onCreateInvitation: (String) -> Unit,
+    onRevokeInvitation: (String) -> Unit,
+    onAcceptInvitation: (String) -> Unit,
+    onShareInvitation: (SpaceInvitation) -> Unit,
+    onConsumeAcceptedSpace: () -> Unit,
+    pendingInvitationCode: String?,
+    onInvitationCodeConsumed: () -> Unit,
     onClearSpaceFeedback: () -> Unit,
     onSignIn: (email: String, password: String) -> Unit,
     onRegister: (
@@ -83,12 +91,19 @@ fun BobitosApp(
                             spaceManagementState = spaceManagementState,
                             onSpaceSelected = onSpaceSelected,
                             onCreateSpace = onCreateSpace,
-                            onObserveMembers = onObserveMembers,
-                            onStopObservingMembers = onStopObservingMembers,
+                            onObserveSpaceSettings = onObserveSpaceSettings,
+                            onStopObservingSpaceSettings = onStopObservingSpaceSettings,
                             onRenameSpace = onRenameSpace,
                             onLeaveSpace = onLeaveSpace,
                             onRemoveMember = onRemoveMember,
                             onTransferOwnership = onTransferOwnership,
+                            onCreateInvitation = onCreateInvitation,
+                            onRevokeInvitation = onRevokeInvitation,
+                            onAcceptInvitation = onAcceptInvitation,
+                            onShareInvitation = onShareInvitation,
+                            onConsumeAcceptedSpace = onConsumeAcceptedSpace,
+                            pendingInvitationCode = pendingInvitationCode,
+                            onInvitationCodeConsumed = onInvitationCodeConsumed,
                             onClearSpaceFeedback = onClearSpaceFeedback,
                             onUpdateDisplayName = onUpdateDisplayName,
                             onSignOut = onSignOut,

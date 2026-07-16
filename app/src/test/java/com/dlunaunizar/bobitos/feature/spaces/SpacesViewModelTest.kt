@@ -3,6 +3,8 @@ package com.dlunaunizar.bobitos.feature.spaces
 import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.SpaceMember
+import com.dlunaunizar.bobitos.core.model.InvitationStatus
+import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SpaceRole
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.data.repository.SpaceFailure
@@ -10,6 +12,7 @@ import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepositoryException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import java.time.Instant
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -61,22 +64,46 @@ class SpacesViewModelTest {
     @Test
     fun `members are observed for selected space`() =
         runTest(mainDispatcherRule.testDispatcher) {
-            viewModel.observeMembers("home")
+            viewModel.observeSpaceSettings("home", includeInvitations = false)
             advanceUntilIdle()
 
             val state = viewModel.uiState.value.members as UiState.Content
             assertEquals("owner", state.value.single().userId)
         }
+
+    @Test
+    fun `valid invitation is accepted and exposes destination space`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val token = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+
+            viewModel.acceptInvitation(token.lowercase())
+            advanceUntilIdle()
+
+            assertEquals(token.lowercase(), repository.acceptedCode)
+            assertEquals("home", viewModel.uiState.value.acceptedSpaceId)
+            assertEquals(SpaceUiMessage.InvitationAccepted, viewModel.uiState.value.notice)
+        }
+
+    @Test
+    fun `invalid invitation code never reaches repository`() {
+        viewModel.acceptInvitation("invalid")
+
+        assertNull(repository.acceptedCode)
+        assertEquals(SpaceUiMessage.InvalidInvitationCode, viewModel.uiState.value.error)
+    }
 }
 
 private class FakeSpaceRepository : SpaceRepository {
     override val spaces: Flow<List<SpaceSummary>> = flowOf(emptyList())
     var createdName: String? = null
+    var acceptedCode: String? = null
     var nextFailure: SpaceRepositoryException? = null
 
     override fun members(spaceId: String): Flow<List<SpaceMember>> = flowOf(
         listOf(SpaceMember("owner", "David", SpaceRole.OWNER)),
     )
+
+    override fun invitations(spaceId: String): Flow<List<SpaceInvitation>> = flowOf(emptyList())
 
     override suspend fun createSpace(name: String): String {
         throwNextFailure()
@@ -98,6 +125,26 @@ private class FakeSpaceRepository : SpaceRepository {
 
     override suspend fun transferOwnership(spaceId: String, newOwnerId: String) {
         throwNextFailure()
+    }
+
+    override suspend fun createInvitation(spaceId: String): SpaceInvitation {
+        throwNextFailure()
+        return SpaceInvitation(
+            id = "A".repeat(32),
+            spaceId = spaceId,
+            expiresAt = Instant.now(),
+            status = InvitationStatus.ACTIVE,
+        )
+    }
+
+    override suspend fun revokeInvitation(invitationId: String) {
+        throwNextFailure()
+    }
+
+    override suspend fun acceptInvitation(code: String): String {
+        throwNextFailure()
+        acceptedCode = code
+        return "home"
     }
 
     private fun throwNextFailure() {
