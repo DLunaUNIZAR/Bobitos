@@ -32,11 +32,15 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.SpaceRole
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
+import com.dlunaunizar.bobitos.core.model.SyncStatus
+import com.dlunaunizar.bobitos.feature.common.SyncStatusBanner
 
 @Composable
 fun SpacesScreen(
     state: UiState<List<SpaceSummary>>,
     managementState: SpaceManagementUiState,
+    syncStatus: SyncStatus,
+    canWrite: Boolean,
     onSpaceSelected: (SpaceSummary) -> Unit,
     onCreateSpace: (String) -> Unit,
     onAcceptInvitation: (String) -> Unit,
@@ -52,6 +56,8 @@ fun SpacesScreen(
         is UiState.Content -> SpacesContent(
             spaces = state.value,
             managementState = managementState,
+            syncStatus = syncStatus,
+            canWrite = canWrite,
             onSpaceSelected = onSpaceSelected,
             onCreateSpace = onCreateSpace,
             onAcceptInvitation = onAcceptInvitation,
@@ -68,6 +74,8 @@ fun SpacesScreen(
 private fun SpacesContent(
     spaces: List<SpaceSummary>,
     managementState: SpaceManagementUiState,
+    syncStatus: SyncStatus,
+    canWrite: Boolean,
     onSpaceSelected: (SpaceSummary) -> Unit,
     onCreateSpace: (String) -> Unit,
     onAcceptInvitation: (String) -> Unit,
@@ -112,6 +120,7 @@ private fun SpacesContent(
             text = stringResource(R.string.spaces_description),
             style = MaterialTheme.typography.bodyLarge,
         )
+        SyncStatusBanner(status = syncStatus)
         SpaceFeedback(
             state = managementState,
             onDismiss = onClearFeedback,
@@ -119,7 +128,7 @@ private fun SpacesContent(
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(
                 onClick = { showCreateDialog = true },
-                enabled = !managementState.isLoading,
+                enabled = !managementState.isLoading && canWrite,
             ) {
                 Text(text = stringResource(R.string.space_create))
             }
@@ -128,7 +137,7 @@ private fun SpacesContent(
                     invitationCode = ""
                     showJoinDialog = true
                 },
-                enabled = !managementState.isLoading,
+                enabled = !managementState.isLoading && canWrite,
             ) {
                 Text(text = stringResource(R.string.invitation_join))
             }
@@ -156,6 +165,7 @@ private fun SpacesContent(
             title = stringResource(R.string.space_create_title),
             confirmLabel = stringResource(R.string.space_create),
             initialName = "",
+            enabled = canWrite,
             onDismiss = { showCreateDialog = false },
             onConfirm = { name ->
                 onCreateSpace(name)
@@ -167,6 +177,7 @@ private fun SpacesContent(
     if (showJoinDialog) {
         InvitationCodeDialog(
             initialCode = invitationCode,
+            enabled = canWrite,
             onDismiss = { showJoinDialog = false },
             onConfirm = { code ->
                 onAcceptInvitation(code)
@@ -179,6 +190,7 @@ private fun SpacesContent(
 @Composable
 private fun InvitationCodeDialog(
     initialCode: String,
+    enabled: Boolean,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
 ) {
@@ -199,7 +211,7 @@ private fun InvitationCodeDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(code) }) {
+            TextButton(onClick = { onConfirm(code) }, enabled = enabled) {
                 Text(text = stringResource(R.string.invitation_join_confirm))
             }
         },
@@ -260,6 +272,7 @@ internal fun SpaceNameDialog(
     title: String,
     confirmLabel: String,
     initialName: String,
+    enabled: Boolean = true,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
 ) {
@@ -277,7 +290,7 @@ internal fun SpaceNameDialog(
             )
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(name) }) {
+            TextButton(onClick = { onConfirm(name) }, enabled = enabled) {
                 Text(text = confirmLabel)
             }
         },

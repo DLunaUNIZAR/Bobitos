@@ -50,11 +50,31 @@ Esta navegación es funcional pero provisional: se ajustará cuando se cierre el
 
 `FirestoreSpaceRepository` observa las membresías, los espacios y las invitaciones que administra un propietario. Implementa creación, renombrado, abandono, expulsión, transferencia de propiedad y el ciclo completo de invitaciones. Las tareas pendientes del miembro que sale quedan sin responsable dentro de la misma transacción.
 
+La observación cambia con la navegación. La selección de espacios activa la membresía del usuario y los espacios de esa lista; el área de trabajo mantiene únicamente la membresía y el documento del espacio activo; el perfil no necesita listeners de espacios. Los listeners de miembros e invitaciones solo existen mientras está visible la gestión del espacio. Los cambios de pantalla, espacio o sesión cancelan el alcance anterior antes de crear el nuevo.
+
 Los tokens de invitación se generan localmente con 160 bits de entropía y Base32. `MainActivity` conserva los deep links `bobitos://invite/...` hasta que la cuenta está autenticada y verificada; la navegación privada entrega después el código al flujo de aceptación.
 
 `DataStoreActiveSpaceRepository` conserva el espacio activo de forma independiente para cada UID. El valor solo se utiliza si el usuario sigue perteneciendo al espacio.
 
-En compilaciones `debug`, `FirebaseInitializer` crea una aplicación Firebase para el proyecto ficticio `demo-bobitos` y conecta Authentication y Firestore a Emulator Suite. Firestore usa caché en memoria para evitar mezclar datos locales entre ejecuciones. Authentication y Firestore son las fuentes reales de la sesión y de los espacios.
+En compilaciones `debug`, `FirebaseInitializer` crea una aplicación Firebase para el proyecto ficticio `demo-bobitos` y conecta Authentication y Firestore a Emulator Suite. Firestore usa una caché persistente limitada a 20 MiB, igual que requiere el modo de consulta offline. Authentication y Firestore son las fuentes reales de la sesión y de los espacios.
+
+## Conectividad y escrituras
+
+`AndroidConnectivityRepository` solo considera útil una red con capacidades `INTERNET` y `VALIDATED`. `FirestoreSyncRepository` traduce ese transporte a tres estados: `OFFLINE`, `REFRESHING` y `ONLINE`.
+
+Recuperar la red no habilita cambios inmediatamente. Primero se fuerza una lectura `SERVER` de la membresía y el espacio activos; solo después se publica `ONLINE`. La interfaz deshabilita las acciones mientras tanto y `FirestoreSpaceRepository` vuelve a comprobar el estado antes de cada mutación. Las mutaciones usan transacciones de Firestore, que fallan si la conexión desaparece en lugar de confirmar un cambio local encolado.
+
+Los snapshots ya disponibles permanecen visibles cuando se pierde la red y se identifican mediante el banner de datos desactualizados. Los estados de presentación distinguen guardando, guardado y error.
+
+## Métricas de tiempo real
+
+`RealtimeMetrics` registra en Logcat, con la etiqueta `BobitosRealtime`, cada alta y baja de listener, el total activo, el origen caché/servidor de cada snapshot y los documentos cambiados recibidos. La misma etiqueta informa de las lecturas explícitas de resincronización:
+
+- selección de espacios: un listener de membresías y uno por espacio mostrado;
+- módulo activo: un listener de membresía y uno del espacio seleccionado;
+- gestión: añade miembros y, para el propietario, invitaciones;
+- cambio entre Compra, Tareas y Calendario: cero listeners o lecturas adicionales mientras no cambie el espacio;
+- resincronización del espacio: dos lecturas de servidor; una si la membresía ya no existe.
 
 Las Security Rules exigen correo verificado y una membresía activa para leer un espacio. Solo el propietario puede renombrar, expulsar, transferir la propiedad y administrar invitaciones. El consumo de una invitación valida con `getAfter()` la transición a `USED`, la membresía nueva y el incremento del contador como una única operación. El emulador prueba además que dos cuentas simultáneas no pueden consumir el mismo token.
 

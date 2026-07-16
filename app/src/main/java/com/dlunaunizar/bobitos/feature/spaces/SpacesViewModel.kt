@@ -138,12 +138,23 @@ class SpacesViewModel @Inject constructor(
     }
 
     fun clearFeedback() {
-        mutableUiState.update { it.copy(error = null, notice = null) }
+        mutableUiState.update {
+            it.copy(
+                writeStatus = if (it.isLoading) WriteStatus.SAVING else WriteStatus.IDLE,
+                error = null,
+                notice = null,
+            )
+        }
     }
 
     private fun showValidationError(message: SpaceUiMessage) {
         mutableUiState.update {
-            it.copy(isLoading = false, error = message, notice = null)
+            it.copy(
+                isLoading = false,
+                writeStatus = WriteStatus.ERROR,
+                error = message,
+                notice = null,
+            )
         }
     }
 
@@ -153,18 +164,28 @@ class SpacesViewModel @Inject constructor(
     ) {
         if (mutableUiState.value.isLoading) return
         mutableUiState.update {
-            it.copy(isLoading = true, error = null, notice = null)
+            it.copy(
+                isLoading = true,
+                writeStatus = WriteStatus.SAVING,
+                error = null,
+                notice = null,
+            )
         }
         viewModelScope.launch {
             try {
                 action()
                 mutableUiState.update {
-                    it.copy(isLoading = false, notice = successNotice)
+                    it.copy(
+                        isLoading = false,
+                        writeStatus = WriteStatus.SAVED,
+                        notice = successNotice,
+                    )
                 }
             } catch (error: Throwable) {
                 mutableUiState.update {
                     it.copy(
                         isLoading = false,
+                        writeStatus = WriteStatus.ERROR,
                         error = error.toUiMessage(),
                         notice = null,
                     )

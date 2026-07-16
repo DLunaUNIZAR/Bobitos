@@ -6,15 +6,22 @@ import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SpaceRole
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
+import com.dlunaunizar.bobitos.core.model.SyncStatus
+import com.dlunaunizar.bobitos.data.connectivity.ConnectivityRepository
+import com.dlunaunizar.bobitos.data.connectivity.NetworkStatus
 import com.dlunaunizar.bobitos.data.repository.ActiveSpaceRepository
 import com.dlunaunizar.bobitos.data.repository.AuthRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
+import com.dlunaunizar.bobitos.data.sync.SyncRepository
+import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
@@ -39,6 +46,8 @@ class AppViewModelTest {
                 authRepository = FakeAppAuthRepository(),
                 spaceRepository = FakeAppSpaceRepository(),
                 activeSpaceRepository = activeRepository,
+                connectivityRepository = FakeConnectivityRepository(),
+                syncRepository = FakeSyncRepository(),
             )
             backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
                 viewModel.uiState.collect()
@@ -56,6 +65,8 @@ class AppViewModelTest {
                 authRepository = FakeAppAuthRepository(),
                 spaceRepository = FakeAppSpaceRepository(),
                 activeSpaceRepository = activeRepository,
+                connectivityRepository = FakeConnectivityRepository(),
+                syncRepository = FakeSyncRepository(),
             )
             backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
                 viewModel.uiState.collect()
@@ -71,6 +82,66 @@ class AppViewModelTest {
             advanceTimeBy(1_000)
             runCurrent()
             assertEquals("work", activeRepository.savedSpaceId)
+        }
+
+    @Test
+    fun `listeners follow navigation scope without duplicates`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val repository = FakeAppSpaceRepository(trackCollectors = true)
+            val viewModel = AppViewModel(
+                authRepository = FakeAppAuthRepository(),
+                spaceRepository = repository,
+                activeSpaceRepository = FakeActiveSpaceRepository("home"),
+                connectivityRepository = FakeConnectivityRepository(),
+                syncRepository = FakeSyncRepository(),
+            )
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                viewModel.uiState.collect()
+            }
+            runCurrent()
+
+            assertEquals(1, repository.activeSpaceCollectors)
+            assertEquals(0, repository.allSpacesCollectors)
+
+            viewModel.setRealtimeScope(RealtimeScope.ALL_SPACES)
+            runCurrent()
+            assertEquals(0, repository.activeSpaceCollectors)
+            assertEquals(1, repository.allSpacesCollectors)
+
+            viewModel.setRealtimeScope(RealtimeScope.ALL_SPACES)
+            runCurrent()
+            assertEquals(1, repository.allSpacesCollectors)
+
+            viewModel.setRealtimeScope(RealtimeScope.PAUSED)
+            runCurrent()
+            assertEquals(0, repository.activeSpaceCollectors)
+            assertEquals(0, repository.allSpacesCollectors)
+        }
+
+    @Test
+    fun `reconnection refreshes server before enabling writes`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val connectivity = FakeConnectivityRepository(NetworkStatus.OFFLINE)
+            val syncRepository = FakeSyncRepository()
+            val viewModel = AppViewModel(
+                authRepository = FakeAppAuthRepository(),
+                spaceRepository = FakeAppSpaceRepository(),
+                activeSpaceRepository = FakeActiveSpaceRepository("home"),
+                connectivityRepository = connectivity,
+                syncRepository = syncRepository,
+            )
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                viewModel.uiState.collect()
+            }
+            runCurrent()
+            assertEquals(SyncStatus.OFFLINE, viewModel.uiState.value.syncStatus)
+
+            connectivity.mutableStatus.value = NetworkStatus.ONLINE
+            runCurrent()
+
+            assertEquals(listOf("home"), syncRepository.refreshedSpaceIds)
+            assertEquals(SyncStatus.ONLINE, viewModel.uiState.value.syncStatus)
+            syncRepository.requireWritable()
         }
 }
 
@@ -104,13 +175,45 @@ private class FakeAppAuthRepository : AuthRepository {
     override fun signOut() = Unit
 }
 
-private class FakeAppSpaceRepository : SpaceRepository {
-    override val spaces: Flow<List<SpaceSummary>> = MutableStateFlow(
-        listOf(
-            SpaceSummary("home", "Casa", 2, SpaceRole.OWNER),
-            SpaceSummary("work", "Trabajo", 3, SpaceRole.MEMBER),
-        ),
+private class FakeAppSpaceRepository(
+    private val trackCollectors: Boolean = false,
+) : SpaceRepository {
+    private val summaries = listOf(
+        SpaceSummary("home", "Casa", 2, SpaceRole.OWNER),
+        SpaceSummary("work", "Trabajo", 3, SpaceRole.MEMBER),
     )
+    var allSpacesCollectors = 0
+    var activeSpaceCollectors = 0
+
+    override fun spaces(): Flow<List<SpaceSummary>> = trackedFlow(
+        onStart = { allSpacesCollectors++ },
+        onStop = { allSpacesCollectors-- },
+        value = summaries,
+    )
+
+    override fun space(spaceId: String): Flow<SpaceSummary?> = trackedFlow(
+        onStart = { activeSpaceCollectors++ },
+        onStop = { activeSpaceCollectors-- },
+        value = summaries.firstOrNull { it.id == spaceId },
+    )
+
+    private fun <T> trackedFlow(
+        onStart: () -> Unit,
+        onStop: () -> Unit,
+        value: T,
+    ): Flow<T> = if (!trackCollectors) {
+        MutableStateFlow(value)
+    } else {
+        flow {
+            onStart()
+            try {
+                emit(value)
+                awaitCancellation()
+            } finally {
+                onStop()
+            }
+        }
+    }
 
     override fun members(spaceId: String): Flow<List<SpaceMember>> = MutableStateFlow(emptyList())
     override fun invitations(spaceId: String): Flow<List<SpaceInvitation>> =
@@ -123,4 +226,39 @@ private class FakeAppSpaceRepository : SpaceRepository {
     override suspend fun createInvitation(spaceId: String): SpaceInvitation = error("Not used")
     override suspend fun revokeInvitation(invitationId: String) = Unit
     override suspend fun acceptInvitation(code: String): String = "home"
+}
+
+private class FakeConnectivityRepository(
+    initialStatus: NetworkStatus = NetworkStatus.ONLINE,
+) : ConnectivityRepository {
+    val mutableStatus = MutableStateFlow(initialStatus)
+    override val status: StateFlow<NetworkStatus> = mutableStatus
+}
+
+private class FakeSyncRepository : SyncRepository {
+    private val mutableSyncStatus = MutableStateFlow(SyncStatus.REFRESHING)
+    override val status: StateFlow<SyncStatus> = mutableSyncStatus
+    val refreshedSpaceIds = mutableListOf<String?>()
+
+    override suspend fun refresh(spaceId: String?): Boolean {
+        refreshedSpaceIds += spaceId
+        mutableSyncStatus.value = SyncStatus.ONLINE
+        return true
+    }
+
+    override fun requireRefresh() {
+        mutableSyncStatus.value = SyncStatus.REFRESHING
+    }
+
+    override fun markOffline() {
+        mutableSyncStatus.value = SyncStatus.OFFLINE
+    }
+
+    override fun requireWritable() {
+        if (mutableSyncStatus.value != SyncStatus.ONLINE) throw WriteNotAllowedException()
+    }
+
+    override fun reportWriteFailure(error: Throwable) {
+        mutableSyncStatus.value = SyncStatus.OFFLINE
+    }
 }

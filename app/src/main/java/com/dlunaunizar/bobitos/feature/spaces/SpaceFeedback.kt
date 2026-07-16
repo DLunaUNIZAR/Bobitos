@@ -16,6 +16,14 @@ internal fun SpaceFeedback(
     state: SpaceManagementUiState,
     onDismiss: () -> Unit,
 ) {
+    if (state.writeStatus == WriteStatus.SAVING) {
+        Text(
+            text = stringResource(R.string.write_saving),
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        return
+    }
     val message = state.error ?: state.notice ?: return
     Row(
         modifier = Modifier.fillMaxWidth(),

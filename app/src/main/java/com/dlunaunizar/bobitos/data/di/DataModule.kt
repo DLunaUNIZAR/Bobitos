@@ -6,6 +6,10 @@ import com.dlunaunizar.bobitos.data.repository.DataStoreActiveSpaceRepository
 import com.dlunaunizar.bobitos.data.repository.FirebaseAuthRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreSpaceRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
+import com.dlunaunizar.bobitos.data.connectivity.AndroidConnectivityRepository
+import com.dlunaunizar.bobitos.data.connectivity.ConnectivityRepository
+import com.dlunaunizar.bobitos.data.sync.FirestoreSyncRepository
+import com.dlunaunizar.bobitos.data.sync.SyncRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -32,4 +36,16 @@ abstract class DataModule {
     abstract fun bindActiveSpaceRepository(
         repository: DataStoreActiveSpaceRepository,
     ): ActiveSpaceRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindConnectivityRepository(
+        repository: AndroidConnectivityRepository,
+    ): ConnectivityRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSyncRepository(
+        repository: FirestoreSyncRepository,
+    ): SyncRepository
 }
