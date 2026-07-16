@@ -32,7 +32,7 @@ Descargar `google-services.json` desde la configuración de la aplicación Andro
 app/google-services.json
 ```
 
-El archivo está ignorado por Git. La compilación de desarrollo continúa usando Emulator Suite, mientras que `release` utiliza el proyecto Firebase configurado en ese archivo.
+El archivo está ignorado por Git. La compilación de desarrollo desactiva la inicialización automática de ese archivo y continúa usando Emulator Suite, mientras que `release` utiliza el proyecto Firebase configurado en él.
 
 ## 3. Crear y custodiar la clave de firma
 
