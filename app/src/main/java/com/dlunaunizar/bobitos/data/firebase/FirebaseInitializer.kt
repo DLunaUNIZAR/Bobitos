@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.data.firebase
 
 import android.content.Context
+import android.util.Log
 import com.dlunaunizar.bobitos.BuildConfig
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
@@ -18,18 +19,45 @@ import javax.inject.Singleton
 class FirebaseInitializer @Inject constructor(
     @param:ApplicationContext private val context: Context,
 ) {
+    @Volatile
+    private var initialized = false
+    private lateinit var configuredAuth: FirebaseAuth
+
     fun initialize() {
+        if (initialized) return
+
+        synchronized(this) {
+            if (initialized) return
+            configureFirebase()
+            initialized = true
+        }
+    }
+
+    fun auth(): FirebaseAuth {
+        initialize()
+        return configuredAuth
+    }
+
+    private fun configureFirebase() {
         if (!BuildConfig.USE_FIREBASE_EMULATORS) {
             FirebaseAppCheck.getInstance().installAppCheckProviderFactory(
                 PlayIntegrityAppCheckProviderFactory.getInstance(),
             )
+            configuredAuth = FirebaseAuth.getInstance()
             return
         }
 
         val firebaseApp = getOrCreateFirebaseApp()
-        FirebaseAuth.getInstance(firebaseApp).useEmulator(
-            BuildConfig.FIREBASE_EMULATOR_HOST,
-            BuildConfig.FIREBASE_AUTH_EMULATOR_PORT,
+        configuredAuth = FirebaseAuth.getInstance(firebaseApp).apply {
+            useEmulator(
+                BuildConfig.FIREBASE_EMULATOR_HOST,
+                BuildConfig.FIREBASE_AUTH_EMULATOR_PORT,
+            )
+        }
+        Log.i(
+            LOG_TAG,
+            "Authentication usa ${BuildConfig.FIREBASE_EMULATOR_HOST}:" +
+                BuildConfig.FIREBASE_AUTH_EMULATOR_PORT,
         )
 
         FirebaseFirestore.getInstance(firebaseApp).apply {
@@ -71,5 +99,6 @@ class FirebaseInitializer @Inject constructor(
         const val DEMO_APPLICATION_ID = "1:000000000000:android:demo-bobitos"
         const val DEMO_API_KEY = "demo-api-key"
         const val FIRESTORE_CACHE_SIZE_BYTES = 20L * 1024L * 1024L
+        const val LOG_TAG = "BobitosFirebase"
     }
 }

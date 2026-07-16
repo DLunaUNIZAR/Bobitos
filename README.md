@@ -175,7 +175,7 @@ La configuración versionada de Firebase corresponde únicamente a los emuladore
 - Android Studio compatible con Android Gradle Plugin 9.2.1.
 - JDK 17; puede utilizarse el incluido en Android Studio.
 - Android SDK 37.0.
-- Node.js 20 o posterior y JDK 21 para Firebase Emulator Suite.
+- Node.js 20, 22 o 24 y JDK 21 para Firebase Emulator Suite.
 
 ### Ejecución
 
@@ -187,10 +187,18 @@ La versión actual implementa Authentication y Cloud Firestore contra los emulad
 
 ### Firebase local
 
+Con el emulador Android abierto, usar dos terminales:
+
 ```bash
-npm install
+# Terminal 1: se mantiene abierta
+npm ci
 npm run emulators
+
+# Terminal 2: repetir después de reiniciar el emulador Android
+npm run android:connect-emulators
 ```
+
+Después se puede ejecutar `app` desde Android Studio. La compilación `debug` se conecta a Authentication y Firestore mediante `adb reverse`; no hay que modificar direcciones ni retirar `google-services.json`.
 
 La configuración, los datos de prueba y la separación entre entornos están descritos en [FIREBASE_DEVELOPMENT.md](docs/FIREBASE_DEVELOPMENT.md).
 

@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.data.repository
 
 import com.dlunaunizar.bobitos.core.model.AuthUser
+import com.dlunaunizar.bobitos.data.firebase.FirebaseInitializer
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.FirebaseTooManyRequestsException
 import com.google.firebase.auth.FirebaseAuth
@@ -18,8 +19,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.tasks.await
 
 @Singleton
-class FirebaseAuthRepository @Inject constructor() : AuthRepository {
-    private val firebaseAuth = FirebaseAuth.getInstance()
+class FirebaseAuthRepository @Inject constructor(
+    firebaseInitializer: FirebaseInitializer,
+) : AuthRepository {
+    private val firebaseAuth = firebaseInitializer.auth()
     private val mutableCurrentUser = MutableStateFlow(firebaseAuth.currentUser?.toAuthUser())
     private val authStateListener = FirebaseAuth.AuthStateListener { auth ->
         mutableCurrentUser.value = auth.currentUser?.toAuthUser()

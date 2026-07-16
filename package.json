@@ -3,10 +3,11 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=20 <25"
   },
   "scripts": {
     "emulators": "firebase emulators:start --project demo-bobitos",
+    "android:connect-emulators": "node scripts/connect-android-emulators.mjs",
     "seed:emulators": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 node scripts/seed-emulators.mjs",
     "test:emulators": "firebase emulators:exec --only auth,firestore --project demo-bobitos \"node --test tests/firebase-emulators.test.mjs\"",
     "beta:distribute": "node scripts/distribute-beta.mjs"

@@ -11,7 +11,7 @@ El prefijo `demo-` identifica un proyecto ficticio de Firebase Emulator Suite. L
 
 ## Requisitos
 
-- Node.js 20 o posterior.
+- Node.js 20, 22 o 24 (se recomienda Node.js 22 LTS; Node.js 26 no es compatible con las dependencias actuales).
 - JDK 21 para Firebase Emulator Suite.
 - JDK 17 para compilar la aplicación Android.
 
@@ -26,7 +26,7 @@ brew install --cask microsoft-openjdk@21
 Instalar las dependencias versionadas:
 
 ```bash
-npm install
+npm ci
 ```
 
 Iniciar Authentication, Firestore y la interfaz de Emulator Suite:
@@ -37,6 +37,19 @@ export PATH="$JAVA_HOME/bin:$PATH"
 npm run emulators
 ```
 
+Esta terminal debe permanecer abierta. A continuación, iniciar el emulador Android y, desde otra terminal, crear las redirecciones hacia Authentication y Firestore:
+
+```bash
+npm run android:connect-emulators
+```
+
+El comando localiza `adb`, comprueba que haya un dispositivo disponible y configura los puertos `9099` y `8080`. Si hay varios dispositivos conectados, se puede seleccionar uno antes de repetirlo:
+
+```bash
+export ANDROID_SERIAL="emulator-5554"
+npm run android:connect-emulators
+```
+
 Con los emuladores activos, los datos de demostración pueden cargarse desde otra terminal:
 
 ```bash
@@ -45,7 +58,49 @@ npm run seed:emulators
 
 La interfaz local queda disponible en `http://127.0.0.1:4000`. Authentication escucha en el puerto `9099` y Firestore en `8080`.
 
-El emulador de Android accede al Mac mediante `10.0.2.2`. La compilación `debug` usa esa dirección automáticamente y permite tráfico HTTP únicamente en su manifiesto de depuración.
+La compilación `debug` usa `127.0.0.1` y `adb reverse` la comunica con los servicios del Mac. Las redirecciones desaparecen al reiniciar el emulador Android, por lo que debe repetirse `npm run android:connect-emulators`. La compilación `release` no usa los emuladores ni permite esta configuración local.
+
+El orden de arranque recomendado es:
+
+1. Abrir el emulador Android.
+2. Ejecutar `npm run emulators` y mantener esa terminal abierta.
+3. Ejecutar `npm run android:connect-emulators` en otra terminal.
+4. Ejecutar Bobitos desde Android Studio con la variante `debug`.
+
+`app/google-services.json` puede permanecer en su sitio. En `debug`, Bobitos crea la configuración ficticia `demo-bobitos`; en `release`, utiliza la configuración real del archivo.
+
+## Correos en Authentication Emulator
+
+Authentication Emulator no envía correos reales. Al solicitar la verificación de una cuenta, el enlace local aparece en la terminal donde se ejecuta `npm run emulators`. También se puede abrir `http://127.0.0.1:4000/auth`, seleccionar el usuario y marcar su correo como verificado.
+
+Este comportamiento es exclusivo del entorno local. El proyecto remoto `bobitos-dev` sí utiliza el servicio de correo de Firebase.
+
+## Parada y recuperación
+
+Para detener Emulator Suite normalmente, pulsar `Control+C` en su terminal. Si un cierre anterior dejó puertos ocupados, identificar primero los procesos exactos:
+
+```bash
+for port in 4000 8080 9099 4400 4500; do
+  lsof -nP -iTCP:$port -sTCP:LISTEN
+done
+```
+
+Finalizar únicamente los PID mostrados que correspondan a Firebase (`kill PID`). Usar `kill -9 PID` solo si el cierre normal no funciona; no es necesario `sudo` para procesos del usuario actual.
+
+## Resolución de problemas
+
+- `firebase: command not found`: ejecutar `npm ci` y usar los scripts `npm run ...`, que invocan la versión local.
+- Node muestra `EBADENGINE`: cambiar a Node.js 20, 22 o 24; no usar Node.js 26 con las dependencias actuales.
+- Java no se encuentra: configurar temporalmente el runtime incluido con Android Studio:
+
+  ```bash
+  export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+  export PATH="$JAVA_HOME/bin:$PATH"
+  ```
+
+- La app no conecta: comprobar que Emulator Suite siga abierta y repetir `npm run android:connect-emulators` después de arrancar el emulador Android.
+- Hay varios dispositivos: definir `ANDROID_SERIAL` con uno de los identificadores mostrados por `adb devices`.
+- Para confirmar el destino usado por la app: `adb logcat -s BobitosFirebase`; debe aparecer `Authentication usa 127.0.0.1:9099`.
 
 ## Pruebas
 
