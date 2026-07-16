@@ -6,9 +6,9 @@
 | --- | --- |
 | Nombre del producto | Bobitos |
 | Plataforma inicial | Android |
-| Estado | Implementación — fase 4 completada |
-| Versión del documento | 0.6.0 |
-| Última actualización | 15 de julio de 2026 |
+| Estado | Implementación — fase 5 en curso |
+| Versión del documento | 0.7.0 |
+| Última actualización | 16 de julio de 2026 |
 | Distribución prevista | Privada |
 | Repositorio | [DLunaUNIZAR/Bobitos](https://github.com/DLunaUNIZAR/Bobitos) |
 | Visibilidad del repositorio | Pública |
@@ -442,13 +442,13 @@ Duración estimada: 1-2 semanas.
 
 Duración estimada: 2-3 semanas.
 
-- [ ] Crear, listar, seleccionar y renombrar espacios.
-- [ ] Implementar propietario y miembro.
+- [x] Crear, listar, seleccionar y renombrar espacios.
+- [x] Implementar propietario y miembro.
 - [ ] Generar, aceptar y revocar invitaciones.
-- [ ] Mostrar y administrar miembros.
-- [ ] Implementar abandono, expulsión y transferencia de propiedad.
+- [x] Mostrar y administrar miembros.
+- [x] Implementar abandono, expulsión y transferencia de propiedad.
 - [ ] Implementar eliminación del espacio.
-- [ ] Crear y probar reglas de seguridad multiusuario.
+- [x] Crear y probar reglas de seguridad multiusuario.
 
 **Criterio de salida:** dos usuarios pueden compartir un espacio y un tercero no autorizado no puede acceder.
 

@@ -33,6 +33,11 @@ enum class BobitosDestination(
         titleRes = R.string.profile_title,
         iconText = "P",
     ),
+    SpaceSettings(
+        route = "space-settings",
+        titleRes = R.string.space_settings_title,
+        iconText = "A",
+    ),
     ;
 
     companion object {

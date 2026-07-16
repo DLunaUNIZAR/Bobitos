@@ -4,9 +4,9 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Propuesta técnica inicial |
-| Versión | 0.1.0 |
-| Fecha | 14 de julio de 2026 |
+| Estado | Espacios y membresías implementados; módulos compartidos provisionales |
+| Versión | 0.2.0 |
+| Fecha | 16 de julio de 2026 |
 
 ## 1. Objetivos
 
@@ -79,6 +79,8 @@ ownerId: string
 createdBy: string
 createdAt: timestamp
 updatedAt: timestamp
+memberCount: number
+lastMembershipChangeUserId: string
 ```
 
 ### Validaciones
@@ -86,6 +88,8 @@ updatedAt: timestamp
 - `name` obligatorio y con longitud máxima.
 - `ownerId` debe corresponder a una membresía activa con rol `OWNER`.
 - La creación del espacio y de su primera membresía debe ser consistente.
+- `memberCount` se actualiza en la misma transacción que la membresía afectada.
+- `lastMembershipChangeUserId` permite que las Security Rules relacionen la variación del contador con la membresía creada o eliminada; no es un historial de actividad.
 
 ## 6. Membresías
 
@@ -100,6 +104,7 @@ Propuesta:
 ```text
 spaceId: string
 userId: string
+displayName: string
 role: "OWNER" | "MEMBER"
 status: "ACTIVE"
 joinedAt: timestamp
@@ -115,6 +120,9 @@ joinedAt: timestamp
 - El usuario no puede crear una membresía libremente.
 - Solo puede crearse al crear un espacio o aceptar una invitación válida.
 - Los roles solo cambian durante una transferencia de propiedad autorizada.
+- `displayName` es una copia visible del nombre en el momento de crear la membresía. Evita exponer perfiles globales de otros usuarios y podrá sincronizarse al editar el perfil en una fase posterior.
+- El propietario no puede eliminar su membresía. Debe transferir la propiedad antes de abandonar el espacio.
+- La transferencia actualiza `ownerId` y los dos roles en una única transacción.
 
 ## 7. Invitaciones
 
@@ -352,4 +360,3 @@ Solo se crearán los índices que requieran las consultas reales.
 - [ ] Validar la eliminación por lotes de un espacio sin Cloud Functions.
 - [ ] Confirmar cómo impedir escrituras diferidas si la conexión cae durante la petición.
 - [ ] Medir lecturas producidas por listeners al cambiar entre espacios y módulos.
-

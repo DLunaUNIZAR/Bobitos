@@ -2,7 +2,7 @@
 
 Bobitos es una aplicación Android privada para coordinar la vida cotidiana de familias, parejas y pisos compartidos mediante espacios independientes y sincronizados prácticamente en tiempo real.
 
-> El proyecto se encuentra en implementación. La base Android y el ciclo de autenticación y cuenta ya están disponibles; el siguiente bloque es espacios, miembros e invitaciones.
+> El proyecto se encuentra en implementación. La base Android, el ciclo de autenticación y la gestión de espacios y miembros ya están disponibles; el siguiente bloque es invitaciones privadas.
 
 ## Objetivo
 
@@ -16,7 +16,7 @@ La aplicación está diseñada para mantener un coste de infraestructura de 0 �
 
 ## Estado del proyecto
 
-`Implementación — Fase 4 completada`
+`Implementación — Fase 5 en curso`
 
 El alcance, la arquitectura y la hoja de ruta inicial están documentados en [PROJECT_PLAN.md](PROJECT_PLAN.md).
 
@@ -180,7 +180,7 @@ La configuración versionada de Firebase corresponde únicamente a los emuladore
 2. Seleccionar un emulador o dispositivo Android.
 3. Ejecutar la configuración `app`.
 
-La versión actual implementa Authentication contra los emuladores locales y mantiene todavía los espacios de demostración en memoria. Incluye registro, verificación de correo, inicio y cierre de sesión, recuperación de contraseña y edición del perfil. No requiere credenciales reales.
+La versión actual implementa Authentication y Cloud Firestore contra los emuladores locales. Incluye el ciclo de cuenta, espacios múltiples, persistencia del espacio activo, roles, listado de miembros, renombrado, abandono, expulsión y transferencia atómica de propiedad. No requiere credenciales reales.
 
 ### Firebase local
 
