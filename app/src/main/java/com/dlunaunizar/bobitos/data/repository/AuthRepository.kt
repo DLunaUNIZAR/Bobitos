@@ -35,6 +35,7 @@ enum class AuthFailure {
     InvalidCredentials,
     Network,
     TooManyRequests,
+    SessionExpired,
     NoAuthenticatedUser,
     Unknown,
 }

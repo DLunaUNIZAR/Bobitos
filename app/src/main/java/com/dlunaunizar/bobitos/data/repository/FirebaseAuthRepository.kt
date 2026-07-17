@@ -74,11 +74,20 @@ class FirebaseAuthRepository @Inject constructor(
     }
 
     override suspend fun refreshCurrentUser(): AuthUser = runAuthOperation {
-        requireCurrentUser().reload().await()
-        val user = requireCurrentUser()
-        user.getIdToken(true).await()
-        publish(user)
-        user.toAuthUser()
+        try {
+            requireCurrentUser().reload().await()
+            val user = requireCurrentUser()
+            user.getIdToken(true).await()
+            publish(user)
+            user.toAuthUser()
+        } catch (error: Throwable) {
+            if (error.isExpiredSession()) {
+                firebaseAuth.signOut()
+                mutableCurrentUser.value = null
+                throw AuthRepositoryException(AuthFailure.SessionExpired, error)
+            }
+            throw error
+        }
     }
 
     override suspend fun sendPasswordReset(email: String) {
@@ -135,6 +144,13 @@ private fun Throwable.toRepositoryException(): AuthRepositoryException = AuthRep
     },
     cause = this,
 )
+
+private fun Throwable.isExpiredSession(): Boolean =
+    (this as? FirebaseAuthInvalidUserException)?.errorCode in setOf(
+        "ERROR_USER_TOKEN_EXPIRED",
+        "ERROR_USER_DISABLED",
+        "ERROR_USER_NOT_FOUND",
+    ) || message?.contains("INVALID_REFRESH_TOKEN", ignoreCase = true) == true
 
 private fun FirebaseUser.toAuthUser(): AuthUser = AuthUser(
     id = uid,

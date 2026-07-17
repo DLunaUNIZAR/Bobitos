@@ -11,7 +11,9 @@ import com.dlunaunizar.bobitos.core.model.SyncStatus
 import com.dlunaunizar.bobitos.data.connectivity.ConnectivityRepository
 import com.dlunaunizar.bobitos.data.connectivity.NetworkStatus
 import com.dlunaunizar.bobitos.data.repository.ActiveSpaceRepository
+import com.dlunaunizar.bobitos.data.repository.AuthFailure
 import com.dlunaunizar.bobitos.data.repository.AuthRepository
+import com.dlunaunizar.bobitos.data.repository.AuthRepositoryException
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
 import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
@@ -63,6 +65,30 @@ class AppViewModelTest {
             runCurrent()
             assertEquals(1, authRepository.refreshCalls)
             assertEquals(1, spaceRepository.activeSpaceCollectors)
+        }
+
+    @Test
+    fun `expired refresh token returns to unauthenticated state`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val spaceRepository = FakeAppSpaceRepository(trackCollectors = true)
+            val viewModel = AppViewModel(
+                authRepository = FakeAppAuthRepository(
+                    refreshFailure = AuthRepositoryException(AuthFailure.SessionExpired),
+                ),
+                spaceRepository = spaceRepository,
+                activeSpaceRepository = FakeActiveSpaceRepository("home"),
+                connectivityRepository = FakeConnectivityRepository(),
+                syncRepository = FakeSyncRepository(),
+            )
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                viewModel.uiState.collect()
+            }
+
+            advanceUntilIdle()
+
+            assertEquals(UiState.Content(null), viewModel.uiState.value.authUser)
+            assertEquals(0, spaceRepository.activeSpaceCollectors)
+            assertEquals(0, spaceRepository.allSpacesCollectors)
         }
 
     @Test
@@ -190,6 +216,7 @@ private class FakeActiveSpaceRepository(
 
 private class FakeAppAuthRepository(
     private val refreshDelayMillis: Long = 0,
+    private val refreshFailure: AuthRepositoryException? = null,
 ) : AuthRepository {
     override val currentUser: StateFlow<AuthUser?> = MutableStateFlow(
         AuthUser("user", "David", "david@example.com", true),
@@ -203,6 +230,7 @@ private class FakeAppAuthRepository(
     override suspend fun refreshCurrentUser(): AuthUser {
         refreshCalls++
         delay(refreshDelayMillis)
+        refreshFailure?.let { throw it }
         return requireNotNull(currentUser.value)
     }
     override suspend fun sendPasswordReset(email: String) = Unit

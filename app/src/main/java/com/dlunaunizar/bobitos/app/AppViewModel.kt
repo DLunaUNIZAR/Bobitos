@@ -63,10 +63,10 @@ class AppViewModel @Inject constructor(
                     try {
                         emit(UiState.Content(authRepository.refreshCurrentUser()))
                     } catch (error: AuthRepositoryException) {
-                        if (error.failure == AuthFailure.Network) {
-                            emit(UiState.Content(cachedUser))
-                        } else {
-                            emit(UiState.Error(error.message))
+                        when (error.failure) {
+                            AuthFailure.Network -> emit(UiState.Content(cachedUser))
+                            AuthFailure.SessionExpired -> emit(UiState.Content(null))
+                            else -> emit(UiState.Error(error.message))
                         }
                     }
                 }.onStart { emit(UiState.Loading) }
