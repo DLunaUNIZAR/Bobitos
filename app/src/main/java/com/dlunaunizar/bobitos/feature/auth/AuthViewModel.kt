@@ -2,14 +2,13 @@ package com.dlunaunizar.bobitos.feature.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.dlunaunizar.bobitos.data.repository.AuthFailure
-import com.dlunaunizar.bobitos.data.repository.AuthRepository
-import com.dlunaunizar.bobitos.data.repository.AuthRepositoryException
 import com.dlunaunizar.bobitos.data.repository.AccountFailure
 import com.dlunaunizar.bobitos.data.repository.AccountRepository
 import com.dlunaunizar.bobitos.data.repository.AccountRepositoryException
+import com.dlunaunizar.bobitos.data.repository.AuthFailure
+import com.dlunaunizar.bobitos.data.repository.AuthRepository
+import com.dlunaunizar.bobitos.data.repository.AuthRepositoryException
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
@@ -27,12 +27,7 @@ class AuthViewModel @Inject constructor(
     val uiState: StateFlow<AuthActionUiState> = mutableUiState.asStateFlow()
     private var verificationResendCooldownJob: Job? = null
 
-    fun register(
-        displayName: String,
-        email: String,
-        password: String,
-        passwordConfirmation: String,
-    ) {
+    fun register(displayName: String, email: String, password: String, passwordConfirmation: String) {
         val error = AuthValidation.validateRegistration(
             displayName = displayName,
             email = email,
@@ -53,10 +48,7 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun signIn(
-        email: String,
-        password: String,
-    ) {
+    fun signIn(email: String, password: String) {
         val error = AuthValidation.validateSignIn(email, password)
         if (error != null) {
             showValidationError(error)
@@ -145,7 +137,10 @@ class AuthViewModel @Inject constructor(
     }
 
     fun deleteAccount(password: String) {
-        if (password.isBlank()) { showValidationError(AuthUiMessage.PasswordRequired); return }
+        if (password.isBlank()) {
+            showValidationError(AuthUiMessage.PasswordRequired)
+            return
+        }
         runAction(successNotice = AuthUiMessage.AccountDeleted) {
             accountRepository.deleteAccount(password)
         }
@@ -209,7 +204,7 @@ class AuthViewModel @Inject constructor(
                 mutableUiState.update { state ->
                     state.copy(
                         verificationResendSecondsRemaining =
-                            (state.verificationResendSecondsRemaining - 1).coerceAtLeast(0),
+                        (state.verificationResendSecondsRemaining - 1).coerceAtLeast(0),
                     )
                 }
             }
@@ -221,12 +216,17 @@ private const val VERIFICATION_RESEND_COOLDOWN_SECONDS = 60
 
 private fun Throwable.toUiMessage(): AuthUiMessage {
     val accountFailure = (this as? AccountRepositoryException)?.failure
-    if (accountFailure != null) return when (accountFailure) {
-        AccountFailure.PasswordRequired -> AuthUiMessage.PasswordRequired
-        AccountFailure.InvalidCredentials -> AuthUiMessage.InvalidCredentials
-        AccountFailure.OwnerSpacesRemaining -> AuthUiMessage.OwnerSpacesRemaining
-        AccountFailure.Network -> AuthUiMessage.NetworkError
-        AccountFailure.NotAuthenticated, AccountFailure.PermissionDenied, AccountFailure.Unknown -> AuthUiMessage.UnexpectedError
+    if (accountFailure != null) {
+        return when (accountFailure) {
+            AccountFailure.PasswordRequired -> AuthUiMessage.PasswordRequired
+            AccountFailure.InvalidCredentials -> AuthUiMessage.InvalidCredentials
+            AccountFailure.OwnerSpacesRemaining -> AuthUiMessage.OwnerSpacesRemaining
+            AccountFailure.Network -> AuthUiMessage.NetworkError
+            AccountFailure.NotAuthenticated,
+            AccountFailure.PermissionDenied,
+            AccountFailure.Unknown,
+            -> AuthUiMessage.UnexpectedError
+        }
     }
     val failure = (this as? AuthRepositoryException)?.failure
     return when (failure) {
@@ -239,6 +239,7 @@ private fun Throwable.toUiMessage(): AuthUiMessage {
         AuthFailure.SessionExpired,
         AuthFailure.NoAuthenticatedUser,
         AuthFailure.Unknown,
-        null -> AuthUiMessage.UnexpectedError
+        null,
+        -> AuthUiMessage.UnexpectedError
     }
 }

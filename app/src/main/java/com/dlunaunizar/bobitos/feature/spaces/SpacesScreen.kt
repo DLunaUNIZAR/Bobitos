@@ -224,10 +224,7 @@ private fun InvitationCodeDialog(
 }
 
 @Composable
-private fun SpaceCard(
-    space: SpaceSummary,
-    onClick: () -> Unit,
-) {
+private fun SpaceCard(space: SpaceSummary, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -319,10 +316,7 @@ private fun LoadingContent(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ErrorContent(
-    modifier: Modifier = Modifier,
-    message: String?,
-) {
+private fun ErrorContent(modifier: Modifier = Modifier, message: String?) {
     Box(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,

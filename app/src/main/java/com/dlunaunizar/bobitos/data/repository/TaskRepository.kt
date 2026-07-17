@@ -2,8 +2,8 @@ package com.dlunaunizar.bobitos.data.repository
 
 import com.dlunaunizar.bobitos.core.model.TaskItem
 import com.dlunaunizar.bobitos.core.model.TaskPriority
-import java.time.Instant
 import kotlinx.coroutines.flow.Flow
+import java.time.Instant
 
 interface TaskRepository {
     fun tasks(spaceId: String): Flow<List<TaskItem>>

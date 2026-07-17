@@ -2,10 +2,10 @@ package com.dlunaunizar.bobitos.feature.auth
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.model.AuthUser
+import com.dlunaunizar.bobitos.data.repository.AccountRepository
 import com.dlunaunizar.bobitos.data.repository.AuthFailure
 import com.dlunaunizar.bobitos.data.repository.AuthRepository
 import com.dlunaunizar.bobitos.data.repository.AuthRepositoryException
-import com.dlunaunizar.bobitos.data.repository.AccountRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -58,49 +58,46 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `sign in does not expose whether the account exists`() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            repository.nextFailure = AuthRepositoryException(AuthFailure.InvalidCredentials)
+    fun `sign in does not expose whether the account exists`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.nextFailure = AuthRepositoryException(AuthFailure.InvalidCredentials)
 
-            viewModel.signIn("missing@example.com", "password-123")
-            advanceUntilIdle()
+        viewModel.signIn("missing@example.com", "password-123")
+        advanceUntilIdle()
 
-            assertEquals(
-                AuthUiMessage.InvalidCredentials,
-                viewModel.uiState.value.error,
-            )
-        }
-
-    @Test
-    fun `password reset always shows the neutral confirmation`() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            viewModel.sendPasswordReset("person@example.com")
-            advanceUntilIdle()
-
-            assertEquals(
-                AuthUiMessage.PasswordResetRequested,
-                viewModel.uiState.value.notice,
-            )
-        }
+        assertEquals(
+            AuthUiMessage.InvalidCredentials,
+            viewModel.uiState.value.error,
+        )
+    }
 
     @Test
-    fun `verification resend is limited to once per minute`() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            viewModel.resendVerificationEmail()
-            runCurrent()
-            viewModel.resendVerificationEmail()
-            runCurrent()
+    fun `password reset always shows the neutral confirmation`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.sendPasswordReset("person@example.com")
+        advanceUntilIdle()
 
-            assertEquals(1, repository.verificationEmailsSent)
-            assertEquals(60, viewModel.uiState.value.verificationResendSecondsRemaining)
+        assertEquals(
+            AuthUiMessage.PasswordResetRequested,
+            viewModel.uiState.value.notice,
+        )
+    }
 
-            advanceTimeBy(60_000)
-            runCurrent()
-            viewModel.resendVerificationEmail()
-            runCurrent()
+    @Test
+    fun `verification resend is limited to once per minute`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.resendVerificationEmail()
+        runCurrent()
+        viewModel.resendVerificationEmail()
+        runCurrent()
 
-            assertEquals(2, repository.verificationEmailsSent)
-        }
+        assertEquals(1, repository.verificationEmailsSent)
+        assertEquals(60, viewModel.uiState.value.verificationResendSecondsRemaining)
+
+        advanceTimeBy(60_000)
+        runCurrent()
+        viewModel.resendVerificationEmail()
+        runCurrent()
+
+        assertEquals(2, repository.verificationEmailsSent)
+    }
 
     @Test fun `account deletion requires a password`() {
         viewModel.deleteAccount("  ")
@@ -117,7 +114,9 @@ class AuthViewModelTest {
 
 private class FakeAccountRepository : AccountRepository {
     var password: String? = null
-    override suspend fun deleteAccount(password: String) { this.password = password }
+    override suspend fun deleteAccount(password: String) {
+        this.password = password
+    }
 }
 
 private class FakeAuthRepository : AuthRepository {
@@ -128,11 +127,7 @@ private class FakeAuthRepository : AuthRepository {
     var nextFailure: AuthRepositoryException? = null
     var verificationEmailsSent = 0
 
-    override suspend fun register(
-        displayName: String,
-        email: String,
-        password: String,
-    ) {
+    override suspend fun register(displayName: String, email: String, password: String) {
         nextFailure?.let { throw it }
         registeredName = displayName
         registeredEmail = email

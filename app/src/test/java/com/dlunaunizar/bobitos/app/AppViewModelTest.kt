@@ -3,8 +3,8 @@ package com.dlunaunizar.bobitos.app
 import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.AuthUser
-import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
+import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceRole
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.core.model.SyncStatus
@@ -17,8 +17,8 @@ import com.dlunaunizar.bobitos.data.repository.AuthRepositoryException
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
 import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
-import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -68,140 +68,133 @@ class AppViewModelTest {
         }
 
     @Test
-    fun `expired refresh token returns to unauthenticated state`() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val spaceRepository = FakeAppSpaceRepository(trackCollectors = true)
-            val viewModel = AppViewModel(
-                authRepository = FakeAppAuthRepository(
-                    refreshFailure = AuthRepositoryException(AuthFailure.SessionExpired),
-                ),
-                spaceRepository = spaceRepository,
-                activeSpaceRepository = FakeActiveSpaceRepository("home"),
-                connectivityRepository = FakeConnectivityRepository(),
-                syncRepository = FakeSyncRepository(),
-            )
-            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
-                viewModel.uiState.collect()
-            }
-
-            advanceUntilIdle()
-
-            assertEquals(UiState.Content(null), viewModel.uiState.value.authUser)
-            assertEquals(0, spaceRepository.activeSpaceCollectors)
-            assertEquals(0, spaceRepository.allSpacesCollectors)
+    fun `expired refresh token returns to unauthenticated state`() = runTest(mainDispatcherRule.testDispatcher) {
+        val spaceRepository = FakeAppSpaceRepository(trackCollectors = true)
+        val viewModel = AppViewModel(
+            authRepository = FakeAppAuthRepository(
+                refreshFailure = AuthRepositoryException(AuthFailure.SessionExpired),
+            ),
+            spaceRepository = spaceRepository,
+            activeSpaceRepository = FakeActiveSpaceRepository("home"),
+            connectivityRepository = FakeConnectivityRepository(),
+            syncRepository = FakeSyncRepository(),
+        )
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect()
         }
+
+        advanceUntilIdle()
+
+        assertEquals(UiState.Content(null), viewModel.uiState.value.authUser)
+        assertEquals(0, spaceRepository.activeSpaceCollectors)
+        assertEquals(0, spaceRepository.allSpacesCollectors)
+    }
 
     @Test
-    fun `restores the active space for the authenticated user`() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val activeRepository = FakeActiveSpaceRepository("home")
-            val viewModel = AppViewModel(
-                authRepository = FakeAppAuthRepository(),
-                spaceRepository = FakeAppSpaceRepository(),
-                activeSpaceRepository = activeRepository,
-                connectivityRepository = FakeConnectivityRepository(),
-                syncRepository = FakeSyncRepository(),
-            )
-            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
-                viewModel.uiState.collect()
-            }
-            advanceUntilIdle()
-
-            assertEquals("home", viewModel.uiState.value.selectedSpace?.id)
+    fun `restores the active space for the authenticated user`() = runTest(mainDispatcherRule.testDispatcher) {
+        val activeRepository = FakeActiveSpaceRepository("home")
+        val viewModel = AppViewModel(
+            authRepository = FakeAppAuthRepository(),
+            spaceRepository = FakeAppSpaceRepository(),
+            activeSpaceRepository = activeRepository,
+            connectivityRepository = FakeConnectivityRepository(),
+            syncRepository = FakeSyncRepository(),
+        )
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect()
         }
+        advanceUntilIdle()
+
+        assertEquals("home", viewModel.uiState.value.selectedSpace?.id)
+    }
 
     @Test
-    fun `selects immediately while persisting in background`() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val activeRepository = FakeActiveSpaceRepository(null, saveDelayMillis = 1_000)
-            val viewModel = AppViewModel(
-                authRepository = FakeAppAuthRepository(),
-                spaceRepository = FakeAppSpaceRepository(),
-                activeSpaceRepository = activeRepository,
-                connectivityRepository = FakeConnectivityRepository(),
-                syncRepository = FakeSyncRepository(),
-            )
-            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
-                viewModel.uiState.collect()
-            }
-            runCurrent()
-
-            viewModel.selectSpace("work")
-            runCurrent()
-
-            assertEquals("work", viewModel.uiState.value.selectedSpace?.id)
-            assertNull(activeRepository.savedSpaceId)
-
-            advanceTimeBy(1_000)
-            runCurrent()
-            assertEquals("work", activeRepository.savedSpaceId)
+    fun `selects immediately while persisting in background`() = runTest(mainDispatcherRule.testDispatcher) {
+        val activeRepository = FakeActiveSpaceRepository(null, saveDelayMillis = 1_000)
+        val viewModel = AppViewModel(
+            authRepository = FakeAppAuthRepository(),
+            spaceRepository = FakeAppSpaceRepository(),
+            activeSpaceRepository = activeRepository,
+            connectivityRepository = FakeConnectivityRepository(),
+            syncRepository = FakeSyncRepository(),
+        )
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect()
         }
+        runCurrent()
+
+        viewModel.selectSpace("work")
+        runCurrent()
+
+        assertEquals("work", viewModel.uiState.value.selectedSpace?.id)
+        assertNull(activeRepository.savedSpaceId)
+
+        advanceTimeBy(1_000)
+        runCurrent()
+        assertEquals("work", activeRepository.savedSpaceId)
+    }
 
     @Test
-    fun `listeners follow navigation scope without duplicates`() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val repository = FakeAppSpaceRepository(trackCollectors = true)
-            val viewModel = AppViewModel(
-                authRepository = FakeAppAuthRepository(),
-                spaceRepository = repository,
-                activeSpaceRepository = FakeActiveSpaceRepository("home"),
-                connectivityRepository = FakeConnectivityRepository(),
-                syncRepository = FakeSyncRepository(),
-            )
-            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
-                viewModel.uiState.collect()
-            }
-            runCurrent()
-
-            assertEquals(1, repository.activeSpaceCollectors)
-            assertEquals(0, repository.allSpacesCollectors)
-
-            viewModel.setRealtimeScope(RealtimeScope.ALL_SPACES)
-            runCurrent()
-            assertEquals(0, repository.activeSpaceCollectors)
-            assertEquals(1, repository.allSpacesCollectors)
-
-            viewModel.setRealtimeScope(RealtimeScope.ALL_SPACES)
-            runCurrent()
-            assertEquals(1, repository.allSpacesCollectors)
-
-            viewModel.setRealtimeScope(RealtimeScope.PAUSED)
-            runCurrent()
-            assertEquals(0, repository.activeSpaceCollectors)
-            assertEquals(0, repository.allSpacesCollectors)
+    fun `listeners follow navigation scope without duplicates`() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = FakeAppSpaceRepository(trackCollectors = true)
+        val viewModel = AppViewModel(
+            authRepository = FakeAppAuthRepository(),
+            spaceRepository = repository,
+            activeSpaceRepository = FakeActiveSpaceRepository("home"),
+            connectivityRepository = FakeConnectivityRepository(),
+            syncRepository = FakeSyncRepository(),
+        )
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect()
         }
+        runCurrent()
+
+        assertEquals(1, repository.activeSpaceCollectors)
+        assertEquals(0, repository.allSpacesCollectors)
+
+        viewModel.setRealtimeScope(RealtimeScope.ALL_SPACES)
+        runCurrent()
+        assertEquals(0, repository.activeSpaceCollectors)
+        assertEquals(1, repository.allSpacesCollectors)
+
+        viewModel.setRealtimeScope(RealtimeScope.ALL_SPACES)
+        runCurrent()
+        assertEquals(1, repository.allSpacesCollectors)
+
+        viewModel.setRealtimeScope(RealtimeScope.PAUSED)
+        runCurrent()
+        assertEquals(0, repository.activeSpaceCollectors)
+        assertEquals(0, repository.allSpacesCollectors)
+    }
 
     @Test
-    fun `reconnection refreshes server before enabling writes`() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val connectivity = FakeConnectivityRepository(NetworkStatus.OFFLINE)
-            val syncRepository = FakeSyncRepository()
-            val viewModel = AppViewModel(
-                authRepository = FakeAppAuthRepository(),
-                spaceRepository = FakeAppSpaceRepository(),
-                activeSpaceRepository = FakeActiveSpaceRepository("home"),
-                connectivityRepository = connectivity,
-                syncRepository = syncRepository,
-            )
-            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
-                viewModel.uiState.collect()
-            }
-            runCurrent()
-            assertEquals(SyncStatus.OFFLINE, viewModel.uiState.value.syncStatus)
-
-            connectivity.mutableStatus.value = NetworkStatus.ONLINE
-            runCurrent()
-
-            assertEquals(listOf("home"), syncRepository.refreshedSpaceIds)
-            assertEquals(SyncStatus.ONLINE, viewModel.uiState.value.syncStatus)
-            syncRepository.requireWritable()
+    fun `reconnection refreshes server before enabling writes`() = runTest(mainDispatcherRule.testDispatcher) {
+        val connectivity = FakeConnectivityRepository(NetworkStatus.OFFLINE)
+        val syncRepository = FakeSyncRepository()
+        val viewModel = AppViewModel(
+            authRepository = FakeAppAuthRepository(),
+            spaceRepository = FakeAppSpaceRepository(),
+            activeSpaceRepository = FakeActiveSpaceRepository("home"),
+            connectivityRepository = connectivity,
+            syncRepository = syncRepository,
+        )
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect()
         }
+        runCurrent()
+        assertEquals(SyncStatus.OFFLINE, viewModel.uiState.value.syncStatus)
+
+        connectivity.mutableStatus.value = NetworkStatus.ONLINE
+        runCurrent()
+
+        assertEquals(listOf("home"), syncRepository.refreshedSpaceIds)
+        assertEquals(SyncStatus.ONLINE, viewModel.uiState.value.syncStatus)
+        syncRepository.requireWritable()
+    }
 }
 
-private class FakeActiveSpaceRepository(
-    initialSpaceId: String?,
-    private val saveDelayMillis: Long = 0,
-) : ActiveSpaceRepository {
+private class FakeActiveSpaceRepository(initialSpaceId: String?, private val saveDelayMillis: Long = 0) :
+    ActiveSpaceRepository {
     private val activeId = MutableStateFlow(initialSpaceId)
     var savedSpaceId: String? = initialSpaceId
 
@@ -238,9 +231,7 @@ private class FakeAppAuthRepository(
     override fun signOut() = Unit
 }
 
-private class FakeAppSpaceRepository(
-    private val trackCollectors: Boolean = false,
-) : SpaceRepository {
+private class FakeAppSpaceRepository(private val trackCollectors: Boolean = false) : SpaceRepository {
     private val summaries = listOf(
         SpaceSummary("home", "Casa", 2, SpaceRole.OWNER),
         SpaceSummary("work", "Trabajo", 3, SpaceRole.MEMBER),
@@ -260,11 +251,7 @@ private class FakeAppSpaceRepository(
         value = summaries.firstOrNull { it.id == spaceId },
     )
 
-    private fun <T> trackedFlow(
-        onStart: () -> Unit,
-        onStop: () -> Unit,
-        value: T,
-    ): Flow<T> = if (!trackCollectors) {
+    private fun <T> trackedFlow(onStart: () -> Unit, onStop: () -> Unit, value: T): Flow<T> = if (!trackCollectors) {
         MutableStateFlow(value)
     } else {
         flow {
@@ -279,8 +266,7 @@ private class FakeAppSpaceRepository(
     }
 
     override fun members(spaceId: String): Flow<List<SpaceMember>> = MutableStateFlow(emptyList())
-    override fun invitations(spaceId: String): Flow<List<SpaceInvitation>> =
-        MutableStateFlow(emptyList())
+    override fun invitations(spaceId: String): Flow<List<SpaceInvitation>> = MutableStateFlow(emptyList())
     override suspend fun createSpace(name: String): String = "created"
     override suspend fun renameSpace(spaceId: String, name: String) = Unit
     override suspend fun leaveSpace(spaceId: String) = Unit
@@ -292,9 +278,8 @@ private class FakeAppSpaceRepository(
     override suspend fun acceptInvitation(code: String): String = "home"
 }
 
-private class FakeConnectivityRepository(
-    initialStatus: NetworkStatus = NetworkStatus.ONLINE,
-) : ConnectivityRepository {
+private class FakeConnectivityRepository(initialStatus: NetworkStatus = NetworkStatus.ONLINE) :
+    ConnectivityRepository {
     val mutableStatus = MutableStateFlow(initialStatus)
     override val status: StateFlow<NetworkStatus> = mutableStatus
 }

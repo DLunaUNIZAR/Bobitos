@@ -13,14 +13,14 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Query
-import java.time.Instant
-import java.util.Date
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+import java.time.Instant
+import java.util.Date
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @Singleton
 class FirestoreTaskRepository @Inject constructor(
@@ -119,28 +119,27 @@ class FirestoreTaskRepository @Inject constructor(
         Unit
     }
 
-    override suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean) =
-        runTaskOperation {
-            val user = requireVerifiedUser()
-            val taskReference = tasksCollection(spaceId).document(taskId)
-            firestore.runTransaction { transaction ->
-                val task = requireTask(transaction.get(taskReference))
-                val targetStatus = if (completed) STATUS_DONE else STATUS_TODO
-                if (task.getString(FIELD_STATUS) != targetStatus) {
-                    transaction.update(
-                        taskReference,
-                        FIELD_STATUS, targetStatus,
-                        FIELD_COMPLETED_BY, if (completed) user.id else null,
-                        FIELD_COMPLETED_BY_NAME, if (completed) user.taskDisplayName else null,
-                        FIELD_COMPLETED_AT,
-                        if (completed) FieldValue.serverTimestamp() else null,
-                        FIELD_UPDATED_BY, user.id,
-                        FIELD_UPDATED_AT, FieldValue.serverTimestamp(),
-                    )
-                }
-            }.await()
-            Unit
-        }
+    override suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean) = runTaskOperation {
+        val user = requireVerifiedUser()
+        val taskReference = tasksCollection(spaceId).document(taskId)
+        firestore.runTransaction { transaction ->
+            val task = requireTask(transaction.get(taskReference))
+            val targetStatus = if (completed) STATUS_DONE else STATUS_TODO
+            if (task.getString(FIELD_STATUS) != targetStatus) {
+                transaction.update(
+                    taskReference,
+                    FIELD_STATUS, targetStatus,
+                    FIELD_COMPLETED_BY, if (completed) user.id else null,
+                    FIELD_COMPLETED_BY_NAME, if (completed) user.taskDisplayName else null,
+                    FIELD_COMPLETED_AT,
+                    if (completed) FieldValue.serverTimestamp() else null,
+                    FIELD_UPDATED_BY, user.id,
+                    FIELD_UPDATED_AT, FieldValue.serverTimestamp(),
+                )
+            }
+        }.await()
+        Unit
+    }
 
     override suspend fun deleteTask(spaceId: String, taskId: String) = runTaskOperation {
         requireVerifiedUser()
@@ -204,9 +203,12 @@ class FirestoreTaskRepository @Inject constructor(
     }
 
     private fun requireActiveAssignee(snapshot: DocumentSnapshot, assigneeId: String) {
-        if (!snapshot.exists() || snapshot.getString(FIELD_USER_ID) != assigneeId ||
+        if (!snapshot.exists() ||
+            snapshot.getString(FIELD_USER_ID) != assigneeId ||
             snapshot.getString(FIELD_MEMBERSHIP_STATUS) != MEMBERSHIP_ACTIVE
-        ) throw TaskRepositoryException(TaskFailure.InvalidAssignee)
+        ) {
+            throw TaskRepositoryException(TaskFailure.InvalidAssignee)
+        }
     }
 
     private fun requireTask(snapshot: DocumentSnapshot): DocumentSnapshot {

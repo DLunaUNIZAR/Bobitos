@@ -16,19 +16,19 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Source
-import javax.inject.Inject
-import javax.inject.Singleton
-import java.time.Duration
-import java.time.Instant
-import java.util.Date
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.tasks.await
+import java.time.Duration
+import java.time.Instant
+import java.util.Date
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @Singleton
@@ -39,42 +39,40 @@ class FirestoreSpaceRepository @Inject constructor(
 ) : SpaceRepository {
     private val firestore = FirebaseFirestore.getInstance()
 
-    override fun spaces(): Flow<List<SpaceSummary>> =
-        authRepository.currentUser.flatMapLatest { user ->
-            if (user == null || !user.isEmailVerified) {
-                flowOf(emptyList())
-            } else {
-                membershipsForUser(user.id).flatMapLatest { memberships ->
-                    val spaceFlows = memberships.map { membership ->
-                        observeSpace(membership, metricScope = "space:list")
-                    }
-                    if (spaceFlows.isEmpty()) {
-                        flowOf(emptyList())
-                    } else {
-                        combine(spaceFlows) { spaces ->
-                            spaces
-                                .filterNotNull()
-                                .sortedBy { it.name.lowercase() }
-                        }
+    override fun spaces(): Flow<List<SpaceSummary>> = authRepository.currentUser.flatMapLatest { user ->
+        if (user == null || !user.isEmailVerified) {
+            flowOf(emptyList())
+        } else {
+            membershipsForUser(user.id).flatMapLatest { memberships ->
+                val spaceFlows = memberships.map { membership ->
+                    observeSpace(membership, metricScope = "space:list")
+                }
+                if (spaceFlows.isEmpty()) {
+                    flowOf(emptyList())
+                } else {
+                    combine(spaceFlows) { spaces ->
+                        spaces
+                            .filterNotNull()
+                            .sortedBy { it.name.lowercase() }
                     }
                 }
             }
         }
+    }
 
-    override fun space(spaceId: String): Flow<SpaceSummary?> =
-        authRepository.currentUser.flatMapLatest { user ->
-            if (user == null || !user.isEmailVerified) {
-                flowOf(null)
-            } else {
-                observeMembership(spaceId, user.id).flatMapLatest { membership ->
-                    if (membership == null) {
-                        flowOf(null)
-                    } else {
-                        observeSpace(membership, metricScope = "space:active")
-                    }
+    override fun space(spaceId: String): Flow<SpaceSummary?> = authRepository.currentUser.flatMapLatest { user ->
+        if (user == null || !user.isEmailVerified) {
+            flowOf(null)
+        } else {
+            observeMembership(spaceId, user.id).flatMapLatest { membership ->
+                if (membership == null) {
+                    flowOf(null)
+                } else {
+                    observeSpace(membership, metricScope = "space:active")
                 }
             }
         }
+    }
 
     override fun members(spaceId: String): Flow<List<SpaceMember>> = callbackFlow {
         val metricId = realtimeMetrics.listenerStarted("members:settings")
@@ -246,10 +244,7 @@ class FirestoreSpaceRepository @Inject constructor(
         }
     }
 
-    override suspend fun transferOwnership(
-        spaceId: String,
-        newOwnerId: String,
-    ) = runSpaceOperation {
+    override suspend fun transferOwnership(spaceId: String, newOwnerId: String) = runSpaceOperation {
         val currentUser = requireVerifiedUser()
         if (newOwnerId == currentUser.id) {
             throw SpaceRepositoryException(SpaceFailure.InvalidNewOwner)
@@ -292,38 +287,37 @@ class FirestoreSpaceRepository @Inject constructor(
         Unit
     }
 
-    override suspend fun createInvitation(spaceId: String): SpaceInvitation =
-        runSpaceOperation {
-            val user = requireVerifiedUser()
-            val invitationId = InvitationCode.generate()
-            val invitationReference = firestore.collection(INVITATIONS).document(invitationId)
-            val expiresAt = Instant.now().plus(INVITATION_VALIDITY)
+    override suspend fun createInvitation(spaceId: String): SpaceInvitation = runSpaceOperation {
+        val user = requireVerifiedUser()
+        val invitationId = InvitationCode.generate()
+        val invitationReference = firestore.collection(INVITATIONS).document(invitationId)
+        val expiresAt = Instant.now().plus(INVITATION_VALIDITY)
 
-            val spaceReference = firestore.collection(SPACES).document(spaceId)
-            firestore.runTransaction { transaction ->
-                checkSpaceExists(transaction.get(spaceReference))
-                transaction.set(
-                    invitationReference,
-                    mapOf(
-                        FIELD_SPACE_ID to spaceId,
-                        FIELD_CREATED_BY to user.id,
-                        FIELD_CREATED_AT to FieldValue.serverTimestamp(),
-                        FIELD_EXPIRES_AT to Timestamp(Date.from(expiresAt)),
-                        FIELD_STATUS to INVITATION_STATUS_ACTIVE,
-                        FIELD_USED_BY to null,
-                        FIELD_USED_AT to null,
-                        FIELD_REVOKED_AT to null,
-                    ),
-                )
-            }.await()
-
-            SpaceInvitation(
-                id = invitationId,
-                spaceId = spaceId,
-                expiresAt = expiresAt,
-                status = InvitationStatus.ACTIVE,
+        val spaceReference = firestore.collection(SPACES).document(spaceId)
+        firestore.runTransaction { transaction ->
+            checkSpaceExists(transaction.get(spaceReference))
+            transaction.set(
+                invitationReference,
+                mapOf(
+                    FIELD_SPACE_ID to spaceId,
+                    FIELD_CREATED_BY to user.id,
+                    FIELD_CREATED_AT to FieldValue.serverTimestamp(),
+                    FIELD_EXPIRES_AT to Timestamp(Date.from(expiresAt)),
+                    FIELD_STATUS to INVITATION_STATUS_ACTIVE,
+                    FIELD_USED_BY to null,
+                    FIELD_USED_AT to null,
+                    FIELD_REVOKED_AT to null,
+                ),
             )
-        }
+        }.await()
+
+        SpaceInvitation(
+            id = invitationId,
+            spaceId = spaceId,
+            expiresAt = expiresAt,
+            status = InvitationStatus.ACTIVE,
+        )
+    }
 
     override suspend fun revokeInvitation(invitationId: String) = runSpaceOperation {
         requireVerifiedUser()
@@ -444,10 +438,7 @@ class FirestoreSpaceRepository @Inject constructor(
         }
     }
 
-    private fun observeMembership(
-        spaceId: String,
-        userId: String,
-    ): Flow<MembershipSnapshot?> = callbackFlow {
+    private fun observeMembership(spaceId: String, userId: String): Flow<MembershipSnapshot?> = callbackFlow {
         val metricId = realtimeMetrics.listenerStarted("membership:active")
         val registration = membershipReference(spaceId, userId)
             .addSnapshotListener { snapshot, error ->
@@ -477,10 +468,7 @@ class FirestoreSpaceRepository @Inject constructor(
         }
     }
 
-    private fun observeSpace(
-        membership: MembershipSnapshot,
-        metricScope: String,
-    ): Flow<SpaceSummary?> = callbackFlow {
+    private fun observeSpace(membership: MembershipSnapshot, metricScope: String): Flow<SpaceSummary?> = callbackFlow {
         val metricId = realtimeMetrics.listenerStarted(metricScope)
         val registration = firestore.collection(SPACES)
             .document(membership.spaceId)
@@ -625,10 +613,7 @@ class FirestoreSpaceRepository @Inject constructor(
         }
     }
 
-    private fun checkInvitationAvailable(
-        snapshot: DocumentSnapshot,
-        allowExpired: Boolean = false,
-    ) {
+    private fun checkInvitationAvailable(snapshot: DocumentSnapshot, allowExpired: Boolean = false) {
         if (!snapshot.exists()) {
             throw SpaceRepositoryException(SpaceFailure.InvitationNotFound)
         }
@@ -649,9 +634,7 @@ class FirestoreSpaceRepository @Inject constructor(
         }
     }
 
-    private suspend inline fun <T> runSpaceOperation(
-        crossinline operation: suspend () -> T,
-    ): T {
+    private suspend inline fun <T> runSpaceOperation(crossinline operation: suspend () -> T): T {
         try {
             syncRepository.requireWritable()
             return operation()
@@ -668,10 +651,7 @@ class FirestoreSpaceRepository @Inject constructor(
         }
     }
 
-    private data class MembershipSnapshot(
-        val spaceId: String,
-        val role: SpaceRole,
-    )
+    private data class MembershipSnapshot(val spaceId: String, val role: SpaceRole)
 
     private companion object {
         const val MAX_SPACE_NAME_LENGTH = 60
@@ -743,12 +723,11 @@ private fun DocumentSnapshot.toSpaceInvitation(): SpaceInvitation? {
     return SpaceInvitation(id, spaceId, expiresAt, status)
 }
 
-private fun Throwable.toSpaceRepositoryException(): SpaceRepositoryException =
-    SpaceRepositoryException(
-        failure = when ((this as? FirebaseFirestoreException)?.code) {
-            FirebaseFirestoreException.Code.PERMISSION_DENIED -> SpaceFailure.PermissionDenied
-            FirebaseFirestoreException.Code.UNAVAILABLE -> SpaceFailure.Network
-            else -> SpaceFailure.Unknown
-        },
-        cause = this,
-    )
+private fun Throwable.toSpaceRepositoryException(): SpaceRepositoryException = SpaceRepositoryException(
+    failure = when ((this as? FirebaseFirestoreException)?.code) {
+        FirebaseFirestoreException.Code.PERMISSION_DENIED -> SpaceFailure.PermissionDenied
+        FirebaseFirestoreException.Code.UNAVAILABLE -> SpaceFailure.Network
+        else -> SpaceFailure.Unknown
+    },
+    cause = this,
+)

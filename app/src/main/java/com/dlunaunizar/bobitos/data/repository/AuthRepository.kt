@@ -6,16 +6,9 @@ import kotlinx.coroutines.flow.StateFlow
 interface AuthRepository {
     val currentUser: StateFlow<AuthUser?>
 
-    suspend fun register(
-        displayName: String,
-        email: String,
-        password: String,
-    )
+    suspend fun register(displayName: String, email: String, password: String)
 
-    suspend fun signIn(
-        email: String,
-        password: String,
-    )
+    suspend fun signIn(email: String, password: String)
 
     suspend fun sendEmailVerification()
 
@@ -40,7 +33,4 @@ enum class AuthFailure {
     Unknown,
 }
 
-class AuthRepositoryException(
-    val failure: AuthFailure,
-    cause: Throwable? = null,
-) : Exception(cause)
+class AuthRepositoryException(val failure: AuthFailure, cause: Throwable? = null) : Exception(cause)

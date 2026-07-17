@@ -38,9 +38,6 @@ internal object AuthValidation {
             null
         }
 
-    fun validateSignIn(
-        email: String,
-        password: String,
-    ): AuthUiMessage? = validateEmail(email)
+    fun validateSignIn(email: String, password: String): AuthUiMessage? = validateEmail(email)
         ?: if (password.isBlank()) AuthUiMessage.InvalidCredentials else null
 }

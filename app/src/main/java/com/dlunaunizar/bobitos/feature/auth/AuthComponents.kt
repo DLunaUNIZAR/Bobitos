@@ -72,10 +72,7 @@ internal fun AuthScreenLayout(
 }
 
 @Composable
-internal fun AuthFeedback(
-    actionState: AuthActionUiState,
-    modifier: Modifier = Modifier,
-) {
+internal fun AuthFeedback(actionState: AuthActionUiState, modifier: Modifier = Modifier) {
     val message = actionState.error ?: actionState.notice ?: return
     val isError = actionState.error != null
     Card(
@@ -103,10 +100,7 @@ internal fun AuthFeedback(
 }
 
 @Composable
-internal fun AuthAvatar(
-    initials: String,
-    modifier: Modifier = Modifier,
-) {
+internal fun AuthAvatar(initials: String, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .clip(CircleShape)

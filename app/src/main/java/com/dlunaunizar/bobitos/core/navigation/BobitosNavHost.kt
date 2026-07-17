@@ -18,12 +18,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.navigation.NavType
 import androidx.navigation.NavHostController
-import androidx.navigation.navArgument
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.navArgument
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.app.AppUiState
 import com.dlunaunizar.bobitos.app.RealtimeScope
@@ -31,20 +31,20 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SyncStatus
+import com.dlunaunizar.bobitos.core.model.TaskPriority
 import com.dlunaunizar.bobitos.core.model.canWrite
-import com.dlunaunizar.bobitos.feature.common.SyncStatusBanner
 import com.dlunaunizar.bobitos.feature.auth.AuthActionUiState
 import com.dlunaunizar.bobitos.feature.auth.ProfileScreen
 import com.dlunaunizar.bobitos.feature.calendar.CalendarScreen
 import com.dlunaunizar.bobitos.feature.calendar.PersonalCalendarScreen
+import com.dlunaunizar.bobitos.feature.common.SyncStatusBanner
 import com.dlunaunizar.bobitos.feature.shopping.ShoppingScreen
 import com.dlunaunizar.bobitos.feature.shopping.ShoppingUiState
-import com.dlunaunizar.bobitos.feature.spaces.SpacesScreen
 import com.dlunaunizar.bobitos.feature.spaces.SpaceManagementUiState
 import com.dlunaunizar.bobitos.feature.spaces.SpaceSettingsScreen
-import com.dlunaunizar.bobitos.feature.tasks.TasksScreen
-import com.dlunaunizar.bobitos.core.model.TaskPriority
+import com.dlunaunizar.bobitos.feature.spaces.SpacesScreen
 import com.dlunaunizar.bobitos.feature.tasks.TaskFilters
+import com.dlunaunizar.bobitos.feature.tasks.TasksScreen
 import com.dlunaunizar.bobitos.feature.tasks.TasksUiState
 import java.time.Instant
 import java.time.LocalDate
@@ -110,7 +110,8 @@ fun BobitosNavHost(
             when (currentRoute) {
                 null -> RealtimeScope.AUTOMATIC
                 BobitosDestination.Spaces.route,
-                BobitosDestination.MyCalendar.route -> RealtimeScope.ALL_SPACES
+                BobitosDestination.MyCalendar.route,
+                -> RealtimeScope.ALL_SPACES
                 BobitosDestination.Profile.route -> RealtimeScope.PAUSED
                 else -> RealtimeScope.ACTIVE_SPACE
             },
@@ -204,7 +205,7 @@ fun BobitosNavHost(
                     onEventSelected = { eventSpaceId, eventId, date ->
                         onSpaceSelected(eventSpaceId)
                         navController.navigate(
-                            "calendar-event/${Uri.encode(eventId)}/${date}",
+                            "calendar-event/${Uri.encode(eventId)}/$date",
                         )
                     },
                 )
@@ -376,7 +377,10 @@ fun BobitosNavHost(
                     onLeaveSpace = onLeaveSpace,
                     onRemoveMember = onRemoveMember,
                     onTransferOwnership = onTransferOwnership,
-                    onDeleteSpace = { spaceId -> onDeleteSpace(spaceId); navController.navigateToSpaces() },
+                    onDeleteSpace = { spaceId ->
+                        onDeleteSpace(spaceId)
+                        navController.navigateToSpaces()
+                    },
                     onCreateInvitation = onCreateInvitation,
                     onRevokeInvitation = onRevokeInvitation,
                     onShareInvitation = onShareInvitation,

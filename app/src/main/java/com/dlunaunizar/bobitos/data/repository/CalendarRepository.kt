@@ -2,9 +2,9 @@ package com.dlunaunizar.bobitos.data.repository
 
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.EventColor
+import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 import java.time.LocalDate
-import kotlinx.coroutines.flow.Flow
 
 data class EventInput(
     val title: String,
@@ -27,12 +27,19 @@ interface CalendarRepository {
 }
 
 enum class CalendarFailure {
-    TitleRequired, TitleTooLong, DescriptionTooLong, InvalidRange, InvalidTimeZone,
-    InvalidParticipants, NotAuthenticated, EmailNotVerified, SpaceNotFound, EventNotFound,
-    PermissionDenied, Network, Unknown,
+    TitleRequired,
+    TitleTooLong,
+    DescriptionTooLong,
+    InvalidRange,
+    InvalidTimeZone,
+    InvalidParticipants,
+    NotAuthenticated,
+    EmailNotVerified,
+    SpaceNotFound,
+    EventNotFound,
+    PermissionDenied,
+    Network,
+    Unknown,
 }
 
-class CalendarRepositoryException(
-    val failure: CalendarFailure,
-    cause: Throwable? = null,
-) : Exception(cause)
+class CalendarRepositoryException(val failure: CalendarFailure, cause: Throwable? = null) : Exception(cause)

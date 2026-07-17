@@ -3,7 +3,6 @@ package com.dlunaunizar.bobitos.feature.calendar
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -185,9 +184,12 @@ private fun PersonalEventRow(item: PersonalCalendarEvent, onClick: () -> Unit) {
             Text(item.event.title, style = MaterialTheme.typography.titleMedium)
             Text(item.spaceName, color = MaterialTheme.colorScheme.primary)
             Text(
-                if (item.event.allDay) "Todo el día"
-                else item.event.startAt.atZone(ZoneId.systemDefault())
-                    .format(DateTimeFormatter.ofPattern("dd/MM HH:mm")),
+                if (item.event.allDay) {
+                    "Todo el día"
+                } else {
+                    item.event.startAt.atZone(ZoneId.systemDefault())
+                        .format(DateTimeFormatter.ofPattern("dd/MM HH:mm"))
+                },
             )
         }
     }

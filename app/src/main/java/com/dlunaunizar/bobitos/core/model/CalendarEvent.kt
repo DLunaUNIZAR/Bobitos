@@ -23,8 +23,7 @@ data class CalendarEvent(
     val updatedBy: String,
     val updatedAt: Instant,
 ) {
-    fun overlaps(start: Instant, endExclusive: Instant): Boolean =
-        startAt < endExclusive && endAt > start
+    fun overlaps(start: Instant, endExclusive: Instant): Boolean = startAt < endExclusive && endAt > start
 
     fun displayStartDate(zoneId: ZoneId): LocalDate =
         if (allDay) requireNotNull(startDate) else startAt.atZone(zoneId).toLocalDate()

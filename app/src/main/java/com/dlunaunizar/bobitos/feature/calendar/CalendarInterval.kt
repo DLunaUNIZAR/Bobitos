@@ -14,10 +14,7 @@ enum class CalendarDisplayMode {
     MONTH,
 }
 
-fun LocalDate.visibleInterval(
-    mode: CalendarDisplayMode,
-    zoneId: ZoneId,
-): CalendarInterval = when (mode) {
+fun LocalDate.visibleInterval(mode: CalendarDisplayMode, zoneId: ZoneId): CalendarInterval = when (mode) {
     CalendarDisplayMode.DAY -> CalendarInterval(
         atStartOfDay(zoneId).toInstant(),
         plusDays(1).atStartOfDay(zoneId).toInstant(),

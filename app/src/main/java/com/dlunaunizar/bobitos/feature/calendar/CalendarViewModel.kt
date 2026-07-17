@@ -9,9 +9,6 @@ import com.dlunaunizar.bobitos.data.repository.CalendarRepository
 import com.dlunaunizar.bobitos.data.repository.EventInput
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.time.LocalDate
-import java.time.ZoneId
-import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +16,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.ZoneId
+import javax.inject.Inject
 
 data class CalendarUiState(
     val focusedDate: LocalDate = LocalDate.now(),
@@ -112,8 +112,11 @@ class CalendarViewModel @Inject constructor(
 
     fun save(eventId: String?, input: EventInput) = action {
         val id = spaceId ?: return@action
-        if (eventId == null) repository.createEvent(id, input)
-        else repository.updateEvent(id, eventId, input)
+        if (eventId == null) {
+            repository.createEvent(id, input)
+        } else {
+            repository.updateEvent(id, eventId, input)
+        }
     }
 
     fun delete(eventId: String) = action {

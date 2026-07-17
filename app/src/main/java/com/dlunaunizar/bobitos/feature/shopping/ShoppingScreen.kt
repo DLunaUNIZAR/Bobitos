@@ -185,8 +185,11 @@ fun ShoppingScreen(
             onDismiss = { editorVisible = false },
             onSave = { name, quantity, notes ->
                 val item = editedItem
-                if (item == null) onAdd(name, quantity, notes)
-                else onUpdate(item.id, name, quantity, notes)
+                if (item == null) {
+                    onAdd(name, quantity, notes)
+                } else {
+                    onUpdate(item.id, name, quantity, notes)
+                }
                 editorVisible = false
             },
         )

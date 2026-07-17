@@ -17,14 +17,10 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 @Composable
-fun BobitosTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit,
-) {
+fun BobitosTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
         typography = BobitosTypography,
         content = content,
     )
 }
-

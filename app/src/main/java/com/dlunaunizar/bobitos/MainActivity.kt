@@ -12,11 +12,11 @@ import com.dlunaunizar.bobitos.app.AppViewModel
 import com.dlunaunizar.bobitos.app.BobitosApp
 import com.dlunaunizar.bobitos.core.designsystem.theme.BobitosTheme
 import com.dlunaunizar.bobitos.core.model.InvitationCode
-import com.dlunaunizar.bobitos.feature.auth.AuthViewModel
-import com.dlunaunizar.bobitos.feature.spaces.SpacesViewModel
-import com.dlunaunizar.bobitos.feature.shopping.ShoppingViewModel
-import com.dlunaunizar.bobitos.feature.tasks.TasksViewModel
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
+import com.dlunaunizar.bobitos.feature.auth.AuthViewModel
+import com.dlunaunizar.bobitos.feature.shopping.ShoppingViewModel
+import com.dlunaunizar.bobitos.feature.spaces.SpacesViewModel
+import com.dlunaunizar.bobitos.feature.tasks.TasksViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
 

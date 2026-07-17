@@ -4,14 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.TaskPriority
-import com.dlunaunizar.bobitos.core.model.TaskStatus
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.TaskFailure
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
 import com.dlunaunizar.bobitos.data.repository.TaskRepositoryException
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.time.Instant
-import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +16,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Instant
+import javax.inject.Inject
 
 @HiltViewModel
 class TasksViewModel @Inject constructor(
@@ -50,8 +49,10 @@ class TasksViewModel @Inject constructor(
     }
 
     fun stopObserving() {
-        tasksJob?.cancel(); tasksJob = null
-        membersJob?.cancel(); membersJob = null
+        tasksJob?.cancel()
+        tasksJob = null
+        membersJob?.cancel()
+        membersJob = null
     }
 
     fun setFilters(filters: TaskFilters) = mutableUiState.update { it.copy(filters = filters) }
@@ -67,7 +68,12 @@ class TasksViewModel @Inject constructor(
         if (!validate(title, description, assigneeId)) return
         runAction(TaskUiMessage.TaskCreated) {
             taskRepository.createTask(
-                spaceId, title.trim(), description.normalized(), assigneeId!!, dueAt, priority,
+                spaceId,
+                title.trim(),
+                description.normalized(),
+                assigneeId!!,
+                dueAt,
+                priority,
             )
         }
     }
@@ -84,8 +90,13 @@ class TasksViewModel @Inject constructor(
         if (!validate(title, description, assigneeId)) return
         runAction(TaskUiMessage.TaskUpdated) {
             taskRepository.updateTask(
-                spaceId, taskId, title.trim(), description.normalized(), assigneeId!!,
-                dueAt, priority,
+                spaceId,
+                taskId,
+                title.trim(),
+                description.normalized(),
+                assigneeId!!,
+                dueAt,
+                priority,
             )
         }
     }

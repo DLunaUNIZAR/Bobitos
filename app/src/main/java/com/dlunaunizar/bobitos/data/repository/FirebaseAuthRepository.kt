@@ -11,17 +11,15 @@ import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.UserProfileChangeRequest
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @Singleton
-class FirebaseAuthRepository @Inject constructor(
-    firebaseInitializer: FirebaseInitializer,
-) : AuthRepository {
+class FirebaseAuthRepository @Inject constructor(firebaseInitializer: FirebaseInitializer) : AuthRepository {
     private val firebaseAuth = firebaseInitializer.auth()
     private val mutableCurrentUser = MutableStateFlow(firebaseAuth.currentUser?.toAuthUser())
     private val authStateListener = FirebaseAuth.AuthStateListener { auth ->
@@ -35,11 +33,7 @@ class FirebaseAuthRepository @Inject constructor(
         firebaseAuth.addAuthStateListener(authStateListener)
     }
 
-    override suspend fun register(
-        displayName: String,
-        email: String,
-        password: String,
-    ) = runAuthOperation {
+    override suspend fun register(displayName: String, email: String, password: String) = runAuthOperation {
         val user = firebaseAuth
             .createUserWithEmailAndPassword(email, password)
             .await()
@@ -56,10 +50,7 @@ class FirebaseAuthRepository @Inject constructor(
         Unit
     }
 
-    override suspend fun signIn(
-        email: String,
-        password: String,
-    ) = runAuthOperation {
+    override suspend fun signIn(email: String, password: String) = runAuthOperation {
         val user = firebaseAuth
             .signInWithEmailAndPassword(email, password)
             .await()
@@ -122,9 +113,7 @@ class FirebaseAuthRepository @Inject constructor(
     }
 }
 
-private suspend inline fun <T> runAuthOperation(
-    crossinline operation: suspend () -> T,
-): T = try {
+private suspend inline fun <T> runAuthOperation(crossinline operation: suspend () -> T): T = try {
     operation()
 } catch (error: AuthRepositoryException) {
     throw error
@@ -137,7 +126,8 @@ private fun Throwable.toRepositoryException(): AuthRepositoryException = AuthRep
         is FirebaseAuthUserCollisionException -> AuthFailure.EmailAlreadyInUse
         is FirebaseAuthWeakPasswordException -> AuthFailure.WeakPassword
         is FirebaseAuthInvalidCredentialsException,
-        is FirebaseAuthInvalidUserException -> AuthFailure.InvalidCredentials
+        is FirebaseAuthInvalidUserException,
+        -> AuthFailure.InvalidCredentials
         is FirebaseNetworkException -> AuthFailure.Network
         is FirebaseTooManyRequestsException -> AuthFailure.TooManyRequests
         else -> AuthFailure.Unknown
@@ -145,12 +135,12 @@ private fun Throwable.toRepositoryException(): AuthRepositoryException = AuthRep
     cause = this,
 )
 
-private fun Throwable.isExpiredSession(): Boolean =
-    (this as? FirebaseAuthInvalidUserException)?.errorCode in setOf(
-        "ERROR_USER_TOKEN_EXPIRED",
-        "ERROR_USER_DISABLED",
-        "ERROR_USER_NOT_FOUND",
-    ) || message?.contains("INVALID_REFRESH_TOKEN", ignoreCase = true) == true
+private fun Throwable.isExpiredSession(): Boolean = (this as? FirebaseAuthInvalidUserException)?.errorCode in setOf(
+    "ERROR_USER_TOKEN_EXPIRED",
+    "ERROR_USER_DISABLED",
+    "ERROR_USER_NOT_FOUND",
+) ||
+    message?.contains("INVALID_REFRESH_TOKEN", ignoreCase = true) == true
 
 private fun FirebaseUser.toAuthUser(): AuthUser = AuthUser(
     id = uid,

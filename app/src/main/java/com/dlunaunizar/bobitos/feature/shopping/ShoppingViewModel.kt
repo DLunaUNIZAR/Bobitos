@@ -7,7 +7,6 @@ import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,11 +14,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @HiltViewModel
-class ShoppingViewModel @Inject constructor(
-    private val repository: ShoppingRepository,
-) : ViewModel() {
+class ShoppingViewModel @Inject constructor(private val repository: ShoppingRepository) : ViewModel() {
     private val mutableUiState = MutableStateFlow(ShoppingUiState())
     val uiState: StateFlow<ShoppingUiState> = mutableUiState.asStateFlow()
     private var itemsJob: Job? = null
@@ -57,13 +55,7 @@ class ShoppingViewModel @Inject constructor(
         }
     }
 
-    fun updateItem(
-        spaceId: String,
-        itemId: String,
-        name: String,
-        quantity: String?,
-        notes: String?,
-    ) {
+    fun updateItem(spaceId: String, itemId: String, name: String, quantity: String?, notes: String?) {
         if (!validate(name, quantity, notes)) return
         runAction(ShoppingUiMessage.ItemUpdated) {
             repository.updateItem(
@@ -148,10 +140,7 @@ class ShoppingViewModel @Inject constructor(
         }
     }
 
-    private fun runAction(
-        successNotice: ShoppingUiMessage,
-        action: suspend () -> Unit,
-    ) {
+    private fun runAction(successNotice: ShoppingUiMessage, action: suspend () -> Unit) {
         if (mutableUiState.value.isSaving) return
         mutableUiState.update {
             it.copy(
@@ -180,18 +169,18 @@ class ShoppingViewModel @Inject constructor(
 
 private fun String?.normalized(): String? = this?.trim()?.takeIf(String::isNotEmpty)
 
-private fun Throwable.toUiMessage(): ShoppingUiMessage =
-    when ((this as? ShoppingRepositoryException)?.failure) {
-        ShoppingFailure.NameRequired -> ShoppingUiMessage.NameRequired
-        ShoppingFailure.NameTooLong -> ShoppingUiMessage.NameTooLong
-        ShoppingFailure.QuantityTooLong -> ShoppingUiMessage.QuantityTooLong
-        ShoppingFailure.NotesTooLong -> ShoppingUiMessage.NotesTooLong
-        ShoppingFailure.NotAuthenticated -> ShoppingUiMessage.NotAuthenticated
-        ShoppingFailure.EmailNotVerified -> ShoppingUiMessage.EmailNotVerified
-        ShoppingFailure.SpaceNotFound -> ShoppingUiMessage.SpaceNotFound
-        ShoppingFailure.ItemNotFound -> ShoppingUiMessage.ItemNotFound
-        ShoppingFailure.PermissionDenied -> ShoppingUiMessage.PermissionDenied
-        ShoppingFailure.Network -> ShoppingUiMessage.NetworkError
-        ShoppingFailure.Unknown,
-        null -> ShoppingUiMessage.UnexpectedError
-    }
+private fun Throwable.toUiMessage(): ShoppingUiMessage = when ((this as? ShoppingRepositoryException)?.failure) {
+    ShoppingFailure.NameRequired -> ShoppingUiMessage.NameRequired
+    ShoppingFailure.NameTooLong -> ShoppingUiMessage.NameTooLong
+    ShoppingFailure.QuantityTooLong -> ShoppingUiMessage.QuantityTooLong
+    ShoppingFailure.NotesTooLong -> ShoppingUiMessage.NotesTooLong
+    ShoppingFailure.NotAuthenticated -> ShoppingUiMessage.NotAuthenticated
+    ShoppingFailure.EmailNotVerified -> ShoppingUiMessage.EmailNotVerified
+    ShoppingFailure.SpaceNotFound -> ShoppingUiMessage.SpaceNotFound
+    ShoppingFailure.ItemNotFound -> ShoppingUiMessage.ItemNotFound
+    ShoppingFailure.PermissionDenied -> ShoppingUiMessage.PermissionDenied
+    ShoppingFailure.Network -> ShoppingUiMessage.NetworkError
+    ShoppingFailure.Unknown,
+    null,
+    -> ShoppingUiMessage.UnexpectedError
+}

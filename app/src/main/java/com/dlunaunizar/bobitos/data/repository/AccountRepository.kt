@@ -5,11 +5,13 @@ interface AccountRepository {
 }
 
 enum class AccountFailure {
-    PasswordRequired, InvalidCredentials, OwnerSpacesRemaining, NotAuthenticated,
-    PermissionDenied, Network, Unknown,
+    PasswordRequired,
+    InvalidCredentials,
+    OwnerSpacesRemaining,
+    NotAuthenticated,
+    PermissionDenied,
+    Network,
+    Unknown,
 }
 
-class AccountRepositoryException(
-    val failure: AccountFailure,
-    cause: Throwable? = null,
-) : Exception(cause)
+class AccountRepositoryException(val failure: AccountFailure, cause: Throwable? = null) : Exception(cause)

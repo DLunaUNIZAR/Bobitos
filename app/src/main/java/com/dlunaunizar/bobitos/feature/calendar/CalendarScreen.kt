@@ -201,10 +201,7 @@ internal fun CalendarPeriodHeader(
 }
 
 @Composable
-internal fun CalendarModeSelector(
-    selected: CalendarDisplayMode,
-    onSelected: (CalendarDisplayMode) -> Unit,
-) {
+internal fun CalendarModeSelector(selected: CalendarDisplayMode, onSelected: (CalendarDisplayMode) -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         CalendarDisplayMode.entries.forEach { mode ->
             FilterChip(
@@ -332,12 +329,7 @@ private fun EventList(
 }
 
 @Composable
-private fun EventRow(
-    event: CalendarEvent,
-    canWrite: Boolean,
-    edit: () -> Unit,
-    delete: () -> Unit,
-) {
+private fun EventRow(event: CalendarEvent, canWrite: Boolean, edit: () -> Unit, delete: () -> Unit) {
     Card(Modifier.fillMaxWidth().clickable(enabled = canWrite, onClick = edit)) {
         Row(
             Modifier.padding(12.dp).fillMaxWidth(),
@@ -346,9 +338,12 @@ private fun EventRow(
             Column {
                 Text(event.title)
                 Text(
-                    if (event.allDay) "Todo el día"
-                    else event.startAt.atZone(ZoneId.systemDefault())
-                        .format(DateTimeFormatter.ofPattern("dd/MM HH:mm")),
+                    if (event.allDay) {
+                        "Todo el día"
+                    } else {
+                        event.startAt.atZone(ZoneId.systemDefault())
+                            .format(DateTimeFormatter.ofPattern("dd/MM HH:mm"))
+                    },
                 )
                 if (event.participantNames.isNotEmpty()) {
                     Text(event.participantNames.joinToString())
@@ -384,16 +379,22 @@ private fun EventEditor(
     var start by remember {
         mutableStateOf(
             event?.let {
-                if (it.allDay) it.startDate.toString()
-                else it.startAt.atZone(zone).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+                if (it.allDay) {
+                    it.startDate.toString()
+                } else {
+                    it.startAt.atZone(zone).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+                }
             } ?: day.toString(),
         )
     }
     var end by remember {
         mutableStateOf(
             event?.let {
-                if (it.allDay) it.endDateExclusive!!.minusDays(1).toString()
-                else it.endAt.atZone(zone).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+                if (it.allDay) {
+                    it.endDateExclusive!!.minusDays(1).toString()
+                } else {
+                    it.endAt.atZone(zone).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+                }
             } ?: day.toString(),
         )
     }
@@ -446,8 +447,11 @@ private fun EventEditor(
                         Checkbox(
                             member.userId in selected,
                             { checked ->
-                                selected = if (checked) selected + member.userId
-                                else selected - member.userId
+                                selected = if (checked) {
+                                    selected + member.userId
+                                } else {
+                                    selected - member.userId
+                                }
                             },
                         )
                         Text(member.displayName)
@@ -464,10 +468,16 @@ private fun EventEditor(
                         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
                         val startDate = if (allDay) LocalDate.parse(start) else null
                         val endDate = if (allDay) LocalDate.parse(end).plusDays(1) else null
-                        val startInstant = if (allDay) startDate!!.atStartOfDay(zone).toInstant()
-                        else parseLocal(start, formatter, zone)
-                        val endInstant = if (allDay) endDate!!.atStartOfDay(zone).toInstant()
-                        else parseLocal(end, formatter, zone)
+                        val startInstant = if (allDay) {
+                            startDate!!.atStartOfDay(zone).toInstant()
+                        } else {
+                            parseLocal(start, formatter, zone)
+                        }
+                        val endInstant = if (allDay) {
+                            endDate!!.atStartOfDay(zone).toInstant()
+                        } else {
+                            parseLocal(end, formatter, zone)
+                        }
                         save(
                             event?.id,
                             EventInput(
@@ -493,11 +503,7 @@ private fun EventEditor(
     )
 }
 
-private fun parseLocal(
-    value: String,
-    formatter: DateTimeFormatter,
-    zone: ZoneId,
-): Instant {
+private fun parseLocal(value: String, formatter: DateTimeFormatter, zone: ZoneId): Instant {
     val local = LocalDateTime.parse(value, formatter)
     val offsets = zone.rules.getValidOffsets(local)
     require(offsets.isNotEmpty())

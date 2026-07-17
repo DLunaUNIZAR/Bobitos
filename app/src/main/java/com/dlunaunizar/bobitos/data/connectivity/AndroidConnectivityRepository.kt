@@ -5,16 +5,15 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @Singleton
-class AndroidConnectivityRepository @Inject constructor(
-    @ApplicationContext context: Context,
-) : ConnectivityRepository {
+class AndroidConnectivityRepository @Inject constructor(@ApplicationContext context: Context) :
+    ConnectivityRepository {
     private val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
     private val mutableStatus = MutableStateFlow(connectivityManager.currentStatus())
 
@@ -23,10 +22,8 @@ class AndroidConnectivityRepository @Inject constructor(
     private val callback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) = publish(network)
 
-        override fun onCapabilitiesChanged(
-            network: Network,
-            networkCapabilities: NetworkCapabilities,
-        ) = publish(networkCapabilities)
+        override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) =
+            publish(networkCapabilities)
 
         override fun onLost(network: Network) = publish()
     }
@@ -44,8 +41,7 @@ class AndroidConnectivityRepository @Inject constructor(
     }
 }
 
-private fun ConnectivityManager.currentStatus(): NetworkStatus =
-    getNetworkCapabilities(activeNetwork).toStatus()
+private fun ConnectivityManager.currentStatus(): NetworkStatus = getNetworkCapabilities(activeNetwork).toStatus()
 
 private fun NetworkCapabilities?.toStatus(): NetworkStatus {
     val hasUsefulConnection = this != null &&
