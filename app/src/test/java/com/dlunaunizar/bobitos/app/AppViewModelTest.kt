@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.app
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
@@ -37,6 +38,32 @@ import org.junit.Test
 class AppViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
+
+    @Test
+    fun `waits for refreshed auth token before starting private listeners`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val authRepository = FakeAppAuthRepository(refreshDelayMillis = 1_000)
+            val spaceRepository = FakeAppSpaceRepository(trackCollectors = true)
+            val viewModel = AppViewModel(
+                authRepository = authRepository,
+                spaceRepository = spaceRepository,
+                activeSpaceRepository = FakeActiveSpaceRepository("home"),
+                connectivityRepository = FakeConnectivityRepository(),
+                syncRepository = FakeSyncRepository(),
+            )
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                viewModel.uiState.collect()
+            }
+
+            runCurrent()
+            assertEquals(UiState.Loading, viewModel.uiState.value.authUser)
+            assertEquals(0, spaceRepository.activeSpaceCollectors)
+
+            advanceTimeBy(1_000)
+            runCurrent()
+            assertEquals(1, authRepository.refreshCalls)
+            assertEquals(1, spaceRepository.activeSpaceCollectors)
+        }
 
     @Test
     fun `restores the active space for the authenticated user`() =
@@ -161,7 +188,9 @@ private class FakeActiveSpaceRepository(
     }
 }
 
-private class FakeAppAuthRepository : AuthRepository {
+private class FakeAppAuthRepository(
+    private val refreshDelayMillis: Long = 0,
+) : AuthRepository {
     override val currentUser: StateFlow<AuthUser?> = MutableStateFlow(
         AuthUser("user", "David", "david@example.com", true),
     )
@@ -169,7 +198,13 @@ private class FakeAppAuthRepository : AuthRepository {
     override suspend fun register(displayName: String, email: String, password: String) = Unit
     override suspend fun signIn(email: String, password: String) = Unit
     override suspend fun sendEmailVerification() = Unit
-    override suspend fun refreshCurrentUser(): AuthUser = requireNotNull(currentUser.value)
+    var refreshCalls = 0
+
+    override suspend fun refreshCurrentUser(): AuthUser {
+        refreshCalls++
+        delay(refreshDelayMillis)
+        return requireNotNull(currentUser.value)
+    }
     override suspend fun sendPasswordReset(email: String) = Unit
     override suspend fun updateDisplayName(displayName: String) = Unit
     override fun signOut() = Unit

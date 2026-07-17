@@ -48,6 +48,8 @@ Esta navegación es funcional pero provisional: se ajustará cuando se cierre el
 
 `FirebaseAuthRepository` encapsula Firebase Authentication y publica la sesión mediante `StateFlow`. Implementa registro, verificación, acceso, recuperación de contraseña, actualización de nombre y cierre de sesión. La respuesta de recuperación es deliberadamente neutra para no revelar si una cuenta existe.
 
+Al restaurar una sesión, `AppViewModel` renueva primero el usuario y su token de ID antes de activar listeners privados. Esto garantiza que las reglas reciban el claim actualizado `email_verified`; si el arranque es realmente offline, conserva el usuario almacenado para permitir la lectura de la caché sin habilitar escrituras.
+
 `FirestoreSpaceRepository` observa las membresías, los espacios y las invitaciones que administra un propietario. Implementa creación, renombrado, abandono, expulsión, transferencia de propiedad y el ciclo completo de invitaciones. Las tareas pendientes del miembro que sale quedan sin responsable dentro de la misma transacción.
 
 La observación cambia con la navegación. La selección de espacios activa la membresía del usuario y los espacios de esa lista; el área de trabajo mantiene únicamente la membresía y el documento del espacio activo; el perfil no necesita listeners de espacios. Los listeners de miembros e invitaciones solo existen mientras está visible la gestión del espacio. Los cambios de pantalla, espacio o sesión cancelan el alcance anterior antes de crear el nuevo.
