@@ -680,6 +680,7 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 16/07/2026 | Eliminación cliente coordinada | Mantener coste cero: reautenticación, anonimización y limpieza de espacios sin backend adicional |
 | 16/07/2026 | App Check con Play Integrity en producción | Proteger Firebase sin afectar a Emulator Suite; activar la exigencia al disponer de firma beta |
 | 16/07/2026 | Firebase App Distribution para la beta | Mantener coste cero, limitar testers y facilitar avisos de actualización sin publicar en Google Play |
+| 17/07/2026 | Firebase local mediante `adb reverse` | Evitar timeouts del SDK Android y disponer de una conexión reproducible a Auth y Firestore desde el emulador |
 
 ## 16. Próximas decisiones
 
@@ -706,3 +707,4 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 1.2.0 | 16/07/2026 | Calendario compartido, vistas mensual y agenda, participantes opcionales, UTC y consultas por intervalo |
 | 1.3.0 | 16/07/2026 | Seguridad final del MVP, eliminación de cuenta y espacios, anonimización, privacidad, App Check y pruebas cruzadas |
 | 1.4.0 | 16/07/2026 | Canal Firebase App Distribution, firma externa, versionado de beta, guía de instalación y plan de pruebas reales |
+| 1.4.1 | 17/07/2026 | Flujo reproducible de Firebase local mediante `adb reverse`, diagnóstico y correos simulados |

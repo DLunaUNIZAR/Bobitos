@@ -53,7 +53,7 @@ android {
         debug {
             buildConfigField("boolean", "USE_FIREBASE_EMULATORS", "true")
             buildConfigField("String", "FIREBASE_PROJECT_ID", "\"demo-bobitos\"")
-            buildConfigField("String", "FIREBASE_EMULATOR_HOST", "\"10.0.2.2\"")
+            buildConfigField("String", "FIREBASE_EMULATOR_HOST", "\"127.0.0.1\"")
             buildConfigField("int", "FIREBASE_AUTH_EMULATOR_PORT", "9099")
             buildConfigField("int", "FIREBASE_FIRESTORE_EMULATOR_PORT", "8080")
         }

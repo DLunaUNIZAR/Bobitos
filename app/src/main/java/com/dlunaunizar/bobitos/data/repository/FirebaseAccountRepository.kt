@@ -1,10 +1,10 @@
 package com.dlunaunizar.bobitos.data.repository
 
+import com.dlunaunizar.bobitos.data.firebase.FirebaseInitializer
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
 import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.EmailAuthProvider
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
@@ -18,8 +18,9 @@ import kotlinx.coroutines.tasks.await
 class FirebaseAccountRepository @Inject constructor(
     private val spaces: SpaceRepository,
     private val syncRepository: SyncRepository,
+    firebaseInitializer: FirebaseInitializer,
 ) : AccountRepository {
-    private val auth = FirebaseAuth.getInstance()
+    private val auth = firebaseInitializer.auth()
     private val firestore = FirebaseFirestore.getInstance()
 
     override suspend fun deleteAccount(password: String) {
