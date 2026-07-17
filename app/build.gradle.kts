@@ -5,6 +5,9 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.ktlint)
+    alias(libs.plugins.kover)
 }
 
 val googleServicesFile = file("google-services.json")
@@ -147,4 +150,36 @@ dependencies {
 
 hilt {
     enableAggregatingTask = true
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    parallel = true
+    config.setFrom(rootProject.files("config/detekt/detekt.yml"))
+    baseline = rootProject.file("config/detekt/baseline.xml")
+}
+
+ktlint {
+    android.set(true)
+}
+
+kover {
+    reports {
+        filters {
+            excludes {
+                // Código generado (Hilt/Dagger, Compose, BuildConfig).
+                classes(
+                    "*_Factory",
+                    "*_Factory\$*",
+                    "*_HiltModules*",
+                    "*Hilt_*",
+                    "hilt_aggregated_deps.*",
+                    "dagger.hilt.*",
+                    "*ComposableSingletons*",
+                    "*.BuildConfig",
+                )
+                annotatedBy("androidx.compose.runtime.Composable")
+            }
+        }
+    }
 }

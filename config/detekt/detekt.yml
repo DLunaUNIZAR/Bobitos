@@ -1,0 +1,36 @@
+# Configuración de detekt para Bobitos.
+# Se apoya en la configuración por defecto (buildUponDefaultConfig = true) y solo
+# ajusta reglas ruidosas para un proyecto Jetpack Compose. Los hallazgos preexistentes
+# se absorben mediante config/detekt/baseline.xml; el estándar se exige al código nuevo.
+
+complexity:
+  LongParameterList:
+    # Composables y el envoltorio de estado/callbacks tienen muchos parámetros por diseño.
+    active: false
+  TooManyFunctions:
+    active: true
+    thresholdInClasses: 25
+    thresholdInFiles: 25
+  LongMethod:
+    active: true
+    threshold: 80
+
+style:
+  MagicNumber:
+    active: false
+  ReturnCount:
+    active: true
+    max: 4
+  MaxLineLength:
+    # ktlint gestiona el formato y la longitud de línea.
+    active: false
+  UnusedPrivateMember:
+    active: true
+    # Los @Preview de Compose suelen ser privados y "sin usar".
+    allowedNames: "(_|ignored|expected|serialVersionUID|Preview.*)"
+
+naming:
+  FunctionNaming:
+    # Los Composables usan PascalCase.
+    functionPattern: "[a-zA-Z][a-zA-Z0-9]*"
+    ignoreAnnotated: ["Composable"]
