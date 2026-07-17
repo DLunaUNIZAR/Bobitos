@@ -15,6 +15,13 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Bobitos"
         android:usesCleartextTraffic="false">
+
+        <!-- Recolección de Crashlytics desactivada por defecto; se activa en tiempo de
+             ejecución solo en compilaciones release (nunca en debug/emulador). -->
+        <meta-data
+            android:name="firebase_crashlytics_collection_enabled"
+            android:value="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

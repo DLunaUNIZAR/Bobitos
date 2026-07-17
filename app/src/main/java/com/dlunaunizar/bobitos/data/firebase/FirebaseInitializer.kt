@@ -8,6 +8,7 @@ import com.google.firebase.FirebaseOptions
 import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.google.firebase.firestore.PersistentCacheSettings
@@ -42,6 +43,11 @@ class FirebaseInitializer @Inject constructor(@param:ApplicationContext private 
                 PlayIntegrityAppCheckProviderFactory.getInstance(),
             )
             configuredAuth = FirebaseAuth.getInstance()
+            // Misma caché persistente acotada que en debug: garantiza que el modo
+            // offline de solo lectura se comporte igual en los dispositivos de la beta.
+            FirebaseFirestore.getInstance().applyPersistentCache()
+            // La recolección de fallos solo se activa en compilaciones reales (no emulador).
+            FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(true)
             return
         }
 
@@ -63,14 +69,18 @@ class FirebaseInitializer @Inject constructor(@param:ApplicationContext private 
                 BuildConfig.FIREBASE_EMULATOR_HOST,
                 BuildConfig.FIREBASE_FIRESTORE_EMULATOR_PORT,
             )
-            firestoreSettings = FirebaseFirestoreSettings.Builder()
-                .setLocalCacheSettings(
-                    PersistentCacheSettings.newBuilder()
-                        .setSizeBytes(FIRESTORE_CACHE_SIZE_BYTES)
-                        .build(),
-                )
-                .build()
+            applyPersistentCache()
         }
+    }
+
+    private fun FirebaseFirestore.applyPersistentCache() {
+        firestoreSettings = FirebaseFirestoreSettings.Builder()
+            .setLocalCacheSettings(
+                PersistentCacheSettings.newBuilder()
+                    .setSizeBytes(FIRESTORE_CACHE_SIZE_BYTES)
+                    .build(),
+            )
+            .build()
     }
 
     private fun getOrCreateFirebaseApp(): FirebaseApp {
