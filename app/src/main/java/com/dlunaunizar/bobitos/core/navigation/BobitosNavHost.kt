@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.core.navigation
 
+import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,7 +18,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.navigation.NavType
 import androidx.navigation.NavHostController
+import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.composable
@@ -33,6 +36,7 @@ import com.dlunaunizar.bobitos.feature.common.SyncStatusBanner
 import com.dlunaunizar.bobitos.feature.auth.AuthActionUiState
 import com.dlunaunizar.bobitos.feature.auth.ProfileScreen
 import com.dlunaunizar.bobitos.feature.calendar.CalendarScreen
+import com.dlunaunizar.bobitos.feature.calendar.PersonalCalendarScreen
 import com.dlunaunizar.bobitos.feature.shopping.ShoppingScreen
 import com.dlunaunizar.bobitos.feature.shopping.ShoppingUiState
 import com.dlunaunizar.bobitos.feature.spaces.SpacesScreen
@@ -43,6 +47,7 @@ import com.dlunaunizar.bobitos.core.model.TaskPriority
 import com.dlunaunizar.bobitos.feature.tasks.TaskFilters
 import com.dlunaunizar.bobitos.feature.tasks.TasksUiState
 import java.time.Instant
+import java.time.LocalDate
 
 @Composable
 fun BobitosNavHost(
@@ -98,13 +103,14 @@ fun BobitosNavHost(
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
     val protectedRoutes = BobitosDestination.workspaceDestinations.map { it.route } +
-        BobitosDestination.SpaceSettings.route
+        BobitosDestination.SpaceSettings.route + CALENDAR_EVENT_ROUTE
 
     LaunchedEffect(currentRoute) {
         onRealtimeScopeChanged(
             when (currentRoute) {
                 null -> RealtimeScope.AUTOMATIC
-                BobitosDestination.Spaces.route -> RealtimeScope.ALL_SPACES
+                BobitosDestination.Spaces.route,
+                BobitosDestination.MyCalendar.route -> RealtimeScope.ALL_SPACES
                 BobitosDestination.Profile.route -> RealtimeScope.PAUSED
                 else -> RealtimeScope.ACTIVE_SPACE
             },
@@ -155,30 +161,54 @@ fun BobitosNavHost(
         modifier = modifier.fillMaxSize(),
     ) {
         composable(BobitosDestination.Spaces.route) {
-            SpacesScreen(
-                state = uiState.spaces,
-                managementState = spaceManagementState,
-                syncStatus = uiState.syncStatus,
-                canWrite = uiState.syncStatus.canWrite,
-                onProfileClick = {
-                    onClearAuthFeedback()
-                    navController.navigateToProfile()
-                },
-                onSpaceSelected = { space ->
-                    onClearSpaceFeedback()
-                    onSpaceSelected(space.id)
-                    navController.navigate(BobitosDestination.Shopping.route) {
-                        popUpTo(BobitosDestination.Spaces.route) {
-                            inclusive = true
+            RootScaffold(
+                currentDestination = BobitosDestination.Spaces,
+                onDestinationSelected = navController::navigateToRoot,
+            ) {
+                SpacesScreen(
+                    state = uiState.spaces,
+                    managementState = spaceManagementState,
+                    syncStatus = uiState.syncStatus,
+                    canWrite = uiState.syncStatus.canWrite,
+                    onProfileClick = {
+                        onClearAuthFeedback()
+                        navController.navigateToProfile()
+                    },
+                    onSpaceSelected = { space ->
+                        onClearSpaceFeedback()
+                        onSpaceSelected(space.id)
+                        navController.navigate(BobitosDestination.Shopping.route) {
+                            popUpTo(BobitosDestination.Spaces.route) {
+                                inclusive = true
+                            }
                         }
-                    }
-                },
-                onCreateSpace = onCreateSpace,
-                onAcceptInvitation = onAcceptInvitation,
-                pendingInvitationCode = pendingInvitationCode,
-                onInvitationCodeConsumed = onInvitationCodeConsumed,
-                onClearFeedback = onClearSpaceFeedback,
-            )
+                    },
+                    onCreateSpace = onCreateSpace,
+                    onAcceptInvitation = onAcceptInvitation,
+                    pendingInvitationCode = pendingInvitationCode,
+                    onInvitationCodeConsumed = onInvitationCodeConsumed,
+                    onClearFeedback = onClearSpaceFeedback,
+                )
+            }
+        }
+
+        composable(BobitosDestination.MyCalendar.route) {
+            RootScaffold(
+                currentDestination = BobitosDestination.MyCalendar,
+                onDestinationSelected = navController::navigateToRoot,
+            ) {
+                PersonalCalendarScreen(
+                    userId = authUser.id,
+                    spaces = (uiState.spaces as? UiState.Content)?.value.orEmpty(),
+                    syncStatus = uiState.syncStatus,
+                    onEventSelected = { eventSpaceId, eventId, date ->
+                        onSpaceSelected(eventSpaceId)
+                        navController.navigate(
+                            "calendar-event/${Uri.encode(eventId)}/${date}",
+                        )
+                    },
+                )
+            }
         }
 
         composable(BobitosDestination.Shopping.route) {
@@ -284,6 +314,40 @@ fun BobitosNavHost(
             }
         }
 
+        composable(
+            route = CALENDAR_EVENT_ROUTE,
+            arguments = listOf(
+                navArgument("eventId") { type = NavType.StringType },
+                navArgument("date") { type = NavType.StringType },
+            ),
+        ) { backStackEntry ->
+            WorkspaceScaffold(
+                currentDestination = BobitosDestination.Calendar,
+                spaceName = spaceName,
+                onDestinationSelected = navController::navigateToWorkspace,
+                onSwitchSpace = navController::navigateToSpaces,
+                onSpaceSettings = {
+                    onClearSpaceFeedback()
+                    navController.navigate(BobitosDestination.SpaceSettings.route)
+                },
+                onProfile = {
+                    onClearAuthFeedback()
+                    navController.navigateToProfile()
+                },
+                syncStatus = uiState.syncStatus,
+            ) {
+                uiState.selectedSpace?.let { space ->
+                    CalendarScreen(
+                        spaceId = space.id,
+                        canWrite = uiState.syncStatus.canWrite,
+                        initialEventId = backStackEntry.arguments?.getString("eventId"),
+                        initialDate = backStackEntry.arguments?.getString("date")
+                            ?.let(LocalDate::parse),
+                    )
+                }
+            }
+        }
+
         composable(BobitosDestination.Profile.route) {
             ProfileScreen(
                 user = authUser,
@@ -321,6 +385,30 @@ fun BobitosNavHost(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun RootScaffold(
+    currentDestination: BobitosDestination,
+    onDestinationSelected: (BobitosDestination) -> Unit,
+    content: @Composable () -> Unit,
+) {
+    Scaffold(
+        bottomBar = {
+            NavigationBar {
+                BobitosDestination.rootDestinations.forEach { destination ->
+                    NavigationBarItem(
+                        selected = destination == currentDestination,
+                        onClick = { onDestinationSelected(destination) },
+                        icon = { Text(destination.iconText) },
+                        label = { Text(stringResource(destination.titleRes)) },
+                    )
+                }
+            }
+        },
+    ) { innerPadding ->
+        Box(Modifier.fillMaxSize().padding(innerPadding)) { content() }
     }
 }
 
@@ -398,6 +486,14 @@ private fun NavHostController.navigateToWorkspace(destination: BobitosDestinatio
     }
 }
 
+private fun NavHostController.navigateToRoot(destination: BobitosDestination) {
+    navigate(destination.route) {
+        popUpTo(BobitosDestination.Spaces.route) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
+    }
+}
+
 private fun NavHostController.navigateToSpaces() {
     navigate(BobitosDestination.Spaces.route) {
         popUpTo(BobitosDestination.Shopping.route) {
@@ -412,3 +508,5 @@ private fun NavHostController.navigateToProfile() {
         launchSingleTop = true
     }
 }
+
+private const val CALENDAR_EVENT_ROUTE = "calendar-event/{eventId}/{date}"

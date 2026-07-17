@@ -160,6 +160,21 @@ Ser responsable no concede exclusividad para completar o editar.
 7. Guarda.
 8. El evento aparece para todos los miembros, participen o no.
 
+### Consultar el calendario de un espacio
+
+1. Abre el calendario del espacio.
+2. Elige la vista diaria, semanal o mensual.
+3. La app muestra todos los eventos del intervalo, incluidos aquellos donde no participa.
+4. Puede deseleccionar miembros para ocultar los eventos asociados únicamente a esas personas.
+5. Los eventos generales sin participantes permanecen visibles.
+
+### Consultar “Mi calendario”
+
+1. Desde la navegación inferior principal abre “Mi calendario”.
+2. La app combina los eventos de todos sus espacios donde figura como participante.
+3. Puede cambiar entre día, semana y mes, y ocultar espacios concretos.
+4. Selecciona un evento para abrirlo y editarlo dentro del espacio correspondiente.
+
 ## 12. Editar o eliminar contenido compartido
 
 1. Un miembro abre un producto, tarea o evento.
@@ -220,4 +235,3 @@ Todos los miembros tienen permiso de edición sobre estos módulos.
 7. Elimina membresías y anonimiza atribuciones necesarias.
 8. Elimina perfil y cuenta de autenticación.
 9. Regresa a la pantalla inicial.
-
