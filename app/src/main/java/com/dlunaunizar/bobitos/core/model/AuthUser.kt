@@ -1,11 +1,6 @@
 package com.dlunaunizar.bobitos.core.model
 
-data class AuthUser(
-    val id: String,
-    val displayName: String,
-    val email: String,
-    val isEmailVerified: Boolean,
-) {
+data class AuthUser(val id: String, val displayName: String, val email: String, val isEmailVerified: Boolean) {
     val initials: String
         get() {
             val words = displayName

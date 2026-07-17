@@ -12,10 +12,7 @@ import androidx.compose.ui.res.stringResource
 import com.dlunaunizar.bobitos.R
 
 @Composable
-internal fun SpaceFeedback(
-    state: SpaceManagementUiState,
-    onDismiss: () -> Unit,
-) {
+internal fun SpaceFeedback(state: SpaceManagementUiState, onDismiss: () -> Unit) {
     if (state.writeStatus == WriteStatus.SAVING) {
         Text(
             text = stringResource(R.string.write_saving),

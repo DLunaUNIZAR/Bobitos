@@ -14,17 +14,15 @@ import com.dlunaunizar.bobitos.data.repository.AuthRepositoryException
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
@@ -34,7 +32,9 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 enum class RealtimeScope {
     AUTOMATIC,
@@ -185,22 +185,11 @@ class AppViewModel @Inject constructor(
             .catchAsUiState()
     }
 
-    private data class RequestedSelection(
-        val userId: String,
-        val spaceId: String,
-    )
+    private data class RequestedSelection(val userId: String, val spaceId: String)
 
-    private data class ObservationRequest(
-        val user: AuthUser?,
-        val selectedId: String?,
-        val scope: RealtimeScope,
-    )
+    private data class ObservationRequest(val user: AuthUser?, val selectedId: String?, val scope: RealtimeScope)
 
-    private data class SyncRequest(
-        val user: AuthUser?,
-        val spaceId: String?,
-        val networkStatus: NetworkStatus,
-    )
+    private data class SyncRequest(val user: AuthUser?, val spaceId: String?, val networkStatus: NetworkStatus)
 
     private companion object {
         const val SYNC_RETRY_MILLIS = 3_000L

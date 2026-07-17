@@ -48,7 +48,12 @@ data class TaskFilters(
 }
 
 enum class TaskDateFilter {
-    ALL, OVERDUE, TODAY, UPCOMING, NO_DATE;
+    ALL,
+    OVERDUE,
+    TODAY,
+    UPCOMING,
+    NO_DATE,
+    ;
 
     fun matches(task: TaskItem, today: LocalDate, zoneId: ZoneId): Boolean {
         val dueDate = task.dueAt?.atZone(zoneId)?.toLocalDate()
@@ -63,8 +68,22 @@ enum class TaskDateFilter {
 }
 
 enum class TaskUiMessage {
-    TitleRequired, TitleTooLong, DescriptionTooLong, AssigneeRequired, InvalidDate,
-    InvalidAssignee, NotAuthenticated, EmailNotVerified, SpaceNotFound, TaskNotFound,
-    PermissionDenied, NetworkError, UnexpectedError, TaskCreated, TaskUpdated,
-    TaskCompleted, TaskReopened, TaskDeleted,
+    TitleRequired,
+    TitleTooLong,
+    DescriptionTooLong,
+    AssigneeRequired,
+    InvalidDate,
+    InvalidAssignee,
+    NotAuthenticated,
+    EmailNotVerified,
+    SpaceNotFound,
+    TaskNotFound,
+    PermissionDenied,
+    NetworkError,
+    UnexpectedError,
+    TaskCreated,
+    TaskUpdated,
+    TaskCompleted,
+    TaskReopened,
+    TaskDeleted,
 }

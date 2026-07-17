@@ -3,11 +3,7 @@ package com.dlunaunizar.bobitos.core.navigation
 import androidx.annotation.StringRes
 import com.dlunaunizar.bobitos.R
 
-enum class BobitosDestination(
-    val route: String,
-    @param:StringRes val titleRes: Int,
-    val iconText: String,
-) {
+enum class BobitosDestination(val route: String, @param:StringRes val titleRes: Int, val iconText: String) {
     Spaces(
         route = "spaces",
         titleRes = R.string.spaces_title,

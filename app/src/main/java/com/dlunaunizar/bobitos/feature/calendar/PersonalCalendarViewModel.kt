@@ -7,9 +7,6 @@ import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.data.repository.CalendarRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.time.LocalDate
-import java.time.ZoneId
-import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,12 +15,11 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.ZoneId
+import javax.inject.Inject
 
-data class PersonalCalendarEvent(
-    val spaceId: String,
-    val spaceName: String,
-    val event: CalendarEvent,
-)
+data class PersonalCalendarEvent(val spaceId: String, val spaceName: String, val event: CalendarEvent)
 
 data class PersonalCalendarUiState(
     val focusedDate: LocalDate = LocalDate.now(),
@@ -34,9 +30,7 @@ data class PersonalCalendarUiState(
 )
 
 @HiltViewModel
-class PersonalCalendarViewModel @Inject constructor(
-    private val repository: CalendarRepository,
-) : ViewModel() {
+class PersonalCalendarViewModel @Inject constructor(private val repository: CalendarRepository) : ViewModel() {
     private val mutable = MutableStateFlow(PersonalCalendarUiState())
     val uiState: StateFlow<PersonalCalendarUiState> = mutable.asStateFlow()
 

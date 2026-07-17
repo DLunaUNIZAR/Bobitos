@@ -2,12 +2,7 @@ package com.dlunaunizar.bobitos.core.model
 
 import java.time.Instant
 
-data class SpaceInvitation(
-    val id: String,
-    val spaceId: String,
-    val expiresAt: Instant,
-    val status: InvitationStatus,
-) {
+data class SpaceInvitation(val id: String, val spaceId: String, val expiresAt: Instant, val status: InvitationStatus) {
     val code: String
         get() = id.chunked(CODE_GROUP_LENGTH).joinToString("-")
 

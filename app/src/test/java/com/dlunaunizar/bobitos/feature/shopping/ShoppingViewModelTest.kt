@@ -6,7 +6,6 @@ import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
-import java.time.Instant
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +16,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
+import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ShoppingViewModelTest {
@@ -58,26 +58,24 @@ class ShoppingViewModelTest {
     }
 
     @Test
-    fun `marking delegates without assigning a responsible user`() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            viewModel.setPurchased("home", "milk", true)
-            advanceUntilIdle()
+    fun `marking delegates without assigning a responsible user`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.setPurchased("home", "milk", true)
+        advanceUntilIdle()
 
-            assertEquals(Triple("home", "milk", true), repository.purchaseChange)
-            assertEquals(ShoppingUiMessage.ItemMarked, viewModel.uiState.value.notice)
-        }
+        assertEquals(Triple("home", "milk", true), repository.purchaseChange)
+        assertEquals(ShoppingUiMessage.ItemMarked, viewModel.uiState.value.notice)
+    }
 
     @Test
-    fun `safe cleanup exposes actual deleted count`() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            repository.clearCount = 2
+    fun `safe cleanup exposes actual deleted count`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.clearCount = 2
 
-            viewModel.clearPurchased("home")
-            advanceUntilIdle()
+        viewModel.clearPurchased("home")
+        advanceUntilIdle()
 
-            assertEquals(2, viewModel.uiState.value.lastClearedCount)
-            assertEquals(ShoppingUiMessage.PurchasedCleared, viewModel.uiState.value.notice)
-        }
+        assertEquals(2, viewModel.uiState.value.lastClearedCount)
+        assertEquals(ShoppingUiMessage.PurchasedCleared, viewModel.uiState.value.notice)
+    }
 
     @Test
     fun `network failure is shown explicitly`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -106,25 +104,14 @@ private class FakeShoppingRepository : ShoppingRepository {
         return itemState
     }
 
-    override suspend fun addItem(
-        spaceId: String,
-        name: String,
-        quantity: String?,
-        notes: String?,
-    ) {
+    override suspend fun addItem(spaceId: String, name: String, quantity: String?, notes: String?) {
         throwNextFailure()
         addedName = name
         addedQuantity = quantity
         addedNotes = notes
     }
 
-    override suspend fun updateItem(
-        spaceId: String,
-        itemId: String,
-        name: String,
-        quantity: String?,
-        notes: String?,
-    ) {
+    override suspend fun updateItem(spaceId: String, itemId: String, name: String, quantity: String?, notes: String?) {
         throwNextFailure()
     }
 

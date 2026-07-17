@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.tasks
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,9 +8,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -26,13 +27,12 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
@@ -82,15 +82,18 @@ fun TasksScreen(
         ) {
             Column {
                 Text(stringResource(R.string.tasks_list_title), style = MaterialTheme.typography.headlineSmall)
-                Text(pluralStringResource(
-                    R.plurals.tasks_visible_count,
-                    visibleTasks.size,
-                    visibleTasks.size,
-                    allTasks.size,
-                ))
+                Text(
+                    pluralStringResource(
+                        R.plurals.tasks_visible_count,
+                        visibleTasks.size,
+                        visibleTasks.size,
+                        allTasks.size,
+                    ),
+                )
             }
             Button(enabled = enabled && members.isNotEmpty(), onClick = {
-                editorTask = null; editorVisible = true
+                editorTask = null
+                editorVisible = true
             }) { Text(stringResource(R.string.tasks_add)) }
         }
         TaskFeedback(state, onClearFeedback)
@@ -105,74 +108,91 @@ fun TasksScreen(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(stringResource(if (allTasks.isEmpty()) R.string.tasks_empty else R.string.tasks_no_results))
                 }
-            } else LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(visibleTasks, key = TaskItem::id) { task ->
-                    TaskCard(
-                        task, enabled,
-                        onSetCompleted = { onSetCompleted(task.id, it) },
-                        onEdit = { editorTask = task; editorVisible = true },
-                        onDelete = { deleteTask = task },
-                    )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(visibleTasks, key = TaskItem::id) { task ->
+                        TaskCard(
+                            task,
+                            enabled,
+                            onSetCompleted = { onSetCompleted(task.id, it) },
+                            onEdit = {
+                                editorTask = task
+                                editorVisible = true
+                            },
+                            onDelete = { deleteTask = task },
+                        )
+                    }
                 }
             }
         }
     }
 
-    if (editorVisible) TaskEditor(
-        task = editorTask,
-        members = members,
-        saving = state.isSaving,
-        onDismiss = { editorVisible = false },
-        onInvalidDate = onInvalidDate,
-        onSave = { title, description, assignee, due, priority ->
-            editorTask?.let { onUpdate(it.id, title, description, assignee, due, priority) }
-                ?: onCreate(title, description, assignee, due, priority)
-            editorVisible = false
-        },
-    )
+    if (editorVisible) {
+        TaskEditor(
+            task = editorTask,
+            members = members,
+            saving = state.isSaving,
+            onDismiss = { editorVisible = false },
+            onInvalidDate = onInvalidDate,
+            onSave = { title, description, assignee, due, priority ->
+                editorTask?.let { onUpdate(it.id, title, description, assignee, due, priority) }
+                    ?: onCreate(title, description, assignee, due, priority)
+                editorVisible = false
+            },
+        )
+    }
     deleteTask?.let { task ->
         AlertDialog(
             onDismissRequest = { deleteTask = null },
             title = { Text(stringResource(R.string.tasks_delete_title)) },
             text = { Text(stringResource(R.string.tasks_delete_body, task.title)) },
-            confirmButton = { TextButton(enabled = enabled, onClick = {
-                onDelete(task.id); deleteTask = null
-            }) { Text(stringResource(R.string.tasks_delete)) } },
-            dismissButton = { TextButton(onClick = { deleteTask = null }) {
-                Text(stringResource(R.string.cancel))
-            } },
+            confirmButton = {
+                TextButton(enabled = enabled, onClick = {
+                    onDelete(task.id)
+                    deleteTask = null
+                }) { Text(stringResource(R.string.tasks_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteTask = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
         )
     }
 }
 
 @Composable
-private fun TaskFilterBar(
-    filters: TaskFilters,
-    members: List<SpaceMember>,
-    onChange: (TaskFilters) -> Unit,
-) {
+private fun TaskFilterBar(filters: TaskFilters, members: List<SpaceMember>, onChange: (TaskFilters) -> Unit) {
     var assigneeMenu by remember { mutableStateOf(false) }
     Row(
         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         TextButton(onClick = {
-            onChange(filters.copy(status = when (filters.status) {
-                TaskStatus.TODO -> TaskStatus.DONE
-                TaskStatus.DONE -> null
-                null -> TaskStatus.TODO
-            }))
+            onChange(
+                filters.copy(
+                    status = when (filters.status) {
+                        TaskStatus.TODO -> TaskStatus.DONE
+                        TaskStatus.DONE -> null
+                        null -> TaskStatus.TODO
+                    },
+                ),
+            )
         }) { Text(filters.status?.label() ?: stringResource(R.string.tasks_filter_all)) }
         TextButton(onClick = {
-            onChange(filters.copy(priority = when (filters.priority) {
-                null -> TaskPriority.HIGH
-                TaskPriority.HIGH -> TaskPriority.MEDIUM
-                TaskPriority.MEDIUM -> TaskPriority.LOW
-                TaskPriority.LOW -> null
-            }))
+            onChange(
+                filters.copy(
+                    priority = when (filters.priority) {
+                        null -> TaskPriority.HIGH
+                        TaskPriority.HIGH -> TaskPriority.MEDIUM
+                        TaskPriority.MEDIUM -> TaskPriority.LOW
+                        TaskPriority.LOW -> null
+                    },
+                ),
+            )
         }) { Text(filters.priority?.label() ?: stringResource(R.string.tasks_filter_priority)) }
         TextButton(onClick = {
             val values = TaskDateFilter.entries
@@ -193,16 +213,28 @@ private fun TaskFilterBar(
             DropdownMenu(expanded = assigneeMenu, onDismissRequest = { assigneeMenu = false }) {
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.tasks_filter_all)) },
-                    onClick = { onChange(filters.copy(assigneeId = null, unassignedOnly = false)); assigneeMenu = false },
+                    onClick = {
+                        onChange(filters.copy(assigneeId = null, unassignedOnly = false))
+                        assigneeMenu = false
+                    },
                 )
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.tasks_unassigned)) },
-                    onClick = { onChange(filters.copy(assigneeId = null, unassignedOnly = true)); assigneeMenu = false },
+                    onClick = {
+                        onChange(filters.copy(assigneeId = null, unassignedOnly = true))
+                        assigneeMenu = false
+                    },
                 )
-                members.forEach { member -> DropdownMenuItem(
-                    text = { Text(member.displayName) },
-                    onClick = { onChange(filters.copy(assigneeId = member.userId, unassignedOnly = false)); assigneeMenu = false },
-                ) }
+                members.forEach { member ->
+                    DropdownMenuItem(
+                        text = { Text(member.displayName) },
+                        onClick = {
+                            onChange(filters.copy(assigneeId = member.userId, unassignedOnly = false))
+                            assigneeMenu =
+                                false
+                        },
+                    )
+                }
             }
         }
     }
@@ -216,10 +248,11 @@ private fun TaskCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val overdue = task.status == TaskStatus.TODO && task.dueAt
-        ?.atZone(ZoneId.systemDefault())
-        ?.toLocalDate()
-        ?.isBefore(LocalDate.now()) == true
+    val overdue = task.status == TaskStatus.TODO &&
+        task.dueAt
+            ?.atZone(ZoneId.systemDefault())
+            ?.toLocalDate()
+            ?.isBefore(LocalDate.now()) == true
     Card(Modifier.fillMaxWidth()) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
             Checkbox(task.status == TaskStatus.DONE, onCheckedChange = onSetCompleted, enabled = enabled)
@@ -240,10 +273,12 @@ private fun TaskCard(
                     stringResource(R.string.tasks_created_by, task.createdByName),
                     style = MaterialTheme.typography.bodySmall,
                 )
-                if (task.status == TaskStatus.DONE) Text(
-                    stringResource(R.string.tasks_completed_by, task.completedByName ?: task.completedBy.orEmpty()),
-                    style = MaterialTheme.typography.bodySmall,
-                )
+                if (task.status == TaskStatus.DONE) {
+                    Text(
+                        stringResource(R.string.tasks_completed_by, task.completedByName ?: task.completedBy.orEmpty()),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
                 Row {
                     TextButton(enabled = enabled, onClick = onEdit) { Text(stringResource(R.string.tasks_edit)) }
                     TextButton(enabled = enabled, onClick = onDelete) { Text(stringResource(R.string.tasks_delete)) }
@@ -272,31 +307,55 @@ private fun TaskEditor(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(if (task == null) R.string.tasks_add_title else R.string.tasks_edit_title)) },
-        text = { Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            OutlinedTextField(title, { title = it }, label = { Text(stringResource(R.string.tasks_title_label)) }, singleLine = true)
-            OutlinedTextField(description, { description = it }, label = { Text(stringResource(R.string.tasks_description_label)) }, minLines = 2)
-            Box {
-                TextButton(onClick = { memberMenu = true }) {
-                    Text(members.firstOrNull { it.userId == assigneeId }?.displayName ?: stringResource(R.string.tasks_choose_assignee))
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                OutlinedTextField(title, {
+                    title = it
+                }, label = { Text(stringResource(R.string.tasks_title_label)) }, singleLine = true)
+                OutlinedTextField(description, {
+                    description = it
+                }, label = { Text(stringResource(R.string.tasks_description_label)) }, minLines = 2)
+                Box {
+                    TextButton(onClick = { memberMenu = true }) {
+                        Text(
+                            members.firstOrNull { it.userId == assigneeId }?.displayName
+                                ?: stringResource(R.string.tasks_choose_assignee),
+                        )
+                    }
+                    DropdownMenu(memberMenu, { memberMenu = false }) {
+                        members.forEach { member ->
+                            DropdownMenuItem(
+                                text = { Text(member.displayName) },
+                                onClick = {
+                                    assigneeId = member.userId
+                                    memberMenu = false
+                                },
+                            )
+                        }
+                    }
                 }
-                DropdownMenu(memberMenu, { memberMenu = false }) {
-                    members.forEach { member -> DropdownMenuItem(
-                        text = { Text(member.displayName) },
-                        onClick = { assigneeId = member.userId; memberMenu = false },
-                    ) }
+                OutlinedTextField(dueDate, {
+                    dueDate = it
+                }, label = { Text(stringResource(R.string.tasks_due_date_label)) }, singleLine = true)
+                Row {
+                    TaskPriority.entries.forEach { value ->
+                        TextButton(onClick = { priority = value }) {
+                            Text(if (priority == value) "✓ ${value.label()}" else value.label())
+                        }
+                    }
                 }
+                validation?.let { Text(stringResource(it.stringRes()), color = MaterialTheme.colorScheme.error) }
             }
-            OutlinedTextField(dueDate, { dueDate = it }, label = { Text(stringResource(R.string.tasks_due_date_label)) }, singleLine = true)
-            Row { TaskPriority.entries.forEach { value -> TextButton(onClick = { priority = value }) {
-                Text(if (priority == value) "✓ ${value.label()}" else value.label())
-            } } }
-            validation?.let { Text(stringResource(it.stringRes()), color = MaterialTheme.colorScheme.error) }
-        } },
-        confirmButton = { TextButton(enabled = validation == null && !saving, onClick = {
-            try {
-                onSave(title, description, assigneeId, TaskValidation.parseDueDate(dueDate), priority)
-            } catch (_: InvalidTaskDateException) { onInvalidDate() }
-        }) { Text(stringResource(R.string.confirm)) } },
+        },
+        confirmButton = {
+            TextButton(enabled = validation == null && !saving, onClick = {
+                try {
+                    onSave(title, description, assigneeId, TaskValidation.parseDueDate(dueDate), priority)
+                } catch (_: InvalidTaskDateException) {
+                    onInvalidDate()
+                }
+            }) { Text(stringResource(R.string.confirm)) }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }
@@ -306,28 +365,51 @@ private fun TaskFeedback(state: TasksUiState, onDismiss: () -> Unit) {
     val message = state.error ?: state.notice ?: return
     Surface(
         Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        color = if (state.error != null) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer,
-    ) { Row(Modifier.padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(stringResource(message.stringRes()), Modifier.weight(1f))
-        TextButton(onClick = onDismiss) { Text(stringResource(R.string.dismiss)) }
-    } }
+        color = if (state.error !=
+            null
+        ) {
+            MaterialTheme.colorScheme.errorContainer
+        } else {
+            MaterialTheme.colorScheme.secondaryContainer
+        },
+    ) {
+        Row(Modifier.padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(message.stringRes()), Modifier.weight(1f))
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dismiss)) }
+        }
+    }
 }
 
-@Composable private fun TaskStatus.label() = stringResource(if (this == TaskStatus.TODO) R.string.tasks_pending else R.string.tasks_done)
-@Composable private fun TaskPriority.label() = stringResource(when (this) {
-    TaskPriority.LOW -> R.string.tasks_priority_low
-    TaskPriority.MEDIUM -> R.string.tasks_priority_medium
-    TaskPriority.HIGH -> R.string.tasks_priority_high
-})
-@Composable private fun TaskDateFilter.label() = stringResource(when (this) {
-    TaskDateFilter.ALL -> R.string.tasks_filter_date
-    TaskDateFilter.OVERDUE -> R.string.tasks_overdue
-    TaskDateFilter.TODAY -> R.string.tasks_today
-    TaskDateFilter.UPCOMING -> R.string.tasks_upcoming
-    TaskDateFilter.NO_DATE -> R.string.tasks_no_date
-})
+@Composable private fun TaskStatus.label() = stringResource(
+    if (this ==
+        TaskStatus.TODO
+    ) {
+        R.string.tasks_pending
+    } else {
+        R.string.tasks_done
+    },
+)
 
-private fun Instant.formatDate() = DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(ZoneId.systemDefault()).format(this)
+@Composable private fun TaskPriority.label() = stringResource(
+    when (this) {
+        TaskPriority.LOW -> R.string.tasks_priority_low
+        TaskPriority.MEDIUM -> R.string.tasks_priority_medium
+        TaskPriority.HIGH -> R.string.tasks_priority_high
+    },
+)
+
+@Composable private fun TaskDateFilter.label() = stringResource(
+    when (this) {
+        TaskDateFilter.ALL -> R.string.tasks_filter_date
+        TaskDateFilter.OVERDUE -> R.string.tasks_overdue
+        TaskDateFilter.TODAY -> R.string.tasks_today
+        TaskDateFilter.UPCOMING -> R.string.tasks_upcoming
+        TaskDateFilter.NO_DATE -> R.string.tasks_no_date
+    },
+)
+
+private fun Instant.formatDate() =
+    DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(ZoneId.systemDefault()).format(this)
 private fun Instant.formatIsoDate() = atZone(ZoneId.systemDefault()).toLocalDate().toString()
 
 private fun TaskUiMessage.stringRes() = when (this) {

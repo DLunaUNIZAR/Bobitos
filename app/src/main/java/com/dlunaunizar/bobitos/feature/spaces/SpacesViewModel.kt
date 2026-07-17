@@ -8,7 +8,6 @@ import com.dlunaunizar.bobitos.data.repository.SpaceFailure
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepositoryException
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,11 +15,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @HiltViewModel
-class SpacesViewModel @Inject constructor(
-    private val spaceRepository: SpaceRepository,
-) : ViewModel() {
+class SpacesViewModel @Inject constructor(private val spaceRepository: SpaceRepository) : ViewModel() {
     private val mutableUiState = MutableStateFlow(SpaceManagementUiState())
     val uiState: StateFlow<SpaceManagementUiState> = mutableUiState.asStateFlow()
     private var membersJob: Job? = null
@@ -162,10 +160,7 @@ class SpacesViewModel @Inject constructor(
         }
     }
 
-    private fun runAction(
-        successNotice: SpaceUiMessage,
-        action: suspend () -> Unit,
-    ) {
+    private fun runAction(successNotice: SpaceUiMessage, action: suspend () -> Unit) {
         if (mutableUiState.value.isLoading) return
         mutableUiState.update {
             it.copy(
@@ -199,27 +194,26 @@ class SpacesViewModel @Inject constructor(
     }
 }
 
-private fun Throwable.toUiMessage(): SpaceUiMessage {
-    return when ((this as? SpaceRepositoryException)?.failure) {
-        SpaceFailure.NameRequired -> SpaceUiMessage.NameRequired
-        SpaceFailure.NameTooLong -> SpaceUiMessage.NameTooLong
-        SpaceFailure.NotAuthenticated -> SpaceUiMessage.NotAuthenticated
-        SpaceFailure.EmailNotVerified -> SpaceUiMessage.EmailNotVerified
-        SpaceFailure.SpaceNotFound -> SpaceUiMessage.SpaceNotFound
-        SpaceFailure.MembershipNotFound -> SpaceUiMessage.MembershipNotFound
-        SpaceFailure.OwnerMustTransfer -> SpaceUiMessage.OwnerMustTransfer
-        SpaceFailure.CannotRemoveOwner -> SpaceUiMessage.CannotRemoveOwner
-        SpaceFailure.InvalidNewOwner -> SpaceUiMessage.InvalidNewOwner
-        SpaceFailure.OnlyOwnerCanDelete -> SpaceUiMessage.OnlyOwnerCanDelete
-        SpaceFailure.InvalidInvitationCode -> SpaceUiMessage.InvalidInvitationCode
-        SpaceFailure.InvitationNotFound -> SpaceUiMessage.InvitationNotFound
-        SpaceFailure.InvitationAlreadyUsed -> SpaceUiMessage.InvitationAlreadyUsed
-        SpaceFailure.InvitationRevoked -> SpaceUiMessage.InvitationRevoked
-        SpaceFailure.InvitationExpired -> SpaceUiMessage.InvitationExpired
-        SpaceFailure.SpaceFull -> SpaceUiMessage.SpaceFull
-        SpaceFailure.PermissionDenied -> SpaceUiMessage.PermissionDenied
-        SpaceFailure.Network -> SpaceUiMessage.NetworkError
-        SpaceFailure.Unknown,
-        null -> SpaceUiMessage.UnexpectedError
-    }
+private fun Throwable.toUiMessage(): SpaceUiMessage = when ((this as? SpaceRepositoryException)?.failure) {
+    SpaceFailure.NameRequired -> SpaceUiMessage.NameRequired
+    SpaceFailure.NameTooLong -> SpaceUiMessage.NameTooLong
+    SpaceFailure.NotAuthenticated -> SpaceUiMessage.NotAuthenticated
+    SpaceFailure.EmailNotVerified -> SpaceUiMessage.EmailNotVerified
+    SpaceFailure.SpaceNotFound -> SpaceUiMessage.SpaceNotFound
+    SpaceFailure.MembershipNotFound -> SpaceUiMessage.MembershipNotFound
+    SpaceFailure.OwnerMustTransfer -> SpaceUiMessage.OwnerMustTransfer
+    SpaceFailure.CannotRemoveOwner -> SpaceUiMessage.CannotRemoveOwner
+    SpaceFailure.InvalidNewOwner -> SpaceUiMessage.InvalidNewOwner
+    SpaceFailure.OnlyOwnerCanDelete -> SpaceUiMessage.OnlyOwnerCanDelete
+    SpaceFailure.InvalidInvitationCode -> SpaceUiMessage.InvalidInvitationCode
+    SpaceFailure.InvitationNotFound -> SpaceUiMessage.InvitationNotFound
+    SpaceFailure.InvitationAlreadyUsed -> SpaceUiMessage.InvitationAlreadyUsed
+    SpaceFailure.InvitationRevoked -> SpaceUiMessage.InvitationRevoked
+    SpaceFailure.InvitationExpired -> SpaceUiMessage.InvitationExpired
+    SpaceFailure.SpaceFull -> SpaceUiMessage.SpaceFull
+    SpaceFailure.PermissionDenied -> SpaceUiMessage.PermissionDenied
+    SpaceFailure.Network -> SpaceUiMessage.NetworkError
+    SpaceFailure.Unknown,
+    null,
+    -> SpaceUiMessage.UnexpectedError
 }

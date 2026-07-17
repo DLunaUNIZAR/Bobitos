@@ -24,11 +24,7 @@ class RealtimeMetrics @Inject constructor() {
         Log.d(LOG_TAG, "listener- scope=$scope active=${activeListeners.size}")
     }
 
-    fun snapshotReceived(
-        scope: String,
-        changedDocuments: Int,
-        fromCache: Boolean,
-    ) {
+    fun snapshotReceived(scope: String, changedDocuments: Int, fromCache: Boolean) {
         val total = if (fromCache) {
             remoteDocuments.get()
         } else {

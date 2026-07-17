@@ -4,9 +4,9 @@ import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.EventColor
 import com.dlunaunizar.bobitos.core.model.SpaceRole
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
-import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.time.Instant
 
 class CalendarFilteringTest {
     private val general = event("general", emptyList())

@@ -18,10 +18,7 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.model.SyncStatus
 
 @Composable
-fun SyncStatusBanner(
-    status: SyncStatus,
-    modifier: Modifier = Modifier,
-) {
+fun SyncStatusBanner(status: SyncStatus, modifier: Modifier = Modifier) {
     if (status == SyncStatus.ONLINE) return
 
     Surface(

@@ -8,13 +8,7 @@ interface ShoppingRepository {
 
     suspend fun addItem(spaceId: String, name: String, quantity: String?, notes: String?)
 
-    suspend fun updateItem(
-        spaceId: String,
-        itemId: String,
-        name: String,
-        quantity: String?,
-        notes: String?,
-    )
+    suspend fun updateItem(spaceId: String, itemId: String, name: String, quantity: String?, notes: String?)
 
     suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean)
 
@@ -37,7 +31,4 @@ enum class ShoppingFailure {
     Unknown,
 }
 
-class ShoppingRepositoryException(
-    val failure: ShoppingFailure,
-    cause: Throwable? = null,
-) : Exception(cause)
+class ShoppingRepositoryException(val failure: ShoppingFailure, cause: Throwable? = null) : Exception(cause)

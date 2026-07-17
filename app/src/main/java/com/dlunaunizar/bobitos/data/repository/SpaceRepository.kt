@@ -1,7 +1,7 @@
 package com.dlunaunizar.bobitos.data.repository
 
-import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
+import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import kotlinx.coroutines.flow.Flow
 
@@ -55,7 +55,4 @@ enum class SpaceFailure {
     Unknown,
 }
 
-class SpaceRepositoryException(
-    val failure: SpaceFailure,
-    cause: Throwable? = null,
-) : Exception(cause)
+class SpaceRepositoryException(val failure: SpaceFailure, cause: Throwable? = null) : Exception(cause)

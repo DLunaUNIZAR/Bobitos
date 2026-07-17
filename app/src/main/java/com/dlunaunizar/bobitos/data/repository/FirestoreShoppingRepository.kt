@@ -11,12 +11,12 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.Source
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @Singleton
 class FirestoreShoppingRepository @Inject constructor(
@@ -58,77 +58,64 @@ class FirestoreShoppingRepository @Inject constructor(
         }
     }
 
-    override suspend fun addItem(
-        spaceId: String,
-        name: String,
-        quantity: String?,
-        notes: String?,
-    ) = runShoppingOperation {
-        val user = requireVerifiedUser()
-        val values = validateItem(name, quantity, notes)
-        val spaceReference = firestore.collection(SPACES).document(spaceId)
-        val itemReference = itemsCollection(spaceId).document()
+    override suspend fun addItem(spaceId: String, name: String, quantity: String?, notes: String?) =
+        runShoppingOperation {
+            val user = requireVerifiedUser()
+            val values = validateItem(name, quantity, notes)
+            val spaceReference = firestore.collection(SPACES).document(spaceId)
+            val itemReference = itemsCollection(spaceId).document()
 
-        firestore.runTransaction { transaction ->
-            if (!transaction.get(spaceReference).exists()) {
-                throw ShoppingRepositoryException(ShoppingFailure.SpaceNotFound)
-            }
-            transaction.set(
-                itemReference,
-                mapOf(
-                    FIELD_NAME to values.name,
-                    FIELD_QUANTITY to values.quantity,
-                    FIELD_NOTES to values.notes,
-                    FIELD_PURCHASED to false,
-                    FIELD_CREATED_BY to user.id,
-                    FIELD_CREATED_BY_NAME to user.shoppingDisplayName,
-                    FIELD_CREATED_AT to FieldValue.serverTimestamp(),
-                    FIELD_UPDATED_BY to user.id,
-                    FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
-                    FIELD_PURCHASED_BY to null,
-                    FIELD_PURCHASED_BY_NAME to null,
-                    FIELD_PURCHASED_AT to null,
-                ),
-            )
-        }.await()
-        Unit
-    }
+            firestore.runTransaction { transaction ->
+                if (!transaction.get(spaceReference).exists()) {
+                    throw ShoppingRepositoryException(ShoppingFailure.SpaceNotFound)
+                }
+                transaction.set(
+                    itemReference,
+                    mapOf(
+                        FIELD_NAME to values.name,
+                        FIELD_QUANTITY to values.quantity,
+                        FIELD_NOTES to values.notes,
+                        FIELD_PURCHASED to false,
+                        FIELD_CREATED_BY to user.id,
+                        FIELD_CREATED_BY_NAME to user.shoppingDisplayName,
+                        FIELD_CREATED_AT to FieldValue.serverTimestamp(),
+                        FIELD_UPDATED_BY to user.id,
+                        FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+                        FIELD_PURCHASED_BY to null,
+                        FIELD_PURCHASED_BY_NAME to null,
+                        FIELD_PURCHASED_AT to null,
+                    ),
+                )
+            }.await()
+            Unit
+        }
 
-    override suspend fun updateItem(
-        spaceId: String,
-        itemId: String,
-        name: String,
-        quantity: String?,
-        notes: String?,
-    ) = runShoppingOperation {
-        val user = requireVerifiedUser()
-        val values = validateItem(name, quantity, notes)
-        val reference = itemsCollection(spaceId).document(itemId)
+    override suspend fun updateItem(spaceId: String, itemId: String, name: String, quantity: String?, notes: String?) =
+        runShoppingOperation {
+            val user = requireVerifiedUser()
+            val values = validateItem(name, quantity, notes)
+            val reference = itemsCollection(spaceId).document(itemId)
 
-        firestore.runTransaction { transaction ->
-            requireItem(transaction.get(reference))
-            transaction.update(
-                reference,
-                FIELD_NAME,
-                values.name,
-                FIELD_QUANTITY,
-                values.quantity,
-                FIELD_NOTES,
-                values.notes,
-                FIELD_UPDATED_BY,
-                user.id,
-                FIELD_UPDATED_AT,
-                FieldValue.serverTimestamp(),
-            )
-        }.await()
-        Unit
-    }
+            firestore.runTransaction { transaction ->
+                requireItem(transaction.get(reference))
+                transaction.update(
+                    reference,
+                    FIELD_NAME,
+                    values.name,
+                    FIELD_QUANTITY,
+                    values.quantity,
+                    FIELD_NOTES,
+                    values.notes,
+                    FIELD_UPDATED_BY,
+                    user.id,
+                    FIELD_UPDATED_AT,
+                    FieldValue.serverTimestamp(),
+                )
+            }.await()
+            Unit
+        }
 
-    override suspend fun setPurchased(
-        spaceId: String,
-        itemId: String,
-        purchased: Boolean,
-    ) = runShoppingOperation {
+    override suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean) = runShoppingOperation {
         val user = requireVerifiedUser()
         val reference = itemsCollection(spaceId).document(itemId)
 
@@ -228,9 +215,7 @@ class FirestoreShoppingRepository @Inject constructor(
         return snapshot
     }
 
-    private suspend inline fun <T> runShoppingOperation(
-        crossinline operation: suspend () -> T,
-    ): T {
+    private suspend inline fun <T> runShoppingOperation(crossinline operation: suspend () -> T): T {
         try {
             syncRepository.requireWritable()
             return operation()
@@ -247,11 +232,7 @@ class FirestoreShoppingRepository @Inject constructor(
         }
     }
 
-    private data class ItemValues(
-        val name: String,
-        val quantity: String?,
-        val notes: String?,
-    )
+    private data class ItemValues(val name: String, val quantity: String?, val notes: String?)
 
     private companion object {
         const val SPACES = "spaces"
@@ -299,13 +280,12 @@ private fun DocumentSnapshot.toShoppingItem(): ShoppingItem? {
     )
 }
 
-private fun Throwable.toShoppingRepositoryException(): ShoppingRepositoryException =
-    ShoppingRepositoryException(
-        failure = when ((this as? FirebaseFirestoreException)?.code) {
-            FirebaseFirestoreException.Code.PERMISSION_DENIED -> ShoppingFailure.PermissionDenied
-            FirebaseFirestoreException.Code.NOT_FOUND -> ShoppingFailure.ItemNotFound
-            FirebaseFirestoreException.Code.UNAVAILABLE -> ShoppingFailure.Network
-            else -> ShoppingFailure.Unknown
-        },
-        cause = this,
-    )
+private fun Throwable.toShoppingRepositoryException(): ShoppingRepositoryException = ShoppingRepositoryException(
+    failure = when ((this as? FirebaseFirestoreException)?.code) {
+        FirebaseFirestoreException.Code.PERMISSION_DENIED -> ShoppingFailure.PermissionDenied
+        FirebaseFirestoreException.Code.NOT_FOUND -> ShoppingFailure.ItemNotFound
+        FirebaseFirestoreException.Code.UNAVAILABLE -> ShoppingFailure.Network
+        else -> ShoppingFailure.Unknown
+    },
+    cause = this,
+)

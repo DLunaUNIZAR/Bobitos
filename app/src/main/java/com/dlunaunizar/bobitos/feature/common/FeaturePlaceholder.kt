@@ -15,11 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
 
 @Composable
-fun FeaturePlaceholder(
-    @StringRes titleRes: Int,
-    @StringRes descriptionRes: Int,
-    modifier: Modifier = Modifier,
-) {
+fun FeaturePlaceholder(@StringRes titleRes: Int, @StringRes descriptionRes: Int, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -44,4 +40,3 @@ fun FeaturePlaceholder(
         )
     }
 }
-

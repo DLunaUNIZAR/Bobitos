@@ -21,8 +21,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -31,8 +31,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
-import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
+import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceRole
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.core.model.SyncStatus
@@ -230,12 +230,17 @@ fun SpaceSettingsScreen(
             onDismissRequest = { showDeleteSpaceDialog = false },
             title = { Text(stringResource(R.string.space_delete_title)) },
             text = { Text(stringResource(R.string.space_delete_body, space.name)) },
-            confirmButton = { Button(enabled = canWrite && !state.isLoading, onClick = {
-                onDeleteSpace(space.id); showDeleteSpaceDialog = false
-            }) { Text(stringResource(R.string.space_delete_confirm)) } },
-            dismissButton = { TextButton(onClick = { showDeleteSpaceDialog = false }) {
-                Text(stringResource(R.string.cancel))
-            } },
+            confirmButton = {
+                Button(enabled = canWrite && !state.isLoading, onClick = {
+                    onDeleteSpace(space.id)
+                    showDeleteSpaceDialog = false
+                }) { Text(stringResource(R.string.space_delete_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteSpaceDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
         )
     }
 }
@@ -444,11 +449,7 @@ private fun ConfirmMemberActionDialog(
     )
 }
 
-private data class MemberAction(
-    val type: MemberActionType,
-    val memberId: String,
-    val memberName: String,
-)
+private data class MemberAction(val type: MemberActionType, val memberId: String, val memberName: String)
 
 private enum class MemberActionType {
     Transfer,

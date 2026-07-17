@@ -1,8 +1,8 @@
 package com.dlunaunizar.bobitos.feature.spaces
 
 import com.dlunaunizar.bobitos.core.common.UiState
-import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
+import com.dlunaunizar.bobitos.core.model.SpaceMember
 
 data class SpaceManagementUiState(
     val isLoading: Boolean = false,
