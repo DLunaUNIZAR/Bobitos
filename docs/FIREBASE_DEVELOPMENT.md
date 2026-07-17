@@ -101,6 +101,7 @@ Finalizar únicamente los PID mostrados que correspondan a Firebase (`kill PID`)
 - La app no conecta: comprobar que Emulator Suite siga abierta y repetir `npm run android:connect-emulators` después de arrancar el emulador Android.
 - Hay varios dispositivos: definir `ANDROID_SERIAL` con uno de los identificadores mostrados por `adb devices`.
 - Para confirmar el destino usado por la app: `adb logcat -s BobitosFirebase`; debe aparecer `Authentication usa 127.0.0.1:9099`.
+- Al reiniciar Authentication Emulator se eliminan sus usuarios y tokens salvo que se configure importación/exportación. Bobitos detecta un `INVALID_REFRESH_TOKEN`, cierra la sesión local antigua y vuelve al acceso; será necesario crear de nuevo el usuario local.
 
 ## Pruebas
 

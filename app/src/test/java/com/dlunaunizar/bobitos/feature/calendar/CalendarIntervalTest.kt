@@ -22,6 +22,16 @@ class CalendarIntervalTest {
         assertEquals(LocalDate.of(2026,3,29),interval.start.atZone(ZoneId.of("Europe/Madrid")).toLocalDate())
         assertEquals(LocalDate.of(2026,3,30),interval.endExclusive.atZone(ZoneId.of("Europe/Madrid")).toLocalDate())
     }
+    @Test fun `week interval starts on Monday and ends on next Monday`() {
+        val zone=ZoneId.of("Europe/Madrid"); val interval=LocalDate.of(2026,7,16).visibleInterval(CalendarDisplayMode.WEEK,zone)
+        assertEquals(LocalDate.of(2026,7,13),interval.start.atZone(zone).toLocalDate())
+        assertEquals(LocalDate.of(2026,7,20),interval.endExclusive.atZone(zone).toLocalDate())
+    }
+    @Test fun `day interval stays on local dates across DST`() {
+        val zone=ZoneId.of("Europe/Madrid"); val interval=LocalDate.of(2026,3,29).visibleInterval(CalendarDisplayMode.DAY,zone)
+        assertEquals(LocalDate.of(2026,3,29),interval.start.atZone(zone).toLocalDate())
+        assertEquals(LocalDate.of(2026,3,30),interval.endExclusive.atZone(zone).toLocalDate())
+    }
     @Test fun `event starting before range still overlaps`() {
         val event=CalendarEvent("e","Viaje",null,false,Instant.parse("2026-07-01T00:00:00Z"),Instant.parse("2026-08-01T00:00:00Z"),null,null,"UTC",EventColor.BLUE,emptyList(),emptyList(),"u","U",Instant.EPOCH,"u",Instant.EPOCH)
         assertTrue(event.overlaps(Instant.parse("2026-07-15T00:00:00Z"),Instant.parse("2026-07-16T00:00:00Z")))

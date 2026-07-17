@@ -10,7 +10,6 @@ import com.dlunaunizar.bobitos.data.repository.EventInput
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
-import java.time.YearMonth
 import java.time.ZoneId
 import javax.inject.Inject
 import kotlinx.coroutines.Job
@@ -22,31 +21,160 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class CalendarUiState(
-    val month: YearMonth = YearMonth.now(), val selectedDate: LocalDate = LocalDate.now(),
+    val focusedDate: LocalDate = LocalDate.now(),
+    val mode: CalendarDisplayMode = CalendarDisplayMode.MONTH,
     val events: UiState<List<CalendarEvent>> = UiState.Loading,
     val members: UiState<List<SpaceMember>> = UiState.Loading,
-    val agenda: Boolean = false, val saving: Boolean = false, val message: String? = null,
+    val selectedMemberIds: Set<String> = emptySet(),
+    val knownMemberIds: Set<String> = emptySet(),
+    val saving: Boolean = false,
+    val message: String? = null,
 )
 
 @HiltViewModel
 class CalendarViewModel @Inject constructor(
-    private val repository: CalendarRepository, private val spaces: SpaceRepository,
+    private val repository: CalendarRepository,
+    private val spaces: SpaceRepository,
 ) : ViewModel() {
-    private val mutable = MutableStateFlow(CalendarUiState()); val uiState: StateFlow<CalendarUiState> = mutable.asStateFlow()
-    private var spaceId: String? = null; private var eventJob: Job? = null; private var memberJob: Job? = null
-    fun observe(id: String) { if (spaceId != id) { spaceId=id; observeRange(); memberJob?.cancel(); memberJob=viewModelScope.launch {
-        spaces.members(id).catch { mutable.update { s -> s.copy(members=UiState.Error(it.message)) } }.collect { value -> mutable.update { it.copy(members=UiState.Content(value)) } }
-    } } }
-    fun stop() { eventJob?.cancel(); memberJob?.cancel(); spaceId=null }
-    fun previous() { mutable.update { it.copy(month=it.month.minusMonths(1), selectedDate=it.month.minusMonths(1).atDay(1)) }; observeRange() }
-    fun next() { mutable.update { it.copy(month=it.month.plusMonths(1), selectedDate=it.month.plusMonths(1).atDay(1)) }; observeRange() }
-    fun select(date: LocalDate) = mutable.update { it.copy(selectedDate=date) }
-    fun toggleMode() = mutable.update { it.copy(agenda=!it.agenda) }
-    fun save(eventId: String?, input: EventInput) = action { val id=spaceId ?: return@action; if(eventId==null) repository.createEvent(id,input) else repository.updateEvent(id,eventId,input) }
-    fun delete(eventId: String) = action { repository.deleteEvent(spaceId ?: return@action,eventId) }
-    fun clearMessage() = mutable.update { it.copy(message=null) }
-    private fun observeRange() { val id=spaceId ?: return; eventJob?.cancel(); val interval=mutable.value.month.visibleInterval(ZoneId.systemDefault()); mutable.update { it.copy(events=UiState.Loading) }; eventJob=viewModelScope.launch {
-        repository.events(id,interval.start,interval.endExclusive).catch { mutable.update { s -> s.copy(events=UiState.Error(it.message)) } }.collect { value -> mutable.update { it.copy(events=UiState.Content(value)) } }
-    } }
-    private fun action(block: suspend () -> Unit) { if(mutable.value.saving)return; mutable.update { it.copy(saving=true,message=null) }; viewModelScope.launch { try { block(); mutable.update { it.copy(saving=false,message="Cambios guardados") } } catch(e:Throwable) { mutable.update { it.copy(saving=false,message=e.message ?: "No se pudo completar la operación") } } } }
+    private val mutable = MutableStateFlow(CalendarUiState())
+    val uiState: StateFlow<CalendarUiState> = mutable.asStateFlow()
+
+    private var spaceId: String? = null
+    private var eventJob: Job? = null
+    private var memberJob: Job? = null
+
+    fun observe(id: String) {
+        if (spaceId == id) return
+        spaceId = id
+        mutable.update {
+            it.copy(
+                members = UiState.Loading,
+                selectedMemberIds = emptySet(),
+                knownMemberIds = emptySet(),
+            )
+        }
+        observeRange()
+        memberJob?.cancel()
+        memberJob = viewModelScope.launch {
+            spaces.members(id)
+                .catch { error ->
+                    mutable.update { it.copy(members = UiState.Error(error.message)) }
+                }
+                .collect(::onMembersChanged)
+        }
+    }
+
+    fun stop() {
+        eventJob?.cancel()
+        memberJob?.cancel()
+        spaceId = null
+    }
+
+    fun setMode(mode: CalendarDisplayMode) {
+        if (mode == mutable.value.mode) return
+        mutable.update { it.copy(mode = mode) }
+        observeRange()
+    }
+
+    fun previous() = move(-1)
+
+    fun next() = move(1)
+
+    fun select(date: LocalDate) {
+        mutable.update { it.copy(focusedDate = date) }
+    }
+
+    fun goToDate(date: LocalDate) {
+        if (date == mutable.value.focusedDate) return
+        mutable.update { it.copy(focusedDate = date) }
+        observeRange()
+    }
+
+    fun toggleMember(userId: String) {
+        mutable.update { state ->
+            state.copy(
+                selectedMemberIds = if (userId in state.selectedMemberIds) {
+                    state.selectedMemberIds - userId
+                } else {
+                    state.selectedMemberIds + userId
+                },
+            )
+        }
+    }
+
+    fun selectAllMembers() {
+        mutable.update { it.copy(selectedMemberIds = it.knownMemberIds) }
+    }
+
+    fun clearMemberSelection() {
+        mutable.update { it.copy(selectedMemberIds = emptySet()) }
+    }
+
+    fun save(eventId: String?, input: EventInput) = action {
+        val id = spaceId ?: return@action
+        if (eventId == null) repository.createEvent(id, input)
+        else repository.updateEvent(id, eventId, input)
+    }
+
+    fun delete(eventId: String) = action {
+        repository.deleteEvent(spaceId ?: return@action, eventId)
+    }
+
+    fun clearMessage() {
+        mutable.update { it.copy(message = null) }
+    }
+
+    private fun move(amount: Long) {
+        mutable.update { state ->
+            state.copy(focusedDate = state.focusedDate.move(state.mode, amount))
+        }
+        observeRange()
+    }
+
+    private fun onMembersChanged(members: List<SpaceMember>) {
+        mutable.update { state ->
+            val currentIds = members.mapTo(mutableSetOf(), SpaceMember::userId)
+            val newIds = currentIds - state.knownMemberIds
+            state.copy(
+                members = UiState.Content(members),
+                selectedMemberIds = (state.selectedMemberIds intersect currentIds) + newIds,
+                knownMemberIds = currentIds,
+            )
+        }
+    }
+
+    private fun observeRange() {
+        val id = spaceId ?: return
+        eventJob?.cancel()
+        val state = mutable.value
+        val interval = state.focusedDate.visibleInterval(state.mode, ZoneId.systemDefault())
+        mutable.update { it.copy(events = UiState.Loading) }
+        eventJob = viewModelScope.launch {
+            repository.events(id, interval.start, interval.endExclusive)
+                .catch { error ->
+                    mutable.update { it.copy(events = UiState.Error(error.message)) }
+                }
+                .collect { events ->
+                    mutable.update { it.copy(events = UiState.Content(events)) }
+                }
+        }
+    }
+
+    private fun action(block: suspend () -> Unit) {
+        if (mutable.value.saving) return
+        mutable.update { it.copy(saving = true, message = null) }
+        viewModelScope.launch {
+            try {
+                block()
+                mutable.update { it.copy(saving = false, message = "Cambios guardados") }
+            } catch (error: Throwable) {
+                mutable.update {
+                    it.copy(
+                        saving = false,
+                        message = error.message ?: "No se pudo completar la operación",
+                    )
+                }
+            }
+        }
+    }
 }

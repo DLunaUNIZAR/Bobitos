@@ -271,6 +271,9 @@ Un evento tendrá:
 - No ser participante no limita la lectura ni la edición.
 - Los participantes solo indican quién está relacionado con el evento.
 - Puede existir un evento sin participantes seleccionados.
+- El calendario de un espacio muestra inicialmente todos sus eventos.
+- Se podrán seleccionar o deseleccionar miembros para filtrar por participantes.
+- Los eventos sin participantes son generales y permanecen visibles en el calendario del espacio.
 
 ### EVENT-03. Editar y eliminar
 
@@ -280,18 +283,27 @@ Cualquier miembro podrá editar o eliminar cualquier evento del espacio.
 
 El MVP incluirá:
 
+- Vista diaria.
+- Vista semanal, de lunes a domingo.
 - Vista mensual.
-- Vista de agenda.
-- Próximos eventos en el inicio del espacio.
+- Consultas limitadas al intervalo visible en cada vista.
 
-### EVENT-05. Fechas
+### EVENT-05. Mi calendario
+
+- La navegación principal incluirá “Espacios” y “Mi calendario”.
+- “Mi calendario” combinará los eventos de todos los espacios activos donde el usuario figure como participante.
+- No mostrará eventos sin participantes ni eventos donde participen únicamente otros miembros.
+- Permitirá filtrar por espacio y mostrará el espacio de procedencia.
+- Al seleccionar un evento se abrirá dentro de su espacio para poder editarlo.
+
+### EVENT-06. Fechas
 
 - Los instantes se almacenarán en UTC.
 - Se conservará la zona horaria necesaria.
 - La fecha final no podrá ser anterior a la inicial.
 - Los eventos de día completo se tratarán como fechas, evitando desplazamientos por zona horaria.
 
-### EVENT-06. Fuera del MVP
+### EVENT-07. Fuera del MVP
 
 - Repetición de eventos.
 - Sincronización externa.
@@ -338,4 +350,3 @@ El MVP incluirá:
 - Sin conexión no se pueden crear modificaciones nuevas.
 - Las invitaciones caducan a las 72 horas y solo funcionan una vez.
 - El propietario no puede abandonar sin transferir o eliminar el espacio.
-

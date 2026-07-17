@@ -203,9 +203,9 @@ Crear una aplicación Android útil y estable que permita a pequeños grupos pri
 - Seleccionar participantes.
 - Mantener todos los eventos visibles para todos los miembros, participen o no.
 - Añadir descripción y color.
-- Mostrar una vista mensual.
-- Mostrar una vista de agenda.
-- Mostrar próximos eventos en el inicio.
+- Mostrar vistas diaria, semanal y mensual.
+- Filtrar el calendario del espacio por participantes sin ocultar eventos generales.
+- Añadir “Mi calendario” con eventos de todos los espacios donde participa el usuario.
 - Tratar correctamente la zona horaria y los cambios de hora.
 
 ### 5.7. Conectividad
@@ -503,9 +503,10 @@ Duración estimada: 2-3 semanas.
 - [x] Crear, editar y eliminar eventos.
 - [x] Implementar eventos con hora y de día completo.
 - [x] Añadir participantes, descripción y color.
-- [x] Implementar vista de agenda.
+- [x] Implementar vistas diaria y semanal.
 - [x] Implementar vista mensual.
-- [x] Mostrar próximos eventos.
+- [x] Implementar filtros por miembro manteniendo eventos generales.
+- [x] Implementar Mi calendario agregado con filtros por espacio.
 - [x] Tratar UTC, zona horaria y cambios de hora.
 - [x] Limitar consultas por intervalos.
 
@@ -589,6 +590,7 @@ Incluye:
 - Lista de la compra.
 - Tareas.
 - Calendario.
+- Mi calendario agregado entre espacios.
 - Gestión completa de miembros.
 - Eliminación de cuenta.
 - Seguridad y pruebas principales.
@@ -681,6 +683,7 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 16/07/2026 | App Check con Play Integrity en producción | Proteger Firebase sin afectar a Emulator Suite; activar la exigencia al disponer de firma beta |
 | 16/07/2026 | Firebase App Distribution para la beta | Mantener coste cero, limitar testers y facilitar avisos de actualización sin publicar en Google Play |
 | 17/07/2026 | Firebase local mediante `adb reverse` | Evitar timeouts del SDK Android y disponer de una conexión reproducible a Auth y Firestore desde el emulador |
+| 17/07/2026 | Mi calendario contiene solo eventos donde participa el usuario | Separar la vista personal agregada de la visibilidad completa que mantiene cada espacio |
 
 ## 16. Próximas decisiones
 
@@ -708,3 +711,4 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 1.3.0 | 16/07/2026 | Seguridad final del MVP, eliminación de cuenta y espacios, anonimización, privacidad, App Check y pruebas cruzadas |
 | 1.4.0 | 16/07/2026 | Canal Firebase App Distribution, firma externa, versionado de beta, guía de instalación y plan de pruebas reales |
 | 1.4.1 | 17/07/2026 | Flujo reproducible de Firebase local mediante `adb reverse`, diagnóstico y correos simulados |
+| 1.5.0 | 17/07/2026 | Calendarios diario, semanal y mensual, filtros por miembro y Mi calendario entre espacios |

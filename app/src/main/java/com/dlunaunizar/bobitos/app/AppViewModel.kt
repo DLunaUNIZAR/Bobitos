@@ -8,7 +8,9 @@ import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.data.connectivity.ConnectivityRepository
 import com.dlunaunizar.bobitos.data.connectivity.NetworkStatus
 import com.dlunaunizar.bobitos.data.repository.ActiveSpaceRepository
+import com.dlunaunizar.bobitos.data.repository.AuthFailure
 import com.dlunaunizar.bobitos.data.repository.AuthRepository
+import com.dlunaunizar.bobitos.data.repository.AuthRepositoryException
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,8 +29,10 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -50,7 +54,30 @@ class AppViewModel @Inject constructor(
 ) : ViewModel() {
     private val requestedSelection = MutableStateFlow<RequestedSelection?>(null)
     private val realtimeScope = MutableStateFlow(RealtimeScope.AUTOMATIC)
-    private val persistedSpaceId = authRepository.currentUser.flatMapLatest { user ->
+    private val sessionUser: StateFlow<UiState<AuthUser?>> = authRepository.currentUser
+        .flatMapLatest { cachedUser ->
+            if (cachedUser == null) {
+                flowOf<UiState<AuthUser?>>(UiState.Content(null))
+            } else {
+                flow<UiState<AuthUser?>> {
+                    try {
+                        emit(UiState.Content(authRepository.refreshCurrentUser()))
+                    } catch (error: AuthRepositoryException) {
+                        when (error.failure) {
+                            AuthFailure.Network -> emit(UiState.Content(cachedUser))
+                            AuthFailure.SessionExpired -> emit(UiState.Content(null))
+                            else -> emit(UiState.Error(error.message))
+                        }
+                    }
+                }.onStart { emit(UiState.Loading) }
+            }
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = UiState.Loading,
+        )
+    private val persistedSpaceId = sessionUser.flatMapLatest { authState ->
+        val user = (authState as? UiState.Content)?.value
         if (user == null) {
             flowOf(null)
         } else {
@@ -58,33 +85,35 @@ class AppViewModel @Inject constructor(
         }
     }
     private val selectedSpaceId = combine(
-        authRepository.currentUser,
+        sessionUser,
         persistedSpaceId,
         requestedSelection,
-    ) { user, persistedId, requested ->
+    ) { authState, persistedId, requested ->
+        val user = (authState as? UiState.Content)?.value
         requested
             ?.takeIf { selection -> selection.userId == user?.id }
             ?.spaceId
             ?: persistedId
     }
     private val observedSpaces: Flow<UiState<List<SpaceSummary>>> = combine(
-        authRepository.currentUser,
+        sessionUser,
         selectedSpaceId,
         realtimeScope,
-    ) { user, selectedId, scope ->
+    ) { authState, selectedId, scope ->
+        val user = (authState as? UiState.Content)?.value
         ObservationRequest(user, selectedId, scope)
     }.distinctUntilChanged()
         .flatMapLatest { request -> request.observe() }
 
     val uiState: StateFlow<AppUiState> = combine(
-        authRepository.currentUser,
+        sessionUser,
         observedSpaces,
         selectedSpaceId,
         syncRepository.status,
-    ) { authUser, spaces, selectedId, syncStatus ->
+    ) { authState, spaces, selectedId, syncStatus ->
         val availableSpaces = (spaces as? UiState.Content)?.value.orEmpty()
         AppUiState(
-            authUser = UiState.Content(authUser),
+            authUser = authState,
             spaces = spaces,
             selectedSpace = availableSpaces.firstOrNull { it.id == selectedId },
             syncStatus = syncStatus,
@@ -98,10 +127,11 @@ class AppViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             combine(
-                authRepository.currentUser,
+                sessionUser,
                 selectedSpaceId,
                 connectivityRepository.status,
-            ) { user, selectedId, networkStatus ->
+            ) { authState, selectedId, networkStatus ->
+                val user = (authState as? UiState.Content)?.value
                 SyncRequest(user, selectedId, networkStatus)
             }.distinctUntilChanged().collectLatest { request ->
                 if (
@@ -122,7 +152,7 @@ class AppViewModel @Inject constructor(
     }
 
     fun selectSpace(spaceId: String) {
-        val userId = authRepository.currentUser.value?.id ?: return
+        val userId = (sessionUser.value as? UiState.Content)?.value?.id ?: return
         syncRepository.requireRefresh()
         requestedSelection.value = RequestedSelection(userId, spaceId)
         viewModelScope.launch {

@@ -4,9 +4,9 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Espacios, membresías e invitaciones implementados; módulos compartidos provisionales |
-| Versión | 0.3.0 |
-| Fecha | 16 de julio de 2026 |
+| Estado | Modelo multiusuario y módulos compartidos implementados |
+| Versión | 0.4.0 |
+| Fecha | 17 de julio de 2026 |
 
 ## 1. Objetivos
 
@@ -293,7 +293,7 @@ Para eventos de día completo se añadirán fechas locales explícitas:
 ```text
 allDay: true
 startDate: string  # YYYY-MM-DD
-endDate: string    # YYYY-MM-DD, criterio inclusivo o exclusivo por decidir en implementación
+endDateExclusive: string  # YYYY-MM-DD, primer día que queda fuera del evento
 timeZone: string
 ```
 
@@ -303,11 +303,13 @@ timeZone: string
 - Como el espacio tiene un máximo previsto de 10 miembros, un array es suficiente para el MVP.
 - Todos los identificadores deben pertenecer al espacio.
 - La visibilidad no depende de este campo.
+- El calendario del espacio lee todos los eventos del intervalo y filtra participantes en el cliente.
+- Mi calendario consulta el mismo intervalo en cada espacio activo y conserva en el cliente únicamente documentos donde `participantIds` contiene el UID actual. Esta decisión evita índices y colecciones duplicadas, y es adecuada para el límite de 2-10 miembros y el volumen inicial.
 
 ### Consultas previstas
 
 - Eventos cuyo inicio o rango afecte al intervalo visible.
-- Próximos eventos con límite.
+- Eventos de cada espacio activo dentro del intervalo visible para construir Mi calendario.
 
 La consulta de eventos que atraviesan un intervalo necesita validarse con datos reales e índices antes de fijar el esquema definitivo.
 

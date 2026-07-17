@@ -13,6 +13,11 @@ enum class BobitosDestination(
         titleRes = R.string.spaces_title,
         iconText = "E",
     ),
+    MyCalendar(
+        route = "my-calendar",
+        titleRes = R.string.my_calendar_title,
+        iconText = "📆",
+    ),
     Shopping(
         route = "shopping",
         titleRes = R.string.shopping_title,
@@ -41,6 +46,7 @@ enum class BobitosDestination(
     ;
 
     companion object {
+        val rootDestinations = listOf(Spaces, MyCalendar)
         val workspaceDestinations = listOf(Shopping, Tasks, Calendar)
     }
 }

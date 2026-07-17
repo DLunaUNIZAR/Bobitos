@@ -236,6 +236,7 @@ private fun Throwable.toUiMessage(): AuthUiMessage {
         AuthFailure.InvalidCredentials -> AuthUiMessage.InvalidCredentials
         AuthFailure.Network -> AuthUiMessage.NetworkError
         AuthFailure.TooManyRequests -> AuthUiMessage.TooManyRequests
+        AuthFailure.SessionExpired,
         AuthFailure.NoAuthenticatedUser,
         AuthFailure.Unknown,
         null -> AuthUiMessage.UnexpectedError

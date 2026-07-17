@@ -40,7 +40,7 @@ Los ViewModel exponen `StateFlow` inmutable. Los composables reciben estado y ca
 
 `BobitosApp` actúa como barrera de sesión. Muestra el flujo de acceso cuando no existe usuario, la pantalla de verificación cuando el correo está pendiente y solo expone el contenido privado a cuentas verificadas. Al cerrar sesión desaparece inmediatamente el árbol de navegación privado.
 
-Una cuenta verificada comienza en el último espacio válido guardado para ese usuario o, si no existe, en la selección de espacio. Una vez elegido, presenta navegación inferior entre Compra, Tareas y Calendario, además de acciones para cambiar de espacio, administrarlo y abrir el perfil.
+Una cuenta verificada comienza en el último espacio válido guardado para ese usuario o, si no existe, en la selección de espacio. El nivel principal dispone de navegación inferior entre Espacios y Mi calendario. Una vez elegido un espacio, presenta navegación inferior entre Compra, Tareas y Calendario, además de acciones para cambiar de espacio, administrarlo y abrir el perfil.
 
 Esta navegación es funcional pero provisional: se ajustará cuando se cierre el diseño del issue correspondiente.
 
@@ -48,9 +48,13 @@ Esta navegación es funcional pero provisional: se ajustará cuando se cierre el
 
 `FirebaseAuthRepository` encapsula Firebase Authentication y publica la sesión mediante `StateFlow`. Implementa registro, verificación, acceso, recuperación de contraseña, actualización de nombre y cierre de sesión. La respuesta de recuperación es deliberadamente neutra para no revelar si una cuenta existe.
 
+Al restaurar una sesión, `AppViewModel` renueva primero el usuario y su token de ID antes de activar listeners privados. Esto garantiza que las reglas reciban el claim actualizado `email_verified`; si el arranque es realmente offline, conserva el usuario almacenado para permitir la lectura de la caché sin habilitar escrituras.
+
 `FirestoreSpaceRepository` observa las membresías, los espacios y las invitaciones que administra un propietario. Implementa creación, renombrado, abandono, expulsión, transferencia de propiedad y el ciclo completo de invitaciones. Las tareas pendientes del miembro que sale quedan sin responsable dentro de la misma transacción.
 
 La observación cambia con la navegación. La selección de espacios activa la membresía del usuario y los espacios de esa lista; el área de trabajo mantiene únicamente la membresía y el documento del espacio activo; el perfil no necesita listeners de espacios. Los listeners de miembros e invitaciones solo existen mientras está visible la gestión del espacio. Los cambios de pantalla, espacio o sesión cancelan el alcance anterior antes de crear el nuevo.
+
+El calendario de un espacio mantiene un único listener limitado al día, semana o cuadrícula mensual visibles. Los filtros por miembro se aplican sobre ese snapshot y no crean lecturas adicionales. `PersonalCalendarViewModel` combina un listener acotado por cada espacio activo, conserva únicamente eventos cuyo `participantIds` contiene el UID actual y cancela todos los listeners al abandonar Mi calendario o cambiar de intervalo.
 
 Los tokens de invitación se generan localmente con 160 bits de entropía y Base32. `MainActivity` conserva los deep links `bobitos://invite/...` hasta que la cuenta está autenticada y verificada; la navegación privada entrega después el código al flujo de aceptación.
 
@@ -74,6 +78,7 @@ Los snapshots ya disponibles permanecen visibles cuando se pierde la red y se id
 - módulo activo: un listener de membresía y uno del espacio seleccionado;
 - gestión: añade miembros y, para el propietario, invitaciones;
 - cambio entre Compra, Tareas y Calendario: cero listeners o lecturas adicionales mientras no cambie el espacio;
+- Mi calendario: un listener de eventos por espacio activo, siempre limitado al intervalo visible;
 - resincronización del espacio: dos lecturas de servidor; una si la membresía ya no existe.
 
 Las Security Rules exigen correo verificado y una membresía activa para leer un espacio. Solo el propietario puede renombrar, expulsar, transferir la propiedad y administrar invitaciones. El consumo de una invitación valida con `getAfter()` la transición a `USED`, la membresía nueva y el incremento del contador como una única operación. El emulador prueba además que dos cuentas simultáneas no pueden consumir el mismo token.

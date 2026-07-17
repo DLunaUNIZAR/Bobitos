@@ -34,7 +34,8 @@ Repositorio oficial: [DLunaUNIZAR/Bobitos](https://github.com/DLunaUNIZAR/Bobito
 - Gestión básica de miembros.
 - Lista de la compra compartida, sin responsable asignado.
 - Tareas con un único responsable principal, fecha y prioridad.
-- Calendario compartido con vistas mensual y agenda.
+- Calendario compartido con vistas diaria, semanal y mensual, y filtros por miembro.
+- “Mi calendario” con los eventos de todos los espacios donde participa el usuario.
 - Actualizaciones prácticamente en tiempo real.
 - Modo sin conexión de solo lectura.
 - Eliminación de cuenta y datos personales.
