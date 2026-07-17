@@ -13,6 +13,9 @@ plugins {
 val googleServicesFile = file("google-services.json")
 if (googleServicesFile.isFile) {
     apply(plugin = "com.google.gms.google-services")
+    // Crashlytics requiere google-services; solo se aplica cuando el archivo existe
+    // (builds locales y release reales), por lo que el CI de debug no lo necesita.
+    apply(plugin = "com.google.firebase.crashlytics")
 }
 
 val keystorePropertiesFile = rootProject.file("keystore.properties")
@@ -126,6 +129,7 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.appcheck.playintegrity)
+    implementation(libs.firebase.crashlytics)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
