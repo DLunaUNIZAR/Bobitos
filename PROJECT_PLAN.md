@@ -687,7 +687,7 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 
 ## 16. Próximas decisiones
 
-- [ ] Colores y diseño visual.
+- [x] Colores y diseño visual.
 - [x] Distribución de beta mediante Firebase App Distribution.
 - [ ] Necesidad de notificaciones push después de validar el MVP.
 
