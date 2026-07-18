@@ -76,7 +76,8 @@
     <string name="cancel">Cancelar</string>
     <string name="confirm">Confirmar</string>
     <string name="dismiss">Cerrar</string>
-    <string name="change_space">Espacios</string>
+    <string name="change_space">Cambiar de espacio</string>
+    <string name="more_options">Más opciones</string>
     <string name="generic_loading">Cargando…</string>
     <string name="generic_error">No se ha podido cargar la información.</string>
     <string name="sync_offline">Sin conexión · datos desactualizados · solo lectura</string>
