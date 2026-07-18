@@ -1,20 +1,28 @@
 package com.dlunaunizar.bobitos.feature.shopping
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -33,6 +41,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
@@ -40,21 +50,15 @@ import com.dlunaunizar.bobitos.core.model.ShoppingItem
 @Composable
 fun ShoppingScreen(
     spaceId: String,
-    state: ShoppingUiState,
     canWrite: Boolean,
-    onObserve: (String) -> Unit,
-    onStopObserving: () -> Unit,
-    onAdd: (String, String?, String?) -> Unit,
-    onUpdate: (String, String, String?, String?) -> Unit,
-    onSetPurchased: (String, Boolean) -> Unit,
-    onDelete: (String) -> Unit,
-    onClearPurchased: () -> Unit,
-    onClearFeedback: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: ShoppingViewModel = hiltViewModel(),
 ) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
     DisposableEffect(spaceId) {
-        onObserve(spaceId)
-        onDispose(onStopObserving)
+        viewModel.observe(spaceId)
+        onDispose { viewModel.stopObserving() }
     }
 
     var editedItem by remember { mutableStateOf<ShoppingItem?>(null) }
@@ -66,17 +70,13 @@ fun ShoppingScreen(
     val purchased = content?.value?.filter(ShoppingItem::purchased).orEmpty()
     val actionsEnabled = canWrite && !state.isSaving
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+    Box(modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column {
                 Text(
                     text = stringResource(R.string.shopping_list_title),
                     style = MaterialTheme.typography.headlineSmall,
@@ -88,82 +88,39 @@ fun ShoppingScreen(
                         pending.size,
                     ),
                     style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Spacer(modifier = Modifier.width(12.dp))
-            Button(
-                enabled = actionsEnabled,
-                onClick = {
-                    editedItem = null
-                    editorVisible = true
-                },
-            ) {
-                Text(stringResource(R.string.shopping_add))
-            }
-        }
 
-        ShoppingFeedback(state, onClearFeedback)
-        Spacer(modifier = Modifier.height(8.dp))
+            ShoppingFeedback(state, viewModel::clearFeedback)
+            Spacer(modifier = Modifier.height(8.dp))
 
-        when (val itemsState = state.items) {
-            UiState.Loading -> Text(stringResource(R.string.generic_loading))
-            is UiState.Error -> Text(
-                text = itemsState.message ?: stringResource(R.string.generic_error),
-                color = MaterialTheme.colorScheme.error,
-            )
-            is UiState.Content -> {
-                if (itemsState.value.isEmpty()) {
-                    ShoppingEmptyState(modifier = Modifier.weight(1f))
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        item(key = "pending-heading") {
-                            ShoppingSectionTitle(
-                                title = stringResource(R.string.shopping_pending),
-                                count = pending.size,
-                            )
-                        }
-                        items(pending, key = ShoppingItem::id) { item ->
-                            ShoppingItemCard(
-                                item = item,
-                                enabled = actionsEnabled,
-                                onSetPurchased = { onSetPurchased(item.id, it) },
-                                onEdit = {
-                                    editedItem = item
-                                    editorVisible = true
-                                },
-                                onDelete = { itemToDelete = item },
-                            )
-                        }
-                        if (purchased.isNotEmpty()) {
-                            item(key = "purchased-heading") {
-                                Column {
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        ShoppingSectionTitle(
-                                            title = stringResource(R.string.shopping_purchased),
-                                            count = purchased.size,
-                                        )
-                                        TextButton(
-                                            enabled = actionsEnabled,
-                                            onClick = { clearConfirmationVisible = true },
-                                        ) {
-                                            Text(stringResource(R.string.shopping_clear_purchased))
-                                        }
-                                    }
-                                }
+            when (val itemsState = state.items) {
+                UiState.Loading -> Text(stringResource(R.string.generic_loading))
+                is UiState.Error -> Text(
+                    text = itemsState.message ?: stringResource(R.string.generic_error),
+                    color = MaterialTheme.colorScheme.error,
+                )
+                is UiState.Content -> {
+                    if (itemsState.value.isEmpty()) {
+                        ShoppingEmptyState(modifier = Modifier.weight(1f))
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(bottom = 88.dp),
+                        ) {
+                            item(key = "pending-heading") {
+                                ShoppingSectionTitle(
+                                    title = stringResource(R.string.shopping_pending),
+                                    count = pending.size,
+                                )
                             }
-                            items(purchased, key = ShoppingItem::id) { item ->
+                            items(pending, key = ShoppingItem::id) { item ->
                                 ShoppingItemCard(
                                     item = item,
                                     enabled = actionsEnabled,
-                                    onSetPurchased = { onSetPurchased(item.id, it) },
+                                    onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
                                     onEdit = {
                                         editedItem = item
                                         editorVisible = true
@@ -171,10 +128,59 @@ fun ShoppingScreen(
                                     onDelete = { itemToDelete = item },
                                 )
                             }
+                            if (purchased.isNotEmpty()) {
+                                item(key = "purchased-heading") {
+                                    Column {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            ShoppingSectionTitle(
+                                                title = stringResource(R.string.shopping_purchased),
+                                                count = purchased.size,
+                                            )
+                                            TextButton(
+                                                enabled = actionsEnabled,
+                                                onClick = { clearConfirmationVisible = true },
+                                            ) {
+                                                Text(stringResource(R.string.shopping_clear_purchased))
+                                            }
+                                        }
+                                    }
+                                }
+                                items(purchased, key = ShoppingItem::id) { item ->
+                                    ShoppingItemCard(
+                                        item = item,
+                                        enabled = actionsEnabled,
+                                        onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
+                                        onEdit = {
+                                            editedItem = item
+                                            editorVisible = true
+                                        },
+                                        onDelete = { itemToDelete = item },
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
+        }
+
+        if (canWrite) {
+            ExtendedFloatingActionButton(
+                onClick = {
+                    editedItem = null
+                    editorVisible = true
+                },
+                icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                text = { Text(stringResource(R.string.shopping_add)) },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp),
+            )
         }
     }
 
@@ -186,9 +192,9 @@ fun ShoppingScreen(
             onSave = { name, quantity, notes ->
                 val item = editedItem
                 if (item == null) {
-                    onAdd(name, quantity, notes)
+                    viewModel.addItem(spaceId, name, quantity, notes)
                 } else {
-                    onUpdate(item.id, name, quantity, notes)
+                    viewModel.updateItem(spaceId, item.id, name, quantity, notes)
                 }
                 editorVisible = false
             },
@@ -204,7 +210,7 @@ fun ShoppingScreen(
                 TextButton(
                     enabled = actionsEnabled,
                     onClick = {
-                        onDelete(item.id)
+                        viewModel.deleteItem(spaceId, item.id)
                         itemToDelete = null
                     },
                 ) { Text(stringResource(R.string.shopping_delete)) }
@@ -234,7 +240,7 @@ fun ShoppingScreen(
                 TextButton(
                     enabled = actionsEnabled,
                     onClick = {
-                        onClearPurchased()
+                        viewModel.clearPurchased(spaceId)
                         clearConfirmationVisible = false
                     },
                 ) { Text(stringResource(R.string.shopping_clear_purchased)) }
@@ -323,10 +329,11 @@ private fun ShoppingItemCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    var menuExpanded by remember { mutableStateOf(false) }
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.Top,
+            modifier = Modifier.padding(start = 12.dp, top = 8.dp, end = 4.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Checkbox(
                 checked = item.purchased,
@@ -347,28 +354,44 @@ private fun ShoppingItemCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 item.notes?.let {
-                    Text(text = it, style = MaterialTheme.typography.bodyMedium)
-                }
-                Text(
-                    text = stringResource(R.string.shopping_added_by, item.createdByName),
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                if (item.purchased) {
                     Text(
-                        text = stringResource(
-                            R.string.shopping_marked_by,
-                            item.purchasedByName ?: item.purchasedBy.orEmpty(),
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
+                        text = it,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Row {
-                    TextButton(enabled = enabled, onClick = onEdit) {
-                        Text(stringResource(R.string.shopping_edit))
-                    }
-                    TextButton(enabled = enabled, onClick = onDelete) {
-                        Text(stringResource(R.string.shopping_delete))
-                    }
+                Text(
+                    text = if (item.purchased) {
+                        stringResource(
+                            R.string.shopping_marked_by,
+                            item.purchasedByName ?: item.purchasedBy.orEmpty(),
+                        )
+                    } else {
+                        stringResource(R.string.shopping_added_by, item.createdByName)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Box {
+                IconButton(enabled = enabled, onClick = { menuExpanded = true }) {
+                    Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.more_options))
+                }
+                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.shopping_edit)) },
+                        onClick = {
+                            menuExpanded = false
+                            onEdit()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.shopping_delete)) },
+                        onClick = {
+                            menuExpanded = false
+                            onDelete()
+                        },
+                    )
                 }
             }
         }
