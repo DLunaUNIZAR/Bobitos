@@ -192,9 +192,9 @@ fun ShoppingScreen(
             onSave = { name, quantity, notes ->
                 val item = editedItem
                 if (item == null) {
-                    viewModel.addItem(spaceId, name, quantity, notes)
+                    viewModel.addItem(spaceId, name, quantity, notes, null, null)
                 } else {
-                    viewModel.updateItem(spaceId, item.id, name, quantity, notes)
+                    viewModel.updateItem(spaceId, item.id, name, quantity, notes, null, null)
                 }
                 editorVisible = false
             },
@@ -481,6 +481,7 @@ private val ShoppingUiMessage.stringResourceId: Int
         ShoppingUiMessage.NameTooLong -> R.string.shopping_error_name_too_long
         ShoppingUiMessage.QuantityTooLong -> R.string.shopping_error_quantity_too_long
         ShoppingUiMessage.NotesTooLong -> R.string.shopping_error_notes_too_long
+        ShoppingUiMessage.BrandTooLong -> R.string.shopping_error_brand_too_long
         ShoppingUiMessage.NotAuthenticated -> R.string.space_error_not_authenticated
         ShoppingUiMessage.EmailNotVerified -> R.string.space_error_email_not_verified
         ShoppingUiMessage.SpaceNotFound -> R.string.space_error_not_found

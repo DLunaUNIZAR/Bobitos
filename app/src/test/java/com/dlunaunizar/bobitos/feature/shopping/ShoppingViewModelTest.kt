@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.feature.shopping
 import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
+import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
@@ -38,12 +39,14 @@ class ShoppingViewModelTest {
 
     @Test
     fun `add trims values and reports success`() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.addItem("home", "  Leche  ", " 2 ", "  ")
+        viewModel.addItem("home", "  Leche  ", " 2 ", "  ", Supermarket.MERCADONA, "Hacendado")
         advanceUntilIdle()
 
         assertEquals("Leche", repository.addedName)
         assertEquals("2", repository.addedQuantity)
         assertNull(repository.addedNotes)
+        assertEquals(Supermarket.MERCADONA, repository.addedSupermarket)
+        assertEquals("Hacendado", repository.addedBrand)
         assertEquals(ShoppingUiMessage.ItemAdded, viewModel.uiState.value.notice)
         assertEquals(ShoppingWriteStatus.SAVED, viewModel.uiState.value.writeStatus)
         assertFalse(viewModel.uiState.value.isSaving)
@@ -51,7 +54,7 @@ class ShoppingViewModelTest {
 
     @Test
     fun `invalid product never reaches repository`() {
-        viewModel.addItem("home", " ", null, null)
+        viewModel.addItem("home", " ", null, null, null, null)
 
         assertNull(repository.addedName)
         assertEquals(ShoppingUiMessage.NameRequired, viewModel.uiState.value.error)
@@ -94,6 +97,8 @@ private class FakeShoppingRepository : ShoppingRepository {
     var addedName: String? = null
     var addedQuantity: String? = null
     var addedNotes: String? = null
+    var addedSupermarket: Supermarket? = null
+    var addedBrand: String? = null
     var purchaseChange: Triple<String, String, Boolean>? = null
     var clearCount = 0
     var nextFailure: ShoppingRepositoryException? = null
@@ -104,14 +109,31 @@ private class FakeShoppingRepository : ShoppingRepository {
         return itemState
     }
 
-    override suspend fun addItem(spaceId: String, name: String, quantity: String?, notes: String?) {
+    override suspend fun addItem(
+        spaceId: String,
+        name: String,
+        quantity: String?,
+        notes: String?,
+        supermarket: Supermarket?,
+        brand: String?,
+    ) {
         throwNextFailure()
         addedName = name
         addedQuantity = quantity
         addedNotes = notes
+        addedSupermarket = supermarket
+        addedBrand = brand
     }
 
-    override suspend fun updateItem(spaceId: String, itemId: String, name: String, quantity: String?, notes: String?) {
+    override suspend fun updateItem(
+        spaceId: String,
+        itemId: String,
+        name: String,
+        quantity: String?,
+        notes: String?,
+        supermarket: Supermarket?,
+        brand: String?,
+    ) {
         throwNextFailure()
     }
 

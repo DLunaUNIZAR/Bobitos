@@ -611,6 +611,24 @@ test("los productos no admiten assigneeId ni campos ajenos al contrato", async (
   );
 });
 
+test("los productos aceptan supermercado y marca opcionales y validan el enum", async () => {
+  await seedSpace("shopping-market", "market-owner");
+  const owner = verifiedFirestore("market-owner");
+
+  await assertSucceeds(
+    setDoc(
+      doc(owner, "spaces", "shopping-market", "shoppingItems", "ok"),
+      shoppingItem("market-owner", { supermarket: "MERCADONA", brand: "Hacendado" }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "shopping-market", "shoppingItems", "bad-market"),
+      shoppingItem("market-owner", { supermarket: "LIDL" }),
+    ),
+  );
+});
+
 test("marcar y desmarcar conserva una atribución coherente", async () => {
   await seedSpace("shopping-mark", "mark-owner", ["mark-member"]);
   await seedShoppingItem("shopping-mark", "bread", "mark-owner");

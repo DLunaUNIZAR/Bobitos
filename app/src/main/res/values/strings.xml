@@ -115,6 +115,7 @@
     <string name="shopping_error_name_too_long">El nombre no puede superar 120 caracteres.</string>
     <string name="shopping_error_quantity_too_long">La cantidad no puede superar 40 caracteres.</string>
     <string name="shopping_error_notes_too_long">Las observaciones no pueden superar 500 caracteres.</string>
+    <string name="shopping_error_brand_too_long">La marca no puede superar 60 caracteres.</string>
     <string name="shopping_error_item_not_found">El producto ya no existe.</string>
     <string name="shopping_notice_added">Producto añadido.</string>
     <string name="shopping_notice_updated">Producto actualizado.</string>

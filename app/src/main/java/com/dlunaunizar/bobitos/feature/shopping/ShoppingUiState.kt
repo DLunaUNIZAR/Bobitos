@@ -23,6 +23,7 @@ enum class ShoppingUiMessage {
     NameTooLong,
     QuantityTooLong,
     NotesTooLong,
+    BrandTooLong,
     NotAuthenticated,
     EmailNotVerified,
     SpaceNotFound,
