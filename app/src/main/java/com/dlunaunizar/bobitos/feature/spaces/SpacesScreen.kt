@@ -1,19 +1,30 @@
 package com.dlunaunizar.bobitos.feature.spaces
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -25,8 +36,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
@@ -97,42 +112,37 @@ private fun SpacesContent(
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(
-                text = stringResource(R.string.spaces_title),
-                style = MaterialTheme.typography.headlineMedium,
-            )
-            TextButton(onClick = onProfileClick) {
-                Text(text = stringResource(R.string.profile_open))
-            }
-        }
-        Text(
-            text = stringResource(R.string.spaces_description),
-            style = MaterialTheme.typography.bodyLarge,
-        )
-        SyncStatusBanner(status = syncStatus)
-        SpaceFeedback(
-            state = managementState,
-            onDismiss = onClearFeedback,
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(
-                onClick = { showCreateDialog = true },
-                enabled = !managementState.isLoading && canWrite,
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(text = stringResource(R.string.space_create))
+                Text(
+                    text = stringResource(R.string.spaces_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                )
+                IconButton(onClick = onProfileClick) {
+                    Icon(
+                        imageVector = Icons.Rounded.Person,
+                        contentDescription = stringResource(R.string.profile_open),
+                    )
+                }
             }
-            Button(
+            Text(
+                text = stringResource(R.string.spaces_description),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            SyncStatusBanner(status = syncStatus)
+            SpaceFeedback(state = managementState, onDismiss = onClearFeedback)
+            OutlinedButton(
                 onClick = {
                     invitationCode = ""
                     showJoinDialog = true
@@ -141,22 +151,31 @@ private fun SpacesContent(
             ) {
                 Text(text = stringResource(R.string.invitation_join))
             }
-        }
 
-        if (spaces.isEmpty()) {
-            Text(text = stringResource(R.string.spaces_empty))
-        } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(
-                    items = spaces,
-                    key = SpaceSummary::id,
-                ) { space ->
-                    SpaceCard(
-                        space = space,
-                        onClick = { onSpaceSelected(space) },
-                    )
+            if (spaces.isEmpty()) {
+                SpacesEmptyState(modifier = Modifier.weight(1f))
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(bottom = 88.dp),
+                ) {
+                    items(items = spaces, key = SpaceSummary::id) { space ->
+                        SpaceCard(space = space, onClick = { onSpaceSelected(space) })
+                    }
                 }
             }
+        }
+
+        if (canWrite) {
+            ExtendedFloatingActionButton(
+                onClick = { showCreateDialog = true },
+                icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                text = { Text(stringResource(R.string.space_create)) },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp),
+            )
         }
     }
 
@@ -183,6 +202,25 @@ private fun SpacesContent(
                 onAcceptInvitation(code)
                 showJoinDialog = false
             },
+        )
+    }
+}
+
+@Composable
+private fun SpacesEmptyState(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = stringResource(R.string.spaces_empty),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            text = stringResource(R.string.spaces_description),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -225,44 +263,72 @@ private fun InvitationCodeDialog(
 
 @Composable
 private fun SpaceCard(space: SpaceSummary, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
+    val scheme = MaterialTheme.colorScheme
+    val palette = listOf(
+        scheme.primaryContainer to scheme.onPrimaryContainer,
+        scheme.secondaryContainer to scheme.onSecondaryContainer,
+        scheme.tertiaryContainer to scheme.onTertiaryContainer,
+    )
+    val (container, content) = palette[space.id.hashCode().mod(palette.size)]
+    val roleText = stringResource(
+        if (space.role == SpaceRole.OWNER) R.string.space_role_owner else R.string.space_role_member,
+    )
+    val membersText = pluralStringResource(R.plurals.space_members, space.memberCount, space.memberCount)
+    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            MonogramAvatar(
+                name = space.name,
+                containerColor = container,
+                contentColor = content,
+                modifier = Modifier.clearAndSetSemantics {},
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = space.name, style = MaterialTheme.typography.titleLarge)
                 Text(
-                    text = space.name,
-                    style = MaterialTheme.typography.titleLarge,
-                )
-                Text(
-                    text = stringResource(
-                        if (space.role == SpaceRole.OWNER) {
-                            R.string.space_role_owner
-                        } else {
-                            R.string.space_role_member
-                        },
-                    ),
-                    style = MaterialTheme.typography.labelMedium,
+                    text = "$roleText · $membersText",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text(
-                text = pluralStringResource(
-                    id = R.plurals.space_members,
-                    count = space.memberCount,
-                    space.memberCount,
-                ),
-                style = MaterialTheme.typography.bodyMedium,
+            Icon(
+                imageVector = Icons.Rounded.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
 }
+
+@Composable
+private fun MonogramAvatar(name: String, containerColor: Color, contentColor: Color, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(44.dp)
+            .clip(CircleShape)
+            .background(containerColor),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = initialsOf(name),
+            color = contentColor,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+        )
+    }
+}
+
+private fun initialsOf(name: String): String = name.trim()
+    .split(Regex("\\s+"))
+    .filter(String::isNotBlank)
+    .take(2)
+    .joinToString("") { it.first().uppercase() }
+    .ifEmpty { "?" }
 
 @Composable
 internal fun SpaceNameDialog(
