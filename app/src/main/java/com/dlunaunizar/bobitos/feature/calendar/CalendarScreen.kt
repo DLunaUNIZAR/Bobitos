@@ -1,24 +1,45 @@
 package com.dlunaunizar.bobitos.feature.calendar
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.ChevronLeft
+import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,10 +50,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.EventColor
@@ -84,72 +115,82 @@ fun CalendarScreen(
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        CalendarPeriodHeader(
-            date = state.focusedDate,
-            mode = state.mode,
-            onPrevious = viewModel::previous,
-            onNext = viewModel::next,
-        )
-        CalendarModeSelector(state.mode, viewModel::setMode)
-        MemberFilters(
-            members = members,
-            selectedIds = state.selectedMemberIds,
-            onToggle = viewModel::toggleMember,
-            onSelectAll = viewModel::selectAllMembers,
-            onClear = viewModel::clearMemberSelection,
-        )
-        Button(enabled = canWrite, onClick = { creating = true }) {
-            Text("Nuevo evento")
-        }
+    Box(modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            CalendarPeriodHeader(
+                date = state.focusedDate,
+                mode = state.mode,
+                onPrevious = viewModel::previous,
+                onNext = viewModel::next,
+            )
+            CalendarModeSelector(state.mode, viewModel::setMode)
+            MemberFilters(
+                members = members,
+                selectedIds = state.selectedMemberIds,
+                onToggle = viewModel::toggleMember,
+                onSelectAll = viewModel::selectAllMembers,
+                onClear = viewModel::clearMemberSelection,
+            )
 
-        when (state.mode) {
-            CalendarDisplayMode.MONTH -> {
-                MonthGrid(
-                    month = YearMonth.from(state.focusedDate),
-                    selected = state.focusedDate,
-                    events = filteredEvents,
-                    select = viewModel::select,
-                )
-                Text(
-                    text = state.focusedDate.format(
-                        DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL),
-                    ),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                EventList(
+            when (state.mode) {
+                CalendarDisplayMode.MONTH -> {
+                    MonthGrid(
+                        month = YearMonth.from(state.focusedDate),
+                        selected = state.focusedDate,
+                        events = filteredEvents,
+                        select = viewModel::select,
+                    )
+                    Text(
+                        text = state.focusedDate.format(
+                            DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL),
+                        ),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    EventList(
+                        events = filteredEvents.eventsOn(state.focusedDate),
+                        canWrite = canWrite,
+                        onEdit = { editor = it },
+                        onDelete = viewModel::delete,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                CalendarDisplayMode.DAY -> EventList(
                     events = filteredEvents.eventsOn(state.focusedDate),
                     canWrite = canWrite,
                     onEdit = { editor = it },
                     onDelete = viewModel::delete,
                     modifier = Modifier.weight(1f),
                 )
+                CalendarDisplayMode.WEEK -> WeekEventList(
+                    focusedDate = state.focusedDate,
+                    events = filteredEvents,
+                    canWrite = canWrite,
+                    onEdit = { editor = it },
+                    onDelete = viewModel::delete,
+                    modifier = Modifier.weight(1f),
+                )
             }
-            CalendarDisplayMode.DAY -> EventList(
-                events = filteredEvents.eventsOn(state.focusedDate),
-                canWrite = canWrite,
-                onEdit = { editor = it },
-                onDelete = viewModel::delete,
-                modifier = Modifier.weight(1f),
-            )
-            CalendarDisplayMode.WEEK -> WeekEventList(
-                focusedDate = state.focusedDate,
-                events = filteredEvents,
-                canWrite = canWrite,
-                onEdit = { editor = it },
-                onDelete = viewModel::delete,
-                modifier = Modifier.weight(1f),
-            )
+
+            state.message?.let { message ->
+                Text(message, color = MaterialTheme.colorScheme.error)
+                LaunchedEffect(message) { viewModel.clearMessage() }
+            }
         }
 
-        state.message?.let { message ->
-            Text(message)
-            LaunchedEffect(message) { viewModel.clearMessage() }
+        if (canWrite) {
+            ExtendedFloatingActionButton(
+                onClick = { creating = true },
+                icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                text = { Text(stringResource(R.string.calendar_new_event)) },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp),
+            )
         }
     }
 
@@ -193,27 +234,43 @@ internal fun CalendarPeriodHeader(
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        TextButton(onClick = onPrevious) { Text("‹") }
+        IconButton(onClick = onPrevious) {
+            Icon(
+                imageVector = Icons.Rounded.ChevronLeft,
+                contentDescription = stringResource(R.string.calendar_previous_period),
+            )
+        }
         Text(label, style = MaterialTheme.typography.titleLarge)
-        TextButton(onClick = onNext) { Text("›") }
+        IconButton(onClick = onNext) {
+            Icon(
+                imageVector = Icons.Rounded.ChevronRight,
+                contentDescription = stringResource(R.string.calendar_next_period),
+            )
+        }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun CalendarModeSelector(selected: CalendarDisplayMode, onSelected: (CalendarDisplayMode) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        CalendarDisplayMode.entries.forEach { mode ->
-            FilterChip(
+    val modes = CalendarDisplayMode.entries
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+        modes.forEachIndexed { index, mode ->
+            SegmentedButton(
                 selected = selected == mode,
                 onClick = { onSelected(mode) },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = modes.size),
                 label = {
                     Text(
-                        when (mode) {
-                            CalendarDisplayMode.DAY -> "Día"
-                            CalendarDisplayMode.WEEK -> "Semana"
-                            CalendarDisplayMode.MONTH -> "Mes"
-                        },
+                        stringResource(
+                            when (mode) {
+                                CalendarDisplayMode.DAY -> R.string.calendar_mode_day
+                                CalendarDisplayMode.WEEK -> R.string.calendar_mode_week
+                                CalendarDisplayMode.MONTH -> R.string.calendar_mode_month
+                            },
+                        ),
                     )
                 },
             )
@@ -229,10 +286,10 @@ private fun MemberFilters(
     onSelectAll: () -> Unit,
     onClear: () -> Unit,
 ) {
-    Text("Personas", style = MaterialTheme.typography.titleSmall)
+    Text(stringResource(R.string.calendar_people), style = MaterialTheme.typography.titleSmall)
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        item { AssistChip(onClick = onSelectAll, label = { Text("Todas") }) }
-        item { AssistChip(onClick = onClear, label = { Text("Ninguna") }) }
+        item { AssistChip(onClick = onSelectAll, label = { Text(stringResource(R.string.calendar_all)) }) }
+        item { AssistChip(onClick = onClear, label = { Text(stringResource(R.string.calendar_none)) }) }
         items(members, key = SpaceMember::userId) { member ->
             FilterChip(
                 selected = member.userId in selectedIds,
@@ -253,27 +310,96 @@ internal fun MonthGrid(
     val zone = ZoneId.systemDefault()
     val interval = month.visibleInterval(zone)
     val first = interval.start.atZone(zone).toLocalDate()
-    Column {
-        Row {
-            listOf("L", "M", "X", "J", "V", "S", "D").forEach {
-                Text(it, Modifier.weight(1f))
+    val today = LocalDate.now()
+    Column(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth()) {
+            listOf("L", "M", "X", "J", "V", "S", "D").forEach { initial ->
+                Text(
+                    text = initial,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clearAndSetSemantics {},
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
         (0L until 42L).map(first::plusDays).chunked(7).forEach { week ->
-            Row {
+            Row(Modifier.fillMaxWidth()) {
                 week.forEach { date ->
-                    val count = events.eventsOn(date).size
-                    Text(
-                        text = "${date.dayOfMonth}${if (count > 0) " •$count" else ""}",
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { select(date) }
-                            .padding(7.dp),
-                        color = if (date == selected) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            LocalContentColor.current
+                    DayCell(
+                        date = date,
+                        dayEvents = events.eventsOn(date),
+                        isSelected = date == selected,
+                        isToday = date == today,
+                        inMonth = YearMonth.from(date) == month,
+                        onClick = { select(date) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DayCell(
+    date: LocalDate,
+    dayEvents: List<CalendarEvent>,
+    isSelected: Boolean,
+    isToday: Boolean,
+    inMonth: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val description = pluralStringResource(
+        R.plurals.calendar_day_events,
+        dayEvents.size,
+        date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)),
+        dayEvents.size,
+    )
+    val numberColor = when {
+        isSelected -> MaterialTheme.colorScheme.onPrimary
+        !inMonth -> MaterialTheme.colorScheme.onSurfaceVariant
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+    Box(
+        modifier = modifier
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .then(
+                        when {
+                            isSelected -> Modifier.background(MaterialTheme.colorScheme.primary)
+                            isToday -> Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                            else -> Modifier
                         },
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = date.dayOfMonth.toString(),
+                    color = numberColor,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                dayEvents.take(3).forEach { event ->
+                    Box(
+                        Modifier
+                            .size(5.dp)
+                            .clip(CircleShape)
+                            .background(event.color.accent()),
                     )
                 }
             }
@@ -291,7 +417,11 @@ private fun WeekEventList(
     modifier: Modifier = Modifier,
 ) {
     val monday = focusedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-    LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    LazyColumn(
+        modifier,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        contentPadding = PaddingValues(bottom = 88.dp),
+    ) {
         (0L..6L).forEach { offset ->
             val date = monday.plusDays(offset)
             item("header-$date") {
@@ -302,7 +432,12 @@ private fun WeekEventList(
             }
             val dayEvents = events.eventsOn(date)
             if (dayEvents.isEmpty()) {
-                item("empty-$date") { Text("Sin eventos") }
+                item("empty-$date") {
+                    Text(
+                        stringResource(R.string.calendar_no_events),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             } else {
                 items(dayEvents, key = { "$date-${it.id}" }) { event ->
                     EventRow(event, canWrite, { onEdit(event) }, { onDelete(event.id) })
@@ -320,8 +455,19 @@ private fun EventList(
     onDelete: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        if (events.isEmpty()) item { Text("Sin eventos") }
+    LazyColumn(
+        modifier,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        contentPadding = PaddingValues(bottom = 88.dp),
+    ) {
+        if (events.isEmpty()) {
+            item {
+                Text(
+                    stringResource(R.string.calendar_no_events),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         items(events, key = CalendarEvent::id) { event ->
             EventRow(event, canWrite, { onEdit(event) }, { onDelete(event.id) })
         }
@@ -330,28 +476,71 @@ private fun EventList(
 
 @Composable
 private fun EventRow(event: CalendarEvent, canWrite: Boolean, edit: () -> Unit, delete: () -> Unit) {
-    Card(Modifier.fillMaxWidth().clickable(enabled = canWrite, onClick = edit)) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    Card(
+        Modifier
+            .fillMaxWidth()
+            .clickable(enabled = canWrite, onClick = edit),
+    ) {
         Row(
             Modifier.padding(12.dp).fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column {
-                Text(event.title)
+            Box(
+                Modifier
+                    .padding(end = 12.dp)
+                    .size(width = 4.dp, height = 40.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(event.color.accent()),
+            )
+            Column(Modifier.weight(1f)) {
+                Text(event.title, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    if (event.allDay) {
-                        "Todo el día"
+                    text = if (event.allDay) {
+                        stringResource(R.string.calendar_all_day)
                     } else {
                         event.startAt.atZone(ZoneId.systemDefault())
                             .format(DateTimeFormatter.ofPattern("dd/MM HH:mm"))
                     },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (event.participantNames.isNotEmpty()) {
-                    Text(event.participantNames.joinToString())
-                } else {
-                    Text("Evento general")
+                Text(
+                    text = if (event.participantNames.isNotEmpty()) {
+                        event.participantNames.joinToString()
+                    } else {
+                        stringResource(R.string.calendar_general_event)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (canWrite) {
+                Box {
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Icon(
+                            Icons.Rounded.MoreVert,
+                            contentDescription = stringResource(R.string.more_options),
+                        )
+                    }
+                    DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.calendar_edit)) },
+                            onClick = {
+                                menuExpanded = false
+                                edit()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.calendar_delete)) },
+                            onClick = {
+                                menuExpanded = false
+                                delete()
+                            },
+                        )
+                    }
                 }
             }
-            TextButton(enabled = canWrite, onClick = delete) { Text("Eliminar") }
         }
     }
 }
@@ -401,49 +590,55 @@ private fun EventEditor(
     var error by remember { mutableStateOf<String?>(null) }
     var color by remember { mutableStateOf(event?.color ?: EventColor.BLUE) }
     var selected by remember { mutableStateOf(event?.participantIds?.toSet().orEmpty()) }
+    val dateError = stringResource(R.string.calendar_date_error)
+    val startLabelRes = if (allDay) R.string.calendar_start_date_label else R.string.calendar_start_datetime_label
+    val endLabelRes = if (allDay) R.string.calendar_end_date_label else R.string.calendar_end_datetime_label
 
     AlertDialog(
         onDismissRequest = dismiss,
-        title = { Text(if (event == null) "Nuevo evento" else "Editar evento") },
+        title = {
+            Text(
+                stringResource(
+                    if (event == null) R.string.calendar_new_event else R.string.calendar_edit_event_title,
+                ),
+            )
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(title, { title = it }, label = { Text("Título") })
+                OutlinedTextField(
+                    title,
+                    { title = it },
+                    label = { Text(stringResource(R.string.calendar_event_title_label)) },
+                    singleLine = true,
+                )
                 OutlinedTextField(
                     description,
                     { description = it },
-                    label = { Text("Descripción") },
+                    label = { Text(stringResource(R.string.calendar_event_description_label)) },
                 )
-                Row {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(allDay, { allDay = it })
-                    Text("Todo el día")
+                    Text(stringResource(R.string.calendar_all_day))
                 }
                 OutlinedTextField(
                     start,
                     { start = it },
-                    label = { Text(if (allDay) "Inicio AAAA-MM-DD" else "Inicio AAAA-MM-DD HH:mm") },
+                    label = { Text(stringResource(startLabelRes)) },
+                    singleLine = true,
                 )
                 OutlinedTextField(
                     end,
                     { end = it },
-                    label = { Text(if (allDay) "Fin AAAA-MM-DD" else "Fin AAAA-MM-DD HH:mm") },
+                    label = { Text(stringResource(endLabelRes)) },
+                    singleLine = true,
                 )
-                Text("Color")
-                Row {
-                    EventColor.entries.forEach {
-                        Text(
-                            it.name.take(1),
-                            Modifier.clickable { color = it }.padding(5.dp),
-                            color = if (it == color) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                LocalContentColor.current
-                            },
-                        )
-                    }
+                Text(stringResource(R.string.calendar_color_label), style = MaterialTheme.typography.labelLarge)
+                ColorPicker(selected = color, onSelect = { color = it })
+                if (members.isNotEmpty()) {
+                    Text(stringResource(R.string.calendar_participants_label))
                 }
-                if (members.isNotEmpty()) Text("Participantes opcionales")
                 members.forEach { member ->
-                    Row {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(
                             member.userId in selected,
                             { checked ->
@@ -494,13 +689,38 @@ private fun EventEditor(
                             ),
                         )
                     } catch (_: Exception) {
-                        error = "Revisa las fechas y el intervalo"
+                        error = dateError
                     }
                 },
-            ) { Text("Guardar") }
+            ) { Text(stringResource(R.string.calendar_save)) }
         },
-        dismissButton = { TextButton(onClick = dismiss) { Text("Cancelar") } },
+        dismissButton = { TextButton(onClick = dismiss) { Text(stringResource(R.string.cancel)) } },
     )
+}
+
+@Composable
+private fun ColorPicker(selected: EventColor, onSelect: (EventColor) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        EventColor.entries.forEach { option ->
+            val label = stringResource(option.labelRes)
+            val isSelected = option == selected
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(option.accent())
+                    .then(
+                        if (isSelected) {
+                            Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
+                        } else {
+                            Modifier
+                        },
+                    )
+                    .clickable { onSelect(option) }
+                    .semantics { contentDescription = label },
+            )
+        }
+    }
 }
 
 private fun parseLocal(value: String, formatter: DateTimeFormatter, zone: ZoneId): Instant {

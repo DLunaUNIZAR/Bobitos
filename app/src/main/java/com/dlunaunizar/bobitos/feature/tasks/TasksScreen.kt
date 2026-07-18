@@ -35,6 +35,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.SpaceMember
@@ -49,22 +51,14 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun TasksScreen(
     spaceId: String,
-    state: TasksUiState,
     canWrite: Boolean,
-    onObserve: (String) -> Unit,
-    onStopObserving: () -> Unit,
-    onFiltersChanged: (TaskFilters) -> Unit,
-    onCreate: (String, String?, String?, Instant?, TaskPriority) -> Unit,
-    onUpdate: (String, String, String?, String?, Instant?, TaskPriority) -> Unit,
-    onSetCompleted: (String, Boolean) -> Unit,
-    onDelete: (String) -> Unit,
-    onInvalidDate: () -> Unit,
-    onClearFeedback: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: TasksViewModel = hiltViewModel(),
 ) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     DisposableEffect(spaceId) {
-        onObserve(spaceId)
-        onDispose(onStopObserving)
+        viewModel.observe(spaceId)
+        onDispose { viewModel.stopObserving() }
     }
     val members = (state.members as? UiState.Content)?.value.orEmpty()
     val allTasks = (state.tasks as? UiState.Content)?.value.orEmpty()
@@ -96,8 +90,8 @@ fun TasksScreen(
                 editorVisible = true
             }) { Text(stringResource(R.string.tasks_add)) }
         }
-        TaskFeedback(state, onClearFeedback)
-        TaskFilterBar(state.filters, members, onFiltersChanged)
+        TaskFeedback(state, viewModel::clearFeedback)
+        TaskFilterBar(state.filters, members, viewModel::setFilters)
         when (val tasks = state.tasks) {
             UiState.Loading -> Text(stringResource(R.string.generic_loading))
             is UiState.Error -> Text(
@@ -117,7 +111,7 @@ fun TasksScreen(
                         TaskCard(
                             task,
                             enabled,
-                            onSetCompleted = { onSetCompleted(task.id, it) },
+                            onSetCompleted = { viewModel.setCompleted(spaceId, task.id, it) },
                             onEdit = {
                                 editorTask = task
                                 editorVisible = true
@@ -136,10 +130,11 @@ fun TasksScreen(
             members = members,
             saving = state.isSaving,
             onDismiss = { editorVisible = false },
-            onInvalidDate = onInvalidDate,
+            onInvalidDate = viewModel::showInvalidDate,
             onSave = { title, description, assignee, due, priority ->
-                editorTask?.let { onUpdate(it.id, title, description, assignee, due, priority) }
-                    ?: onCreate(title, description, assignee, due, priority)
+                editorTask?.let {
+                    viewModel.updateTask(spaceId, it.id, title, description, assignee, due, priority)
+                } ?: viewModel.createTask(spaceId, title, description, assignee, due, priority)
                 editorVisible = false
             },
         )
@@ -151,7 +146,7 @@ fun TasksScreen(
             text = { Text(stringResource(R.string.tasks_delete_body, task.title)) },
             confirmButton = {
                 TextButton(enabled = enabled, onClick = {
-                    onDelete(task.id)
+                    viewModel.deleteTask(spaceId, task.id)
                     deleteTask = null
                 }) { Text(stringResource(R.string.tasks_delete)) }
             },

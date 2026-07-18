@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fondo de la ventana previa a Compose (superficie de marca en claro). -->
+    <color name="bobitos_window">#FFFFF8F6</color>
+</resources>

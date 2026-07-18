@@ -12,25 +12,18 @@ import androidx.navigation.compose.rememberNavController
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
-import com.dlunaunizar.bobitos.core.model.TaskPriority
 import com.dlunaunizar.bobitos.core.navigation.BobitosNavHost
 import com.dlunaunizar.bobitos.feature.auth.AuthActionUiState
 import com.dlunaunizar.bobitos.feature.auth.AuthNavHost
 import com.dlunaunizar.bobitos.feature.auth.EmailVerificationScreen
 import com.dlunaunizar.bobitos.feature.auth.FullScreenLoading
-import com.dlunaunizar.bobitos.feature.shopping.ShoppingUiState
 import com.dlunaunizar.bobitos.feature.spaces.SpaceManagementUiState
-import com.dlunaunizar.bobitos.feature.tasks.TaskFilters
-import com.dlunaunizar.bobitos.feature.tasks.TasksUiState
-import java.time.Instant
 
 @Composable
 fun BobitosApp(
     uiState: AppUiState,
     authActionState: AuthActionUiState,
     spaceManagementState: SpaceManagementUiState,
-    shoppingState: ShoppingUiState,
-    tasksState: TasksUiState,
     onSpaceSelected: (String) -> Unit,
     onRealtimeScopeChanged: (RealtimeScope) -> Unit,
     onCreateSpace: (String) -> Unit,
@@ -49,23 +42,6 @@ fun BobitosApp(
     pendingInvitationCode: String?,
     onInvitationCodeConsumed: () -> Unit,
     onClearSpaceFeedback: () -> Unit,
-    onObserveShopping: (String) -> Unit,
-    onStopObservingShopping: () -> Unit,
-    onAddShoppingItem: (String, String, String?, String?) -> Unit,
-    onUpdateShoppingItem: (String, String, String, String?, String?) -> Unit,
-    onSetShoppingItemPurchased: (String, String, Boolean) -> Unit,
-    onDeleteShoppingItem: (String, String) -> Unit,
-    onClearPurchasedShoppingItems: (String) -> Unit,
-    onClearShoppingFeedback: () -> Unit,
-    onObserveTasks: (String) -> Unit,
-    onStopObservingTasks: () -> Unit,
-    onTaskFiltersChanged: (TaskFilters) -> Unit,
-    onCreateTask: (String, String, String?, String?, Instant?, TaskPriority) -> Unit,
-    onUpdateTask: (String, String, String, String?, String?, Instant?, TaskPriority) -> Unit,
-    onSetTaskCompleted: (String, String, Boolean) -> Unit,
-    onDeleteTask: (String, String) -> Unit,
-    onInvalidTaskDate: () -> Unit,
-    onClearTaskFeedback: () -> Unit,
     onSignIn: (email: String, password: String) -> Unit,
     onRegister: (
         displayName: String,
@@ -116,8 +92,6 @@ fun BobitosApp(
                             authUser = user,
                             authActionState = authActionState,
                             spaceManagementState = spaceManagementState,
-                            shoppingState = shoppingState,
-                            tasksState = tasksState,
                             onSpaceSelected = onSpaceSelected,
                             onRealtimeScopeChanged = onRealtimeScopeChanged,
                             onCreateSpace = onCreateSpace,
@@ -136,23 +110,6 @@ fun BobitosApp(
                             pendingInvitationCode = pendingInvitationCode,
                             onInvitationCodeConsumed = onInvitationCodeConsumed,
                             onClearSpaceFeedback = onClearSpaceFeedback,
-                            onObserveShopping = onObserveShopping,
-                            onStopObservingShopping = onStopObservingShopping,
-                            onAddShoppingItem = onAddShoppingItem,
-                            onUpdateShoppingItem = onUpdateShoppingItem,
-                            onSetShoppingItemPurchased = onSetShoppingItemPurchased,
-                            onDeleteShoppingItem = onDeleteShoppingItem,
-                            onClearPurchasedShoppingItems = onClearPurchasedShoppingItems,
-                            onClearShoppingFeedback = onClearShoppingFeedback,
-                            onObserveTasks = onObserveTasks,
-                            onStopObservingTasks = onStopObservingTasks,
-                            onTaskFiltersChanged = onTaskFiltersChanged,
-                            onCreateTask = onCreateTask,
-                            onUpdateTask = onUpdateTask,
-                            onSetTaskCompleted = onSetTaskCompleted,
-                            onDeleteTask = onDeleteTask,
-                            onInvalidTaskDate = onInvalidTaskDate,
-                            onClearTaskFeedback = onClearTaskFeedback,
                             onUpdateDisplayName = onUpdateDisplayName,
                             onSignOut = onSignOut,
                             onDeleteAccount = onDeleteAccount,

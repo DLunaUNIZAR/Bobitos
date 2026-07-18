@@ -5,16 +5,25 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AccountCircle
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -31,7 +40,6 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SyncStatus
-import com.dlunaunizar.bobitos.core.model.TaskPriority
 import com.dlunaunizar.bobitos.core.model.canWrite
 import com.dlunaunizar.bobitos.feature.auth.AuthActionUiState
 import com.dlunaunizar.bobitos.feature.auth.ProfileScreen
@@ -39,14 +47,10 @@ import com.dlunaunizar.bobitos.feature.calendar.CalendarScreen
 import com.dlunaunizar.bobitos.feature.calendar.PersonalCalendarScreen
 import com.dlunaunizar.bobitos.feature.common.SyncStatusBanner
 import com.dlunaunizar.bobitos.feature.shopping.ShoppingScreen
-import com.dlunaunizar.bobitos.feature.shopping.ShoppingUiState
 import com.dlunaunizar.bobitos.feature.spaces.SpaceManagementUiState
 import com.dlunaunizar.bobitos.feature.spaces.SpaceSettingsScreen
 import com.dlunaunizar.bobitos.feature.spaces.SpacesScreen
-import com.dlunaunizar.bobitos.feature.tasks.TaskFilters
 import com.dlunaunizar.bobitos.feature.tasks.TasksScreen
-import com.dlunaunizar.bobitos.feature.tasks.TasksUiState
-import java.time.Instant
 import java.time.LocalDate
 
 @Composable
@@ -56,8 +60,6 @@ fun BobitosNavHost(
     authUser: AuthUser,
     authActionState: AuthActionUiState,
     spaceManagementState: SpaceManagementUiState,
-    shoppingState: ShoppingUiState,
-    tasksState: TasksUiState,
     onSpaceSelected: (String) -> Unit,
     onRealtimeScopeChanged: (RealtimeScope) -> Unit,
     onCreateSpace: (String) -> Unit,
@@ -76,23 +78,6 @@ fun BobitosNavHost(
     pendingInvitationCode: String?,
     onInvitationCodeConsumed: () -> Unit,
     onClearSpaceFeedback: () -> Unit,
-    onObserveShopping: (String) -> Unit,
-    onStopObservingShopping: () -> Unit,
-    onAddShoppingItem: (String, String, String?, String?) -> Unit,
-    onUpdateShoppingItem: (String, String, String, String?, String?) -> Unit,
-    onSetShoppingItemPurchased: (String, String, Boolean) -> Unit,
-    onDeleteShoppingItem: (String, String) -> Unit,
-    onClearPurchasedShoppingItems: (String) -> Unit,
-    onClearShoppingFeedback: () -> Unit,
-    onObserveTasks: (String) -> Unit,
-    onStopObservingTasks: () -> Unit,
-    onTaskFiltersChanged: (TaskFilters) -> Unit,
-    onCreateTask: (String, String, String?, String?, Instant?, TaskPriority) -> Unit,
-    onUpdateTask: (String, String, String, String?, String?, Instant?, TaskPriority) -> Unit,
-    onSetTaskCompleted: (String, String, Boolean) -> Unit,
-    onDeleteTask: (String, String) -> Unit,
-    onInvalidTaskDate: () -> Unit,
-    onClearTaskFeedback: () -> Unit,
     onUpdateDisplayName: (String) -> Unit,
     onSignOut: () -> Unit,
     onDeleteAccount: (String) -> Unit,
@@ -231,22 +216,7 @@ fun BobitosNavHost(
                 uiState.selectedSpace?.let { space ->
                     ShoppingScreen(
                         spaceId = space.id,
-                        state = shoppingState,
                         canWrite = uiState.syncStatus.canWrite,
-                        onObserve = onObserveShopping,
-                        onStopObserving = onStopObservingShopping,
-                        onAdd = { name, quantity, notes ->
-                            onAddShoppingItem(space.id, name, quantity, notes)
-                        },
-                        onUpdate = { itemId, name, quantity, notes ->
-                            onUpdateShoppingItem(space.id, itemId, name, quantity, notes)
-                        },
-                        onSetPurchased = { itemId, purchased ->
-                            onSetShoppingItemPurchased(space.id, itemId, purchased)
-                        },
-                        onDelete = { itemId -> onDeleteShoppingItem(space.id, itemId) },
-                        onClearPurchased = { onClearPurchasedShoppingItems(space.id) },
-                        onClearFeedback = onClearShoppingFeedback,
                     )
                 }
             }
@@ -271,23 +241,7 @@ fun BobitosNavHost(
                 uiState.selectedSpace?.let { space ->
                     TasksScreen(
                         spaceId = space.id,
-                        state = tasksState,
                         canWrite = uiState.syncStatus.canWrite,
-                        onObserve = onObserveTasks,
-                        onStopObserving = onStopObservingTasks,
-                        onFiltersChanged = onTaskFiltersChanged,
-                        onCreate = { title, description, assignee, dueAt, priority ->
-                            onCreateTask(space.id, title, description, assignee, dueAt, priority)
-                        },
-                        onUpdate = { taskId, title, description, assignee, dueAt, priority ->
-                            onUpdateTask(space.id, taskId, title, description, assignee, dueAt, priority)
-                        },
-                        onSetCompleted = { taskId, completed ->
-                            onSetTaskCompleted(space.id, taskId, completed)
-                        },
-                        onDelete = { taskId -> onDeleteTask(space.id, taskId) },
-                        onInvalidDate = onInvalidTaskDate,
-                        onClearFeedback = onClearTaskFeedback,
                     )
                 }
             }
@@ -405,7 +359,7 @@ private fun RootScaffold(
                     NavigationBarItem(
                         selected = destination == currentDestination,
                         onClick = { onDestinationSelected(destination) },
-                        icon = { Text(destination.iconText) },
+                        icon = { Icon(destination.icon, contentDescription = null) },
                         label = { Text(stringResource(destination.titleRes)) },
                     )
                 }
@@ -443,14 +397,37 @@ private fun WorkspaceScaffold(
                         }
                     },
                     actions = {
-                        TextButton(onClick = onSpaceSettings) {
-                            Text(text = stringResource(R.string.space_settings))
+                        IconButton(onClick = onProfile) {
+                            Icon(
+                                imageVector = Icons.Rounded.AccountCircle,
+                                contentDescription = stringResource(R.string.profile_open),
+                            )
                         }
-                        TextButton(onClick = onProfile) {
-                            Text(text = stringResource(R.string.profile_open))
+                        var menuExpanded by remember { mutableStateOf(false) }
+                        IconButton(onClick = { menuExpanded = true }) {
+                            Icon(
+                                imageVector = Icons.Rounded.MoreVert,
+                                contentDescription = stringResource(R.string.more_options),
+                            )
                         }
-                        TextButton(onClick = onSwitchSpace) {
-                            Text(text = stringResource(R.string.change_space))
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(text = stringResource(R.string.space_settings)) },
+                                onClick = {
+                                    menuExpanded = false
+                                    onSpaceSettings()
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(text = stringResource(R.string.change_space)) },
+                                onClick = {
+                                    menuExpanded = false
+                                    onSwitchSpace()
+                                },
+                            )
                         }
                     },
                 )
@@ -463,7 +440,7 @@ private fun WorkspaceScaffold(
                     NavigationBarItem(
                         selected = destination == currentDestination,
                         onClick = { onDestinationSelected(destination) },
-                        icon = { Text(text = destination.iconText) },
+                        icon = { Icon(destination.icon, contentDescription = null) },
                         label = { Text(text = stringResource(destination.titleRes)) },
                     )
                 }
