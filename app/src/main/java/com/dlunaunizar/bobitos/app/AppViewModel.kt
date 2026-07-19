@@ -153,7 +153,9 @@ class AppViewModel @Inject constructor(
 
     fun selectSpace(spaceId: String) {
         val userId = (sessionUser.value as? UiState.Content)?.value?.id ?: return
-        syncRepository.requireRefresh()
+        // El estado REFRESHING lo gobierna solo el bucle de sync (que además lo limpia a ONLINE).
+        // Ponerlo aquí dejaba "Actualizando…" infinito al reentrar en el mismo espacio: el bucle
+        // no se re-dispara con una selección idéntica, así que nadie volvía a poner ONLINE.
         requestedSelection.value = RequestedSelection(userId, spaceId)
         viewModelScope.launch {
             activeSpaceRepository.setActiveSpace(userId, spaceId)

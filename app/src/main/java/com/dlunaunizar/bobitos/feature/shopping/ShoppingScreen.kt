@@ -537,7 +537,17 @@ private fun resolveSupermarket(selected: Supermarket?, present: List<Supermarket
     selected?.takeIf(present::contains)
 
 private fun List<ShoppingItem>.forSupermarket(supermarket: Supermarket?): List<ShoppingItem> =
-    if (supermarket == null) this else filter { it.supermarket == supermarket }
+    if (supermarket == null) {
+        this
+    } else {
+        // Al filtrar por un supermercado también aparecen los productos sin supermercado y los
+        // marcados como "Indiferente" (valen para cualquier supermercado).
+        filter {
+            it.supermarket == supermarket ||
+                it.supermarket == null ||
+                it.supermarket == Supermarket.INDIFERENTE
+        }
+    }
 
 @Composable
 private fun SupermarketDropdown(selected: Supermarket?, onSelect: (Supermarket?) -> Unit) {
