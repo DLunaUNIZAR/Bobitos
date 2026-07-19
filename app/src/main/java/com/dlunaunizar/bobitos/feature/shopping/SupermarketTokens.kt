@@ -17,9 +17,9 @@ internal val Supermarket.labelRes: Int
         Supermarket.INDIFERENTE -> R.string.supermarket_indiferente
     }
 
-// Punto de color por supermercado (identidad visual sin usar logotipos, por marca registrada).
-// Tonos medios legibles en claro y oscuro cuando se usan como punto/insignia pequeña.
-internal fun Supermarket.dotColor(): Color = when (this) {
+// Color de marca por supermercado (identidad visual sin usar logotipos, por marca registrada).
+// Se usa para tintar un icono de tienda genérico; tonos medios legibles en claro y oscuro.
+internal fun Supermarket.brandColor(): Color = when (this) {
     Supermarket.DIA -> Color(0xFFC8102E)
     Supermarket.EROSKI -> Color(0xFFEC6608)
     Supermarket.MERCADONA -> Color(0xFF00843D)
