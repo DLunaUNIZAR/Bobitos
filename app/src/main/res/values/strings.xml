@@ -116,6 +116,17 @@
     <string name="shopping_error_quantity_too_long">La cantidad no puede superar 40 caracteres.</string>
     <string name="shopping_error_notes_too_long">Las observaciones no pueden superar 500 caracteres.</string>
     <string name="shopping_error_brand_too_long">La marca no puede superar 60 caracteres.</string>
+    <string name="shopping_supermarket_label">Supermercado (opcional)</string>
+    <string name="shopping_supermarket_none">Sin especificar</string>
+    <string name="shopping_brand_label">Marca (opcional)</string>
+    <string name="shopping_filter_all">Todos</string>
+    <string name="supermarket_dia">DIA</string>
+    <string name="supermarket_eroski">Eroski</string>
+    <string name="supermarket_mercadona">Mercadona</string>
+    <string name="supermarket_carrefour">Carrefour</string>
+    <string name="supermarket_alcampo">Alcampo</string>
+    <string name="supermarket_otros">Otros</string>
+    <string name="supermarket_indiferente">Indiferente</string>
     <string name="shopping_error_item_not_found">El producto ya no existe.</string>
     <string name="shopping_notice_added">Producto añadido.</string>
     <string name="shopping_notice_updated">Producto actualizado.</string>

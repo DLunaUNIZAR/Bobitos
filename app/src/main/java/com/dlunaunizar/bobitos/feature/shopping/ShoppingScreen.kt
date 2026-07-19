@@ -1,5 +1,7 @@
 package com.dlunaunizar.bobitos.feature.shopping
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,8 +12,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.MoreVert
@@ -21,9 +26,11 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -36,6 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
@@ -46,6 +54,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
+import com.dlunaunizar.bobitos.core.model.Supermarket
 
 @Composable
 fun ShoppingScreen(
@@ -66,8 +75,13 @@ fun ShoppingScreen(
     var itemToDelete by remember { mutableStateOf<ShoppingItem?>(null) }
     var clearConfirmationVisible by remember { mutableStateOf(false) }
     val content = state.items as? UiState.Content
-    val pending = content?.value?.filterNot(ShoppingItem::purchased).orEmpty()
-    val purchased = content?.value?.filter(ShoppingItem::purchased).orEmpty()
+    val allItems = content?.value.orEmpty()
+    var selectedSupermarket by remember { mutableStateOf<Supermarket?>(null) }
+    val presentSupermarkets = allItems.mapNotNull(ShoppingItem::supermarket).distinct()
+    val activeSupermarket = resolveSupermarket(selectedSupermarket, presentSupermarkets)
+    val filteredItems = allItems.forSupermarket(activeSupermarket)
+    val pending = filteredItems.filterNot(ShoppingItem::purchased)
+    val purchased = filteredItems.filter(ShoppingItem::purchased)
     val actionsEnabled = canWrite && !state.isSaving
 
     Box(modifier.fillMaxSize()) {
@@ -89,6 +103,14 @@ fun ShoppingScreen(
                     ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            if (presentSupermarkets.isNotEmpty()) {
+                SupermarketFilterRow(
+                    supermarkets = presentSupermarkets,
+                    selected = activeSupermarket,
+                    onSelect = { selectedSupermarket = it },
                 )
             }
 
@@ -189,12 +211,12 @@ fun ShoppingScreen(
             item = editedItem,
             saving = state.isSaving,
             onDismiss = { editorVisible = false },
-            onSave = { name, quantity, notes ->
+            onSave = { name, quantity, notes, supermarket, brand ->
                 val item = editedItem
                 if (item == null) {
-                    viewModel.addItem(spaceId, name, quantity, notes, null, null)
+                    viewModel.addItem(spaceId, name, quantity, notes, supermarket, brand)
                 } else {
-                    viewModel.updateItem(spaceId, item.id, name, quantity, notes, null, null)
+                    viewModel.updateItem(spaceId, item.id, name, quantity, notes, supermarket, brand)
                 }
                 editorVisible = false
             },
@@ -353,6 +375,9 @@ private fun ShoppingItemCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+                if (item.supermarket != null || !item.brand.isNullOrBlank()) {
+                    SupermarketBrandLine(supermarket = item.supermarket, brand = item.brand)
+                }
                 item.notes?.let {
                     Text(
                         text = it,
@@ -403,11 +428,13 @@ private fun ShoppingItemEditor(
     item: ShoppingItem?,
     saving: Boolean,
     onDismiss: () -> Unit,
-    onSave: (String, String?, String?) -> Unit,
+    onSave: (String, String?, String?, Supermarket?, String?) -> Unit,
 ) {
     var name by remember(item?.id) { mutableStateOf(item?.name.orEmpty()) }
     var quantity by remember(item?.id) { mutableStateOf(item?.quantity.orEmpty()) }
     var notes by remember(item?.id) { mutableStateOf(item?.notes.orEmpty()) }
+    var supermarket by remember(item?.id) { mutableStateOf(item?.supermarket) }
+    var brand by remember(item?.id) { mutableStateOf(item?.brand.orEmpty()) }
     val validation = ShoppingValidation.validate(name, quantity, notes)
 
     AlertDialog(
@@ -461,18 +488,150 @@ private fun ShoppingItemEditor(
                     minLines = 2,
                     maxLines = 4,
                 )
+                SupermarketAndBrandFields(
+                    supermarket = supermarket,
+                    onSupermarket = { supermarket = it },
+                    brand = brand,
+                    onBrand = { brand = it },
+                )
             }
         },
         confirmButton = {
             TextButton(
                 enabled = validation == null && !saving,
-                onClick = { onSave(name, quantity, notes) },
+                onClick = { onSave(name, quantity, notes, supermarket, brand.trim().ifEmpty { null }) },
             ) { Text(stringResource(R.string.confirm)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
     )
+}
+
+@Composable
+private fun SupermarketAndBrandFields(
+    supermarket: Supermarket?,
+    onSupermarket: (Supermarket?) -> Unit,
+    brand: String,
+    onBrand: (String) -> Unit,
+) {
+    Text(
+        text = stringResource(R.string.shopping_supermarket_label),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    SupermarketDropdown(selected = supermarket, onSelect = onSupermarket)
+    OutlinedTextField(
+        value = brand,
+        onValueChange = onBrand,
+        label = { Text(stringResource(R.string.shopping_brand_label)) },
+        singleLine = true,
+    )
+}
+
+private fun resolveSupermarket(selected: Supermarket?, present: List<Supermarket>): Supermarket? =
+    selected?.takeIf(present::contains)
+
+private fun List<ShoppingItem>.forSupermarket(supermarket: Supermarket?): List<ShoppingItem> =
+    if (supermarket == null) this else filter { it.supermarket == supermarket }
+
+@Composable
+private fun SupermarketDropdown(selected: Supermarket?, onSelect: (Supermarket?) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box(modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+            if (selected != null) {
+                SupermarketDot(selected, Modifier.padding(end = 8.dp))
+            }
+            Text(
+                text = selected?.let { stringResource(it.labelRes) }
+                    ?: stringResource(R.string.shopping_supermarket_none),
+                modifier = Modifier.weight(1f),
+            )
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.shopping_supermarket_none)) },
+                onClick = {
+                    onSelect(null)
+                    expanded = false
+                },
+            )
+            Supermarket.entries.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(option.labelRes)) },
+                    leadingIcon = { SupermarketDot(option) },
+                    onClick = {
+                        onSelect(option)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SupermarketDot(supermarket: Supermarket, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(12.dp)
+            .clip(CircleShape)
+            .background(supermarket.dotColor()),
+    )
+}
+
+@Composable
+private fun SupermarketBrandLine(supermarket: Supermarket?, brand: String?) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        if (supermarket != null) {
+            SupermarketDot(supermarket)
+            Text(
+                text = stringResource(supermarket.labelRes),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (!brand.isNullOrBlank()) {
+            Text(
+                text = if (supermarket != null) "· $brand" else brand,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SupermarketFilterRow(
+    supermarkets: List<Supermarket>,
+    selected: Supermarket?,
+    onSelect: (Supermarket?) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(top = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        FilterChip(
+            selected = selected == null,
+            onClick = { onSelect(null) },
+            label = { Text(stringResource(R.string.shopping_filter_all)) },
+        )
+        supermarkets.forEach { option ->
+            FilterChip(
+                selected = selected == option,
+                onClick = { onSelect(option) },
+                leadingIcon = { SupermarketDot(option) },
+                label = { Text(stringResource(option.labelRes)) },
+            )
+        }
+    }
 }
 
 private val ShoppingUiMessage.stringResourceId: Int
