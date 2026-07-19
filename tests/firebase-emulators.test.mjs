@@ -680,6 +680,24 @@ test("las tareas aceptan recurrencia opcional y validan unidad e intervalo", asy
   );
 });
 
+test("las tareas aceptan startAt opcional y validan que sea timestamp", async () => {
+  await seedSpace("task-start", "task-start-owner");
+  const owner = verifiedFirestore("task-start-owner");
+
+  await assertSucceeds(
+    setDoc(
+      doc(owner, "spaces", "task-start", "tasks", "ok"),
+      taskData("task-start-owner", "task-start-owner", { startAt: Timestamp.now() }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "task-start", "tasks", "bad-start"),
+      taskData("task-start-owner", "task-start-owner", { startAt: "no-timestamp" }),
+    ),
+  );
+});
+
 test("marcar y desmarcar conserva una atribución coherente", async () => {
   await seedSpace("shopping-mark", "mark-owner", ["mark-member"]);
   await seedShoppingItem("shopping-mark", "bread", "mark-owner");

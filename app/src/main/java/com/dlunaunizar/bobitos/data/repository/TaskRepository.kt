@@ -19,6 +19,7 @@ interface TaskRepository {
         priority: TaskPriority,
         type: TaskType?,
         recurrence: TaskRecurrence?,
+        startAt: Instant?,
     )
 
     suspend fun updateTask(
@@ -31,6 +32,7 @@ interface TaskRepository {
         priority: TaskPriority,
         type: TaskType?,
         recurrence: TaskRecurrence?,
+        startAt: Instant?,
     )
 
     suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean)

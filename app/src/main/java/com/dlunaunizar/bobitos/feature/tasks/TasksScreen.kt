@@ -142,10 +142,10 @@ fun TasksScreen(
             saving = state.isSaving,
             onDismiss = { editorVisible = false },
             onInvalidDate = viewModel::showInvalidDate,
-            onSave = { title, description, assignee, due, priority, type, recurrence ->
+            onSave = { title, description, assignee, due, priority, type, recurrence, start ->
                 editorTask?.let {
                     viewModel.updateTask(
-                        spaceId, it.id, title, description, assignee, due, priority, type, recurrence,
+                        spaceId, it.id, title, description, assignee, due, priority, type, recurrence, start,
                     )
                 } ?: viewModel.createTask(
                     spaceId,
@@ -156,6 +156,7 @@ fun TasksScreen(
                     priority,
                     type,
                     recurrence,
+                    start,
                 )
                 editorVisible = false
             },
@@ -286,6 +287,13 @@ private fun TaskCard(
                     color = if (task.assigneeId == null) MaterialTheme.colorScheme.error else Color.Unspecified,
                 )
                 Text("${task.priority.label()} · ${task.dueAt?.formatDate() ?: stringResource(R.string.tasks_no_date)}")
+                task.startAt?.let { start ->
+                    Text(
+                        text = stringResource(R.string.tasks_start_date_value, start.formatDate()),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 task.type?.let { type ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
@@ -344,11 +352,12 @@ private fun TaskEditor(
     saving: Boolean,
     onDismiss: () -> Unit,
     onInvalidDate: () -> Unit,
-    onSave: (String, String?, String?, Instant?, TaskPriority, TaskType?, TaskRecurrence?) -> Unit,
+    onSave: (String, String?, String?, Instant?, TaskPriority, TaskType?, TaskRecurrence?, Instant?) -> Unit,
 ) {
     var title by remember(task?.id) { mutableStateOf(task?.title.orEmpty()) }
     var description by remember(task?.id) { mutableStateOf(task?.description.orEmpty()) }
     var assigneeId by remember(task?.id) { mutableStateOf(task?.assigneeId ?: members.firstOrNull()?.userId) }
+    var startDate by remember(task?.id) { mutableStateOf(task?.startAt?.formatIsoDate().orEmpty()) }
     var dueDate by remember(task?.id) { mutableStateOf(task?.dueAt?.formatIsoDate().orEmpty()) }
     var priority by remember(task?.id) { mutableStateOf(task?.priority ?: TaskPriority.MEDIUM) }
     var type by remember(task?.id) { mutableStateOf(task?.type) }
@@ -385,9 +394,7 @@ private fun TaskEditor(
                         }
                     }
                 }
-                OutlinedTextField(dueDate, {
-                    dueDate = it
-                }, label = { Text(stringResource(R.string.tasks_due_date_label)) }, singleLine = true)
+                TaskDateFields(startDate, { startDate = it }, dueDate, { dueDate = it })
                 Row {
                     TaskPriority.entries.forEach { value ->
                         TextButton(onClick = { priority = value }) {
@@ -411,6 +418,7 @@ private fun TaskEditor(
                         priority,
                         type,
                         recurrence,
+                        TaskValidation.parseDueDate(startDate),
                     )
                 } catch (_: InvalidTaskDateException) {
                     onInvalidDate()
@@ -418,6 +426,27 @@ private fun TaskEditor(
             }) { Text(stringResource(R.string.confirm)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+@Composable
+private fun TaskDateFields(
+    startDate: String,
+    onStartChange: (String) -> Unit,
+    dueDate: String,
+    onDueChange: (String) -> Unit,
+) {
+    OutlinedTextField(
+        startDate,
+        onStartChange,
+        label = { Text(stringResource(R.string.tasks_start_date_label)) },
+        singleLine = true,
+    )
+    OutlinedTextField(
+        dueDate,
+        onDueChange,
+        label = { Text(stringResource(R.string.tasks_due_date_label)) },
+        singleLine = true,
     )
 }
 
