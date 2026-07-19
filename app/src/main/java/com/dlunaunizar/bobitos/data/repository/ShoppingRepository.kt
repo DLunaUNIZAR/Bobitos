@@ -1,14 +1,30 @@
 package com.dlunaunizar.bobitos.data.repository
 
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
+import com.dlunaunizar.bobitos.core.model.Supermarket
 import kotlinx.coroutines.flow.Flow
 
 interface ShoppingRepository {
     fun items(spaceId: String): Flow<List<ShoppingItem>>
 
-    suspend fun addItem(spaceId: String, name: String, quantity: String?, notes: String?)
+    suspend fun addItem(
+        spaceId: String,
+        name: String,
+        quantity: String?,
+        notes: String?,
+        supermarket: Supermarket?,
+        brand: String?,
+    )
 
-    suspend fun updateItem(spaceId: String, itemId: String, name: String, quantity: String?, notes: String?)
+    suspend fun updateItem(
+        spaceId: String,
+        itemId: String,
+        name: String,
+        quantity: String?,
+        notes: String?,
+        supermarket: Supermarket?,
+        brand: String?,
+    )
 
     suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean)
 
@@ -22,6 +38,7 @@ enum class ShoppingFailure {
     NameTooLong,
     QuantityTooLong,
     NotesTooLong,
+    BrandTooLong,
     NotAuthenticated,
     EmailNotVerified,
     SpaceNotFound,

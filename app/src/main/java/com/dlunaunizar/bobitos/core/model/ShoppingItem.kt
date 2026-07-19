@@ -2,6 +2,16 @@ package com.dlunaunizar.bobitos.core.model
 
 import java.time.Instant
 
+enum class Supermarket {
+    DIA,
+    EROSKI,
+    MERCADONA,
+    CARREFOUR,
+    ALCAMPO,
+    OTROS,
+    INDIFERENTE,
+}
+
 data class ShoppingItem(
     val id: String,
     val name: String,
@@ -16,4 +26,6 @@ data class ShoppingItem(
     val purchasedBy: String?,
     val purchasedByName: String?,
     val purchasedAt: Instant?,
+    val supermarket: Supermarket? = null,
+    val brand: String? = null,
 )

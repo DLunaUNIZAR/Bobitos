@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.feature.shopping
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
@@ -48,14 +49,29 @@ class ShoppingViewModel @Inject constructor(private val repository: ShoppingRepo
         observedSpaceId = null
     }
 
-    fun addItem(spaceId: String, name: String, quantity: String?, notes: String?) {
+    fun addItem(
+        spaceId: String,
+        name: String,
+        quantity: String?,
+        notes: String?,
+        supermarket: Supermarket?,
+        brand: String?,
+    ) {
         if (!validate(name, quantity, notes)) return
         runAction(ShoppingUiMessage.ItemAdded) {
-            repository.addItem(spaceId, name.trim(), quantity.normalized(), notes.normalized())
+            repository.addItem(spaceId, name.trim(), quantity.normalized(), notes.normalized(), supermarket, brand)
         }
     }
 
-    fun updateItem(spaceId: String, itemId: String, name: String, quantity: String?, notes: String?) {
+    fun updateItem(
+        spaceId: String,
+        itemId: String,
+        name: String,
+        quantity: String?,
+        notes: String?,
+        supermarket: Supermarket?,
+        brand: String?,
+    ) {
         if (!validate(name, quantity, notes)) return
         runAction(ShoppingUiMessage.ItemUpdated) {
             repository.updateItem(
@@ -64,6 +80,8 @@ class ShoppingViewModel @Inject constructor(private val repository: ShoppingRepo
                 name.trim(),
                 quantity.normalized(),
                 notes.normalized(),
+                supermarket,
+                brand,
             )
         }
     }
@@ -174,6 +192,7 @@ private fun Throwable.toUiMessage(): ShoppingUiMessage = when ((this as? Shoppin
     ShoppingFailure.NameTooLong -> ShoppingUiMessage.NameTooLong
     ShoppingFailure.QuantityTooLong -> ShoppingUiMessage.QuantityTooLong
     ShoppingFailure.NotesTooLong -> ShoppingUiMessage.NotesTooLong
+    ShoppingFailure.BrandTooLong -> ShoppingUiMessage.BrandTooLong
     ShoppingFailure.NotAuthenticated -> ShoppingUiMessage.NotAuthenticated
     ShoppingFailure.EmailNotVerified -> ShoppingUiMessage.EmailNotVerified
     ShoppingFailure.SpaceNotFound -> ShoppingUiMessage.SpaceNotFound

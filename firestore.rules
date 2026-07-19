@@ -187,7 +187,9 @@ service cloud.firestore {
           "updatedAt",
           "purchasedBy",
           "purchasedByName",
-          "purchasedAt"
+          "purchasedAt",
+          "supermarket",
+          "brand"
         ])
         && validShoppingText(request.resource.data.name, 120, true)
         && validOptionalShoppingText(request.resource.data.quantity, 40)
@@ -197,7 +199,12 @@ service cloud.firestore {
         && validShoppingText(request.resource.data.createdByName, 60, true)
         && request.resource.data.createdAt is timestamp
         && request.resource.data.updatedBy is string
-        && request.resource.data.updatedAt is timestamp;
+        && request.resource.data.updatedAt is timestamp
+        && (!request.resource.data.keys().hasAny(["supermarket"])
+          || request.resource.data.supermarket == null
+          || request.resource.data.supermarket in ["DIA", "EROSKI", "MERCADONA", "CARREFOUR", "ALCAMPO", "OTROS", "INDIFERENTE"])
+        && (!request.resource.data.keys().hasAny(["brand"])
+          || validOptionalShoppingText(request.resource.data.brand, 60));
     }
 
     function validShoppingPurchaseAttribution() {
@@ -240,7 +247,9 @@ service cloud.firestore {
           "updatedAt",
           "purchasedBy",
           "purchasedByName",
-          "purchasedAt"
+          "purchasedAt",
+          "supermarket",
+          "brand"
         ])
         && request.resource.data.createdBy == resource.data.createdBy
         && request.resource.data.createdByName == resource.data.createdByName
