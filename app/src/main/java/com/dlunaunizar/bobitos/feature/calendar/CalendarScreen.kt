@@ -1,8 +1,11 @@
 package com.dlunaunizar.bobitos.feature.calendar
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -37,6 +41,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -103,6 +108,8 @@ fun CalendarScreen(
     var editor by remember { mutableStateOf<CalendarEvent?>(null) }
     var creating by remember { mutableStateOf(false) }
     var handledInitialEvent by rememberSaveable(initialEventId) { mutableStateOf(false) }
+    var drilledFrom by remember { mutableStateOf<CalendarDisplayMode?>(null) }
+    var creatingAt by remember { mutableStateOf<LocalTime?>(null) }
 
     DisposableEffect(spaceId) {
         viewModel.observe(spaceId)
@@ -126,6 +133,11 @@ fun CalendarScreen(
         }
     }
 
+    BackHandler(enabled = drilledFrom != null) {
+        drilledFrom?.let(viewModel::setMode)
+        drilledFrom = null
+    }
+
     Box(modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -139,7 +151,10 @@ fun CalendarScreen(
                 onPrevious = viewModel::previous,
                 onNext = viewModel::next,
             )
-            CalendarModeSelector(state.mode, viewModel::setMode)
+            CalendarModeSelector(state.mode) { mode ->
+                drilledFrom = null
+                viewModel.setMode(mode)
+            }
             MemberFilters(
                 members = members,
                 selectedIds = state.selectedMemberIds,
@@ -148,35 +163,25 @@ fun CalendarScreen(
                 onClear = viewModel::clearMemberSelection,
             )
 
+            val onDayTap: (LocalDate) -> Unit = { date ->
+                drilledFrom = state.mode
+                viewModel.select(date)
+                viewModel.setMode(CalendarDisplayMode.DAY)
+            }
             when (state.mode) {
-                CalendarDisplayMode.MONTH -> {
-                    MonthGrid(
-                        month = YearMonth.from(state.focusedDate),
-                        selected = state.focusedDate,
-                        events = filteredEvents,
-                        select = viewModel::select,
-                    )
-                    Text(
-                        text = state.focusedDate.format(
-                            DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL),
-                        ),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    EventList(
-                        events = filteredEvents.eventsOn(state.focusedDate),
-                        tasks = state.tasks.tasksOn(state.focusedDate),
-                        canWrite = canWrite,
-                        onEdit = { editor = it },
-                        onDelete = viewModel::delete,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                CalendarDisplayMode.DAY -> EventList(
+                CalendarDisplayMode.MONTH -> MonthGrid(
+                    month = YearMonth.from(state.focusedDate),
+                    selected = state.focusedDate,
+                    events = filteredEvents,
+                    select = onDayTap,
+                )
+                CalendarDisplayMode.DAY -> DayHourGrid(
                     events = filteredEvents.eventsOn(state.focusedDate),
                     tasks = state.tasks.tasksOn(state.focusedDate),
                     canWrite = canWrite,
                     onEdit = { editor = it },
                     onDelete = viewModel::delete,
+                    onCreateAt = { creatingAt = it },
                     modifier = Modifier.weight(1f),
                 )
                 CalendarDisplayMode.WEEK -> WeekEventList(
@@ -185,6 +190,7 @@ fun CalendarScreen(
                     canWrite = canWrite,
                     onEdit = { editor = it },
                     onDelete = viewModel::delete,
+                    onDayTap = onDayTap,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -207,21 +213,24 @@ fun CalendarScreen(
         }
     }
 
-    if (creating || editor != null) {
+    if (creating || editor != null || creatingAt != null) {
         EventEditor(
             event = editor,
             day = state.focusedDate,
+            initialStart = creatingAt,
             members = members,
             saving = state.saving,
             canWrite = canWrite,
             dismiss = {
                 creating = false
                 editor = null
+                creatingAt = null
             },
         ) { id, input ->
             viewModel.save(id, input)
             creating = false
             editor = null
+            creatingAt = null
         }
     }
 }
@@ -427,6 +436,7 @@ private fun WeekEventList(
     canWrite: Boolean,
     onEdit: (CalendarEvent) -> Unit,
     onDelete: (String) -> Unit,
+    onDayTap: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val monday = focusedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
@@ -441,6 +451,10 @@ private fun WeekEventList(
                 Text(
                     date.format(DateTimeFormatter.ofPattern("EEEE d")),
                     style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onDayTap(date) }
+                        .padding(vertical = 4.dp),
                 )
             }
             val dayEvents = events.eventsOn(date)
@@ -456,46 +470,6 @@ private fun WeekEventList(
                     EventRow(event, canWrite, { onEdit(event) }, { onDelete(event.id) })
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun EventList(
-    events: List<CalendarEvent>,
-    tasks: List<TaskItem>,
-    canWrite: Boolean,
-    onEdit: (CalendarEvent) -> Unit,
-    onDelete: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    LazyColumn(
-        modifier,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-        contentPadding = PaddingValues(bottom = 88.dp),
-    ) {
-        if (tasks.isNotEmpty()) {
-            item(key = "tasks-header") {
-                Text(
-                    text = stringResource(R.string.calendar_tasks_section),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            items(tasks, key = { "task-${it.id}" }) { task ->
-                TaskOnDayRow(task)
-            }
-        }
-        if (events.isEmpty()) {
-            item {
-                Text(
-                    stringResource(R.string.calendar_no_events),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        items(events, key = CalendarEvent::id) { event ->
-            EventRow(event, canWrite, { onEdit(event) }, { onDelete(event.id) })
         }
     }
 }
@@ -538,6 +512,87 @@ private fun TaskOnDayRow(task: TaskItem) {
         }
     }
 }
+
+@Composable
+private fun DayHourGrid(
+    events: List<CalendarEvent>,
+    tasks: List<TaskItem>,
+    canWrite: Boolean,
+    onEdit: (CalendarEvent) -> Unit,
+    onDelete: (String) -> Unit,
+    onCreateAt: (LocalTime) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val zone = ZoneId.systemDefault()
+    val allDay = events.filter(CalendarEvent::allDay)
+    val timedByHour = events.filterNot(CalendarEvent::allDay)
+        .groupBy { it.startAt.atZone(zone).toLocalTime().hour }
+    LazyColumn(modifier, contentPadding = PaddingValues(bottom = 88.dp)) {
+        if (allDay.isNotEmpty() || tasks.isNotEmpty()) {
+            item(key = "allday-header") {
+                Text(
+                    text = stringResource(R.string.calendar_all_day),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
+            }
+            items(tasks, key = { "task-${it.id}" }) { task -> TaskOnDayRow(task) }
+            items(allDay, key = { "allday-${it.id}" }) { event ->
+                EventRow(event, canWrite, { onEdit(event) }, { onDelete(event.id) })
+            }
+            item(key = "hours-divider") { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
+        }
+        items((0..23).toList(), key = { "hour-$it" }) { hour ->
+            HourRow(
+                hour = hour,
+                events = timedByHour[hour].orEmpty(),
+                canWrite = canWrite,
+                onEdit = onEdit,
+                onDelete = onDelete,
+                onLongPress = { onCreateAt(LocalTime.of(hour, 0)) },
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun HourRow(
+    hour: Int,
+    events: List<CalendarEvent>,
+    canWrite: Boolean,
+    onEdit: (CalendarEvent) -> Unit,
+    onDelete: (String) -> Unit,
+    onLongPress: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(enabled = canWrite, onClick = {}, onLongClick = onLongPress)
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Text(
+            text = LocalTime.of(hour, 0).format(hourFormatter),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .width(52.dp)
+                .padding(top = 4.dp),
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            events.forEach { event ->
+                EventRow(event, canWrite, { onEdit(event) }, { onDelete(event.id) })
+            }
+        }
+    }
+}
+
+private val hourFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
 @Composable
 private fun EventRow(event: CalendarEvent, canWrite: Boolean, edit: () -> Unit, delete: () -> Unit) {
@@ -634,6 +689,7 @@ internal fun List<CalendarEvent>.eventsOn(date: LocalDate): List<CalendarEvent> 
 private fun EventEditor(
     event: CalendarEvent?,
     day: LocalDate,
+    initialStart: LocalTime?,
     members: List<SpaceMember>,
     saving: Boolean,
     canWrite: Boolean,
@@ -643,7 +699,7 @@ private fun EventEditor(
     val zone = ZoneId.systemDefault()
     var title by remember { mutableStateOf(event?.title.orEmpty()) }
     var description by remember { mutableStateOf(event?.description.orEmpty()) }
-    var allDay by remember { mutableStateOf(event?.allDay ?: true) }
+    var allDay by remember { mutableStateOf(event?.allDay ?: (initialStart == null)) }
     val startZdt = event?.startAt?.atZone(zone)
     val endZdt = event?.endAt?.atZone(zone)
     var startDate by remember {
@@ -665,10 +721,22 @@ private fun EventEditor(
         )
     }
     var startTime by remember {
-        mutableStateOf(if (event?.allDay == false) startZdt!!.toLocalTime() else LocalTime.of(9, 0))
+        mutableStateOf(
+            when {
+                event?.allDay == false -> startZdt!!.toLocalTime()
+                initialStart != null -> initialStart
+                else -> LocalTime.of(9, 0)
+            },
+        )
     }
     var endTime by remember {
-        mutableStateOf(if (event?.allDay == false) endZdt!!.toLocalTime() else LocalTime.of(10, 0))
+        mutableStateOf(
+            when {
+                event?.allDay == false -> endZdt!!.toLocalTime()
+                initialStart != null -> initialStart.plusHours(1)
+                else -> LocalTime.of(10, 0)
+            },
+        )
     }
     var activePicker by remember { mutableStateOf<EventPicker?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
