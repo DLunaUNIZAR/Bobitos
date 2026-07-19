@@ -7,6 +7,7 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Label
 import androidx.compose.material.icons.rounded.MedicalServices
 import androidx.compose.material.icons.rounded.ShoppingBag
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.model.TaskType
@@ -29,3 +30,13 @@ internal val TaskType.icon: ImageVector
         TaskType.HOGAR -> Icons.Rounded.Home
         TaskType.OTROS -> Icons.Rounded.Label
     }
+
+// Color de categoría por tipo de tarea (tonos medios, legibles como acento/tinte suave
+// en claro y oscuro), en la línea de EventColor.accent().
+internal fun TaskType.accent(): Color = when (this) {
+    TaskType.LIMPIEZA -> Color(0xFF00897B)
+    TaskType.MEDICO -> Color(0xFFC62828)
+    TaskType.COMPRAS -> Color(0xFFC05621)
+    TaskType.HOGAR -> Color(0xFF3F51B5)
+    TaskType.OTROS -> Color(0xFF6E6E6E)
+}

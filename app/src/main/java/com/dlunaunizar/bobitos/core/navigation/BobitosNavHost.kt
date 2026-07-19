@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -21,6 +22,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -46,6 +48,7 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.app.AppUiState
 import com.dlunaunizar.bobitos.app.RealtimeScope
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SyncStatus
@@ -452,6 +455,13 @@ private fun WorkspaceScaffold(
                         onClick = { onDestinationSelected(destination) },
                         icon = { Icon(destination.icon, contentDescription = null) },
                         label = { Text(text = stringResource(destination.titleRes)) },
+                        colors = destination.moduleColor()?.let {
+                            NavigationBarItemDefaults.colors(
+                                selectedIconColor = it,
+                                selectedTextColor = it,
+                                indicatorColor = it.copy(alpha = 0.2f),
+                            )
+                        } ?: NavigationBarItemDefaults.colors(),
                     )
                 }
             }
@@ -562,7 +572,11 @@ private fun SpaceHomeScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SpaceHomeCard(destination: BobitosDestination, onClick: () -> Unit) {
-    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        colors = destination.moduleColor()?.let { categoryCardColors(it) } ?: CardDefaults.cardColors(),
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -570,7 +584,11 @@ private fun SpaceHomeCard(destination: BobitosDestination, onClick: () -> Unit) 
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Icon(destination.icon, contentDescription = null)
+            Icon(
+                destination.icon,
+                contentDescription = null,
+                tint = destination.moduleColor() ?: MaterialTheme.colorScheme.onSurface,
+            )
             Text(
                 text = stringResource(destination.titleRes),
                 style = MaterialTheme.typography.titleLarge,

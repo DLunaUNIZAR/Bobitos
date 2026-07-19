@@ -20,6 +20,7 @@ import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -47,6 +48,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.RecurrenceUnit
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.TaskItem
@@ -270,7 +272,10 @@ private fun TaskCard(
             ?.atZone(ZoneId.systemDefault())
             ?.toLocalDate()
             ?.isBefore(LocalDate.now()) == true
-    Card(Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = task.type?.let { categoryCardColors(it.accent()) } ?: CardDefaults.cardColors(),
+    ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
             Checkbox(task.status == TaskStatus.DONE, onCheckedChange = onSetCompleted, enabled = enabled)
             Column(Modifier.weight(1f)) {
@@ -292,7 +297,7 @@ private fun TaskCard(
                             imageVector = type.icon,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = type.accent(),
                         )
                         Spacer(Modifier.width(4.dp))
                         Text(
