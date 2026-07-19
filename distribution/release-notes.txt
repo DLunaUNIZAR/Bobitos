@@ -1,14 +1,13 @@
-Beta de Bobitos — tareas recurrentes y tareas en el calendario.
+Beta de Bobitos — fecha de inicio en tareas, más color y pestañas.
 
 Novedades de esta versión:
-- Tareas recurrentes: elige una repetición (diaria, semanal, mensual o personalizada «cada N días/semanas/meses»); al marcarla hecha, se reprograma sola a la siguiente fecha.
-- Las tareas con fecha ahora aparecen en el calendario, al inicio de su día, junto a los eventos.
+- Las tareas pueden tener fecha de inicio además de fecha límite. En el calendario aparecen todos los días de su rango (inicio→fin) y, al completar una tarea recurrente, saltan a la vez el inicio y el fin.
+- Más color: los productos de la compra se tiñen según su supermercado, las tareas según su tipo, y Tareas/Compra/Calendario tienen color propio en el inicio del espacio y la barra.
+- Las tareas se dividen en dos pestañas: Recurrentes y Únicas.
 
 De versiones recientes:
-- Tema claro/oscuro/sistema y nueva paleta.
-- Al entrar en un espacio, pantalla de inicio con Tareas, Compra y Calendario.
-- Compra: supermercado y marca por producto, con filtro.
-- Calendario: selector de fecha y hora nativos.
+- Tema claro/oscuro/sistema y paleta verde azulado.
+- Tareas recurrentes; calendario con selector de fecha y hora.
 
 Incluye: espacios privados con invitaciones, lista de la compra compartida, tareas asignables, calendario compartido y modo sin conexión de solo lectura.
 
