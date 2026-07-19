@@ -176,6 +176,8 @@
     <string name="tasks_unassigned">Sin responsable</string>
     <string name="tasks_due_date_label">Fecha límite YYYY-MM-DD (opcional)</string>
     <string name="tasks_no_date">Sin fecha</string>
+    <string name="tasks_tab_recurring">Recurrentes</string>
+    <string name="tasks_tab_oneoff">Únicas</string>
     <string name="task_type_label">Tipo (opcional)</string>
     <string name="task_type_none">Sin tipo</string>
     <string name="task_type_cleaning">Limpieza</string>

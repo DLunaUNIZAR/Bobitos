@@ -26,6 +26,9 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -78,6 +81,7 @@ fun TasksScreen(
     var editorTask by remember { mutableStateOf<TaskItem?>(null) }
     var editorVisible by remember { mutableStateOf(false) }
     var deleteTask by remember { mutableStateOf<TaskItem?>(null) }
+    var tab by remember { mutableStateOf(TaskTab.RECURRENTES) }
 
     Column(modifier.fillMaxSize().padding(16.dp)) {
         Row(
@@ -103,13 +107,15 @@ fun TasksScreen(
         }
         TaskFeedback(state, viewModel::clearFeedback)
         TaskFilterBar(state.filters, members, viewModel::setFilters)
+        TaskTabSelector(tab, onSelect = { tab = it })
+        val tabTasks = visibleTasks.filter { (it.recurrence != null) == (tab == TaskTab.RECURRENTES) }
         when (val tasks = state.tasks) {
             UiState.Loading -> Text(stringResource(R.string.generic_loading))
             is UiState.Error -> Text(
                 tasks.message ?: stringResource(R.string.generic_error),
                 color = MaterialTheme.colorScheme.error,
             )
-            is UiState.Content -> if (visibleTasks.isEmpty()) {
+            is UiState.Content -> if (tabTasks.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(stringResource(if (allTasks.isEmpty()) R.string.tasks_empty else R.string.tasks_no_results))
                 }
@@ -118,7 +124,7 @@ fun TasksScreen(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items(visibleTasks, key = TaskItem::id) { task ->
+                    items(tabTasks, key = TaskItem::id) { task ->
                         TaskCard(
                             task,
                             enabled,
@@ -178,6 +184,29 @@ fun TasksScreen(
                 }
             },
         )
+    }
+}
+
+private enum class TaskTab { RECURRENTES, UNICAS }
+
+private val TaskTab.labelRes: Int
+    get() = when (this) {
+        TaskTab.RECURRENTES -> R.string.tasks_tab_recurring
+        TaskTab.UNICAS -> R.string.tasks_tab_oneoff
+    }
+
+@Composable
+private fun TaskTabSelector(tab: TaskTab, onSelect: (TaskTab) -> Unit) {
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+        TaskTab.entries.forEachIndexed { index, option ->
+            SegmentedButton(
+                selected = tab == option,
+                onClick = { onSelect(option) },
+                shape = SegmentedButtonDefaults.itemShape(index, TaskTab.entries.size),
+            ) {
+                Text(stringResource(option.labelRes))
+            }
+        }
     }
 }
 
