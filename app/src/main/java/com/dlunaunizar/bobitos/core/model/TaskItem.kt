@@ -20,6 +20,7 @@ data class TaskItem(
     val completedByName: String?,
     val completedAt: Instant?,
     val type: TaskType? = null,
+    val recurrence: TaskRecurrence? = null,
 )
 
 enum class TaskPriority { LOW, MEDIUM, HIGH }
@@ -27,3 +28,8 @@ enum class TaskPriority { LOW, MEDIUM, HIGH }
 enum class TaskStatus { TODO, DONE }
 
 enum class TaskType { LIMPIEZA, MEDICO, COMPRAS, HOGAR, OTROS }
+
+/** Repetición opcional de una tarea: cada [interval] unidades de [unit]. */
+data class TaskRecurrence(val unit: RecurrenceUnit, val interval: Int)
+
+enum class RecurrenceUnit { DAY, WEEK, MONTH }

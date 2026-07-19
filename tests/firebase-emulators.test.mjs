@@ -647,6 +647,39 @@ test("las tareas aceptan tipo opcional y validan el enum", async () => {
   );
 });
 
+test("las tareas aceptan recurrencia opcional y validan unidad e intervalo", async () => {
+  await seedSpace("task-rec", "task-rec-owner");
+  const owner = verifiedFirestore("task-rec-owner");
+
+  await assertSucceeds(
+    setDoc(
+      doc(owner, "spaces", "task-rec", "tasks", "ok"),
+      taskData("task-rec-owner", "task-rec-owner", {
+        recurrenceUnit: "WEEK",
+        recurrenceInterval: 2,
+      }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "task-rec", "tasks", "bad-unit"),
+      taskData("task-rec-owner", "task-rec-owner", {
+        recurrenceUnit: "YEAR",
+        recurrenceInterval: 1,
+      }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "task-rec", "tasks", "bad-interval"),
+      taskData("task-rec-owner", "task-rec-owner", {
+        recurrenceUnit: "DAY",
+        recurrenceInterval: 0,
+      }),
+    ),
+  );
+});
+
 test("marcar y desmarcar conserva una atribución coherente", async () => {
   await seedSpace("shopping-mark", "mark-owner", ["mark-member"]);
   await seedShoppingItem("shopping-mark", "bread", "mark-owner");

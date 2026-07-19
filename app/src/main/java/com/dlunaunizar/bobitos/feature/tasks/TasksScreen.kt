@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -37,15 +40,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.RecurrenceUnit
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.TaskItem
 import com.dlunaunizar.bobitos.core.model.TaskPriority
+import com.dlunaunizar.bobitos.core.model.TaskRecurrence
 import com.dlunaunizar.bobitos.core.model.TaskStatus
 import com.dlunaunizar.bobitos.core.model.TaskType
 import java.time.Instant
@@ -136,10 +142,21 @@ fun TasksScreen(
             saving = state.isSaving,
             onDismiss = { editorVisible = false },
             onInvalidDate = viewModel::showInvalidDate,
-            onSave = { title, description, assignee, due, priority, type ->
+            onSave = { title, description, assignee, due, priority, type, recurrence ->
                 editorTask?.let {
-                    viewModel.updateTask(spaceId, it.id, title, description, assignee, due, priority, type)
-                } ?: viewModel.createTask(spaceId, title, description, assignee, due, priority, type)
+                    viewModel.updateTask(
+                        spaceId, it.id, title, description, assignee, due, priority, type, recurrence,
+                    )
+                } ?: viewModel.createTask(
+                    spaceId,
+                    title,
+                    description,
+                    assignee,
+                    due,
+                    priority,
+                    type,
+                    recurrence,
+                )
                 editorVisible = false
             },
         )
@@ -285,6 +302,22 @@ private fun TaskCard(
                         )
                     }
                 }
+                task.recurrence?.let { rec ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Rounded.Repeat,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = rec.label(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
                 Text(
                     stringResource(R.string.tasks_created_by, task.createdByName),
                     style = MaterialTheme.typography.bodySmall,
@@ -311,7 +344,7 @@ private fun TaskEditor(
     saving: Boolean,
     onDismiss: () -> Unit,
     onInvalidDate: () -> Unit,
-    onSave: (String, String?, String?, Instant?, TaskPriority, TaskType?) -> Unit,
+    onSave: (String, String?, String?, Instant?, TaskPriority, TaskType?, TaskRecurrence?) -> Unit,
 ) {
     var title by remember(task?.id) { mutableStateOf(task?.title.orEmpty()) }
     var description by remember(task?.id) { mutableStateOf(task?.description.orEmpty()) }
@@ -319,6 +352,7 @@ private fun TaskEditor(
     var dueDate by remember(task?.id) { mutableStateOf(task?.dueAt?.formatIsoDate().orEmpty()) }
     var priority by remember(task?.id) { mutableStateOf(task?.priority ?: TaskPriority.MEDIUM) }
     var type by remember(task?.id) { mutableStateOf(task?.type) }
+    var recurrence by remember(task?.id) { mutableStateOf(task?.recurrence) }
     var memberMenu by remember { mutableStateOf(false) }
     val validation = TaskValidation.validate(title, description, assigneeId)
     AlertDialog(
@@ -362,13 +396,22 @@ private fun TaskEditor(
                     }
                 }
                 TaskTypePicker(selected = type, onSelect = { type = it })
+                RecurrencePicker(selected = recurrence, onSelect = { recurrence = it })
                 validation?.let { Text(stringResource(it.stringRes()), color = MaterialTheme.colorScheme.error) }
             }
         },
         confirmButton = {
             TextButton(enabled = validation == null && !saving, onClick = {
                 try {
-                    onSave(title, description, assigneeId, TaskValidation.parseDueDate(dueDate), priority, type)
+                    onSave(
+                        title,
+                        description,
+                        assigneeId,
+                        TaskValidation.parseDueDate(dueDate),
+                        priority,
+                        type,
+                        recurrence,
+                    )
                 } catch (_: InvalidTaskDateException) {
                     onInvalidDate()
                 }
@@ -409,6 +452,114 @@ private fun TaskTypePicker(selected: TaskType?, onSelect: (TaskType?) -> Unit) {
                         expanded = false
                     },
                 )
+            }
+        }
+    }
+}
+
+private enum class RecurrenceMode { NONE, DAILY, WEEKLY, MONTHLY, CUSTOM }
+
+private val RecurrenceMode.labelRes: Int
+    get() = when (this) {
+        RecurrenceMode.NONE -> R.string.recurrence_none
+        RecurrenceMode.DAILY -> R.string.recurrence_daily
+        RecurrenceMode.WEEKLY -> R.string.recurrence_weekly
+        RecurrenceMode.MONTHLY -> R.string.recurrence_monthly
+        RecurrenceMode.CUSTOM -> R.string.recurrence_custom
+    }
+
+private val RecurrenceUnit.labelRes: Int
+    get() = when (this) {
+        RecurrenceUnit.DAY -> R.string.recurrence_unit_days
+        RecurrenceUnit.WEEK -> R.string.recurrence_unit_weeks
+        RecurrenceUnit.MONTH -> R.string.recurrence_unit_months
+    }
+
+private fun TaskRecurrence?.toMode(): RecurrenceMode = when {
+    this == null -> RecurrenceMode.NONE
+    interval != 1 -> RecurrenceMode.CUSTOM
+    unit == RecurrenceUnit.DAY -> RecurrenceMode.DAILY
+    unit == RecurrenceUnit.WEEK -> RecurrenceMode.WEEKLY
+    else -> RecurrenceMode.MONTHLY
+}
+
+private fun RecurrenceMode.toRecurrence(current: TaskRecurrence?): TaskRecurrence? = when (this) {
+    RecurrenceMode.NONE -> null
+    RecurrenceMode.DAILY -> TaskRecurrence(RecurrenceUnit.DAY, 1)
+    RecurrenceMode.WEEKLY -> TaskRecurrence(RecurrenceUnit.WEEK, 1)
+    RecurrenceMode.MONTHLY -> TaskRecurrence(RecurrenceUnit.MONTH, 1)
+    RecurrenceMode.CUSTOM -> current?.takeIf { it.interval != 1 } ?: TaskRecurrence(RecurrenceUnit.DAY, 2)
+}
+
+@Composable
+private fun TaskRecurrence.label(): String = when {
+    interval == 1 && unit == RecurrenceUnit.DAY -> stringResource(R.string.recurrence_daily)
+    interval == 1 && unit == RecurrenceUnit.WEEK -> stringResource(R.string.recurrence_weekly)
+    interval == 1 && unit == RecurrenceUnit.MONTH -> stringResource(R.string.recurrence_monthly)
+    unit == RecurrenceUnit.DAY -> stringResource(R.string.recurrence_every_n_days, interval)
+    unit == RecurrenceUnit.WEEK -> stringResource(R.string.recurrence_every_n_weeks, interval)
+    else -> stringResource(R.string.recurrence_every_n_months, interval)
+}
+
+@Composable
+private fun RecurrencePicker(selected: TaskRecurrence?, onSelect: (TaskRecurrence?) -> Unit) {
+    var menu by remember { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(stringResource(R.string.recurrence_label), style = MaterialTheme.typography.labelLarge)
+        Box {
+            TextButton(onClick = { menu = true }) {
+                Text(stringResource(selected.toMode().labelRes))
+            }
+            DropdownMenu(menu, { menu = false }) {
+                RecurrenceMode.entries.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(stringResource(option.labelRes)) },
+                        onClick = {
+                            menu = false
+                            onSelect(option.toRecurrence(selected))
+                        },
+                    )
+                }
+            }
+        }
+        if (selected != null && selected.interval != 1) {
+            CustomRecurrenceFields(selected, onSelect)
+        }
+    }
+}
+
+@Composable
+private fun CustomRecurrenceFields(recurrence: TaskRecurrence, onSelect: (TaskRecurrence?) -> Unit) {
+    var unitMenu by remember { mutableStateOf(false) }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(stringResource(R.string.recurrence_every))
+        OutlinedTextField(
+            value = recurrence.interval.toString(),
+            onValueChange = { input ->
+                val next = input.filter(Char::isDigit).toIntOrNull()?.coerceIn(1, 365) ?: 1
+                onSelect(recurrence.copy(interval = next))
+            },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.width(96.dp),
+        )
+        Box {
+            TextButton(onClick = { unitMenu = true }) {
+                Text(stringResource(recurrence.unit.labelRes))
+            }
+            DropdownMenu(unitMenu, { unitMenu = false }) {
+                RecurrenceUnit.entries.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(stringResource(option.labelRes)) },
+                        onClick = {
+                            unitMenu = false
+                            onSelect(recurrence.copy(unit = option))
+                        },
+                    )
+                }
             }
         }
     }
