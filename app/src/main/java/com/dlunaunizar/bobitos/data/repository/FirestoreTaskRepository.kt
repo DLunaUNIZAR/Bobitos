@@ -4,6 +4,7 @@ import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.TaskItem
 import com.dlunaunizar.bobitos.core.model.TaskPriority
 import com.dlunaunizar.bobitos.core.model.TaskStatus
+import com.dlunaunizar.bobitos.core.model.TaskType
 import com.dlunaunizar.bobitos.data.sync.RealtimeMetrics
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
 import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
@@ -61,6 +62,7 @@ class FirestoreTaskRepository @Inject constructor(
         assigneeId: String,
         dueAt: Instant?,
         priority: TaskPriority,
+        type: TaskType?,
     ) = runTaskOperation {
         val user = requireVerifiedUser()
         val values = validate(title, description, assigneeId)
@@ -80,6 +82,7 @@ class FirestoreTaskRepository @Inject constructor(
                     assigneeName = assignee.getString(FIELD_DISPLAY_NAME).orEmpty(),
                     dueAt = dueAt,
                     priority = priority,
+                    type = type,
                     user = user,
                 ),
             )
@@ -95,6 +98,7 @@ class FirestoreTaskRepository @Inject constructor(
         assigneeId: String,
         dueAt: Instant?,
         priority: TaskPriority,
+        type: TaskType?,
     ) = runTaskOperation {
         val user = requireVerifiedUser()
         val values = validate(title, description, assigneeId)
@@ -112,6 +116,7 @@ class FirestoreTaskRepository @Inject constructor(
                 FIELD_ASSIGNEE_NAME, assignee.getString(FIELD_DISPLAY_NAME),
                 FIELD_DUE_AT, dueAt?.toTimestamp(),
                 FIELD_PRIORITY, priority.name,
+                FIELD_TYPE, type?.name,
                 FIELD_UPDATED_BY, user.id,
                 FIELD_UPDATED_AT, FieldValue.serverTimestamp(),
             )
@@ -162,6 +167,7 @@ class FirestoreTaskRepository @Inject constructor(
         assigneeName: String,
         dueAt: Instant?,
         priority: TaskPriority,
+        type: TaskType?,
         user: AuthUser,
     ) = mapOf(
         FIELD_TITLE to values.title,
@@ -170,6 +176,7 @@ class FirestoreTaskRepository @Inject constructor(
         FIELD_ASSIGNEE_NAME to assigneeName,
         FIELD_DUE_AT to dueAt?.toTimestamp(),
         FIELD_PRIORITY to priority.name,
+        FIELD_TYPE to type?.name,
         FIELD_STATUS to STATUS_TODO,
         FIELD_CREATED_BY to user.id,
         FIELD_CREATED_BY_NAME to user.taskDisplayName,
@@ -242,6 +249,7 @@ class FirestoreTaskRepository @Inject constructor(
         const val FIELD_ASSIGNEE_NAME = "assigneeName"
         const val FIELD_DUE_AT = "dueAt"
         const val FIELD_PRIORITY = "priority"
+        const val FIELD_TYPE = "type"
         const val FIELD_STATUS = "status"
         const val FIELD_CREATED_BY = "createdBy"
         const val FIELD_CREATED_BY_NAME = "createdByName"
@@ -289,6 +297,9 @@ private fun DocumentSnapshot.toTaskItem(): TaskItem? {
         completedBy = getString("completedBy"),
         completedByName = getString("completedByName"),
         completedAt = getTimestamp("completedAt")?.toDate()?.toInstant(),
+        type = getString("type")?.let { value ->
+            runCatching { TaskType.valueOf(value) }.getOrNull()
+        },
     )
 }
 

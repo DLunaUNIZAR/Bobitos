@@ -159,6 +159,13 @@
     <string name="tasks_unassigned">Sin responsable</string>
     <string name="tasks_due_date_label">Fecha límite YYYY-MM-DD (opcional)</string>
     <string name="tasks_no_date">Sin fecha</string>
+    <string name="task_type_label">Tipo (opcional)</string>
+    <string name="task_type_none">Sin tipo</string>
+    <string name="task_type_cleaning">Limpieza</string>
+    <string name="task_type_medical">Médico</string>
+    <string name="task_type_shopping">Compras</string>
+    <string name="task_type_home">Hogar</string>
+    <string name="task_type_other">Otros</string>
     <string name="tasks_pending">Pendientes</string>
     <string name="tasks_done">Completadas</string>
     <string name="tasks_filter_all">Todas</string>

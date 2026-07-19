@@ -19,8 +19,11 @@ data class TaskItem(
     val completedBy: String?,
     val completedByName: String?,
     val completedAt: Instant?,
+    val type: TaskType? = null,
 )
 
 enum class TaskPriority { LOW, MEDIUM, HIGH }
 
 enum class TaskStatus { TODO, DONE }
+
+enum class TaskType { LIMPIEZA, MEDICO, COMPRAS, HOGAR, OTROS }

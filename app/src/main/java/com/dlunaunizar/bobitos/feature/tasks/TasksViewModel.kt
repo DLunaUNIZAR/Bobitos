@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.TaskPriority
+import com.dlunaunizar.bobitos.core.model.TaskType
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.TaskFailure
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
@@ -64,6 +65,7 @@ class TasksViewModel @Inject constructor(
         assigneeId: String?,
         dueAt: Instant?,
         priority: TaskPriority,
+        type: TaskType?,
     ) {
         if (!validate(title, description, assigneeId)) return
         runAction(TaskUiMessage.TaskCreated) {
@@ -74,6 +76,7 @@ class TasksViewModel @Inject constructor(
                 assigneeId!!,
                 dueAt,
                 priority,
+                type,
             )
         }
     }
@@ -86,6 +89,7 @@ class TasksViewModel @Inject constructor(
         assigneeId: String?,
         dueAt: Instant?,
         priority: TaskPriority,
+        type: TaskType?,
     ) {
         if (!validate(title, description, assigneeId)) return
         runAction(TaskUiMessage.TaskUpdated) {
@@ -97,6 +101,7 @@ class TasksViewModel @Inject constructor(
                 assigneeId!!,
                 dueAt,
                 priority,
+                type,
             )
         }
     }

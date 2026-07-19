@@ -5,9 +5,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -17,6 +20,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -43,6 +47,7 @@ import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.TaskItem
 import com.dlunaunizar.bobitos.core.model.TaskPriority
 import com.dlunaunizar.bobitos.core.model.TaskStatus
+import com.dlunaunizar.bobitos.core.model.TaskType
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -131,10 +136,10 @@ fun TasksScreen(
             saving = state.isSaving,
             onDismiss = { editorVisible = false },
             onInvalidDate = viewModel::showInvalidDate,
-            onSave = { title, description, assignee, due, priority ->
+            onSave = { title, description, assignee, due, priority, type ->
                 editorTask?.let {
-                    viewModel.updateTask(spaceId, it.id, title, description, assignee, due, priority)
-                } ?: viewModel.createTask(spaceId, title, description, assignee, due, priority)
+                    viewModel.updateTask(spaceId, it.id, title, description, assignee, due, priority, type)
+                } ?: viewModel.createTask(spaceId, title, description, assignee, due, priority, type)
                 editorVisible = false
             },
         )
@@ -264,6 +269,22 @@ private fun TaskCard(
                     color = if (task.assigneeId == null) MaterialTheme.colorScheme.error else Color.Unspecified,
                 )
                 Text("${task.priority.label()} · ${task.dueAt?.formatDate() ?: stringResource(R.string.tasks_no_date)}")
+                task.type?.let { type ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = type.icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = stringResource(type.labelRes),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
                 Text(
                     stringResource(R.string.tasks_created_by, task.createdByName),
                     style = MaterialTheme.typography.bodySmall,
@@ -290,13 +311,14 @@ private fun TaskEditor(
     saving: Boolean,
     onDismiss: () -> Unit,
     onInvalidDate: () -> Unit,
-    onSave: (String, String?, String?, Instant?, TaskPriority) -> Unit,
+    onSave: (String, String?, String?, Instant?, TaskPriority, TaskType?) -> Unit,
 ) {
     var title by remember(task?.id) { mutableStateOf(task?.title.orEmpty()) }
     var description by remember(task?.id) { mutableStateOf(task?.description.orEmpty()) }
     var assigneeId by remember(task?.id) { mutableStateOf(task?.assigneeId ?: members.firstOrNull()?.userId) }
     var dueDate by remember(task?.id) { mutableStateOf(task?.dueAt?.formatIsoDate().orEmpty()) }
     var priority by remember(task?.id) { mutableStateOf(task?.priority ?: TaskPriority.MEDIUM) }
+    var type by remember(task?.id) { mutableStateOf(task?.type) }
     var memberMenu by remember { mutableStateOf(false) }
     val validation = TaskValidation.validate(title, description, assigneeId)
     AlertDialog(
@@ -339,13 +361,14 @@ private fun TaskEditor(
                         }
                     }
                 }
+                TaskTypePicker(selected = type, onSelect = { type = it })
                 validation?.let { Text(stringResource(it.stringRes()), color = MaterialTheme.colorScheme.error) }
             }
         },
         confirmButton = {
             TextButton(enabled = validation == null && !saving, onClick = {
                 try {
-                    onSave(title, description, assigneeId, TaskValidation.parseDueDate(dueDate), priority)
+                    onSave(title, description, assigneeId, TaskValidation.parseDueDate(dueDate), priority, type)
                 } catch (_: InvalidTaskDateException) {
                     onInvalidDate()
                 }
@@ -353,6 +376,42 @@ private fun TaskEditor(
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
+}
+
+@Composable
+private fun TaskTypePicker(selected: TaskType?, onSelect: (TaskType?) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        TextButton(onClick = { expanded = true }) {
+            if (selected != null) {
+                Icon(selected.icon, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+            }
+            Text(
+                selected?.let { stringResource(it.labelRes) }
+                    ?: stringResource(R.string.task_type_label),
+            )
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.task_type_none)) },
+                onClick = {
+                    onSelect(null)
+                    expanded = false
+                },
+            )
+            TaskType.entries.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(option.labelRes)) },
+                    leadingIcon = { Icon(option.icon, contentDescription = null) },
+                    onClick = {
+                        onSelect(option)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
 }
 
 @Composable

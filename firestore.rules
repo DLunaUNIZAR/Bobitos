@@ -300,7 +300,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly([
           "title", "description", "assigneeId", "assigneeName", "dueAt",
           "priority", "status", "createdBy", "createdByName", "createdAt",
-          "updatedBy", "updatedAt", "completedBy", "completedByName", "completedAt"
+          "updatedBy", "updatedAt", "completedBy", "completedByName", "completedAt", "type"
         ])
         && request.resource.data.title is string
         && request.resource.data.title.size() > 0
@@ -312,6 +312,9 @@ service cloud.firestore {
         && request.resource.data.assigneeName.size() <= 60
         && (request.resource.data.dueAt == null || request.resource.data.dueAt is timestamp)
         && request.resource.data.priority in ["LOW", "MEDIUM", "HIGH"]
+        && (!request.resource.data.keys().hasAny(["type"])
+          || request.resource.data.type == null
+          || request.resource.data.type in ["LIMPIEZA", "MEDICO", "COMPRAS", "HOGAR", "OTROS"])
         && request.resource.data.status in ["TODO", "DONE"]
         && request.resource.data.createdBy is string
         && request.resource.data.createdByName is string
@@ -357,7 +360,7 @@ service cloud.firestore {
         && validTaskShape(spaceId)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           "title", "description", "assigneeId", "assigneeName", "dueAt", "priority",
-          "status", "updatedBy", "updatedAt", "completedBy", "completedByName", "completedAt"
+          "status", "updatedBy", "updatedAt", "completedBy", "completedByName", "completedAt", "type"
         ])
         && request.resource.data.createdBy == resource.data.createdBy
         && request.resource.data.createdByName == resource.data.createdByName

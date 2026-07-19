@@ -629,6 +629,24 @@ test("los productos aceptan supermercado y marca opcionales y validan el enum", 
   );
 });
 
+test("las tareas aceptan tipo opcional y validan el enum", async () => {
+  await seedSpace("task-type", "task-type-owner");
+  const owner = verifiedFirestore("task-type-owner");
+
+  await assertSucceeds(
+    setDoc(
+      doc(owner, "spaces", "task-type", "tasks", "ok"),
+      taskData("task-type-owner", "task-type-owner", { type: "LIMPIEZA" }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "task-type", "tasks", "bad-type"),
+      taskData("task-type-owner", "task-type-owner", { type: "COCINA" }),
+    ),
+  );
+});
+
 test("marcar y desmarcar conserva una atribución coherente", async () => {
   await seedSpace("shopping-mark", "mark-owner", ["mark-member"]);
   await seedShoppingItem("shopping-mark", "bread", "mark-owner");
