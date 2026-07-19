@@ -7,6 +7,7 @@ import com.dlunaunizar.bobitos.data.repository.ActiveSpaceRepository
 import com.dlunaunizar.bobitos.data.repository.AuthRepository
 import com.dlunaunizar.bobitos.data.repository.CalendarRepository
 import com.dlunaunizar.bobitos.data.repository.DataStoreActiveSpaceRepository
+import com.dlunaunizar.bobitos.data.repository.DataStoreThemePreferenceRepository
 import com.dlunaunizar.bobitos.data.repository.FirebaseAccountRepository
 import com.dlunaunizar.bobitos.data.repository.FirebaseAuthRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreCalendarRepository
@@ -16,6 +17,7 @@ import com.dlunaunizar.bobitos.data.repository.FirestoreTaskRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
+import com.dlunaunizar.bobitos.data.repository.ThemePreferenceRepository
 import com.dlunaunizar.bobitos.data.sync.FirestoreSyncRepository
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
 import dagger.Binds
@@ -52,6 +54,12 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindActiveSpaceRepository(repository: DataStoreActiveSpaceRepository): ActiveSpaceRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindThemePreferenceRepository(
+        repository: DataStoreThemePreferenceRepository,
+    ): ThemePreferenceRepository
 
     @Binds
     @Singleton
