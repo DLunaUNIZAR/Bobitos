@@ -1,14 +1,11 @@
-Beta de Bobitos — fecha de inicio en tareas, más color y pestañas.
+Beta de Bobitos — arreglos y mejoras del calendario.
 
 Novedades de esta versión:
-- Las tareas pueden tener fecha de inicio además de fecha límite. En el calendario aparecen todos los días de su rango (inicio→fin) y, al completar una tarea recurrente, saltan a la vez el inicio y el fin.
-- Más color: los productos de la compra se tiñen según su supermercado, las tareas según su tipo, y Tareas/Compra/Calendario tienen color propio en el inicio del espacio y la barra.
-- Las tareas se dividen en dos pestañas: Recurrentes y Únicas.
+- Arreglado: al salir al selector de espacios y volver a entrar, la app ya no se queda "Actualizando…".
+- Calendario: toca un día del mes o la semana para abrir su vista diaria; el botón Atrás vuelve. La vista diaria muestra las horas del día y, manteniendo pulsada una hora, creas un evento a esa hora.
+- Tareas: las fechas de inicio y fin se eligen con un calendario emergente.
+- Compra: al filtrar por un supermercado también aparecen los productos sin supermercado o marcados "Indiferente".
 
-De versiones recientes:
-- Tema claro/oscuro/sistema y paleta verde azulado.
-- Tareas recurrentes; calendario con selector de fecha y hora.
-
-Incluye: espacios privados con invitaciones, lista de la compra compartida, tareas asignables, calendario compartido y modo sin conexión de solo lectura.
+Incluye: espacios privados con invitaciones, lista de la compra compartida, tareas asignables (tipo, color, repetición y fechas), calendario compartido y modo sin conexión de solo lectura.
 
 Comunica cualquier error indicando el modelo del dispositivo, la versión de Android y los pasos para reproducirlo.
