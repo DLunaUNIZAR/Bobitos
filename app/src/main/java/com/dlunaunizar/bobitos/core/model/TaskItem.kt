@@ -21,6 +21,7 @@ data class TaskItem(
     val completedAt: Instant?,
     val type: TaskType? = null,
     val recurrence: TaskRecurrence? = null,
+    val startAt: Instant? = null,
 )
 
 enum class TaskPriority { LOW, MEDIUM, HIGH }

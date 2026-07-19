@@ -615,8 +615,16 @@ private fun EventRow(event: CalendarEvent, canWrite: Boolean, edit: () -> Unit, 
 
 private fun List<TaskItem>.tasksOn(date: LocalDate): List<TaskItem> {
     val zone = ZoneId.systemDefault()
-    return filter { task -> task.dueAt?.atZone(zone)?.toLocalDate() == date }
-        .sortedBy { it.dueAt }
+    return filter { task ->
+        val start = task.startAt?.atZone(zone)?.toLocalDate()
+        val due = task.dueAt?.atZone(zone)?.toLocalDate()
+        val from = start ?: due
+        val to = due ?: start
+        from != null &&
+            to != null &&
+            !date.isBefore(minOf(from, to)) &&
+            !date.isAfter(maxOf(from, to))
+    }.sortedBy { it.startAt ?: it.dueAt }
 }
 
 internal fun List<CalendarEvent>.eventsOn(date: LocalDate): List<CalendarEvent> {

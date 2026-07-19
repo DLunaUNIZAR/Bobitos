@@ -301,7 +301,7 @@ service cloud.firestore {
           "title", "description", "assigneeId", "assigneeName", "dueAt",
           "priority", "status", "createdBy", "createdByName", "createdAt",
           "updatedBy", "updatedAt", "completedBy", "completedByName", "completedAt", "type",
-          "recurrenceUnit", "recurrenceInterval"
+          "recurrenceUnit", "recurrenceInterval", "startAt"
         ])
         && request.resource.data.title is string
         && request.resource.data.title.size() > 0
@@ -312,6 +312,9 @@ service cloud.firestore {
         && request.resource.data.assigneeName.size() > 0
         && request.resource.data.assigneeName.size() <= 60
         && (request.resource.data.dueAt == null || request.resource.data.dueAt is timestamp)
+        && (!request.resource.data.keys().hasAny(["startAt"])
+          || request.resource.data.startAt == null
+          || request.resource.data.startAt is timestamp)
         && request.resource.data.priority in ["LOW", "MEDIUM", "HIGH"]
         && (!request.resource.data.keys().hasAny(["type"])
           || request.resource.data.type == null
@@ -370,7 +373,7 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           "title", "description", "assigneeId", "assigneeName", "dueAt", "priority",
           "status", "updatedBy", "updatedAt", "completedBy", "completedByName", "completedAt", "type",
-          "recurrenceUnit", "recurrenceInterval"
+          "recurrenceUnit", "recurrenceInterval", "startAt"
         ])
         && request.resource.data.createdBy == resource.data.createdBy
         && request.resource.data.createdByName == resource.data.createdByName

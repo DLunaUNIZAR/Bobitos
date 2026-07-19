@@ -67,6 +67,7 @@ class FirestoreTaskRepository @Inject constructor(
         priority: TaskPriority,
         type: TaskType?,
         recurrence: TaskRecurrence?,
+        startAt: Instant?,
     ) = runTaskOperation {
         val user = requireVerifiedUser()
         val values = validate(title, description, assigneeId)
@@ -88,6 +89,7 @@ class FirestoreTaskRepository @Inject constructor(
                     priority = priority,
                     type = type,
                     recurrence = recurrence,
+                    startAt = startAt,
                     user = user,
                 ),
             )
@@ -105,6 +107,7 @@ class FirestoreTaskRepository @Inject constructor(
         priority: TaskPriority,
         type: TaskType?,
         recurrence: TaskRecurrence?,
+        startAt: Instant?,
     ) = runTaskOperation {
         val user = requireVerifiedUser()
         val values = validate(title, description, assigneeId)
@@ -121,6 +124,7 @@ class FirestoreTaskRepository @Inject constructor(
                 FIELD_ASSIGNEE_ID, assigneeId,
                 FIELD_ASSIGNEE_NAME, assignee.getString(FIELD_DISPLAY_NAME),
                 FIELD_DUE_AT, dueAt?.toTimestamp(),
+                FIELD_START_AT, startAt?.toTimestamp(),
                 FIELD_PRIORITY, priority.name,
                 FIELD_TYPE, type?.name,
                 FIELD_RECURRENCE_UNIT, recurrence?.unit?.name,
@@ -140,12 +144,21 @@ class FirestoreTaskRepository @Inject constructor(
             val recurrence = task.taskRecurrence()
             if (completed && recurrence != null) {
                 // Tarea recurrente: al marcarla hecha se reprograma a la siguiente
-                // fecha en vez de completarse (sigue pendiente).
-                val base = task.getTimestamp(FIELD_DUE_AT)?.toDate()?.toInstant() ?: Instant.now()
+                // fecha (avanza inicio y fin) en vez de completarse (sigue pendiente).
+                val oldStart = task.getTimestamp(FIELD_START_AT)?.toDate()?.toInstant()
+                val oldDue = task.getTimestamp(FIELD_DUE_AT)?.toDate()?.toInstant()
+                val newStart = oldStart?.let { advanceRecurrence(it, recurrence) }
+                val newDue = when {
+                    oldDue != null -> advanceRecurrence(oldDue, recurrence)
+                    oldStart == null -> advanceRecurrence(Instant.now(), recurrence)
+                    else -> null
+                }
                 transaction.update(
                     taskReference,
+                    FIELD_START_AT,
+                    newStart?.toTimestamp(),
                     FIELD_DUE_AT,
-                    advanceRecurrence(base, recurrence).toTimestamp(),
+                    newDue?.toTimestamp(),
                     FIELD_UPDATED_BY,
                     user.id,
                     FIELD_UPDATED_AT,
@@ -193,6 +206,7 @@ class FirestoreTaskRepository @Inject constructor(
         priority: TaskPriority,
         type: TaskType?,
         recurrence: TaskRecurrence?,
+        startAt: Instant?,
         user: AuthUser,
     ) = mapOf(
         FIELD_TITLE to values.title,
@@ -200,6 +214,7 @@ class FirestoreTaskRepository @Inject constructor(
         FIELD_ASSIGNEE_ID to values.assigneeId,
         FIELD_ASSIGNEE_NAME to assigneeName,
         FIELD_DUE_AT to dueAt?.toTimestamp(),
+        FIELD_START_AT to startAt?.toTimestamp(),
         FIELD_PRIORITY to priority.name,
         FIELD_TYPE to type?.name,
         FIELD_RECURRENCE_UNIT to recurrence?.unit?.name,
@@ -275,6 +290,7 @@ class FirestoreTaskRepository @Inject constructor(
         const val FIELD_ASSIGNEE_ID = "assigneeId"
         const val FIELD_ASSIGNEE_NAME = "assigneeName"
         const val FIELD_DUE_AT = "dueAt"
+        const val FIELD_START_AT = "startAt"
         const val FIELD_PRIORITY = "priority"
         const val FIELD_TYPE = "type"
         const val FIELD_RECURRENCE_UNIT = "recurrenceUnit"
@@ -330,6 +346,7 @@ private fun DocumentSnapshot.toTaskItem(): TaskItem? {
             runCatching { TaskType.valueOf(value) }.getOrNull()
         },
         recurrence = taskRecurrence(),
+        startAt = getTimestamp("startAt")?.toDate()?.toInstant(),
     )
 }
 

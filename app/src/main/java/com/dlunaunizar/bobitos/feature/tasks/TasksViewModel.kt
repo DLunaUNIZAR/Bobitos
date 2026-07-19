@@ -68,6 +68,7 @@ class TasksViewModel @Inject constructor(
         priority: TaskPriority,
         type: TaskType?,
         recurrence: TaskRecurrence?,
+        startAt: Instant?,
     ) {
         if (!validate(title, description, assigneeId)) return
         runAction(TaskUiMessage.TaskCreated) {
@@ -80,6 +81,7 @@ class TasksViewModel @Inject constructor(
                 priority,
                 type,
                 recurrence,
+                startAt,
             )
         }
     }
@@ -94,6 +96,7 @@ class TasksViewModel @Inject constructor(
         priority: TaskPriority,
         type: TaskType?,
         recurrence: TaskRecurrence?,
+        startAt: Instant?,
     ) {
         if (!validate(title, description, assigneeId)) return
         runAction(TaskUiMessage.TaskUpdated) {
@@ -107,6 +110,7 @@ class TasksViewModel @Inject constructor(
                 priority,
                 type,
                 recurrence,
+                startAt,
             )
         }
     }
