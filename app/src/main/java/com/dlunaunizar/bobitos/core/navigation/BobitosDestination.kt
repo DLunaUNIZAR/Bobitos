@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Checklist
+import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.Event
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Person
@@ -17,6 +18,11 @@ enum class BobitosDestination(val route: String, @param:StringRes val titleRes: 
         route = "spaces",
         titleRes = R.string.spaces_title,
         icon = Icons.Rounded.Groups,
+    ),
+    SpaceHome(
+        route = "space-home",
+        titleRes = R.string.space_home_title,
+        icon = Icons.Rounded.Dashboard,
     ),
     MyCalendar(
         route = "my-calendar",

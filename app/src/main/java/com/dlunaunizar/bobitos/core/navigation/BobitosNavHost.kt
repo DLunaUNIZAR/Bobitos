@@ -1,18 +1,24 @@
 package com.dlunaunizar.bobitos.core.navigation
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -24,9 +30,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -88,7 +97,9 @@ fun BobitosNavHost(
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
     val protectedRoutes = BobitosDestination.workspaceDestinations.map { it.route } +
-        BobitosDestination.SpaceSettings.route + CALENDAR_EVENT_ROUTE
+        BobitosDestination.SpaceSettings.route +
+        BobitosDestination.SpaceHome.route +
+        CALENDAR_EVENT_ROUTE
 
     LaunchedEffect(currentRoute) {
         onRealtimeScopeChanged(
@@ -131,7 +142,7 @@ fun BobitosNavHost(
         if (acceptedSpaceId != null && acceptedSpaceAvailable) {
             onSpaceSelected(acceptedSpaceId)
             onConsumeAcceptedSpace()
-            navController.navigate(BobitosDestination.Shopping.route) {
+            navController.navigate(BobitosDestination.SpaceHome.route) {
                 popUpTo(BobitosDestination.Spaces.route) { inclusive = true }
             }
         }
@@ -142,7 +153,7 @@ fun BobitosNavHost(
         startDestination = if (uiState.selectedSpace == null) {
             BobitosDestination.Spaces.route
         } else {
-            BobitosDestination.Shopping.route
+            BobitosDestination.SpaceHome.route
         },
         modifier = modifier.fillMaxSize(),
     ) {
@@ -163,7 +174,7 @@ fun BobitosNavHost(
                     onSpaceSelected = { space ->
                         onClearSpaceFeedback()
                         onSpaceSelected(space.id)
-                        navController.navigate(BobitosDestination.Shopping.route) {
+                        navController.navigate(BobitosDestination.SpaceHome.route) {
                             popUpTo(BobitosDestination.Spaces.route) {
                                 inclusive = true
                             }
@@ -197,7 +208,26 @@ fun BobitosNavHost(
             }
         }
 
+        composable(BobitosDestination.SpaceHome.route) {
+            BackHandler { navController.navigateToSpaces() }
+            SpaceHomeScreen(
+                spaceName = spaceName,
+                syncStatus = uiState.syncStatus,
+                onModuleSelected = navController::navigateToWorkspace,
+                onSwitchSpace = navController::navigateToSpaces,
+                onSpaceSettings = {
+                    onClearSpaceFeedback()
+                    navController.navigate(BobitosDestination.SpaceSettings.route)
+                },
+                onProfile = {
+                    onClearAuthFeedback()
+                    navController.navigateToProfile()
+                },
+            )
+        }
+
         composable(BobitosDestination.Shopping.route) {
+            BackHandler { navController.navigateToSpaces() }
             WorkspaceScaffold(
                 currentDestination = BobitosDestination.Shopping,
                 spaceName = spaceName,
@@ -223,6 +253,7 @@ fun BobitosNavHost(
         }
 
         composable(BobitosDestination.Tasks.route) {
+            BackHandler { navController.navigateToSpaces() }
             WorkspaceScaffold(
                 currentDestination = BobitosDestination.Tasks,
                 spaceName = spaceName,
@@ -248,6 +279,7 @@ fun BobitosNavHost(
         }
 
         composable(BobitosDestination.Calendar.route) {
+            BackHandler { navController.navigateToSpaces() }
             WorkspaceScaffold(
                 currentDestination = BobitosDestination.Calendar,
                 spaceName = spaceName,
@@ -390,45 +422,23 @@ private fun WorkspaceScaffold(
                         Column {
                             Text(
                                 text = spaceName,
+                                style = MaterialTheme.typography.headlineSmall,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            Text(text = stringResource(currentDestination.titleRes))
+                            Text(
+                                text = stringResource(currentDestination.titleRes),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     },
                     actions = {
-                        IconButton(onClick = onProfile) {
-                            Icon(
-                                imageVector = Icons.Rounded.AccountCircle,
-                                contentDescription = stringResource(R.string.profile_open),
-                            )
-                        }
-                        var menuExpanded by remember { mutableStateOf(false) }
-                        IconButton(onClick = { menuExpanded = true }) {
-                            Icon(
-                                imageVector = Icons.Rounded.MoreVert,
-                                contentDescription = stringResource(R.string.more_options),
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false },
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(text = stringResource(R.string.space_settings)) },
-                                onClick = {
-                                    menuExpanded = false
-                                    onSpaceSettings()
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text(text = stringResource(R.string.change_space)) },
-                                onClick = {
-                                    menuExpanded = false
-                                    onSwitchSpace()
-                                },
-                            )
-                        }
+                        SpaceActions(
+                            onProfile = onProfile,
+                            onSpaceSettings = onSpaceSettings,
+                            onSwitchSpace = onSwitchSpace,
+                        )
                     },
                 )
                 SyncStatusBanner(syncStatus)
@@ -457,9 +467,121 @@ private fun WorkspaceScaffold(
     }
 }
 
+@Composable
+private fun SpaceActions(onProfile: () -> Unit, onSpaceSettings: () -> Unit, onSwitchSpace: () -> Unit) {
+    IconButton(onClick = onProfile) {
+        Icon(
+            imageVector = Icons.Rounded.AccountCircle,
+            contentDescription = stringResource(R.string.profile_open),
+        )
+    }
+    var menuExpanded by remember { mutableStateOf(false) }
+    IconButton(onClick = { menuExpanded = true }) {
+        Icon(
+            imageVector = Icons.Rounded.MoreVert,
+            contentDescription = stringResource(R.string.more_options),
+        )
+    }
+    DropdownMenu(
+        expanded = menuExpanded,
+        onDismissRequest = { menuExpanded = false },
+    ) {
+        DropdownMenuItem(
+            text = { Text(text = stringResource(R.string.space_settings)) },
+            onClick = {
+                menuExpanded = false
+                onSpaceSettings()
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(text = stringResource(R.string.change_space)) },
+            onClick = {
+                menuExpanded = false
+                onSwitchSpace()
+            },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SpaceHomeScreen(
+    spaceName: String,
+    syncStatus: SyncStatus,
+    onModuleSelected: (BobitosDestination) -> Unit,
+    onSwitchSpace: () -> Unit,
+    onSpaceSettings: () -> Unit,
+    onProfile: () -> Unit,
+) {
+    Scaffold(
+        topBar = {
+            Column {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = spaceName,
+                            style = MaterialTheme.typography.headlineSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    actions = {
+                        SpaceActions(
+                            onProfile = onProfile,
+                            onSpaceSettings = onSpaceSettings,
+                            onSwitchSpace = onSwitchSpace,
+                        )
+                    },
+                )
+                SyncStatusBanner(syncStatus)
+            }
+        },
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.space_home_subtitle),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            BobitosDestination.workspaceDestinations.forEach { destination ->
+                SpaceHomeCard(
+                    destination = destination,
+                    onClick = { onModuleSelected(destination) },
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SpaceHomeCard(destination: BobitosDestination, onClick: () -> Unit) {
+    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Icon(destination.icon, contentDescription = null)
+            Text(
+                text = stringResource(destination.titleRes),
+                style = MaterialTheme.typography.titleLarge,
+            )
+        }
+    }
+}
+
 private fun NavHostController.navigateToWorkspace(destination: BobitosDestination) {
     navigate(destination.route) {
-        popUpTo(BobitosDestination.Shopping.route) {
+        popUpTo(BobitosDestination.SpaceHome.route) {
             saveState = true
         }
         launchSingleTop = true
@@ -477,9 +599,7 @@ private fun NavHostController.navigateToRoot(destination: BobitosDestination) {
 
 private fun NavHostController.navigateToSpaces() {
     navigate(BobitosDestination.Spaces.route) {
-        popUpTo(BobitosDestination.Shopping.route) {
-            inclusive = true
-        }
+        popUpTo(graph.findStartDestination().id) { inclusive = true }
         launchSingleTop = true
     }
 }
