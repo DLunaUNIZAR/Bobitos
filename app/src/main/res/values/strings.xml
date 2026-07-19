@@ -174,8 +174,9 @@
     <string name="tasks_choose_assignee">Selecciona responsable</string>
     <string name="tasks_assignee">Responsable</string>
     <string name="tasks_unassigned">Sin responsable</string>
-    <string name="tasks_due_date_label">Fecha límite YYYY-MM-DD (opcional)</string>
-    <string name="tasks_start_date_label">Fecha de inicio YYYY-MM-DD (opcional)</string>
+    <string name="tasks_due_date_label">Fecha límite (opcional)</string>
+    <string name="tasks_start_date_label">Fecha de inicio (opcional)</string>
+    <string name="tasks_clear_date">Quitar fecha</string>
     <string name="tasks_start_date_value">Inicio: %1$s</string>
     <string name="tasks_no_date">Sin fecha</string>
     <string name="tasks_tab_recurring">Recurrentes</string>
