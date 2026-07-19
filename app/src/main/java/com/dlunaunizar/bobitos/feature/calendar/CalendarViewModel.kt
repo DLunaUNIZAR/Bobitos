@@ -5,9 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.SpaceMember
+import com.dlunaunizar.bobitos.core.model.TaskItem
 import com.dlunaunizar.bobitos.data.repository.CalendarRepository
 import com.dlunaunizar.bobitos.data.repository.EventInput
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
+import com.dlunaunizar.bobitos.data.repository.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +27,7 @@ data class CalendarUiState(
     val mode: CalendarDisplayMode = CalendarDisplayMode.MONTH,
     val events: UiState<List<CalendarEvent>> = UiState.Loading,
     val members: UiState<List<SpaceMember>> = UiState.Loading,
+    val tasks: List<TaskItem> = emptyList(),
     val selectedMemberIds: Set<String> = emptySet(),
     val knownMemberIds: Set<String> = emptySet(),
     val saving: Boolean = false,
@@ -35,6 +38,7 @@ data class CalendarUiState(
 class CalendarViewModel @Inject constructor(
     private val repository: CalendarRepository,
     private val spaces: SpaceRepository,
+    private val taskRepository: TaskRepository,
 ) : ViewModel() {
     private val mutable = MutableStateFlow(CalendarUiState())
     val uiState: StateFlow<CalendarUiState> = mutable.asStateFlow()
@@ -42,6 +46,7 @@ class CalendarViewModel @Inject constructor(
     private var spaceId: String? = null
     private var eventJob: Job? = null
     private var memberJob: Job? = null
+    private var taskJob: Job? = null
 
     fun observe(id: String) {
         if (spaceId == id) return
@@ -62,11 +67,18 @@ class CalendarViewModel @Inject constructor(
                 }
                 .collect(::onMembersChanged)
         }
+        taskJob?.cancel()
+        taskJob = viewModelScope.launch {
+            taskRepository.tasks(id)
+                .catch { mutable.update { it.copy(tasks = emptyList()) } }
+                .collect { tasks -> mutable.update { it.copy(tasks = tasks) } }
+        }
     }
 
     fun stop() {
         eventJob?.cancel()
         memberJob?.cancel()
+        taskJob?.cancel()
         spaceId = null
     }
 
