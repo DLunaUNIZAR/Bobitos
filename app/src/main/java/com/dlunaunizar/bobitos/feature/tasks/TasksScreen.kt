@@ -16,6 +16,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -25,7 +27,9 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -51,6 +55,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.RecurrenceUnit
 import com.dlunaunizar.bobitos.core.model.SpaceMember
@@ -475,19 +480,45 @@ private fun TaskDateFields(
     dueDate: String,
     onDueChange: (String) -> Unit,
 ) {
-    OutlinedTextField(
-        startDate,
-        onStartChange,
-        label = { Text(stringResource(R.string.tasks_start_date_label)) },
-        singleLine = true,
-    )
-    OutlinedTextField(
-        dueDate,
-        onDueChange,
-        label = { Text(stringResource(R.string.tasks_due_date_label)) },
-        singleLine = true,
-    )
+    DateField(stringResource(R.string.tasks_start_date_label), startDate, onStartChange)
+    DateField(stringResource(R.string.tasks_due_date_label), dueDate, onDueChange)
 }
+
+@Composable
+private fun DateField(label: String, value: String, onChange: (String) -> Unit) {
+    val date = value.takeIf(String::isNotBlank)?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+    var showPicker by remember { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(label, style = MaterialTheme.typography.labelLarge)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedButton(onClick = { showPicker = true }) {
+                Icon(Icons.Rounded.CalendarMonth, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(date?.format(taskDateDisplayFormatter) ?: stringResource(R.string.tasks_no_date))
+            }
+            if (date != null) {
+                IconButton(onClick = { onChange("") }) {
+                    Icon(Icons.Rounded.Clear, contentDescription = stringResource(R.string.tasks_clear_date))
+                }
+            }
+        }
+    }
+    if (showPicker) {
+        AppDatePickerDialog(
+            initialDate = date ?: LocalDate.now(),
+            onConfirm = {
+                onChange(it.toString())
+                showPicker = false
+            },
+            onDismiss = { showPicker = false },
+        )
+    }
+}
+
+private val taskDateDisplayFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
 @Composable
 private fun TaskTypePicker(selected: TaskType?, onSelect: (TaskType?) -> Unit) {
