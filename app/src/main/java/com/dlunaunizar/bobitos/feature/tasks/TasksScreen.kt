@@ -321,45 +321,7 @@ private fun TaskCard(
                     color = if (task.assigneeId == null) MaterialTheme.colorScheme.error else Color.Unspecified,
                 )
                 Text("${task.priority.label()} · ${task.dueAt?.formatDate() ?: stringResource(R.string.tasks_no_date)}")
-                task.startAt?.let { start ->
-                    Text(
-                        text = stringResource(R.string.tasks_start_date_value, start.formatDate()),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                task.type?.let { type ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = type.icon,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = type.accent(),
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = stringResource(type.labelRes),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                task.recurrence?.let { rec ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Rounded.Repeat,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = rec.label(),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
+                TaskCardMeta(task)
                 Text(
                     stringResource(R.string.tasks_created_by, task.createdByName),
                     style = MaterialTheme.typography.bodySmall,
@@ -461,6 +423,49 @@ private fun TaskEditor(
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
+}
+
+@Composable
+private fun TaskCardMeta(task: TaskItem) {
+    task.startAt?.let { start ->
+        Text(
+            text = stringResource(R.string.tasks_start_date_value, start.formatDate()),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    task.type?.let { type ->
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = type.icon,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = type.accent(),
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = stringResource(type.labelRes),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+    task.recurrence?.let { rec ->
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Rounded.Repeat,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = rec.label(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }
 
 @Composable
