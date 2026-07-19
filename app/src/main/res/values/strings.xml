@@ -76,6 +76,7 @@
     <string name="invitation_notice_revoked">Invitación revocada.</string>
     <string name="invitation_notice_accepted">Ya formas parte del espacio.</string>
     <string name="cancel">Cancelar</string>
+    <string name="accept">Aceptar</string>
     <string name="confirm">Confirmar</string>
     <string name="dismiss">Cerrar</string>
     <string name="change_space">Cambiar de espacio</string>
@@ -212,10 +213,10 @@
     <string name="calendar_event_description_label">Descripción</string>
     <string name="calendar_color_label">Color</string>
     <string name="calendar_participants_label">Participantes opcionales</string>
-    <string name="calendar_start_date_label">Inicio AAAA-MM-DD</string>
-    <string name="calendar_start_datetime_label">Inicio AAAA-MM-DD HH:mm</string>
-    <string name="calendar_end_date_label">Fin AAAA-MM-DD</string>
-    <string name="calendar_end_datetime_label">Fin AAAA-MM-DD HH:mm</string>
+    <string name="calendar_start_date_label">Inicio</string>
+    <string name="calendar_start_datetime_label">Inicio</string>
+    <string name="calendar_end_date_label">Fin</string>
+    <string name="calendar_end_datetime_label">Fin</string>
     <string name="calendar_save">Guardar</string>
     <string name="calendar_edit">Editar</string>
     <string name="calendar_delete">Eliminar</string>

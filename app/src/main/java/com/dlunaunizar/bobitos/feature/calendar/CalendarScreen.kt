@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,14 +21,18 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,12 +41,16 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -72,9 +81,10 @@ import com.dlunaunizar.bobitos.data.repository.EventInput
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.YearMonth
 import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.temporal.TemporalAdjusters
@@ -565,28 +575,33 @@ private fun EventEditor(
     var title by remember { mutableStateOf(event?.title.orEmpty()) }
     var description by remember { mutableStateOf(event?.description.orEmpty()) }
     var allDay by remember { mutableStateOf(event?.allDay ?: true) }
-    var start by remember {
+    val startZdt = event?.startAt?.atZone(zone)
+    val endZdt = event?.endAt?.atZone(zone)
+    var startDate by remember {
         mutableStateOf(
-            event?.let {
-                if (it.allDay) {
-                    it.startDate.toString()
-                } else {
-                    it.startAt.atZone(zone).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
-                }
-            } ?: day.toString(),
+            when {
+                event == null -> day
+                event.allDay -> event.startDate!!
+                else -> startZdt!!.toLocalDate()
+            },
         )
     }
-    var end by remember {
+    var endDate by remember {
         mutableStateOf(
-            event?.let {
-                if (it.allDay) {
-                    it.endDateExclusive!!.minusDays(1).toString()
-                } else {
-                    it.endAt.atZone(zone).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
-                }
-            } ?: day.toString(),
+            when {
+                event == null -> day
+                event.allDay -> event.endDateExclusive!!.minusDays(1)
+                else -> endZdt!!.toLocalDate()
+            },
         )
     }
+    var startTime by remember {
+        mutableStateOf(if (event?.allDay == false) startZdt!!.toLocalTime() else LocalTime.of(9, 0))
+    }
+    var endTime by remember {
+        mutableStateOf(if (event?.allDay == false) endZdt!!.toLocalTime() else LocalTime.of(10, 0))
+    }
+    var activePicker by remember { mutableStateOf<EventPicker?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var color by remember { mutableStateOf(event?.color ?: EventColor.BLUE) }
     var selected by remember { mutableStateOf(event?.participantIds?.toSet().orEmpty()) }
@@ -620,17 +635,19 @@ private fun EventEditor(
                     Checkbox(allDay, { allDay = it })
                     Text(stringResource(R.string.calendar_all_day))
                 }
-                OutlinedTextField(
-                    start,
-                    { start = it },
-                    label = { Text(stringResource(startLabelRes)) },
-                    singleLine = true,
+                DateTimeField(
+                    label = stringResource(startLabelRes),
+                    date = startDate,
+                    time = if (allDay) null else startTime,
+                    onDateClick = { activePicker = EventPicker.START_DATE },
+                    onTimeClick = { activePicker = EventPicker.START_TIME },
                 )
-                OutlinedTextField(
-                    end,
-                    { end = it },
-                    label = { Text(stringResource(endLabelRes)) },
-                    singleLine = true,
+                DateTimeField(
+                    label = stringResource(endLabelRes),
+                    date = endDate,
+                    time = if (allDay) null else endTime,
+                    onDateClick = { activePicker = EventPicker.END_DATE },
+                    onTimeClick = { activePicker = EventPicker.END_TIME },
                 )
                 Text(stringResource(R.string.calendar_color_label), style = MaterialTheme.typography.labelLarge)
                 ColorPicker(selected = color, onSelect = { color = it })
@@ -659,43 +676,64 @@ private fun EventEditor(
             Button(
                 enabled = canWrite && !saving,
                 onClick = {
-                    try {
-                        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                        val startDate = if (allDay) LocalDate.parse(start) else null
-                        val endDate = if (allDay) LocalDate.parse(end).plusDays(1) else null
-                        val startInstant = if (allDay) {
-                            startDate!!.atStartOfDay(zone).toInstant()
-                        } else {
-                            parseLocal(start, formatter, zone)
-                        }
-                        val endInstant = if (allDay) {
-                            endDate!!.atStartOfDay(zone).toInstant()
-                        } else {
-                            parseLocal(end, formatter, zone)
-                        }
-                        save(
-                            event?.id,
-                            EventInput(
-                                title,
-                                description,
-                                allDay,
-                                startInstant,
-                                endInstant,
-                                startDate,
-                                endDate,
-                                zone.id,
-                                color,
-                                selected.toList(),
-                            ),
-                        )
-                    } catch (_: Exception) {
+                    val input = buildEventInput(
+                        title = title,
+                        description = description,
+                        allDay = allDay,
+                        startDate = startDate,
+                        endDate = endDate,
+                        startTime = startTime,
+                        endTime = endTime,
+                        zone = zone,
+                        color = color,
+                        participants = selected.toList(),
+                    )
+                    if (input == null) {
                         error = dateError
+                    } else {
+                        save(event?.id, input)
                     }
                 },
             ) { Text(stringResource(R.string.calendar_save)) }
         },
         dismissButton = { TextButton(onClick = dismiss) { Text(stringResource(R.string.cancel)) } },
     )
+
+    when (activePicker) {
+        EventPicker.START_DATE -> EventDatePickerDialog(
+            initialDate = startDate,
+            onConfirm = {
+                startDate = it
+                activePicker = null
+            },
+            onDismiss = { activePicker = null },
+        )
+        EventPicker.END_DATE -> EventDatePickerDialog(
+            initialDate = endDate,
+            onConfirm = {
+                endDate = it
+                activePicker = null
+            },
+            onDismiss = { activePicker = null },
+        )
+        EventPicker.START_TIME -> EventTimePickerDialog(
+            initialTime = startTime,
+            onConfirm = {
+                startTime = it
+                activePicker = null
+            },
+            onDismiss = { activePicker = null },
+        )
+        EventPicker.END_TIME -> EventTimePickerDialog(
+            initialTime = endTime,
+            onConfirm = {
+                endTime = it
+                activePicker = null
+            },
+            onDismiss = { activePicker = null },
+        )
+        null -> Unit
+    }
 }
 
 @Composable
@@ -723,9 +761,128 @@ private fun ColorPicker(selected: EventColor, onSelect: (EventColor) -> Unit) {
     }
 }
 
-private fun parseLocal(value: String, formatter: DateTimeFormatter, zone: ZoneId): Instant {
-    val local = LocalDateTime.parse(value, formatter)
-    val offsets = zone.rules.getValidOffsets(local)
-    require(offsets.isNotEmpty())
-    return local.atOffset(offsets.first()).toInstant()
+private enum class EventPicker { START_DATE, END_DATE, START_TIME, END_TIME }
+
+private val editorDateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+private val editorTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
+@Composable
+private fun DateTimeField(
+    label: String,
+    date: LocalDate,
+    time: LocalTime?,
+    onDateClick: () -> Unit,
+    onTimeClick: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(label, style = MaterialTheme.typography.labelLarge)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = onDateClick) {
+                Icon(
+                    Icons.Rounded.CalendarMonth,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.size(8.dp))
+                Text(date.format(editorDateFormatter))
+            }
+            if (time != null) {
+                OutlinedButton(onClick = onTimeClick) {
+                    Icon(
+                        Icons.Rounded.Schedule,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.size(8.dp))
+                    Text(time.format(editorTimeFormatter))
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EventDatePickerDialog(initialDate: LocalDate, onConfirm: (LocalDate) -> Unit, onDismiss: () -> Unit) {
+    val state = rememberDatePickerState(
+        initialSelectedDateMillis = initialDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+    )
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    state.selectedDateMillis?.let { millis ->
+                        onConfirm(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
+                    }
+                },
+            ) { Text(stringResource(R.string.accept)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    ) {
+        DatePicker(state = state)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EventTimePickerDialog(initialTime: LocalTime, onConfirm: (LocalTime) -> Unit, onDismiss: () -> Unit) {
+    val state = rememberTimePickerState(
+        initialHour = initialTime.hour,
+        initialMinute = initialTime.minute,
+        is24Hour = true,
+    )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = { onConfirm(LocalTime.of(state.hour, state.minute)) }) {
+                Text(stringResource(R.string.accept))
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+        text = { TimePicker(state = state) },
+    )
+}
+
+private fun buildEventInput(
+    title: String,
+    description: String,
+    allDay: Boolean,
+    startDate: LocalDate,
+    endDate: LocalDate,
+    startTime: LocalTime,
+    endTime: LocalTime,
+    zone: ZoneId,
+    color: EventColor,
+    participants: List<String>,
+): EventInput? {
+    val startInstant: Instant
+    val endInstant: Instant
+    val startDateOut: LocalDate?
+    val endDateOut: LocalDate?
+    if (allDay) {
+        startDateOut = startDate
+        endDateOut = endDate.plusDays(1)
+        startInstant = startDate.atStartOfDay(zone).toInstant()
+        endInstant = endDateOut.atStartOfDay(zone).toInstant()
+    } else {
+        startDateOut = null
+        endDateOut = null
+        startInstant = startDate.atTime(startTime).atZone(zone).toInstant()
+        endInstant = endDate.atTime(endTime).atZone(zone).toInstant()
+    }
+    val valid = if (allDay) !endDate.isBefore(startDate) else endInstant.isAfter(startInstant)
+    if (!valid) return null
+    return EventInput(
+        title,
+        description,
+        allDay,
+        startInstant,
+        endInstant,
+        startDateOut,
+        endDateOut,
+        zone.id,
+        color,
+        participants,
+    )
 }
