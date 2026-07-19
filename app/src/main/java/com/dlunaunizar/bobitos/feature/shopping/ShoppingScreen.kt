@@ -1,6 +1,5 @@
 package com.dlunaunizar.bobitos.feature.shopping
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,10 +15,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Storefront
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
@@ -43,7 +42,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
@@ -541,7 +539,7 @@ private fun SupermarketDropdown(selected: Supermarket?, onSelect: (Supermarket?)
     Box(modifier = Modifier.fillMaxWidth()) {
         OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
             if (selected != null) {
-                SupermarketDot(selected, Modifier.padding(end = 8.dp))
+                SupermarketIcon(selected, Modifier.padding(end = 8.dp))
             }
             Text(
                 text = selected?.let { stringResource(it.labelRes) }
@@ -560,7 +558,7 @@ private fun SupermarketDropdown(selected: Supermarket?, onSelect: (Supermarket?)
             Supermarket.entries.forEach { option ->
                 DropdownMenuItem(
                     text = { Text(stringResource(option.labelRes)) },
-                    leadingIcon = { SupermarketDot(option) },
+                    leadingIcon = { SupermarketIcon(option) },
                     onClick = {
                         onSelect(option)
                         expanded = false
@@ -572,12 +570,12 @@ private fun SupermarketDropdown(selected: Supermarket?, onSelect: (Supermarket?)
 }
 
 @Composable
-private fun SupermarketDot(supermarket: Supermarket, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .size(12.dp)
-            .clip(CircleShape)
-            .background(supermarket.dotColor()),
+private fun SupermarketIcon(supermarket: Supermarket, modifier: Modifier = Modifier) {
+    Icon(
+        imageVector = Icons.Rounded.Storefront,
+        contentDescription = null,
+        tint = supermarket.brandColor(),
+        modifier = modifier.size(16.dp),
     )
 }
 
@@ -588,7 +586,7 @@ private fun SupermarketBrandLine(supermarket: Supermarket?, brand: String?) {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         if (supermarket != null) {
-            SupermarketDot(supermarket)
+            SupermarketIcon(supermarket)
             Text(
                 text = stringResource(supermarket.labelRes),
                 style = MaterialTheme.typography.bodySmall,
@@ -627,7 +625,7 @@ private fun SupermarketFilterRow(
             FilterChip(
                 selected = selected == option,
                 onClick = { onSelect(option) },
-                leadingIcon = { SupermarketDot(option) },
+                leadingIcon = { SupermarketIcon(option) },
                 label = { Text(stringResource(option.labelRes)) },
             )
         }
