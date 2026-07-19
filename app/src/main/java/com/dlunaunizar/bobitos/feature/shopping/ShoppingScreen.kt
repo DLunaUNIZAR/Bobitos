@@ -21,6 +21,7 @@ import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Storefront
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -51,6 +52,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
 
@@ -350,7 +352,11 @@ private fun ShoppingItemCard(
     onDelete: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = item.supermarket?.let { categoryCardColors(it.brandColor()) }
+            ?: CardDefaults.cardColors(),
+    ) {
         Row(
             modifier = Modifier.padding(start = 12.dp, top = 8.dp, end = 4.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,

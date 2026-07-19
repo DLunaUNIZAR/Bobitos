@@ -10,6 +10,7 @@ import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.ShoppingCart
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.dlunaunizar.bobitos.R
 
@@ -60,4 +61,13 @@ enum class BobitosDestination(val route: String, @param:StringRes val titleRes: 
         val rootDestinations = listOf(Spaces, MyCalendar)
         val workspaceDestinations = listOf(Shopping, Tasks, Calendar)
     }
+}
+
+// Color de módulo dentro de un espacio, para dar identidad de color al hub y a la barra
+// inferior. Solo los tres módulos del workspace tienen color; el resto, null (neutro).
+fun BobitosDestination.moduleColor(): Color? = when (this) {
+    BobitosDestination.Shopping -> Color(0xFFC05621)
+    BobitosDestination.Tasks -> Color(0xFF7E57C2)
+    BobitosDestination.Calendar -> Color(0xFF00897B)
+    else -> null
 }
