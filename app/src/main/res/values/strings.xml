@@ -178,6 +178,8 @@
     <string name="tasks_start_date_label">Fecha de inicio YYYY-MM-DD (opcional)</string>
     <string name="tasks_start_date_value">Inicio: %1$s</string>
     <string name="tasks_no_date">Sin fecha</string>
+    <string name="tasks_tab_recurring">Recurrentes</string>
+    <string name="tasks_tab_oneoff">Únicas</string>
     <string name="task_type_label">Tipo (opcional)</string>
     <string name="task_type_none">Sin tipo</string>
     <string name="task_type_cleaning">Limpieza</string>
