@@ -1,9 +1,12 @@
-Beta de Bobitos — nueva imagen y mejoras.
+Beta de Bobitos — tema claro/oscuro y nueva paleta.
 
 Novedades de esta versión:
-- Nueva identidad visual (Material 3): color, tipografía Nunito e iconos.
-- Al entrar en un espacio, pantalla de inicio con accesos a Tareas, Compra y Calendario; el botón Atrás vuelve al listado de espacios.
-- Compra: supermercado y marca por producto, con filtro por supermercado e icono de tienda por color.
+- Preferencia de tema: claro, oscuro o según el sistema (desde tu perfil).
+- Nueva paleta de color «verde azulado».
+
+De versiones recientes:
+- Al entrar en un espacio, pantalla de inicio con Tareas, Compra y Calendario; el botón Atrás vuelve al listado de espacios.
+- Compra: supermercado y marca por producto, con filtro e icono por supermercado.
 - Tareas: tipo de tarea con icono.
 - Calendario: selector de fecha y hora nativos al crear o editar eventos.
 
