@@ -300,7 +300,8 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly([
           "title", "description", "assigneeId", "assigneeName", "dueAt",
           "priority", "status", "createdBy", "createdByName", "createdAt",
-          "updatedBy", "updatedAt", "completedBy", "completedByName", "completedAt", "type"
+          "updatedBy", "updatedAt", "completedBy", "completedByName", "completedAt", "type",
+          "recurrenceUnit", "recurrenceInterval"
         ])
         && request.resource.data.title is string
         && request.resource.data.title.size() > 0
@@ -315,6 +316,14 @@ service cloud.firestore {
         && (!request.resource.data.keys().hasAny(["type"])
           || request.resource.data.type == null
           || request.resource.data.type in ["LIMPIEZA", "MEDICO", "COMPRAS", "HOGAR", "OTROS"])
+        && (!request.resource.data.keys().hasAny(["recurrenceUnit"])
+          || request.resource.data.recurrenceUnit == null
+          || request.resource.data.recurrenceUnit in ["DAY", "WEEK", "MONTH"])
+        && (!request.resource.data.keys().hasAny(["recurrenceInterval"])
+          || request.resource.data.recurrenceInterval == null
+          || (request.resource.data.recurrenceInterval is int
+            && request.resource.data.recurrenceInterval >= 1
+            && request.resource.data.recurrenceInterval <= 365))
         && request.resource.data.status in ["TODO", "DONE"]
         && request.resource.data.createdBy is string
         && request.resource.data.createdByName is string
@@ -360,7 +369,8 @@ service cloud.firestore {
         && validTaskShape(spaceId)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           "title", "description", "assigneeId", "assigneeName", "dueAt", "priority",
-          "status", "updatedBy", "updatedAt", "completedBy", "completedByName", "completedAt", "type"
+          "status", "updatedBy", "updatedAt", "completedBy", "completedByName", "completedAt", "type",
+          "recurrenceUnit", "recurrenceInterval"
         ])
         && request.resource.data.createdBy == resource.data.createdBy
         && request.resource.data.createdByName == resource.data.createdByName

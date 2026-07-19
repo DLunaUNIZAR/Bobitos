@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.data.repository
 
 import com.dlunaunizar.bobitos.core.model.TaskItem
 import com.dlunaunizar.bobitos.core.model.TaskPriority
+import com.dlunaunizar.bobitos.core.model.TaskRecurrence
 import com.dlunaunizar.bobitos.core.model.TaskType
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
@@ -17,6 +18,7 @@ interface TaskRepository {
         dueAt: Instant?,
         priority: TaskPriority,
         type: TaskType?,
+        recurrence: TaskRecurrence?,
     )
 
     suspend fun updateTask(
@@ -28,6 +30,7 @@ interface TaskRepository {
         dueAt: Instant?,
         priority: TaskPriority,
         type: TaskType?,
+        recurrence: TaskRecurrence?,
     )
 
     suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean)

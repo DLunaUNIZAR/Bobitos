@@ -1,8 +1,10 @@
 package com.dlunaunizar.bobitos.data.repository
 
 import com.dlunaunizar.bobitos.core.model.AuthUser
+import com.dlunaunizar.bobitos.core.model.RecurrenceUnit
 import com.dlunaunizar.bobitos.core.model.TaskItem
 import com.dlunaunizar.bobitos.core.model.TaskPriority
+import com.dlunaunizar.bobitos.core.model.TaskRecurrence
 import com.dlunaunizar.bobitos.core.model.TaskStatus
 import com.dlunaunizar.bobitos.core.model.TaskType
 import com.dlunaunizar.bobitos.data.sync.RealtimeMetrics
@@ -19,6 +21,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import java.time.Instant
+import java.time.ZoneId
 import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -63,6 +66,7 @@ class FirestoreTaskRepository @Inject constructor(
         dueAt: Instant?,
         priority: TaskPriority,
         type: TaskType?,
+        recurrence: TaskRecurrence?,
     ) = runTaskOperation {
         val user = requireVerifiedUser()
         val values = validate(title, description, assigneeId)
@@ -83,6 +87,7 @@ class FirestoreTaskRepository @Inject constructor(
                     dueAt = dueAt,
                     priority = priority,
                     type = type,
+                    recurrence = recurrence,
                     user = user,
                 ),
             )
@@ -99,6 +104,7 @@ class FirestoreTaskRepository @Inject constructor(
         dueAt: Instant?,
         priority: TaskPriority,
         type: TaskType?,
+        recurrence: TaskRecurrence?,
     ) = runTaskOperation {
         val user = requireVerifiedUser()
         val values = validate(title, description, assigneeId)
@@ -117,6 +123,8 @@ class FirestoreTaskRepository @Inject constructor(
                 FIELD_DUE_AT, dueAt?.toTimestamp(),
                 FIELD_PRIORITY, priority.name,
                 FIELD_TYPE, type?.name,
+                FIELD_RECURRENCE_UNIT, recurrence?.unit?.name,
+                FIELD_RECURRENCE_INTERVAL, recurrence?.interval,
                 FIELD_UPDATED_BY, user.id,
                 FIELD_UPDATED_AT, FieldValue.serverTimestamp(),
             )
@@ -129,18 +137,34 @@ class FirestoreTaskRepository @Inject constructor(
         val taskReference = tasksCollection(spaceId).document(taskId)
         firestore.runTransaction { transaction ->
             val task = requireTask(transaction.get(taskReference))
-            val targetStatus = if (completed) STATUS_DONE else STATUS_TODO
-            if (task.getString(FIELD_STATUS) != targetStatus) {
+            val recurrence = task.taskRecurrence()
+            if (completed && recurrence != null) {
+                // Tarea recurrente: al marcarla hecha se reprograma a la siguiente
+                // fecha en vez de completarse (sigue pendiente).
+                val base = task.getTimestamp(FIELD_DUE_AT)?.toDate()?.toInstant() ?: Instant.now()
                 transaction.update(
                     taskReference,
-                    FIELD_STATUS, targetStatus,
-                    FIELD_COMPLETED_BY, if (completed) user.id else null,
-                    FIELD_COMPLETED_BY_NAME, if (completed) user.taskDisplayName else null,
-                    FIELD_COMPLETED_AT,
-                    if (completed) FieldValue.serverTimestamp() else null,
-                    FIELD_UPDATED_BY, user.id,
-                    FIELD_UPDATED_AT, FieldValue.serverTimestamp(),
+                    FIELD_DUE_AT,
+                    advanceRecurrence(base, recurrence).toTimestamp(),
+                    FIELD_UPDATED_BY,
+                    user.id,
+                    FIELD_UPDATED_AT,
+                    FieldValue.serverTimestamp(),
                 )
+            } else {
+                val targetStatus = if (completed) STATUS_DONE else STATUS_TODO
+                if (task.getString(FIELD_STATUS) != targetStatus) {
+                    transaction.update(
+                        taskReference,
+                        FIELD_STATUS, targetStatus,
+                        FIELD_COMPLETED_BY, if (completed) user.id else null,
+                        FIELD_COMPLETED_BY_NAME, if (completed) user.taskDisplayName else null,
+                        FIELD_COMPLETED_AT,
+                        if (completed) FieldValue.serverTimestamp() else null,
+                        FIELD_UPDATED_BY, user.id,
+                        FIELD_UPDATED_AT, FieldValue.serverTimestamp(),
+                    )
+                }
             }
         }.await()
         Unit
@@ -168,6 +192,7 @@ class FirestoreTaskRepository @Inject constructor(
         dueAt: Instant?,
         priority: TaskPriority,
         type: TaskType?,
+        recurrence: TaskRecurrence?,
         user: AuthUser,
     ) = mapOf(
         FIELD_TITLE to values.title,
@@ -177,6 +202,8 @@ class FirestoreTaskRepository @Inject constructor(
         FIELD_DUE_AT to dueAt?.toTimestamp(),
         FIELD_PRIORITY to priority.name,
         FIELD_TYPE to type?.name,
+        FIELD_RECURRENCE_UNIT to recurrence?.unit?.name,
+        FIELD_RECURRENCE_INTERVAL to recurrence?.interval,
         FIELD_STATUS to STATUS_TODO,
         FIELD_CREATED_BY to user.id,
         FIELD_CREATED_BY_NAME to user.taskDisplayName,
@@ -250,6 +277,8 @@ class FirestoreTaskRepository @Inject constructor(
         const val FIELD_DUE_AT = "dueAt"
         const val FIELD_PRIORITY = "priority"
         const val FIELD_TYPE = "type"
+        const val FIELD_RECURRENCE_UNIT = "recurrenceUnit"
+        const val FIELD_RECURRENCE_INTERVAL = "recurrenceInterval"
         const val FIELD_STATUS = "status"
         const val FIELD_CREATED_BY = "createdBy"
         const val FIELD_CREATED_BY_NAME = "createdByName"
@@ -300,7 +329,26 @@ private fun DocumentSnapshot.toTaskItem(): TaskItem? {
         type = getString("type")?.let { value ->
             runCatching { TaskType.valueOf(value) }.getOrNull()
         },
+        recurrence = taskRecurrence(),
     )
+}
+
+private fun DocumentSnapshot.taskRecurrence(): TaskRecurrence? {
+    val unit = getString("recurrenceUnit")
+        ?.let { runCatching { RecurrenceUnit.valueOf(it) }.getOrNull() }
+        ?: return null
+    val interval = (getLong("recurrenceInterval") ?: 1L).toInt().coerceAtLeast(1)
+    return TaskRecurrence(unit, interval)
+}
+
+private fun advanceRecurrence(base: Instant, recurrence: TaskRecurrence): Instant {
+    val zoned = base.atZone(ZoneId.systemDefault())
+    val advanced = when (recurrence.unit) {
+        RecurrenceUnit.DAY -> zoned.plusDays(recurrence.interval.toLong())
+        RecurrenceUnit.WEEK -> zoned.plusWeeks(recurrence.interval.toLong())
+        RecurrenceUnit.MONTH -> zoned.plusMonths(recurrence.interval.toLong())
+    }
+    return advanced.toInstant()
 }
 
 private fun Throwable.toTaskRepositoryException() = TaskRepositoryException(

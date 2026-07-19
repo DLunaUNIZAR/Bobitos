@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.TaskPriority
+import com.dlunaunizar.bobitos.core.model.TaskRecurrence
 import com.dlunaunizar.bobitos.core.model.TaskType
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.TaskFailure
@@ -66,6 +67,7 @@ class TasksViewModel @Inject constructor(
         dueAt: Instant?,
         priority: TaskPriority,
         type: TaskType?,
+        recurrence: TaskRecurrence?,
     ) {
         if (!validate(title, description, assigneeId)) return
         runAction(TaskUiMessage.TaskCreated) {
@@ -77,6 +79,7 @@ class TasksViewModel @Inject constructor(
                 dueAt,
                 priority,
                 type,
+                recurrence,
             )
         }
     }
@@ -90,6 +93,7 @@ class TasksViewModel @Inject constructor(
         dueAt: Instant?,
         priority: TaskPriority,
         type: TaskType?,
+        recurrence: TaskRecurrence?,
     ) {
         if (!validate(title, description, assigneeId)) return
         runAction(TaskUiMessage.TaskUpdated) {
@@ -102,6 +106,7 @@ class TasksViewModel @Inject constructor(
                 dueAt,
                 priority,
                 type,
+                recurrence,
             )
         }
     }
