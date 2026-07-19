@@ -1,9 +1,12 @@
-Primera beta privada de Bobitos.
+Beta de Bobitos — nueva imagen y mejoras.
 
-- Espacios privados con invitaciones.
-- Lista de la compra compartida.
-- Tareas asignables.
-- Calendario compartido.
-- Modo sin conexión de solo lectura.
+Novedades de esta versión:
+- Nueva identidad visual (Material 3): color, tipografía Nunito e iconos.
+- Al entrar en un espacio, pantalla de inicio con accesos a Tareas, Compra y Calendario; el botón Atrás vuelve al listado de espacios.
+- Compra: supermercado y marca por producto, con filtro por supermercado e icono de tienda por color.
+- Tareas: tipo de tarea con icono.
+- Calendario: selector de fecha y hora nativos al crear o editar eventos.
+
+Incluye: espacios privados con invitaciones, lista de la compra compartida, tareas asignables, calendario compartido y modo sin conexión de solo lectura.
 
 Comunica cualquier error indicando el modelo del dispositivo, la versión de Android y los pasos para reproducirlo.
