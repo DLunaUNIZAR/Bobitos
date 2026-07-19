@@ -263,6 +263,10 @@
     <string name="profile_verified">Correo verificado</string>
     <string name="profile_save">Guardar nombre</string>
     <string name="profile_open">Perfil</string>
+    <string name="settings_theme_title">Tema</string>
+    <string name="settings_theme_light">Claro</string>
+    <string name="settings_theme_dark">Oscuro</string>
+    <string name="settings_theme_system">Sistema</string>
     <string name="account_delete">Eliminar mi cuenta</string>
     <string name="account_delete_title">Eliminar cuenta definitivamente</string>
     <string name="account_delete_body">Se cerrarán tus membresías y se anonimizará tu nombre en el contenido histórico. Si eres propietario, antes debes transferir o eliminar esos espacios. Escribe tu contraseña para confirmar.</string>

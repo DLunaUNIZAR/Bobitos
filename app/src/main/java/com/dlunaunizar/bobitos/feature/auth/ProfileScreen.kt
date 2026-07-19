@@ -16,6 +16,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -30,7 +33,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.designsystem.theme.ThemeMode
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.SyncStatus
 import com.dlunaunizar.bobitos.feature.common.SyncStatusBanner
@@ -48,7 +54,9 @@ fun ProfileScreen(
     onBack: () -> Unit,
     onClearFeedback: () -> Unit,
     modifier: Modifier = Modifier,
+    themeViewModel: ThemeViewModel = hiltViewModel(),
 ) {
+    val themeMode by themeViewModel.themeMode.collectAsStateWithLifecycle()
     var displayName by rememberSaveable(user.id) {
         mutableStateOf(user.displayName)
     }
@@ -126,6 +134,10 @@ fun ProfileScreen(
             ) {
                 Text(stringResource(R.string.auth_sign_out))
             }
+            ThemeModeSelector(
+                selected = themeMode,
+                onSelect = themeViewModel::setThemeMode,
+            )
             TextButton(onClick = { showPrivacy = true }) { Text(stringResource(R.string.privacy_policy_title)) }
             TextButton(enabled = !actionState.isLoading && canWrite, onClick = { showDeleteAccount = true }) {
                 Text(stringResource(R.string.account_delete), color = MaterialTheme.colorScheme.error)
@@ -170,5 +182,35 @@ fun ProfileScreen(
                 TextButton(onClick = { showPrivacy = false }) { Text(stringResource(R.string.dismiss)) }
             },
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ThemeModeSelector(selected: ThemeMode, onSelect: (ThemeMode) -> Unit, modifier: Modifier = Modifier) {
+    val options = listOf(
+        ThemeMode.LIGHT to R.string.settings_theme_light,
+        ThemeMode.DARK to R.string.settings_theme_dark,
+        ThemeMode.SYSTEM to R.string.settings_theme_system,
+    )
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.settings_theme_title),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            options.forEachIndexed { index, (mode, labelRes) ->
+                SegmentedButton(
+                    selected = selected == mode,
+                    onClick = { onSelect(mode) },
+                    shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                ) {
+                    Text(stringResource(labelRes))
+                }
+            }
+        }
     }
 }
