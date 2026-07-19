@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.MoreVert
@@ -69,6 +70,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -77,6 +79,8 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.EventColor
 import com.dlunaunizar.bobitos.core.model.SpaceMember
+import com.dlunaunizar.bobitos.core.model.TaskItem
+import com.dlunaunizar.bobitos.core.model.TaskStatus
 import com.dlunaunizar.bobitos.data.repository.EventInput
 import java.time.DayOfWeek
 import java.time.Instant
@@ -163,6 +167,7 @@ fun CalendarScreen(
                     )
                     EventList(
                         events = filteredEvents.eventsOn(state.focusedDate),
+                        tasks = state.tasks.tasksOn(state.focusedDate),
                         canWrite = canWrite,
                         onEdit = { editor = it },
                         onDelete = viewModel::delete,
@@ -171,6 +176,7 @@ fun CalendarScreen(
                 }
                 CalendarDisplayMode.DAY -> EventList(
                     events = filteredEvents.eventsOn(state.focusedDate),
+                    tasks = state.tasks.tasksOn(state.focusedDate),
                     canWrite = canWrite,
                     onEdit = { editor = it },
                     onDelete = viewModel::delete,
@@ -460,6 +466,7 @@ private fun WeekEventList(
 @Composable
 private fun EventList(
     events: List<CalendarEvent>,
+    tasks: List<TaskItem>,
     canWrite: Boolean,
     onEdit: (CalendarEvent) -> Unit,
     onDelete: (String) -> Unit,
@@ -470,6 +477,18 @@ private fun EventList(
         verticalArrangement = Arrangement.spacedBy(6.dp),
         contentPadding = PaddingValues(bottom = 88.dp),
     ) {
+        if (tasks.isNotEmpty()) {
+            item(key = "tasks-header") {
+                Text(
+                    text = stringResource(R.string.calendar_tasks_section),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            items(tasks, key = { "task-${it.id}" }) { task ->
+                TaskOnDayRow(task)
+            }
+        }
         if (events.isEmpty()) {
             item {
                 Text(
@@ -480,6 +499,45 @@ private fun EventList(
         }
         items(events, key = CalendarEvent::id) { event ->
             EventRow(event, canWrite, { onEdit(event) }, { onDelete(event.id) })
+        }
+    }
+}
+
+@Composable
+private fun TaskOnDayRow(task: TaskItem) {
+    Card(Modifier.fillMaxWidth()) {
+        Row(
+            Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Checklist,
+                contentDescription = null,
+                modifier = Modifier
+                    .padding(end = 12.dp)
+                    .size(20.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = task.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    textDecoration = if (task.status == TaskStatus.DONE) {
+                        TextDecoration.LineThrough
+                    } else {
+                        null
+                    },
+                )
+                task.assigneeName?.let { name ->
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         }
     }
 }
@@ -553,6 +611,12 @@ private fun EventRow(event: CalendarEvent, canWrite: Boolean, edit: () -> Unit, 
             }
         }
     }
+}
+
+private fun List<TaskItem>.tasksOn(date: LocalDate): List<TaskItem> {
+    val zone = ZoneId.systemDefault()
+    return filter { task -> task.dueAt?.atZone(zone)?.toLocalDate() == date }
+        .sortedBy { it.dueAt }
 }
 
 internal fun List<CalendarEvent>.eventsOn(date: LocalDate): List<CalendarEvent> {
