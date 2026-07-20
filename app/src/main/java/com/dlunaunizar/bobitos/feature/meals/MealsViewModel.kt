@@ -1,0 +1,144 @@
+package com.dlunaunizar.bobitos.feature.meals
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.MealSlot
+import com.dlunaunizar.bobitos.data.repository.MealFailure
+import com.dlunaunizar.bobitos.data.repository.MealRepository
+import com.dlunaunizar.bobitos.data.repository.MealRepositoryException
+import com.dlunaunizar.bobitos.data.repository.SpaceRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import javax.inject.Inject
+
+@HiltViewModel
+class MealsViewModel @Inject constructor(private val repository: MealRepository, private val spaces: SpaceRepository) :
+    ViewModel() {
+    private val mutableUiState = MutableStateFlow(MealsUiState())
+    val uiState: StateFlow<MealsUiState> = mutableUiState.asStateFlow()
+
+    private var observedSpaceId: String? = null
+    private var observedWeekStart: LocalDate? = null
+    private var mealsJob: Job? = null
+    private var membersJob: Job? = null
+
+    fun observe(spaceId: String) {
+        if (spaceId == observedSpaceId && mealsJob?.isActive == true) return
+        observedSpaceId = spaceId
+        observeWeek(spaceId)
+        membersJob?.cancel()
+        mutableUiState.update { it.copy(members = UiState.Loading) }
+        membersJob = viewModelScope.launch {
+            spaces.members(spaceId)
+                .catch { error -> mutableUiState.update { it.copy(members = UiState.Error(error.message)) } }
+                .collect { members -> mutableUiState.update { it.copy(members = UiState.Content(members)) } }
+        }
+    }
+
+    fun stopObserving() {
+        mealsJob?.cancel()
+        membersJob?.cancel()
+        mealsJob = null
+        membersJob = null
+        observedSpaceId = null
+        observedWeekStart = null
+    }
+
+    fun previousWeek() = goToDate(mutableUiState.value.focusedDate.minusWeeks(1))
+
+    fun nextWeek() = goToDate(mutableUiState.value.focusedDate.plusWeeks(1))
+
+    fun selectDay(date: LocalDate) = goToDate(date)
+
+    fun addMeal(date: LocalDate, slot: MealSlot, name: String, participantIds: List<String>) {
+        val spaceId = observedSpaceId ?: return
+        if (!validate(name)) return
+        runAction(MealUiMessage.MealAdded) {
+            repository.addMeal(spaceId, date, slot, name.trim(), participantIds)
+        }
+    }
+
+    fun updateMeal(mealId: String, date: LocalDate, slot: MealSlot, name: String, participantIds: List<String>) {
+        val spaceId = observedSpaceId ?: return
+        if (!validate(name)) return
+        runAction(MealUiMessage.MealUpdated) {
+            repository.updateMeal(spaceId, mealId, date, slot, name.trim(), participantIds)
+        }
+    }
+
+    fun deleteMeal(mealId: String) {
+        val spaceId = observedSpaceId ?: return
+        runAction(MealUiMessage.MealDeleted) {
+            repository.deleteMeal(spaceId, mealId)
+        }
+    }
+
+    fun clearFeedback() {
+        mutableUiState.update { it.copy(error = null, notice = null) }
+    }
+
+    private fun goToDate(date: LocalDate) {
+        if (date == mutableUiState.value.focusedDate) return
+        mutableUiState.update { it.copy(focusedDate = date) }
+        val spaceId = observedSpaceId ?: return
+        if (mutableUiState.value.weekStart != observedWeekStart) observeWeek(spaceId)
+    }
+
+    private fun observeWeek(spaceId: String) {
+        mealsJob?.cancel()
+        val weekStart = mutableUiState.value.weekStart
+        observedWeekStart = weekStart
+        mutableUiState.update { it.copy(meals = UiState.Loading) }
+        mealsJob = viewModelScope.launch {
+            repository.meals(spaceId, weekStart, weekStart.plusWeeks(1))
+                .catch { error -> mutableUiState.update { it.copy(meals = UiState.Error(error.message)) } }
+                .collect { meals -> mutableUiState.update { it.copy(meals = UiState.Content(meals)) } }
+        }
+    }
+
+    private fun validate(name: String): Boolean {
+        val error = MealsValidation.validate(name) ?: return true
+        showError(error)
+        return false
+    }
+
+    private fun showError(message: MealUiMessage) {
+        mutableUiState.update { it.copy(isSaving = false, error = message, notice = null) }
+    }
+
+    private fun runAction(successNotice: MealUiMessage, action: suspend () -> Unit) {
+        if (mutableUiState.value.isSaving) return
+        mutableUiState.update { it.copy(isSaving = true, error = null, notice = null) }
+        viewModelScope.launch {
+            try {
+                action()
+                mutableUiState.update { it.copy(isSaving = false, notice = successNotice) }
+            } catch (error: Throwable) {
+                showError(error.toUiMessage())
+            }
+        }
+    }
+}
+
+private fun Throwable.toUiMessage(): MealUiMessage = when ((this as? MealRepositoryException)?.failure) {
+    MealFailure.NameRequired -> MealUiMessage.NameRequired
+    MealFailure.NameTooLong -> MealUiMessage.NameTooLong
+    MealFailure.InvalidParticipants -> MealUiMessage.InvalidParticipants
+    MealFailure.NotAuthenticated -> MealUiMessage.NotAuthenticated
+    MealFailure.EmailNotVerified -> MealUiMessage.EmailNotVerified
+    MealFailure.SpaceNotFound -> MealUiMessage.SpaceNotFound
+    MealFailure.MealNotFound -> MealUiMessage.MealNotFound
+    MealFailure.PermissionDenied -> MealUiMessage.PermissionDenied
+    MealFailure.Network -> MealUiMessage.NetworkError
+    MealFailure.Unknown,
+    null,
+    -> MealUiMessage.UnexpectedError
+}
