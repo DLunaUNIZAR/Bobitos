@@ -318,8 +318,8 @@ fun BobitosNavHost(
                 },
                 syncStatus = uiState.syncStatus,
             ) {
-                uiState.selectedSpace?.let {
-                    MealsScreen()
+                uiState.selectedSpace?.let { space ->
+                    MealsScreen(spaceId = space.id, canWrite = uiState.syncStatus.canWrite)
                 }
             }
         }
