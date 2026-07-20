@@ -1,19 +1,19 @@
 # Modelo de datos inicial de Bobitos
 
-> Diseño implementado para espacios, membresías e invitaciones. Los módulos compartidos continúan siendo provisionales.
+> Diseño implementado para espacios, membresías, invitaciones y los módulos compartidos (compra, tareas, calendario y comidas).
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Modelo multiusuario y módulos compartidos implementados |
-| Versión | 0.4.0 |
-| Fecha | 17 de julio de 2026 |
+| Estado | Modelo multiusuario y módulos compartidos implementados (incluye el planificador de comidas, Fase 1) |
+| Versión | 0.5.0 |
+| Fecha | 20 de julio de 2026 |
 
 ## 1. Objetivos
 
 - Separar completamente los datos de cada espacio.
 - Permitir que un usuario pertenezca a varios espacios.
 - Facilitar comprobaciones de membresía en Security Rules.
-- Actualizar compra, tareas y calendario prácticamente en tiempo real.
+- Actualizar compra, tareas, calendario y comidas prácticamente en tiempo real.
 - Reducir conflictos mediante documentos pequeños.
 - Limitar lecturas y mantener el uso dentro del nivel gratuito.
 - No depender de Cloud Functions para las operaciones cotidianas.
@@ -27,6 +27,7 @@ memberships/{spaceId_userId}
 spaces/{spaceId}/shoppingItems/{itemId}
 spaces/{spaceId}/tasks/{taskId}
 spaces/{spaceId}/events/{eventId}
+spaces/{spaceId}/meals/{mealId}
 invitations/{inviteToken}
 ```
 
@@ -313,7 +314,48 @@ timeZone: string
 
 La consulta de eventos que atraviesan un intervalo necesita validarse con datos reales e índices antes de fijar el esquema definitivo.
 
-## 11. Acceso desde Security Rules
+## 11. Comidas
+
+Ruta:
+
+```text
+spaces/{spaceId}/meals/{mealId}
+```
+
+Propuesta:
+
+```text
+date: string        # YYYY-MM-DD
+slot: "DESAYUNO" | "COMIDA" | "CENA"
+name: string
+participantIds: array<string>
+participantNames: array<string>
+createdBy: string
+createdByName: string
+createdAt: timestamp
+updatedBy: string
+updatedAt: timestamp
+```
+
+### Planificación por día
+
+- Cada comida pertenece a un día (`date`) y una franja (`slot`): desayuno, comida o cena.
+- El planificador muestra una semana (lunes→domingo) y resalta el día elegido; la app observa el rango de la semana visible por `date`.
+- `name` es texto libre («qué se come»). En la Fase 2 podrá referenciar una receta (`recipeId`, opcional y retrocompatible).
+
+### Comensales
+
+- `participantIds` indica qué miembros consumen la comida y puede estar vacío.
+- Como el espacio tiene un máximo de 10 miembros, un array es suficiente.
+- `participantNames` es la copia denormalizada de los nombres (mismo tamaño que `participantIds`), resuelta desde las membresías activas al escribir, igual que en eventos.
+- Todos los identificadores deben pertenecer al espacio (el repositorio los valida contra las membresías activas dentro de la transacción).
+
+### Consultas previstas
+
+- Comidas del espacio cuyo `date` cae en la semana visible (`date >= lunes` y `date < lunes siguiente`), ordenadas por `date` y franja.
+- Es un rango sobre un único campo (`date`), cubierto por el índice de campo único automático: no requiere índice compuesto.
+
+## 12. Acceso desde Security Rules
 
 Conceptualmente, para acceder a un documento del espacio se comprobará una membresía determinista:
 
@@ -330,7 +372,7 @@ La regla deberá verificar:
 - Identificadores de miembros válidos para responsables y participantes.
 - Inmutabilidad de `spaceId`, `createdBy` y `createdAt` cuando corresponda.
 
-## 12. Sincronización y conflictos
+## 13. Sincronización y conflictos
 
 - Cada producto, tarea y evento es un documento independiente.
 - Dos cambios sobre documentos distintos no compiten entre sí.
@@ -339,7 +381,7 @@ La regla deberá verificar:
 - Sin conexión se bloquearán las escrituras desde la interfaz.
 - Al recuperar conexión se recargarán snapshots del espacio activo.
 
-## 13. Eliminación y anonimización
+## 14. Eliminación y anonimización
 
 ### Abandono de un miembro
 
@@ -351,16 +393,16 @@ La regla deberá verificar:
 
 - El usuario debe resolver primero los espacios de su propiedad.
 - Se eliminan sus membresías y perfil.
-- Las referencias personales necesarias se sustituyen por `null` o una representación anónima.
+- Las referencias personales necesarias (nombres en compra, tareas, eventos y comidas) se sustituyen por `null` o por «Usuario eliminado».
 - La estrategia de actualización por lotes se probará con los límites reales de Firestore.
 
 ### Eliminación de espacio
 
-- Debe eliminar contenido, membresías e invitaciones relacionadas.
+- Debe eliminar el contenido (compra, tareas, eventos y comidas), las membresías y las invitaciones relacionadas.
 - Al no existir borrado en cascada automático, se implementará una eliminación paginada y verificable.
 - Si la implementación exclusivamente cliente no resulta suficientemente segura, esta operación será candidata a una función backend mínima.
 
-## 14. Índices iniciales a validar
+## 15. Índices iniciales a validar
 
 - Membresías por `userId + status`.
 - Membresías por `spaceId + status`.
@@ -369,10 +411,11 @@ La regla deberá verificar:
 - Tareas por `status + dueAt`.
 - Tareas por `assigneeId + status + dueAt`.
 - Eventos por rango temporal.
+- Comidas por rango de `date` (campo único; índice automático, sin índice compuesto).
 
 Solo se crearán los índices que requieran las consultas reales.
 
-## 15. Preguntas técnicas para el prototipo
+## 16. Preguntas técnicas para el prototipo
 
 - [x] Validar aceptación atómica de invitaciones únicamente con Security Rules.
 - [ ] Elegir representación definitiva de eventos de día completo.

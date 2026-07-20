@@ -40,7 +40,7 @@ Los ViewModel exponen `StateFlow` inmutable. Los composables reciben estado y ca
 
 `BobitosApp` actúa como barrera de sesión. Muestra el flujo de acceso cuando no existe usuario, la pantalla de verificación cuando el correo está pendiente y solo expone el contenido privado a cuentas verificadas. Al cerrar sesión desaparece inmediatamente el árbol de navegación privado.
 
-Una cuenta verificada comienza en el último espacio válido guardado para ese usuario o, si no existe, en la selección de espacio. El nivel principal dispone de navegación inferior entre Espacios y Mi calendario. Una vez elegido un espacio, presenta navegación inferior entre Compra, Tareas y Calendario, además de acciones para cambiar de espacio, administrarlo y abrir el perfil.
+Una cuenta verificada comienza en el último espacio válido guardado para ese usuario o, si no existe, en la selección de espacio. El nivel principal dispone de navegación inferior entre Espacios y Mi calendario. Una vez elegido un espacio, presenta navegación inferior entre Compra, Tareas, Calendario y Comidas, además de acciones para cambiar de espacio, administrarlo y abrir el perfil.
 
 Esta navegación es funcional pero provisional: se ajustará cuando se cierre el diseño del issue correspondiente.
 
@@ -77,7 +77,7 @@ Los snapshots ya disponibles permanecen visibles cuando se pierde la red y se id
 - selección de espacios: un listener de membresías y uno por espacio mostrado;
 - módulo activo: un listener de membresía y uno del espacio seleccionado;
 - gestión: añade miembros y, para el propietario, invitaciones;
-- cambio entre Compra, Tareas y Calendario: cero listeners o lecturas adicionales mientras no cambie el espacio;
+- cambio entre Compra, Tareas, Calendario y Comidas: cero listeners o lecturas adicionales mientras no cambie el espacio;
 - Mi calendario: un listener de eventos por espacio activo, siempre limitado al intervalo visible;
 - resincronización del espacio: dos lecturas de servidor; una si la membresía ya no existe.
 
