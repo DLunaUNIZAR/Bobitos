@@ -11,9 +11,11 @@ import com.dlunaunizar.bobitos.data.repository.DataStoreThemePreferenceRepositor
 import com.dlunaunizar.bobitos.data.repository.FirebaseAccountRepository
 import com.dlunaunizar.bobitos.data.repository.FirebaseAuthRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreCalendarRepository
+import com.dlunaunizar.bobitos.data.repository.FirestoreMealRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreSpaceRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreTaskRepository
+import com.dlunaunizar.bobitos.data.repository.MealRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
@@ -47,6 +49,9 @@ abstract class DataModule {
 
     @Binds @Singleton
     abstract fun bindCalendarRepository(repository: FirestoreCalendarRepository): CalendarRepository
+
+    @Binds @Singleton
+    abstract fun bindMealRepository(repository: FirestoreMealRepository): MealRepository
 
     @Binds @Singleton
     abstract fun bindAccountRepository(repository: FirebaseAccountRepository): AccountRepository
