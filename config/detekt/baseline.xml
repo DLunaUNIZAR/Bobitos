@@ -26,12 +26,15 @@
     <ID>NestedBlockDepth:FirestoreSyncRepository.kt$FirestoreSyncRepository$override suspend fun refresh(spaceId: String?): Boolean</ID>
     <ID>ReturnCount:FirestoreCalendarRepository.kt$private fun DocumentSnapshot.toCalendarEvent(): CalendarEvent?</ID>
     <ID>ReturnCount:FirestoreMealRepository.kt$private fun DocumentSnapshot.toMeal(): Meal?</ID>
+    <ID>ReturnCount:FirestoreRecipeRepository.kt$private fun DocumentSnapshot.toRecipe(): Recipe?</ID>
     <ID>ReturnCount:FirestoreShoppingRepository.kt$private fun DocumentSnapshot.toShoppingItem(): ShoppingItem?</ID>
     <ID>ReturnCount:FirestoreTaskRepository.kt$private fun DocumentSnapshot.toTaskItem(): TaskItem?</ID>
     <ID>SwallowedException:FirestoreSyncRepository.kt$FirestoreSyncRepository$error: Throwable</ID>
     <ID>ThrowsCount:FirestoreCalendarRepository.kt$private fun EventInput.validated(): EventInput</ID>
     <ID>ThrowsCount:FirestoreMealRepository.kt$FirestoreMealRepository$private fun validate(name: String, participantIds: List&lt;String&gt;): String</ID>
     <ID>ThrowsCount:FirestoreMealRepository.kt$FirestoreMealRepository$private suspend inline fun &lt;T&gt; runMealOperation(crossinline operation: suspend () -&gt; T): T</ID>
+    <ID>ThrowsCount:FirestoreRecipeRepository.kt$FirestoreRecipeRepository$private fun validate(title: String, description: String?, category: String?): RecipeValues</ID>
+    <ID>ThrowsCount:FirestoreRecipeRepository.kt$FirestoreRecipeRepository$private suspend inline fun &lt;T&gt; runRecipeOperation(crossinline operation: suspend () -&gt; T): T</ID>
     <ID>ThrowsCount:FirestoreShoppingRepository.kt$FirestoreShoppingRepository$private fun validateItem( name: String, quantity: String?, notes: String?, supermarket: Supermarket?, brand: String?, ): ItemValues</ID>
     <ID>ThrowsCount:FirestoreShoppingRepository.kt$FirestoreShoppingRepository$private suspend inline fun &lt;T&gt; runShoppingOperation(crossinline operation: suspend () -&gt; T): T</ID>
     <ID>ThrowsCount:FirestoreSpaceRepository.kt$FirestoreSpaceRepository$private fun checkInvitationAvailable(snapshot: DocumentSnapshot, allowExpired: Boolean = false)</ID>
@@ -46,6 +49,7 @@
     <ID>TooGenericExceptionCaught:FirebaseAuthRepository.kt$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreCalendarRepository.kt$FirestoreCalendarRepository$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreMealRepository.kt$FirestoreMealRepository$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:FirestoreRecipeRepository.kt$FirestoreRecipeRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreShoppingRepository.kt$FirestoreShoppingRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreSpaceRepository.kt$FirestoreSpaceRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreSyncRepository.kt$FirestoreSyncRepository$error: Throwable</ID>
