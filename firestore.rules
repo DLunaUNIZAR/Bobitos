@@ -852,13 +852,21 @@ service cloud.firestore {
         && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
     }
 
+    function validRecipeAnonymization() {
+      return verifiedUser()
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["createdByName"])
+        && request.resource.data.createdByName == "Usuario eliminado";
+    }
+
     match /recipes/{recipeId} {
       allow get: if verifiedUser()
         && (resource.data.visibility == "GLOBAL" || resource.data.ownerUid == request.auth.uid);
       allow list: if verifiedUser()
         && (resource.data.visibility == "GLOBAL" || resource.data.ownerUid == request.auth.uid);
       allow create: if validNewRecipe();
-      allow update: if validRecipeUpdate();
+      allow update: if validRecipeUpdate()
+        || validRecipeAnonymization();
       allow delete: if ownsOrCuratesRecipe();
     }
 
