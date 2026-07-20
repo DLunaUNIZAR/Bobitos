@@ -504,6 +504,18 @@ service cloud.firestore {
         && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
     }
 
+    function validMealAnonymization(spaceId) {
+      return isActiveMember(spaceId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["createdByName", "participantNames"])
+        && ((resource.data.createdBy == request.auth.uid
+            && request.resource.data.createdByName == "Usuario eliminado")
+          || (resource.data.createdBy != request.auth.uid
+            && request.resource.data.createdByName == resource.data.createdByName))
+        && request.resource.data.participantIds == resource.data.participantIds
+        && request.resource.data.participantNames.size() == resource.data.participantNames.size();
+    }
+
     function deletingOwnedSpace(spaceId) {
       return isOwner(spaceId) && !existsAfter(spacePath(spaceId));
     }
@@ -546,7 +558,8 @@ service cloud.firestore {
       match /meals/{mealId} {
         allow read: if isActiveMember(spaceId);
         allow create: if validNewMeal(spaceId);
-        allow update: if validMealUpdate(spaceId);
+        allow update: if validMealUpdate(spaceId)
+          || validMealAnonymization(spaceId);
         allow delete: if isActiveMember(spaceId);
       }
 

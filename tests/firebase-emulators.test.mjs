@@ -942,6 +942,21 @@ test("al editar una comida no se pueden alterar los campos de creación", async 
   );
 });
 
+test("un usuario puede anonimizar su nombre en sus comidas pero no en las ajenas", async () => {
+  await seedSpace("meals-anon", "meals-anon-owner", ["meals-anon-member"]);
+  const owner = verifiedFirestore("meals-anon-owner");
+  const member = verifiedFirestore("meals-anon-member");
+  const memberMeal = doc(member, "spaces", "meals-anon", "meals", "member-meal");
+  await assertSucceeds(setDoc(memberMeal, mealData("meals-anon-member")));
+
+  await assertSucceeds(updateDoc(memberMeal, { createdByName: "Usuario eliminado" }));
+  await assertFails(
+    updateDoc(doc(owner, "spaces", "meals-anon", "meals", "member-meal"), {
+      createdByName: "Nombre manipulado",
+    }),
+  );
+});
+
 test("el propietario elimina un espacio completo y un miembro no puede hacerlo", async () => {
   await seedSpace("delete-space", "delete-owner", ["delete-member"]);
   await seedShoppingItem("delete-space", "item", "delete-owner");
