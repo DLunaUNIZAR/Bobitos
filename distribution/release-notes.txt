@@ -1,11 +1,9 @@
-Beta de Bobitos — arreglos y mejoras del calendario.
+Beta de Bobitos — nuevo módulo «Comidas».
 
 Novedades de esta versión:
-- Arreglado: al salir al selector de espacios y volver a entrar, la app ya no se queda "Actualizando…".
-- Calendario: toca un día del mes o la semana para abrir su vista diaria; el botón Atrás vuelve. La vista diaria muestra las horas del día y, manteniendo pulsada una hora, creas un evento a esa hora.
-- Tareas: las fechas de inicio y fin se eligen con un calendario emergente.
-- Compra: al filtrar por un supermercado también aparecen los productos sin supermercado o marcados "Indiferente".
+- Comidas: planifica los desayunos, comidas y cenas de cada día. Elige un día en la tira de la semana y añade en cada franja qué se come y qué miembros del grupo lo comen.
+- El planificador aparece como un módulo más dentro de cada espacio, junto a Compra, Tareas y Calendario.
 
-Incluye: espacios privados con invitaciones, lista de la compra compartida, tareas asignables (tipo, color, repetición y fechas), calendario compartido y modo sin conexión de solo lectura.
+Incluye: espacios privados con invitaciones, lista de la compra compartida, tareas asignables (tipo, color, repetición y fechas), calendario compartido, planificador de comidas y modo sin conexión de solo lectura.
 
 Comunica cualquier error indicando el modelo del dispositivo, la versión de Android y los pasos para reproducirlo.
