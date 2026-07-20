@@ -1073,6 +1073,26 @@ test("la receta valida la forma y rechaza campos ajenos al contrato", async () =
   );
 });
 
+test("un usuario puede anonimizar el autor de su receta pero no el de otra", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const timestamp = Timestamp.now();
+    await setDoc(doc(context.firestore(), "recipes", "anon-global"), {
+      ...recipeData("recipe-anon", { visibility: "GLOBAL" }),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+  });
+  const owner = verifiedFirestore("recipe-anon");
+  const other = verifiedFirestore("recipe-anon-other");
+
+  await assertSucceeds(
+    updateDoc(doc(owner, "recipes", "anon-global"), { createdByName: "Usuario eliminado" }),
+  );
+  await assertFails(
+    updateDoc(doc(other, "recipes", "anon-global"), { createdByName: "Nombre manipulado" }),
+  );
+});
+
 function recipeData(userId, overrides = {}) {
   return {
     ownerUid: userId,

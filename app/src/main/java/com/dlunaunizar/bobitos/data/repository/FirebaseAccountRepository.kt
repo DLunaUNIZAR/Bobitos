@@ -47,6 +47,7 @@ class FirebaseAccountRepository @Inject constructor(
                 anonymizeDisplayNames(spaceId, user.uid)
                 spaces.leaveSpace(spaceId)
             }
+            anonymizeOrDeleteOwnedRecipes(user.uid)
             user.delete().await()
         } catch (error: AccountRepositoryException) {
             throw error
@@ -70,6 +71,26 @@ class FirebaseAccountRepository @Inject constructor(
         }
     }
 
+    // Recetas del usuario (colección top-level `recipes`): las PRIVATE se borran y en las GLOBAL
+    // se anonimiza el nombre del autor, conservando la receta en el catálogo común.
+    private suspend fun anonymizeOrDeleteOwnedRecipes(userId: String) {
+        val recipes = firestore.collection(RECIPES)
+            .whereEqualTo(FIELD_OWNER_UID, userId)
+            .get(Source.SERVER).await().documents
+        recipes.chunked(400).forEach { chunk ->
+            val batch = firestore.batch()
+            chunk.forEach { recipe ->
+                when {
+                    recipe.getString(FIELD_VISIBILITY) != GLOBAL -> batch.delete(recipe.reference)
+                    recipe.getString(FIELD_CREATED_BY_NAME) != ANONYMOUS_NAME ->
+                        batch.update(recipe.reference, FIELD_CREATED_BY_NAME, ANONYMOUS_NAME)
+                    else -> Unit
+                }
+            }
+            batch.commit().await()
+        }
+    }
+
     private companion object {
         const val MEMBERSHIPS = "memberships"
         const val SPACES = "spaces"
@@ -77,7 +98,12 @@ class FirebaseAccountRepository @Inject constructor(
         const val TASKS = "tasks"
         const val EVENTS = "events"
         const val MEALS = "meals"
+        const val RECIPES = "recipes"
         const val FIELD_USER_ID = "userId"
+        const val FIELD_OWNER_UID = "ownerUid"
+        const val FIELD_VISIBILITY = "visibility"
+        const val FIELD_CREATED_BY_NAME = "createdByName"
+        const val GLOBAL = "GLOBAL"
         const val FIELD_SPACE_ID = "spaceId"
         const val FIELD_STATUS = "status"
         const val FIELD_ROLE = "role"
