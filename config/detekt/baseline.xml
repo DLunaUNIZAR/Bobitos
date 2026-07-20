@@ -49,6 +49,7 @@
     <ID>TooGenericExceptionCaught:FirestoreSpaceRepository.kt$FirestoreSpaceRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreSyncRepository.kt$FirestoreSyncRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreTaskRepository.kt$FirestoreTaskRepository$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:MealsViewModel.kt$MealsViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:ShoppingViewModel.kt$ShoppingViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:SpacesViewModel.kt$SpacesViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:TasksViewModel.kt$TasksViewModel$error: Throwable</ID>

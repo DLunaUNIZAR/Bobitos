@@ -1,9 +1,19 @@
 package com.dlunaunizar.bobitos.feature.meals
 
-// Vocabulario de mensajes del módulo Comidas. De momento solo cubre la validación del planificador;
-// F1-6 (MealsViewModel/MealsUiState) añadirá el estado de UI y el resto de mensajes (fallos de
-// repositorio y avisos de éxito), siguiendo el patrón de ShoppingUiMessage.
+// Mensajes de UI del módulo Comidas: errores de validación, fallos del repositorio y avisos de
+// éxito (mismo patrón que ShoppingUiMessage). La pantalla los mapea a recursos de string.
 enum class MealUiMessage {
     NameRequired,
     NameTooLong,
+    InvalidParticipants,
+    NotAuthenticated,
+    EmailNotVerified,
+    SpaceNotFound,
+    MealNotFound,
+    PermissionDenied,
+    NetworkError,
+    UnexpectedError,
+    MealAdded,
+    MealUpdated,
+    MealDeleted,
 }
