@@ -986,6 +986,109 @@ test("un usuario puede anonimizar su nombre histórico pero no el de otro miembr
   await assertFails(updateDoc(doc(owner, "spaces", "anonymize-space", "shoppingItems", "member-item"), { createdByName: "Nombre manipulado" }));
 });
 
+test("cualquier usuario verificado crea y lee sus recetas personales, no las ajenas", async () => {
+  const chef = verifiedFirestore("recipe-chef");
+  const other = verifiedFirestore("recipe-other");
+  const reference = doc(chef, "recipes", "chef-private");
+
+  await assertSucceeds(setDoc(reference, recipeData("recipe-chef")));
+  await assertSucceeds(getDoc(reference));
+  await assertFails(getDoc(doc(other, "recipes", "chef-private")));
+});
+
+test("las recetas del catálogo común (GLOBAL) las lee cualquier usuario verificado", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const timestamp = Timestamp.now();
+    await setDoc(doc(context.firestore(), "recipes", "global-1"), {
+      ...recipeData("catalog-owner", { visibility: "GLOBAL" }),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+  });
+  const anyone = verifiedFirestore("recipe-reader");
+
+  await assertSucceeds(getDoc(doc(anyone, "recipes", "global-1")));
+  await assertSucceeds(
+    getDocs(query(collection(anyone, "recipes"), where("visibility", "==", "GLOBAL"))),
+  );
+});
+
+test("un usuario no puede crear una receta a nombre de otro ni una GLOBAL sin ser admin", async () => {
+  const chef = verifiedFirestore("recipe-spoof");
+
+  await assertFails(
+    setDoc(doc(chef, "recipes", "spoofed"), recipeData("recipe-spoof", { ownerUid: "someone-else" })),
+  );
+  await assertFails(
+    setDoc(doc(chef, "recipes", "sneaky-global"), recipeData("recipe-spoof", { visibility: "GLOBAL" })),
+  );
+});
+
+test("solo el propietario edita o borra su receta personal", async () => {
+  const chef = verifiedFirestore("recipe-owner");
+  const other = verifiedFirestore("recipe-intruder");
+  const reference = doc(chef, "recipes", "owned");
+  await assertSucceeds(setDoc(reference, recipeData("recipe-owner")));
+
+  await assertFails(
+    updateDoc(doc(other, "recipes", "owned"), {
+      title: "Editada por otro",
+      updatedBy: "recipe-intruder",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertFails(writeBatch(other).delete(doc(other, "recipes", "owned")).commit());
+  await assertSucceeds(
+    updateDoc(reference, {
+      title: "Editada por su dueño",
+      updatedBy: "recipe-owner",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertSucceeds(writeBatch(chef).delete(reference).commit());
+});
+
+test("una receta no puede cambiar de propietario ni de visibilidad al editarla", async () => {
+  const chef = verifiedFirestore("recipe-immutable");
+  const reference = doc(chef, "recipes", "fixed");
+  await assertSucceeds(setDoc(reference, recipeData("recipe-immutable")));
+
+  await assertFails(
+    updateDoc(reference, {
+      visibility: "GLOBAL",
+      updatedBy: "recipe-immutable",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+});
+
+test("la receta valida la forma y rechaza campos ajenos al contrato", async () => {
+  const chef = verifiedFirestore("recipe-schema");
+
+  await assertFails(
+    setDoc(doc(chef, "recipes", "bad-visibility"), recipeData("recipe-schema", { visibility: "SECRETO" })),
+  );
+  await assertFails(
+    setDoc(doc(chef, "recipes", "extra-field"), recipeData("recipe-schema", { spaceId: "x" })),
+  );
+});
+
+function recipeData(userId, overrides = {}) {
+  return {
+    ownerUid: userId,
+    visibility: "PRIVATE",
+    title: "Lentejas",
+    description: null,
+    category: null,
+    createdBy: userId,
+    createdByName: userId,
+    createdAt: serverTimestamp(),
+    updatedBy: userId,
+    updatedAt: serverTimestamp(),
+    ...overrides,
+  };
+}
+
 function verifiedFirestore(uid) {
   return testEnvironment.authenticatedContext(uid, {
     email: `${uid}@bobitos.invalid`,
