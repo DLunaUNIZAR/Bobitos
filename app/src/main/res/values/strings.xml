@@ -251,6 +251,8 @@
         <item quantity="other">%1$s, %2$d eventos</item>
     </plurals>
     <string name="my_calendar_title">Mi calendario</string>
+    <string name="meals_title">Comidas</string>
+    <string name="meals_placeholder">Muy pronto podrás planificar aquí los desayunos, comidas y cenas del grupo.</string>
     <string name="development_placeholder">Pantalla provisional</string>
     <string name="auth_login_title">Inicia sesión</string>
     <string name="auth_login_subtitle">Accede a tus espacios privados de Bobitos.</string>
