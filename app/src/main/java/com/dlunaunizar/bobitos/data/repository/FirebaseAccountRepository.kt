@@ -57,7 +57,7 @@ class FirebaseAccountRepository @Inject constructor(
 
     private suspend fun anonymizeDisplayNames(spaceId: String, userId: String) {
         val space = firestore.collection(SPACES).document(spaceId)
-        val documents = listOf(SHOPPING_ITEMS, TASKS, EVENTS).flatMap { name ->
+        val documents = listOf(SHOPPING_ITEMS, TASKS, EVENTS, MEALS).flatMap { name ->
             space.collection(name).get(Source.SERVER).await().documents
         }
         documents.chunked(400).forEach { chunk ->
@@ -76,6 +76,7 @@ class FirebaseAccountRepository @Inject constructor(
         const val SHOPPING_ITEMS = "shoppingItems"
         const val TASKS = "tasks"
         const val EVENTS = "events"
+        const val MEALS = "meals"
         const val FIELD_USER_ID = "userId"
         const val FIELD_SPACE_ID = "spaceId"
         const val FIELD_STATUS = "status"

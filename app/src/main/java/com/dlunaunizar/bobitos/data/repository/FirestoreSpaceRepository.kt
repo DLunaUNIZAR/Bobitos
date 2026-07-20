@@ -220,7 +220,7 @@ class FirestoreSpaceRepository @Inject constructor(
         // Firestore no elimina subcolecciones al borrar el documento padre. Se vacían
         // explícitamente en lotes acotados y se conserva la membresía del propietario
         // hasta la operación final para que las reglas sigan autorizando el proceso.
-        listOf(SHOPPING_ITEMS, TASKS, EVENTS).forEach { childCollection ->
+        listOf(SHOPPING_ITEMS, TASKS, EVENTS, MEALS).forEach { childCollection ->
             deleteDocumentsInChunks(spaceReference.collection(childCollection).get(Source.SERVER).await().documents)
         }
         val invitationDocuments = firestore.collection(INVITATIONS)
@@ -661,6 +661,7 @@ class FirestoreSpaceRepository @Inject constructor(
         const val TASKS = "tasks"
         const val SHOPPING_ITEMS = "shoppingItems"
         const val EVENTS = "events"
+        const val MEALS = "meals"
         const val MAX_BATCH_DELETES = 400
         const val FIELD_NAME = "name"
         const val FIELD_OWNER_ID = "ownerId"
