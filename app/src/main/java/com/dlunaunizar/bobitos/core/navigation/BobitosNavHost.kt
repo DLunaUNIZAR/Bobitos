@@ -59,6 +59,7 @@ import com.dlunaunizar.bobitos.feature.calendar.CalendarScreen
 import com.dlunaunizar.bobitos.feature.calendar.PersonalCalendarScreen
 import com.dlunaunizar.bobitos.feature.common.SyncStatusBanner
 import com.dlunaunizar.bobitos.feature.meals.MealsScreen
+import com.dlunaunizar.bobitos.feature.recipes.RecipesScreen
 import com.dlunaunizar.bobitos.feature.shopping.ShoppingScreen
 import com.dlunaunizar.bobitos.feature.spaces.SpaceManagementUiState
 import com.dlunaunizar.bobitos.feature.spaces.SpaceSettingsScreen
@@ -112,7 +113,9 @@ fun BobitosNavHost(
                 BobitosDestination.Spaces.route,
                 BobitosDestination.MyCalendar.route,
                 -> RealtimeScope.ALL_SPACES
-                BobitosDestination.Profile.route -> RealtimeScope.PAUSED
+                BobitosDestination.Profile.route,
+                BobitosDestination.Recipes.route,
+                -> RealtimeScope.PAUSED
                 else -> RealtimeScope.ACTIVE_SPACE
             },
         )
@@ -319,7 +322,11 @@ fun BobitosNavHost(
                 syncStatus = uiState.syncStatus,
             ) {
                 uiState.selectedSpace?.let { space ->
-                    MealsScreen(spaceId = space.id, canWrite = uiState.syncStatus.canWrite)
+                    MealsScreen(
+                        spaceId = space.id,
+                        canWrite = uiState.syncStatus.canWrite,
+                        onOpenRecipes = { navController.navigate(BobitosDestination.Recipes.route) },
+                    )
                 }
             }
         }
@@ -370,6 +377,10 @@ fun BobitosNavHost(
                 onBack = { navController.popBackStack() },
                 onClearFeedback = onClearAuthFeedback,
             )
+        }
+
+        composable(BobitosDestination.Recipes.route) {
+            RecipesScreen(onBack = { navController.popBackStack() })
         }
 
         composable(BobitosDestination.SpaceSettings.route) {

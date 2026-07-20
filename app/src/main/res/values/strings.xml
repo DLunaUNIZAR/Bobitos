@@ -275,6 +275,15 @@
     <string name="meals_notice_added">Comida añadida</string>
     <string name="meals_notice_updated">Comida actualizada</string>
     <string name="meals_notice_deleted">Comida eliminada</string>
+    <string name="recipes_title">Recetario</string>
+    <string name="recipes_open">Recetario</string>
+    <string name="recipes_search_label">Buscar receta</string>
+    <string name="recipes_section_mine">Mis recetas</string>
+    <string name="recipes_section_global">Recetas comunes</string>
+    <string name="recipes_empty">Aún no hay recetas aquí.</string>
+    <string name="recipes_by">por %1$s</string>
+    <string name="recipes_no_description">Sin descripción.</string>
+    <string name="recipes_category">Categoría: %1$s</string>
     <string name="development_placeholder">Pantalla provisional</string>
     <string name="auth_login_title">Inicia sesión</string>
     <string name="auth_login_subtitle">Accede a tus espacios privados de Bobitos.</string>

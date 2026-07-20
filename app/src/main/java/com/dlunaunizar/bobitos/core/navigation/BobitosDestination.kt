@@ -7,6 +7,7 @@ import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.Event
 import androidx.compose.material.icons.rounded.Groups
+import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material.icons.rounded.Settings
@@ -50,6 +51,11 @@ enum class BobitosDestination(val route: String, @param:StringRes val titleRes: 
         route = "meals",
         titleRes = R.string.meals_title,
         icon = Icons.Rounded.Restaurant,
+    ),
+    Recipes(
+        route = "recipes",
+        titleRes = R.string.recipes_title,
+        icon = Icons.Rounded.MenuBook,
     ),
     Profile(
         route = "profile",
