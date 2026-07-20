@@ -866,6 +866,82 @@ test("un usuario externo no puede leer eventos y los intervalos inválidos se re
   await assertFails(getDoc(doc(outsider, "spaces", "calendar-private", "events", "event-1")));
 });
 
+test("todos los miembros crean, editan y eliminan comidas del planificador", async () => {
+  await seedSpace("meals-crud", "meals-owner", ["meals-member"]);
+  const member = verifiedFirestore("meals-member");
+  const outsider = verifiedFirestore("meals-outsider");
+  const reference = doc(member, "spaces", "meals-crud", "meals", "lunch");
+
+  await assertSucceeds(setDoc(reference, mealData("meals-member")));
+  await assertSucceeds(
+    updateDoc(reference, {
+      name: "Lentejas con chorizo",
+      slot: "CENA",
+      participantIds: ["meals-member"],
+      participantNames: ["meals-member"],
+      updatedBy: "meals-member",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertFails(getDoc(doc(outsider, "spaces", "meals-crud", "meals", "lunch")));
+  await assertFails(
+    setDoc(doc(outsider, "spaces", "meals-crud", "meals", "sneaky"), mealData("meals-outsider")),
+  );
+  await assertSucceeds(writeBatch(member).delete(reference).commit());
+});
+
+test("las comidas validan la franja y rechazan campos ajenos al contrato", async () => {
+  await seedSpace("meals-schema", "meals-schema-owner");
+  const owner = verifiedFirestore("meals-schema-owner");
+
+  await assertSucceeds(
+    setDoc(
+      doc(owner, "spaces", "meals-schema", "meals", "ok"),
+      mealData("meals-schema-owner", { slot: "DESAYUNO" }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "meals-schema", "meals", "bad-slot"),
+      mealData("meals-schema-owner", { slot: "MERIENDA" }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "meals-schema", "meals", "extra-field"),
+      mealData("meals-schema-owner", { assigneeId: "meals-schema-owner" }),
+    ),
+  );
+});
+
+test("las comidas exigen que participantNames tenga el mismo tamaño que participantIds", async () => {
+  await seedSpace("meals-participants", "meals-part-owner");
+  const owner = verifiedFirestore("meals-part-owner");
+
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "meals-participants", "meals", "mismatch"),
+      mealData("meals-part-owner", { participantIds: ["meals-part-owner"], participantNames: [] }),
+    ),
+  );
+});
+
+test("al editar una comida no se pueden alterar los campos de creación", async () => {
+  await seedSpace("meals-immutable", "meals-imm-owner", ["meals-imm-member"]);
+  const owner = verifiedFirestore("meals-imm-owner");
+  const member = verifiedFirestore("meals-imm-member");
+  const reference = doc(owner, "spaces", "meals-immutable", "meals", "dinner");
+  await assertSucceeds(setDoc(reference, mealData("meals-imm-owner")));
+
+  await assertFails(
+    updateDoc(doc(member, "spaces", "meals-immutable", "meals", "dinner"), {
+      createdBy: "meals-imm-member",
+      updatedBy: "meals-imm-member",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+});
+
 test("el propietario elimina un espacio completo y un miembro no puede hacerlo", async () => {
   await seedSpace("delete-space", "delete-owner", ["delete-member"]);
   await seedShoppingItem("delete-space", "item", "delete-owner");
@@ -916,6 +992,22 @@ function eventData(userId, overrides = {}) {
     startDate: null, endDateExclusive: null, timeZone: "Europe/Madrid", color: "BLUE",
     participantIds: [], participantNames: [], createdBy: userId, createdByName: userId,
     createdAt: serverTimestamp(), updatedBy: userId, updatedAt: serverTimestamp(), ...overrides,
+  };
+}
+
+function mealData(userId, overrides = {}) {
+  return {
+    date: "2026-07-20",
+    slot: "COMIDA",
+    name: "Comida",
+    participantIds: [],
+    participantNames: [],
+    createdBy: userId,
+    createdByName: userId,
+    createdAt: serverTimestamp(),
+    updatedBy: userId,
+    updatedAt: serverTimestamp(),
+    ...overrides,
   };
 }
 

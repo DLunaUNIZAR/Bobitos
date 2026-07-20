@@ -468,6 +468,42 @@ service cloud.firestore {
         && request.resource.data.participantNames.size() == resource.data.participantNames.size();
     }
 
+    function validMealShape() {
+      return request.resource.data.keys().hasAll([
+        "date", "slot", "name", "participantIds", "participantNames",
+        "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt"
+      ]) && request.resource.data.keys().hasOnly([
+        "date", "slot", "name", "participantIds", "participantNames",
+        "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt"
+      ])
+      && request.resource.data.date is string
+      && request.resource.data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+      && request.resource.data.slot in ["DESAYUNO", "COMIDA", "CENA"]
+      && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 120
+      && request.resource.data.participantIds is list && request.resource.data.participantIds.size() <= 10
+      && request.resource.data.participantNames is list && request.resource.data.participantNames.size() == request.resource.data.participantIds.size()
+      && request.resource.data.createdBy is string && request.resource.data.createdByName is string
+      && request.resource.data.createdByName.size() > 0 && request.resource.data.createdByName.size() <= 60
+      && request.resource.data.createdAt is timestamp && request.resource.data.updatedBy is string && request.resource.data.updatedAt is timestamp;
+    }
+
+    function validNewMeal(spaceId) {
+      return isActiveMember(spaceId) && validMealShape()
+        && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
+    }
+
+    function validMealUpdate(spaceId) {
+      return isActiveMember(spaceId) && validMealShape()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "date", "slot", "name", "participantIds", "participantNames", "updatedBy", "updatedAt"
+        ])
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdByName == resource.data.createdByName
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
+    }
+
     function deletingOwnedSpace(spaceId) {
       return isOwner(spaceId) && !existsAfter(spacePath(spaceId));
     }
@@ -504,6 +540,13 @@ service cloud.firestore {
         allow create: if validNewEvent(spaceId);
         allow update: if validEventUpdate(spaceId)
           || validEventAnonymization(spaceId);
+        allow delete: if isActiveMember(spaceId);
+      }
+
+      match /meals/{mealId} {
+        allow read: if isActiveMember(spaceId);
+        allow create: if validNewMeal(spaceId);
+        allow update: if validMealUpdate(spaceId);
         allow delete: if isActiveMember(spaceId);
       }
 
