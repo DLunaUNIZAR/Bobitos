@@ -230,7 +230,6 @@ fun BobitosNavHost(
         }
 
         composable(BobitosDestination.Shopping.route) {
-            BackHandler { navController.navigateToSpaces() }
             WorkspaceScaffold(
                 currentDestination = BobitosDestination.Shopping,
                 spaceName = spaceName,
@@ -256,7 +255,6 @@ fun BobitosNavHost(
         }
 
         composable(BobitosDestination.Tasks.route) {
-            BackHandler { navController.navigateToSpaces() }
             WorkspaceScaffold(
                 currentDestination = BobitosDestination.Tasks,
                 spaceName = spaceName,
@@ -282,7 +280,6 @@ fun BobitosNavHost(
         }
 
         composable(BobitosDestination.Calendar.route) {
-            BackHandler { navController.navigateToSpaces() }
             WorkspaceScaffold(
                 currentDestination = BobitosDestination.Calendar,
                 spaceName = spaceName,
