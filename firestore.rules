@@ -789,6 +789,79 @@ service cloud.firestore {
         && (targetUserId == request.auth.uid || isOwner(spaceId));
     }
 
+    function recipeAdmins() {
+      // Cuentas que pueden publicar recetas del catálogo común (GLOBAL). Se rellena en F2-8 con
+      // el/los UID admin reales; vacío = todavía nadie puede crear GLOBAL (sí recetas PRIVATE).
+      return [];
+    }
+
+    function isRecipeAdmin() {
+      return verifiedUser() && request.auth.uid in recipeAdmins();
+    }
+
+    function validRecipeShape() {
+      return request.resource.data.keys().hasAll([
+          "ownerUid", "visibility", "title", "description", "category",
+          "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt"
+        ])
+        && request.resource.data.keys().hasOnly([
+          "ownerUid", "visibility", "title", "description", "category",
+          "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt"
+        ])
+        && request.resource.data.ownerUid is string
+        && request.resource.data.visibility in ["GLOBAL", "PRIVATE"]
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 120
+        && (request.resource.data.description == null
+          || (request.resource.data.description is string && request.resource.data.description.size() <= 1000))
+        && (request.resource.data.category == null
+          || (request.resource.data.category is string && request.resource.data.category.size() <= 60))
+        && request.resource.data.createdBy is string
+        && request.resource.data.createdByName is string
+        && request.resource.data.createdByName.size() > 0
+        && request.resource.data.createdByName.size() <= 60
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedBy is string
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function validNewRecipe() {
+      return verifiedUser() && validRecipeShape()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time
+        && (request.resource.data.visibility == "PRIVATE" || isRecipeAdmin());
+    }
+
+    function ownsOrCuratesRecipe() {
+      return verifiedUser()
+        && (resource.data.ownerUid == request.auth.uid
+          || (resource.data.visibility == "GLOBAL" && isRecipeAdmin()));
+    }
+
+    function validRecipeUpdate() {
+      return ownsOrCuratesRecipe() && validRecipeShape()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["title", "description", "category", "updatedBy", "updatedAt"])
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.visibility == resource.data.visibility
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdByName == resource.data.createdByName
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
+    }
+
+    match /recipes/{recipeId} {
+      allow get: if verifiedUser()
+        && (resource.data.visibility == "GLOBAL" || resource.data.ownerUid == request.auth.uid);
+      allow list: if verifiedUser()
+        && (resource.data.visibility == "GLOBAL" || resource.data.ownerUid == request.auth.uid);
+      allow create: if validNewRecipe();
+      allow update: if validRecipeUpdate();
+      allow delete: if ownsOrCuratesRecipe();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
