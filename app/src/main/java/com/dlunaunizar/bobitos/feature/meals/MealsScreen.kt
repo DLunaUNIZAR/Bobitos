@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -60,6 +61,7 @@ import java.util.Locale
 fun MealsScreen(
     spaceId: String,
     canWrite: Boolean,
+    onOpenRecipes: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: MealsViewModel = hiltViewModel(),
 ) {
@@ -88,10 +90,18 @@ fun MealsScreen(
             onSelectDay = viewModel::selectDay,
         )
         Spacer(Modifier.height(8.dp))
-        Text(
-            text = state.focusedDate.formatHeader(),
-            style = MaterialTheme.typography.titleMedium,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = state.focusedDate.formatHeader(),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onOpenRecipes) {
+                Icon(Icons.Rounded.MenuBook, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(stringResource(R.string.recipes_open))
+            }
+        }
         MealsFeedback(state, viewModel::clearFeedback)
         Spacer(Modifier.height(8.dp))
 
