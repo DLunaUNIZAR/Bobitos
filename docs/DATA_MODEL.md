@@ -374,6 +374,7 @@ title: string
 description: string?
 category: string?
 sourceRecipeId: string?                # si es un fork («guardar como mía»)
+ingredients: array<Ingredient>?        # embebido, opcional, ≤50 (Fase 3)
 createdBy: string
 createdByName: string
 createdAt: timestamp
@@ -381,9 +382,16 @@ updatedBy: string
 updatedAt: timestamp
 ```
 
-- **`PRIVATE`** — receta personal: la crea cualquier usuario verificado (`ownerUid == uid`), solo la ve su dueño y aparece en **todos sus espacios** con una única consulta `where ownerUid == me` (sin `collectionGroup` ni fan-out). El *fork* de otra receta produce una copia `PRIVATE` con `sourceRecipeId`.
+Cada `Ingredient` es un mapa embebido `{ name: string, quantity: string?, unit: string? }` (cantidad y unidad son texto libre). El array es **opcional y retrocompatible**: una receta sin el campo se lee como «sin ingredientes».
+
+- **`PRIVATE`** — receta personal: la crea cualquier usuario verificado (`ownerUid == uid`), solo la ve su dueño y aparece en **todos sus espacios** con una única consulta `where ownerUid == me` (sin `collectionGroup` ni fan-out). El *fork* de otra receta produce una copia `PRIVATE` con `sourceRecipeId` (copia también sus ingredientes).
 - **`GLOBAL`** — receta del **catálogo común**, visible para todos. Solo la publica/cura una cuenta admin (allowlist de UID). Al planificar una comida se puede referenciar cualquier receta visible (`Meal.recipeId`).
 - **Curación y admins:** la política y el procedimiento para añadir/rotar admins están en [`RECIPES_ADMIN.md`](RECIPES_ADMIN.md). La frontera de seguridad es `recipeAdmins()` en `firestore.rules`; la app replica la allowlist solo para enseñar la opción de publicar.
+- **Validación de `ingredients` (Fase 3):** las reglas validan de forma **gruesa** (`is list` + `size() <= 50`); Firestore Rules no puede inspeccionar cada elemento del array. El parseo por elemento (descartar mapas sin `name`) lo hace el cliente al leer.
+
+#### Integración con la Compra (Fase 3)
+
+Desde una comida enlazada a una receta (`Meal.recipeId`) se pueden **volcar sus ingredientes a la lista de la Compra** del espacio activo: se crea un `ShoppingItem` por ingrediente reutilizando `ShoppingRepository.addItem` (`name`=nombre, `quantity`=cantidad, `notes`=unidad). No hay lecturas extra (la receta ya está observada) ni dedupe: el usuario ajusta en la Compra. La acción respeta `canWrite`.
 
 #### Consultas previstas
 
