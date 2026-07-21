@@ -107,7 +107,7 @@ class MealsViewModelTest {
     }
 
     @Test
-    fun `adding a linked recipe's ingredients pushes them to the shopping list`() =
+    fun `reviewing then confirming pushes a recipe's ingredients to the shopping list`() =
         runTest(mainDispatcherRule.testDispatcher) {
             recipeRepository.mineState.value = listOf(
                 recipe("r1", listOf(Ingredient("Arroz", "300", "g"), Ingredient("Sal"))),
@@ -117,6 +117,12 @@ class MealsViewModelTest {
 
             val meal = meal("m1", LocalDate.now(), MealSlot.COMIDA, "Paella").copy(recipeId = "r1")
             viewModel.addIngredientsToShopping(meal)
+            advanceUntilIdle()
+
+            val review = viewModel.uiState.value.ingredientReview
+            assertEquals(listOf("Arroz", "Sal"), review?.map(IngredientReviewRow::name))
+
+            viewModel.confirmIngredientReview(listOf("300", null))
             advanceUntilIdle()
 
             assertEquals(listOf("Arroz", "Sal"), shoppingRepository.addedNames)
@@ -144,7 +150,7 @@ class MealsViewModelTest {
     }
 
     @Test
-    fun `adding the day's ingredients dedups by name`() = runTest(mainDispatcherRule.testDispatcher) {
+    fun `the day's ingredient review dedups by name`() = runTest(mainDispatcherRule.testDispatcher) {
         val today = LocalDate.now()
         recipeRepository.mineState.value = listOf(
             recipe("r1", listOf(Ingredient("Arroz", "300", "g"), Ingredient("Sal"))),
@@ -158,6 +164,12 @@ class MealsViewModelTest {
         advanceUntilIdle()
 
         viewModel.addDayIngredientsToShopping()
+        advanceUntilIdle()
+
+        val review = viewModel.uiState.value.ingredientReview
+        assertEquals(listOf("Arroz", "Sal", "Aceite"), review?.map(IngredientReviewRow::name))
+
+        viewModel.confirmIngredientReview(review!!.map(IngredientReviewRow::recipeQuantity))
         advanceUntilIdle()
 
         assertEquals(listOf("Arroz", "Sal", "Aceite"), shoppingRepository.addedNames)
