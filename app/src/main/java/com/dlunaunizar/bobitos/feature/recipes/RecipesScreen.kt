@@ -260,9 +260,13 @@ private fun RecipeDetailDialog(
         onDismissRequest = onDismiss,
         title = { Text(recipe.title) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 Text(recipe.description ?: stringResource(R.string.recipes_no_description))
                 recipe.category?.let { Text(stringResource(R.string.recipes_category, it)) }
+                IngredientsList(recipe.ingredients)
                 Text(
                     text = stringResource(R.string.recipes_by, recipe.createdByName),
                     style = MaterialTheme.typography.bodySmall,
@@ -383,6 +387,23 @@ private fun RecipeEditor(
 }
 
 @Composable
+private fun IngredientsList(ingredients: List<Ingredient>?) {
+    if (ingredients.isNullOrEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            text = stringResource(R.string.recipes_ingredients_section),
+            style = MaterialTheme.typography.titleSmall,
+        )
+        ingredients.forEach { ingredient ->
+            Text(
+                text = stringResource(R.string.recipes_ingredient_bullet, ingredient.formatted()),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+    }
+}
+
+@Composable
 private fun IngredientsEditor(rows: SnapshotStateList<IngredientDraft>) {
     Text(
         text = stringResource(R.string.recipes_ingredients_section),
@@ -441,6 +462,9 @@ private class IngredientDraft(name: String = "", quantity: String = "", unit: St
     var quantity by mutableStateOf(quantity)
     var unit by mutableStateOf(unit)
 }
+
+// «300 g Arroz» o «Sal» (omite cantidad/unidad ausentes).
+private fun Ingredient.formatted(): String = listOfNotNull(quantity, unit, name).joinToString(" ")
 
 // Descarta filas sin nombre y normaliza cantidad/unidad vacías a null.
 private fun List<IngredientDraft>.toIngredients(): List<Ingredient> = mapNotNull { draft ->

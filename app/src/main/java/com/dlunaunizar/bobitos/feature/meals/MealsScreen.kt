@@ -51,6 +51,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
 import com.dlunaunizar.bobitos.core.model.Recipe
@@ -125,6 +126,7 @@ fun MealsScreen(
                             MealSlotSection(
                                 slot = slot,
                                 meals = dayMeals.filter { it.slot == slot },
+                                recipes = state.recipes,
                                 canWrite = canWrite,
                                 actionsEnabled = actionsEnabled,
                                 onAdd = { editor = MealEditorRequest(slot = slot, meal = null) },
@@ -231,12 +233,14 @@ private fun DayChip(date: LocalDate, selected: Boolean, modifier: Modifier = Mod
 private fun MealSlotSection(
     slot: MealSlot,
     meals: List<Meal>,
+    recipes: List<Recipe>,
     canWrite: Boolean,
     actionsEnabled: Boolean,
     onAdd: () -> Unit,
     onEdit: (Meal) -> Unit,
     onDelete: (Meal) -> Unit,
 ) {
+    val ingredientsByRecipe = recipes.associate { it.id to it.ingredients }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -266,6 +270,7 @@ private fun MealSlotSection(
             meals.forEach { meal ->
                 MealCard(
                     meal = meal,
+                    ingredients = meal.recipeId?.let { ingredientsByRecipe[it] },
                     enabled = actionsEnabled,
                     canWrite = canWrite,
                     onEdit = { onEdit(meal) },
@@ -277,7 +282,14 @@ private fun MealSlotSection(
 }
 
 @Composable
-private fun MealCard(meal: Meal, enabled: Boolean, canWrite: Boolean, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun MealCard(
+    meal: Meal,
+    ingredients: List<Ingredient>?,
+    enabled: Boolean,
+    canWrite: Boolean,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
     var menuExpanded by remember { mutableStateOf(false) }
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -297,6 +309,14 @@ private fun MealCard(meal: Meal, enabled: Boolean, canWrite: Boolean, onEdit: ()
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (!ingredients.isNullOrEmpty()) {
+                    Text(
+                        text = ingredients.joinToString(", ") { it.formatted() },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
             }
             if (canWrite) {
                 Box {
@@ -481,6 +501,9 @@ private fun MealsFeedback(state: MealsUiState, onDismiss: () -> Unit) {
 private data class MealEditorRequest(val slot: MealSlot, val meal: Meal?)
 
 private val HEADER_FORMAT = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Locale.forLanguageTag("es"))
+
+// «300 g Arroz» o «Sal» (omite cantidad/unidad ausentes).
+private fun Ingredient.formatted(): String = listOfNotNull(quantity, unit, name).joinToString(" ")
 
 private fun LocalDate.formatHeader(): String =
     format(HEADER_FORMAT).replaceFirstChar { it.uppercase(Locale.forLanguageTag("es")) }

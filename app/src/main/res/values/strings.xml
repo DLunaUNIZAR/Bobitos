@@ -299,6 +299,7 @@
     <string name="recipes_ingredient_unit">Unidad</string>
     <string name="recipes_ingredient_add">Añadir ingrediente</string>
     <string name="recipes_ingredient_remove">Quitar ingrediente</string>
+    <string name="recipes_ingredient_bullet">• %1$s</string>
     <string name="recipes_edit">Editar</string>
     <string name="recipes_delete">Eliminar</string>
     <string name="recipes_delete_title">Eliminar receta</string>
