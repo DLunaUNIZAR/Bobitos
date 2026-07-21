@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.feature.meals
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
 import com.dlunaunizar.bobitos.core.model.Recipe
@@ -205,9 +206,16 @@ private class FakeRecipeRepository : RecipeRepository {
         description: String?,
         category: String?,
         sourceRecipeId: String?,
+        ingredients: List<Ingredient>,
     ) = Unit
 
-    override suspend fun updateRecipe(recipeId: String, title: String, description: String?, category: String?) = Unit
+    override suspend fun updateRecipe(
+        recipeId: String,
+        title: String,
+        description: String?,
+        category: String?,
+        ingredients: List<Ingredient>,
+    ) = Unit
 
     override suspend fun deleteRecipe(recipeId: String) = Unit
 }

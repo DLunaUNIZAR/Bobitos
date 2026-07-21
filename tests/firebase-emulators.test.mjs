@@ -1134,6 +1134,36 @@ test("una receta guarda su origen (fork) pero rechaza un sourceRecipeId no textu
   );
 });
 
+test("una receta guarda su lista de ingredientes pero rechaza un ingredients no-lista o demasiado largo", async () => {
+  const chef = verifiedFirestore("recipe-ingredients");
+
+  await assertSucceeds(
+    setDoc(
+      doc(chef, "recipes", "with-ingredients"),
+      recipeData("recipe-ingredients", {
+        ingredients: [
+          { name: "Arroz", quantity: "300", unit: "g" },
+          { name: "Azafrán", quantity: null, unit: null },
+        ],
+      }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(chef, "recipes", "bad-ingredients"),
+      recipeData("recipe-ingredients", { ingredients: "arroz, azafrán" }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(chef, "recipes", "too-many-ingredients"),
+      recipeData("recipe-ingredients", {
+        ingredients: Array.from({ length: 51 }, (_, index) => ({ name: `ing-${index}` })),
+      }),
+    ),
+  );
+});
+
 function recipeData(userId, overrides = {}) {
   return {
     ownerUid: userId,

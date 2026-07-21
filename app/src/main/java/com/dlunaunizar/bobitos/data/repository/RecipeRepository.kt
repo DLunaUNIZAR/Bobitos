@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.data.repository
 
+import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
 import kotlinx.coroutines.flow.Flow
@@ -18,9 +19,16 @@ interface RecipeRepository {
         description: String?,
         category: String?,
         sourceRecipeId: String?,
+        ingredients: List<Ingredient> = emptyList(),
     )
 
-    suspend fun updateRecipe(recipeId: String, title: String, description: String?, category: String?)
+    suspend fun updateRecipe(
+        recipeId: String,
+        title: String,
+        description: String?,
+        category: String?,
+        ingredients: List<Ingredient> = emptyList(),
+    )
 
     suspend fun deleteRecipe(recipeId: String)
 }
