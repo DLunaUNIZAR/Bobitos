@@ -28,6 +28,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -38,6 +40,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.toMutableStateList
@@ -53,6 +56,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
+import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
@@ -73,9 +77,14 @@ fun RecipesScreen(
     var detail by remember { mutableStateOf<Recipe?>(null) }
     var editorRequest by remember { mutableStateOf<RecipeEditorRequest?>(null) }
     var recipeToDelete by remember { mutableStateOf<Recipe?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val deletedMessage = stringResource(R.string.recipes_undo_deleted)
+    val undoLabel = stringResource(R.string.undo)
 
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.recipes_title)) },
@@ -176,6 +185,15 @@ fun RecipesScreen(
                     onClick = {
                         viewModel.deleteRecipe(recipe.id)
                         recipeToDelete = null
+                        scope.launchUndo(snackbarHostState, deletedMessage, undoLabel) {
+                            viewModel.createRecipe(
+                                recipe.visibility,
+                                recipe.title,
+                                recipe.description,
+                                recipe.category,
+                                recipe.ingredients.orEmpty(),
+                            )
+                        }
                     },
                 ) { Text(stringResource(R.string.recipes_delete)) }
             },

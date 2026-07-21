@@ -119,7 +119,8 @@ class TasksViewModel @Inject constructor(
         if (completed) TaskUiMessage.TaskCompleted else TaskUiMessage.TaskReopened,
     ) { taskRepository.setCompleted(spaceId, taskId, completed) }
 
-    fun deleteTask(spaceId: String, taskId: String) = runAction(TaskUiMessage.TaskDeleted) {
+    // Sin notice: el feedback del borrado (con «Deshacer») lo da el Snackbar de la pantalla.
+    fun deleteTask(spaceId: String, taskId: String) = runAction(null) {
         taskRepository.deleteTask(spaceId, taskId)
     }
 
@@ -137,7 +138,7 @@ class TasksViewModel @Inject constructor(
         it.copy(isSaving = false, error = message, notice = null)
     }
 
-    private fun runAction(notice: TaskUiMessage, action: suspend () -> Unit) {
+    private fun runAction(notice: TaskUiMessage?, action: suspend () -> Unit) {
         if (mutableUiState.value.isSaving) return
         mutableUiState.update { it.copy(isSaving = true, error = null, notice = null) }
         viewModelScope.launch {

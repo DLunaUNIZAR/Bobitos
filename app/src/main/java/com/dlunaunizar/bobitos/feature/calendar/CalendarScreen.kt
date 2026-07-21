@@ -60,6 +60,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -79,6 +80,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
+import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.EventColor
 import com.dlunaunizar.bobitos.core.model.SpaceMember
@@ -111,6 +114,10 @@ fun CalendarScreen(
     var drilledFrom by remember { mutableStateOf<CalendarDisplayMode?>(null) }
     var creatingAt by remember { mutableStateOf<LocalTime?>(null) }
     var eventToDelete by remember { mutableStateOf<CalendarEvent?>(null) }
+    val snackbar = LocalSnackbarHostState.current
+    val scope = rememberCoroutineScope()
+    val deletedMessage = stringResource(R.string.calendar_undo_deleted)
+    val undoLabel = stringResource(R.string.undo)
 
     DisposableEffect(spaceId) {
         viewModel.observe(spaceId)
@@ -246,6 +253,9 @@ fun CalendarScreen(
                     onClick = {
                         viewModel.delete(event.id)
                         eventToDelete = null
+                        scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+                            viewModel.save(null, event.toInput())
+                        }
                     },
                 ) { Text(stringResource(R.string.calendar_delete)) }
             },
@@ -978,6 +988,20 @@ private fun EventTimePickerDialog(initialTime: LocalTime, onConfirm: (LocalTime)
         text = { TimePicker(state = state) },
     )
 }
+
+// Reconstruye el input desde un evento existente, para re-crearlo al «Deshacer» un borrado.
+private fun CalendarEvent.toInput(): EventInput = EventInput(
+    title = title,
+    description = description,
+    allDay = allDay,
+    startAt = startAt,
+    endAt = endAt,
+    startDate = startDate,
+    endDateExclusive = endDateExclusive,
+    timeZone = timeZone,
+    color = color,
+    participantIds = participantIds,
+)
 
 private fun buildEventInput(
     title: String,

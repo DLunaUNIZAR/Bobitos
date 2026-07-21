@@ -102,7 +102,8 @@ class RecipesViewModel @Inject constructor(private val repository: RecipeReposit
     }
 
     fun deleteRecipe(recipeId: String) {
-        runAction(RecipeUiMessage.RecipeDeleted) { repository.deleteRecipe(recipeId) }
+        // Sin notice: el feedback del borrado (con «Deshacer») lo da el Snackbar de la pantalla.
+        runAction(null) { repository.deleteRecipe(recipeId) }
     }
 
     fun fork(source: Recipe) {
@@ -132,7 +133,7 @@ class RecipesViewModel @Inject constructor(private val repository: RecipeReposit
         mutableUiState.update { it.copy(isSaving = false, error = message, notice = null) }
     }
 
-    private fun runAction(successNotice: RecipeUiMessage, action: suspend () -> Unit) {
+    private fun runAction(successNotice: RecipeUiMessage?, action: suspend () -> Unit) {
         if (mutableUiState.value.isSaving) return
         mutableUiState.update { it.copy(isSaving = true, error = null, notice = null) }
         viewModelScope.launch {

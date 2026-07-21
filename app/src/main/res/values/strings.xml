@@ -98,6 +98,12 @@
     <string name="generic_loading">Cargando…</string>
     <string name="generic_error">No se ha podido cargar la información.</string>
     <string name="retry">Reintentar</string>
+    <string name="undo">Deshacer</string>
+    <string name="shopping_undo_deleted">Producto eliminado</string>
+    <string name="tasks_undo_deleted">Tarea eliminada</string>
+    <string name="meals_undo_deleted">Comida eliminada</string>
+    <string name="recipes_undo_deleted">Receta eliminada</string>
+    <string name="calendar_undo_deleted">Evento eliminado</string>
     <string name="sync_offline">Sin conexión · datos desactualizados · solo lectura</string>
     <string name="sync_refreshing">Actualizando datos antes de permitir cambios…</string>
     <string name="write_saving">Guardando…</string>

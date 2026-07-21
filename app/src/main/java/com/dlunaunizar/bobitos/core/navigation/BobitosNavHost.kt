@@ -24,9 +24,12 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,6 +51,7 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.app.AppUiState
 import com.dlunaunizar.bobitos.app.RealtimeScope
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
@@ -451,7 +455,9 @@ private fun WorkspaceScaffold(
     syncStatus: SyncStatus,
     content: @Composable () -> Unit,
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Column {
                 TopAppBar(
@@ -506,7 +512,9 @@ private fun WorkspaceScaffold(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            content()
+            CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
+                content()
+            }
         }
     }
 }

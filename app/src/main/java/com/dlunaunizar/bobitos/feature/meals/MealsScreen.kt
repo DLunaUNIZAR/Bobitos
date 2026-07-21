@@ -40,6 +40,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +54,8 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
+import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
@@ -82,6 +85,10 @@ fun MealsScreen(
     var mealToDelete by remember { mutableStateOf<Meal?>(null) }
     val members = (state.members as? UiState.Content)?.value.orEmpty()
     val actionsEnabled = canWrite && !state.isSaving
+    val snackbar = LocalSnackbarHostState.current
+    val scope = rememberCoroutineScope()
+    val deletedMessage = stringResource(R.string.meals_undo_deleted)
+    val undoLabel = stringResource(R.string.undo)
 
     Column(
         modifier = modifier
@@ -171,6 +178,9 @@ fun MealsScreen(
                     onClick = {
                         viewModel.deleteMeal(meal.id)
                         mealToDelete = null
+                        scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+                            viewModel.addMeal(meal.date, meal.slot, meal.name, meal.participantIds, meal.recipeId)
+                        }
                     },
                 ) { Text(stringResource(R.string.meals_delete)) }
             },
