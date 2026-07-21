@@ -44,6 +44,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,6 +63,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.RecurrenceUnit
@@ -100,6 +102,7 @@ fun TasksScreen(
     var editorVisible by remember { mutableStateOf(false) }
     var deleteTask by remember { mutableStateOf<TaskItem?>(null) }
     var tab by remember { mutableStateOf(TaskTab.RECURRENTES) }
+    var query by rememberSaveable { mutableStateOf("") }
 
     Column(modifier.fillMaxSize().padding(16.dp)) {
         Row(
@@ -125,8 +128,16 @@ fun TasksScreen(
         }
         TaskFeedback(state, viewModel::clearFeedback)
         TaskFilterBar(state.filters, members, viewModel::setFilters)
+        SearchField(
+            query = query,
+            onQueryChange = { query = it },
+            visible = allTasks.isNotEmpty(),
+            modifier = Modifier.padding(vertical = 4.dp),
+        )
         TaskTabSelector(tab, onSelect = { tab = it })
-        val tabTasks = visibleTasks.filter { (it.recurrence != null) == (tab == TaskTab.RECURRENTES) }
+        val tabTasks = visibleTasks.filter {
+            (it.recurrence != null) == (tab == TaskTab.RECURRENTES) && it.matchesQuery(query)
+        }
         when (val tasks = state.tasks) {
             UiState.Loading -> LoadingState(Modifier.weight(1f))
             is UiState.Error -> ErrorState(Modifier.weight(1f), message = tasks.message)
@@ -763,6 +774,13 @@ private fun TaskFeedback(state: TasksUiState, onDismiss: () -> Unit) {
 private fun Instant.formatDate() =
     DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(ZoneId.systemDefault()).format(this)
 private fun Instant.formatIsoDate() = atZone(ZoneId.systemDefault()).toLocalDate().toString()
+
+// Coincidencia por texto (título o descripción) para el buscador; en blanco no filtra.
+private fun TaskItem.matchesQuery(query: String): Boolean {
+    if (query.isBlank()) return true
+    val trimmed = query.trim()
+    return title.contains(trimmed, ignoreCase = true) || description?.contains(trimmed, ignoreCase = true) == true
+}
 
 private fun TaskUiMessage.stringRes() = when (this) {
     TaskUiMessage.TitleRequired -> R.string.tasks_error_title_required

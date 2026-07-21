@@ -41,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,6 +55,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
@@ -79,10 +81,11 @@ fun ShoppingScreen(
     var clearConfirmationVisible by remember { mutableStateOf(false) }
     val content = state.items as? UiState.Content
     val allItems = content?.value.orEmpty()
+    var query by rememberSaveable { mutableStateOf("") }
     var selectedSupermarket by remember { mutableStateOf<Supermarket?>(null) }
     val presentSupermarkets = allItems.mapNotNull(ShoppingItem::supermarket).distinct()
     val activeSupermarket = resolveSupermarket(selectedSupermarket, presentSupermarkets)
-    val filteredItems = allItems.forSupermarket(activeSupermarket)
+    val filteredItems = allItems.filter { it.matchesQuery(query) }.forSupermarket(activeSupermarket)
     val pending = filteredItems.filterNot(ShoppingItem::purchased)
     val purchased = filteredItems.filter(ShoppingItem::purchased)
     val actionsEnabled = canWrite && !state.isSaving
@@ -112,6 +115,13 @@ fun ShoppingScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+
+            SearchField(
+                query = query,
+                onQueryChange = { query = it },
+                visible = allItems.isNotEmpty(),
+                modifier = Modifier.padding(top = 8.dp),
+            )
 
             if (presentSupermarkets.isNotEmpty()) {
                 SupermarketFilterRow(
@@ -552,6 +562,15 @@ private fun SupermarketAndBrandFields(
 
 private fun resolveSupermarket(selected: Supermarket?, present: List<Supermarket>): Supermarket? =
     selected?.takeIf(present::contains)
+
+// Coincidencia por texto (nombre, marca o notas) para el buscador; en blanco no filtra.
+private fun ShoppingItem.matchesQuery(query: String): Boolean {
+    if (query.isBlank()) return true
+    val trimmed = query.trim()
+    return name.contains(trimmed, ignoreCase = true) ||
+        brand?.contains(trimmed, ignoreCase = true) == true ||
+        notes?.contains(trimmed, ignoreCase = true) == true
+}
 
 private fun List<ShoppingItem>.forSupermarket(supermarket: Supermarket?): List<ShoppingItem> =
     if (supermarket == null) {

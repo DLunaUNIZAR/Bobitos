@@ -41,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,6 +56,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Meal
@@ -83,6 +85,7 @@ fun MealsScreen(
 
     var editor by remember { mutableStateOf<MealEditorRequest?>(null) }
     var mealToDelete by remember { mutableStateOf<Meal?>(null) }
+    var query by rememberSaveable { mutableStateOf("") }
     val members = (state.members as? UiState.Content)?.value.orEmpty()
     val actionsEnabled = canWrite && !state.isSaving
     val snackbar = LocalSnackbarHostState.current
@@ -123,6 +126,13 @@ fun MealsScreen(
             is UiState.Error -> ErrorState(Modifier.weight(1f), message = mealsState.message)
             is UiState.Content -> {
                 val dayMeals = mealsState.value.filter { it.date == state.focusedDate }
+                SearchField(
+                    query = query,
+                    onQueryChange = { query = it },
+                    visible = dayMeals.isNotEmpty(),
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+                val queriedMeals = dayMeals.filter { it.matchesQuery(query) }
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
@@ -131,7 +141,7 @@ fun MealsScreen(
                         item(key = slot.name) {
                             MealSlotSection(
                                 slot = slot,
-                                meals = dayMeals.filter { it.slot == slot },
+                                meals = queriedMeals.filter { it.slot == slot },
                                 recipes = state.recipes,
                                 canWrite = canWrite,
                                 actionsEnabled = actionsEnabled,
@@ -526,6 +536,10 @@ private val HEADER_FORMAT = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Loca
 
 // «300 g Arroz» o «Sal» (omite cantidad/unidad ausentes).
 private fun Ingredient.formatted(): String = listOfNotNull(quantity, unit, name).joinToString(" ")
+
+// Coincidencia por texto (nombre de la comida) para el buscador; en blanco no filtra.
+private fun Meal.matchesQuery(query: String): Boolean =
+    query.isBlank() || name.contains(query.trim(), ignoreCase = true)
 
 private fun LocalDate.formatHeader(): String =
     format(HEADER_FORMAT).replaceFirstChar { it.uppercase(Locale.forLanguageTag("es")) }
