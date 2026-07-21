@@ -83,8 +83,14 @@ fun ShoppingScreen(
     var editorVisible by remember { mutableStateOf(false) }
     var itemToDelete by remember { mutableStateOf<ShoppingItem?>(null) }
     var clearConfirmationVisible by remember { mutableStateOf(false) }
+    var duplicatePrompt by remember { mutableStateOf<ShoppingDuplicate?>(null) }
     val content = state.items as? UiState.Content
     val allItems = content?.value.orEmpty()
+    val findByName: (String) -> ShoppingItem? = { raw ->
+        raw.trim().takeIf(String::isNotEmpty)?.let { name ->
+            allItems.firstOrNull { it.name.trim().equals(name, ignoreCase = true) }
+        }
+    }
     var query by rememberSaveable { mutableStateOf("") }
     var selectedSupermarket by remember { mutableStateOf<Supermarket?>(null) }
     val presentSupermarkets = allItems.mapNotNull(ShoppingItem::supermarket).distinct()
@@ -257,15 +263,62 @@ fun ShoppingScreen(
         ShoppingItemEditor(
             item = editedItem,
             saving = state.isSaving,
+            resolveDuplicate = findByName,
             onDismiss = { editorVisible = false },
             onSave = { name, quantity, notes, supermarket, brand ->
                 val item = editedItem
-                if (item == null) {
-                    viewModel.addItem(spaceId, name, quantity, notes, supermarket, brand)
-                } else {
-                    viewModel.updateItem(spaceId, item.id, name, quantity, notes, supermarket, brand)
+                val existing = if (item == null) findByName(name) else null
+                when {
+                    item != null -> viewModel.updateItem(spaceId, item.id, name, quantity, notes, supermarket, brand)
+                    existing != null ->
+                        duplicatePrompt =
+                            ShoppingDuplicate(existing, name, quantity, notes, supermarket, brand)
+                    else -> viewModel.addItem(spaceId, name, quantity, notes, supermarket, brand)
                 }
                 editorVisible = false
+            },
+        )
+    }
+
+    duplicatePrompt?.let { prompt ->
+        AlertDialog(
+            onDismissRequest = { duplicatePrompt = null },
+            title = { Text(stringResource(R.string.shopping_duplicate_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.shopping_duplicate_body,
+                        prompt.existing.name,
+                        prompt.existing.quantity ?: "—",
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.updateItem(
+                        spaceId,
+                        prompt.existing.id,
+                        prompt.existing.name,
+                        prompt.quantity,
+                        prompt.existing.notes,
+                        prompt.existing.supermarket,
+                        prompt.existing.brand,
+                    )
+                    duplicatePrompt = null
+                }) { Text(stringResource(R.string.shopping_duplicate_update)) }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    viewModel.addItem(
+                        spaceId,
+                        prompt.name,
+                        prompt.quantity,
+                        prompt.notes,
+                        prompt.supermarket,
+                        prompt.brand,
+                    )
+                    duplicatePrompt = null
+                }) { Text(stringResource(R.string.shopping_duplicate_add)) }
             },
         )
     }
@@ -478,6 +531,7 @@ private fun ShoppingItemCard(
 private fun ShoppingItemEditor(
     item: ShoppingItem?,
     saving: Boolean,
+    resolveDuplicate: (String) -> ShoppingItem?,
     onDismiss: () -> Unit,
     onSave: (String, String?, String?, Supermarket?, String?) -> Unit,
 ) {
@@ -487,6 +541,9 @@ private fun ShoppingItemEditor(
     var supermarket by remember(item?.id) { mutableStateOf(item?.supermarket) }
     var brand by remember(item?.id) { mutableStateOf(item?.brand.orEmpty()) }
     val validation = ShoppingValidation.validate(name, quantity, notes)
+    // Solo al crear: avisa si ya hay un producto con ese nombre en la lista.
+    val duplicate = if (item == null) resolveDuplicate(name) else null
+    val nameError = validation == ShoppingUiMessage.NameRequired || validation == ShoppingUiMessage.NameTooLong
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -504,14 +561,15 @@ private fun ShoppingItemEditor(
                     onValueChange = { name = it },
                     label = { Text(stringResource(R.string.shopping_name_label)) },
                     supportingText = {
-                        if (validation == ShoppingUiMessage.NameRequired ||
-                            validation == ShoppingUiMessage.NameTooLong
-                        ) {
-                            Text(stringResource(validation.stringResourceId))
+                        when {
+                            nameError -> Text(stringResource(validation!!.stringResourceId))
+                            duplicate != null -> Text(
+                                stringResource(R.string.shopping_already_in_list) +
+                                    (duplicate.quantity?.let { " · $it" } ?: ""),
+                            )
                         }
                     },
-                    isError = validation == ShoppingUiMessage.NameRequired ||
-                        validation == ShoppingUiMessage.NameTooLong,
+                    isError = nameError,
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -582,6 +640,16 @@ private fun SupermarketAndBrandFields(
 
 private fun resolveSupermarket(selected: Supermarket?, present: List<Supermarket>): Supermarket? =
     selected?.takeIf(present::contains)
+
+// Producto que ya existe al intentar añadir uno con el mismo nombre + los valores tecleados.
+private data class ShoppingDuplicate(
+    val existing: ShoppingItem,
+    val name: String,
+    val quantity: String?,
+    val notes: String?,
+    val supermarket: Supermarket?,
+    val brand: String?,
+)
 
 // Coincidencia por texto (nombre, marca o notas) para el buscador; en blanco no filtra.
 private fun ShoppingItem.matchesQuery(query: String): Boolean {
