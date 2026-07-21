@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.feature.meals
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.Recipe
+import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import java.time.LocalDate
 import java.time.temporal.ChronoField
@@ -15,6 +16,8 @@ data class MealsUiState(
     val error: MealUiMessage? = null,
     val notice: MealUiMessage? = null,
     val recipes: List<Recipe> = emptyList(),
+    // Filas a revisar al volcar ingredientes a la Compra (null = sin diálogo abierto).
+    val ingredientReview: List<IngredientReviewRow>? = null,
 ) {
     // Lunes de la semana del día enfocado (ISO: día 1 = lunes). Define la ventana observada.
     val weekStart: LocalDate get() = focusedDate.with(ChronoField.DAY_OF_WEEK, 1L)
@@ -26,3 +29,14 @@ data class MealsUiState(
         const val DAYS_IN_WEEK = 7L
     }
 }
+
+/**
+ * Ingrediente a volcar a la Compra. Si [existing] no es null, ya hay un producto con ese nombre en la
+ * lista y se ofrece ajustar su cantidad (frente a la [recipeQuantity] de la receta).
+ */
+data class IngredientReviewRow(
+    val name: String,
+    val unit: String?,
+    val recipeQuantity: String?,
+    val existing: ShoppingItem?,
+)

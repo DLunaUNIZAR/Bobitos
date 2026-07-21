@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -132,26 +133,62 @@ class MealsViewModel @Inject constructor(
         }
     }
 
-    // Vuelca a la Compra los ingredientes de las recetas enlazadas a una comida / al día / a la semana.
-    fun addIngredientsToShopping(meal: Meal) = addIngredientsOf(listOf(meal))
+    // Abre la revisión para volcar a la Compra los ingredientes de una comida / del día / de la semana.
+    fun addIngredientsToShopping(meal: Meal) = prepareIngredientReview(listOf(meal))
 
     fun addDayIngredientsToShopping() =
-        addIngredientsOf(currentMeals().filter { it.date == mutableUiState.value.focusedDate })
+        prepareIngredientReview(currentMeals().filter { it.date == mutableUiState.value.focusedDate })
 
-    fun addWeekIngredientsToShopping() = addIngredientsOf(currentMeals())
+    fun addWeekIngredientsToShopping() = prepareIngredientReview(currentMeals())
 
-    private fun addIngredientsOf(meals: List<Meal>) {
+    private fun prepareIngredientReview(meals: List<Meal>) {
         val spaceId = observedSpaceId ?: return
         val recipesById = mutableUiState.value.recipes.associateBy { it.id }
-        // Dedup simple por nombre (conserva el primero); la reconciliación de cantidades llega aparte.
+        // Dedup por nombre (conserva el primero); la cantidad final la decide el usuario en la revisión.
         val ingredients = meals.mapNotNull(Meal::recipeId)
             .mapNotNull(recipesById::get)
             .flatMap { it.ingredients.orEmpty() }
             .distinctBy { it.name.trim().lowercase() }
         if (ingredients.isEmpty()) return
+        viewModelScope.launch {
+            val current = runCatching { shoppingRepository.items(spaceId).first() }.getOrDefault(emptyList())
+            val byName = current.associateBy { it.name.trim().lowercase() }
+            val rows = ingredients.map { ingredient ->
+                IngredientReviewRow(
+                    name = ingredient.name,
+                    unit = ingredient.unit,
+                    recipeQuantity = ingredient.quantity,
+                    existing = byName[ingredient.name.trim().lowercase()],
+                )
+            }
+            mutableUiState.update { it.copy(ingredientReview = rows) }
+        }
+    }
+
+    fun dismissIngredientReview() = mutableUiState.update { it.copy(ingredientReview = null) }
+
+    // Aplica la revisión: actualiza la cantidad de los que ya existen y añade el resto.
+    fun confirmIngredientReview(finalQuantities: List<String?>) {
+        val spaceId = observedSpaceId ?: return
+        val rows = mutableUiState.value.ingredientReview ?: return
+        mutableUiState.update { it.copy(ingredientReview = null) }
         runAction(MealUiMessage.IngredientsAddedToShopping) {
-            ingredients.forEach { ingredient ->
-                shoppingRepository.addItem(spaceId, ingredient.name, ingredient.quantity, ingredient.unit, null, null)
+            rows.forEachIndexed { index, row ->
+                val quantity = finalQuantities.getOrNull(index)?.trim()?.takeIf(String::isNotEmpty)
+                val existing = row.existing
+                if (existing != null) {
+                    shoppingRepository.updateItem(
+                        spaceId,
+                        existing.id,
+                        existing.name,
+                        quantity,
+                        existing.notes,
+                        existing.supermarket,
+                        existing.brand,
+                    )
+                } else {
+                    shoppingRepository.addItem(spaceId, row.name, quantity, row.unit, null, null)
+                }
             }
         }
     }
