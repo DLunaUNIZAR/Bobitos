@@ -7,6 +7,7 @@ import com.dlunaunizar.bobitos.data.repository.ActiveSpaceRepository
 import com.dlunaunizar.bobitos.data.repository.AuthRepository
 import com.dlunaunizar.bobitos.data.repository.CalendarRepository
 import com.dlunaunizar.bobitos.data.repository.DataStoreActiveSpaceRepository
+import com.dlunaunizar.bobitos.data.repository.DataStoreOnboardingPreferenceRepository
 import com.dlunaunizar.bobitos.data.repository.DataStoreThemePreferenceRepository
 import com.dlunaunizar.bobitos.data.repository.FirebaseAccountRepository
 import com.dlunaunizar.bobitos.data.repository.FirebaseAuthRepository
@@ -18,6 +19,7 @@ import com.dlunaunizar.bobitos.data.repository.FirestoreSpaceRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreSpaceSummaryRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreTaskRepository
 import com.dlunaunizar.bobitos.data.repository.MealRepository
+import com.dlunaunizar.bobitos.data.repository.OnboardingPreferenceRepository
 import com.dlunaunizar.bobitos.data.repository.RecipeRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
@@ -69,6 +71,12 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindActiveSpaceRepository(repository: DataStoreActiveSpaceRepository): ActiveSpaceRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindOnboardingPreferenceRepository(
+        repository: DataStoreOnboardingPreferenceRepository,
+    ): OnboardingPreferenceRepository
 
     @Binds
     @Singleton
