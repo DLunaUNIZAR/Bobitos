@@ -51,6 +51,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
+import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
@@ -110,11 +112,8 @@ fun MealsScreen(
         Spacer(Modifier.height(8.dp))
 
         when (val mealsState = state.meals) {
-            UiState.Loading -> Text(stringResource(R.string.generic_loading))
-            is UiState.Error -> Text(
-                text = mealsState.message ?: stringResource(R.string.generic_error),
-                color = MaterialTheme.colorScheme.error,
-            )
+            UiState.Loading -> LoadingState(Modifier.weight(1f))
+            is UiState.Error -> ErrorState(Modifier.weight(1f), message = mealsState.message)
             is UiState.Content -> {
                 val dayMeals = mealsState.value.filter { it.date == state.focusedDate }
                 LazyColumn(

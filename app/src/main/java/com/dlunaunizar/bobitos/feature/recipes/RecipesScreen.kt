@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -49,6 +50,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
+import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
+import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
@@ -196,21 +200,21 @@ private fun LazyListScope.recipesSection(
         )
     }
     when (recipes) {
-        UiState.Loading -> item(key = "loading-$titleRes") { Text(stringResource(R.string.generic_loading)) }
+        UiState.Loading -> item(key = "loading-$titleRes") { LoadingState(Modifier.fillMaxWidth()) }
         is UiState.Error -> item(key = "error-$titleRes") {
-            Text(
-                text = recipes.message ?: stringResource(R.string.generic_error),
-                color = MaterialTheme.colorScheme.error,
-            )
+            ErrorState(Modifier.fillMaxWidth(), message = recipes.message)
         }
         is UiState.Content -> {
             val filtered = recipes.value.filter { it.matches(query) }
             if (filtered.isEmpty()) {
+                val noResults = query.isNotBlank() && recipes.value.isNotEmpty()
                 item(key = "empty-$titleRes") {
-                    Text(
-                        text = stringResource(R.string.recipes_empty),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    EmptyState(
+                        modifier = Modifier.fillMaxWidth(),
+                        icon = Icons.Rounded.MenuBook,
+                        title = stringResource(
+                            if (noResults) R.string.recipes_no_results else R.string.recipes_empty,
+                        ),
                     )
                 }
             } else {
