@@ -7,14 +7,17 @@ import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
+import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceRole
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
+import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.repository.MealFailure
 import com.dlunaunizar.bobitos.data.repository.MealRepository
 import com.dlunaunizar.bobitos.data.repository.MealRepositoryException
 import com.dlunaunizar.bobitos.data.repository.RecipeRepository
+import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -36,7 +39,8 @@ class MealsViewModelTest {
     private val mealRepository = FakeMealRepository()
     private val spaceRepository = FakeSpaceRepository()
     private val recipeRepository = FakeRecipeRepository()
-    private val viewModel = MealsViewModel(mealRepository, spaceRepository, recipeRepository)
+    private val shoppingRepository = FakeShoppingRepository()
+    private val viewModel = MealsViewModel(mealRepository, spaceRepository, recipeRepository, shoppingRepository)
 
     @Test
     fun `observes meals and members for the active space`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -101,6 +105,24 @@ class MealsViewModelTest {
         assertEquals(MealUiMessage.NetworkError, viewModel.uiState.value.error)
         assertFalse(viewModel.uiState.value.isSaving)
     }
+
+    @Test
+    fun `adding a linked recipe's ingredients pushes them to the shopping list`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value = listOf(
+                recipe("r1", listOf(Ingredient("Arroz", "300", "g"), Ingredient("Sal"))),
+            )
+            viewModel.observe("home")
+            advanceUntilIdle()
+
+            val meal = meal("m1", LocalDate.now(), MealSlot.COMIDA, "Paella").copy(recipeId = "r1")
+            viewModel.addIngredientsToShopping(meal)
+            advanceUntilIdle()
+
+            assertEquals(listOf("Arroz", "Sal"), shoppingRepository.addedNames)
+            assertEquals(listOf("g", null), shoppingRepository.addedNotes)
+            assertEquals(MealUiMessage.IngredientsAddedToShopping, viewModel.uiState.value.notice)
+        }
 
     @Test
     fun `changing week re-observes the range`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -197,8 +219,9 @@ private class FakeSpaceRepository : SpaceRepository {
 }
 
 private class FakeRecipeRepository : RecipeRepository {
+    val mineState = MutableStateFlow<List<Recipe>>(emptyList())
     override fun globalRecipes(): Flow<List<Recipe>> = MutableStateFlow(emptyList())
-    override fun myRecipes(): Flow<List<Recipe>> = MutableStateFlow(emptyList())
+    override fun myRecipes(): Flow<List<Recipe>> = mineState
     override fun isCurrentUserRecipeAdmin(): Boolean = false
     override suspend fun createRecipe(
         visibility: RecipeVisibility,
@@ -219,6 +242,53 @@ private class FakeRecipeRepository : RecipeRepository {
 
     override suspend fun deleteRecipe(recipeId: String) = Unit
 }
+
+private class FakeShoppingRepository : ShoppingRepository {
+    val addedNames = mutableListOf<String>()
+    val addedNotes = mutableListOf<String?>()
+
+    override fun items(spaceId: String): Flow<List<ShoppingItem>> = MutableStateFlow(emptyList())
+    override suspend fun addItem(
+        spaceId: String,
+        name: String,
+        quantity: String?,
+        notes: String?,
+        supermarket: Supermarket?,
+        brand: String?,
+    ) {
+        addedNames += name
+        addedNotes += notes
+    }
+
+    override suspend fun updateItem(
+        spaceId: String,
+        itemId: String,
+        name: String,
+        quantity: String?,
+        notes: String?,
+        supermarket: Supermarket?,
+        brand: String?,
+    ) = Unit
+
+    override suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean) = Unit
+    override suspend fun deleteItem(spaceId: String, itemId: String) = Unit
+    override suspend fun clearPurchased(spaceId: String): Int = 0
+}
+
+private fun recipe(id: String, ingredients: List<Ingredient>) = Recipe(
+    id = id,
+    ownerUid = "owner",
+    visibility = RecipeVisibility.PRIVATE,
+    title = "Receta",
+    description = null,
+    category = null,
+    ingredients = ingredients,
+    createdBy = "owner",
+    createdByName = "David",
+    createdAt = Instant.EPOCH,
+    updatedBy = "owner",
+    updatedAt = Instant.EPOCH,
+)
 
 private fun meal(id: String, date: LocalDate, slot: MealSlot, name: String) = Meal(
     id = id,

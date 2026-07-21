@@ -132,6 +132,7 @@ fun MealsScreen(
                                 onAdd = { editor = MealEditorRequest(slot = slot, meal = null) },
                                 onEdit = { meal -> editor = MealEditorRequest(slot = meal.slot, meal = meal) },
                                 onDelete = { mealToDelete = it },
+                                onAddToShopping = { viewModel.addIngredientsToShopping(it) },
                             )
                         }
                     }
@@ -239,6 +240,7 @@ private fun MealSlotSection(
     onAdd: () -> Unit,
     onEdit: (Meal) -> Unit,
     onDelete: (Meal) -> Unit,
+    onAddToShopping: (Meal) -> Unit,
 ) {
     val ingredientsByRecipe = recipes.associate { it.id to it.ingredients }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -275,6 +277,7 @@ private fun MealSlotSection(
                     canWrite = canWrite,
                     onEdit = { onEdit(meal) },
                     onDelete = { onDelete(meal) },
+                    onAddToShopping = { onAddToShopping(meal) },
                 )
             }
         }
@@ -289,6 +292,7 @@ private fun MealCard(
     canWrite: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onAddToShopping: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -324,6 +328,15 @@ private fun MealCard(
                         Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.more_options))
                     }
                     DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                        if (!ingredients.isNullOrEmpty()) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.meals_add_ingredients_to_shopping)) },
+                                onClick = {
+                                    menuExpanded = false
+                                    onAddToShopping()
+                                },
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.meals_edit)) },
                             onClick = {
@@ -533,4 +546,5 @@ private val MealUiMessage.stringResourceId: Int
         MealUiMessage.MealAdded -> R.string.meals_notice_added
         MealUiMessage.MealUpdated -> R.string.meals_notice_updated
         MealUiMessage.MealDeleted -> R.string.meals_notice_deleted
+        MealUiMessage.IngredientsAddedToShopping -> R.string.meals_notice_ingredients_added
     }

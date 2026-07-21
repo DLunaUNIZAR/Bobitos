@@ -3,11 +3,15 @@ package com.dlunaunizar.bobitos.feature.meals
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
 import com.dlunaunizar.bobitos.data.repository.MealFailure
 import com.dlunaunizar.bobitos.data.repository.MealRepository
 import com.dlunaunizar.bobitos.data.repository.MealRepositoryException
 import com.dlunaunizar.bobitos.data.repository.RecipeRepository
+import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
+import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
+import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -26,6 +30,7 @@ class MealsViewModel @Inject constructor(
     private val repository: MealRepository,
     private val spaces: SpaceRepository,
     private val recipeRepository: RecipeRepository,
+    private val shoppingRepository: ShoppingRepository,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(MealsUiState())
     val uiState: StateFlow<MealsUiState> = mutableUiState.asStateFlow()
@@ -104,6 +109,28 @@ class MealsViewModel @Inject constructor(
         }
     }
 
+    // Vuelca los ingredientes de la receta enlazada a la comida a la lista de la Compra del espacio.
+    fun addIngredientsToShopping(meal: Meal) {
+        val spaceId = observedSpaceId ?: return
+        val ingredients = meal.recipeId
+            ?.let { id -> mutableUiState.value.recipes.firstOrNull { it.id == id } }
+            ?.ingredients
+            .orEmpty()
+        if (ingredients.isEmpty()) return
+        runAction(MealUiMessage.IngredientsAddedToShopping) {
+            ingredients.forEach { ingredient ->
+                shoppingRepository.addItem(
+                    spaceId = spaceId,
+                    name = ingredient.name,
+                    quantity = ingredient.quantity,
+                    notes = ingredient.unit,
+                    supermarket = null,
+                    brand = null,
+                )
+            }
+        }
+    }
+
     fun clearFeedback() {
         mutableUiState.update { it.copy(error = null, notice = null) }
     }
@@ -151,7 +178,13 @@ class MealsViewModel @Inject constructor(
     }
 }
 
-private fun Throwable.toUiMessage(): MealUiMessage = when ((this as? MealRepositoryException)?.failure) {
+private fun Throwable.toUiMessage(): MealUiMessage = when (this) {
+    is MealRepositoryException -> failure.toUiMessage()
+    is ShoppingRepositoryException -> failure.toUiMessage()
+    else -> MealUiMessage.UnexpectedError
+}
+
+private fun MealFailure.toUiMessage(): MealUiMessage = when (this) {
     MealFailure.NameRequired -> MealUiMessage.NameRequired
     MealFailure.NameTooLong -> MealUiMessage.NameTooLong
     MealFailure.InvalidParticipants -> MealUiMessage.InvalidParticipants
@@ -161,7 +194,21 @@ private fun Throwable.toUiMessage(): MealUiMessage = when ((this as? MealReposit
     MealFailure.MealNotFound -> MealUiMessage.MealNotFound
     MealFailure.PermissionDenied -> MealUiMessage.PermissionDenied
     MealFailure.Network -> MealUiMessage.NetworkError
-    MealFailure.Unknown,
-    null,
+    MealFailure.Unknown -> MealUiMessage.UnexpectedError
+}
+
+private fun ShoppingFailure.toUiMessage(): MealUiMessage = when (this) {
+    ShoppingFailure.NotAuthenticated -> MealUiMessage.NotAuthenticated
+    ShoppingFailure.EmailNotVerified -> MealUiMessage.EmailNotVerified
+    ShoppingFailure.SpaceNotFound -> MealUiMessage.SpaceNotFound
+    ShoppingFailure.PermissionDenied -> MealUiMessage.PermissionDenied
+    ShoppingFailure.Network -> MealUiMessage.NetworkError
+    ShoppingFailure.NameRequired,
+    ShoppingFailure.NameTooLong,
+    ShoppingFailure.QuantityTooLong,
+    ShoppingFailure.NotesTooLong,
+    ShoppingFailure.BrandTooLong,
+    ShoppingFailure.ItemNotFound,
+    ShoppingFailure.Unknown,
     -> MealUiMessage.UnexpectedError
 }
