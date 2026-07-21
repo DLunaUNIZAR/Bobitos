@@ -474,8 +474,11 @@ service cloud.firestore {
         "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt"
       ]) && request.resource.data.keys().hasOnly([
         "date", "slot", "name", "participantIds", "participantNames",
-        "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt"
+        "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt", "recipeId"
       ])
+      && (!request.resource.data.keys().hasAny(["recipeId"])
+        || request.resource.data.recipeId == null
+        || request.resource.data.recipeId is string)
       && request.resource.data.date is string
       && request.resource.data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
       && request.resource.data.slot in ["DESAYUNO", "COMIDA", "CENA"]
@@ -496,7 +499,7 @@ service cloud.firestore {
     function validMealUpdate(spaceId) {
       return isActiveMember(spaceId) && validMealShape()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          "date", "slot", "name", "participantIds", "participantNames", "updatedBy", "updatedAt"
+          "date", "slot", "name", "participantIds", "participantNames", "recipeId", "updatedBy", "updatedAt"
         ])
         && request.resource.data.createdBy == resource.data.createdBy
         && request.resource.data.createdByName == resource.data.createdByName

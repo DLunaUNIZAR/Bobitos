@@ -16,6 +16,7 @@ data class Meal(
     val name: String,
     val participantIds: List<String>,
     val participantNames: List<String>,
+    val recipeId: String? = null,
     val createdBy: String,
     val createdByName: String,
     val createdAt: Instant,

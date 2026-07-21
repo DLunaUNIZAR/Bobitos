@@ -11,10 +11,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ChevronLeft
@@ -51,6 +53,7 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
+import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -139,15 +142,16 @@ fun MealsScreen(
         MealEditor(
             request = request,
             members = members,
+            recipes = state.recipes,
             saving = state.isSaving,
             canWrite = canWrite,
             onDismiss = { editor = null },
-            onSave = { name, participantIds ->
+            onSave = { name, participantIds, recipeId ->
                 val meal = request.meal
                 if (meal == null) {
-                    viewModel.addMeal(state.focusedDate, request.slot, name, participantIds)
+                    viewModel.addMeal(state.focusedDate, request.slot, name, participantIds, recipeId)
                 } else {
-                    viewModel.updateMeal(meal.id, meal.date, meal.slot, name, participantIds)
+                    viewModel.updateMeal(meal.id, meal.date, meal.slot, name, participantIds, recipeId)
                 }
                 editor = null
             },
@@ -325,14 +329,17 @@ private fun MealCard(meal: Meal, enabled: Boolean, canWrite: Boolean, onEdit: ()
 private fun MealEditor(
     request: MealEditorRequest,
     members: List<SpaceMember>,
+    recipes: List<Recipe>,
     saving: Boolean,
     canWrite: Boolean,
     onDismiss: () -> Unit,
-    onSave: (String, List<String>) -> Unit,
+    onSave: (String, List<String>, String?) -> Unit,
 ) {
     val meal = request.meal
     var name by remember(meal?.id) { mutableStateOf(meal?.name.orEmpty()) }
+    var recipeId by remember(meal?.id) { mutableStateOf(meal?.recipeId) }
     var selected by remember(meal?.id) { mutableStateOf(meal?.participantIds?.toSet().orEmpty()) }
+    var pickerOpen by remember { mutableStateOf(false) }
     val validation = MealsValidation.validate(name)
 
     AlertDialog(
@@ -351,7 +358,10 @@ private fun MealEditor(
                 )
                 OutlinedTextField(
                     value = name,
-                    onValueChange = { name = it },
+                    onValueChange = {
+                        name = it
+                        recipeId = null
+                    },
                     label = { Text(stringResource(R.string.meals_name_label)) },
                     supportingText = {
                         if (validation != null) Text(stringResource(validation.stringResourceId))
@@ -359,6 +369,13 @@ private fun MealEditor(
                     isError = validation != null,
                     singleLine = true,
                 )
+                if (recipes.isNotEmpty()) {
+                    TextButton(onClick = { pickerOpen = true }) {
+                        Icon(Icons.Rounded.MenuBook, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(stringResource(R.string.meals_choose_recipe))
+                    }
+                }
                 if (members.isNotEmpty()) {
                     Text(
                         text = stringResource(R.string.meals_participants_label),
@@ -381,12 +398,47 @@ private fun MealEditor(
         confirmButton = {
             TextButton(
                 enabled = validation == null && canWrite && !saving,
-                onClick = { onSave(name, selected.toList()) },
+                onClick = { onSave(name, selected.toList(), recipeId) },
             ) { Text(stringResource(R.string.confirm)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
+    )
+
+    if (pickerOpen) {
+        RecipePickerDialog(
+            recipes = recipes,
+            onPick = { recipe ->
+                name = recipe.title
+                recipeId = recipe.id
+                pickerOpen = false
+            },
+            onDismiss = { pickerOpen = false },
+        )
+    }
+}
+
+@Composable
+private fun RecipePickerDialog(recipes: List<Recipe>, onPick: (Recipe) -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.meals_recipe_picker_title)) },
+        text = {
+            LazyColumn(modifier = Modifier.heightIn(max = 320.dp)) {
+                items(recipes, key = Recipe::id) { recipe ->
+                    Text(
+                        text = recipe.title,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onPick(recipe) }
+                            .padding(vertical = 12.dp),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }
 
