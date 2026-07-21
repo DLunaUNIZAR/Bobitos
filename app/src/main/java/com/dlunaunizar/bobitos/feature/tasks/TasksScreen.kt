@@ -17,8 +17,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -64,6 +66,8 @@ import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
+import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
+import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.RecurrenceUnit
@@ -98,6 +102,24 @@ fun TasksScreen(
     val scope = rememberCoroutineScope()
     val deletedMessage = stringResource(R.string.tasks_undo_deleted)
     val undoLabel = stringResource(R.string.undo)
+    val deleteColor = MaterialTheme.colorScheme.error
+    val checkColor = MaterialTheme.colorScheme.primary
+    val deleteTaskWithUndo: (TaskItem) -> Unit = { task ->
+        viewModel.deleteTask(spaceId, task.id)
+        scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+            viewModel.createTask(
+                spaceId,
+                task.title,
+                task.description,
+                task.assigneeId,
+                task.dueAt,
+                task.priority,
+                task.type,
+                task.recurrence,
+                task.startAt,
+            )
+        }
+    }
     var editorTask by remember { mutableStateOf<TaskItem?>(null) }
     var editorVisible by remember { mutableStateOf(false) }
     var deleteTask by remember { mutableStateOf<TaskItem?>(null) }
@@ -153,16 +175,25 @@ fun TasksScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(tabTasks, key = TaskItem::id) { task ->
-                        TaskCard(
-                            task,
-                            enabled,
-                            onSetCompleted = { viewModel.setCompleted(spaceId, task.id, it) },
-                            onEdit = {
-                                editorTask = task
-                                editorVisible = true
-                            },
-                            onDelete = { deleteTask = task },
-                        )
+                        SwipeActionsBox(
+                            startAction = SwipeAction(Icons.Rounded.Check, checkColor) {
+                                viewModel.setCompleted(spaceId, task.id, task.status != TaskStatus.DONE)
+                            }.takeIf { enabled },
+                            endAction = SwipeAction(Icons.Rounded.Delete, deleteColor) {
+                                deleteTaskWithUndo(task)
+                            }.takeIf { enabled },
+                        ) {
+                            TaskCard(
+                                task,
+                                enabled,
+                                onSetCompleted = { viewModel.setCompleted(spaceId, task.id, it) },
+                                onEdit = {
+                                    editorTask = task
+                                    editorVisible = true
+                                },
+                                onDelete = { deleteTask = task },
+                            )
+                        }
                     }
                 }
             }
@@ -203,21 +234,8 @@ fun TasksScreen(
             text = { Text(stringResource(R.string.tasks_delete_body, task.title)) },
             confirmButton = {
                 TextButton(enabled = enabled, onClick = {
-                    viewModel.deleteTask(spaceId, task.id)
+                    deleteTaskWithUndo(task)
                     deleteTask = null
-                    scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                        viewModel.createTask(
-                            spaceId,
-                            task.title,
-                            task.description,
-                            task.assigneeId,
-                            task.dueAt,
-                            task.priority,
-                            task.type,
-                            task.recurrence,
-                            task.startAt,
-                        )
-                    }
                 }) { Text(stringResource(R.string.tasks_delete)) }
             },
             dismissButton = {

@@ -17,6 +17,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Storefront
 import androidx.compose.material3.AlertDialog
@@ -56,6 +58,8 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
+import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
+import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
@@ -93,6 +97,14 @@ fun ShoppingScreen(
     val scope = rememberCoroutineScope()
     val deletedMessage = stringResource(R.string.shopping_undo_deleted)
     val undoLabel = stringResource(R.string.undo)
+    val deleteColor = MaterialTheme.colorScheme.error
+    val checkColor = MaterialTheme.colorScheme.primary
+    val deleteItemWithUndo: (ShoppingItem) -> Unit = { item ->
+        viewModel.deleteItem(spaceId, item.id)
+        scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+            viewModel.addItem(spaceId, item.name, item.quantity, item.notes, item.supermarket, item.brand)
+        }
+    }
 
     Box(modifier.fillMaxSize()) {
         Column(
@@ -156,16 +168,25 @@ fun ShoppingScreen(
                                 )
                             }
                             items(pending, key = ShoppingItem::id) { item ->
-                                ShoppingItemCard(
-                                    item = item,
-                                    enabled = actionsEnabled,
-                                    onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
-                                    onEdit = {
-                                        editedItem = item
-                                        editorVisible = true
-                                    },
-                                    onDelete = { itemToDelete = item },
-                                )
+                                SwipeActionsBox(
+                                    startAction = SwipeAction(Icons.Rounded.Check, checkColor) {
+                                        viewModel.setPurchased(spaceId, item.id, true)
+                                    }.takeIf { actionsEnabled },
+                                    endAction = SwipeAction(Icons.Rounded.Delete, deleteColor) {
+                                        deleteItemWithUndo(item)
+                                    }.takeIf { actionsEnabled },
+                                ) {
+                                    ShoppingItemCard(
+                                        item = item,
+                                        enabled = actionsEnabled,
+                                        onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
+                                        onEdit = {
+                                            editedItem = item
+                                            editorVisible = true
+                                        },
+                                        onDelete = { itemToDelete = item },
+                                    )
+                                }
                             }
                             if (purchased.isNotEmpty()) {
                                 item(key = "purchased-heading") {
@@ -190,16 +211,25 @@ fun ShoppingScreen(
                                     }
                                 }
                                 items(purchased, key = ShoppingItem::id) { item ->
-                                    ShoppingItemCard(
-                                        item = item,
-                                        enabled = actionsEnabled,
-                                        onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
-                                        onEdit = {
-                                            editedItem = item
-                                            editorVisible = true
-                                        },
-                                        onDelete = { itemToDelete = item },
-                                    )
+                                    SwipeActionsBox(
+                                        startAction = SwipeAction(Icons.Rounded.Check, checkColor) {
+                                            viewModel.setPurchased(spaceId, item.id, false)
+                                        }.takeIf { actionsEnabled },
+                                        endAction = SwipeAction(Icons.Rounded.Delete, deleteColor) {
+                                            deleteItemWithUndo(item)
+                                        }.takeIf { actionsEnabled },
+                                    ) {
+                                        ShoppingItemCard(
+                                            item = item,
+                                            enabled = actionsEnabled,
+                                            onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
+                                            onEdit = {
+                                                editedItem = item
+                                                editorVisible = true
+                                            },
+                                            onDelete = { itemToDelete = item },
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -249,18 +279,8 @@ fun ShoppingScreen(
                 TextButton(
                     enabled = actionsEnabled,
                     onClick = {
-                        viewModel.deleteItem(spaceId, item.id)
+                        deleteItemWithUndo(item)
                         itemToDelete = null
-                        scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                            viewModel.addItem(
-                                spaceId,
-                                item.name,
-                                item.quantity,
-                                item.notes,
-                                item.supermarket,
-                                item.brand,
-                            )
-                        }
                     },
                 ) { Text(stringResource(R.string.shopping_delete)) }
             },
