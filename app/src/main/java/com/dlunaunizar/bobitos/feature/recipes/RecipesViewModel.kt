@@ -30,6 +30,7 @@ class RecipesViewModel @Inject constructor(private val repository: RecipeReposit
     fun observe() {
         if (observing) return
         observing = true
+        mutableUiState.update { it.copy(isAdmin = repository.isCurrentUserRecipeAdmin()) }
         globalJob = viewModelScope.launch {
             repository.globalRecipes()
                 .catch { error -> mutableUiState.update { it.copy(global = UiState.Error(error.message)) } }
@@ -54,11 +55,17 @@ class RecipesViewModel @Inject constructor(private val repository: RecipeReposit
         mutableUiState.update { it.copy(query = query) }
     }
 
-    fun createRecipe(title: String, description: String?, category: String?) {
+    fun createRecipe(visibility: RecipeVisibility, title: String, description: String?, category: String?) {
         if (!validate(title, description, category)) return
+        // GLOBAL solo para admins; el resto siempre PRIVATE aunque llegue otra cosa (las reglas también lo exigen).
+        val safeVisibility = if (visibility == RecipeVisibility.GLOBAL && !mutableUiState.value.isAdmin) {
+            RecipeVisibility.PRIVATE
+        } else {
+            visibility
+        }
         runAction(RecipeUiMessage.RecipeSaved) {
             repository.createRecipe(
-                visibility = RecipeVisibility.PRIVATE,
+                visibility = safeVisibility,
                 title = title.trim(),
                 description = description.normalized(),
                 category = category.normalized(),

@@ -198,6 +198,7 @@ private class FakeSpaceRepository : SpaceRepository {
 private class FakeRecipeRepository : RecipeRepository {
     override fun globalRecipes(): Flow<List<Recipe>> = MutableStateFlow(emptyList())
     override fun myRecipes(): Flow<List<Recipe>> = MutableStateFlow(emptyList())
+    override fun isCurrentUserRecipeAdmin(): Boolean = false
     override suspend fun createRecipe(
         visibility: RecipeVisibility,
         title: String,

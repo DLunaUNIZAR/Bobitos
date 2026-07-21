@@ -36,6 +36,9 @@ class FirestoreRecipeRepository @Inject constructor(
         return recipesQuery("recipes:mine") { it.whereEqualTo(FIELD_OWNER_UID, uid) }
     }
 
+    override fun isCurrentUserRecipeAdmin(): Boolean =
+        authRepository.currentUser.value?.id?.let(RecipeAdmins.uids::contains) == true
+
     override suspend fun createRecipe(
         visibility: RecipeVisibility,
         title: String,
