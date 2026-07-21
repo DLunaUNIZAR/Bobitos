@@ -1,9 +1,18 @@
-Beta de Bobitos — Ingredientes y lista de la Compra en «Comidas».
+Beta de Bobitos — Recetario completo en «Comidas» (recetas, ingredientes y volcado a la Compra).
 
-Novedades de esta versión:
-- Ingredientes: añade a cada receta su lista de ingredientes (nombre, cantidad y unidad) desde el editor del Recetario.
+Novedades desde la beta anterior:
+
+Recetario
+- Guarda tus recetas personales (nombre, descripción y categoría); están en todos tus espacios.
+- Catálogo común: recetas compartidas para todo el mundo, curadas por el equipo.
+- «Guardar como mía»: copia cualquier receta (común o de otra persona) a tu recetario para adaptarla.
+- Al planificar una comida puedes elegir una receta que rellene el nombre.
+- Abre el Recetario desde el módulo «Comidas».
+
+Ingredientes y Compra
+- Añade a cada receta su lista de ingredientes (nombre, cantidad y unidad) desde el editor.
 - Los ingredientes se ven en el detalle de la receta y en la comida del planificador que la usa.
-- Volcado a la Compra: en una comida enlazada a una receta, «Añadir ingredientes a la Compra» los añade a la lista del espacio de una sola vez.
+- En una comida enlazada a una receta, «Añadir ingredientes a la Compra» los añade a la lista del espacio de una vez.
 
 Incluye: espacios privados con invitaciones, lista de la compra compartida, tareas asignables (tipo, color, repetición y fechas), calendario compartido, planificador de comidas con recetario e ingredientes, y modo sin conexión de solo lectura.
 
