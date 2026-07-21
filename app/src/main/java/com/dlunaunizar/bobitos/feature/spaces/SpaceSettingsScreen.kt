@@ -2,7 +2,10 @@ package com.dlunaunizar.bobitos.feature.spaces
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -27,10 +30,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.QrCodeImage
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceRole
@@ -303,6 +309,7 @@ private fun OwnerInvitations(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun InvitationCard(
     invitation: SpaceInvitation,
@@ -315,6 +322,8 @@ private fun InvitationCard(
         DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
             .withZone(ZoneId.systemDefault())
     }
+    val clipboard = LocalClipboardManager.current
+    var showQr by remember { mutableStateOf(false) }
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(14.dp),
@@ -348,7 +357,16 @@ private fun InvitationCard(
                 ),
                 style = MaterialTheme.typography.bodySmall,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(
+                    onClick = { clipboard.setText(AnnotatedString(invitation.code)) },
+                    enabled = !expired,
+                ) {
+                    Text(text = stringResource(R.string.invitation_copy_code))
+                }
+                TextButton(onClick = { showQr = true }, enabled = !expired) {
+                    Text(text = stringResource(R.string.invitation_show_qr))
+                }
                 TextButton(
                     onClick = onShare,
                     enabled = !expired,
@@ -361,6 +379,30 @@ private fun InvitationCard(
             }
         }
     }
+
+    if (showQr) {
+        InvitationQrDialog(link = invitation.link, onDismiss = { showQr = false })
+    }
+}
+
+@Composable
+private fun InvitationQrDialog(link: String, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.invitation_qr_title)) },
+        text = {
+            QrCodeImage(
+                content = link,
+                contentDescription = stringResource(R.string.invitation_qr_title),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dismiss)) }
+        },
+    )
 }
 
 @Composable
