@@ -17,6 +17,7 @@
         <item quantity="other">%1$d miembros</item>
     </plurals>
     <string name="spaces_empty">Todavía no perteneces a ningún espacio.</string>
+    <string name="spaces_empty_hint">Crea tu primer espacio o únete a uno con un código de invitación.</string>
     <string name="space_create">Crear espacio</string>
     <string name="space_create_title">Nuevo espacio</string>
     <string name="space_name_label">Nombre del espacio</string>
