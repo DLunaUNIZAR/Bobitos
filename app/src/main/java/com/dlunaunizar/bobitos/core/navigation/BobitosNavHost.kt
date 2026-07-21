@@ -219,6 +219,7 @@ fun BobitosNavHost(
                     userId = authUser.id,
                     spaces = (uiState.spaces as? UiState.Content)?.value.orEmpty(),
                     syncStatus = uiState.syncStatus,
+                    canWrite = uiState.syncStatus.canWrite,
                     onEventSelected = { eventSpaceId, eventId, date ->
                         onSpaceSelected(eventSpaceId)
                         navController.navigate(

@@ -545,7 +545,7 @@ private fun TaskOnDayRow(task: TaskItem) {
 }
 
 @Composable
-private fun DayHourGrid(
+internal fun DayHourGrid(
     events: List<CalendarEvent>,
     tasks: List<TaskItem>,
     canWrite: Boolean,
@@ -717,7 +717,7 @@ internal fun List<CalendarEvent>.eventsOn(date: LocalDate): List<CalendarEvent> 
 }
 
 @Composable
-private fun EventEditor(
+internal fun EventEditor(
     event: CalendarEvent?,
     day: LocalDate,
     initialStart: LocalTime?,

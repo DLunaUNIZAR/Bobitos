@@ -10,11 +10,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -29,11 +31,13 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.core.model.SyncStatus
 import com.dlunaunizar.bobitos.feature.common.SyncStatusBanner
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -45,6 +49,7 @@ fun PersonalCalendarScreen(
     userId: String,
     spaces: List<SpaceSummary>,
     syncStatus: SyncStatus,
+    canWrite: Boolean,
     onEventSelected: (spaceId: String, eventId: String, date: LocalDate) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PersonalCalendarViewModel = hiltViewModel(),
@@ -53,9 +58,23 @@ fun PersonalCalendarScreen(
     LaunchedEffect(userId, spaces) { viewModel.observe(userId, spaces) }
     DisposableEffect(Unit) { onDispose(viewModel::stop) }
     var drilledFrom by remember { mutableStateOf<CalendarDisplayMode?>(null) }
+    var editorRequest by remember { mutableStateOf<PersonalEditorRequest?>(null) }
+    var spacePickerTime by remember { mutableStateOf<LocalTime?>(null) }
+    var eventToDelete by remember { mutableStateOf<PersonalCalendarEvent?>(null) }
 
     val events = (state.events as? UiState.Content)?.value.orEmpty()
         .filter { it.spaceId in state.selectedSpaceIds }
+    val dayEvents = events.eventsOn(state.focusedDate)
+    val dayEventsById = dayEvents.associateBy { it.event.id }
+
+    val openEditor: (String, CalendarEvent?, LocalTime?) -> Unit = { spaceId, event, initialStart ->
+        editorRequest = PersonalEditorRequest(spaceId, event, initialStart)
+        viewModel.observeEditorMembers(spaceId)
+    }
+    val onCreateAt: (LocalTime) -> Unit = { time ->
+        val single = spaces.singleOrNull()
+        if (single != null) openEditor(single.id, null, time) else spacePickerTime = time
+    }
 
     // Atrás desde la vista diaria a la que se llegó pulsando un día → vuelve al modo anterior.
     BackHandler(enabled = drilledFrom != null) {
@@ -113,9 +132,13 @@ fun PersonalCalendarScreen(
                     modifier = Modifier.weight(1f),
                 )
             }
-            CalendarDisplayMode.DAY -> PersonalEventList(
-                events = events.eventsOn(state.focusedDate),
-                onSelected = onEventSelected,
+            CalendarDisplayMode.DAY -> DayHourGrid(
+                events = dayEvents.map(PersonalCalendarEvent::event),
+                tasks = emptyList(),
+                canWrite = canWrite,
+                onEdit = { event -> dayEventsById[event.id]?.let { openEditor(it.spaceId, it.event, null) } },
+                onDelete = { id -> dayEventsById[id]?.let { eventToDelete = it } },
+                onCreateAt = onCreateAt,
                 modifier = Modifier.weight(1f),
             )
             CalendarDisplayMode.WEEK -> PersonalWeekEventList(
@@ -125,7 +148,90 @@ fun PersonalCalendarScreen(
                 modifier = Modifier.weight(1f),
             )
         }
+
+        state.message?.let { message ->
+            Text(message, color = MaterialTheme.colorScheme.error)
+            LaunchedEffect(message) { viewModel.clearMessage() }
+        }
     }
+
+    spacePickerTime?.let { time ->
+        SpacePickerDialog(
+            spaces = spaces,
+            onPick = { spaceId ->
+                spacePickerTime = null
+                openEditor(spaceId, null, time)
+            },
+            onDismiss = { spacePickerTime = null },
+        )
+    }
+
+    editorRequest?.let { request ->
+        EventEditor(
+            event = request.event,
+            day = state.focusedDate,
+            initialStart = request.initialStart,
+            members = state.editorMembers,
+            saving = state.saving,
+            canWrite = canWrite,
+            dismiss = {
+                editorRequest = null
+                viewModel.clearEditorMembers()
+            },
+        ) { id, input ->
+            viewModel.saveEvent(request.spaceId, id, input)
+            editorRequest = null
+            viewModel.clearEditorMembers()
+        }
+    }
+
+    eventToDelete?.let { personal ->
+        AlertDialog(
+            onDismissRequest = { eventToDelete = null },
+            title = { Text(stringResource(R.string.calendar_delete_title)) },
+            text = { Text(stringResource(R.string.calendar_delete_body, personal.event.title)) },
+            confirmButton = {
+                TextButton(
+                    enabled = canWrite && !state.saving,
+                    onClick = {
+                        viewModel.deleteEvent(personal.spaceId, personal.event.id)
+                        eventToDelete = null
+                    },
+                ) { Text(stringResource(R.string.calendar_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { eventToDelete = null }) { Text(stringResource(R.string.cancel)) }
+            },
+        )
+    }
+}
+
+private data class PersonalEditorRequest(val spaceId: String, val event: CalendarEvent?, val initialStart: LocalTime?)
+
+@Composable
+private fun SpacePickerDialog(spaces: List<SpaceSummary>, onPick: (String) -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.my_calendar_pick_space)) },
+        text = {
+            LazyColumn {
+                items(spaces, key = SpaceSummary::id) { space ->
+                    Text(
+                        text = space.name,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onPick(space.id) }
+                            .padding(vertical = 12.dp),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        },
+    )
 }
 
 @Composable

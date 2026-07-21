@@ -4,8 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
+import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.data.repository.CalendarRepository
+import com.dlunaunizar.bobitos.data.repository.EventInput
+import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,16 +30,24 @@ data class PersonalCalendarUiState(
     val events: UiState<List<PersonalCalendarEvent>> = UiState.Loading,
     val selectedSpaceIds: Set<String> = emptySet(),
     val knownSpaceIds: Set<String> = emptySet(),
+    // Miembros del espacio para el que está abierto el editor (para elegir participantes).
+    val editorMembers: List<SpaceMember> = emptyList(),
+    val saving: Boolean = false,
+    val message: String? = null,
 )
 
 @HiltViewModel
-class PersonalCalendarViewModel @Inject constructor(private val repository: CalendarRepository) : ViewModel() {
+class PersonalCalendarViewModel @Inject constructor(
+    private val repository: CalendarRepository,
+    private val spaceRepository: SpaceRepository,
+) : ViewModel() {
     private val mutable = MutableStateFlow(PersonalCalendarUiState())
     val uiState: StateFlow<PersonalCalendarUiState> = mutable.asStateFlow()
 
     private var userId: String? = null
     private var spaces: List<SpaceSummary> = emptyList()
     private var eventJob: Job? = null
+    private var membersJob: Job? = null
 
     fun observe(currentUserId: String, currentSpaces: List<SpaceSummary>) {
         if (userId == currentUserId && spaces == currentSpaces) return
@@ -55,6 +66,7 @@ class PersonalCalendarViewModel @Inject constructor(private val repository: Cale
 
     fun stop() {
         eventJob?.cancel()
+        membersJob?.cancel()
         userId = null
         spaces = emptyList()
     }
@@ -91,6 +103,41 @@ class PersonalCalendarViewModel @Inject constructor(private val repository: Cale
 
     fun clearSpaceSelection() {
         mutable.update { it.copy(selectedSpaceIds = emptySet()) }
+    }
+
+    // Observa los miembros del espacio elegido mientras el editor está abierto (para participantes).
+    fun observeEditorMembers(spaceId: String) {
+        membersJob?.cancel()
+        mutable.update { it.copy(editorMembers = emptyList()) }
+        membersJob = viewModelScope.launch {
+            spaceRepository.members(spaceId)
+                .catch { mutable.update { it.copy(editorMembers = emptyList()) } }
+                .collect { members -> mutable.update { it.copy(editorMembers = members) } }
+        }
+    }
+
+    fun clearEditorMembers() {
+        membersJob?.cancel()
+        membersJob = null
+        mutable.update { it.copy(editorMembers = emptyList()) }
+    }
+
+    fun saveEvent(spaceId: String, eventId: String?, input: EventInput) = action {
+        if (eventId == null) repository.createEvent(spaceId, input) else repository.updateEvent(spaceId, eventId, input)
+    }
+
+    fun deleteEvent(spaceId: String, eventId: String) = action { repository.deleteEvent(spaceId, eventId) }
+
+    fun clearMessage() = mutable.update { it.copy(message = null) }
+
+    private fun action(block: suspend () -> Unit) {
+        if (mutable.value.saving) return
+        mutable.update { it.copy(saving = true, message = null) }
+        viewModelScope.launch {
+            runCatching { block() }
+                .onSuccess { mutable.update { it.copy(saving = false) } }
+                .onFailure { error -> mutable.update { it.copy(saving = false, message = error.message ?: "error") } }
+        }
     }
 
     private fun move(amount: Long) {
