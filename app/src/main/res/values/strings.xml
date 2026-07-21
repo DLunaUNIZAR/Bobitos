@@ -275,6 +275,8 @@
     <string name="meals_notice_added">Comida añadida</string>
     <string name="meals_notice_updated">Comida actualizada</string>
     <string name="meals_notice_deleted">Comida eliminada</string>
+    <string name="meals_choose_recipe">Elegir de una receta</string>
+    <string name="meals_recipe_picker_title">Elegir receta</string>
     <string name="recipes_title">Recetario</string>
     <string name="recipes_open">Recetario</string>
     <string name="recipes_search_label">Buscar receta</string>

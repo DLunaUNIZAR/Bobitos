@@ -7,6 +7,7 @@ import com.dlunaunizar.bobitos.core.model.MealSlot
 import com.dlunaunizar.bobitos.data.repository.MealFailure
 import com.dlunaunizar.bobitos.data.repository.MealRepository
 import com.dlunaunizar.bobitos.data.repository.MealRepositoryException
+import com.dlunaunizar.bobitos.data.repository.RecipeRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -14,14 +15,18 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
 
 @HiltViewModel
-class MealsViewModel @Inject constructor(private val repository: MealRepository, private val spaces: SpaceRepository) :
-    ViewModel() {
+class MealsViewModel @Inject constructor(
+    private val repository: MealRepository,
+    private val spaces: SpaceRepository,
+    private val recipeRepository: RecipeRepository,
+) : ViewModel() {
     private val mutableUiState = MutableStateFlow(MealsUiState())
     val uiState: StateFlow<MealsUiState> = mutableUiState.asStateFlow()
 
@@ -29,6 +34,7 @@ class MealsViewModel @Inject constructor(private val repository: MealRepository,
     private var observedWeekStart: LocalDate? = null
     private var mealsJob: Job? = null
     private var membersJob: Job? = null
+    private var recipesJob: Job? = null
 
     fun observe(spaceId: String) {
         if (spaceId == observedSpaceId && mealsJob?.isActive == true) return
@@ -41,13 +47,23 @@ class MealsViewModel @Inject constructor(private val repository: MealRepository,
                 .catch { error -> mutableUiState.update { it.copy(members = UiState.Error(error.message)) } }
                 .collect { members -> mutableUiState.update { it.copy(members = UiState.Content(members)) } }
         }
+        recipesJob?.cancel()
+        recipesJob = viewModelScope.launch {
+            combine(recipeRepository.myRecipes(), recipeRepository.globalRecipes()) { mine, global ->
+                (mine + global).distinctBy { it.id }.sortedBy { it.title.lowercase() }
+            }
+                .catch { mutableUiState.update { it.copy(recipes = emptyList()) } }
+                .collect { recipes -> mutableUiState.update { it.copy(recipes = recipes) } }
+        }
     }
 
     fun stopObserving() {
         mealsJob?.cancel()
         membersJob?.cancel()
+        recipesJob?.cancel()
         mealsJob = null
         membersJob = null
+        recipesJob = null
         observedSpaceId = null
         observedWeekStart = null
     }
@@ -58,19 +74,26 @@ class MealsViewModel @Inject constructor(private val repository: MealRepository,
 
     fun selectDay(date: LocalDate) = goToDate(date)
 
-    fun addMeal(date: LocalDate, slot: MealSlot, name: String, participantIds: List<String>) {
+    fun addMeal(date: LocalDate, slot: MealSlot, name: String, participantIds: List<String>, recipeId: String?) {
         val spaceId = observedSpaceId ?: return
         if (!validate(name)) return
         runAction(MealUiMessage.MealAdded) {
-            repository.addMeal(spaceId, date, slot, name.trim(), participantIds)
+            repository.addMeal(spaceId, date, slot, name.trim(), participantIds, recipeId)
         }
     }
 
-    fun updateMeal(mealId: String, date: LocalDate, slot: MealSlot, name: String, participantIds: List<String>) {
+    fun updateMeal(
+        mealId: String,
+        date: LocalDate,
+        slot: MealSlot,
+        name: String,
+        participantIds: List<String>,
+        recipeId: String?,
+    ) {
         val spaceId = observedSpaceId ?: return
         if (!validate(name)) return
         runAction(MealUiMessage.MealUpdated) {
-            repository.updateMeal(spaceId, mealId, date, slot, name.trim(), participantIds)
+            repository.updateMeal(spaceId, mealId, date, slot, name.trim(), participantIds, recipeId)
         }
     }
 

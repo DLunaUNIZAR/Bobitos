@@ -8,7 +8,14 @@ import java.time.LocalDate
 interface MealRepository {
     fun meals(spaceId: String, weekStart: LocalDate, weekEndExclusive: LocalDate): Flow<List<Meal>>
 
-    suspend fun addMeal(spaceId: String, date: LocalDate, slot: MealSlot, name: String, participantIds: List<String>)
+    suspend fun addMeal(
+        spaceId: String,
+        date: LocalDate,
+        slot: MealSlot,
+        name: String,
+        participantIds: List<String>,
+        recipeId: String?,
+    )
 
     suspend fun updateMeal(
         spaceId: String,
@@ -17,6 +24,7 @@ interface MealRepository {
         slot: MealSlot,
         name: String,
         participantIds: List<String>,
+        recipeId: String?,
     )
 
     suspend fun deleteMeal(spaceId: String, mealId: String)

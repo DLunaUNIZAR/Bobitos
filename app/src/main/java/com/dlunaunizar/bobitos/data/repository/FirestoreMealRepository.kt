@@ -70,6 +70,7 @@ class FirestoreMealRepository @Inject constructor(
         slot: MealSlot,
         name: String,
         participantIds: List<String>,
+        recipeId: String?,
     ) = runMealOperation {
         val user = requireVerifiedUser()
         val normalizedName = validate(name, participantIds)
@@ -85,7 +86,7 @@ class FirestoreMealRepository @Inject constructor(
             requireParticipants(participantIds, members)
             transaction.set(
                 mealReference,
-                mealData(user, date, slot, normalizedName, participantIds, members.displayNames()),
+                mealData(user, date, slot, normalizedName, participantIds, members.displayNames(), recipeId),
             )
         }.await()
         Unit
@@ -98,6 +99,7 @@ class FirestoreMealRepository @Inject constructor(
         slot: MealSlot,
         name: String,
         participantIds: List<String>,
+        recipeId: String?,
     ) = runMealOperation {
         val user = requireVerifiedUser()
         val normalizedName = validate(name, participantIds)
@@ -110,7 +112,7 @@ class FirestoreMealRepository @Inject constructor(
             requireParticipants(participantIds, members)
             transaction.update(
                 reference,
-                mealUpdateData(user, date, slot, normalizedName, participantIds, members.displayNames()),
+                mealUpdateData(user, date, slot, normalizedName, participantIds, members.displayNames(), recipeId),
             )
         }.await()
         Unit
@@ -183,7 +185,8 @@ class FirestoreMealRepository @Inject constructor(
         name: String,
         participantIds: List<String>,
         participantNames: List<String>,
-    ) = commonData(date, slot, name, participantIds, participantNames) + mapOf(
+        recipeId: String?,
+    ) = commonData(date, slot, name, participantIds, participantNames, recipeId) + mapOf(
         FIELD_CREATED_BY to user.id,
         FIELD_CREATED_BY_NAME to user.mealDisplayName,
         FIELD_CREATED_AT to FieldValue.serverTimestamp(),
@@ -198,7 +201,8 @@ class FirestoreMealRepository @Inject constructor(
         name: String,
         participantIds: List<String>,
         participantNames: List<String>,
-    ) = commonData(date, slot, name, participantIds, participantNames) + mapOf(
+        recipeId: String?,
+    ) = commonData(date, slot, name, participantIds, participantNames, recipeId) + mapOf(
         FIELD_UPDATED_BY to user.id,
         FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
     )
@@ -209,12 +213,14 @@ class FirestoreMealRepository @Inject constructor(
         name: String,
         participantIds: List<String>,
         participantNames: List<String>,
+        recipeId: String?,
     ) = mapOf(
         FIELD_DATE to date.toString(),
         FIELD_SLOT to slot.name,
         FIELD_NAME to name,
         FIELD_PARTICIPANT_IDS to participantIds,
         FIELD_PARTICIPANT_NAMES to participantNames,
+        FIELD_RECIPE_ID to recipeId,
     )
 
     private suspend inline fun <T> runMealOperation(crossinline operation: suspend () -> T): T {
@@ -243,6 +249,7 @@ class FirestoreMealRepository @Inject constructor(
         const val FIELD_NAME = "name"
         const val FIELD_PARTICIPANT_IDS = "participantIds"
         const val FIELD_PARTICIPANT_NAMES = "participantNames"
+        const val FIELD_RECIPE_ID = "recipeId"
         const val FIELD_CREATED_BY = "createdBy"
         const val FIELD_CREATED_BY_NAME = "createdByName"
         const val FIELD_CREATED_AT = "createdAt"
@@ -273,6 +280,7 @@ private fun DocumentSnapshot.toMeal(): Meal? {
         name = getString("name") ?: return null,
         participantIds = (get("participantIds") as? List<*>)?.filterIsInstance<String>().orEmpty(),
         participantNames = (get("participantNames") as? List<*>)?.filterIsInstance<String>().orEmpty(),
+        recipeId = getString("recipeId"),
         createdBy = getString("createdBy") ?: return null,
         createdByName = getString("createdByName") ?: getString("createdBy") ?: return null,
         createdAt = createdAt,

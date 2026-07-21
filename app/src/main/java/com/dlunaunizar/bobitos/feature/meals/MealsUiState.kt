@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.feature.meals
 
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.Meal
+import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import java.time.LocalDate
 import java.time.temporal.ChronoField
@@ -13,6 +14,7 @@ data class MealsUiState(
     val isSaving: Boolean = false,
     val error: MealUiMessage? = null,
     val notice: MealUiMessage? = null,
+    val recipes: List<Recipe> = emptyList(),
 ) {
     // Lunes de la semana del día enfocado (ISO: día 1 = lunes). Define la ventana observada.
     val weekStart: LocalDate get() = focusedDate.with(ChronoField.DAY_OF_WEEK, 1L)

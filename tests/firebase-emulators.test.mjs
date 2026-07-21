@@ -1144,6 +1144,24 @@ function eventData(userId, overrides = {}) {
   };
 }
 
+test("una comida guarda su receta (recipeId) pero rechaza un valor no textual", async () => {
+  await seedSpace("meals-recipe", "meals-recipe-owner");
+  const owner = verifiedFirestore("meals-recipe-owner");
+
+  await assertSucceeds(
+    setDoc(
+      doc(owner, "spaces", "meals-recipe", "meals", "linked"),
+      mealData("meals-recipe-owner", { recipeId: "receta-1" }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "meals-recipe", "meals", "bad-recipe"),
+      mealData("meals-recipe-owner", { recipeId: 5 }),
+    ),
+  );
+});
+
 function mealData(userId, overrides = {}) {
   return {
     date: "2026-07-20",

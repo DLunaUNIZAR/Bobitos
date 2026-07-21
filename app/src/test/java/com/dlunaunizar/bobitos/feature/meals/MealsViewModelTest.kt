@@ -4,6 +4,8 @@ import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
+import com.dlunaunizar.bobitos.core.model.Recipe
+import com.dlunaunizar.bobitos.core.model.RecipeVisibility
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceRole
@@ -11,6 +13,7 @@ import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.data.repository.MealFailure
 import com.dlunaunizar.bobitos.data.repository.MealRepository
 import com.dlunaunizar.bobitos.data.repository.MealRepositoryException
+import com.dlunaunizar.bobitos.data.repository.RecipeRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -31,7 +34,8 @@ class MealsViewModelTest {
 
     private val mealRepository = FakeMealRepository()
     private val spaceRepository = FakeSpaceRepository()
-    private val viewModel = MealsViewModel(mealRepository, spaceRepository)
+    private val recipeRepository = FakeRecipeRepository()
+    private val viewModel = MealsViewModel(mealRepository, spaceRepository, recipeRepository)
 
     @Test
     fun `observes meals and members for the active space`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -52,7 +56,7 @@ class MealsViewModelTest {
         viewModel.observe("home")
         advanceUntilIdle()
 
-        viewModel.addMeal(LocalDate.now(), MealSlot.CENA, "   ", emptyList())
+        viewModel.addMeal(LocalDate.now(), MealSlot.CENA, "   ", emptyList(), recipeId = null)
 
         assertEquals(0, mealRepository.addCount)
         assertEquals(MealUiMessage.NameRequired, viewModel.uiState.value.error)
@@ -63,13 +67,25 @@ class MealsViewModelTest {
         viewModel.observe("home")
         advanceUntilIdle()
 
-        viewModel.addMeal(LocalDate.now(), MealSlot.DESAYUNO, "  Tostadas  ", listOf("ana"))
+        viewModel.addMeal(LocalDate.now(), MealSlot.DESAYUNO, "  Tostadas  ", listOf("ana"), recipeId = null)
         advanceUntilIdle()
 
         assertEquals("Tostadas", mealRepository.addedName)
         assertEquals(1, mealRepository.addCount)
         assertEquals(MealUiMessage.MealAdded, viewModel.uiState.value.notice)
         assertFalse(viewModel.uiState.value.isSaving)
+    }
+
+    @Test
+    fun `adding a meal from a recipe stores its id`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.addMeal(LocalDate.now(), MealSlot.COMIDA, "Paella", emptyList(), recipeId = "receta-1")
+        advanceUntilIdle()
+
+        assertEquals("receta-1", mealRepository.addedRecipeId)
+        assertEquals(MealUiMessage.MealAdded, viewModel.uiState.value.notice)
     }
 
     @Test
@@ -103,6 +119,7 @@ private class FakeMealRepository : MealRepository {
     var observedSpaceId: String? = null
     var lastWeekStart: LocalDate? = null
     var addedName: String? = null
+    var addedRecipeId: String? = null
     var addCount = 0
     var nextFailure: MealRepositoryException? = null
     val mealsState = MutableStateFlow<List<Meal>>(emptyList())
@@ -119,9 +136,11 @@ private class FakeMealRepository : MealRepository {
         slot: MealSlot,
         name: String,
         participantIds: List<String>,
+        recipeId: String?,
     ) {
         throwNextFailure()
         addedName = name
+        addedRecipeId = recipeId
         addCount++
     }
 
@@ -132,6 +151,7 @@ private class FakeMealRepository : MealRepository {
         slot: MealSlot,
         name: String,
         participantIds: List<String>,
+        recipeId: String?,
     ) {
         throwNextFailure()
     }
@@ -173,6 +193,22 @@ private class FakeSpaceRepository : SpaceRepository {
         error("no usado en el test")
     }
     override suspend fun acceptInvitation(code: String): String = error("no usado en el test")
+}
+
+private class FakeRecipeRepository : RecipeRepository {
+    override fun globalRecipes(): Flow<List<Recipe>> = MutableStateFlow(emptyList())
+    override fun myRecipes(): Flow<List<Recipe>> = MutableStateFlow(emptyList())
+    override suspend fun createRecipe(
+        visibility: RecipeVisibility,
+        title: String,
+        description: String?,
+        category: String?,
+        sourceRecipeId: String?,
+    ) = Unit
+
+    override suspend fun updateRecipe(recipeId: String, title: String, description: String?, category: String?) = Unit
+
+    override suspend fun deleteRecipe(recipeId: String) = Unit
 }
 
 private fun meal(id: String, date: LocalDate, slot: MealSlot, name: String) = Meal(
