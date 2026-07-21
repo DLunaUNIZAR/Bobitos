@@ -40,6 +40,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +53,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
@@ -83,6 +86,10 @@ fun ShoppingScreen(
     val pending = filteredItems.filterNot(ShoppingItem::purchased)
     val purchased = filteredItems.filter(ShoppingItem::purchased)
     val actionsEnabled = canWrite && !state.isSaving
+    val snackbar = LocalSnackbarHostState.current
+    val scope = rememberCoroutineScope()
+    val deletedMessage = stringResource(R.string.shopping_undo_deleted)
+    val undoLabel = stringResource(R.string.undo)
 
     Box(modifier.fillMaxSize()) {
         Column(
@@ -234,6 +241,16 @@ fun ShoppingScreen(
                     onClick = {
                         viewModel.deleteItem(spaceId, item.id)
                         itemToDelete = null
+                        scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+                            viewModel.addItem(
+                                spaceId,
+                                item.name,
+                                item.quantity,
+                                item.notes,
+                                item.supermarket,
+                                item.brand,
+                            )
+                        }
                     },
                 ) { Text(stringResource(R.string.shopping_delete)) }
             },

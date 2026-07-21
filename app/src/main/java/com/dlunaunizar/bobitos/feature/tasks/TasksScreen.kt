@@ -43,6 +43,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,6 +61,8 @@ import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
+import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.RecurrenceUnit
 import com.dlunaunizar.bobitos.core.model.SpaceMember
@@ -89,6 +92,10 @@ fun TasksScreen(
     val allTasks = (state.tasks as? UiState.Content)?.value.orEmpty()
     val visibleTasks = state.filters.apply(allTasks)
     val enabled = canWrite && !state.isSaving
+    val snackbar = LocalSnackbarHostState.current
+    val scope = rememberCoroutineScope()
+    val deletedMessage = stringResource(R.string.tasks_undo_deleted)
+    val undoLabel = stringResource(R.string.undo)
     var editorTask by remember { mutableStateOf<TaskItem?>(null) }
     var editorVisible by remember { mutableStateOf(false) }
     var deleteTask by remember { mutableStateOf<TaskItem?>(null) }
@@ -187,6 +194,19 @@ fun TasksScreen(
                 TextButton(enabled = enabled, onClick = {
                     viewModel.deleteTask(spaceId, task.id)
                     deleteTask = null
+                    scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+                        viewModel.createTask(
+                            spaceId,
+                            task.title,
+                            task.description,
+                            task.assigneeId,
+                            task.dueAt,
+                            task.priority,
+                            task.type,
+                            task.recurrence,
+                            task.startAt,
+                        )
+                    }
                 }) { Text(stringResource(R.string.tasks_delete)) }
             },
             dismissButton = {

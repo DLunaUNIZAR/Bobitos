@@ -95,7 +95,8 @@ class ShoppingViewModel @Inject constructor(private val repository: ShoppingRepo
     }
 
     fun deleteItem(spaceId: String, itemId: String) {
-        runAction(ShoppingUiMessage.ItemDeleted) {
+        // Sin notice: el feedback del borrado (con «Deshacer») lo da el Snackbar de la pantalla.
+        runAction(null) {
             repository.deleteItem(spaceId, itemId)
         }
     }
@@ -158,7 +159,7 @@ class ShoppingViewModel @Inject constructor(private val repository: ShoppingRepo
         }
     }
 
-    private fun runAction(successNotice: ShoppingUiMessage, action: suspend () -> Unit) {
+    private fun runAction(successNotice: ShoppingUiMessage?, action: suspend () -> Unit) {
         if (mutableUiState.value.isSaving) return
         mutableUiState.update {
             it.copy(

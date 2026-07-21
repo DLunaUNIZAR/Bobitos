@@ -104,7 +104,8 @@ class MealsViewModel @Inject constructor(
 
     fun deleteMeal(mealId: String) {
         val spaceId = observedSpaceId ?: return
-        runAction(MealUiMessage.MealDeleted) {
+        // Sin notice: el feedback del borrado (con «Deshacer») lo da el Snackbar de la pantalla.
+        runAction(null) {
             repository.deleteMeal(spaceId, mealId)
         }
     }
@@ -164,7 +165,7 @@ class MealsViewModel @Inject constructor(
         mutableUiState.update { it.copy(isSaving = false, error = message, notice = null) }
     }
 
-    private fun runAction(successNotice: MealUiMessage, action: suspend () -> Unit) {
+    private fun runAction(successNotice: MealUiMessage?, action: suspend () -> Unit) {
         if (mutableUiState.value.isSaving) return
         mutableUiState.update { it.copy(isSaving = true, error = null, notice = null) }
         viewModelScope.launch {
