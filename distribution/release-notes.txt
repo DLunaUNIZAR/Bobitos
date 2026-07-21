@@ -1,19 +1,32 @@
-Beta de Bobitos — Recetario completo en «Comidas» (recetas, ingredientes y volcado a la Compra).
+Beta de Bobitos — mejoras de uso en toda la app.
 
 Novedades desde la beta anterior:
 
-Recetario
-- Guarda tus recetas personales (nombre, descripción y categoría); están en todos tus espacios.
-- Catálogo común: recetas compartidas para todo el mundo, curadas por el equipo.
-- «Guardar como mía»: copia cualquier receta (común o de otra persona) a tu recetario para adaptarla.
-- Al planificar una comida puedes elegir una receta que rellene el nombre.
-- Abre el Recetario desde el módulo «Comidas».
+Búsqueda y gestos
+- Buscador en Compra, Tareas y Comidas.
+- Desliza un producto o una tarea para completarlo/marcarlo o borrarlo.
+- Al borrar (en cualquier módulo) aparece «Deshacer» por si te arrepientes.
+- Borrar un evento del calendario ahora pide confirmación.
 
-Ingredientes y Compra
-- Añade a cada receta su lista de ingredientes (nombre, cantidad y unidad) desde el editor.
-- Los ingredientes se ven en el detalle de la receta y en la comida del planificador que la usa.
-- En una comida enlazada a una receta, «Añadir ingredientes a la Compra» los añade a la lista del espacio de una vez.
+Inicio y espacios
+- Pantalla de bienvenida la primera vez.
+- La portada del espacio muestra un resumen: tareas pendientes, productos por comprar, próximos eventos y comidas de hoy.
+- Invitaciones: botón para copiar el código y código QR para compartir.
+- Estados vacíos más claros y con acciones.
 
-Incluye: espacios privados con invitaciones, lista de la compra compartida, tareas asignables (tipo, color, repetición y fechas), calendario compartido, planificador de comidas con recetario e ingredientes, y modo sin conexión de solo lectura.
+Comidas y Compra
+- Duplica el plan de un día (a la fecha que elijas) o de la semana (a la siguiente).
+- Añade a la Compra los ingredientes de todo el día o la semana, revisando las cantidades.
+- Al añadir un producto que ya está en la lista, puedes ajustar su cantidad en vez de duplicarlo.
+- Recetario: filtra por categoría y busca también por ingrediente.
+
+Mi calendario
+- Pulsa un día para ver su detalle por horas; atrás vuelve al mes.
+- Mantén pulsada una franja para crear un evento, eligiendo a qué espacio pertenece; también puedes editarlos y borrarlos.
+
+Tareas
+- Filtra las tareas por tipo (limpieza, médico, compras, hogar, otros).
+
+Incluye: espacios privados con invitaciones, lista de la compra compartida, tareas asignables, calendario compartido, planificador de comidas con recetario e ingredientes, y modo sin conexión de solo lectura.
 
 Comunica cualquier error indicando el modelo del dispositivo, la versión de Android y los pasos para reproducirlo.
