@@ -79,6 +79,7 @@ Los snapshots ya disponibles permanecen visibles cuando se pierde la red y se id
 - gestión: añade miembros y, para el propietario, invitaciones;
 - cambio entre Compra, Tareas, Calendario y Comidas: cero listeners o lecturas adicionales mientras no cambie el espacio;
 - Mi calendario: un listener de eventos por espacio activo, siempre limitado al intervalo visible;
+- Recetario: destino independiente del espacio (no es un módulo de espacio); mientras está abierto mantiene dos listeners acotados de la colección global `recipes` (catálogo común y recetas propias) y los libera al salir;
 - resincronización del espacio: dos lecturas de servidor; una si la membresía ya no existe.
 
 Las Security Rules exigen correo verificado y una membresía activa para leer un espacio. Solo el propietario puede renombrar, expulsar, transferir la propiedad y administrar invitaciones. El consumo de una invitación valida con `getAfter()` la transición a `USED`, la membresía nueva y el incremento del contador como una única operación. El emulador prueba además que dos cuentas simultáneas no pueden consumir el mismo token.

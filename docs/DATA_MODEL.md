@@ -28,8 +28,11 @@ spaces/{spaceId}/shoppingItems/{itemId}
 spaces/{spaceId}/tasks/{taskId}
 spaces/{spaceId}/events/{eventId}
 spaces/{spaceId}/meals/{mealId}
+recipes/{recipeId}
 invitations/{inviteToken}
 ```
+
+`recipes` es la única colección **top-level global** (no cuelga de un espacio): agrupa el catálogo común y las recetas personales de todos los usuarios (ver sección 11 · Recetario).
 
 ## 3. Convenciones
 
@@ -330,6 +333,7 @@ slot: "DESAYUNO" | "COMIDA" | "CENA"
 name: string
 participantIds: array<string>
 participantNames: array<string>
+recipeId: string?     # opcional: referencia a recipes/{recipeId}
 createdBy: string
 createdByName: string
 createdAt: timestamp
@@ -341,7 +345,7 @@ updatedAt: timestamp
 
 - Cada comida pertenece a un día (`date`) y una franja (`slot`): desayuno, comida o cena.
 - El planificador muestra una semana (lunes→domingo) y resalta el día elegido; la app observa el rango de la semana visible por `date`.
-- `name` es texto libre («qué se come»). En la Fase 2 podrá referenciar una receta (`recipeId`, opcional y retrocompatible).
+- `name` es texto libre («qué se come»). Al planificar se puede **elegir una receta** que rellene el nombre y guarde su `recipeId` (opcional y retrocompatible); editar el nombre a mano lo desvincula (`recipeId = null`).
 
 ### Comensales
 
@@ -354,6 +358,38 @@ updatedAt: timestamp
 
 - Comidas del espacio cuyo `date` cae en la semana visible (`date >= lunes` y `date < lunes siguiente`), ordenadas por `date` y franja.
 - Es un rango sobre un único campo (`date`), cubierto por el índice de campo único automático: no requiere índice compuesto.
+
+### Recetario (colección `recipes`)
+
+Fase 2. Colección **top-level** (no por espacio), distinguida por campos, no por ruta:
+
+```text
+recipes/{recipeId}
+```
+
+```text
+ownerUid: string                       # dueño de la receta
+visibility: "GLOBAL" | "PRIVATE"       # catálogo común vs personal
+title: string
+description: string?
+category: string?
+sourceRecipeId: string?                # si es un fork («guardar como mía»)
+createdBy: string
+createdByName: string
+createdAt: timestamp
+updatedBy: string
+updatedAt: timestamp
+```
+
+- **`PRIVATE`** — receta personal: la crea cualquier usuario verificado (`ownerUid == uid`), solo la ve su dueño y aparece en **todos sus espacios** con una única consulta `where ownerUid == me` (sin `collectionGroup` ni fan-out). El *fork* de otra receta produce una copia `PRIVATE` con `sourceRecipeId`.
+- **`GLOBAL`** — receta del **catálogo común**, visible para todos. Solo la publica/cura una cuenta admin (allowlist de UID). Al planificar una comida se puede referenciar cualquier receta visible (`Meal.recipeId`).
+- **Curación y admins:** la política y el procedimiento para añadir/rotar admins están en [`RECIPES_ADMIN.md`](RECIPES_ADMIN.md). La frontera de seguridad es `recipeAdmins()` en `firestore.rules`; la app replica la allowlist solo para enseñar la opción de publicar.
+
+#### Consultas previstas
+
+- Catálogo común: `where visibility == "GLOBAL"` (acotada con `.limit`).
+- Mis recetas: `where ownerUid == me`.
+- Ambas son igualdades sobre un único campo → índice de campo único automático; **no requieren índice compuesto**. Las reglas de `recipes` no usan `get()`/`exists()` (coste 0).
 
 ## 12. Acceso desde Security Rules
 
@@ -394,6 +430,7 @@ La regla deberá verificar:
 - El usuario debe resolver primero los espacios de su propiedad.
 - Se eliminan sus membresías y perfil.
 - Las referencias personales necesarias (nombres en compra, tareas, eventos y comidas) se sustituyen por `null` o por «Usuario eliminado».
+- Recetas: sus recetas `PRIVATE` (`ownerUid == me`) se **borran**; en las `GLOBAL` que haya publicado se **anonimiza** `createdByName` («Usuario eliminado»), conservando el catálogo. Se hace desde el cliente (las reglas permiten al dueño ambas operaciones).
 - La estrategia de actualización por lotes se probará con los límites reales de Firestore.
 
 ### Eliminación de espacio
@@ -412,6 +449,7 @@ La regla deberá verificar:
 - Tareas por `assigneeId + status + dueAt`.
 - Eventos por rango temporal.
 - Comidas por rango de `date` (campo único; índice automático, sin índice compuesto).
+- Recetas por `visibility` o por `ownerUid` (igualdad sobre campo único; índice automático, sin índice compuesto).
 
 Solo se crearán los índices que requieran las consultas reales.
 
