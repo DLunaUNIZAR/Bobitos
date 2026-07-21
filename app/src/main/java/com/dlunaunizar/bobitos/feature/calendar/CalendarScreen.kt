@@ -110,6 +110,7 @@ fun CalendarScreen(
     var handledInitialEvent by rememberSaveable(initialEventId) { mutableStateOf(false) }
     var drilledFrom by remember { mutableStateOf<CalendarDisplayMode?>(null) }
     var creatingAt by remember { mutableStateOf<LocalTime?>(null) }
+    var eventToDelete by remember { mutableStateOf<CalendarEvent?>(null) }
 
     DisposableEffect(spaceId) {
         viewModel.observe(spaceId)
@@ -180,7 +181,7 @@ fun CalendarScreen(
                     tasks = state.tasks.tasksOn(state.focusedDate),
                     canWrite = canWrite,
                     onEdit = { editor = it },
-                    onDelete = viewModel::delete,
+                    onDelete = { id -> eventToDelete = filteredEvents.firstOrNull { it.id == id } },
                     onCreateAt = { creatingAt = it },
                     modifier = Modifier.weight(1f),
                 )
@@ -189,7 +190,7 @@ fun CalendarScreen(
                     events = filteredEvents,
                     canWrite = canWrite,
                     onEdit = { editor = it },
-                    onDelete = viewModel::delete,
+                    onDelete = { id -> eventToDelete = filteredEvents.firstOrNull { it.id == id } },
                     onDayTap = onDayTap,
                     modifier = Modifier.weight(1f),
                 )
@@ -232,6 +233,26 @@ fun CalendarScreen(
             editor = null
             creatingAt = null
         }
+    }
+
+    eventToDelete?.let { event ->
+        AlertDialog(
+            onDismissRequest = { eventToDelete = null },
+            title = { Text(stringResource(R.string.calendar_delete_title)) },
+            text = { Text(stringResource(R.string.calendar_delete_body, event.title)) },
+            confirmButton = {
+                TextButton(
+                    enabled = canWrite && !state.saving,
+                    onClick = {
+                        viewModel.delete(event.id)
+                        eventToDelete = null
+                    },
+                ) { Text(stringResource(R.string.calendar_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { eventToDelete = null }) { Text(stringResource(R.string.cancel)) }
+            },
+        )
     }
 }
 

@@ -240,6 +240,8 @@
     <string name="calendar_save">Guardar</string>
     <string name="calendar_edit">Editar</string>
     <string name="calendar_delete">Eliminar</string>
+    <string name="calendar_delete_title">Eliminar evento</string>
+    <string name="calendar_delete_body">¿Eliminar «%1$s»?</string>
     <string name="calendar_date_error">Revisa las fechas y el intervalo</string>
     <string name="calendar_color_blue">Azul</string>
     <string name="calendar_color_green">Verde</string>
