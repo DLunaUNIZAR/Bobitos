@@ -221,6 +221,7 @@ private fun TaskTabSelector(tab: TaskTab, onSelect: (TaskTab) -> Unit) {
 @Composable
 private fun TaskFilterBar(filters: TaskFilters, members: List<SpaceMember>, onChange: (TaskFilters) -> Unit) {
     var assigneeMenu by remember { mutableStateOf(false) }
+    var typeMenu by remember { mutableStateOf(false) }
     Row(
         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
@@ -248,6 +249,30 @@ private fun TaskFilterBar(filters: TaskFilters, members: List<SpaceMember>, onCh
                 ),
             )
         }) { Text(filters.priority?.label() ?: stringResource(R.string.tasks_filter_priority)) }
+        Box {
+            TextButton(onClick = { typeMenu = true }) {
+                Text(filters.type?.let { stringResource(it.labelRes) } ?: stringResource(R.string.tasks_filter_type))
+            }
+            DropdownMenu(expanded = typeMenu, onDismissRequest = { typeMenu = false }) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.tasks_filter_all)) },
+                    onClick = {
+                        onChange(filters.copy(type = null))
+                        typeMenu = false
+                    },
+                )
+                TaskType.entries.forEach { taskType ->
+                    DropdownMenuItem(
+                        text = { Text(stringResource(taskType.labelRes)) },
+                        leadingIcon = { Icon(taskType.icon, contentDescription = null, tint = taskType.accent()) },
+                        onClick = {
+                            onChange(filters.copy(type = taskType))
+                            typeMenu = false
+                        },
+                    )
+                }
+            }
+        }
         TextButton(onClick = {
             val values = TaskDateFilter.entries
             onChange(filters.copy(date = values[(filters.date.ordinal + 1) % values.size]))

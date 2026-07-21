@@ -5,6 +5,7 @@ import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.TaskItem
 import com.dlunaunizar.bobitos.core.model.TaskPriority
 import com.dlunaunizar.bobitos.core.model.TaskStatus
+import com.dlunaunizar.bobitos.core.model.TaskType
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -21,6 +22,7 @@ data class TasksUiState(
 data class TaskFilters(
     val status: TaskStatus? = TaskStatus.TODO,
     val priority: TaskPriority? = null,
+    val type: TaskType? = null,
     val assigneeId: String? = null,
     val unassignedOnly: Boolean = false,
     val date: TaskDateFilter = TaskDateFilter.ALL,
@@ -34,6 +36,7 @@ data class TaskFilters(
         return tasks.filter { task ->
             (status == null || task.status == status) &&
                 (priority == null || task.priority == priority) &&
+                (type == null || task.type == type) &&
                 (!unassignedOnly || task.assigneeId == null) &&
                 (assigneeId == null || task.assigneeId == assigneeId) &&
                 date.matches(task, today, zoneId)
