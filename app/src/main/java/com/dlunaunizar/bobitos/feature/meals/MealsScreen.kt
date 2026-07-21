@@ -53,6 +53,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
@@ -86,6 +87,8 @@ fun MealsScreen(
     var editor by remember { mutableStateOf<MealEditorRequest?>(null) }
     var mealToDelete by remember { mutableStateOf<Meal?>(null) }
     var query by rememberSaveable { mutableStateOf("") }
+    var dayMenuExpanded by remember { mutableStateOf(false) }
+    var duplicateDayPicker by remember { mutableStateOf(false) }
     val members = (state.members as? UiState.Content)?.value.orEmpty()
     val actionsEnabled = canWrite && !state.isSaving
     val snackbar = LocalSnackbarHostState.current
@@ -116,6 +119,43 @@ fun MealsScreen(
                 Icon(Icons.Rounded.MenuBook, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
                 Text(stringResource(R.string.recipes_open))
+            }
+            if (canWrite) {
+                Box {
+                    IconButton(onClick = { dayMenuExpanded = true }) {
+                        Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.more_options))
+                    }
+                    DropdownMenu(expanded = dayMenuExpanded, onDismissRequest = { dayMenuExpanded = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.meals_duplicate_day)) },
+                            onClick = {
+                                dayMenuExpanded = false
+                                duplicateDayPicker = true
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.meals_duplicate_week)) },
+                            onClick = {
+                                dayMenuExpanded = false
+                                viewModel.duplicateWeekToNext()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.meals_add_day_to_shopping)) },
+                            onClick = {
+                                dayMenuExpanded = false
+                                viewModel.addDayIngredientsToShopping()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.meals_add_week_to_shopping)) },
+                            onClick = {
+                                dayMenuExpanded = false
+                                viewModel.addWeekIngredientsToShopping()
+                            },
+                        )
+                    }
+                }
             }
         }
         MealsFeedback(state, viewModel::clearFeedback)
@@ -197,6 +237,17 @@ fun MealsScreen(
             dismissButton = {
                 TextButton(onClick = { mealToDelete = null }) { Text(stringResource(R.string.cancel)) }
             },
+        )
+    }
+
+    if (duplicateDayPicker) {
+        AppDatePickerDialog(
+            initialDate = state.focusedDate.plusDays(1),
+            onConfirm = { target ->
+                viewModel.duplicateDay(target)
+                duplicateDayPicker = false
+            },
+            onDismiss = { duplicateDayPicker = false },
         )
     }
 }
@@ -569,5 +620,6 @@ private val MealUiMessage.stringResourceId: Int
         MealUiMessage.MealAdded -> R.string.meals_notice_added
         MealUiMessage.MealUpdated -> R.string.meals_notice_updated
         MealUiMessage.MealDeleted -> R.string.meals_notice_deleted
+        MealUiMessage.MealsDuplicated -> R.string.meals_notice_duplicated
         MealUiMessage.IngredientsAddedToShopping -> R.string.meals_notice_ingredients_added
     }

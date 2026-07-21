@@ -16,5 +16,6 @@ enum class MealUiMessage {
     MealAdded,
     MealUpdated,
     MealDeleted,
+    MealsDuplicated,
     IngredientsAddedToShopping,
 }
