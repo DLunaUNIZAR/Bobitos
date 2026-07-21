@@ -380,7 +380,10 @@ fun BobitosNavHost(
         }
 
         composable(BobitosDestination.Recipes.route) {
-            RecipesScreen(onBack = { navController.popBackStack() })
+            RecipesScreen(
+                onBack = { navController.popBackStack() },
+                canWrite = uiState.syncStatus.canWrite,
+            )
         }
 
         composable(BobitosDestination.SpaceSettings.route) {

@@ -1093,6 +1093,17 @@ test("un usuario puede anonimizar el autor de su receta pero no el de otra", asy
   );
 });
 
+test("una receta guarda su origen (fork) pero rechaza un sourceRecipeId no textual", async () => {
+  const chef = verifiedFirestore("recipe-fork");
+
+  await assertSucceeds(
+    setDoc(doc(chef, "recipes", "forked"), recipeData("recipe-fork", { sourceRecipeId: "origen-1" })),
+  );
+  await assertFails(
+    setDoc(doc(chef, "recipes", "bad-source"), recipeData("recipe-fork", { sourceRecipeId: 123 })),
+  );
+});
+
 function recipeData(userId, overrides = {}) {
   return {
     ownerUid: userId,
