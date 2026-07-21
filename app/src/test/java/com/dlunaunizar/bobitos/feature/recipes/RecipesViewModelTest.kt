@@ -45,7 +45,7 @@ class RecipesViewModelTest {
 
     @Test
     fun `creating a recipe trims the title and reports success`() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.createRecipe("  Tortilla  ", "  ", null)
+        viewModel.createRecipe(RecipeVisibility.PRIVATE, "  Tortilla  ", "  ", null)
         advanceUntilIdle()
 
         assertEquals(1, repository.createCount)
@@ -57,10 +57,35 @@ class RecipesViewModelTest {
 
     @Test
     fun `an invalid recipe never reaches the repository`() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.createRecipe("   ", null, null)
+        viewModel.createRecipe(RecipeVisibility.PRIVATE, "   ", null, null)
 
         assertEquals(0, repository.createCount)
         assertEquals(RecipeUiMessage.TitleRequired, viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `an admin can publish a global recipe`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.admin = true
+        viewModel.observe()
+        advanceUntilIdle()
+
+        viewModel.createRecipe(RecipeVisibility.GLOBAL, "Paella", null, null)
+        advanceUntilIdle()
+
+        assertEquals(true, viewModel.uiState.value.isAdmin)
+        assertEquals(RecipeVisibility.GLOBAL, repository.lastVisibility)
+    }
+
+    @Test
+    fun `a non-admin global recipe is downgraded to private`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe()
+        advanceUntilIdle()
+
+        viewModel.createRecipe(RecipeVisibility.GLOBAL, "Paella", null, null)
+        advanceUntilIdle()
+
+        assertEquals(false, viewModel.uiState.value.isAdmin)
+        assertEquals(RecipeVisibility.PRIVATE, repository.lastVisibility)
     }
 
     @Test
@@ -83,9 +108,11 @@ private class FakeRecipeRepository : RecipeRepository {
     var lastVisibility: RecipeVisibility? = null
     var lastTitle: String? = null
     var lastSourceRecipeId: String? = null
+    var admin = false
 
     override fun globalRecipes(): Flow<List<Recipe>> = globalState
     override fun myRecipes(): Flow<List<Recipe>> = mineState
+    override fun isCurrentUserRecipeAdmin(): Boolean = admin
     override suspend fun createRecipe(
         visibility: RecipeVisibility,
         title: String,

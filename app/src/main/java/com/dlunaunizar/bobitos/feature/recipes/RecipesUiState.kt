@@ -10,4 +10,6 @@ data class RecipesUiState(
     val isSaving: Boolean = false,
     val error: RecipeUiMessage? = null,
     val notice: RecipeUiMessage? = null,
+    // La cuenta activa puede publicar recetas en el catálogo común (GLOBAL).
+    val isAdmin: Boolean = false,
 )

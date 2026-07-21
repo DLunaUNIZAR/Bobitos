@@ -9,6 +9,9 @@ interface RecipeRepository {
 
     fun myRecipes(): Flow<List<Recipe>>
 
+    /** Si la cuenta activa está en la allowlist que puede publicar recetas GLOBAL. */
+    fun isCurrentUserRecipeAdmin(): Boolean
+
     suspend fun createRecipe(
         visibility: RecipeVisibility,
         title: String,

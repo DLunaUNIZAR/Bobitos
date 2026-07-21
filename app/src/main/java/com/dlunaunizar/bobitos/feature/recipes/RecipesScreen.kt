@@ -25,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -44,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.Recipe
+import com.dlunaunizar.bobitos.core.model.RecipeVisibility
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -139,11 +141,12 @@ fun RecipesScreen(
             recipe = request.recipe,
             saving = state.isSaving,
             canWrite = canWrite,
+            isAdmin = state.isAdmin,
             onDismiss = { editorRequest = null },
-            onSave = { title, description, category ->
+            onSave = { visibility, title, description, category ->
                 val recipe = request.recipe
                 if (recipe == null) {
-                    viewModel.createRecipe(title, description, category)
+                    viewModel.createRecipe(visibility, title, description, category)
                 } else {
                     viewModel.updateRecipe(recipe.id, title, description, category)
                 }
@@ -280,13 +283,18 @@ private fun RecipeEditor(
     recipe: Recipe?,
     saving: Boolean,
     canWrite: Boolean,
+    isAdmin: Boolean,
     onDismiss: () -> Unit,
-    onSave: (String, String?, String?) -> Unit,
+    onSave: (RecipeVisibility, String, String?, String?) -> Unit,
 ) {
     var title by remember(recipe?.id) { mutableStateOf(recipe?.title.orEmpty()) }
     var description by remember(recipe?.id) { mutableStateOf(recipe?.description.orEmpty()) }
     var category by remember(recipe?.id) { mutableStateOf(recipe?.category.orEmpty()) }
+    var global by remember(recipe?.id) { mutableStateOf(recipe?.visibility == RecipeVisibility.GLOBAL) }
     val validation = RecipesValidation.validate(title, description, category)
+    // El toggle de catálogo común solo se ofrece al crear (la visibilidad de una receta existente
+    // está congelada por las reglas) y solo a quien puede publicar GLOBAL.
+    val canChooseGlobal = isAdmin && recipe == null
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -332,12 +340,25 @@ private fun RecipeEditor(
                     isError = validation == RecipeUiMessage.CategoryTooLong,
                     singleLine = true,
                 )
+                if (canChooseGlobal) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = stringResource(R.string.recipes_publish_global),
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Switch(checked = global, onCheckedChange = { global = it })
+                    }
+                }
             }
         },
         confirmButton = {
             TextButton(
                 enabled = validation == null && canWrite && !saving,
-                onClick = { onSave(title, description, category) },
+                onClick = {
+                    val visibility = if (global) RecipeVisibility.GLOBAL else RecipeVisibility.PRIVATE
+                    onSave(visibility, title, description, category)
+                },
             ) { Text(stringResource(R.string.confirm)) }
         },
         dismissButton = {

@@ -42,6 +42,9 @@ let authApp;
 let createdUser;
 let auth;
 
+// Debe coincidir con recipeAdmins() en firestore.rules (ver docs/RECIPES_ADMIN.md).
+const RECIPE_ADMIN_UID = "dWWH7eRhHEPopJf5BHPB3Dp6fry1";
+
 const testEmail = "firebase-test@bobitos.invalid";
 const initialPassword = "bobitos-test-password";
 const updatedPassword = "bobitos-updated-password";
@@ -1022,6 +1025,33 @@ test("un usuario no puede crear una receta a nombre de otro ni una GLOBAL sin se
   await assertFails(
     setDoc(doc(chef, "recipes", "sneaky-global"), recipeData("recipe-spoof", { visibility: "GLOBAL" })),
   );
+});
+
+test("un admin del catálogo puede publicar una receta GLOBAL", async () => {
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+
+  await assertSucceeds(
+    setDoc(
+      doc(admin, "recipes", "curated-1"),
+      recipeData(RECIPE_ADMIN_UID, { visibility: "GLOBAL", title: "Cocido común" }),
+    ),
+  );
+});
+
+test("un admin puede curar (borrar) una receta GLOBAL ajena, pero un usuario normal no", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const timestamp = Timestamp.now();
+    await setDoc(doc(context.firestore(), "recipes", "curated-foreign"), {
+      ...recipeData("otro-autor", { visibility: "GLOBAL" }),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+  });
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  const normal = verifiedFirestore("recipe-normal");
+
+  await assertFails(writeBatch(normal).delete(doc(normal, "recipes", "curated-foreign")).commit());
+  await assertSucceeds(writeBatch(admin).delete(doc(admin, "recipes", "curated-foreign")).commit());
 });
 
 test("solo el propietario edita o borra su receta personal", async () => {

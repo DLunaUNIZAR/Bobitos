@@ -793,9 +793,11 @@ service cloud.firestore {
     }
 
     function recipeAdmins() {
-      // Cuentas que pueden publicar recetas del catálogo común (GLOBAL). Se rellena en F2-8 con
-      // el/los UID admin reales; vacío = todavía nadie puede crear GLOBAL (sí recetas PRIVATE).
-      return [];
+      // Cuentas que pueden publicar/curar recetas del catálogo común (GLOBAL). Debe mantenerse
+      // sincronizada con RecipeAdmins.uids en la app. Añadir/rotar: docs/RECIPES_ADMIN.md.
+      return [
+        "dWWH7eRhHEPopJf5BHPB3Dp6fry1", // luna.cerralbo.davi@gmail.com
+      ];
     }
 
     function isRecipeAdmin() {

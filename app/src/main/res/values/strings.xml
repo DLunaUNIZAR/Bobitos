@@ -292,6 +292,7 @@
     <string name="recipes_title_label">Nombre</string>
     <string name="recipes_description_label">Descripción</string>
     <string name="recipes_category_label">Categoría</string>
+    <string name="recipes_publish_global">Publicar en el catálogo común</string>
     <string name="recipes_edit">Editar</string>
     <string name="recipes_delete">Eliminar</string>
     <string name="recipes_delete_title">Eliminar receta</string>
