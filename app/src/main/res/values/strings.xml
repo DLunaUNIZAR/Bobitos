@@ -87,6 +87,9 @@
     <string name="invitation_expires_value">Caduca: %1$s</string>
     <string name="invitation_share">Compartir</string>
     <string name="invitation_revoke">Revocar</string>
+    <string name="invitation_copy_code">Copiar código</string>
+    <string name="invitation_show_qr">Mostrar QR</string>
+    <string name="invitation_qr_title">Código QR</string>
     <string name="invitation_share_message">Te invito a un espacio privado de Bobitos.\n\nCódigo: %1$s\nEnlace: %2$s\n\nLa invitación solo se puede usar una vez y caduca en 72 horas.</string>
     <string name="invitation_space_full_explanation">El espacio ya tiene el máximo de 10 miembros.</string>
     <string name="invitation_error_invalid_code">El código de invitación no tiene un formato válido.</string>
