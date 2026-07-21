@@ -12,9 +12,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,6 +38,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -44,6 +49,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
 
@@ -143,12 +149,12 @@ fun RecipesScreen(
             canWrite = canWrite,
             isAdmin = state.isAdmin,
             onDismiss = { editorRequest = null },
-            onSave = { visibility, title, description, category ->
+            onSave = { visibility, title, description, category, ingredients ->
                 val recipe = request.recipe
                 if (recipe == null) {
-                    viewModel.createRecipe(visibility, title, description, category)
+                    viewModel.createRecipe(visibility, title, description, category, ingredients)
                 } else {
-                    viewModel.updateRecipe(recipe.id, title, description, category)
+                    viewModel.updateRecipe(recipe.id, title, description, category, ingredients)
                 }
                 editorRequest = null
             },
@@ -285,12 +291,17 @@ private fun RecipeEditor(
     canWrite: Boolean,
     isAdmin: Boolean,
     onDismiss: () -> Unit,
-    onSave: (RecipeVisibility, String, String?, String?) -> Unit,
+    onSave: (RecipeVisibility, String, String?, String?, List<Ingredient>) -> Unit,
 ) {
     var title by remember(recipe?.id) { mutableStateOf(recipe?.title.orEmpty()) }
     var description by remember(recipe?.id) { mutableStateOf(recipe?.description.orEmpty()) }
     var category by remember(recipe?.id) { mutableStateOf(recipe?.category.orEmpty()) }
     var global by remember(recipe?.id) { mutableStateOf(recipe?.visibility == RecipeVisibility.GLOBAL) }
+    val ingredients = remember(recipe?.id) {
+        recipe?.ingredients.orEmpty()
+            .map { IngredientDraft(it.name, it.quantity.orEmpty(), it.unit.orEmpty()) }
+            .toMutableStateList()
+    }
     val validation = RecipesValidation.validate(title, description, category)
     // El toggle de catálogo común solo se ofrece al crear (la visibilidad de una receta existente
     // está congelada por las reglas) y solo a quien puede publicar GLOBAL.
@@ -302,7 +313,10 @@ private fun RecipeEditor(
             Text(stringResource(if (recipe == null) R.string.recipes_add_title else R.string.recipes_edit_title))
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
@@ -350,6 +364,7 @@ private fun RecipeEditor(
                         Switch(checked = global, onCheckedChange = { global = it })
                     }
                 }
+                IngredientsEditor(ingredients)
             }
         },
         confirmButton = {
@@ -357,7 +372,7 @@ private fun RecipeEditor(
                 enabled = validation == null && canWrite && !saving,
                 onClick = {
                     val visibility = if (global) RecipeVisibility.GLOBAL else RecipeVisibility.PRIVATE
-                    onSave(visibility, title, description, category)
+                    onSave(visibility, title, description, category, ingredients.toIngredients())
                 },
             ) { Text(stringResource(R.string.confirm)) }
         },
@@ -365,6 +380,73 @@ private fun RecipeEditor(
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
     )
+}
+
+@Composable
+private fun IngredientsEditor(rows: SnapshotStateList<IngredientDraft>) {
+    Text(
+        text = stringResource(R.string.recipes_ingredients_section),
+        style = MaterialTheme.typography.titleSmall,
+        modifier = Modifier.padding(top = 8.dp),
+    )
+    rows.forEachIndexed { index, row ->
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = row.name,
+                    onValueChange = { row.name = it },
+                    label = { Text(stringResource(R.string.recipes_ingredient_name)) },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(onClick = { rows.removeAt(index) }) {
+                    Icon(
+                        Icons.Rounded.Delete,
+                        contentDescription = stringResource(R.string.recipes_ingredient_remove),
+                    )
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                OutlinedTextField(
+                    value = row.quantity,
+                    onValueChange = { row.quantity = it },
+                    label = { Text(stringResource(R.string.recipes_ingredient_quantity)) },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedTextField(
+                    value = row.unit,
+                    onValueChange = { row.unit = it },
+                    label = { Text(stringResource(R.string.recipes_ingredient_unit)) },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+    if (rows.size < MAX_INGREDIENT_ROWS) {
+        TextButton(onClick = { rows.add(IngredientDraft()) }) {
+            Icon(Icons.Rounded.Add, contentDescription = null)
+            Text(stringResource(R.string.recipes_ingredient_add))
+        }
+    }
+}
+
+// Fila editable de ingrediente: estado mutable observable por Compose mientras dura el editor.
+private class IngredientDraft(name: String = "", quantity: String = "", unit: String = "") {
+    var name by mutableStateOf(name)
+    var quantity by mutableStateOf(quantity)
+    var unit by mutableStateOf(unit)
+}
+
+// Descarta filas sin nombre y normaliza cantidad/unidad vacías a null.
+private fun List<IngredientDraft>.toIngredients(): List<Ingredient> = mapNotNull { draft ->
+    draft.name.trim().takeIf(String::isNotEmpty)?.let { name ->
+        Ingredient(name, draft.quantity.trim().ifBlank { null }, draft.unit.trim().ifBlank { null })
+    }
 }
 
 @Composable
@@ -402,6 +484,8 @@ private fun RecipesFeedback(state: RecipesUiState, onDismiss: () -> Unit) {
         }
     }
 }
+
+private const val MAX_INGREDIENT_ROWS = 50
 
 private data class RecipeEditorRequest(val recipe: Recipe?)
 

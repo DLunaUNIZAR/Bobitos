@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.feature.recipes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
 import com.dlunaunizar.bobitos.data.repository.RecipeFailure
@@ -55,7 +56,13 @@ class RecipesViewModel @Inject constructor(private val repository: RecipeReposit
         mutableUiState.update { it.copy(query = query) }
     }
 
-    fun createRecipe(visibility: RecipeVisibility, title: String, description: String?, category: String?) {
+    fun createRecipe(
+        visibility: RecipeVisibility,
+        title: String,
+        description: String?,
+        category: String?,
+        ingredients: List<Ingredient> = emptyList(),
+    ) {
         if (!validate(title, description, category)) return
         // GLOBAL solo para admins; el resto siempre PRIVATE aunque llegue otra cosa (las reglas también lo exigen).
         val safeVisibility = if (visibility == RecipeVisibility.GLOBAL && !mutableUiState.value.isAdmin) {
@@ -70,14 +77,27 @@ class RecipesViewModel @Inject constructor(private val repository: RecipeReposit
                 description = description.normalized(),
                 category = category.normalized(),
                 sourceRecipeId = null,
+                ingredients = ingredients,
             )
         }
     }
 
-    fun updateRecipe(recipeId: String, title: String, description: String?, category: String?) {
+    fun updateRecipe(
+        recipeId: String,
+        title: String,
+        description: String?,
+        category: String?,
+        ingredients: List<Ingredient> = emptyList(),
+    ) {
         if (!validate(title, description, category)) return
         runAction(RecipeUiMessage.RecipeSaved) {
-            repository.updateRecipe(recipeId, title.trim(), description.normalized(), category.normalized())
+            repository.updateRecipe(
+                recipeId,
+                title.trim(),
+                description.normalized(),
+                category.normalized(),
+                ingredients,
+            )
         }
     }
 

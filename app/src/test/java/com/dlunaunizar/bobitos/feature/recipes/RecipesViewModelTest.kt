@@ -57,6 +57,15 @@ class RecipesViewModelTest {
     }
 
     @Test
+    fun `creating a recipe forwards its ingredients`() = runTest(mainDispatcherRule.testDispatcher) {
+        val ingredients = listOf(Ingredient("Huevo", "2", "uds"), Ingredient("Sal"))
+        viewModel.createRecipe(RecipeVisibility.PRIVATE, "Tortilla", null, null, ingredients)
+        advanceUntilIdle()
+
+        assertEquals(ingredients, repository.lastIngredients)
+    }
+
+    @Test
     fun `an invalid recipe never reaches the repository`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.createRecipe(RecipeVisibility.PRIVATE, "   ", null, null)
 
