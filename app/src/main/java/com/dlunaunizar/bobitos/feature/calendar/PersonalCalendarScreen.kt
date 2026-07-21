@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.calendar
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -48,9 +52,16 @@ fun PersonalCalendarScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(userId, spaces) { viewModel.observe(userId, spaces) }
     DisposableEffect(Unit) { onDispose(viewModel::stop) }
+    var drilledFrom by remember { mutableStateOf<CalendarDisplayMode?>(null) }
 
     val events = (state.events as? UiState.Content)?.value.orEmpty()
         .filter { it.spaceId in state.selectedSpaceIds }
+
+    // Atrás desde la vista diaria a la que se llegó pulsando un día → vuelve al modo anterior.
+    BackHandler(enabled = drilledFrom != null) {
+        drilledFrom?.let(viewModel::setMode)
+        drilledFrom = null
+    }
 
     Column(
         modifier = modifier
@@ -66,7 +77,10 @@ fun PersonalCalendarScreen(
             onPrevious = viewModel::previous,
             onNext = viewModel::next,
         )
-        CalendarModeSelector(state.mode, viewModel::setMode)
+        CalendarModeSelector(state.mode) { mode ->
+            drilledFrom = null
+            viewModel.setMode(mode)
+        }
         SpaceFilters(
             spaces = spaces,
             selectedIds = state.selectedSpaceIds,
@@ -81,7 +95,11 @@ fun PersonalCalendarScreen(
                     month = YearMonth.from(state.focusedDate),
                     selected = state.focusedDate,
                     events = events.map(PersonalCalendarEvent::event),
-                    select = viewModel::select,
+                    select = { date ->
+                        viewModel.select(date)
+                        drilledFrom = state.mode
+                        viewModel.setMode(CalendarDisplayMode.DAY)
+                    },
                 )
                 Text(
                     state.focusedDate.format(
