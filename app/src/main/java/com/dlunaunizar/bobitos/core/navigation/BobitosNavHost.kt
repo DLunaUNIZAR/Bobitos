@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.MoreVert
@@ -26,8 +28,10 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -37,9 +41,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -57,6 +65,7 @@ import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SyncStatus
 import com.dlunaunizar.bobitos.core.model.canWrite
+import com.dlunaunizar.bobitos.data.repository.SpaceModuleCounts
 import com.dlunaunizar.bobitos.feature.auth.AuthActionUiState
 import com.dlunaunizar.bobitos.feature.auth.ProfileScreen
 import com.dlunaunizar.bobitos.feature.calendar.CalendarScreen
@@ -65,6 +74,7 @@ import com.dlunaunizar.bobitos.feature.common.SyncStatusBanner
 import com.dlunaunizar.bobitos.feature.meals.MealsScreen
 import com.dlunaunizar.bobitos.feature.recipes.RecipesScreen
 import com.dlunaunizar.bobitos.feature.shopping.ShoppingScreen
+import com.dlunaunizar.bobitos.feature.spaces.SpaceHomeViewModel
 import com.dlunaunizar.bobitos.feature.spaces.SpaceManagementUiState
 import com.dlunaunizar.bobitos.feature.spaces.SpaceSettingsScreen
 import com.dlunaunizar.bobitos.feature.spaces.SpacesScreen
@@ -221,9 +231,15 @@ fun BobitosNavHost(
 
         composable(BobitosDestination.SpaceHome.route) {
             BackHandler { navController.navigateToSpaces() }
+            val summaryViewModel: SpaceHomeViewModel = hiltViewModel()
+            val counts by summaryViewModel.counts.collectAsStateWithLifecycle()
+            LaunchedEffect(uiState.selectedSpace?.id) {
+                uiState.selectedSpace?.id?.let(summaryViewModel::load)
+            }
             SpaceHomeScreen(
                 spaceName = spaceName,
                 syncStatus = uiState.syncStatus,
+                counts = counts,
                 onModuleSelected = navController::navigateToWorkspace,
                 onSwitchSpace = navController::navigateToSpaces,
                 onSpaceSettings = {
@@ -560,6 +576,7 @@ private fun SpaceActions(onProfile: () -> Unit, onSpaceSettings: () -> Unit, onS
 private fun SpaceHomeScreen(
     spaceName: String,
     syncStatus: SyncStatus,
+    counts: SpaceModuleCounts?,
     onModuleSelected: (BobitosDestination) -> Unit,
     onSwitchSpace: () -> Unit,
     onSpaceSettings: () -> Unit,
@@ -604,6 +621,7 @@ private fun SpaceHomeScreen(
             BobitosDestination.workspaceDestinations.forEach { destination ->
                 SpaceHomeCard(
                     destination = destination,
+                    count = counts?.forDestination(destination) ?: 0,
                     onClick = { onModuleSelected(destination) },
                 )
             }
@@ -613,7 +631,7 @@ private fun SpaceHomeScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SpaceHomeCard(destination: BobitosDestination, onClick: () -> Unit) {
+private fun SpaceHomeCard(destination: BobitosDestination, count: Int, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -634,9 +652,37 @@ private fun SpaceHomeCard(destination: BobitosDestination, onClick: () -> Unit) 
             Text(
                 text = stringResource(destination.titleRes),
                 style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.weight(1f),
             )
+            if (count > 0) {
+                SpaceHomeCountBadge(count = count, color = destination.moduleColor())
+            }
         }
     }
+}
+
+@Composable
+private fun SpaceHomeCountBadge(count: Int, color: Color?) {
+    val badgeColor = color ?: MaterialTheme.colorScheme.primary
+    Surface(shape = CircleShape, color = badgeColor) {
+        Text(
+            text = count.toString(),
+            modifier = Modifier
+                .defaultMinSize(minWidth = 24.dp)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            color = contentColorFor(badgeColor),
+            style = MaterialTheme.typography.labelLarge,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+private fun SpaceModuleCounts.forDestination(destination: BobitosDestination): Int = when (destination) {
+    BobitosDestination.Shopping -> pendingShopping
+    BobitosDestination.Tasks -> pendingTasks
+    BobitosDestination.Calendar -> upcomingEvents
+    BobitosDestination.Meals -> todayMeals
+    else -> 0
 }
 
 private fun NavHostController.navigateToWorkspace(destination: BobitosDestination) {
