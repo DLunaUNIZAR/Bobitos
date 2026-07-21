@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.feature.recipes
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
 import com.dlunaunizar.bobitos.data.repository.RecipeRepository
@@ -89,16 +90,19 @@ class RecipesViewModelTest {
     }
 
     @Test
-    fun `fork copies the source recipe and marks its origin`() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.fork(recipe("origin", RecipeVisibility.GLOBAL, "Paella común"))
-        advanceUntilIdle()
+    fun `fork copies the source recipe including its ingredients and marks its origin`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val ingredients = listOf(Ingredient("Arroz", "300", "g"), Ingredient("Azafrán"))
+            viewModel.fork(recipe("origin", RecipeVisibility.GLOBAL, "Paella común", ingredients))
+            advanceUntilIdle()
 
-        assertEquals(1, repository.createCount)
-        assertEquals(RecipeVisibility.PRIVATE, repository.lastVisibility)
-        assertEquals("Paella común", repository.lastTitle)
-        assertEquals("origin", repository.lastSourceRecipeId)
-        assertEquals(RecipeUiMessage.RecipeForked, viewModel.uiState.value.notice)
-    }
+            assertEquals(1, repository.createCount)
+            assertEquals(RecipeVisibility.PRIVATE, repository.lastVisibility)
+            assertEquals("Paella común", repository.lastTitle)
+            assertEquals("origin", repository.lastSourceRecipeId)
+            assertEquals(ingredients, repository.lastIngredients)
+            assertEquals(RecipeUiMessage.RecipeForked, viewModel.uiState.value.notice)
+        }
 }
 
 private class FakeRecipeRepository : RecipeRepository {
@@ -108,6 +112,7 @@ private class FakeRecipeRepository : RecipeRepository {
     var lastVisibility: RecipeVisibility? = null
     var lastTitle: String? = null
     var lastSourceRecipeId: String? = null
+    var lastIngredients: List<Ingredient> = emptyList()
     var admin = false
 
     override fun globalRecipes(): Flow<List<Recipe>> = globalState
@@ -119,28 +124,38 @@ private class FakeRecipeRepository : RecipeRepository {
         description: String?,
         category: String?,
         sourceRecipeId: String?,
+        ingredients: List<Ingredient>,
     ) {
         createCount++
         lastVisibility = visibility
         lastTitle = title
         lastSourceRecipeId = sourceRecipeId
+        lastIngredients = ingredients
     }
 
-    override suspend fun updateRecipe(recipeId: String, title: String, description: String?, category: String?) = Unit
+    override suspend fun updateRecipe(
+        recipeId: String,
+        title: String,
+        description: String?,
+        category: String?,
+        ingredients: List<Ingredient>,
+    ) = Unit
 
     override suspend fun deleteRecipe(recipeId: String) = Unit
 }
 
-private fun recipe(id: String, visibility: RecipeVisibility, title: String) = Recipe(
-    id = id,
-    ownerUid = "u",
-    visibility = visibility,
-    title = title,
-    description = null,
-    category = null,
-    createdBy = "u",
-    createdByName = "U",
-    createdAt = Instant.EPOCH,
-    updatedBy = "u",
-    updatedAt = Instant.EPOCH,
-)
+private fun recipe(id: String, visibility: RecipeVisibility, title: String, ingredients: List<Ingredient>? = null) =
+    Recipe(
+        id = id,
+        ownerUid = "u",
+        visibility = visibility,
+        title = title,
+        description = null,
+        category = null,
+        ingredients = ingredients,
+        createdBy = "u",
+        createdByName = "U",
+        createdAt = Instant.EPOCH,
+        updatedBy = "u",
+        updatedAt = Instant.EPOCH,
+    )

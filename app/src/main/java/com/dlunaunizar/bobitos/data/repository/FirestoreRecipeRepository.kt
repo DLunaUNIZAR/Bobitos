@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.data.repository
 
 import com.dlunaunizar.bobitos.core.model.AuthUser
+import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
 import com.dlunaunizar.bobitos.data.sync.RealtimeMetrics
@@ -45,6 +46,7 @@ class FirestoreRecipeRepository @Inject constructor(
         description: String?,
         category: String?,
         sourceRecipeId: String?,
+        ingredients: List<Ingredient>,
     ) = runRecipeOperation {
         val user = requireVerifiedUser()
         val values = validate(title, description, category)
@@ -56,6 +58,7 @@ class FirestoreRecipeRepository @Inject constructor(
                 FIELD_DESCRIPTION to values.description,
                 FIELD_CATEGORY to values.category,
                 FIELD_SOURCE_RECIPE_ID to sourceRecipeId,
+                FIELD_INGREDIENTS to ingredients.toFirestore(),
                 FIELD_CREATED_BY to user.id,
                 FIELD_CREATED_BY_NAME to user.recipeDisplayName,
                 FIELD_CREATED_AT to FieldValue.serverTimestamp(),
@@ -66,21 +69,27 @@ class FirestoreRecipeRepository @Inject constructor(
         Unit
     }
 
-    override suspend fun updateRecipe(recipeId: String, title: String, description: String?, category: String?) =
-        runRecipeOperation {
-            val user = requireVerifiedUser()
-            val values = validate(title, description, category)
-            recipesCollection().document(recipeId).update(
-                mapOf(
-                    FIELD_TITLE to values.title,
-                    FIELD_DESCRIPTION to values.description,
-                    FIELD_CATEGORY to values.category,
-                    FIELD_UPDATED_BY to user.id,
-                    FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
-                ),
-            ).await()
-            Unit
-        }
+    override suspend fun updateRecipe(
+        recipeId: String,
+        title: String,
+        description: String?,
+        category: String?,
+        ingredients: List<Ingredient>,
+    ) = runRecipeOperation {
+        val user = requireVerifiedUser()
+        val values = validate(title, description, category)
+        recipesCollection().document(recipeId).update(
+            mapOf(
+                FIELD_TITLE to values.title,
+                FIELD_DESCRIPTION to values.description,
+                FIELD_CATEGORY to values.category,
+                FIELD_INGREDIENTS to ingredients.toFirestore(),
+                FIELD_UPDATED_BY to user.id,
+                FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+            ),
+        ).await()
+        Unit
+    }
 
     override suspend fun deleteRecipe(recipeId: String) = runRecipeOperation {
         requireVerifiedUser()
@@ -158,6 +167,15 @@ class FirestoreRecipeRepository @Inject constructor(
         }
     }
 
+    // Serializa la lista (acotada) a la forma embebida de Firestore. `quantity`/`unit` van como null si faltan.
+    private fun List<Ingredient>.toFirestore(): List<Map<String, Any?>> = take(MAX_INGREDIENTS).map { ingredient ->
+        mapOf(
+            FIELD_INGREDIENT_NAME to ingredient.name,
+            FIELD_INGREDIENT_QUANTITY to ingredient.quantity,
+            FIELD_INGREDIENT_UNIT to ingredient.unit,
+        )
+    }
+
     private data class RecipeValues(val title: String, val description: String?, val category: String?)
 
     private companion object {
@@ -168,6 +186,11 @@ class FirestoreRecipeRepository @Inject constructor(
         const val FIELD_DESCRIPTION = "description"
         const val FIELD_CATEGORY = "category"
         const val FIELD_SOURCE_RECIPE_ID = "sourceRecipeId"
+        const val FIELD_INGREDIENTS = "ingredients"
+        const val FIELD_INGREDIENT_NAME = "name"
+        const val FIELD_INGREDIENT_QUANTITY = "quantity"
+        const val FIELD_INGREDIENT_UNIT = "unit"
+        const val MAX_INGREDIENTS = 50
         const val FIELD_CREATED_BY = "createdBy"
         const val FIELD_CREATED_BY_NAME = "createdByName"
         const val FIELD_CREATED_AT = "createdAt"
@@ -197,12 +220,27 @@ private fun DocumentSnapshot.toRecipe(): Recipe? {
         description = getString("description"),
         category = getString("category"),
         sourceRecipeId = getString("sourceRecipeId"),
+        ingredients = parseIngredients(),
         createdBy = getString("createdBy") ?: return null,
         createdByName = getString("createdByName") ?: getString("createdBy") ?: return null,
         createdAt = createdAt,
         updatedBy = getString("updatedBy") ?: getString("createdBy") ?: return null,
         updatedAt = updatedAt,
     )
+}
+
+// Retro-compat: campo ausente → null; presente → lista con parseo por elemento (descarta los malformados).
+private fun DocumentSnapshot.parseIngredients(): List<Ingredient>? {
+    val raw = get("ingredients") as? List<*> ?: return null
+    return raw.mapNotNull { element ->
+        val map = element as? Map<*, *> ?: return@mapNotNull null
+        val name = (map["name"] as? String)?.takeIf(String::isNotBlank) ?: return@mapNotNull null
+        Ingredient(
+            name = name,
+            quantity = (map["quantity"] as? String)?.takeIf(String::isNotBlank),
+            unit = (map["unit"] as? String)?.takeIf(String::isNotBlank),
+        )
+    }
 }
 
 private fun Throwable.toRecipeRepositoryException(): RecipeRepositoryException = RecipeRepositoryException(

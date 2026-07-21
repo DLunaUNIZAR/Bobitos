@@ -93,6 +93,7 @@ class RecipesViewModel @Inject constructor(private val repository: RecipeReposit
                 description = source.description,
                 category = source.category,
                 sourceRecipeId = source.id,
+                ingredients = source.ingredients.orEmpty(),
             )
         }
     }

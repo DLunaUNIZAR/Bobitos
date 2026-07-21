@@ -811,11 +811,15 @@ service cloud.firestore {
         ])
         && request.resource.data.keys().hasOnly([
           "ownerUid", "visibility", "title", "description", "category",
-          "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt", "sourceRecipeId"
+          "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt", "sourceRecipeId",
+          "ingredients"
         ])
         && (!request.resource.data.keys().hasAny(["sourceRecipeId"])
           || request.resource.data.sourceRecipeId == null
           || request.resource.data.sourceRecipeId is string)
+        && (!request.resource.data.keys().hasAny(["ingredients"])
+          || (request.resource.data.ingredients is list
+            && request.resource.data.ingredients.size() <= 50))
         && request.resource.data.ownerUid is string
         && request.resource.data.visibility in ["GLOBAL", "PRIVATE"]
         && request.resource.data.title is string
@@ -851,7 +855,7 @@ service cloud.firestore {
     function validRecipeUpdate() {
       return ownsOrCuratesRecipe() && validRecipeShape()
         && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(["title", "description", "category", "updatedBy", "updatedAt"])
+          .hasOnly(["title", "description", "category", "ingredients", "updatedBy", "updatedAt"])
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.visibility == resource.data.visibility
         && request.resource.data.createdBy == resource.data.createdBy
