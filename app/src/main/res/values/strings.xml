@@ -304,6 +304,11 @@
     <string name="meals_notice_deleted">Comida eliminada</string>
     <string name="meals_add_ingredients_to_shopping">Añadir ingredientes a la Compra</string>
     <string name="meals_notice_ingredients_added">Ingredientes añadidos a la Compra</string>
+    <string name="meals_duplicate_day">Duplicar día…</string>
+    <string name="meals_duplicate_week">Duplicar semana en la siguiente</string>
+    <string name="meals_add_day_to_shopping">Añadir ingredientes del día a la Compra</string>
+    <string name="meals_add_week_to_shopping">Añadir ingredientes de la semana a la Compra</string>
+    <string name="meals_notice_duplicated">Comidas duplicadas</string>
     <string name="meals_choose_recipe">Elegir de una receta</string>
     <string name="meals_recipe_picker_title">Elegir receta</string>
     <string name="recipes_title">Recetario</string>

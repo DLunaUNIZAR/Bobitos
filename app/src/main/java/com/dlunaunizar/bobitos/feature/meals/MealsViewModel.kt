@@ -110,27 +110,53 @@ class MealsViewModel @Inject constructor(
         }
     }
 
-    // Vuelca los ingredientes de la receta enlazada a la comida a la lista de la Compra del espacio.
-    fun addIngredientsToShopping(meal: Meal) {
+    // Duplica las comidas del día enfocado en [targetDate].
+    fun duplicateDay(targetDate: LocalDate) {
         val spaceId = observedSpaceId ?: return
-        val ingredients = meal.recipeId
-            ?.let { id -> mutableUiState.value.recipes.firstOrNull { it.id == id } }
-            ?.ingredients
-            .orEmpty()
-        if (ingredients.isEmpty()) return
-        runAction(MealUiMessage.IngredientsAddedToShopping) {
-            ingredients.forEach { ingredient ->
-                shoppingRepository.addItem(
-                    spaceId = spaceId,
-                    name = ingredient.name,
-                    quantity = ingredient.quantity,
-                    notes = ingredient.unit,
-                    supermarket = null,
-                    brand = null,
-                )
+        val meals = currentMeals().filter { it.date == mutableUiState.value.focusedDate }
+        if (meals.isEmpty()) return
+        runAction(MealUiMessage.MealsDuplicated) {
+            meals.forEach { repository.addMeal(spaceId, targetDate, it.slot, it.name, it.participantIds, it.recipeId) }
+        }
+    }
+
+    // Duplica las comidas de la semana enfocada en la semana siguiente.
+    fun duplicateWeekToNext() {
+        val spaceId = observedSpaceId ?: return
+        val meals = currentMeals()
+        if (meals.isEmpty()) return
+        runAction(MealUiMessage.MealsDuplicated) {
+            meals.forEach {
+                repository.addMeal(spaceId, it.date.plusWeeks(1), it.slot, it.name, it.participantIds, it.recipeId)
             }
         }
     }
+
+    // Vuelca a la Compra los ingredientes de las recetas enlazadas a una comida / al día / a la semana.
+    fun addIngredientsToShopping(meal: Meal) = addIngredientsOf(listOf(meal))
+
+    fun addDayIngredientsToShopping() =
+        addIngredientsOf(currentMeals().filter { it.date == mutableUiState.value.focusedDate })
+
+    fun addWeekIngredientsToShopping() = addIngredientsOf(currentMeals())
+
+    private fun addIngredientsOf(meals: List<Meal>) {
+        val spaceId = observedSpaceId ?: return
+        val recipesById = mutableUiState.value.recipes.associateBy { it.id }
+        // Dedup simple por nombre (conserva el primero); la reconciliación de cantidades llega aparte.
+        val ingredients = meals.mapNotNull(Meal::recipeId)
+            .mapNotNull(recipesById::get)
+            .flatMap { it.ingredients.orEmpty() }
+            .distinctBy { it.name.trim().lowercase() }
+        if (ingredients.isEmpty()) return
+        runAction(MealUiMessage.IngredientsAddedToShopping) {
+            ingredients.forEach { ingredient ->
+                shoppingRepository.addItem(spaceId, ingredient.name, ingredient.quantity, ingredient.unit, null, null)
+            }
+        }
+    }
+
+    private fun currentMeals(): List<Meal> = (mutableUiState.value.meals as? UiState.Content)?.value.orEmpty()
 
     fun clearFeedback() {
         mutableUiState.update { it.copy(error = null, notice = null) }

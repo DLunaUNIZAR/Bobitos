@@ -125,6 +125,46 @@ class MealsViewModelTest {
         }
 
     @Test
+    fun `duplicating a day copies its meals to the target date`() = runTest(mainDispatcherRule.testDispatcher) {
+        val today = LocalDate.now()
+        mealRepository.mealsState.value = listOf(
+            meal("m1", today, MealSlot.COMIDA, "Lentejas"),
+            meal("m2", today, MealSlot.CENA, "Sopa"),
+        )
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        val target = today.plusDays(3)
+        viewModel.duplicateDay(target)
+        advanceUntilIdle()
+
+        assertEquals(2, mealRepository.addCount)
+        assertEquals(listOf(target, target), mealRepository.addedDates)
+        assertEquals(MealUiMessage.MealsDuplicated, viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun `adding the day's ingredients dedups by name`() = runTest(mainDispatcherRule.testDispatcher) {
+        val today = LocalDate.now()
+        recipeRepository.mineState.value = listOf(
+            recipe("r1", listOf(Ingredient("Arroz", "300", "g"), Ingredient("Sal"))),
+            recipe("r2", listOf(Ingredient("arroz", "1", "kg"), Ingredient("Aceite"))),
+        )
+        mealRepository.mealsState.value = listOf(
+            meal("m1", today, MealSlot.COMIDA, "Paella").copy(recipeId = "r1"),
+            meal("m2", today, MealSlot.CENA, "Arroz al horno").copy(recipeId = "r2"),
+        )
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.addDayIngredientsToShopping()
+        advanceUntilIdle()
+
+        assertEquals(listOf("Arroz", "Sal", "Aceite"), shoppingRepository.addedNames)
+        assertEquals(MealUiMessage.IngredientsAddedToShopping, viewModel.uiState.value.notice)
+    }
+
+    @Test
     fun `changing week re-observes the range`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("home")
         advanceUntilIdle()
@@ -144,6 +184,7 @@ private class FakeMealRepository : MealRepository {
     var addedName: String? = null
     var addedRecipeId: String? = null
     var addCount = 0
+    val addedDates = mutableListOf<LocalDate>()
     var nextFailure: MealRepositoryException? = null
     val mealsState = MutableStateFlow<List<Meal>>(emptyList())
 
@@ -164,6 +205,7 @@ private class FakeMealRepository : MealRepository {
         throwNextFailure()
         addedName = name
         addedRecipeId = recipeId
+        addedDates += date
         addCount++
     }
 
