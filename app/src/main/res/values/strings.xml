@@ -2,6 +2,14 @@
 <resources>
     <string name="app_name">Bobitos</string>
     <string name="app_start_error">No se ha podido iniciar Bobitos.</string>
+    <string name="welcome_title">Organizaos en equipo</string>
+    <string name="welcome_body">Bobitos reúne a tu grupo en espacios privados para organizar la casa juntos.</string>
+    <string name="welcome_feature_spaces">Espacios privados para tu grupo (2 a 10 personas)</string>
+    <string name="welcome_feature_shopping">Lista de la compra compartida</string>
+    <string name="welcome_feature_tasks">Tareas repartidas entre todos</string>
+    <string name="welcome_feature_calendar">Calendario común de eventos</string>
+    <string name="welcome_feature_meals">Planificador de comidas y recetario</string>
+    <string name="welcome_start">Comenzar</string>
     <string name="spaces_title">Tus espacios</string>
     <string name="spaces_description">Elige el espacio que quieres organizar.</string>
     <plurals name="space_members">

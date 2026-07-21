@@ -4,10 +4,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
@@ -17,6 +20,8 @@ import com.dlunaunizar.bobitos.feature.auth.AuthActionUiState
 import com.dlunaunizar.bobitos.feature.auth.AuthNavHost
 import com.dlunaunizar.bobitos.feature.auth.EmailVerificationScreen
 import com.dlunaunizar.bobitos.feature.auth.FullScreenLoading
+import com.dlunaunizar.bobitos.feature.auth.WelcomeScreen
+import com.dlunaunizar.bobitos.feature.auth.WelcomeViewModel
 import com.dlunaunizar.bobitos.feature.spaces.SpaceManagementUiState
 
 @Composable
@@ -64,14 +69,20 @@ fun BobitosApp(
             val user = authState.value
             when {
                 user == null -> key("unauthenticated") {
-                    AuthNavHost(
-                        navController = rememberNavController(),
-                        actionState = authActionState,
-                        onSignIn = onSignIn,
-                        onRegister = onRegister,
-                        onPasswordReset = onPasswordReset,
-                        onClearFeedback = onClearAuthFeedback,
-                    )
+                    val welcomeViewModel: WelcomeViewModel = hiltViewModel()
+                    val welcomeSeen by welcomeViewModel.seen.collectAsStateWithLifecycle()
+                    when (welcomeSeen) {
+                        null -> FullScreenLoading()
+                        false -> WelcomeScreen(onStart = welcomeViewModel::markSeen)
+                        true -> AuthNavHost(
+                            navController = rememberNavController(),
+                            actionState = authActionState,
+                            onSignIn = onSignIn,
+                            onRegister = onRegister,
+                            onPasswordReset = onPasswordReset,
+                            onClearFeedback = onClearAuthFeedback,
+                        )
+                    }
                 }
                 !user.isEmailVerified -> key("email-verification") {
                     EmailVerificationScreen(
