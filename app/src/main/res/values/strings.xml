@@ -318,6 +318,7 @@
     <string name="recipes_section_global">Recetas comunes</string>
     <string name="recipes_empty">Aún no hay recetas aquí.</string>
     <string name="recipes_no_results">Sin resultados para tu búsqueda.</string>
+    <string name="recipes_filter_all">Todas</string>
     <string name="recipes_by">por %1$s</string>
     <string name="recipes_no_description">Sin descripción.</string>
     <string name="recipes_category">Categoría: %1$s</string>

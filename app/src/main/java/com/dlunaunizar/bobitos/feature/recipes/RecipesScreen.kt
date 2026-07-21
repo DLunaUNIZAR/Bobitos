@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -23,6 +24,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.toMutableStateList
@@ -77,6 +80,11 @@ fun RecipesScreen(
     var detail by remember { mutableStateOf<Recipe?>(null) }
     var editorRequest by remember { mutableStateOf<RecipeEditorRequest?>(null) }
     var recipeToDelete by remember { mutableStateOf<Recipe?>(null) }
+    var selectedCategory by rememberSaveable { mutableStateOf<String?>(null) }
+    val categories = (state.mine.contentOrEmpty() + state.global.contentOrEmpty())
+        .mapNotNull { it.category?.trim()?.takeIf(String::isNotEmpty) }
+        .distinct()
+        .sorted()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val deletedMessage = stringResource(R.string.recipes_undo_deleted)
@@ -124,12 +132,21 @@ fun RecipesScreen(
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
             )
+            if (categories.isNotEmpty()) {
+                CategoryFilter(
+                    categories = categories,
+                    selected = selectedCategory,
+                    onSelect = { selectedCategory = it },
+                )
+            }
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(bottom = 88.dp),
             ) {
-                recipesSection(R.string.recipes_section_mine, state.mine, state.query) { detail = it }
-                recipesSection(R.string.recipes_section_global, state.global, state.query) { detail = it }
+                recipesSection(R.string.recipes_section_mine, state.mine, state.query, selectedCategory) { detail = it }
+                recipesSection(R.string.recipes_section_global, state.global, state.query, selectedCategory) {
+                    detail = it
+                }
             }
         }
     }
@@ -208,6 +225,7 @@ private fun LazyListScope.recipesSection(
     @StringRes titleRes: Int,
     recipes: UiState<List<Recipe>>,
     query: String,
+    category: String?,
     onOpen: (Recipe) -> Unit,
 ) {
     item(key = "header-$titleRes") {
@@ -223,9 +241,9 @@ private fun LazyListScope.recipesSection(
             ErrorState(Modifier.fillMaxWidth(), message = recipes.message)
         }
         is UiState.Content -> {
-            val filtered = recipes.value.filter { it.matches(query) }
+            val filtered = recipes.value.filter { it.matches(query) && (category == null || it.category == category) }
             if (filtered.isEmpty()) {
-                val noResults = query.isNotBlank() && recipes.value.isNotEmpty()
+                val noResults = (query.isNotBlank() || category != null) && recipes.value.isNotEmpty()
                 item(key = "empty-$titleRes") {
                     EmptyState(
                         modifier = Modifier.fillMaxWidth(),
@@ -240,6 +258,29 @@ private fun LazyListScope.recipesSection(
                     RecipeCard(recipe = recipe, onClick = { onOpen(recipe) })
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CategoryFilter(categories: List<String>, selected: String?, onSelect: (String?) -> Unit) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.padding(bottom = 8.dp),
+    ) {
+        item(key = "cat-all") {
+            FilterChip(
+                selected = selected == null,
+                onClick = { onSelect(null) },
+                label = { Text(stringResource(R.string.recipes_filter_all)) },
+            )
+        }
+        items(categories, key = { it }) { category ->
+            FilterChip(
+                selected = selected == category,
+                onClick = { onSelect(category) },
+                label = { Text(category) },
+            )
         }
     }
 }
@@ -538,10 +579,14 @@ private data class RecipeEditorRequest(val recipe: Recipe?)
 private fun RecipesUiState.owns(recipe: Recipe): Boolean =
     (mine as? UiState.Content)?.value?.any { it.id == recipe.id } == true
 
+private fun UiState<List<Recipe>>.contentOrEmpty(): List<Recipe> = (this as? UiState.Content)?.value.orEmpty()
+
 private fun Recipe.matches(query: String): Boolean {
     if (query.isBlank()) return true
     val trimmed = query.trim()
-    return title.contains(trimmed, ignoreCase = true) || category?.contains(trimmed, ignoreCase = true) == true
+    return title.contains(trimmed, ignoreCase = true) ||
+        category?.contains(trimmed, ignoreCase = true) == true ||
+        ingredients?.any { it.name.contains(trimmed, ignoreCase = true) } == true
 }
 
 private val RecipeUiMessage.stringResourceId: Int
