@@ -18,6 +18,7 @@
     <ID>LongMethod:LoginScreen.kt$@Composable fun LoginScreen( actionState: AuthActionUiState, onSignIn: (email: String, password: String) -&gt; Unit, onRegisterClick: () -&gt; Unit, onPasswordResetClick: () -&gt; Unit, onClearFeedback: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
     <ID>LongMethod:MealsScreen.kt$@Composable fun MealsScreen( spaceId: String, canWrite: Boolean, onOpenRecipes: () -&gt; Unit, modifier: Modifier = Modifier, viewModel: MealsViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:ProfileScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ProfileScreen( user: AuthUser, actionState: AuthActionUiState, syncStatus: SyncStatus, canWrite: Boolean, onUpdateDisplayName: (String) -&gt; Unit, onSignOut: () -&gt; Unit, onDeleteAccount: (String) -&gt; Unit, onBack: () -&gt; Unit, onClearFeedback: () -&gt; Unit, modifier: Modifier = Modifier, themeViewModel: ThemeViewModel = hiltViewModel(), )</ID>
+    <ID>LongMethod:RecipesScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun RecipesScreen( onBack: () -&gt; Unit, canWrite: Boolean, modifier: Modifier = Modifier, viewModel: RecipesViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:RegisterScreen.kt$@Composable fun RegisterScreen( actionState: AuthActionUiState, onRegister: ( displayName: String, email: String, password: String, passwordConfirmation: String, ) -&gt; Unit, onLoginClick: () -&gt; Unit, onClearFeedback: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
     <ID>LongMethod:ShoppingScreen.kt$@Composable fun ShoppingScreen( spaceId: String, canWrite: Boolean, modifier: Modifier = Modifier, viewModel: ShoppingViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:SpaceSettingsScreen.kt$@Composable fun SpaceSettingsScreen( space: SpaceSummary, currentUserId: String, state: SpaceManagementUiState, syncStatus: SyncStatus, canWrite: Boolean, onObserveSpaceSettings: (String, Boolean) -&gt; Unit, onStopObservingSpaceSettings: () -&gt; Unit, onRenameSpace: (String, String) -&gt; Unit, onLeaveSpace: (String) -&gt; Unit, onRemoveMember: (String, String) -&gt; Unit, onTransferOwnership: (String, String) -&gt; Unit, onDeleteSpace: (String) -&gt; Unit, onCreateInvitation: (String) -&gt; Unit, onRevokeInvitation: (String) -&gt; Unit, onShareInvitation: (SpaceInvitation) -&gt; Unit, onClearFeedback: () -&gt; Unit, onBack: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
@@ -55,6 +56,7 @@
     <ID>TooGenericExceptionCaught:FirestoreSyncRepository.kt$FirestoreSyncRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreTaskRepository.kt$FirestoreTaskRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:MealsViewModel.kt$MealsViewModel$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:RecipesViewModel.kt$RecipesViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:ShoppingViewModel.kt$ShoppingViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:SpacesViewModel.kt$SpacesViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:TasksViewModel.kt$TasksViewModel$error: Throwable</ID>

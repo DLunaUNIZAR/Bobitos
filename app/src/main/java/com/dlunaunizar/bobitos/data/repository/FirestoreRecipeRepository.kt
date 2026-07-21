@@ -41,6 +41,7 @@ class FirestoreRecipeRepository @Inject constructor(
         title: String,
         description: String?,
         category: String?,
+        sourceRecipeId: String?,
     ) = runRecipeOperation {
         val user = requireVerifiedUser()
         val values = validate(title, description, category)
@@ -51,6 +52,7 @@ class FirestoreRecipeRepository @Inject constructor(
                 FIELD_TITLE to values.title,
                 FIELD_DESCRIPTION to values.description,
                 FIELD_CATEGORY to values.category,
+                FIELD_SOURCE_RECIPE_ID to sourceRecipeId,
                 FIELD_CREATED_BY to user.id,
                 FIELD_CREATED_BY_NAME to user.recipeDisplayName,
                 FIELD_CREATED_AT to FieldValue.serverTimestamp(),
@@ -162,6 +164,7 @@ class FirestoreRecipeRepository @Inject constructor(
         const val FIELD_TITLE = "title"
         const val FIELD_DESCRIPTION = "description"
         const val FIELD_CATEGORY = "category"
+        const val FIELD_SOURCE_RECIPE_ID = "sourceRecipeId"
         const val FIELD_CREATED_BY = "createdBy"
         const val FIELD_CREATED_BY_NAME = "createdByName"
         const val FIELD_CREATED_AT = "createdAt"
@@ -190,6 +193,7 @@ private fun DocumentSnapshot.toRecipe(): Recipe? {
         title = getString("title") ?: return null,
         description = getString("description"),
         category = getString("category"),
+        sourceRecipeId = getString("sourceRecipeId"),
         createdBy = getString("createdBy") ?: return null,
         createdByName = getString("createdByName") ?: getString("createdBy") ?: return null,
         createdAt = createdAt,

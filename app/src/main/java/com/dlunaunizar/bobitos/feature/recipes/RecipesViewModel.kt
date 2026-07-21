@@ -3,7 +3,11 @@ package com.dlunaunizar.bobitos.feature.recipes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.Recipe
+import com.dlunaunizar.bobitos.core.model.RecipeVisibility
+import com.dlunaunizar.bobitos.data.repository.RecipeFailure
 import com.dlunaunizar.bobitos.data.repository.RecipeRepository
+import com.dlunaunizar.bobitos.data.repository.RecipeRepositoryException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,4 +53,84 @@ class RecipesViewModel @Inject constructor(private val repository: RecipeReposit
     fun setQuery(query: String) {
         mutableUiState.update { it.copy(query = query) }
     }
+
+    fun createRecipe(title: String, description: String?, category: String?) {
+        if (!validate(title, description, category)) return
+        runAction(RecipeUiMessage.RecipeSaved) {
+            repository.createRecipe(
+                visibility = RecipeVisibility.PRIVATE,
+                title = title.trim(),
+                description = description.normalized(),
+                category = category.normalized(),
+                sourceRecipeId = null,
+            )
+        }
+    }
+
+    fun updateRecipe(recipeId: String, title: String, description: String?, category: String?) {
+        if (!validate(title, description, category)) return
+        runAction(RecipeUiMessage.RecipeSaved) {
+            repository.updateRecipe(recipeId, title.trim(), description.normalized(), category.normalized())
+        }
+    }
+
+    fun deleteRecipe(recipeId: String) {
+        runAction(RecipeUiMessage.RecipeDeleted) { repository.deleteRecipe(recipeId) }
+    }
+
+    fun fork(source: Recipe) {
+        runAction(RecipeUiMessage.RecipeForked) {
+            repository.createRecipe(
+                visibility = RecipeVisibility.PRIVATE,
+                title = source.title,
+                description = source.description,
+                category = source.category,
+                sourceRecipeId = source.id,
+            )
+        }
+    }
+
+    fun clearFeedback() {
+        mutableUiState.update { it.copy(error = null, notice = null) }
+    }
+
+    private fun validate(title: String, description: String?, category: String?): Boolean {
+        val error = RecipesValidation.validate(title, description, category) ?: return true
+        showError(error)
+        return false
+    }
+
+    private fun showError(message: RecipeUiMessage) {
+        mutableUiState.update { it.copy(isSaving = false, error = message, notice = null) }
+    }
+
+    private fun runAction(successNotice: RecipeUiMessage, action: suspend () -> Unit) {
+        if (mutableUiState.value.isSaving) return
+        mutableUiState.update { it.copy(isSaving = true, error = null, notice = null) }
+        viewModelScope.launch {
+            try {
+                action()
+                mutableUiState.update { it.copy(isSaving = false, notice = successNotice) }
+            } catch (error: Throwable) {
+                showError(error.toUiMessage())
+            }
+        }
+    }
+}
+
+private fun String?.normalized(): String? = this?.trim()?.takeIf(String::isNotEmpty)
+
+private fun Throwable.toUiMessage(): RecipeUiMessage = when ((this as? RecipeRepositoryException)?.failure) {
+    RecipeFailure.TitleRequired -> RecipeUiMessage.TitleRequired
+    RecipeFailure.TitleTooLong -> RecipeUiMessage.TitleTooLong
+    RecipeFailure.DescriptionTooLong -> RecipeUiMessage.DescriptionTooLong
+    RecipeFailure.CategoryTooLong -> RecipeUiMessage.CategoryTooLong
+    RecipeFailure.NotAuthenticated -> RecipeUiMessage.NotAuthenticated
+    RecipeFailure.EmailNotVerified -> RecipeUiMessage.EmailNotVerified
+    RecipeFailure.RecipeNotFound -> RecipeUiMessage.RecipeNotFound
+    RecipeFailure.PermissionDenied -> RecipeUiMessage.PermissionDenied
+    RecipeFailure.Network -> RecipeUiMessage.NetworkError
+    RecipeFailure.Unknown,
+    null,
+    -> RecipeUiMessage.UnexpectedError
 }

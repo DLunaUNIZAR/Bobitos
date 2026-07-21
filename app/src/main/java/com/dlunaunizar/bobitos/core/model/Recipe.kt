@@ -14,6 +14,7 @@ data class Recipe(
     val title: String,
     val description: String?,
     val category: String?,
+    val sourceRecipeId: String? = null,
     val createdBy: String,
     val createdByName: String,
     val createdAt: Instant,

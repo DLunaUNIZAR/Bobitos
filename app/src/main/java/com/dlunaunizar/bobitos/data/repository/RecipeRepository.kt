@@ -9,7 +9,13 @@ interface RecipeRepository {
 
     fun myRecipes(): Flow<List<Recipe>>
 
-    suspend fun createRecipe(visibility: RecipeVisibility, title: String, description: String?, category: String?)
+    suspend fun createRecipe(
+        visibility: RecipeVisibility,
+        title: String,
+        description: String?,
+        category: String?,
+        sourceRecipeId: String?,
+    )
 
     suspend fun updateRecipe(recipeId: String, title: String, description: String?, category: String?)
 

@@ -42,11 +42,47 @@ class RecipesViewModelTest {
 
         assertEquals("lente", viewModel.uiState.value.query)
     }
+
+    @Test
+    fun `creating a recipe trims the title and reports success`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.createRecipe("  Tortilla  ", "  ", null)
+        advanceUntilIdle()
+
+        assertEquals(1, repository.createCount)
+        assertEquals(RecipeVisibility.PRIVATE, repository.lastVisibility)
+        assertEquals("Tortilla", repository.lastTitle)
+        assertEquals(null, repository.lastSourceRecipeId)
+        assertEquals(RecipeUiMessage.RecipeSaved, viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun `an invalid recipe never reaches the repository`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.createRecipe("   ", null, null)
+
+        assertEquals(0, repository.createCount)
+        assertEquals(RecipeUiMessage.TitleRequired, viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `fork copies the source recipe and marks its origin`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.fork(recipe("origin", RecipeVisibility.GLOBAL, "Paella común"))
+        advanceUntilIdle()
+
+        assertEquals(1, repository.createCount)
+        assertEquals(RecipeVisibility.PRIVATE, repository.lastVisibility)
+        assertEquals("Paella común", repository.lastTitle)
+        assertEquals("origin", repository.lastSourceRecipeId)
+        assertEquals(RecipeUiMessage.RecipeForked, viewModel.uiState.value.notice)
+    }
 }
 
 private class FakeRecipeRepository : RecipeRepository {
     val globalState = MutableStateFlow<List<Recipe>>(emptyList())
     val mineState = MutableStateFlow<List<Recipe>>(emptyList())
+    var createCount = 0
+    var lastVisibility: RecipeVisibility? = null
+    var lastTitle: String? = null
+    var lastSourceRecipeId: String? = null
 
     override fun globalRecipes(): Flow<List<Recipe>> = globalState
     override fun myRecipes(): Flow<List<Recipe>> = mineState
@@ -55,17 +91,17 @@ private class FakeRecipeRepository : RecipeRepository {
         title: String,
         description: String?,
         category: String?,
+        sourceRecipeId: String?,
     ) {
-        error("no usado en el test")
+        createCount++
+        lastVisibility = visibility
+        lastTitle = title
+        lastSourceRecipeId = sourceRecipeId
     }
 
-    override suspend fun updateRecipe(recipeId: String, title: String, description: String?, category: String?) {
-        error("no usado en el test")
-    }
+    override suspend fun updateRecipe(recipeId: String, title: String, description: String?, category: String?) = Unit
 
-    override suspend fun deleteRecipe(recipeId: String) {
-        error("no usado en el test")
-    }
+    override suspend fun deleteRecipe(recipeId: String) = Unit
 }
 
 private fun recipe(id: String, visibility: RecipeVisibility, title: String) = Recipe(

@@ -806,8 +806,11 @@ service cloud.firestore {
         ])
         && request.resource.data.keys().hasOnly([
           "ownerUid", "visibility", "title", "description", "category",
-          "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt"
+          "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt", "sourceRecipeId"
         ])
+        && (!request.resource.data.keys().hasAny(["sourceRecipeId"])
+          || request.resource.data.sourceRecipeId == null
+          || request.resource.data.sourceRecipeId is string)
         && request.resource.data.ownerUid is string
         && request.resource.data.visibility in ["GLOBAL", "PRIVATE"]
         && request.resource.data.title is string
