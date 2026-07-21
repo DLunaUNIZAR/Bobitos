@@ -17,6 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material3.AlertDialog
@@ -56,6 +57,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
+import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
+import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
+import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.RecurrenceUnit
 import com.dlunaunizar.bobitos.core.model.SpaceMember
@@ -117,15 +121,14 @@ fun TasksScreen(
         TaskTabSelector(tab, onSelect = { tab = it })
         val tabTasks = visibleTasks.filter { (it.recurrence != null) == (tab == TaskTab.RECURRENTES) }
         when (val tasks = state.tasks) {
-            UiState.Loading -> Text(stringResource(R.string.generic_loading))
-            is UiState.Error -> Text(
-                tasks.message ?: stringResource(R.string.generic_error),
-                color = MaterialTheme.colorScheme.error,
-            )
+            UiState.Loading -> LoadingState(Modifier.weight(1f))
+            is UiState.Error -> ErrorState(Modifier.weight(1f), message = tasks.message)
             is UiState.Content -> if (tabTasks.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(stringResource(if (allTasks.isEmpty()) R.string.tasks_empty else R.string.tasks_no_results))
-                }
+                EmptyState(
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Rounded.Checklist,
+                    title = stringResource(if (allTasks.isEmpty()) R.string.tasks_empty else R.string.tasks_no_results),
+                )
             } else {
                 LazyColumn(
                     modifier = Modifier.weight(1f),

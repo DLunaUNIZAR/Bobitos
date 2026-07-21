@@ -97,6 +97,7 @@
     <string name="more_options">Más opciones</string>
     <string name="generic_loading">Cargando…</string>
     <string name="generic_error">No se ha podido cargar la información.</string>
+    <string name="retry">Reintentar</string>
     <string name="sync_offline">Sin conexión · datos desactualizados · solo lectura</string>
     <string name="sync_refreshing">Actualizando datos antes de permitir cambios…</string>
     <string name="write_saving">Guardando…</string>
@@ -292,6 +293,7 @@
     <string name="recipes_section_mine">Mis recetas</string>
     <string name="recipes_section_global">Recetas comunes</string>
     <string name="recipes_empty">Aún no hay recetas aquí.</string>
+    <string name="recipes_no_results">Sin resultados para tu búsqueda.</string>
     <string name="recipes_by">por %1$s</string>
     <string name="recipes_no_description">Sin descripción.</string>
     <string name="recipes_category">Categoría: %1$s</string>
