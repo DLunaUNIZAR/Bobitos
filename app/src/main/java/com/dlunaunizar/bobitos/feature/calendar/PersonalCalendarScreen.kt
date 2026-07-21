@@ -19,9 +19,11 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.core.model.SyncStatus
@@ -56,7 +58,7 @@ fun PersonalCalendarScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text("Mi calendario", style = MaterialTheme.typography.headlineMedium)
+        Text(stringResource(R.string.my_calendar_title), style = MaterialTheme.typography.headlineMedium)
         SyncStatusBanner(syncStatus)
         CalendarPeriodHeader(
             date = state.focusedDate,
@@ -116,10 +118,10 @@ private fun SpaceFilters(
     onSelectAll: () -> Unit,
     onClear: () -> Unit,
 ) {
-    Text("Espacios", style = MaterialTheme.typography.titleSmall)
+    Text(stringResource(R.string.my_calendar_spaces), style = MaterialTheme.typography.titleSmall)
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        item { AssistChip(onClick = onSelectAll, label = { Text("Todos") }) }
-        item { AssistChip(onClick = onClear, label = { Text("Ninguno") }) }
+        item { AssistChip(onClick = onSelectAll, label = { Text(stringResource(R.string.my_calendar_all_spaces)) }) }
+        item { AssistChip(onClick = onClear, label = { Text(stringResource(R.string.my_calendar_none_spaces)) }) }
         items(spaces, key = SpaceSummary::id) { space ->
             FilterChip(
                 selected = space.id in selectedIds,
@@ -149,7 +151,7 @@ private fun PersonalWeekEventList(
             }
             val dayEvents = events.eventsOn(date)
             if (dayEvents.isEmpty()) {
-                item("empty-$date") { Text("Sin eventos") }
+                item("empty-$date") { Text(stringResource(R.string.calendar_no_events)) }
             } else {
                 items(dayEvents, key = { "$date-${it.spaceId}-${it.event.id}" }) { item ->
                     PersonalEventRow(item) {
@@ -168,7 +170,7 @@ private fun PersonalEventList(
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        if (events.isEmpty()) item { Text("No participas en ningún evento de este intervalo") }
+        if (events.isEmpty()) item { Text(stringResource(R.string.my_calendar_empty)) }
         items(events, key = { "${it.spaceId}-${it.event.id}" }) { item ->
             PersonalEventRow(item) {
                 onSelected(item.spaceId, item.event.id, item.event.displayStartDate(ZoneId.systemDefault()))
@@ -185,7 +187,7 @@ private fun PersonalEventRow(item: PersonalCalendarEvent, onClick: () -> Unit) {
             Text(item.spaceName, color = MaterialTheme.colorScheme.primary)
             Text(
                 if (item.event.allDay) {
-                    "Todo el día"
+                    stringResource(R.string.calendar_all_day)
                 } else {
                     item.event.startAt.atZone(ZoneId.systemDefault())
                         .format(DateTimeFormatter.ofPattern("dd/MM HH:mm"))
