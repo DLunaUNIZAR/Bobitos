@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -45,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.model.SpaceRole
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.core.model.SyncStatus
@@ -153,7 +155,15 @@ private fun SpacesContent(
             }
 
             if (spaces.isEmpty()) {
-                SpacesEmptyState(modifier = Modifier.weight(1f))
+                SpacesEmptyState(
+                    enabled = !managementState.isLoading && canWrite,
+                    onCreate = { showCreateDialog = true },
+                    onJoin = {
+                        invitationCode = ""
+                        showJoinDialog = true
+                    },
+                    modifier = Modifier.weight(1f),
+                )
             } else {
                 LazyColumn(
                     modifier = Modifier.weight(1f),
@@ -207,21 +217,27 @@ private fun SpacesContent(
 }
 
 @Composable
-private fun SpacesEmptyState(modifier: Modifier = Modifier) {
+private fun SpacesEmptyState(
+    enabled: Boolean,
+    onCreate: () -> Unit,
+    onJoin: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            text = stringResource(R.string.spaces_empty),
-            style = MaterialTheme.typography.titleMedium,
+        EmptyState(
+            icon = Icons.Rounded.Groups,
+            title = stringResource(R.string.spaces_empty),
+            description = stringResource(R.string.spaces_empty_hint),
+            actionLabel = if (enabled) stringResource(R.string.space_create) else null,
+            onAction = onCreate.takeIf { enabled },
         )
-        Text(
-            text = stringResource(R.string.spaces_description),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        TextButton(onClick = onJoin, enabled = enabled) {
+            Text(stringResource(R.string.invitation_join))
+        }
     }
 }
 
