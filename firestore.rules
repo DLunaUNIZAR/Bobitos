@@ -946,6 +946,17 @@ service cloud.firestore {
       allow delete: if ownsOrCuratesIngredient();
     }
 
+    // Preferencias de ingredientes por usuario (supermercado/marca por defecto): documento privado del
+    // propio usuario, con un único campo `entries` (mapa ingredienteId → {supermarket?, brand?}). Solo
+    // el dueño lee/escribe. Sin get()/exists().
+    match /ingredientPrefs/{userId} {
+      allow read: if verifiedUser() && userId == request.auth.uid;
+      allow write: if verifiedUser() && userId == request.auth.uid
+        && request.resource.data.keys().hasOnly(["entries"])
+        && request.resource.data.entries is map
+        && request.resource.data.entries.size() <= 2000;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

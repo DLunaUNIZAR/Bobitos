@@ -1249,6 +1249,27 @@ test("una ficha del catálogo congela su ownerUid y rechaza campos ajenos al con
   await assertFails(setDoc(doc(chef, "ingredients", "vacio"), ingredientData("ing-shape", { name: "" })));
 });
 
+test("las preferencias de ingredientes solo las lee y escribe su dueño", async () => {
+  const alice = verifiedFirestore("pref-alice");
+  const bob = verifiedFirestore("pref-bob");
+
+  await assertSucceeds(
+    setDoc(
+      doc(alice, "ingredientPrefs", "pref-alice"),
+      { entries: { tomate: { supermarket: "MERCADONA", brand: "Hacendado" } } },
+      { merge: true },
+    ),
+  );
+  await assertSucceeds(getDoc(doc(alice, "ingredientPrefs", "pref-alice")));
+  await assertFails(getDoc(doc(bob, "ingredientPrefs", "pref-alice")));
+  await assertFails(
+    setDoc(doc(bob, "ingredientPrefs", "pref-alice"), { entries: { tomate: { supermarket: "DIA" } } }, { merge: true }),
+  );
+  await assertFails(
+    setDoc(doc(alice, "ingredientPrefs", "pref-alice"), { entries: {}, hacked: true }, { merge: true }),
+  );
+});
+
 function ingredientData(userId, overrides = {}) {
   return {
     name: "Tomate",
