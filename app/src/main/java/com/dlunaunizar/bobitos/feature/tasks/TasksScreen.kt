@@ -53,6 +53,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -390,7 +392,12 @@ private fun TaskCard(
         colors = task.type?.let { categoryCardColors(it.accent()) } ?: CardDefaults.cardColors(),
     ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
-            Checkbox(task.status == TaskStatus.DONE, onCheckedChange = onSetCompleted, enabled = enabled)
+            Checkbox(
+                checked = task.status == TaskStatus.DONE,
+                onCheckedChange = onSetCompleted,
+                enabled = enabled,
+                modifier = Modifier.semantics { contentDescription = task.title },
+            )
             Column(Modifier.weight(1f)) {
                 Text(
                     task.title,
