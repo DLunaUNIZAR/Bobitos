@@ -3,8 +3,11 @@ package com.dlunaunizar.bobitos.feature.meals
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
+import com.dlunaunizar.bobitos.core.model.slug
+import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.MealFailure
 import com.dlunaunizar.bobitos.data.repository.MealRepository
 import com.dlunaunizar.bobitos.data.repository.MealRepositoryException
@@ -32,6 +35,7 @@ class MealsViewModel @Inject constructor(
     private val spaces: SpaceRepository,
     private val recipeRepository: RecipeRepository,
     private val shoppingRepository: ShoppingRepository,
+    private val ingredientPrefsRepository: IngredientPrefsRepository,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(MealsUiState())
     val uiState: StateFlow<MealsUiState> = mutableUiState.asStateFlow()
@@ -41,8 +45,13 @@ class MealsViewModel @Inject constructor(
     private var mealsJob: Job? = null
     private var membersJob: Job? = null
     private var recipesJob: Job? = null
+    private var prefsJob: Job? = null
+
+    // Preferencias del usuario (super/marca por defecto por ingrediente), para prerrellenar la compra.
+    private var ingredientPrefs: Map<String, IngredientPref> = emptyMap()
 
     fun observe(spaceId: String) {
+        observePrefs()
         if (spaceId == observedSpaceId && mealsJob?.isActive == true) return
         observedSpaceId = spaceId
         observeWeek(spaceId)
@@ -63,13 +72,24 @@ class MealsViewModel @Inject constructor(
         }
     }
 
+    private fun observePrefs() {
+        if (prefsJob?.isActive == true) return
+        prefsJob = viewModelScope.launch {
+            ingredientPrefsRepository.prefs()
+                .catch { ingredientPrefs = emptyMap() }
+                .collect { prefs -> ingredientPrefs = prefs }
+        }
+    }
+
     fun stopObserving() {
         mealsJob?.cancel()
         membersJob?.cancel()
         recipesJob?.cancel()
+        prefsJob?.cancel()
         mealsJob = null
         membersJob = null
         recipesJob = null
+        prefsJob = null
         observedSpaceId = null
         observedWeekStart = null
     }
@@ -187,7 +207,8 @@ class MealsViewModel @Inject constructor(
                         existing.brand,
                     )
                 } else {
-                    shoppingRepository.addItem(spaceId, row.name, quantity, row.unit, null, null)
+                    val pref = ingredientPrefs[slug(row.name)]
+                    shoppingRepository.addItem(spaceId, row.name, quantity, row.unit, pref?.supermarket, pref?.brand)
                 }
             }
         }

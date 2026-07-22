@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Kitchen
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.AlertDialog
@@ -77,6 +78,7 @@ fun MealsScreen(
     spaceId: String,
     canWrite: Boolean,
     onOpenRecipes: () -> Unit,
+    onOpenIngredients: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: MealsViewModel = hiltViewModel(),
 ) {
@@ -118,6 +120,9 @@ fun MealsScreen(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.weight(1f),
             )
+            IconButton(onClick = onOpenIngredients) {
+                Icon(Icons.Rounded.Kitchen, contentDescription = stringResource(R.string.ingredients_open))
+            }
             TextButton(onClick = onOpenRecipes) {
                 Icon(Icons.Rounded.MenuBook, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
