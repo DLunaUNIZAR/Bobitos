@@ -3,8 +3,15 @@ package com.dlunaunizar.bobitos.feature.ingredients
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.Nutrition
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.core.model.slug
+import com.dlunaunizar.bobitos.data.openfoodfacts.OffException
+import com.dlunaunizar.bobitos.data.openfoodfacts.OffFailure
+import com.dlunaunizar.bobitos.data.openfoodfacts.OpenFoodFactsClient
+import com.dlunaunizar.bobitos.data.repository.BrandFailure
+import com.dlunaunizar.bobitos.data.repository.BrandRepositoryException
+import com.dlunaunizar.bobitos.data.repository.IngredientBrandRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientFailure
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefFailure
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefsException
@@ -25,6 +32,8 @@ import javax.inject.Inject
 class IngredientsViewModel @Inject constructor(
     private val repository: IngredientRepository,
     private val prefsRepository: IngredientPrefsRepository,
+    private val brandRepository: IngredientBrandRepository,
+    private val openFoodFactsClient: OpenFoodFactsClient,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(IngredientsUiState())
     val uiState: StateFlow<IngredientsUiState> = mutableUiState.asStateFlow()
@@ -99,6 +108,57 @@ class IngredientsViewModel @Inject constructor(
         runAction(IngredientUiMessage.PrefCleared) { prefsRepository.clearPref(ingredientId) }
     }
 
+    /** Consulta Open Food Facts por el código escaneado y deja un producto pendiente de convertir. */
+    fun lookupBarcode(barcode: String) {
+        if (mutableUiState.value.isLookingUp) return
+        mutableUiState.update { it.copy(isLookingUp = true, error = null, notice = null) }
+        viewModelScope.launch {
+            try {
+                val product = openFoodFactsClient.lookup(barcode)
+                val suggested = product?.productName ?: product?.brand.orEmpty()
+                mutableUiState.update {
+                    it.copy(
+                        isLookingUp = false,
+                        scannedProduct = ScannedProduct(
+                            suggestedName = suggested,
+                            brandName = product?.brand ?: suggested,
+                            barcode = barcode,
+                            nutrition = product?.nutrition,
+                        ),
+                        notice = if (product == null) IngredientUiMessage.ScanNotFound else null,
+                    )
+                }
+            } catch (error: OffException) {
+                mutableUiState.update { it.copy(isLookingUp = false, error = error.failure.toUiMessage()) }
+            }
+        }
+    }
+
+    fun consumeScannedProduct() {
+        mutableUiState.update { it.copy(scannedProduct = null) }
+    }
+
+    /** Crea el ingrediente (si no existe ya) y le añade la marca escaneada con su nutrición. */
+    fun createIngredientFromScan(
+        name: String,
+        category: String?,
+        defaultUnit: String?,
+        brandName: String,
+        barcode: String,
+        nutrition: Nutrition?,
+    ) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) {
+            showError(IngredientUiMessage.NameRequired)
+            return
+        }
+        val id = slug(trimmed)
+        runAction(IngredientUiMessage.Saved) {
+            if (!catalogContains(id)) repository.createIngredient(trimmed, category, defaultUnit)
+            brandRepository.addBrand(id, brandName.ifBlank { trimmed }, barcode.takeIf(String::isNotBlank), nutrition)
+        }
+    }
+
     fun clearFeedback() {
         mutableUiState.update { it.copy(error = null, notice = null) }
     }
@@ -127,7 +187,25 @@ class IngredientsViewModel @Inject constructor(
 private fun Throwable.toUiMessage(): IngredientUiMessage = when (this) {
     is IngredientRepositoryException -> failure.toUiMessage()
     is IngredientPrefsException -> failure.toUiMessage()
+    is BrandRepositoryException -> failure.toUiMessage()
     else -> IngredientUiMessage.UnexpectedError
+}
+
+private fun OffFailure.toUiMessage(): IngredientUiMessage = when (this) {
+    OffFailure.Network -> IngredientUiMessage.ScanFailed
+    OffFailure.Unknown -> IngredientUiMessage.ScanFailed
+}
+
+private fun BrandFailure.toUiMessage(): IngredientUiMessage = when (this) {
+    BrandFailure.NameRequired -> IngredientUiMessage.BrandNameRequired
+    BrandFailure.NameTooLong -> IngredientUiMessage.BrandNameTooLong
+    BrandFailure.BarcodeTooLong -> IngredientUiMessage.BarcodeTooLong
+    BrandFailure.BrandNotFound -> IngredientUiMessage.BrandNotFound
+    BrandFailure.NotAuthenticated -> IngredientUiMessage.NotAuthenticated
+    BrandFailure.EmailNotVerified -> IngredientUiMessage.EmailNotVerified
+    BrandFailure.PermissionDenied -> IngredientUiMessage.PermissionDenied
+    BrandFailure.Network -> IngredientUiMessage.NetworkError
+    BrandFailure.Unknown -> IngredientUiMessage.UnexpectedError
 }
 
 private fun IngredientFailure.toUiMessage(): IngredientUiMessage = when (this) {

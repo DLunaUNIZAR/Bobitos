@@ -120,7 +120,8 @@ fun IngredientDetailScreen(
                 )
                 PreferenceSection(
                     pref = state.pref,
-                    brandNames = state.brands.map(IngredientBrand::name),
+                    // Únicos y sin vacíos: son la clave de los chips (nombres repetidos harían crashear la LazyRow).
+                    brandNames = state.brands.map(IngredientBrand::name).filter(String::isNotBlank).distinct(),
                     saving = state.isSaving,
                     onSave = viewModel::setPref,
                     onClear = viewModel::clearPref,
