@@ -2,6 +2,11 @@ package com.dlunaunizar.bobitos.core.navigation
 
 import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,6 +65,7 @@ import com.dlunaunizar.bobitos.app.AppUiState
 import com.dlunaunizar.bobitos.app.RealtimeScope
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.rememberReduceMotion
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
@@ -169,6 +175,7 @@ fun BobitosNavHost(
         }
     }
 
+    val reduceMotion = rememberReduceMotion()
     NavHost(
         navController = navController,
         startDestination = if (uiState.selectedSpace == null) {
@@ -177,6 +184,10 @@ fun BobitosNavHost(
             BobitosDestination.SpaceHome.route
         },
         modifier = modifier.fillMaxSize(),
+        enterTransition = { if (reduceMotion) EnterTransition.None else fadeIn(tween(NAV_ANIM_MS)) },
+        exitTransition = { if (reduceMotion) ExitTransition.None else fadeOut(tween(NAV_ANIM_MS)) },
+        popEnterTransition = { if (reduceMotion) EnterTransition.None else fadeIn(tween(NAV_ANIM_MS)) },
+        popExitTransition = { if (reduceMotion) ExitTransition.None else fadeOut(tween(NAV_ANIM_MS)) },
     ) {
         composable(BobitosDestination.Spaces.route) {
             RootScaffold(
@@ -718,3 +729,4 @@ private fun NavHostController.navigateToProfile() {
 }
 
 private const val CALENDAR_EVENT_ROUTE = "calendar-event/{eventId}/{date}"
+private const val NAV_ANIM_MS = 220

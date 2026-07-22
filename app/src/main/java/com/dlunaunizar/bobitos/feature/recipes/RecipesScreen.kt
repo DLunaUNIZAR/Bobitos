@@ -255,7 +255,7 @@ private fun LazyListScope.recipesSection(
                 }
             } else {
                 items(filtered, key = { "$titleRes-${it.id}" }) { recipe ->
-                    RecipeCard(recipe = recipe, onClick = { onOpen(recipe) })
+                    RecipeCard(recipe = recipe, onClick = { onOpen(recipe) }, modifier = Modifier.animateItem())
                 }
             }
         }
@@ -286,9 +286,9 @@ private fun CategoryFilter(categories: List<String>, selected: String?, onSelect
 }
 
 @Composable
-private fun RecipeCard(recipe: Recipe, onClick: () -> Unit) {
+private fun RecipeCard(recipe: Recipe, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
     ) {

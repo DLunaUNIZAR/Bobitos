@@ -182,6 +182,7 @@ fun TasksScreen(
                             endAction = SwipeAction(Icons.Rounded.Delete, deleteColor) {
                                 deleteTaskWithUndo(task)
                             }.takeIf { enabled },
+                            modifier = Modifier.animateItem(),
                         ) {
                             TaskCard(
                                 task,
