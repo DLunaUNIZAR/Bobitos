@@ -26,6 +26,8 @@ enum class IngredientUiMessage {
     PrefCleared,
     BrandSaved,
     BrandDeleted,
+    ScanNotFound,
+    ScanFailed,
 }
 
 @get:StringRes
@@ -52,4 +54,6 @@ internal val IngredientUiMessage.stringResourceId: Int
         IngredientUiMessage.PrefCleared -> R.string.ingredients_notice_pref_cleared
         IngredientUiMessage.BrandSaved -> R.string.ingredients_brand_notice_saved
         IngredientUiMessage.BrandDeleted -> R.string.ingredients_brand_notice_deleted
+        IngredientUiMessage.ScanNotFound -> R.string.ingredients_brand_scan_not_found
+        IngredientUiMessage.ScanFailed -> R.string.ingredients_brand_scan_error
     }

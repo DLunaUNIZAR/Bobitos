@@ -6,6 +6,10 @@ import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Nutrition
 import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.dlunaunizar.bobitos.data.openfoodfacts.OffException
+import com.dlunaunizar.bobitos.data.openfoodfacts.OffFailure
+import com.dlunaunizar.bobitos.data.openfoodfacts.OffProduct
+import com.dlunaunizar.bobitos.data.openfoodfacts.OpenFoodFactsClient
 import com.dlunaunizar.bobitos.data.repository.IngredientBrandRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientRepository
@@ -29,7 +33,8 @@ class IngredientDetailViewModelTest {
     private val repository = DetailFakeIngredientRepo()
     private val prefsRepository = DetailFakePrefsRepo()
     private val brandRepository = DetailFakeBrandRepo()
-    private val viewModel = IngredientDetailViewModel(repository, prefsRepository, brandRepository)
+    private val offClient = DetailFakeOffClient()
+    private val viewModel = IngredientDetailViewModel(repository, prefsRepository, brandRepository, offClient)
 
     @Test
     fun `observe loads the ingredient, its brands and pref`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -91,6 +96,47 @@ class IngredientDetailViewModelTest {
         val state = viewModel.uiState.value
         assertEquals(true, state.canEditBrand(detailBrand("b1", "tomate", "Mía", owner = "me")))
         assertEquals(false, state.canEditBrand(detailBrand("b2", "tomate", "Ajena", owner = "otro")))
+    }
+
+    @Test
+    fun `scanning a known barcode leaves a prefilled brand draft`() = runTest(mainDispatcherRule.testDispatcher) {
+        offClient.result = OffProduct("Tomate frito", "Hacendado", Nutrition(energyKcal = 80.0))
+        viewModel.observe("tomate")
+        advanceUntilIdle()
+
+        viewModel.lookupBarcode("8410000000000")
+        advanceUntilIdle()
+
+        val draft = viewModel.uiState.value.scannedBrand
+        assertEquals("Hacendado", draft?.name)
+        assertEquals("8410000000000", draft?.barcode)
+        assertEquals(Nutrition(energyKcal = 80.0), draft?.nutrition)
+    }
+
+    @Test
+    fun `scanning an unknown barcode still opens a draft with a notice`() = runTest(mainDispatcherRule.testDispatcher) {
+        offClient.result = null
+        viewModel.observe("tomate")
+        advanceUntilIdle()
+
+        viewModel.lookupBarcode("0000000000000")
+        advanceUntilIdle()
+
+        assertEquals("0000000000000", viewModel.uiState.value.scannedBrand?.barcode)
+        assertEquals(IngredientUiMessage.ScanNotFound, viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun `a network error while scanning surfaces an error`() = runTest(mainDispatcherRule.testDispatcher) {
+        offClient.failure = OffException(OffFailure.Network)
+        viewModel.observe("tomate")
+        advanceUntilIdle()
+
+        viewModel.lookupBarcode("8410000000000")
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.scannedBrand)
+        assertEquals(IngredientUiMessage.ScanFailed, viewModel.uiState.value.error)
     }
 
     @Test
@@ -169,4 +215,14 @@ private class DetailFakeBrandRepo : IngredientBrandRepository {
     ) = Unit
 
     override suspend fun deleteBrand(ingredientId: String, brandId: String) = Unit
+}
+
+private class DetailFakeOffClient : OpenFoodFactsClient {
+    var result: OffProduct? = null
+    var failure: OffException? = null
+
+    override suspend fun lookup(barcode: String): OffProduct? {
+        failure?.let { throw it }
+        return result
+    }
 }

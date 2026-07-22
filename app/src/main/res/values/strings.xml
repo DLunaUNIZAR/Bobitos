@@ -416,6 +416,9 @@
     <string name="ingredients_brand_error_not_found">No se encontró la marca.</string>
     <string name="ingredients_brand_notice_saved">Marca guardada</string>
     <string name="ingredients_brand_notice_deleted">Marca borrada</string>
+    <string name="ingredients_brand_scan">Escanear código</string>
+    <string name="ingredients_brand_scan_not_found">No encontramos el producto en Open Food Facts. Rellena la marca a mano.</string>
+    <string name="ingredients_brand_scan_error">No se pudo consultar Open Food Facts. Revisa tu conexión.</string>
     <string name="nutrition_section">Valores nutricionales (por 100 g/ml)</string>
     <string name="nutrition_energy_label">Energía (kcal)</string>
     <string name="nutrition_fat_label">Grasas (g)</string>

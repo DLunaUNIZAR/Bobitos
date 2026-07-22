@@ -2,6 +2,10 @@ package com.dlunaunizar.bobitos.data.di
 
 import com.dlunaunizar.bobitos.data.connectivity.AndroidConnectivityRepository
 import com.dlunaunizar.bobitos.data.connectivity.ConnectivityRepository
+import com.dlunaunizar.bobitos.data.openfoodfacts.HttpOpenFoodFactsClient
+import com.dlunaunizar.bobitos.data.openfoodfacts.HttpUrlOffHttpClient
+import com.dlunaunizar.bobitos.data.openfoodfacts.OffHttpClient
+import com.dlunaunizar.bobitos.data.openfoodfacts.OpenFoodFactsClient
 import com.dlunaunizar.bobitos.data.recipeimport.HtmlFetcher
 import com.dlunaunizar.bobitos.data.recipeimport.HttpUrlHtmlFetcher
 import com.dlunaunizar.bobitos.data.recipeimport.JsonLdRecipeImporter
@@ -86,6 +90,12 @@ abstract class DataModule {
     abstract fun bindIngredientBrandRepository(
         repository: FirestoreIngredientBrandRepository,
     ): IngredientBrandRepository
+
+    @Binds @Singleton
+    abstract fun bindOffHttpClient(client: HttpUrlOffHttpClient): OffHttpClient
+
+    @Binds @Singleton
+    abstract fun bindOpenFoodFactsClient(client: HttpOpenFoodFactsClient): OpenFoodFactsClient
 
     @Binds @Singleton
     abstract fun bindHtmlFetcher(fetcher: HttpUrlHtmlFetcher): HtmlFetcher
