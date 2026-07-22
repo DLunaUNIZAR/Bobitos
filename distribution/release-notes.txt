@@ -1,16 +1,18 @@
-Beta de Bobitos — recordatorios, animaciones y accesibilidad.
+Beta de Bobitos — importar recetas de la web y base de datos de ingredientes.
 
 Novedades desde la beta anterior:
 
-Recordatorios
-- Nuevo: recordatorios locales para tus tareas con fecha y tus eventos, a su hora.
-- Actívalos en Perfil → «Recordatorios» (te pedirá permiso de notificaciones). Funcionan sin conexión y sin coste; se programan al abrir la app.
+Importar recetas desde internet
+- Nuevo: en el Recetario, «Importar de una web» (icono de enlace). Pega la dirección de una receta y la app la descarga y rellena sola (título, categoría, ingredientes y pasos) para que la revises antes de guardar.
+- También puedes compartir el enlace desde el navegador: Compartir → Bobitos.
+- Funciona con webs que publican sus recetas en formato estándar; si no, te avisa para crearla a mano.
 
-Interfaz
-- Animaciones sutiles: transiciones al cambiar de pantalla y al añadir/quitar elementos de las listas. Respetan la opción del sistema «reducir movimiento».
-- Mejoras de accesibilidad para lectores de pantalla (nombres en casillas, ajustes del interruptor de recordatorios).
-- Ajuste en «Mi calendario»: la vista mensual muestra solo el calendario (pulsa un día para ver su detalle).
+Base de datos de ingredientes (nuevo módulo «Ingredientes», desde Comidas)
+- Catálogo común de ingredientes: cualquiera puede añadir los que falten; los edita/borra quien los creó.
+- Personalización tuya: fija el supermercado y la marca por defecto de cada ingrediente. Al pasar los ingredientes de una comida a la lista de la compra, llegan ya con tu supermercado y marca.
+- Marcas con valores nutricionales: cada ingrediente puede tener varias marcas, cada una con su energía, grasas, hidratos, azúcares, proteínas y sal (por 100 g/ml).
+- Escanear el código de barras: añade una marca escaneándola y se autocompletan nombre y valores nutricionales desde Open Food Facts (no necesita permiso de cámara).
 
-Incluye: espacios privados con invitaciones, lista de la compra compartida, tareas asignables, calendario compartido, planificador de comidas con recetario e ingredientes, buscadores, gestos de deslizar y modo sin conexión de solo lectura.
+Incluye: espacios privados con invitaciones, lista de la compra compartida, tareas asignables, calendario compartido, planificador de comidas con recetario e ingredientes, importación de recetas web, recordatorios locales, buscadores, gestos de deslizar y modo sin conexión de solo lectura.
 
 Comunica cualquier error indicando el modelo del dispositivo, la versión de Android y los pasos para reproducirlo.
