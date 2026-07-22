@@ -286,7 +286,6 @@
     <string name="my_calendar_spaces">Espacios</string>
     <string name="my_calendar_all_spaces">Todos</string>
     <string name="my_calendar_none_spaces">Ninguno</string>
-    <string name="my_calendar_empty">No participas en ningún evento de este intervalo</string>
     <string name="my_calendar_pick_space">¿En qué espacio?</string>
     <string name="meals_title">Comidas</string>
     <string name="meal_slot_desayuno">Desayuno</string>
