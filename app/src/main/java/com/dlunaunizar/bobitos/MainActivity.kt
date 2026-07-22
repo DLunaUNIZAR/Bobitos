@@ -18,6 +18,7 @@ import com.dlunaunizar.bobitos.core.designsystem.theme.BobitosTheme
 import com.dlunaunizar.bobitos.core.designsystem.theme.ThemeMode
 import com.dlunaunizar.bobitos.core.model.InvitationCode
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
+import com.dlunaunizar.bobitos.core.navigation.RecipeShareUrl
 import com.dlunaunizar.bobitos.feature.auth.AuthViewModel
 import com.dlunaunizar.bobitos.feature.auth.ThemeViewModel
 import com.dlunaunizar.bobitos.feature.spaces.SpacesViewModel
@@ -31,16 +32,19 @@ class MainActivity : ComponentActivity() {
     private val spacesViewModel: SpacesViewModel by viewModels()
     private val themeViewModel: ThemeViewModel by viewModels()
     private val pendingInvitationCode = MutableStateFlow<String?>(null)
+    private val pendingRecipeImportUrl = MutableStateFlow<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         pendingInvitationCode.value = InvitationCode.fromDeepLink(intent?.dataString)
+        pendingRecipeImportUrl.value = recipeUrlFromShare(intent)
 
         setContent {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
             val authActionState by authViewModel.uiState.collectAsStateWithLifecycle()
             val spaceManagementState by spacesViewModel.uiState.collectAsStateWithLifecycle()
             val invitationCode by pendingInvitationCode.collectAsStateWithLifecycle()
+            val recipeImportUrl by pendingRecipeImportUrl.collectAsStateWithLifecycle()
             val themeMode by themeViewModel.themeMode.collectAsStateWithLifecycle()
             val darkTheme = when (themeMode) {
                 ThemeMode.LIGHT -> false
@@ -77,6 +81,8 @@ class MainActivity : ComponentActivity() {
                     onConsumeAcceptedSpace = spacesViewModel::consumeAcceptedSpace,
                     pendingInvitationCode = invitationCode,
                     onInvitationCodeConsumed = { pendingInvitationCode.value = null },
+                    pendingRecipeImportUrl = recipeImportUrl,
+                    onRecipeImportUrlConsumed = { pendingRecipeImportUrl.value = null },
                     onClearSpaceFeedback = spacesViewModel::clearFeedback,
                     onSignIn = authViewModel::signIn,
                     onRegister = authViewModel::register,
@@ -96,6 +102,13 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         pendingInvitationCode.value = InvitationCode.fromDeepLink(intent.dataString)
+        recipeUrlFromShare(intent)?.let { pendingRecipeImportUrl.value = it }
+    }
+
+    // Enlace de receta compartido desde otra app (ACTION_SEND text/plain), o null si no aplica.
+    private fun recipeUrlFromShare(intent: Intent?): String? {
+        if (intent?.action != Intent.ACTION_SEND || intent.type != "text/plain") return null
+        return RecipeShareUrl.from(intent.getStringExtra(Intent.EXTRA_TEXT))
     }
 
     private fun shareInvitation(invitation: SpaceInvitation) {

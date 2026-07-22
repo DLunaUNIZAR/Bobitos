@@ -111,6 +111,8 @@ fun BobitosNavHost(
     onConsumeAcceptedSpace: () -> Unit,
     pendingInvitationCode: String?,
     onInvitationCodeConsumed: () -> Unit,
+    pendingRecipeImportUrl: String?,
+    onRecipeImportUrlConsumed: () -> Unit,
     onClearSpaceFeedback: () -> Unit,
     onUpdateDisplayName: (String) -> Unit,
     onSignOut: () -> Unit,
@@ -158,6 +160,17 @@ fun BobitosNavHost(
             currentRoute != BobitosDestination.Spaces.route
         ) {
             navController.navigateToSpaces()
+        }
+    }
+
+    // Un enlace compartido desde el navegador abre el Recetario, que lanza la importación.
+    LaunchedEffect(pendingRecipeImportUrl, currentRoute) {
+        if (
+            pendingRecipeImportUrl != null &&
+            currentRoute != null &&
+            currentRoute != BobitosDestination.Recipes.route
+        ) {
+            navController.navigate(BobitosDestination.Recipes.route) { launchSingleTop = true }
         }
     }
 
@@ -415,6 +428,8 @@ fun BobitosNavHost(
             RecipesScreen(
                 onBack = { navController.popBackStack() },
                 canWrite = uiState.syncStatus.canWrite,
+                importUrl = pendingRecipeImportUrl,
+                onImportUrlConsumed = onRecipeImportUrlConsumed,
             )
         }
 
