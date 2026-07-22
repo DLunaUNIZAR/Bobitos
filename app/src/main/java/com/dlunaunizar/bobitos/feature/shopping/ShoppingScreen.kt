@@ -181,6 +181,7 @@ fun ShoppingScreen(
                                     endAction = SwipeAction(Icons.Rounded.Delete, deleteColor) {
                                         deleteItemWithUndo(item)
                                     }.takeIf { actionsEnabled },
+                                    modifier = Modifier.animateItem(),
                                 ) {
                                     ShoppingItemCard(
                                         item = item,
@@ -224,6 +225,7 @@ fun ShoppingScreen(
                                         endAction = SwipeAction(Icons.Rounded.Delete, deleteColor) {
                                             deleteItemWithUndo(item)
                                         }.takeIf { actionsEnabled },
+                                        modifier = Modifier.animateItem(),
                                     ) {
                                         ShoppingItemCard(
                                             item = item,
