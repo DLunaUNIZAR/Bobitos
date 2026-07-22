@@ -1,7 +1,13 @@
 package com.dlunaunizar.bobitos.feature.auth
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -19,6 +25,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -30,9 +37,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
@@ -40,6 +49,7 @@ import com.dlunaunizar.bobitos.core.designsystem.theme.ThemeMode
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.SyncStatus
 import com.dlunaunizar.bobitos.feature.common.SyncStatusBanner
+import com.dlunaunizar.bobitos.feature.reminders.RemindersViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,8 +65,24 @@ fun ProfileScreen(
     onClearFeedback: () -> Unit,
     modifier: Modifier = Modifier,
     themeViewModel: ThemeViewModel = hiltViewModel(),
+    remindersViewModel: RemindersViewModel = hiltViewModel(),
 ) {
     val themeMode by themeViewModel.themeMode.collectAsStateWithLifecycle()
+    val remindersEnabled by remindersViewModel.enabled.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) remindersViewModel.setEnabled(true)
+    }
+    val onRemindersChange: (Boolean) -> Unit = { checked ->
+        when {
+            !checked -> remindersViewModel.setEnabled(false)
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                PackageManager.PERMISSION_GRANTED ->
+                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            else -> remindersViewModel.setEnabled(true)
+        }
+    }
     var displayName by rememberSaveable(user.id) {
         mutableStateOf(user.displayName)
     }
@@ -138,6 +164,14 @@ fun ProfileScreen(
                 selected = themeMode,
                 onSelect = themeViewModel::setThemeMode,
             )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(stringResource(R.string.profile_reminders_label), modifier = Modifier.weight(1f))
+                Switch(checked = remindersEnabled, onCheckedChange = onRemindersChange)
+            }
             TextButton(onClick = { showPrivacy = true }) { Text(stringResource(R.string.privacy_policy_title)) }
             TextButton(enabled = !actionState.isLoading && canWrite, onClick = { showDeleteAccount = true }) {
                 Text(stringResource(R.string.account_delete), color = MaterialTheme.colorScheme.error)

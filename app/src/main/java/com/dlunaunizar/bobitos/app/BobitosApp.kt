@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
@@ -22,6 +23,7 @@ import com.dlunaunizar.bobitos.feature.auth.EmailVerificationScreen
 import com.dlunaunizar.bobitos.feature.auth.FullScreenLoading
 import com.dlunaunizar.bobitos.feature.auth.WelcomeScreen
 import com.dlunaunizar.bobitos.feature.auth.WelcomeViewModel
+import com.dlunaunizar.bobitos.feature.reminders.RemindersViewModel
 import com.dlunaunizar.bobitos.feature.spaces.SpaceManagementUiState
 
 @Composable
@@ -97,35 +99,42 @@ fun BobitosApp(
                     when (uiState.spaces) {
                         UiState.Loading -> FullScreenLoading()
                         is UiState.Error -> AppLoadError(uiState.spaces.message)
-                        is UiState.Content -> BobitosNavHost(
-                            navController = rememberNavController(),
-                            uiState = uiState,
-                            authUser = user,
-                            authActionState = authActionState,
-                            spaceManagementState = spaceManagementState,
-                            onSpaceSelected = onSpaceSelected,
-                            onRealtimeScopeChanged = onRealtimeScopeChanged,
-                            onCreateSpace = onCreateSpace,
-                            onObserveSpaceSettings = onObserveSpaceSettings,
-                            onStopObservingSpaceSettings = onStopObservingSpaceSettings,
-                            onRenameSpace = onRenameSpace,
-                            onLeaveSpace = onLeaveSpace,
-                            onRemoveMember = onRemoveMember,
-                            onTransferOwnership = onTransferOwnership,
-                            onDeleteSpace = onDeleteSpace,
-                            onCreateInvitation = onCreateInvitation,
-                            onRevokeInvitation = onRevokeInvitation,
-                            onAcceptInvitation = onAcceptInvitation,
-                            onShareInvitation = onShareInvitation,
-                            onConsumeAcceptedSpace = onConsumeAcceptedSpace,
-                            pendingInvitationCode = pendingInvitationCode,
-                            onInvitationCodeConsumed = onInvitationCodeConsumed,
-                            onClearSpaceFeedback = onClearSpaceFeedback,
-                            onUpdateDisplayName = onUpdateDisplayName,
-                            onSignOut = onSignOut,
-                            onDeleteAccount = onDeleteAccount,
-                            onClearAuthFeedback = onClearAuthFeedback,
-                        )
+                        is UiState.Content -> {
+                            val remindersViewModel: RemindersViewModel = hiltViewModel()
+                            val remindersEnabled by remindersViewModel.enabled.collectAsStateWithLifecycle()
+                            LaunchedEffect(user.id, uiState.spaces, remindersEnabled) {
+                                remindersViewModel.sync(user.id, uiState.spaces.value, remindersEnabled)
+                            }
+                            BobitosNavHost(
+                                navController = rememberNavController(),
+                                uiState = uiState,
+                                authUser = user,
+                                authActionState = authActionState,
+                                spaceManagementState = spaceManagementState,
+                                onSpaceSelected = onSpaceSelected,
+                                onRealtimeScopeChanged = onRealtimeScopeChanged,
+                                onCreateSpace = onCreateSpace,
+                                onObserveSpaceSettings = onObserveSpaceSettings,
+                                onStopObservingSpaceSettings = onStopObservingSpaceSettings,
+                                onRenameSpace = onRenameSpace,
+                                onLeaveSpace = onLeaveSpace,
+                                onRemoveMember = onRemoveMember,
+                                onTransferOwnership = onTransferOwnership,
+                                onDeleteSpace = onDeleteSpace,
+                                onCreateInvitation = onCreateInvitation,
+                                onRevokeInvitation = onRevokeInvitation,
+                                onAcceptInvitation = onAcceptInvitation,
+                                onShareInvitation = onShareInvitation,
+                                onConsumeAcceptedSpace = onConsumeAcceptedSpace,
+                                pendingInvitationCode = pendingInvitationCode,
+                                onInvitationCodeConsumed = onInvitationCodeConsumed,
+                                onClearSpaceFeedback = onClearSpaceFeedback,
+                                onUpdateDisplayName = onUpdateDisplayName,
+                                onSignOut = onSignOut,
+                                onDeleteAccount = onDeleteAccount,
+                                onClearAuthFeedback = onClearAuthFeedback,
+                            )
+                        }
                     }
                 }
             }

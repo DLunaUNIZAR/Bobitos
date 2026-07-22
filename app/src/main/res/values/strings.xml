@@ -110,6 +110,10 @@
     <string name="generic_loading">Cargando…</string>
     <string name="generic_error">No se ha podido cargar la información.</string>
     <string name="retry">Reintentar</string>
+    <string name="reminder_channel_name">Recordatorios</string>
+    <string name="reminder_task">Tarea: %1$s</string>
+    <string name="reminder_event">Evento: %1$s</string>
+    <string name="profile_reminders_label">Recordatorios</string>
     <string name="search_label">Buscar</string>
     <string name="undo">Deshacer</string>
     <string name="shopping_undo_deleted">Producto eliminado</string>
