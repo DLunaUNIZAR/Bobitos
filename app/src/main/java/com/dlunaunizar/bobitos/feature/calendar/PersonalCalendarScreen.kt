@@ -41,7 +41,6 @@ import java.time.LocalTime
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 import java.time.temporal.TemporalAdjusters
 
 @Composable
@@ -109,29 +108,16 @@ fun PersonalCalendarScreen(
         )
 
         when (state.mode) {
-            CalendarDisplayMode.MONTH -> {
-                MonthGrid(
-                    month = YearMonth.from(state.focusedDate),
-                    selected = state.focusedDate,
-                    events = events.map(PersonalCalendarEvent::event),
-                    select = { date ->
-                        viewModel.select(date)
-                        drilledFrom = state.mode
-                        viewModel.setMode(CalendarDisplayMode.DAY)
-                    },
-                )
-                Text(
-                    state.focusedDate.format(
-                        DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL),
-                    ),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                PersonalEventList(
-                    events = events.eventsOn(state.focusedDate),
-                    onSelected = onEventSelected,
-                    modifier = Modifier.weight(1f),
-                )
-            }
+            CalendarDisplayMode.MONTH -> MonthGrid(
+                month = YearMonth.from(state.focusedDate),
+                selected = state.focusedDate,
+                events = events.map(PersonalCalendarEvent::event),
+                select = { date ->
+                    viewModel.select(date)
+                    drilledFrom = state.mode
+                    viewModel.setMode(CalendarDisplayMode.DAY)
+                },
+            )
             CalendarDisplayMode.DAY -> DayHourGrid(
                 events = dayEvents.map(PersonalCalendarEvent::event),
                 tasks = emptyList(),
@@ -282,22 +268,6 @@ private fun PersonalWeekEventList(
                         onSelected(item.spaceId, item.event.id, item.event.displayStartDate(ZoneId.systemDefault()))
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PersonalEventList(
-    events: List<PersonalCalendarEvent>,
-    onSelected: (String, String, LocalDate) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        if (events.isEmpty()) item { Text(stringResource(R.string.my_calendar_empty)) }
-        items(events, key = { "${it.spaceId}-${it.event.id}" }) { item ->
-            PersonalEventRow(item) {
-                onSelected(item.spaceId, item.event.id, item.event.displayStartDate(ZoneId.systemDefault()))
             }
         }
     }
