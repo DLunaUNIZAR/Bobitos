@@ -33,12 +33,15 @@
     <ID>LongMethod:TasksScreen.kt$@Composable private fun TaskFilterBar(filters: TaskFilters, members: List&lt;SpaceMember&gt;, onChange: (TaskFilters) -&gt; Unit)</ID>
     <ID>NestedBlockDepth:FirestoreSyncRepository.kt$FirestoreSyncRepository$override suspend fun refresh(spaceId: String?): Boolean</ID>
     <ID>ReturnCount:FirestoreCalendarRepository.kt$private fun DocumentSnapshot.toCalendarEvent(): CalendarEvent?</ID>
+    <ID>ReturnCount:FirestoreIngredientRepository.kt$private fun DocumentSnapshot.toCatalogIngredient(): CatalogIngredient?</ID>
     <ID>ReturnCount:FirestoreMealRepository.kt$private fun DocumentSnapshot.toMeal(): Meal?</ID>
     <ID>ReturnCount:FirestoreRecipeRepository.kt$private fun DocumentSnapshot.toRecipe(): Recipe?</ID>
     <ID>ReturnCount:FirestoreShoppingRepository.kt$private fun DocumentSnapshot.toShoppingItem(): ShoppingItem?</ID>
     <ID>ReturnCount:FirestoreTaskRepository.kt$private fun DocumentSnapshot.toTaskItem(): TaskItem?</ID>
     <ID>SwallowedException:FirestoreSyncRepository.kt$FirestoreSyncRepository$error: Throwable</ID>
     <ID>ThrowsCount:FirestoreCalendarRepository.kt$private fun EventInput.validated(): EventInput</ID>
+    <ID>ThrowsCount:FirestoreIngredientRepository.kt$FirestoreIngredientRepository$private fun validate(name: String, category: String?, defaultUnit: String?): IngredientValues</ID>
+    <ID>ThrowsCount:FirestoreIngredientRepository.kt$FirestoreIngredientRepository$private suspend inline fun &lt;T&gt; runOperation(crossinline operation: suspend () -&gt; T): T</ID>
     <ID>ThrowsCount:FirestoreMealRepository.kt$FirestoreMealRepository$private fun validate(name: String, participantIds: List&lt;String&gt;): String</ID>
     <ID>ThrowsCount:FirestoreMealRepository.kt$FirestoreMealRepository$private suspend inline fun &lt;T&gt; runMealOperation(crossinline operation: suspend () -&gt; T): T</ID>
     <ID>ThrowsCount:FirestoreRecipeRepository.kt$FirestoreRecipeRepository$private fun validate(title: String, description: String?, category: String?): RecipeValues</ID>
@@ -56,6 +59,7 @@
     <ID>TooGenericExceptionCaught:FirebaseAuthRepository.kt$FirebaseAuthRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirebaseAuthRepository.kt$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreCalendarRepository.kt$FirestoreCalendarRepository$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:FirestoreIngredientRepository.kt$FirestoreIngredientRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreMealRepository.kt$FirestoreMealRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreRecipeRepository.kt$FirestoreRecipeRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreShoppingRepository.kt$FirestoreShoppingRepository$error: Throwable</ID>
