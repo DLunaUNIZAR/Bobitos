@@ -75,12 +75,21 @@ fun RecipesScreen(
     onBack: () -> Unit,
     canWrite: Boolean,
     modifier: Modifier = Modifier,
+    importUrl: String? = null,
+    onImportUrlConsumed: () -> Unit = {},
     viewModel: RecipesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     DisposableEffect(Unit) {
         viewModel.observe()
         onDispose { viewModel.stopObserving() }
+    }
+    // Enlace compartido desde el navegador: se importa una sola vez y se consume.
+    LaunchedEffect(importUrl) {
+        importUrl?.let {
+            viewModel.importFromUrl(it)
+            onImportUrlConsumed()
+        }
     }
     var detail by remember { mutableStateOf<Recipe?>(null) }
     var editorRequest by remember { mutableStateOf<RecipeEditorRequest?>(null) }

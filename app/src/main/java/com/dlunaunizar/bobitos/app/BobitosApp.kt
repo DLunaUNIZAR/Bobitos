@@ -48,6 +48,8 @@ fun BobitosApp(
     onConsumeAcceptedSpace: () -> Unit,
     pendingInvitationCode: String?,
     onInvitationCodeConsumed: () -> Unit,
+    pendingRecipeImportUrl: String?,
+    onRecipeImportUrlConsumed: () -> Unit,
     onClearSpaceFeedback: () -> Unit,
     onSignIn: (email: String, password: String) -> Unit,
     onRegister: (
@@ -128,6 +130,8 @@ fun BobitosApp(
                                 onConsumeAcceptedSpace = onConsumeAcceptedSpace,
                                 pendingInvitationCode = pendingInvitationCode,
                                 onInvitationCodeConsumed = onInvitationCodeConsumed,
+                                pendingRecipeImportUrl = pendingRecipeImportUrl,
+                                onRecipeImportUrlConsumed = onRecipeImportUrlConsumed,
                                 onClearSpaceFeedback = onClearSpaceFeedback,
                                 onUpdateDisplayName = onUpdateDisplayName,
                                 onSignOut = onSignOut,
