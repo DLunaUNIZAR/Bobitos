@@ -40,6 +40,7 @@
     <ID>ReturnCount:FirestoreTaskRepository.kt$private fun DocumentSnapshot.toTaskItem(): TaskItem?</ID>
     <ID>SwallowedException:FirestoreSyncRepository.kt$FirestoreSyncRepository$error: Throwable</ID>
     <ID>ThrowsCount:FirestoreCalendarRepository.kt$private fun EventInput.validated(): EventInput</ID>
+    <ID>ThrowsCount:FirestoreIngredientPrefsRepository.kt$FirestoreIngredientPrefsRepository$private suspend inline fun &lt;T&gt; runOperation(crossinline operation: suspend () -&gt; T): T</ID>
     <ID>ThrowsCount:FirestoreIngredientRepository.kt$FirestoreIngredientRepository$private fun validate(name: String, category: String?, defaultUnit: String?): IngredientValues</ID>
     <ID>ThrowsCount:FirestoreIngredientRepository.kt$FirestoreIngredientRepository$private suspend inline fun &lt;T&gt; runOperation(crossinline operation: suspend () -&gt; T): T</ID>
     <ID>ThrowsCount:FirestoreMealRepository.kt$FirestoreMealRepository$private fun validate(name: String, participantIds: List&lt;String&gt;): String</ID>
@@ -59,6 +60,7 @@
     <ID>TooGenericExceptionCaught:FirebaseAuthRepository.kt$FirebaseAuthRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirebaseAuthRepository.kt$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreCalendarRepository.kt$FirestoreCalendarRepository$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:FirestoreIngredientPrefsRepository.kt$FirestoreIngredientPrefsRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreIngredientRepository.kt$FirestoreIngredientRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreMealRepository.kt$FirestoreMealRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreRecipeRepository.kt$FirestoreRecipeRepository$error: Throwable</ID>
