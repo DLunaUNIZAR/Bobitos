@@ -1,32 +1,16 @@
-Beta de Bobitos — mejoras de uso en toda la app.
+Beta de Bobitos — recordatorios, animaciones y accesibilidad.
 
 Novedades desde la beta anterior:
 
-Búsqueda y gestos
-- Buscador en Compra, Tareas y Comidas.
-- Desliza un producto o una tarea para completarlo/marcarlo o borrarlo.
-- Al borrar (en cualquier módulo) aparece «Deshacer» por si te arrepientes.
-- Borrar un evento del calendario ahora pide confirmación.
+Recordatorios
+- Nuevo: recordatorios locales para tus tareas con fecha y tus eventos, a su hora.
+- Actívalos en Perfil → «Recordatorios» (te pedirá permiso de notificaciones). Funcionan sin conexión y sin coste; se programan al abrir la app.
 
-Inicio y espacios
-- Pantalla de bienvenida la primera vez.
-- La portada del espacio muestra un resumen: tareas pendientes, productos por comprar, próximos eventos y comidas de hoy.
-- Invitaciones: botón para copiar el código y código QR para compartir.
-- Estados vacíos más claros y con acciones.
+Interfaz
+- Animaciones sutiles: transiciones al cambiar de pantalla y al añadir/quitar elementos de las listas. Respetan la opción del sistema «reducir movimiento».
+- Mejoras de accesibilidad para lectores de pantalla (nombres en casillas, ajustes del interruptor de recordatorios).
+- Ajuste en «Mi calendario»: la vista mensual muestra solo el calendario (pulsa un día para ver su detalle).
 
-Comidas y Compra
-- Duplica el plan de un día (a la fecha que elijas) o de la semana (a la siguiente).
-- Añade a la Compra los ingredientes de todo el día o la semana, revisando las cantidades.
-- Al añadir un producto que ya está en la lista, puedes ajustar su cantidad en vez de duplicarlo.
-- Recetario: filtra por categoría y busca también por ingrediente.
-
-Mi calendario
-- Pulsa un día para ver su detalle por horas; atrás vuelve al mes.
-- Mantén pulsada una franja para crear un evento, eligiendo a qué espacio pertenece; también puedes editarlos y borrarlos.
-
-Tareas
-- Filtra las tareas por tipo (limpieza, médico, compras, hogar, otros).
-
-Incluye: espacios privados con invitaciones, lista de la compra compartida, tareas asignables, calendario compartido, planificador de comidas con recetario e ingredientes, y modo sin conexión de solo lectura.
+Incluye: espacios privados con invitaciones, lista de la compra compartida, tareas asignables, calendario compartido, planificador de comidas con recetario e ingredientes, buscadores, gestos de deslizar y modo sin conexión de solo lectura.
 
 Comunica cualquier error indicando el modelo del dispositivo, la versión de Android y los pasos para reproducirlo.
