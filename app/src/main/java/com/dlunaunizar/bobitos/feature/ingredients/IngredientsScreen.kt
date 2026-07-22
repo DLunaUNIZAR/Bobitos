@@ -1,6 +1,5 @@
 package com.dlunaunizar.bobitos.feature.ingredients
 
-import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,8 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
@@ -52,8 +49,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientPref
-import com.dlunaunizar.bobitos.core.model.Supermarket
-import com.dlunaunizar.bobitos.feature.shopping.SupermarketDropdown
 import com.dlunaunizar.bobitos.feature.shopping.SupermarketIcon
 import com.dlunaunizar.bobitos.feature.shopping.labelRes
 
@@ -61,6 +56,7 @@ import com.dlunaunizar.bobitos.feature.shopping.labelRes
 @Composable
 fun IngredientsScreen(
     onBack: () -> Unit,
+    onOpenIngredient: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: IngredientsViewModel = hiltViewModel(),
 ) {
@@ -69,9 +65,7 @@ fun IngredientsScreen(
         viewModel.observe()
         onDispose { viewModel.stopObserving() }
     }
-    var editor by remember { mutableStateOf<IngredientEditorRequest?>(null) }
-    var detailFor by remember { mutableStateOf<CatalogIngredient?>(null) }
-    var toDelete by remember { mutableStateOf<CatalogIngredient?>(null) }
+    var showEditor by remember { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
     LaunchedEffect(query) { viewModel.setQuery(query) }
 
@@ -92,7 +86,7 @@ fun IngredientsScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { editor = IngredientEditorRequest(null) },
+                onClick = { showEditor = true },
                 icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
                 text = { Text(stringResource(R.string.ingredients_add)) },
             )
@@ -104,7 +98,7 @@ fun IngredientsScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp),
         ) {
-            IngredientsFeedback(state, viewModel::clearFeedback)
+            IngredientsFeedback(state.error, state.notice, state.isSaving, viewModel::clearFeedback)
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
@@ -114,69 +108,18 @@ fun IngredientsScreen(
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
             )
-            IngredientCatalog(state, onOpen = { detailFor = it })
+            IngredientCatalog(state, onOpen = { onOpenIngredient(it.id) })
         }
     }
 
-    editor?.let { request ->
+    if (showEditor) {
         IngredientEditorDialog(
-            ingredient = request.ingredient,
+            ingredient = null,
             saving = state.isSaving,
-            onDismiss = { editor = null },
+            onDismiss = { showEditor = false },
             onSave = { name, category, unit ->
-                val existing = request.ingredient
-                if (existing == null) {
-                    viewModel.createIngredient(name, category, unit)
-                } else {
-                    viewModel.updateIngredient(existing.id, name, category, unit)
-                }
-                editor = null
-            },
-        )
-    }
-
-    detailFor?.let { ingredient ->
-        IngredientDetailDialog(
-            ingredient = ingredient,
-            pref = state.prefs[ingredient.id],
-            canEdit = state.canEdit(ingredient),
-            saving = state.isSaving,
-            onSavePref = { supermarket, brand ->
-                viewModel.setPref(ingredient.id, supermarket, brand)
-                detailFor = null
-            },
-            onClearPref = {
-                viewModel.clearPref(ingredient.id)
-                detailFor = null
-            },
-            onEdit = {
-                editor = IngredientEditorRequest(ingredient)
-                detailFor = null
-            },
-            onDelete = {
-                toDelete = ingredient
-                detailFor = null
-            },
-            onDismiss = { detailFor = null },
-        )
-    }
-
-    toDelete?.let { ingredient ->
-        AlertDialog(
-            onDismissRequest = { toDelete = null },
-            title = { Text(stringResource(R.string.ingredients_delete_title)) },
-            text = { Text(stringResource(R.string.ingredients_delete_body, ingredient.name)) },
-            confirmButton = {
-                TextButton(
-                    enabled = !state.isSaving,
-                    onClick = {
-                        viewModel.deleteIngredient(ingredient.id)
-                        toDelete = null
-                    },
-                ) { Text(stringResource(R.string.ingredients_delete)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { toDelete = null }) { Text(stringResource(R.string.cancel)) }
+                viewModel.createIngredient(name, category, unit)
+                showEditor = false
             },
         )
     }
@@ -266,68 +209,7 @@ private fun PrefSummary(pref: IngredientPref?) {
 }
 
 @Composable
-private fun IngredientDetailDialog(
-    ingredient: CatalogIngredient,
-    pref: IngredientPref?,
-    canEdit: Boolean,
-    saving: Boolean,
-    onSavePref: (Supermarket?, String?) -> Unit,
-    onClearPref: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var supermarket by remember(ingredient.id) { mutableStateOf(pref?.supermarket) }
-    var brand by remember(ingredient.id) { mutableStateOf(pref?.brand.orEmpty()) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(ingredient.name) },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(stringResource(R.string.ingredients_pref_title), style = MaterialTheme.typography.titleSmall)
-                Text(
-                    text = stringResource(R.string.ingredients_pref_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                SupermarketDropdown(selected = supermarket, onSelect = { supermarket = it })
-                OutlinedTextField(
-                    value = brand,
-                    onValueChange = { brand = it },
-                    label = { Text(stringResource(R.string.shopping_brand_label)) },
-                    singleLine = true,
-                )
-                if (pref != null) {
-                    TextButton(enabled = !saving, onClick = onClearPref) {
-                        Text(stringResource(R.string.ingredients_pref_clear))
-                    }
-                }
-                if (canEdit) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(onClick = onEdit) { Text(stringResource(R.string.ingredients_edit)) }
-                        TextButton(onClick = onDelete) { Text(stringResource(R.string.ingredients_delete)) }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = !saving,
-                onClick = { onSavePref(supermarket, brand.trim().ifBlank { null }) },
-            ) { Text(stringResource(R.string.ingredients_pref_save)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
-        },
-    )
-}
-
-@Composable
-private fun IngredientEditorDialog(
+internal fun IngredientEditorDialog(
     ingredient: CatalogIngredient?,
     saving: Boolean,
     onDismiss: () -> Unit,
@@ -381,56 +263,44 @@ private fun IngredientEditorDialog(
 }
 
 @Composable
-private fun IngredientsFeedback(state: IngredientsUiState, onDismiss: () -> Unit) {
-    val message = state.error ?: state.notice
-    if (message == null && !state.isSaving) return
-    val isError = state.error != null
+internal fun IngredientsFeedback(
+    error: IngredientUiMessage?,
+    notice: IngredientUiMessage?,
+    saving: Boolean,
+    onDismiss: () -> Unit,
+) {
+    val message = error ?: notice
+    if (message == null && !saving) return
     Surface(
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        color = if (isError) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer,
+        color = if (error != null) {
+            MaterialTheme.colorScheme.errorContainer
+        } else {
+            MaterialTheme.colorScheme.secondaryContainer
+        },
         shape = MaterialTheme.shapes.small,
     ) {
         Row(modifier = Modifier.padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = if (state.isSaving) {
-                    stringResource(R.string.write_saving)
+                text = if (saving) {
+                    stringResource(
+                        R.string.write_saving,
+                    )
                 } else {
                     stringResource(message!!.stringResourceId)
                 },
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyMedium,
             )
-            if (!state.isSaving) {
+            if (!saving) {
                 TextButton(onClick = onDismiss) { Text(stringResource(R.string.dismiss)) }
             }
         }
     }
 }
 
-private data class IngredientEditorRequest(val ingredient: CatalogIngredient?)
-
 private fun CatalogIngredient.matches(query: String): Boolean {
     if (query.isBlank()) return true
     val trimmed = query.trim()
     return name.contains(trimmed, ignoreCase = true) || category?.contains(trimmed, ignoreCase = true) == true
 }
-
-@get:StringRes
-private val IngredientUiMessage.stringResourceId: Int
-    get() = when (this) {
-        IngredientUiMessage.NameRequired -> R.string.ingredients_error_name_required
-        IngredientUiMessage.NameTooLong -> R.string.ingredients_error_name_too_long
-        IngredientUiMessage.CategoryTooLong -> R.string.ingredients_error_category_too_long
-        IngredientUiMessage.UnitTooLong -> R.string.ingredients_error_unit_too_long
-        IngredientUiMessage.AlreadyExists -> R.string.ingredients_error_already_exists
-        IngredientUiMessage.NotFound -> R.string.ingredients_error_not_found
-        IngredientUiMessage.NotAuthenticated -> R.string.space_error_not_authenticated
-        IngredientUiMessage.EmailNotVerified -> R.string.space_error_email_not_verified
-        IngredientUiMessage.PermissionDenied -> R.string.space_error_permission_denied
-        IngredientUiMessage.NetworkError -> R.string.space_error_network
-        IngredientUiMessage.UnexpectedError -> R.string.space_error_unexpected
-        IngredientUiMessage.Saved -> R.string.ingredients_notice_saved
-        IngredientUiMessage.Deleted -> R.string.ingredients_notice_deleted
-        IngredientUiMessage.PrefSaved -> R.string.ingredients_notice_pref_saved
-        IngredientUiMessage.PrefCleared -> R.string.ingredients_notice_pref_cleared
-    }

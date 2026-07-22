@@ -1270,6 +1270,80 @@ test("las preferencias de ingredientes solo las lee y escribe su dueño", async 
   );
 });
 
+test("cualquiera añade una marca a un ingrediente y todos la leen, pero no a nombre de otro", async () => {
+  const alice = verifiedFirestore("brand-alice");
+  const bob = verifiedFirestore("brand-bob");
+
+  await assertSucceeds(
+    setDoc(doc(alice, "ingredients", "tomate", "brands", "b1"), brandData("brand-alice", { energyKcal: 30, salt: 0.1 })),
+  );
+  await assertSucceeds(getDoc(doc(bob, "ingredients", "tomate", "brands", "b1")));
+  await assertFails(
+    setDoc(doc(bob, "ingredients", "tomate", "brands", "b2"), brandData("brand-alice")),
+  );
+});
+
+test("solo el autor o un admin editan/borran una marca", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const timestamp = Timestamp.now();
+    await setDoc(doc(context.firestore(), "ingredients", "arroz", "brands", "b1"), {
+      ...brandData("brand-owner"),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+  });
+  const owner = verifiedFirestore("brand-owner");
+  const other = verifiedFirestore("brand-other");
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+
+  await assertSucceeds(
+    updateDoc(doc(owner, "ingredients", "arroz", "brands", "b1"), {
+      name: "SOS",
+      updatedBy: "brand-owner",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertFails(
+    updateDoc(doc(other, "ingredients", "arroz", "brands", "b1"), {
+      name: "Manipulada",
+      updatedBy: "brand-other",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertFails(writeBatch(other).delete(doc(other, "ingredients", "arroz", "brands", "b1")).commit());
+  await assertSucceeds(writeBatch(admin).delete(doc(admin, "ingredients", "arroz", "brands", "b1")).commit());
+});
+
+test("una marca rechaza campos ajenos, nutrición no numérica y nombre vacío", async () => {
+  const chef = verifiedFirestore("brand-shape");
+
+  await assertSucceeds(
+    setDoc(doc(chef, "ingredients", "harina", "brands", "b1"), brandData("brand-shape", { fat: 1.2 })),
+  );
+  await assertFails(
+    setDoc(doc(chef, "ingredients", "harina", "brands", "bad1"), brandData("brand-shape", { spaceId: "x" })),
+  );
+  await assertFails(
+    setDoc(doc(chef, "ingredients", "harina", "brands", "bad2"), brandData("brand-shape", { fat: "mucha" })),
+  );
+  await assertFails(
+    setDoc(doc(chef, "ingredients", "harina", "brands", "bad3"), brandData("brand-shape", { name: "" })),
+  );
+});
+
+function brandData(userId, overrides = {}) {
+  return {
+    name: "Hacendado",
+    ownerUid: userId,
+    createdBy: userId,
+    createdByName: userId,
+    createdAt: serverTimestamp(),
+    updatedBy: userId,
+    updatedAt: serverTimestamp(),
+    ...overrides,
+  };
+}
+
 function ingredientData(userId, overrides = {}) {
   return {
     name: "Tomate",

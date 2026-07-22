@@ -77,6 +77,7 @@ import com.dlunaunizar.bobitos.feature.auth.ProfileScreen
 import com.dlunaunizar.bobitos.feature.calendar.CalendarScreen
 import com.dlunaunizar.bobitos.feature.calendar.PersonalCalendarScreen
 import com.dlunaunizar.bobitos.feature.common.SyncStatusBanner
+import com.dlunaunizar.bobitos.feature.ingredients.IngredientDetailScreen
 import com.dlunaunizar.bobitos.feature.ingredients.IngredientsScreen
 import com.dlunaunizar.bobitos.feature.meals.MealsScreen
 import com.dlunaunizar.bobitos.feature.recipes.RecipesScreen
@@ -139,6 +140,7 @@ fun BobitosNavHost(
                 BobitosDestination.Profile.route,
                 BobitosDestination.Recipes.route,
                 BobitosDestination.Ingredients.route,
+                INGREDIENT_DETAIL_ROUTE,
                 -> RealtimeScope.PAUSED
                 else -> RealtimeScope.ACTIVE_SPACE
             },
@@ -437,7 +439,20 @@ fun BobitosNavHost(
         }
 
         composable(BobitosDestination.Ingredients.route) {
-            IngredientsScreen(onBack = { navController.popBackStack() })
+            IngredientsScreen(
+                onBack = { navController.popBackStack() },
+                onOpenIngredient = { id -> navController.navigate("ingredient-detail/${Uri.encode(id)}") },
+            )
+        }
+
+        composable(
+            route = INGREDIENT_DETAIL_ROUTE,
+            arguments = listOf(navArgument("ingredientId") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            IngredientDetailScreen(
+                ingredientId = backStackEntry.arguments?.getString("ingredientId").orEmpty(),
+                onBack = { navController.popBackStack() },
+            )
         }
 
         composable(BobitosDestination.SpaceSettings.route) {
@@ -751,4 +766,5 @@ private fun NavHostController.navigateToProfile() {
 }
 
 private const val CALENDAR_EVENT_ROUTE = "calendar-event/{eventId}/{date}"
+private const val INGREDIENT_DETAIL_ROUTE = "ingredient-detail/{ingredientId}"
 private const val NAV_ANIM_MS = 220
