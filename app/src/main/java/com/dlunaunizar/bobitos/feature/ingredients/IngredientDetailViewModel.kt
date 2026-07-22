@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.model.Nutrition
 import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.dlunaunizar.bobitos.data.openfoodfacts.OffException
+import com.dlunaunizar.bobitos.data.openfoodfacts.OffFailure
+import com.dlunaunizar.bobitos.data.openfoodfacts.OpenFoodFactsClient
 import com.dlunaunizar.bobitos.data.repository.BrandFailure
 import com.dlunaunizar.bobitos.data.repository.BrandRepositoryException
 import com.dlunaunizar.bobitos.data.repository.IngredientBrandRepository
@@ -28,6 +31,7 @@ class IngredientDetailViewModel @Inject constructor(
     private val repository: IngredientRepository,
     private val prefsRepository: IngredientPrefsRepository,
     private val brandRepository: IngredientBrandRepository,
+    private val openFoodFactsClient: OpenFoodFactsClient,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(IngredientDetailUiState())
     val uiState: StateFlow<IngredientDetailUiState> = mutableUiState.asStateFlow()
@@ -125,6 +129,37 @@ class IngredientDetailViewModel @Inject constructor(
         runAction(IngredientUiMessage.BrandDeleted) { brandRepository.deleteBrand(ingredientId, brandId) }
     }
 
+    /** Consulta Open Food Facts por el código escaneado y deja un borrador de marca prerrellenado. */
+    fun lookupBarcode(barcode: String) {
+        if (mutableUiState.value.isLookingUp) return
+        mutableUiState.update { it.copy(isLookingUp = true, error = null, notice = null) }
+        viewModelScope.launch {
+            try {
+                val product = openFoodFactsClient.lookup(barcode)
+                val draft = ScannedBrand(
+                    name = product?.brand ?: product?.productName.orEmpty(),
+                    barcode = barcode,
+                    nutrition = product?.nutrition,
+                )
+                mutableUiState.update {
+                    it.copy(
+                        isLookingUp = false,
+                        scannedBrand = draft,
+                        notice = if (product == null) IngredientUiMessage.ScanNotFound else null,
+                    )
+                }
+            } catch (error: OffException) {
+                mutableUiState.update {
+                    it.copy(isLookingUp = false, error = error.failure.toUiMessage())
+                }
+            }
+        }
+    }
+
+    fun consumeScannedBrand() {
+        mutableUiState.update { it.copy(scannedBrand = null) }
+    }
+
     fun clearFeedback() {
         mutableUiState.update { it.copy(error = null, notice = null) }
     }
@@ -183,6 +218,11 @@ private fun IngredientPrefFailure.toUiMessage(): IngredientUiMessage = when (thi
     IngredientPrefFailure.PermissionDenied -> IngredientUiMessage.PermissionDenied
     IngredientPrefFailure.Network -> IngredientUiMessage.NetworkError
     IngredientPrefFailure.Unknown -> IngredientUiMessage.UnexpectedError
+}
+
+private fun OffFailure.toUiMessage(): IngredientUiMessage = when (this) {
+    OffFailure.Network -> IngredientUiMessage.ScanFailed
+    OffFailure.Unknown -> IngredientUiMessage.ScanFailed
 }
 
 private fun BrandFailure.toUiMessage(): IngredientUiMessage = when (this) {

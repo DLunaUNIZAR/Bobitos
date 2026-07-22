@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,9 +33,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -46,6 +48,7 @@ import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.Nutrition
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.feature.shopping.SupermarketDropdown
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,6 +70,16 @@ fun IngredientDetailScreen(
     var confirmDeleteIngredient by remember { mutableStateOf(false) }
     var brandToDelete by remember { mutableStateOf<IngredientBrand?>(null) }
     val ingredient = state.ingredient
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    // Un escaneo con éxito abre el editor de marca prerrellenado.
+    LaunchedEffect(state.scannedBrand) {
+        state.scannedBrand?.let { draft ->
+            brandEditor = BrandEditorRequest(null, draft.name, draft.barcode, draft.nutrition)
+            viewModel.consumeScannedBrand()
+        }
+    }
 
     Scaffold(
         modifier = modifier,
@@ -114,8 +127,9 @@ fun IngredientDetailScreen(
                 )
                 BrandsSection(
                     state = state,
-                    onAdd = { brandEditor = BrandEditorRequest(null) },
-                    onEdit = { brandEditor = BrandEditorRequest(it) },
+                    onAdd = { brandEditor = BrandEditorRequest(null, "", "", null) },
+                    onScan = { scope.launch { scanBarcode(context)?.let(viewModel::lookupBarcode) } },
+                    onEdit = { brandEditor = BrandEditorRequest(it.id, it.name, it.barcode.orEmpty(), it.nutrition) },
                     onDelete = { brandToDelete = it },
                 )
             }
@@ -136,15 +150,14 @@ fun IngredientDetailScreen(
 
     brandEditor?.let { request ->
         BrandEditorDialog(
-            brand = request.brand,
+            request = request,
             saving = state.isSaving,
             onDismiss = { brandEditor = null },
             onSave = { name, barcode, nutrition ->
-                val existing = request.brand
-                if (existing == null) {
+                if (request.brandId == null) {
                     viewModel.addBrand(name, barcode, nutrition)
                 } else {
-                    viewModel.updateBrand(existing.id, name, barcode, nutrition)
+                    viewModel.updateBrand(request.brandId, name, barcode, nutrition)
                 }
                 brandEditor = null
             },
@@ -252,15 +265,19 @@ private fun PreferenceSection(
 private fun BrandsSection(
     state: IngredientDetailUiState,
     onAdd: () -> Unit,
+    onScan: () -> Unit,
     onEdit: (IngredientBrand) -> Unit,
     onDelete: (IngredientBrand) -> Unit,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = stringResource(R.string.ingredients_brands_section),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.weight(1f),
-        )
+    Text(
+        text = stringResource(R.string.ingredients_brands_section),
+        style = MaterialTheme.typography.titleMedium,
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedButton(onClick = onScan, enabled = !state.isLookingUp) {
+            Icon(Icons.Rounded.QrCodeScanner, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
+            Text(stringResource(R.string.ingredients_brand_scan))
+        }
         OutlinedButton(onClick = onAdd) {
             Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.padding(end = 4.dp))
             Text(stringResource(R.string.ingredients_brand_add))
@@ -320,21 +337,25 @@ private fun NutritionSummary(nutrition: Nutrition) {
 
 @Composable
 private fun BrandEditorDialog(
-    brand: IngredientBrand?,
+    request: BrandEditorRequest,
     saving: Boolean,
     onDismiss: () -> Unit,
     onSave: (String, String?, Nutrition?) -> Unit,
 ) {
-    var name by remember(brand?.id) { mutableStateOf(brand?.name.orEmpty()) }
-    var barcode by remember(brand?.id) { mutableStateOf(brand?.barcode.orEmpty()) }
-    val fields = remember(brand?.id) { NutritionDraft(brand?.nutrition) }
+    var name by remember(request) { mutableStateOf(request.name) }
+    var barcode by remember(request) { mutableStateOf(request.barcode) }
+    val fields = remember(request) { NutritionDraft(request.nutrition) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
                 stringResource(
-                    if (brand == null) R.string.ingredients_brand_add_title else R.string.ingredients_brand_edit_title,
+                    if (request.brandId == null) {
+                        R.string.ingredients_brand_add_title
+                    } else {
+                        R.string.ingredients_brand_edit_title
+                    },
                 ),
             )
         },
@@ -404,7 +425,12 @@ private fun ConfirmDialog(
     )
 }
 
-private data class BrandEditorRequest(val brand: IngredientBrand?)
+private data class BrandEditorRequest(
+    val brandId: String?,
+    val name: String,
+    val barcode: String,
+    val nutrition: Nutrition?,
+)
 
 // Estado editable de los 6 campos nutricionales (texto), con su etiqueta.
 private class NutritionRow(val labelRes: Int, initial: Double?) {

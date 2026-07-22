@@ -125,6 +125,7 @@ dependencies {
     implementation(libs.zxing.core)
     implementation(libs.androidx.work.runtime)
     implementation(libs.jsoup)
+    implementation(libs.play.services.code.scanner)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)
 
