@@ -1184,6 +1184,85 @@ test("una receta guarda su lista de ingredientes pero rechaza un ingredients no-
   );
 });
 
+test("cualquier usuario crea un ingrediente del catálogo y todos lo leen, pero no a nombre de otro", async () => {
+  const alice = verifiedFirestore("ing-alice");
+  const bob = verifiedFirestore("ing-bob");
+
+  await assertSucceeds(setDoc(doc(alice, "ingredients", "tomate"), ingredientData("ing-alice")));
+  await assertSucceeds(getDoc(doc(bob, "ingredients", "tomate")));
+  await assertFails(setDoc(doc(bob, "ingredients", "cebolla"), ingredientData("ing-alice")));
+});
+
+test("solo el autor o un admin editan/borran una ficha del catálogo", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const timestamp = Timestamp.now();
+    await setDoc(doc(context.firestore(), "ingredients", "arroz"), {
+      ...ingredientData("ing-owner"),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+  });
+  const owner = verifiedFirestore("ing-owner");
+  const other = verifiedFirestore("ing-other");
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+
+  await assertSucceeds(
+    updateDoc(doc(owner, "ingredients", "arroz"), {
+      name: "Arroz redondo",
+      nameLower: "arroz redondo",
+      updatedBy: "ing-owner",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertFails(
+    updateDoc(doc(other, "ingredients", "arroz"), {
+      name: "Manipulado",
+      nameLower: "manipulado",
+      updatedBy: "ing-other",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertFails(writeBatch(other).delete(doc(other, "ingredients", "arroz")).commit());
+  await assertSucceeds(
+    updateDoc(doc(admin, "ingredients", "arroz"), {
+      name: "Arroz basmati",
+      nameLower: "arroz basmati",
+      updatedBy: RECIPE_ADMIN_UID,
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertSucceeds(writeBatch(admin).delete(doc(admin, "ingredients", "arroz")).commit());
+});
+
+test("una ficha del catálogo congela su ownerUid y rechaza campos ajenos al contrato", async () => {
+  const chef = verifiedFirestore("ing-shape");
+  await assertSucceeds(setDoc(doc(chef, "ingredients", "harina"), ingredientData("ing-shape")));
+
+  await assertFails(
+    updateDoc(doc(chef, "ingredients", "harina"), {
+      ownerUid: "otro",
+      updatedBy: "ing-shape",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertFails(setDoc(doc(chef, "ingredients", "sal"), ingredientData("ing-shape", { spaceId: "x" })));
+  await assertFails(setDoc(doc(chef, "ingredients", "vacio"), ingredientData("ing-shape", { name: "" })));
+});
+
+function ingredientData(userId, overrides = {}) {
+  return {
+    name: "Tomate",
+    nameLower: "tomate",
+    ownerUid: userId,
+    createdBy: userId,
+    createdByName: userId,
+    createdAt: serverTimestamp(),
+    updatedBy: userId,
+    updatedAt: serverTimestamp(),
+    ...overrides,
+  };
+}
+
 function recipeData(userId, overrides = {}) {
   return {
     ownerUid: userId,

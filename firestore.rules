@@ -885,6 +885,67 @@ service cloud.firestore {
       allow delete: if ownsOrCuratesRecipe();
     }
 
+    // Catálogo global de ingredientes: compartido por todos (cualquiera lee y crea); solo el autor o
+    // un admin del catálogo (misma allowlist que recetas) puede editar/borrar. Sin get()/exists().
+    function validIngredientShape() {
+      return request.resource.data.keys().hasAll([
+          "name", "nameLower", "ownerUid", "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt"
+        ])
+        && request.resource.data.keys().hasOnly([
+          "name", "nameLower", "ownerUid", "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt",
+          "category", "defaultUnit"
+        ])
+        && (!request.resource.data.keys().hasAny(["category"])
+          || request.resource.data.category == null
+          || (request.resource.data.category is string && request.resource.data.category.size() <= 60))
+        && (!request.resource.data.keys().hasAny(["defaultUnit"])
+          || request.resource.data.defaultUnit == null
+          || (request.resource.data.defaultUnit is string && request.resource.data.defaultUnit.size() <= 24))
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.nameLower is string
+        && request.resource.data.nameLower.size() <= 120
+        && request.resource.data.ownerUid is string
+        && request.resource.data.createdBy is string
+        && request.resource.data.createdByName is string
+        && request.resource.data.createdByName.size() > 0
+        && request.resource.data.createdByName.size() <= 60
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedBy is string
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function validNewIngredient() {
+      return verifiedUser() && validIngredientShape()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
+    }
+
+    function ownsOrCuratesIngredient() {
+      return verifiedUser()
+        && (resource.data.ownerUid == request.auth.uid || isRecipeAdmin());
+    }
+
+    function validIngredientUpdate() {
+      return ownsOrCuratesIngredient() && validIngredientShape()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["name", "nameLower", "category", "defaultUnit", "updatedBy", "updatedAt"])
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdByName == resource.data.createdByName
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
+    }
+
+    match /ingredients/{ingredientId} {
+      allow get, list: if verifiedUser();
+      allow create: if validNewIngredient();
+      allow update: if validIngredientUpdate();
+      allow delete: if ownsOrCuratesIngredient();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

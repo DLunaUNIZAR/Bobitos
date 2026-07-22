@@ -17,12 +17,14 @@ import com.dlunaunizar.bobitos.data.repository.DataStoreThemePreferenceRepositor
 import com.dlunaunizar.bobitos.data.repository.FirebaseAccountRepository
 import com.dlunaunizar.bobitos.data.repository.FirebaseAuthRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreCalendarRepository
+import com.dlunaunizar.bobitos.data.repository.FirestoreIngredientRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreMealRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreRecipeRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreSpaceRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreSpaceSummaryRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreTaskRepository
+import com.dlunaunizar.bobitos.data.repository.IngredientRepository
 import com.dlunaunizar.bobitos.data.repository.MealRepository
 import com.dlunaunizar.bobitos.data.repository.OnboardingPreferenceRepository
 import com.dlunaunizar.bobitos.data.repository.RecipeRepository
@@ -67,6 +69,9 @@ abstract class DataModule {
 
     @Binds @Singleton
     abstract fun bindRecipeRepository(repository: FirestoreRecipeRepository): RecipeRepository
+
+    @Binds @Singleton
+    abstract fun bindIngredientRepository(repository: FirestoreIngredientRepository): IngredientRepository
 
     @Binds @Singleton
     abstract fun bindHtmlFetcher(fetcher: HttpUrlHtmlFetcher): HtmlFetcher
