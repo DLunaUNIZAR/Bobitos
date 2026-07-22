@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
@@ -19,9 +20,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
@@ -39,6 +42,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -63,6 +67,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
+import com.dlunaunizar.bobitos.data.recipeimport.ImportedRecipe
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,7 +85,17 @@ fun RecipesScreen(
     var detail by remember { mutableStateOf<Recipe?>(null) }
     var editorRequest by remember { mutableStateOf<RecipeEditorRequest?>(null) }
     var recipeToDelete by remember { mutableStateOf<Recipe?>(null) }
+    var showImport by remember { mutableStateOf(false) }
     var selectedCategory by rememberSaveable { mutableStateOf<String?>(null) }
+
+    // Cuando la importación produce un borrador, se abre el editor prerrellenado para revisarlo.
+    LaunchedEffect(state.importDraft) {
+        state.importDraft?.let { draft ->
+            editorRequest = RecipeEditorRequest(recipe = null, draft = draft)
+            showImport = false
+            viewModel.consumeImportDraft()
+        }
+    }
     val categories = (state.mine.contentOrEmpty() + state.global.contentOrEmpty())
         .mapNotNull { it.category?.trim()?.takeIf(String::isNotEmpty) }
         .distinct()
@@ -102,6 +117,16 @@ fun RecipesScreen(
                             Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = stringResource(R.string.navigate_back),
                         )
+                    }
+                },
+                actions = {
+                    if (canWrite) {
+                        IconButton(onClick = { showImport = true }) {
+                            Icon(
+                                Icons.Rounded.Link,
+                                contentDescription = stringResource(R.string.recipes_import_title),
+                            )
+                        }
                     }
                 },
             )
@@ -175,6 +200,7 @@ fun RecipesScreen(
     editorRequest?.let { request ->
         RecipeEditor(
             recipe = request.recipe,
+            draft = request.draft,
             saving = state.isSaving,
             canWrite = canWrite,
             isAdmin = state.isAdmin,
@@ -182,11 +208,30 @@ fun RecipesScreen(
             onSave = { visibility, title, description, category, ingredients ->
                 val recipe = request.recipe
                 if (recipe == null) {
-                    viewModel.createRecipe(visibility, title, description, category, ingredients)
+                    viewModel.createRecipe(
+                        visibility,
+                        title,
+                        description,
+                        category,
+                        ingredients,
+                        request.draft?.sourceUrl,
+                    )
                 } else {
                     viewModel.updateRecipe(recipe.id, title, description, category, ingredients)
                 }
                 editorRequest = null
+            },
+        )
+    }
+
+    if (showImport) {
+        ImportUrlDialog(
+            importing = state.isImporting,
+            errorRes = state.error?.takeIf(RecipeUiMessage::isImport)?.stringResourceId,
+            onImport = viewModel::importFromUrl,
+            onDismiss = {
+                showImport = false
+                viewModel.clearFeedback()
             },
         )
     }
@@ -352,23 +397,71 @@ private fun RecipeDetailDialog(
 }
 
 @Composable
+private fun ImportUrlDialog(
+    importing: Boolean,
+    @StringRes errorRes: Int?,
+    onImport: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var url by rememberSaveable { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = { if (!importing) onDismiss() },
+        title = { Text(stringResource(R.string.recipes_import_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = stringResource(R.string.recipes_import_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    label = { Text(stringResource(R.string.recipes_import_url_label)) },
+                    singleLine = true,
+                    enabled = !importing,
+                    isError = errorRes != null,
+                    supportingText = { errorRes?.let { Text(stringResource(it)) } },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (importing) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                        Text(stringResource(R.string.recipes_import_loading))
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = url.isNotBlank() && !importing, onClick = { onImport(url.trim()) }) {
+                Text(stringResource(R.string.recipes_import_action))
+            }
+        },
+        dismissButton = {
+            TextButton(enabled = !importing, onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        },
+    )
+}
+
+@Composable
 private fun RecipeEditor(
     recipe: Recipe?,
+    draft: ImportedRecipe?,
     saving: Boolean,
     canWrite: Boolean,
     isAdmin: Boolean,
     onDismiss: () -> Unit,
     onSave: (RecipeVisibility, String, String?, String?, List<Ingredient>) -> Unit,
 ) {
-    var title by remember(recipe?.id) { mutableStateOf(recipe?.title.orEmpty()) }
-    var description by remember(recipe?.id) { mutableStateOf(recipe?.description.orEmpty()) }
-    var category by remember(recipe?.id) { mutableStateOf(recipe?.category.orEmpty()) }
-    var global by remember(recipe?.id) { mutableStateOf(recipe?.visibility == RecipeVisibility.GLOBAL) }
-    val ingredients = remember(recipe?.id) {
-        recipe?.ingredients.orEmpty()
-            .map { IngredientDraft(it.name, it.quantity.orEmpty(), it.unit.orEmpty()) }
-            .toMutableStateList()
-    }
+    // Al crear a mano `recipe` y `draft` son null; al importar, los valores iniciales vienen del borrador.
+    val initial = remember(recipe?.id, draft) { recipeFormInitial(recipe, draft) }
+    var title by remember(initial) { mutableStateOf(initial.title) }
+    var description by remember(initial) { mutableStateOf(initial.description) }
+    var category by remember(initial) { mutableStateOf(initial.category) }
+    var global by remember(initial) { mutableStateOf(initial.global) }
+    val ingredients = remember(initial) { initial.ingredients.toMutableStateList() }
     val validation = RecipesValidation.validate(title, description, category)
     // El toggle de catálogo común solo se ofrece al crear (la visibilidad de una receta existente
     // está congelada por las reglas) y solo a quien puede publicar GLOBAL.
@@ -389,11 +482,9 @@ private fun RecipeEditor(
                     onValueChange = { title = it },
                     label = { Text(stringResource(R.string.recipes_title_label)) },
                     supportingText = {
-                        if (validation == RecipeUiMessage.TitleRequired || validation == RecipeUiMessage.TitleTooLong) {
-                            Text(stringResource(validation.stringResourceId))
-                        }
+                        if (validation.isTitleError()) Text(stringResource(validation!!.stringResourceId))
                     },
-                    isError = validation == RecipeUiMessage.TitleRequired || validation == RecipeUiMessage.TitleTooLong,
+                    isError = validation.isTitleError(),
                     singleLine = true,
                 )
                 OutlinedTextField(
@@ -519,6 +610,27 @@ private fun IngredientsEditor(rows: SnapshotStateList<IngredientDraft>) {
     }
 }
 
+private fun RecipeUiMessage?.isTitleError(): Boolean =
+    this == RecipeUiMessage.TitleRequired || this == RecipeUiMessage.TitleTooLong
+
+// Valores iniciales del editor: de la receta existente o, al importar, del borrador de la web.
+private data class RecipeFormInitial(
+    val title: String,
+    val description: String,
+    val category: String,
+    val global: Boolean,
+    val ingredients: List<IngredientDraft>,
+)
+
+private fun recipeFormInitial(recipe: Recipe?, draft: ImportedRecipe?): RecipeFormInitial = RecipeFormInitial(
+    title = recipe?.title ?: draft?.title.orEmpty(),
+    description = recipe?.description ?: draft?.description.orEmpty(),
+    category = recipe?.category ?: draft?.category.orEmpty(),
+    global = recipe?.visibility == RecipeVisibility.GLOBAL,
+    ingredients = (recipe?.ingredients ?: draft?.ingredients).orEmpty()
+        .map { IngredientDraft(it.name, it.quantity.orEmpty(), it.unit.orEmpty()) },
+)
+
 // Fila editable de ingrediente: estado mutable observable por Compose mientras dura el editor.
 private class IngredientDraft(name: String = "", quantity: String = "", unit: String = "") {
     var name by mutableStateOf(name)
@@ -574,7 +686,7 @@ private fun RecipesFeedback(state: RecipesUiState, onDismiss: () -> Unit) {
 
 private const val MAX_INGREDIENT_ROWS = 50
 
-private data class RecipeEditorRequest(val recipe: Recipe?)
+private data class RecipeEditorRequest(val recipe: Recipe?, val draft: ImportedRecipe? = null)
 
 private fun RecipesUiState.owns(recipe: Recipe): Boolean =
     (mine as? UiState.Content)?.value?.any { it.id == recipe.id } == true
@@ -588,6 +700,16 @@ private fun Recipe.matches(query: String): Boolean {
         category?.contains(trimmed, ignoreCase = true) == true ||
         ingredients?.any { it.name.contains(trimmed, ignoreCase = true) } == true
 }
+
+private fun RecipeUiMessage.isImport(): Boolean = this in IMPORT_MESSAGES
+
+private val IMPORT_MESSAGES = setOf(
+    RecipeUiMessage.ImportInvalidUrl,
+    RecipeUiMessage.ImportNetwork,
+    RecipeUiMessage.ImportNotHtml,
+    RecipeUiMessage.ImportNoRecipe,
+    RecipeUiMessage.ImportTooLarge,
+)
 
 private val RecipeUiMessage.stringResourceId: Int
     get() = when (this) {
@@ -604,4 +726,9 @@ private val RecipeUiMessage.stringResourceId: Int
         RecipeUiMessage.RecipeSaved -> R.string.recipes_notice_saved
         RecipeUiMessage.RecipeDeleted -> R.string.recipes_notice_deleted
         RecipeUiMessage.RecipeForked -> R.string.recipes_notice_forked
+        RecipeUiMessage.ImportInvalidUrl -> R.string.recipes_import_error_invalid_url
+        RecipeUiMessage.ImportNetwork -> R.string.recipes_import_error_network
+        RecipeUiMessage.ImportNotHtml -> R.string.recipes_import_error_not_html
+        RecipeUiMessage.ImportNoRecipe -> R.string.recipes_import_error_no_recipe
+        RecipeUiMessage.ImportTooLarge -> R.string.recipes_import_error_too_large
     }

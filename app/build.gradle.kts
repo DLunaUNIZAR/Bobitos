@@ -124,6 +124,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.zxing.core)
     implementation(libs.androidx.work.runtime)
+    implementation(libs.jsoup)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)
 
@@ -145,6 +146,8 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    // org.json real (el de android.jar es un stub que lanza en tests JVM); solo para el importador JSON-LD.
+    testImplementation(libs.json)
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

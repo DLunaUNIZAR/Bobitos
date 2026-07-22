@@ -47,6 +47,7 @@ class FirestoreRecipeRepository @Inject constructor(
         category: String?,
         sourceRecipeId: String?,
         ingredients: List<Ingredient>,
+        sourceUrl: String?,
     ) = runRecipeOperation {
         val user = requireVerifiedUser()
         val values = validate(title, description, category)
@@ -58,6 +59,7 @@ class FirestoreRecipeRepository @Inject constructor(
                 FIELD_DESCRIPTION to values.description,
                 FIELD_CATEGORY to values.category,
                 FIELD_SOURCE_RECIPE_ID to sourceRecipeId,
+                FIELD_SOURCE_URL to sourceUrl?.trim()?.takeIf(String::isNotEmpty),
                 FIELD_INGREDIENTS to ingredients.toFirestore(),
                 FIELD_CREATED_BY to user.id,
                 FIELD_CREATED_BY_NAME to user.recipeDisplayName,
@@ -186,6 +188,7 @@ class FirestoreRecipeRepository @Inject constructor(
         const val FIELD_DESCRIPTION = "description"
         const val FIELD_CATEGORY = "category"
         const val FIELD_SOURCE_RECIPE_ID = "sourceRecipeId"
+        const val FIELD_SOURCE_URL = "sourceUrl"
         const val FIELD_INGREDIENTS = "ingredients"
         const val FIELD_INGREDIENT_NAME = "name"
         const val FIELD_INGREDIENT_QUANTITY = "quantity"
@@ -220,6 +223,7 @@ private fun DocumentSnapshot.toRecipe(): Recipe? {
         description = getString("description"),
         category = getString("category"),
         sourceRecipeId = getString("sourceRecipeId"),
+        sourceUrl = getString("sourceUrl"),
         ingredients = parseIngredients(),
         createdBy = getString("createdBy") ?: return null,
         createdByName = getString("createdByName") ?: getString("createdBy") ?: return null,

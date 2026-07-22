@@ -2,6 +2,10 @@ package com.dlunaunizar.bobitos.data.di
 
 import com.dlunaunizar.bobitos.data.connectivity.AndroidConnectivityRepository
 import com.dlunaunizar.bobitos.data.connectivity.ConnectivityRepository
+import com.dlunaunizar.bobitos.data.recipeimport.HtmlFetcher
+import com.dlunaunizar.bobitos.data.recipeimport.HttpUrlHtmlFetcher
+import com.dlunaunizar.bobitos.data.recipeimport.JsonLdRecipeImporter
+import com.dlunaunizar.bobitos.data.recipeimport.RecipeImporter
 import com.dlunaunizar.bobitos.data.repository.AccountRepository
 import com.dlunaunizar.bobitos.data.repository.ActiveSpaceRepository
 import com.dlunaunizar.bobitos.data.repository.AuthRepository
@@ -63,6 +67,12 @@ abstract class DataModule {
 
     @Binds @Singleton
     abstract fun bindRecipeRepository(repository: FirestoreRecipeRepository): RecipeRepository
+
+    @Binds @Singleton
+    abstract fun bindHtmlFetcher(fetcher: HttpUrlHtmlFetcher): HtmlFetcher
+
+    @Binds @Singleton
+    abstract fun bindRecipeImporter(importer: JsonLdRecipeImporter): RecipeImporter
 
     @Binds @Singleton
     abstract fun bindSpaceSummaryRepository(repository: FirestoreSpaceSummaryRepository): SpaceSummaryRepository

@@ -284,6 +284,7 @@ private class FakeRecipeRepository : RecipeRepository {
         category: String?,
         sourceRecipeId: String?,
         ingredients: List<Ingredient>,
+        sourceUrl: String?,
     ) = Unit
 
     override suspend fun updateRecipe(

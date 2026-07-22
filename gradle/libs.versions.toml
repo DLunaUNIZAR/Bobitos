@@ -20,6 +20,8 @@ ktlint = "14.2.0"
 kover = "0.9.9"
 zxing = "3.5.3"
 work = "2.10.1"
+jsoup = "1.22.2"
+json = "20260719"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -39,6 +41,8 @@ androidx-navigation-compose = { module = "androidx.navigation:navigation-compose
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "dataStore" }
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
+jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
+json = { module = "org.json:json", version.ref = "json" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-auth = { module = "com.google.firebase:firebase-auth" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore" }

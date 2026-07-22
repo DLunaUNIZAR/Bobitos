@@ -20,6 +20,7 @@ interface RecipeRepository {
         category: String?,
         sourceRecipeId: String?,
         ingredients: List<Ingredient> = emptyList(),
+        sourceUrl: String? = null,
     )
 
     suspend fun updateRecipe(
