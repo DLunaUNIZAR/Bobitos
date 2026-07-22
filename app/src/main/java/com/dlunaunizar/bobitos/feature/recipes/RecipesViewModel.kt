@@ -6,6 +6,9 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
+import com.dlunaunizar.bobitos.data.recipeimport.ImportFailure
+import com.dlunaunizar.bobitos.data.recipeimport.RecipeImportException
+import com.dlunaunizar.bobitos.data.recipeimport.RecipeImporter
 import com.dlunaunizar.bobitos.data.repository.RecipeFailure
 import com.dlunaunizar.bobitos.data.repository.RecipeRepository
 import com.dlunaunizar.bobitos.data.repository.RecipeRepositoryException
@@ -20,7 +23,10 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class RecipesViewModel @Inject constructor(private val repository: RecipeRepository) : ViewModel() {
+class RecipesViewModel @Inject constructor(
+    private val repository: RecipeRepository,
+    private val importer: RecipeImporter,
+) : ViewModel() {
     private val mutableUiState = MutableStateFlow(RecipesUiState())
     val uiState: StateFlow<RecipesUiState> = mutableUiState.asStateFlow()
 
@@ -62,6 +68,7 @@ class RecipesViewModel @Inject constructor(private val repository: RecipeReposit
         description: String?,
         category: String?,
         ingredients: List<Ingredient> = emptyList(),
+        sourceUrl: String? = null,
     ) {
         if (!validate(title, description, category)) return
         // GLOBAL solo para admins; el resto siempre PRIVATE aunque llegue otra cosa (las reglas también lo exigen).
@@ -78,8 +85,28 @@ class RecipesViewModel @Inject constructor(private val repository: RecipeReposit
                 category = category.normalized(),
                 sourceRecipeId = null,
                 ingredients = ingredients,
+                sourceUrl = sourceUrl,
             )
         }
+    }
+
+    /** Descarga la receta de [url] (schema.org/Recipe) y, si tiene éxito, la deja en `importDraft`. */
+    fun importFromUrl(url: String) {
+        if (mutableUiState.value.isImporting) return
+        mutableUiState.update { it.copy(isImporting = true, error = null, notice = null) }
+        viewModelScope.launch {
+            try {
+                val draft = importer.import(url)
+                mutableUiState.update { it.copy(isImporting = false, importDraft = draft) }
+            } catch (error: RecipeImportException) {
+                mutableUiState.update { it.copy(isImporting = false, error = error.failure.toUiMessage()) }
+            }
+        }
+    }
+
+    /** La pantalla lo llama tras abrir el editor con el borrador importado. */
+    fun consumeImportDraft() {
+        mutableUiState.update { it.copy(importDraft = null) }
     }
 
     fun updateRecipe(
@@ -148,6 +175,14 @@ class RecipesViewModel @Inject constructor(private val repository: RecipeReposit
 }
 
 private fun String?.normalized(): String? = this?.trim()?.takeIf(String::isNotEmpty)
+
+private fun ImportFailure.toUiMessage(): RecipeUiMessage = when (this) {
+    ImportFailure.InvalidUrl -> RecipeUiMessage.ImportInvalidUrl
+    ImportFailure.Network -> RecipeUiMessage.ImportNetwork
+    ImportFailure.NotHtml -> RecipeUiMessage.ImportNotHtml
+    ImportFailure.NoRecipeFound -> RecipeUiMessage.ImportNoRecipe
+    ImportFailure.TooLarge -> RecipeUiMessage.ImportTooLarge
+}
 
 private fun Throwable.toUiMessage(): RecipeUiMessage = when ((this as? RecipeRepositoryException)?.failure) {
     RecipeFailure.TitleRequired -> RecipeUiMessage.TitleRequired

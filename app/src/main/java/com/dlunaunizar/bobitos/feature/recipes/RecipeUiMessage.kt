@@ -16,4 +16,9 @@ enum class RecipeUiMessage {
     RecipeSaved,
     RecipeDeleted,
     RecipeForked,
+    ImportInvalidUrl,
+    ImportNetwork,
+    ImportNotHtml,
+    ImportNoRecipe,
+    ImportTooLarge,
 }

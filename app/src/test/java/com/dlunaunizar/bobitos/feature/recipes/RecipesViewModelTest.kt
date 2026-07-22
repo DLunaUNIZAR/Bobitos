@@ -5,6 +5,10 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
+import com.dlunaunizar.bobitos.data.recipeimport.ImportFailure
+import com.dlunaunizar.bobitos.data.recipeimport.ImportedRecipe
+import com.dlunaunizar.bobitos.data.recipeimport.RecipeImportException
+import com.dlunaunizar.bobitos.data.recipeimport.RecipeImporter
 import com.dlunaunizar.bobitos.data.repository.RecipeRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -22,7 +26,8 @@ class RecipesViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val repository = FakeRecipeRepository()
-    private val viewModel = RecipesViewModel(repository)
+    private val importer = FakeRecipeImporter()
+    private val viewModel = RecipesViewModel(repository, importer)
 
     @Test
     fun `observes global and personal recipes`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -112,6 +117,63 @@ class RecipesViewModelTest {
             assertEquals(ingredients, repository.lastIngredients)
             assertEquals(RecipeUiMessage.RecipeForked, viewModel.uiState.value.notice)
         }
+
+    @Test
+    fun `a successful import leaves a draft to review`() = runTest(mainDispatcherRule.testDispatcher) {
+        importer.result = ImportedRecipe(
+            title = "Tortilla",
+            description = "Batir y cuajar",
+            category = "Cena",
+            ingredients = listOf(Ingredient("Huevo", "2", null)),
+            sourceUrl = "https://example.com/tortilla",
+        )
+
+        viewModel.importFromUrl("https://example.com/tortilla")
+        advanceUntilIdle()
+
+        val draft = viewModel.uiState.value.importDraft
+        assertEquals("Tortilla", draft?.title)
+        assertEquals("https://example.com/tortilla", draft?.sourceUrl)
+        assertEquals(false, viewModel.uiState.value.isImporting)
+    }
+
+    @Test
+    fun `consuming the draft clears it`() = runTest(mainDispatcherRule.testDispatcher) {
+        importer.result = ImportedRecipe("Tortilla", null, null, emptyList(), "https://example.com/t")
+        viewModel.importFromUrl("https://example.com/t")
+        advanceUntilIdle()
+
+        viewModel.consumeImportDraft()
+
+        assertEquals(null, viewModel.uiState.value.importDraft)
+    }
+
+    @Test
+    fun `a failed import surfaces an error and no draft`() = runTest(mainDispatcherRule.testDispatcher) {
+        importer.failure = ImportFailure.NoRecipeFound
+
+        viewModel.importFromUrl("https://example.com/not-a-recipe")
+        advanceUntilIdle()
+
+        assertEquals(null, viewModel.uiState.value.importDraft)
+        assertEquals(RecipeUiMessage.ImportNoRecipe, viewModel.uiState.value.error)
+        assertEquals(false, viewModel.uiState.value.isImporting)
+    }
+
+    @Test
+    fun `the imported source url is forwarded on save`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.createRecipe(
+            RecipeVisibility.PRIVATE,
+            "Tortilla",
+            null,
+            null,
+            emptyList(),
+            sourceUrl = "https://example.com/tortilla",
+        )
+        advanceUntilIdle()
+
+        assertEquals("https://example.com/tortilla", repository.lastSourceUrl)
+    }
 }
 
 private class FakeRecipeRepository : RecipeRepository {
@@ -121,6 +183,7 @@ private class FakeRecipeRepository : RecipeRepository {
     var lastVisibility: RecipeVisibility? = null
     var lastTitle: String? = null
     var lastSourceRecipeId: String? = null
+    var lastSourceUrl: String? = null
     var lastIngredients: List<Ingredient> = emptyList()
     var admin = false
 
@@ -134,11 +197,13 @@ private class FakeRecipeRepository : RecipeRepository {
         category: String?,
         sourceRecipeId: String?,
         ingredients: List<Ingredient>,
+        sourceUrl: String?,
     ) {
         createCount++
         lastVisibility = visibility
         lastTitle = title
         lastSourceRecipeId = sourceRecipeId
+        lastSourceUrl = sourceUrl
         lastIngredients = ingredients
     }
 
@@ -151,6 +216,16 @@ private class FakeRecipeRepository : RecipeRepository {
     ) = Unit
 
     override suspend fun deleteRecipe(recipeId: String) = Unit
+}
+
+private class FakeRecipeImporter : RecipeImporter {
+    var result: ImportedRecipe? = null
+    var failure: ImportFailure? = null
+
+    override suspend fun import(url: String): ImportedRecipe {
+        failure?.let { throw RecipeImportException(it) }
+        return result ?: error("No import result configured")
+    }
 }
 
 private fun recipe(id: String, visibility: RecipeVisibility, title: String, ingredients: List<Ingredient>? = null) =

@@ -1134,6 +1134,26 @@ test("una receta guarda su origen (fork) pero rechaza un sourceRecipeId no textu
   );
 });
 
+test("una receta importada guarda su enlace de origen pero rechaza un sourceUrl no textual o larguísimo", async () => {
+  const chef = verifiedFirestore("recipe-import");
+
+  await assertSucceeds(
+    setDoc(
+      doc(chef, "recipes", "imported"),
+      recipeData("recipe-import", { sourceUrl: "https://example.com/receta" }),
+    ),
+  );
+  await assertFails(
+    setDoc(doc(chef, "recipes", "bad-url"), recipeData("recipe-import", { sourceUrl: 123 })),
+  );
+  await assertFails(
+    setDoc(
+      doc(chef, "recipes", "huge-url"),
+      recipeData("recipe-import", { sourceUrl: "https://example.com/".padEnd(2001, "a") }),
+    ),
+  );
+});
+
 test("una receta guarda su lista de ingredientes pero rechaza un ingredients no-lista o demasiado largo", async () => {
   const chef = verifiedFirestore("recipe-ingredients");
 

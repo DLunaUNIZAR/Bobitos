@@ -812,11 +812,14 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly([
           "ownerUid", "visibility", "title", "description", "category",
           "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt", "sourceRecipeId",
-          "ingredients"
+          "sourceUrl", "ingredients"
         ])
         && (!request.resource.data.keys().hasAny(["sourceRecipeId"])
           || request.resource.data.sourceRecipeId == null
           || request.resource.data.sourceRecipeId is string)
+        && (!request.resource.data.keys().hasAny(["sourceUrl"])
+          || request.resource.data.sourceUrl == null
+          || (request.resource.data.sourceUrl is string && request.resource.data.sourceUrl.size() <= 2000))
         && (!request.resource.data.keys().hasAny(["ingredients"])
           || (request.resource.data.ingredients is list
             && request.resource.data.ingredients.size() <= 50))
