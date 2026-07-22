@@ -3,8 +3,13 @@ package com.dlunaunizar.bobitos.feature.ingredients
 import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
+import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
+import com.dlunaunizar.bobitos.core.model.Nutrition
 import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.dlunaunizar.bobitos.data.openfoodfacts.OffProduct
+import com.dlunaunizar.bobitos.data.openfoodfacts.OpenFoodFactsClient
+import com.dlunaunizar.bobitos.data.repository.IngredientBrandRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -24,7 +29,9 @@ class IngredientsViewModelTest {
 
     private val repository = FakeIngredientRepository()
     private val prefsRepository = FakeIngredientPrefsRepository()
-    private val viewModel = IngredientsViewModel(repository, prefsRepository)
+    private val brandRepository = FakeListBrandRepository()
+    private val offClient = FakeListOffClient()
+    private val viewModel = IngredientsViewModel(repository, prefsRepository, brandRepository, offClient)
 
     @Test
     fun `observes the catalog and prefs`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -84,6 +91,64 @@ class IngredientsViewModelTest {
     }
 
     @Test
+    fun `scanning from the list leaves a product draft`() = runTest(mainDispatcherRule.testDispatcher) {
+        offClient.result = OffProduct("Tomate frito", "Hacendado", Nutrition(energyKcal = 80.0))
+        viewModel.observe()
+        advanceUntilIdle()
+
+        viewModel.lookupBarcode("8410000000000")
+        advanceUntilIdle()
+
+        val product = viewModel.uiState.value.scannedProduct
+        assertEquals("Tomate frito", product?.suggestedName)
+        assertEquals("Hacendado", product?.brandName)
+        assertEquals("8410000000000", product?.barcode)
+    }
+
+    @Test
+    fun `creating from scan creates the ingredient and its brand`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe()
+        advanceUntilIdle()
+
+        viewModel.createIngredientFromScan(
+            "Tomate frito",
+            null,
+            null,
+            "Hacendado",
+            "8410000000000",
+            Nutrition(energyKcal = 80.0),
+        )
+        advanceUntilIdle()
+
+        assertEquals(1, repository.createCount)
+        assertEquals("Tomate frito", repository.lastCreatedName)
+        assertEquals("tomate-frito", brandRepository.lastIngredientId)
+        assertEquals("Hacendado", brandRepository.lastName)
+        assertEquals(IngredientUiMessage.Saved, viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun `creating from scan for an existing ingredient only adds the brand`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.catalogState.value = listOf(ingredient("tomate-frito", "Tomate frito"))
+            viewModel.observe()
+            advanceUntilIdle()
+
+            viewModel.createIngredientFromScan(
+                "Tomate frito",
+                null,
+                null,
+                "Hacendado",
+                "841",
+                Nutrition(energyKcal = 80.0),
+            )
+            advanceUntilIdle()
+
+            assertEquals(0, repository.createCount)
+            assertEquals("tomate-frito", brandRepository.lastIngredientId)
+        }
+
+    @Test
     fun `canEdit is true for own ingredients and admins`() = runTest(mainDispatcherRule.testDispatcher) {
         repository.uid = "me"
         viewModel.observe()
@@ -141,4 +206,30 @@ private class FakeIngredientPrefsRepository : IngredientPrefsRepository {
     override suspend fun clearPref(ingredientId: String) {
         lastId = ingredientId
     }
+}
+
+private class FakeListBrandRepository : IngredientBrandRepository {
+    var lastIngredientId: String? = null
+    var lastName: String? = null
+
+    override fun brands(ingredientId: String): Flow<List<IngredientBrand>> = MutableStateFlow(emptyList())
+    override suspend fun addBrand(ingredientId: String, name: String, barcode: String?, nutrition: Nutrition?) {
+        lastIngredientId = ingredientId
+        lastName = name
+    }
+
+    override suspend fun updateBrand(
+        ingredientId: String,
+        brandId: String,
+        name: String,
+        barcode: String?,
+        nutrition: Nutrition?,
+    ) = Unit
+
+    override suspend fun deleteBrand(ingredientId: String, brandId: String) = Unit
+}
+
+private class FakeListOffClient : OpenFoodFactsClient {
+    var result: OffProduct? = null
+    override suspend fun lookup(barcode: String): OffProduct? = result
 }

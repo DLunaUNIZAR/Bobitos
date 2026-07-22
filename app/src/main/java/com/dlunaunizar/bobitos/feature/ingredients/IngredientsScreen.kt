@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Kitchen
+import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,10 +34,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,6 +54,7 @@ import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.feature.shopping.SupermarketIcon
 import com.dlunaunizar.bobitos.feature.shopping.labelRes
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,8 +70,19 @@ fun IngredientsScreen(
         onDispose { viewModel.stopObserving() }
     }
     var showEditor by remember { mutableStateOf(false) }
+    var scanCreate by remember { mutableStateOf<ScannedProduct?>(null) }
     var query by rememberSaveable { mutableStateOf("") }
     LaunchedEffect(query) { viewModel.setQuery(query) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    // Un escaneo abre el editor de «nuevo ingrediente» prerrellenado con el producto.
+    LaunchedEffect(state.scannedProduct) {
+        state.scannedProduct?.let {
+            scanCreate = it
+            viewModel.consumeScannedProduct()
+        }
+    }
 
     Scaffold(
         modifier = modifier,
@@ -79,6 +94,17 @@ fun IngredientsScreen(
                         Icon(
                             Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = stringResource(R.string.navigate_back),
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(
+                        enabled = !state.isLookingUp,
+                        onClick = { scope.launch { scanBarcode(context)?.let(viewModel::lookupBarcode) } },
+                    ) {
+                        Icon(
+                            Icons.Rounded.QrCodeScanner,
+                            contentDescription = stringResource(R.string.ingredients_brand_scan),
                         )
                     }
                 },
@@ -120,6 +146,26 @@ fun IngredientsScreen(
             onSave = { name, category, unit ->
                 viewModel.createIngredient(name, category, unit)
                 showEditor = false
+            },
+        )
+    }
+
+    scanCreate?.let { product ->
+        IngredientEditorDialog(
+            ingredient = null,
+            initialName = product.suggestedName,
+            saving = state.isSaving,
+            onDismiss = { scanCreate = null },
+            onSave = { name, category, unit ->
+                viewModel.createIngredientFromScan(
+                    name,
+                    category,
+                    unit,
+                    product.brandName,
+                    product.barcode,
+                    product.nutrition,
+                )
+                scanCreate = null
             },
         )
     }
@@ -214,8 +260,9 @@ internal fun IngredientEditorDialog(
     saving: Boolean,
     onDismiss: () -> Unit,
     onSave: (String, String?, String?) -> Unit,
+    initialName: String = "",
 ) {
-    var name by remember(ingredient?.id) { mutableStateOf(ingredient?.name.orEmpty()) }
+    var name by remember(ingredient?.id) { mutableStateOf(ingredient?.name ?: initialName) }
     var category by remember(ingredient?.id) { mutableStateOf(ingredient?.category.orEmpty()) }
     var unit by remember(ingredient?.id) { mutableStateOf(ingredient?.defaultUnit.orEmpty()) }
 
