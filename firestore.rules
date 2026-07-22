@@ -939,11 +939,78 @@ service cloud.firestore {
         && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
     }
 
+    // Marca del catálogo con nutrición (por 100 g/ml). `barcode` opcional (≤32) y los 6 valores
+    // nutricionales opcionales de tipo number. Ninguna clave fuera del contrato.
+    function optionalNumberField(key) {
+      return !request.resource.data.keys().hasAny([key])
+        || request.resource.data[key] == null
+        || request.resource.data[key] is number;
+    }
+
+    function validBrandShape() {
+      return request.resource.data.keys().hasAll([
+          "name", "ownerUid", "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt"
+        ])
+        && request.resource.data.keys().hasOnly([
+          "name", "ownerUid", "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt",
+          "barcode", "energyKcal", "fat", "carbohydrates", "sugars", "protein", "salt"
+        ])
+        && (!request.resource.data.keys().hasAny(["barcode"])
+          || request.resource.data.barcode == null
+          || (request.resource.data.barcode is string && request.resource.data.barcode.size() <= 32))
+        && optionalNumberField("energyKcal") && optionalNumberField("fat")
+        && optionalNumberField("carbohydrates") && optionalNumberField("sugars")
+        && optionalNumberField("protein") && optionalNumberField("salt")
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.ownerUid is string
+        && request.resource.data.createdBy is string
+        && request.resource.data.createdByName is string
+        && request.resource.data.createdByName.size() > 0
+        && request.resource.data.createdByName.size() <= 60
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedBy is string
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function validNewBrand() {
+      return verifiedUser() && validBrandShape()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
+    }
+
+    function ownsOrCuratesBrand() {
+      return verifiedUser()
+        && (resource.data.ownerUid == request.auth.uid || isRecipeAdmin());
+    }
+
+    function validBrandUpdate() {
+      return ownsOrCuratesBrand() && validBrandShape()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "name", "barcode", "energyKcal", "fat", "carbohydrates", "sugars", "protein", "salt",
+          "updatedBy", "updatedAt"
+        ])
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdByName == resource.data.createdByName
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
+    }
+
     match /ingredients/{ingredientId} {
       allow get, list: if verifiedUser();
       allow create: if validNewIngredient();
       allow update: if validIngredientUpdate();
       allow delete: if ownsOrCuratesIngredient();
+
+      match /brands/{brandId} {
+        allow get, list: if verifiedUser();
+        allow create: if validNewBrand();
+        allow update: if validBrandUpdate();
+        allow delete: if ownsOrCuratesBrand();
+      }
     }
 
     // Preferencias de ingredientes por usuario (supermercado/marca por defecto): documento privado del
