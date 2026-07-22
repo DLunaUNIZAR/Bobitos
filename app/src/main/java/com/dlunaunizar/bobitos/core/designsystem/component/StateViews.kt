@@ -21,6 +21,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 
 // Estados de UI compartidos (vacío/carga/error). El `modifier` decide el encaje: `fillMaxSize()` para
 // pantalla completa o `fillMaxWidth()` para usarlos dentro de una lista/sección.
@@ -100,9 +101,9 @@ private fun StateColumn(modifier: Modifier, content: @Composable () -> Unit) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(24.dp),
+            .padding(Spacing.xl),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md, Alignment.CenterVertically),
     ) {
         content()
     }

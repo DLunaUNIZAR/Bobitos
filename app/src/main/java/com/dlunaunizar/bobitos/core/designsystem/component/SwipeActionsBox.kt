@@ -13,7 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
+import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 
 /**
  * Envuelve [content] con gestos de deslizar. Al superar el umbral ejecuta la acción y **vuelve a su
@@ -63,7 +63,7 @@ private fun SwipeBackground(action: SwipeAction?, alignEnd: Boolean) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = Spacing.xl),
         contentAlignment = if (alignEnd) Alignment.CenterEnd else Alignment.CenterStart,
     ) {
         if (action != null) {
