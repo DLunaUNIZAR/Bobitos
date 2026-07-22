@@ -55,6 +55,8 @@ class FirestoreIngredientRepository @Inject constructor(
     override fun isCurrentUserCatalogAdmin(): Boolean =
         authRepository.currentUser.value?.id?.let(RecipeAdmins.uids::contains) == true
 
+    override fun currentUserId(): String? = authRepository.currentUser.value?.id
+
     override suspend fun createIngredient(name: String, category: String?, defaultUnit: String?) = runOperation {
         val user = requireVerifiedUser()
         val values = validate(name, category, defaultUnit)

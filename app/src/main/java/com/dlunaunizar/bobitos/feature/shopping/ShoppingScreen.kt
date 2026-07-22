@@ -679,7 +679,7 @@ private fun List<ShoppingItem>.forSupermarket(supermarket: Supermarket?): List<S
     }
 
 @Composable
-private fun SupermarketDropdown(selected: Supermarket?, onSelect: (Supermarket?) -> Unit) {
+internal fun SupermarketDropdown(selected: Supermarket?, onSelect: (Supermarket?) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box(modifier = Modifier.fillMaxWidth()) {
         OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
@@ -715,7 +715,7 @@ private fun SupermarketDropdown(selected: Supermarket?, onSelect: (Supermarket?)
 }
 
 @Composable
-private fun SupermarketIcon(supermarket: Supermarket, modifier: Modifier = Modifier) {
+internal fun SupermarketIcon(supermarket: Supermarket, modifier: Modifier = Modifier) {
     Icon(
         imageVector = Icons.Rounded.Storefront,
         contentDescription = null,
