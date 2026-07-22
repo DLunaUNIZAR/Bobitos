@@ -1,18 +1,14 @@
-Beta de Bobitos — importar recetas de la web y base de datos de ingredientes.
+Beta de Bobitos — escaneo rápido de ingredientes y corrección de un cierre.
 
 Novedades desde la beta anterior:
 
-Importar recetas desde internet
-- Nuevo: en el Recetario, «Importar de una web» (icono de enlace). Pega la dirección de una receta y la app la descarga y rellena sola (título, categoría, ingredientes y pasos) para que la revises antes de guardar.
-- También puedes compartir el enlace desde el navegador: Compartir → Bobitos.
-- Funciona con webs que publican sus recetas en formato estándar; si no, te avisa para crearla a mano.
+Ingredientes
+- Nuevo: escanear un código de barras directamente desde la lista de Ingredientes (icono de escáner arriba). Consulta Open Food Facts y abre «Nuevo ingrediente» con el nombre del producto ya puesto (edítalo para dejarlo genérico, p. ej. «Tomate frito»); al guardar crea el ingrediente y le añade esa marca con sus valores nutricionales, todo de una.
+- Recuerda: dentro de cada ingrediente sigues teniendo «Escanear código» para añadir más marcas.
 
-Base de datos de ingredientes (nuevo módulo «Ingredientes», desde Comidas)
-- Catálogo común de ingredientes: cualquiera puede añadir los que falten; los edita/borra quien los creó.
-- Personalización tuya: fija el supermercado y la marca por defecto de cada ingrediente. Al pasar los ingredientes de una comida a la lista de la compra, llegan ya con tu supermercado y marca.
-- Marcas con valores nutricionales: cada ingrediente puede tener varias marcas, cada una con su energía, grasas, hidratos, azúcares, proteínas y sal (por 100 g/ml).
-- Escanear el código de barras: añade una marca escaneándola y se autocompletan nombre y valores nutricionales desde Open Food Facts (no necesita permiso de cámara).
+Correcciones
+- Arreglado un cierre inesperado al abrir un ingrediente que tenía dos marcas con el mismo nombre.
 
-Incluye: espacios privados con invitaciones, lista de la compra compartida, tareas asignables, calendario compartido, planificador de comidas con recetario e ingredientes, importación de recetas web, recordatorios locales, buscadores, gestos de deslizar y modo sin conexión de solo lectura.
+Incluye: espacios privados con invitaciones, lista de la compra compartida, tareas asignables, calendario compartido, planificador de comidas con recetario, importación de recetas desde la web, base de datos de ingredientes (catálogo común, tu supermercado/marca por defecto, marcas con nutrición y escaneo de código de barras), recordatorios locales, buscadores, gestos de deslizar y modo sin conexión de solo lectura.
 
 Comunica cualquier error indicando el modelo del dispositivo, la versión de Android y los pasos para reproducirlo.
