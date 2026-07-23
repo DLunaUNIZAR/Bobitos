@@ -363,6 +363,9 @@
     <string name="recipes_notice_saved">Receta guardada</string>
     <string name="recipes_notice_deleted">Receta eliminada</string>
     <string name="recipes_notice_forked">Guardada en «Mis recetas»</string>
+    <string name="recipes_add_to_shopping">Añadir a la compra</string>
+    <string name="recipes_notice_added_to_shopping">Añadido a la compra</string>
+    <string name="recipes_error_no_ingredients">Esta receta no tiene ingredientes.</string>
     <string name="recipes_import_title">Importar de una web</string>
     <string name="recipes_import_body">Pega el enlace de una receta. Funciona con webs que publican sus recetas en formato estándar; después podrás revisarla antes de guardar.</string>
     <string name="recipes_import_url_label">Enlace de la receta</string>

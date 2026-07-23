@@ -4,20 +4,28 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.Ingredient
+import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
 import com.dlunaunizar.bobitos.data.recipeimport.ImportFailure
 import com.dlunaunizar.bobitos.data.recipeimport.RecipeImportException
 import com.dlunaunizar.bobitos.data.recipeimport.RecipeImporter
+import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.RecipeFailure
 import com.dlunaunizar.bobitos.data.repository.RecipeRepository
 import com.dlunaunizar.bobitos.data.repository.RecipeRepositoryException
+import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
+import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
+import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
+import com.dlunaunizar.bobitos.feature.common.applyIngredientReview
+import com.dlunaunizar.bobitos.feature.common.buildIngredientReviewRows
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -26,18 +34,29 @@ import javax.inject.Inject
 class RecipesViewModel @Inject constructor(
     private val repository: RecipeRepository,
     private val importer: RecipeImporter,
+    private val shoppingRepository: ShoppingRepository,
+    private val ingredientPrefsRepository: IngredientPrefsRepository,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(RecipesUiState())
     val uiState: StateFlow<RecipesUiState> = mutableUiState.asStateFlow()
 
     private var globalJob: Job? = null
     private var mineJob: Job? = null
+    private var prefsJob: Job? = null
     private var observing = false
+
+    // Preferencias del usuario (super/marca por defecto), para prerrellenar al añadir a la compra.
+    private var ingredientPrefs: Map<String, IngredientPref> = emptyMap()
 
     fun observe() {
         if (observing) return
         observing = true
         mutableUiState.update { it.copy(isAdmin = repository.isCurrentUserRecipeAdmin()) }
+        prefsJob = viewModelScope.launch {
+            ingredientPrefsRepository.prefs()
+                .catch { ingredientPrefs = emptyMap() }
+                .collect { prefs -> ingredientPrefs = prefs }
+        }
         globalJob = viewModelScope.launch {
             repository.globalRecipes()
                 .catch { error -> mutableUiState.update { it.copy(global = UiState.Error(error.message)) } }
@@ -53,9 +72,36 @@ class RecipesViewModel @Inject constructor(
     fun stopObserving() {
         globalJob?.cancel()
         mineJob?.cancel()
+        prefsJob?.cancel()
         globalJob = null
         mineJob = null
+        prefsJob = null
         observing = false
+    }
+
+    /** Abre la revisión para volcar los ingredientes de [recipe] a la lista de la compra de [spaceId]. */
+    fun addToShopping(spaceId: String, recipe: Recipe) {
+        val ingredients = recipe.ingredients.orEmpty()
+        if (ingredients.isEmpty()) {
+            showError(RecipeUiMessage.NoIngredients)
+            return
+        }
+        viewModelScope.launch {
+            val current = runCatching { shoppingRepository.items(spaceId).first() }.getOrDefault(emptyList())
+            mutableUiState.update { it.copy(ingredientReview = buildIngredientReviewRows(ingredients, current)) }
+        }
+    }
+
+    fun confirmShoppingReview(spaceId: String, finalQuantities: List<String?>) {
+        val rows = mutableUiState.value.ingredientReview ?: return
+        mutableUiState.update { it.copy(ingredientReview = null) }
+        runAction(RecipeUiMessage.AddedToShopping) {
+            applyIngredientReview(spaceId, rows, finalQuantities, ingredientPrefs, shoppingRepository)
+        }
+    }
+
+    fun dismissShoppingReview() {
+        mutableUiState.update { it.copy(ingredientReview = null) }
     }
 
     fun setQuery(query: String) {
@@ -184,7 +230,13 @@ private fun ImportFailure.toUiMessage(): RecipeUiMessage = when (this) {
     ImportFailure.TooLarge -> RecipeUiMessage.ImportTooLarge
 }
 
-private fun Throwable.toUiMessage(): RecipeUiMessage = when ((this as? RecipeRepositoryException)?.failure) {
+private fun Throwable.toUiMessage(): RecipeUiMessage = when (this) {
+    is RecipeRepositoryException -> failure.toUiMessage()
+    is ShoppingRepositoryException -> failure.toUiMessage()
+    else -> RecipeUiMessage.UnexpectedError
+}
+
+private fun RecipeFailure.toUiMessage(): RecipeUiMessage = when (this) {
     RecipeFailure.TitleRequired -> RecipeUiMessage.TitleRequired
     RecipeFailure.TitleTooLong -> RecipeUiMessage.TitleTooLong
     RecipeFailure.DescriptionTooLong -> RecipeUiMessage.DescriptionTooLong
@@ -194,7 +246,13 @@ private fun Throwable.toUiMessage(): RecipeUiMessage = when ((this as? RecipeRep
     RecipeFailure.RecipeNotFound -> RecipeUiMessage.RecipeNotFound
     RecipeFailure.PermissionDenied -> RecipeUiMessage.PermissionDenied
     RecipeFailure.Network -> RecipeUiMessage.NetworkError
-    RecipeFailure.Unknown,
-    null,
-    -> RecipeUiMessage.UnexpectedError
+    RecipeFailure.Unknown -> RecipeUiMessage.UnexpectedError
+}
+
+private fun ShoppingFailure.toUiMessage(): RecipeUiMessage = when (this) {
+    ShoppingFailure.NotAuthenticated -> RecipeUiMessage.NotAuthenticated
+    ShoppingFailure.EmailNotVerified -> RecipeUiMessage.EmailNotVerified
+    ShoppingFailure.PermissionDenied -> RecipeUiMessage.PermissionDenied
+    ShoppingFailure.Network -> RecipeUiMessage.NetworkError
+    else -> RecipeUiMessage.UnexpectedError
 }

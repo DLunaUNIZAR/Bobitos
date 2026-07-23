@@ -68,6 +68,7 @@ import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
 import com.dlunaunizar.bobitos.data.recipeimport.ImportedRecipe
+import com.dlunaunizar.bobitos.feature.common.IngredientReviewDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,6 +76,7 @@ fun RecipesScreen(
     onBack: () -> Unit,
     canWrite: Boolean,
     modifier: Modifier = Modifier,
+    spaceId: String? = null,
     importUrl: String? = null,
     onImportUrlConsumed: () -> Unit = {},
     viewModel: RecipesViewModel = hiltViewModel(),
@@ -190,6 +192,11 @@ fun RecipesScreen(
             recipe = recipe,
             isMine = state.owns(recipe),
             canWrite = canWrite,
+            canAddToShopping = spaceId != null,
+            onAddToShopping = {
+                spaceId?.let { viewModel.addToShopping(it, recipe) }
+                detail = null
+            },
             onEdit = {
                 editorRequest = RecipeEditorRequest(recipe)
                 detail = null
@@ -272,6 +279,16 @@ fun RecipesScreen(
                 TextButton(onClick = { recipeToDelete = null }) { Text(stringResource(R.string.cancel)) }
             },
         )
+    }
+
+    state.ingredientReview?.let { reviewRows ->
+        if (spaceId != null) {
+            IngredientReviewDialog(
+                rows = reviewRows,
+                onConfirm = { quantities -> viewModel.confirmShoppingReview(spaceId, quantities) },
+                onDismiss = viewModel::dismissShoppingReview,
+            )
+        }
     }
 }
 
@@ -368,6 +385,8 @@ private fun RecipeDetailDialog(
     recipe: Recipe,
     isMine: Boolean,
     canWrite: Boolean,
+    canAddToShopping: Boolean,
+    onAddToShopping: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onFork: () -> Unit,
@@ -389,6 +408,11 @@ private fun RecipeDetailDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (canWrite && canAddToShopping) {
+                    TextButton(onClick = onAddToShopping) {
+                        Text(stringResource(R.string.recipes_add_to_shopping))
+                    }
+                }
                 if (canWrite) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (isMine) {
@@ -740,4 +764,6 @@ private val RecipeUiMessage.stringResourceId: Int
         RecipeUiMessage.ImportNotHtml -> R.string.recipes_import_error_not_html
         RecipeUiMessage.ImportNoRecipe -> R.string.recipes_import_error_no_recipe
         RecipeUiMessage.ImportTooLarge -> R.string.recipes_import_error_too_large
+        RecipeUiMessage.AddedToShopping -> R.string.recipes_notice_added_to_shopping
+        RecipeUiMessage.NoIngredients -> R.string.recipes_error_no_ingredients
     }

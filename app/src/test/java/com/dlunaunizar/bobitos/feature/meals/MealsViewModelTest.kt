@@ -21,6 +21,7 @@ import com.dlunaunizar.bobitos.data.repository.MealRepositoryException
 import com.dlunaunizar.bobitos.data.repository.RecipeRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
+import com.dlunaunizar.bobitos.feature.common.IngredientReviewRow
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

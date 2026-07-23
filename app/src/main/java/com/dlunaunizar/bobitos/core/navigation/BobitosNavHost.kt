@@ -437,6 +437,7 @@ fun BobitosNavHost(
             RecipesScreen(
                 onBack = { navController.popBackStack() },
                 canWrite = uiState.syncStatus.canWrite,
+                spaceId = uiState.selectedSpace?.id,
                 importUrl = pendingRecipeImportUrl,
                 onImportUrlConsumed = onRecipeImportUrlConsumed,
             )

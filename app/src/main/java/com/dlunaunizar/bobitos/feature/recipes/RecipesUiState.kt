@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.feature.recipes
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.data.recipeimport.ImportedRecipe
+import com.dlunaunizar.bobitos.feature.common.IngredientReviewRow
 
 data class RecipesUiState(
     val query: String = "",
@@ -16,4 +17,6 @@ data class RecipesUiState(
     // Importación desde una web: descarga en curso y borrador pendiente de abrir en el editor.
     val isImporting: Boolean = false,
     val importDraft: ImportedRecipe? = null,
+    // Revisión de cantidades al añadir los ingredientes de una receta a la Compra (null = sin diálogo).
+    val ingredientReview: List<IngredientReviewRow>? = null,
 )
