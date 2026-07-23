@@ -43,4 +43,7 @@ enum class ShoppingUiMessage {
     ItemUnmarked,
     ItemDeleted,
     PurchasedCleared,
+    PrefSaved,
+    IngredientCreated,
+    IngredientExists,
 }

@@ -17,6 +17,9 @@ interface IngredientRepository {
     /** UID de la cuenta activa, o null si no hay sesión (para saber qué fichas son propias). */
     fun currentUserId(): String?
 
+    /** Lee una ficha por id (slug) con un get() puntual; null si no existe. Para comprobar existencia. */
+    suspend fun ingredientById(id: String): CatalogIngredient?
+
     suspend fun createIngredient(name: String, category: String?, defaultUnit: String?)
 
     suspend fun updateIngredient(id: String, name: String, category: String?, defaultUnit: String?)

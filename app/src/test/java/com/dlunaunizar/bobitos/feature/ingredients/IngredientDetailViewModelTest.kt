@@ -179,6 +179,7 @@ private class DetailFakeIngredientRepo : IngredientRepository {
     override fun catalog(): Flow<List<CatalogIngredient>> = catalogState
     override fun isCurrentUserCatalogAdmin(): Boolean = admin
     override fun currentUserId(): String? = uid
+    override suspend fun ingredientById(id: String): CatalogIngredient? = catalogState.value.firstOrNull { it.id == id }
     override suspend fun createIngredient(name: String, category: String?, defaultUnit: String?) = Unit
     override suspend fun updateIngredient(id: String, name: String, category: String?, defaultUnit: String?) = Unit
     override suspend fun deleteIngredient(id: String) = Unit

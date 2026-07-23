@@ -200,6 +200,8 @@ fun ShoppingScreen(
                                         enabled = actionsEnabled,
                                         suggestion = suggestedPref(item, state.ingredientPrefs),
                                         onApplySuggestion = { viewModel.applyIngredientPref(spaceId, item) },
+                                        onSaveAsPref = { viewModel.saveItemAsPreference(item) },
+                                        onCreateIngredient = { viewModel.createIngredientFromItem(item) },
                                         onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
                                         onEdit = {
                                             editedItem = item
@@ -246,6 +248,8 @@ fun ShoppingScreen(
                                             enabled = actionsEnabled,
                                             suggestion = null,
                                             onApplySuggestion = {},
+                                            onSaveAsPref = { viewModel.saveItemAsPreference(item) },
+                                            onCreateIngredient = { viewModel.createIngredientFromItem(item) },
                                             onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
                                             onEdit = {
                                                 editedItem = item
@@ -469,6 +473,8 @@ private fun ShoppingItemCard(
     enabled: Boolean,
     suggestion: IngredientPref?,
     onApplySuggestion: () -> Unit,
+    onSaveAsPref: () -> Unit,
+    onCreateIngredient: () -> Unit,
     onSetPurchased: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -552,6 +558,22 @@ private fun ShoppingItemCard(
                         onClick = {
                             menuExpanded = false
                             onEdit()
+                        },
+                    )
+                    if (item.supermarket != null || !item.brand.isNullOrBlank()) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.shopping_save_as_pref)) },
+                            onClick = {
+                                menuExpanded = false
+                                onSaveAsPref()
+                            },
+                        )
+                    }
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.shopping_create_ingredient)) },
+                        onClick = {
+                            menuExpanded = false
+                            onCreateIngredient()
                         },
                     )
                     DropdownMenuItem(
@@ -851,6 +873,9 @@ private val ShoppingUiMessage.stringResourceId: Int
         ShoppingUiMessage.ItemUnmarked -> R.string.shopping_notice_unmarked
         ShoppingUiMessage.ItemDeleted -> R.string.shopping_notice_deleted
         ShoppingUiMessage.PurchasedCleared -> R.string.shopping_notice_deleted
+        ShoppingUiMessage.PrefSaved -> R.string.shopping_notice_pref_saved
+        ShoppingUiMessage.IngredientCreated -> R.string.shopping_notice_ingredient_created
+        ShoppingUiMessage.IngredientExists -> R.string.shopping_notice_ingredient_exists
     }
 
 // Nombres del catálogo que casan con lo tecleado (para autocompletar el ítem). Máx. 6, desde 2 letras.
