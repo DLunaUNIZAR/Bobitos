@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.MoreVert
@@ -270,6 +272,8 @@ fun BobitosNavHost(
                 syncStatus = uiState.syncStatus,
                 counts = counts,
                 onModuleSelected = navController::navigateToWorkspace,
+                onOpenRecipes = { navController.navigate(BobitosDestination.Recipes.route) },
+                onOpenIngredients = { navController.navigate(BobitosDestination.Ingredients.route) },
                 onSwitchSpace = navController::navigateToSpaces,
                 onSpaceSettings = {
                     onClearSpaceFeedback()
@@ -627,6 +631,8 @@ private fun SpaceHomeScreen(
     syncStatus: SyncStatus,
     counts: SpaceModuleCounts?,
     onModuleSelected: (BobitosDestination) -> Unit,
+    onOpenRecipes: () -> Unit,
+    onOpenIngredients: () -> Unit,
     onSwitchSpace: () -> Unit,
     onSpaceSettings: () -> Unit,
     onProfile: () -> Unit,
@@ -659,6 +665,7 @@ private fun SpaceHomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -674,6 +681,14 @@ private fun SpaceHomeScreen(
                     onClick = { onModuleSelected(destination) },
                 )
             }
+            Text(
+                text = stringResource(R.string.space_home_catalog_section),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            SpaceHomeCard(destination = BobitosDestination.Recipes, count = 0, onClick = onOpenRecipes)
+            SpaceHomeCard(destination = BobitosDestination.Ingredients, count = 0, onClick = onOpenIngredients)
         }
     }
 }
