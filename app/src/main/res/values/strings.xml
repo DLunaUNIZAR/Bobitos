@@ -321,6 +321,7 @@
     <string name="meals_review_title">Añadir a la Compra</string>
     <string name="meals_review_existing">Ya en la lista: %1$s · receta: %2$s</string>
     <string name="meals_review_recipe">Receta: %1$s</string>
+    <string name="meals_review_multi">De varias comidas: %1$s</string>
     <string name="meals_choose_recipe">Elegir de una receta</string>
     <string name="meals_recipe_picker_title">Elegir receta</string>
     <string name="recipes_title">Recetario</string>

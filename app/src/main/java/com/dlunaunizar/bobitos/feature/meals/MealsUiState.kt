@@ -39,4 +39,7 @@ data class IngredientReviewRow(
     val unit: String?,
     val recipeQuantity: String?,
     val existing: ShoppingItem?,
+    // Cantidades formateadas de cada comida que aporta este ingrediente (p. ej. ["200 g", "300 g"]).
+    // Con 2+ elementos, la revisión muestra todas para que el usuario decida la cantidad final.
+    val quantities: List<String> = emptyList(),
 )
