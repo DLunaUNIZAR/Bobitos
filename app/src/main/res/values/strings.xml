@@ -234,10 +234,11 @@
     <string name="tasks_priority_medium">Media</string>
     <string name="tasks_priority_high">Alta</string>
     <string name="tasks_overdue">Vencidas</string>
+    <string name="tasks_badge_overdue">Vencida</string>
     <string name="tasks_today">Hoy</string>
     <string name="tasks_upcoming">Próximas</string>
+    <string name="tasks_priority_cd">Prioridad %1$s</string>
     <string name="tasks_completed_by">Completada por %1$s</string>
-    <string name="tasks_created_by">Creada por %1$s</string>
     <string name="tasks_error_title_required">Introduce un título.</string>
     <string name="tasks_error_title_too_long">El título no puede superar 120 caracteres.</string>
     <string name="tasks_error_description_too_long">La descripción no puede superar 1000 caracteres.</string>
