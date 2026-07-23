@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.dlunaunizar.bobitos.core.model.slug
+import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
+import com.dlunaunizar.bobitos.data.repository.IngredientRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
@@ -18,11 +21,17 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class ShoppingViewModel @Inject constructor(private val repository: ShoppingRepository) : ViewModel() {
+class ShoppingViewModel @Inject constructor(
+    private val repository: ShoppingRepository,
+    private val ingredientRepository: IngredientRepository,
+    private val ingredientPrefsRepository: IngredientPrefsRepository,
+) : ViewModel() {
     private val mutableUiState = MutableStateFlow(ShoppingUiState())
     val uiState: StateFlow<ShoppingUiState> = mutableUiState.asStateFlow()
     private var itemsJob: Job? = null
     private var observedSpaceId: String? = null
+    private var catalogJob: Job? = null
+    private var prefsJob: Job? = null
 
     fun observe(spaceId: String) {
         if (spaceId == observedSpaceId && itemsJob?.isActive == true) return
@@ -49,6 +58,29 @@ class ShoppingViewModel @Inject constructor(private val repository: ShoppingRepo
         observedSpaceId = null
     }
 
+    /** Empieza a observar catálogo + preferencias mientras el editor de ítem está abierto. */
+    fun startIngredientAssist() {
+        if (catalogJob?.isActive == true) return
+        catalogJob = viewModelScope.launch {
+            ingredientRepository.catalog()
+                .catch { mutableUiState.update { it.copy(catalog = emptyList()) } }
+                .collect { list -> mutableUiState.update { it.copy(catalog = list) } }
+        }
+        prefsJob = viewModelScope.launch {
+            ingredientPrefsRepository.prefs()
+                .catch { mutableUiState.update { it.copy(ingredientPrefs = emptyMap()) } }
+                .collect { prefs -> mutableUiState.update { it.copy(ingredientPrefs = prefs) } }
+        }
+    }
+
+    /** Suelta los listeners de asistencia al cerrar el editor (conserva lo ya cargado). */
+    fun stopIngredientAssist() {
+        catalogJob?.cancel()
+        prefsJob?.cancel()
+        catalogJob = null
+        prefsJob = null
+    }
+
     fun addItem(
         spaceId: String,
         name: String,
@@ -58,8 +90,21 @@ class ShoppingViewModel @Inject constructor(private val repository: ShoppingRepo
         brand: String?,
     ) {
         if (!validate(name, quantity, notes)) return
+        // Si el usuario no fijó super ni marca, aplicamos su preferencia para ese ingrediente (por slug).
+        val pref = if (supermarket == null && brand == null) {
+            mutableUiState.value.ingredientPrefs[slug(name)]
+        } else {
+            null
+        }
         runAction(ShoppingUiMessage.ItemAdded) {
-            repository.addItem(spaceId, name.trim(), quantity.normalized(), notes.normalized(), supermarket, brand)
+            repository.addItem(
+                spaceId,
+                name.trim(),
+                quantity.normalized(),
+                notes.normalized(),
+                supermarket ?: pref?.supermarket,
+                brand ?: pref?.brand,
+            )
         }
     }
 

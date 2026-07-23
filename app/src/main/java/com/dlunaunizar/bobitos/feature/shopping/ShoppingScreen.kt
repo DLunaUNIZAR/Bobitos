@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Storefront
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -39,6 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,8 +67,11 @@ import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
+import com.dlunaunizar.bobitos.core.model.CatalogIngredient
+import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.dlunaunizar.bobitos.core.model.slug
 
 @Composable
 fun ShoppingScreen(
@@ -83,6 +89,10 @@ fun ShoppingScreen(
 
     var editedItem by remember { mutableStateOf<ShoppingItem?>(null) }
     var editorVisible by remember { mutableStateOf(false) }
+    // Catálogo + preferencias solo mientras el editor está abierto (listener acotado y perezoso).
+    LaunchedEffect(editorVisible) {
+        if (editorVisible) viewModel.startIngredientAssist() else viewModel.stopIngredientAssist()
+    }
     var itemToDelete by remember { mutableStateOf<ShoppingItem?>(null) }
     var clearConfirmationVisible by remember { mutableStateOf(false) }
     var duplicatePrompt by remember { mutableStateOf<ShoppingDuplicate?>(null) }
@@ -268,6 +278,8 @@ fun ShoppingScreen(
             item = editedItem,
             saving = state.isSaving,
             resolveDuplicate = findByName,
+            suggestions = { queryText -> catalogSuggestions(state.catalog, queryText) },
+            prefFor = { name -> state.ingredientPrefs[slug(name)] },
             onDismiss = { editorVisible = false },
             onSave = { name, quantity, notes, supermarket, brand ->
                 val item = editedItem
@@ -537,6 +549,8 @@ private fun ShoppingItemEditor(
     item: ShoppingItem?,
     saving: Boolean,
     resolveDuplicate: (String) -> ShoppingItem?,
+    suggestions: (String) -> List<String>,
+    prefFor: (String) -> IngredientPref?,
     onDismiss: () -> Unit,
     onSave: (String, String?, String?, Supermarket?, String?) -> Unit,
 ) {
@@ -577,6 +591,23 @@ private fun ShoppingItemEditor(
                     isError = nameError,
                     singleLine = true,
                 )
+                val nameSuggestions = if (item == null) suggestions(name) else emptyList()
+                if (nameSuggestions.isNotEmpty()) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(nameSuggestions, key = { it }) { suggestion ->
+                            AssistChip(
+                                onClick = {
+                                    name = suggestion
+                                    prefFor(suggestion)?.let { pref ->
+                                        pref.supermarket?.let { supermarket = it }
+                                        pref.brand?.let { brand = it }
+                                    }
+                                },
+                                label = { Text(suggestion) },
+                            )
+                        }
+                    }
+                }
                 OutlinedTextField(
                     value = quantity,
                     onValueChange = { quantity = it },
@@ -798,3 +829,13 @@ private val ShoppingUiMessage.stringResourceId: Int
         ShoppingUiMessage.ItemDeleted -> R.string.shopping_notice_deleted
         ShoppingUiMessage.PurchasedCleared -> R.string.shopping_notice_deleted
     }
+
+// Nombres del catálogo que casan con lo tecleado (para autocompletar el ítem). Máx. 6, desde 2 letras.
+private fun catalogSuggestions(catalog: List<CatalogIngredient>, query: String): List<String> {
+    val trimmed = query.trim()
+    if (trimmed.length < 2) return emptyList()
+    return catalog.map(CatalogIngredient::name)
+        .filter { it.contains(trimmed, ignoreCase = true) && !it.equals(trimmed, ignoreCase = true) }
+        .distinct()
+        .take(6)
+}
