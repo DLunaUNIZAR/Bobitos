@@ -211,6 +211,29 @@ class MealsViewModelTest {
     }
 
     @Test
+    fun `the review aggregates all quantities of a repeated ingredient`() = runTest(mainDispatcherRule.testDispatcher) {
+        val today = LocalDate.now()
+        recipeRepository.mineState.value = listOf(
+            recipe("r1", listOf(Ingredient("Arroz", "200", "g"))),
+            recipe("r2", listOf(Ingredient("arroz", "300", "g"))),
+        )
+        mealRepository.mealsState.value = listOf(
+            meal("m1", today, MealSlot.COMIDA, "A").copy(recipeId = "r1"),
+            meal("m2", today, MealSlot.CENA, "B").copy(recipeId = "r2"),
+        )
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.addDayIngredientsToShopping()
+        advanceUntilIdle()
+
+        val review = viewModel.uiState.value.ingredientReview!!
+        assertEquals(1, review.size)
+        assertEquals(listOf("200 g", "300 g"), review[0].quantities)
+        assertEquals("200 g + 300 g", review[0].recipeQuantity)
+    }
+
+    @Test
     fun `changing week re-observes the range`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("home")
         advanceUntilIdle()

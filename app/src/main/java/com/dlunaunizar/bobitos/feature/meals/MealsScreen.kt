@@ -294,6 +294,8 @@ private fun IngredientReviewDialog(
                                 row.existing.quantity ?: "—",
                                 row.recipeQuantity ?: "—",
                             )
+                            row.quantities.size >= 2 ->
+                                stringResource(R.string.meals_review_multi, row.quantities.joinToString(" + "))
                             row.recipeQuantity != null ->
                                 stringResource(R.string.meals_review_recipe, row.recipeQuantity)
                             else -> null
