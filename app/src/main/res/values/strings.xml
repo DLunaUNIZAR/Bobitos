@@ -39,6 +39,7 @@
     <string name="recurrence_every_n_months">Cada %1$d meses</string>
     <string name="space_home_title">Inicio del espacio</string>
     <string name="space_home_subtitle">¿Qué quieres organizar?</string>
+    <string name="space_home_catalog_section">Recetario e ingredientes</string>
     <string name="calendar_tasks_section">Tareas</string>
     <string name="space_settings_title">Ajustes del espacio</string>
     <string name="space_rename">Cambiar nombre</string>
