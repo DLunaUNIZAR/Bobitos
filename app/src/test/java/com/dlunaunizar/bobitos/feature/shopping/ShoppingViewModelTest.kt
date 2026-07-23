@@ -99,6 +99,41 @@ class ShoppingViewModelTest {
         }
 
     @Test
+    fun `saving an item as preference forwards super and brand`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.saveItemAsPreference(shoppingItem().copy(supermarket = Supermarket.CARREFOUR, brand = "Marca"))
+        advanceUntilIdle()
+
+        assertEquals("leche", prefsRepository.lastId)
+        assertEquals(Supermarket.CARREFOUR, prefsRepository.lastSupermarket)
+        assertEquals("Marca", prefsRepository.lastBrand)
+        assertEquals(ShoppingUiMessage.PrefSaved, viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun `creating an ingredient from a new item writes it`() = runTest(mainDispatcherRule.testDispatcher) {
+        ingredientRepository.existing = null
+
+        viewModel.createIngredientFromItem(shoppingItem())
+        advanceUntilIdle()
+
+        assertEquals(1, ingredientRepository.createCount)
+        assertEquals("Leche", ingredientRepository.lastCreatedName)
+        assertEquals(ShoppingUiMessage.IngredientCreated, viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun `creating an ingredient that already exists shows a notice and does not write`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            ingredientRepository.existing = catalogIngredient()
+
+            viewModel.createIngredientFromItem(shoppingItem())
+            advanceUntilIdle()
+
+            assertEquals(0, ingredientRepository.createCount)
+            assertEquals(ShoppingUiMessage.IngredientExists, viewModel.uiState.value.notice)
+        }
+
+    @Test
     fun `invalid product never reaches repository`() {
         viewModel.addItem("home", " ", null, null, null, null)
 
@@ -208,18 +243,36 @@ private class FakeShoppingRepository : ShoppingRepository {
 
 private class ShoppingFakeIngredientRepo : IngredientRepository {
     val catalogState = MutableStateFlow<List<CatalogIngredient>>(emptyList())
+    var existing: CatalogIngredient? = null
+    var createCount = 0
+    var lastCreatedName: String? = null
+
     override fun catalog(): Flow<List<CatalogIngredient>> = catalogState
     override fun isCurrentUserCatalogAdmin(): Boolean = false
     override fun currentUserId(): String? = null
-    override suspend fun createIngredient(name: String, category: String?, defaultUnit: String?) = Unit
+    override suspend fun ingredientById(id: String): CatalogIngredient? = existing
+    override suspend fun createIngredient(name: String, category: String?, defaultUnit: String?) {
+        createCount++
+        lastCreatedName = name
+    }
+
     override suspend fun updateIngredient(id: String, name: String, category: String?, defaultUnit: String?) = Unit
     override suspend fun deleteIngredient(id: String) = Unit
 }
 
 private class ShoppingFakePrefsRepo : IngredientPrefsRepository {
     val prefsState = MutableStateFlow<Map<String, IngredientPref>>(emptyMap())
+    var lastId: String? = null
+    var lastSupermarket: Supermarket? = null
+    var lastBrand: String? = null
+
     override fun prefs(): Flow<Map<String, IngredientPref>> = prefsState
-    override suspend fun setPref(ingredientId: String, supermarket: Supermarket?, brand: String?) = Unit
+    override suspend fun setPref(ingredientId: String, supermarket: Supermarket?, brand: String?) {
+        lastId = ingredientId
+        lastSupermarket = supermarket
+        lastBrand = brand
+    }
+
     override suspend fun clearPref(ingredientId: String) = Unit
 }
 
@@ -237,4 +290,15 @@ private fun shoppingItem() = ShoppingItem(
     purchasedBy = null,
     purchasedByName = null,
     purchasedAt = null,
+)
+
+private fun catalogIngredient() = CatalogIngredient(
+    id = "leche",
+    name = "Leche",
+    ownerUid = "owner",
+    createdBy = "owner",
+    createdByName = "David",
+    createdAt = Instant.EPOCH,
+    updatedBy = "owner",
+    updatedAt = Instant.EPOCH,
 )

@@ -99,6 +99,36 @@ class ShoppingViewModel @Inject constructor(
         }
     }
 
+    /** Guarda el supermercado/marca del ítem como tu preferencia por defecto para ese ingrediente. */
+    fun saveItemAsPreference(item: ShoppingItem) {
+        if (item.supermarket == null && item.brand.isNullOrBlank()) return
+        runAction(ShoppingUiMessage.PrefSaved) {
+            ingredientPrefsRepository.setPref(slug(item.name), item.supermarket, item.brand)
+        }
+    }
+
+    /** Crea una ficha de ingrediente a partir del ítem (si aún no existe en el catálogo). */
+    fun createIngredientFromItem(item: ShoppingItem) {
+        if (mutableUiState.value.isSaving) return
+        val name = item.name.trim()
+        viewModelScope.launch {
+            val existing = ingredientRepository.ingredientById(slug(name))
+            if (existing != null) {
+                showNotice(ShoppingUiMessage.IngredientExists)
+                return@launch
+            }
+            runAction(ShoppingUiMessage.IngredientCreated) {
+                ingredientRepository.createIngredient(name, null, null)
+            }
+        }
+    }
+
+    private fun showNotice(message: ShoppingUiMessage) {
+        mutableUiState.update {
+            it.copy(writeStatus = ShoppingWriteStatus.SAVED, notice = message, error = null)
+        }
+    }
+
     fun addItem(
         spaceId: String,
         name: String,
