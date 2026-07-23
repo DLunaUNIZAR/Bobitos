@@ -62,7 +62,7 @@ class ShoppingViewModelTest {
     fun `manual add applies the ingredient preference when super and brand are empty`() =
         runTest(mainDispatcherRule.testDispatcher) {
             prefsRepository.prefsState.value = mapOf("leche" to IngredientPref(Supermarket.DIA, "Marca"))
-            viewModel.startIngredientAssist()
+            viewModel.observe("home")
             advanceUntilIdle()
 
             viewModel.addItem("home", "Leche", null, null, null, null)
@@ -75,7 +75,7 @@ class ShoppingViewModelTest {
     @Test
     fun `manual add keeps the chosen super over the preference`() = runTest(mainDispatcherRule.testDispatcher) {
         prefsRepository.prefsState.value = mapOf("leche" to IngredientPref(Supermarket.DIA, "Marca"))
-        viewModel.startIngredientAssist()
+        viewModel.observe("home")
         advanceUntilIdle()
 
         viewModel.addItem("home", "Leche", null, null, Supermarket.MERCADONA, null)
@@ -83,6 +83,20 @@ class ShoppingViewModelTest {
 
         assertEquals(Supermarket.MERCADONA, repository.addedSupermarket)
     }
+
+    @Test
+    fun `applying the suggested pref updates the item with super and brand`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            prefsRepository.prefsState.value = mapOf("leche" to IngredientPref(Supermarket.EROSKI, "Marca"))
+            viewModel.observe("home")
+            advanceUntilIdle()
+
+            viewModel.applyIngredientPref("home", shoppingItem())
+            advanceUntilIdle()
+
+            assertEquals(Supermarket.EROSKI, repository.updatedSupermarket)
+            assertEquals("Marca", repository.updatedBrand)
+        }
 
     @Test
     fun `invalid product never reaches repository`() {
@@ -131,6 +145,8 @@ private class FakeShoppingRepository : ShoppingRepository {
     var addedNotes: String? = null
     var addedSupermarket: Supermarket? = null
     var addedBrand: String? = null
+    var updatedSupermarket: Supermarket? = null
+    var updatedBrand: String? = null
     var purchaseChange: Triple<String, String, Boolean>? = null
     var clearCount = 0
     var nextFailure: ShoppingRepositoryException? = null
@@ -167,6 +183,8 @@ private class FakeShoppingRepository : ShoppingRepository {
         brand: String?,
     ) {
         throwNextFailure()
+        updatedSupermarket = supermarket
+        updatedBrand = brand
     }
 
     override suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean) {

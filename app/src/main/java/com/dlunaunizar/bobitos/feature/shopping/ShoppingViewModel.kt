@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.feature.shopping
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.core.model.slug
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
@@ -34,6 +35,7 @@ class ShoppingViewModel @Inject constructor(
     private var prefsJob: Job? = null
 
     fun observe(spaceId: String) {
+        observePrefs()
         if (spaceId == observedSpaceId && itemsJob?.isActive == true) return
         itemsJob?.cancel()
         observedSpaceId = spaceId
@@ -54,18 +56,18 @@ class ShoppingViewModel @Inject constructor(
     }
     fun stopObserving() {
         itemsJob?.cancel()
+        prefsJob?.cancel()
+        catalogJob?.cancel()
         itemsJob = null
+        prefsJob = null
+        catalogJob = null
         observedSpaceId = null
     }
 
-    /** Empieza a observar catálogo + preferencias mientras el editor de ítem está abierto. */
-    fun startIngredientAssist() {
-        if (catalogJob?.isActive == true) return
-        catalogJob = viewModelScope.launch {
-            ingredientRepository.catalog()
-                .catch { mutableUiState.update { it.copy(catalog = emptyList()) } }
-                .collect { list -> mutableUiState.update { it.copy(catalog = list) } }
-        }
+    // Preferencias del usuario: se observan mientras se ve la lista (1 doc), para sugerir super/marca
+    // en las tarjetas y prerrellenar el editor.
+    private fun observePrefs() {
+        if (prefsJob?.isActive == true) return
         prefsJob = viewModelScope.launch {
             ingredientPrefsRepository.prefs()
                 .catch { mutableUiState.update { it.copy(ingredientPrefs = emptyMap()) } }
@@ -73,12 +75,28 @@ class ShoppingViewModel @Inject constructor(
         }
     }
 
-    /** Suelta los listeners de asistencia al cerrar el editor (conserva lo ya cargado). */
+    /** Catálogo (acotado): solo mientras el editor de ítem está abierto (autocompletado del nombre). */
+    fun startIngredientAssist() {
+        if (catalogJob?.isActive == true) return
+        catalogJob = viewModelScope.launch {
+            ingredientRepository.catalog()
+                .catch { mutableUiState.update { it.copy(catalog = emptyList()) } }
+                .collect { list -> mutableUiState.update { it.copy(catalog = list) } }
+        }
+    }
+
+    /** Suelta el listener del catálogo al cerrar el editor (conserva lo ya cargado). */
     fun stopIngredientAssist() {
         catalogJob?.cancel()
-        prefsJob?.cancel()
         catalogJob = null
-        prefsJob = null
+    }
+
+    /** Aplica al ítem el supermercado/marca de la preferencia del usuario para ese ingrediente. */
+    fun applyIngredientPref(spaceId: String, item: ShoppingItem) {
+        val pref = mutableUiState.value.ingredientPrefs[slug(item.name)] ?: return
+        runAction(ShoppingUiMessage.ItemUpdated) {
+            repository.updateItem(spaceId, item.id, item.name, item.quantity, item.notes, pref.supermarket, pref.brand)
+        }
     }
 
     fun addItem(
