@@ -74,7 +74,6 @@ enum class TaskUiMessage {
     TitleRequired,
     TitleTooLong,
     DescriptionTooLong,
-    AssigneeRequired,
     InvalidDate,
     InvalidAssignee,
     NotAuthenticated,

@@ -442,14 +442,15 @@ private fun TaskEditor(
 ) {
     var title by remember(task?.id) { mutableStateOf(task?.title.orEmpty()) }
     var description by remember(task?.id) { mutableStateOf(task?.description.orEmpty()) }
-    var assigneeId by remember(task?.id) { mutableStateOf(task?.assigneeId ?: members.firstOrNull()?.userId) }
+    // Por defecto «sin responsable» en tareas nuevas (responsable opcional); al editar se conserva el actual.
+    var assigneeId by remember(task?.id) { mutableStateOf(task?.assigneeId) }
     var startDate by remember(task?.id) { mutableStateOf(task?.startAt?.formatIsoDate().orEmpty()) }
     var dueDate by remember(task?.id) { mutableStateOf(task?.dueAt?.formatIsoDate().orEmpty()) }
     var priority by remember(task?.id) { mutableStateOf(task?.priority ?: TaskPriority.MEDIUM) }
     var type by remember(task?.id) { mutableStateOf(task?.type) }
     var recurrence by remember(task?.id) { mutableStateOf(task?.recurrence) }
     var memberMenu by remember { mutableStateOf(false) }
-    val validation = TaskValidation.validate(title, description, assigneeId)
+    val validation = TaskValidation.validate(title, description)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(if (task == null) R.string.tasks_add_title else R.string.tasks_edit_title)) },
@@ -465,10 +466,17 @@ private fun TaskEditor(
                     TextButton(onClick = { memberMenu = true }) {
                         Text(
                             members.firstOrNull { it.userId == assigneeId }?.displayName
-                                ?: stringResource(R.string.tasks_choose_assignee),
+                                ?: stringResource(R.string.tasks_unassigned),
                         )
                     }
                     DropdownMenu(memberMenu, { memberMenu = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.tasks_unassigned)) },
+                            onClick = {
+                                assigneeId = null
+                                memberMenu = false
+                            },
+                        )
                         members.forEach { member ->
                             DropdownMenuItem(
                                 text = { Text(member.displayName) },
@@ -812,7 +820,6 @@ private fun TaskUiMessage.stringRes() = when (this) {
     TaskUiMessage.TitleRequired -> R.string.tasks_error_title_required
     TaskUiMessage.TitleTooLong -> R.string.tasks_error_title_too_long
     TaskUiMessage.DescriptionTooLong -> R.string.tasks_error_description_too_long
-    TaskUiMessage.AssigneeRequired -> R.string.tasks_error_assignee_required
     TaskUiMessage.InvalidDate -> R.string.tasks_error_invalid_date
     TaskUiMessage.InvalidAssignee -> R.string.tasks_error_invalid_assignee
     TaskUiMessage.NotAuthenticated -> R.string.space_error_not_authenticated

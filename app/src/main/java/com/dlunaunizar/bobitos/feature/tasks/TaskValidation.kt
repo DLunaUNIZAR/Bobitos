@@ -9,13 +9,12 @@ object TaskValidation {
     const val MAX_TITLE = 120
     const val MAX_DESCRIPTION = 1000
 
-    fun validate(title: String, description: String?, assigneeId: String?): TaskUiMessage? = when {
+    fun validate(title: String, description: String?): TaskUiMessage? = when {
         title.isBlank() -> TaskUiMessage.TitleRequired
         title.trim().length > MAX_TITLE -> TaskUiMessage.TitleTooLong
         description?.trim()?.length?.let { it > MAX_DESCRIPTION } == true -> {
             TaskUiMessage.DescriptionTooLong
         }
-        assigneeId.isNullOrBlank() -> TaskUiMessage.AssigneeRequired
         else -> null
     }
 

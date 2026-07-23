@@ -208,7 +208,6 @@
     <string name="tasks_no_results">Ninguna tarea coincide con los filtros.</string>
     <string name="tasks_title_label">Título</string>
     <string name="tasks_description_label">Descripción (opcional)</string>
-    <string name="tasks_choose_assignee">Selecciona responsable</string>
     <string name="tasks_assignee">Responsable</string>
     <string name="tasks_unassigned">Sin responsable</string>
     <string name="tasks_due_date_label">Fecha límite (opcional)</string>
@@ -242,7 +241,6 @@
     <string name="tasks_error_title_required">Introduce un título.</string>
     <string name="tasks_error_title_too_long">El título no puede superar 120 caracteres.</string>
     <string name="tasks_error_description_too_long">La descripción no puede superar 1000 caracteres.</string>
-    <string name="tasks_error_assignee_required">Selecciona un responsable activo.</string>
     <string name="tasks_error_invalid_date">Usa una fecha válida con formato YYYY-MM-DD.</string>
     <string name="tasks_error_invalid_assignee">El responsable ya no pertenece al espacio.</string>
     <string name="tasks_error_not_found">La tarea ya no existe.</string>

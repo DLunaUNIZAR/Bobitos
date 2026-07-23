@@ -23,6 +23,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
@@ -72,6 +73,28 @@ class TasksViewModelTest {
     }
 
     @Test
+    fun `creating an unassigned task is allowed and reaches the repository with a null assignee`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel.createTask(
+                "home",
+                "Sacar la basura",
+                null,
+                null,
+                null,
+                TaskPriority.MEDIUM,
+                null,
+                null,
+                null,
+            )
+            advanceUntilIdle()
+
+            assertEquals("Sacar la basura", taskRepository.createdTitle)
+            assertTrue(taskRepository.createdAssigneeSet)
+            assertNull(taskRepository.createdAssignee)
+            assertEquals(TaskUiMessage.TaskCreated, viewModel.uiState.value.notice)
+        }
+
+    @Test
     fun `an invalid task never reaches the repository`() {
         viewModel.createTask("home", "   ", null, "ana", null, TaskPriority.LOW, null, null, null)
 
@@ -117,6 +140,8 @@ private class FakeTaskRepository : TaskRepository {
     var observedSpaceId: String? = null
     var createdTitle: String? = null
     var createdType: TaskType? = null
+    var createdAssignee: String? = null
+    var createdAssigneeSet = false
     var completedChange: Triple<String, String, Boolean>? = null
     var nextFailure: TaskRepositoryException? = null
     val tasksState = MutableStateFlow<List<TaskItem>>(emptyList())
@@ -130,7 +155,7 @@ private class FakeTaskRepository : TaskRepository {
         spaceId: String,
         title: String,
         description: String?,
-        assigneeId: String,
+        assigneeId: String?,
         dueAt: Instant?,
         priority: TaskPriority,
         type: TaskType?,
@@ -140,6 +165,8 @@ private class FakeTaskRepository : TaskRepository {
         throwNextFailure()
         createdTitle = title
         createdType = type
+        createdAssignee = assigneeId
+        createdAssigneeSet = true
     }
 
     override suspend fun updateTask(
@@ -147,7 +174,7 @@ private class FakeTaskRepository : TaskRepository {
         taskId: String,
         title: String,
         description: String?,
-        assigneeId: String,
+        assigneeId: String?,
         dueAt: Instant?,
         priority: TaskPriority,
         type: TaskType?,

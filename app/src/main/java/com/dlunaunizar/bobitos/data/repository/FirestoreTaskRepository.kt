@@ -16,6 +16,7 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.Transaction
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -62,7 +63,7 @@ class FirestoreTaskRepository @Inject constructor(
         spaceId: String,
         title: String,
         description: String?,
-        assigneeId: String,
+        assigneeId: String?,
         dueAt: Instant?,
         priority: TaskPriority,
         type: TaskType?,
@@ -72,19 +73,16 @@ class FirestoreTaskRepository @Inject constructor(
         val user = requireVerifiedUser()
         val values = validate(title, description, assigneeId)
         val spaceReference = firestore.collection(SPACES).document(spaceId)
-        val assigneeReference = membershipReference(spaceId, assigneeId)
         val taskReference = tasksCollection(spaceId).document()
         firestore.runTransaction { transaction ->
             if (!transaction.get(spaceReference).exists()) {
                 throw TaskRepositoryException(TaskFailure.SpaceNotFound)
             }
-            val assignee = transaction.get(assigneeReference)
-            requireActiveAssignee(assignee, assigneeId)
             transaction.set(
                 taskReference,
                 taskData(
                     values = values,
-                    assigneeName = assignee.getString(FIELD_DISPLAY_NAME).orEmpty(),
+                    assigneeName = resolveAssigneeName(transaction, spaceId, values.assigneeId),
                     dueAt = dueAt,
                     priority = priority,
                     type = type,
@@ -102,7 +100,7 @@ class FirestoreTaskRepository @Inject constructor(
         taskId: String,
         title: String,
         description: String?,
-        assigneeId: String,
+        assigneeId: String?,
         dueAt: Instant?,
         priority: TaskPriority,
         type: TaskType?,
@@ -112,17 +110,15 @@ class FirestoreTaskRepository @Inject constructor(
         val user = requireVerifiedUser()
         val values = validate(title, description, assigneeId)
         val taskReference = tasksCollection(spaceId).document(taskId)
-        val assigneeReference = membershipReference(spaceId, assigneeId)
         firestore.runTransaction { transaction ->
             requireTask(transaction.get(taskReference))
-            val assignee = transaction.get(assigneeReference)
-            requireActiveAssignee(assignee, assigneeId)
+            val assigneeName = resolveAssigneeName(transaction, spaceId, values.assigneeId)
             transaction.update(
                 taskReference,
                 FIELD_TITLE, values.title,
                 FIELD_DESCRIPTION, values.description,
-                FIELD_ASSIGNEE_ID, assigneeId,
-                FIELD_ASSIGNEE_NAME, assignee.getString(FIELD_DISPLAY_NAME),
+                FIELD_ASSIGNEE_ID, values.assigneeId,
+                FIELD_ASSIGNEE_NAME, assigneeName,
                 FIELD_DUE_AT, dueAt?.toTimestamp(),
                 FIELD_START_AT, startAt?.toTimestamp(),
                 FIELD_PRIORITY, priority.name,
@@ -201,7 +197,7 @@ class FirestoreTaskRepository @Inject constructor(
 
     private fun taskData(
         values: TaskValues,
-        assigneeName: String,
+        assigneeName: String?,
         dueAt: Instant?,
         priority: TaskPriority,
         type: TaskType?,
@@ -230,18 +226,27 @@ class FirestoreTaskRepository @Inject constructor(
         FIELD_COMPLETED_AT to null,
     )
 
-    private fun validate(title: String, description: String?, assigneeId: String): TaskValues {
+    private fun validate(title: String, description: String?, assigneeId: String?): TaskValues {
         val normalizedTitle = title.trim()
         val normalizedDescription = description?.trim()?.takeIf(String::isNotEmpty)
+        val normalizedAssignee = assigneeId?.trim()?.takeIf(String::isNotEmpty)
         when {
             normalizedTitle.isEmpty() -> throw TaskRepositoryException(TaskFailure.TitleRequired)
             normalizedTitle.length > MAX_TITLE_LENGTH -> throw TaskRepositoryException(TaskFailure.TitleTooLong)
             normalizedDescription != null && normalizedDescription.length > MAX_DESCRIPTION_LENGTH -> {
                 throw TaskRepositoryException(TaskFailure.DescriptionTooLong)
             }
-            assigneeId.isBlank() -> throw TaskRepositoryException(TaskFailure.AssigneeRequired)
         }
-        return TaskValues(normalizedTitle, normalizedDescription, assigneeId)
+        return TaskValues(normalizedTitle, normalizedDescription, normalizedAssignee)
+    }
+
+    // Resuelve el nombre del responsable dentro de la transacción: null si la tarea queda sin
+    // responsable; si hay uno, exige que sea miembro activo (lee su ficha de membresía).
+    private fun resolveAssigneeName(transaction: Transaction, spaceId: String, assigneeId: String?): String? {
+        if (assigneeId == null) return null
+        val assignee = transaction.get(membershipReference(spaceId, assigneeId))
+        requireActiveAssignee(assignee, assigneeId)
+        return assignee.getString(FIELD_DISPLAY_NAME).orEmpty()
     }
 
     private fun requireVerifiedUser(): AuthUser {
@@ -279,7 +284,7 @@ class FirestoreTaskRepository @Inject constructor(
         }
     }
 
-    private data class TaskValues(val title: String, val description: String?, val assigneeId: String)
+    private data class TaskValues(val title: String, val description: String?, val assigneeId: String?)
 
     private companion object {
         const val SPACES = "spaces"
