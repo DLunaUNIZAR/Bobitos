@@ -2,8 +2,12 @@ package com.dlunaunizar.bobitos.feature.shopping
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.CatalogIngredient
+import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
+import com.dlunaunizar.bobitos.data.repository.IngredientRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
@@ -25,7 +29,9 @@ class ShoppingViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val repository = FakeShoppingRepository()
-    private val viewModel = ShoppingViewModel(repository)
+    private val ingredientRepository = ShoppingFakeIngredientRepo()
+    private val prefsRepository = ShoppingFakePrefsRepo()
+    private val viewModel = ShoppingViewModel(repository, ingredientRepository, prefsRepository)
 
     @Test
     fun `observes items for active space`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -50,6 +56,32 @@ class ShoppingViewModelTest {
         assertEquals(ShoppingUiMessage.ItemAdded, viewModel.uiState.value.notice)
         assertEquals(ShoppingWriteStatus.SAVED, viewModel.uiState.value.writeStatus)
         assertFalse(viewModel.uiState.value.isSaving)
+    }
+
+    @Test
+    fun `manual add applies the ingredient preference when super and brand are empty`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            prefsRepository.prefsState.value = mapOf("leche" to IngredientPref(Supermarket.DIA, "Marca"))
+            viewModel.startIngredientAssist()
+            advanceUntilIdle()
+
+            viewModel.addItem("home", "Leche", null, null, null, null)
+            advanceUntilIdle()
+
+            assertEquals(Supermarket.DIA, repository.addedSupermarket)
+            assertEquals("Marca", repository.addedBrand)
+        }
+
+    @Test
+    fun `manual add keeps the chosen super over the preference`() = runTest(mainDispatcherRule.testDispatcher) {
+        prefsRepository.prefsState.value = mapOf("leche" to IngredientPref(Supermarket.DIA, "Marca"))
+        viewModel.startIngredientAssist()
+        advanceUntilIdle()
+
+        viewModel.addItem("home", "Leche", null, null, Supermarket.MERCADONA, null)
+        advanceUntilIdle()
+
+        assertEquals(Supermarket.MERCADONA, repository.addedSupermarket)
     }
 
     @Test
@@ -154,6 +186,23 @@ private class FakeShoppingRepository : ShoppingRepository {
     private fun throwNextFailure() {
         nextFailure?.let { throw it }
     }
+}
+
+private class ShoppingFakeIngredientRepo : IngredientRepository {
+    val catalogState = MutableStateFlow<List<CatalogIngredient>>(emptyList())
+    override fun catalog(): Flow<List<CatalogIngredient>> = catalogState
+    override fun isCurrentUserCatalogAdmin(): Boolean = false
+    override fun currentUserId(): String? = null
+    override suspend fun createIngredient(name: String, category: String?, defaultUnit: String?) = Unit
+    override suspend fun updateIngredient(id: String, name: String, category: String?, defaultUnit: String?) = Unit
+    override suspend fun deleteIngredient(id: String) = Unit
+}
+
+private class ShoppingFakePrefsRepo : IngredientPrefsRepository {
+    val prefsState = MutableStateFlow<Map<String, IngredientPref>>(emptyMap())
+    override fun prefs(): Flow<Map<String, IngredientPref>> = prefsState
+    override suspend fun setPref(ingredientId: String, supermarket: Supermarket?, brand: String?) = Unit
+    override suspend fun clearPref(ingredientId: String) = Unit
 }
 
 private fun shoppingItem() = ShoppingItem(
