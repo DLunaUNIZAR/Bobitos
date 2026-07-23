@@ -195,6 +195,9 @@ fun MealsScreen(
                                 onEdit = { meal -> editor = MealEditorRequest(slot = meal.slot, meal = meal) },
                                 onDelete = { mealToDelete = it },
                                 onAddToShopping = { viewModel.addIngredientsToShopping(it) },
+                                onToggleCooked = {
+                                    if (it.cooked) viewModel.unmarkCooked(it) else viewModel.markCooked(it)
+                                },
                             )
                         }
                     }
@@ -264,6 +267,24 @@ fun MealsScreen(
             onDismiss = viewModel::dismissIngredientReview,
         )
     }
+
+    state.cookedCrossOff?.let { items ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissCookedCrossOff,
+            title = { Text(stringResource(R.string.meals_cooked_crossoff_title)) },
+            text = {
+                Text(stringResource(R.string.meals_cooked_crossoff_body, items.joinToString(", ") { it.name }))
+            },
+            confirmButton = {
+                TextButton(onClick = viewModel::crossOffCookedIngredients) {
+                    Text(stringResource(R.string.meals_cooked_crossoff_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissCookedCrossOff) { Text(stringResource(R.string.cancel)) }
+            },
+        )
+    }
 }
 
 @Composable
@@ -325,6 +346,7 @@ private fun MealSlotSection(
     onEdit: (Meal) -> Unit,
     onDelete: (Meal) -> Unit,
     onAddToShopping: (Meal) -> Unit,
+    onToggleCooked: (Meal) -> Unit,
 ) {
     val ingredientsByRecipe = recipes.associate { it.id to it.ingredients }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -362,6 +384,7 @@ private fun MealSlotSection(
                     onEdit = { onEdit(meal) },
                     onDelete = { onDelete(meal) },
                     onAddToShopping = { onAddToShopping(meal) },
+                    onToggleCooked = { onToggleCooked(meal) },
                 )
             }
         }
@@ -377,6 +400,7 @@ private fun MealCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onAddToShopping: () -> Unit,
+    onToggleCooked: () -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -405,6 +429,14 @@ private fun MealCard(
                         modifier = Modifier.padding(top = 2.dp),
                     )
                 }
+                if (meal.cooked) {
+                    Text(
+                        text = stringResource(R.string.meals_cooked_label),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
             }
             if (canWrite) {
                 Box {
@@ -421,6 +453,19 @@ private fun MealCard(
                                 },
                             )
                         }
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    stringResource(
+                                        if (meal.cooked) R.string.meals_mark_uncooked else R.string.meals_mark_cooked,
+                                    ),
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onToggleCooked()
+                            },
+                        )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.meals_edit)) },
                             onClick = {
@@ -636,4 +681,6 @@ private val MealUiMessage.stringResourceId: Int
         MealUiMessage.MealDeleted -> R.string.meals_notice_deleted
         MealUiMessage.MealsDuplicated -> R.string.meals_notice_duplicated
         MealUiMessage.IngredientsAddedToShopping -> R.string.meals_notice_ingredients_added
+        MealUiMessage.MealCooked -> R.string.meals_notice_cooked
+        MealUiMessage.IngredientsCrossedOff -> R.string.meals_notice_crossed_off
     }

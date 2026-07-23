@@ -118,6 +118,23 @@ class FirestoreMealRepository @Inject constructor(
         Unit
     }
 
+    override suspend fun setCooked(spaceId: String, mealId: String, cooked: Boolean) = runMealOperation {
+        val user = requireVerifiedUser()
+        val reference = mealsCollection(spaceId).document(mealId)
+        firestore.runTransaction { transaction ->
+            requireMeal(transaction.get(reference))
+            transaction.update(
+                reference,
+                mapOf(
+                    FIELD_COOKED to cooked,
+                    FIELD_UPDATED_BY to user.id,
+                    FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+                ),
+            )
+        }.await()
+        Unit
+    }
+
     override suspend fun deleteMeal(spaceId: String, mealId: String) = runMealOperation {
         requireVerifiedUser()
         val reference = mealsCollection(spaceId).document(mealId)
@@ -250,6 +267,7 @@ class FirestoreMealRepository @Inject constructor(
         const val FIELD_PARTICIPANT_IDS = "participantIds"
         const val FIELD_PARTICIPANT_NAMES = "participantNames"
         const val FIELD_RECIPE_ID = "recipeId"
+        const val FIELD_COOKED = "cooked"
         const val FIELD_CREATED_BY = "createdBy"
         const val FIELD_CREATED_BY_NAME = "createdByName"
         const val FIELD_CREATED_AT = "createdAt"
@@ -281,6 +299,7 @@ private fun DocumentSnapshot.toMeal(): Meal? {
         participantIds = (get("participantIds") as? List<*>)?.filterIsInstance<String>().orEmpty(),
         participantNames = (get("participantNames") as? List<*>)?.filterIsInstance<String>().orEmpty(),
         recipeId = getString("recipeId"),
+        cooked = getBoolean("cooked") == true,
         createdBy = getString("createdBy") ?: return null,
         createdByName = getString("createdByName") ?: getString("createdBy") ?: return null,
         createdAt = createdAt,

@@ -6,6 +6,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
+import com.dlunaunizar.bobitos.core.model.slug
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.MealFailure
 import com.dlunaunizar.bobitos.data.repository.MealRepository
@@ -177,6 +178,55 @@ class MealsViewModel @Inject constructor(
     }
 
     fun dismissIngredientReview() = mutableUiState.update { it.copy(ingredientReview = null) }
+
+    // Marca la comida como cocinada y, si su receta tiene ingredientes en la compra sin comprar,
+    // ofrece tacharlos (setPurchased) en un diálogo. Match por slug del nombre.
+    fun markCooked(meal: Meal) {
+        val spaceId = observedSpaceId ?: return
+        if (mutableUiState.value.isSaving) return
+        val recipe = mutableUiState.value.recipes.firstOrNull { it.id == meal.recipeId }
+        mutableUiState.update { it.copy(isSaving = true, error = null, notice = null) }
+        viewModelScope.launch {
+            try {
+                repository.setCooked(spaceId, meal.id, true)
+                val slugs = recipe?.ingredients.orEmpty().map { slug(it.name) }.toSet()
+                val candidates = if (slugs.isEmpty()) {
+                    emptyList()
+                } else {
+                    val current = runCatching { shoppingRepository.items(spaceId).first() }.getOrDefault(emptyList())
+                    current.filter { !it.purchased && slug(it.name) in slugs }
+                }
+                mutableUiState.update {
+                    it.copy(
+                        isSaving = false,
+                        notice = MealUiMessage.MealCooked,
+                        cookedCrossOff = candidates.ifEmpty {
+                            null
+                        },
+                    )
+                }
+            } catch (error: Throwable) {
+                showError(error.toUiMessage())
+            }
+        }
+    }
+
+    fun unmarkCooked(meal: Meal) {
+        val spaceId = observedSpaceId ?: return
+        runAction(null) { repository.setCooked(spaceId, meal.id, false) }
+    }
+
+    // Confirma tachar como comprados los ítems ofrecidos tras cocinar.
+    fun crossOffCookedIngredients() {
+        val spaceId = observedSpaceId ?: return
+        val items = mutableUiState.value.cookedCrossOff ?: return
+        mutableUiState.update { it.copy(cookedCrossOff = null) }
+        runAction(MealUiMessage.IngredientsCrossedOff) {
+            items.forEach { shoppingRepository.setPurchased(spaceId, it.id, true) }
+        }
+    }
+
+    fun dismissCookedCrossOff() = mutableUiState.update { it.copy(cookedCrossOff = null) }
 
     // Aplica la revisión: actualiza la cantidad de los que ya existen y añade el resto.
     fun confirmIngredientReview(finalQuantities: List<String?>) {

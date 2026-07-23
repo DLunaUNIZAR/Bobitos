@@ -27,6 +27,8 @@ interface MealRepository {
         recipeId: String?,
     )
 
+    suspend fun setCooked(spaceId: String, mealId: String, cooked: Boolean)
+
     suspend fun deleteMeal(spaceId: String, mealId: String)
 }
 
