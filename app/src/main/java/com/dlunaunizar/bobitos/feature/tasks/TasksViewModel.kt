@@ -70,13 +70,13 @@ class TasksViewModel @Inject constructor(
         recurrence: TaskRecurrence?,
         startAt: Instant?,
     ) {
-        if (!validate(title, description, assigneeId)) return
+        if (!validate(title, description)) return
         runAction(TaskUiMessage.TaskCreated) {
             taskRepository.createTask(
                 spaceId,
                 title.trim(),
                 description.normalized(),
-                assigneeId!!,
+                assigneeId,
                 dueAt,
                 priority,
                 type,
@@ -98,14 +98,14 @@ class TasksViewModel @Inject constructor(
         recurrence: TaskRecurrence?,
         startAt: Instant?,
     ) {
-        if (!validate(title, description, assigneeId)) return
+        if (!validate(title, description)) return
         runAction(TaskUiMessage.TaskUpdated) {
             taskRepository.updateTask(
                 spaceId,
                 taskId,
                 title.trim(),
                 description.normalized(),
-                assigneeId!!,
+                assigneeId,
                 dueAt,
                 priority,
                 type,
@@ -128,8 +128,8 @@ class TasksViewModel @Inject constructor(
 
     fun clearFeedback() = mutableUiState.update { it.copy(error = null, notice = null) }
 
-    private fun validate(title: String, description: String?, assigneeId: String?): Boolean {
-        val error = TaskValidation.validate(title, description, assigneeId) ?: return true
+    private fun validate(title: String, description: String?): Boolean {
+        val error = TaskValidation.validate(title, description) ?: return true
         showError(error)
         return false
     }
@@ -158,7 +158,6 @@ private fun Throwable.toUiMessage() = when ((this as? TaskRepositoryException)?.
     TaskFailure.TitleRequired -> TaskUiMessage.TitleRequired
     TaskFailure.TitleTooLong -> TaskUiMessage.TitleTooLong
     TaskFailure.DescriptionTooLong -> TaskUiMessage.DescriptionTooLong
-    TaskFailure.AssigneeRequired -> TaskUiMessage.AssigneeRequired
     TaskFailure.InvalidAssignee -> TaskUiMessage.InvalidAssignee
     TaskFailure.NotAuthenticated -> TaskUiMessage.NotAuthenticated
     TaskFailure.EmailNotVerified -> TaskUiMessage.EmailNotVerified

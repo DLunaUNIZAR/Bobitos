@@ -307,10 +307,13 @@ service cloud.firestore {
         && request.resource.data.title.size() > 0
         && request.resource.data.title.size() <= 120
         && validOptionalTaskText(request.resource.data.description, 1000)
-        && activeTaskAssignee(spaceId, request.resource.data.assigneeId)
-        && request.resource.data.assigneeName is string
-        && request.resource.data.assigneeName.size() > 0
-        && request.resource.data.assigneeName.size() <= 60
+        && (
+          (request.resource.data.assigneeId == null && request.resource.data.assigneeName == null)
+          || (activeTaskAssignee(spaceId, request.resource.data.assigneeId)
+            && request.resource.data.assigneeName is string
+            && request.resource.data.assigneeName.size() > 0
+            && request.resource.data.assigneeName.size() <= 60)
+        )
         && (request.resource.data.dueAt == null || request.resource.data.dueAt is timestamp)
         && (!request.resource.data.keys().hasAny(["startAt"])
           || request.resource.data.startAt == null

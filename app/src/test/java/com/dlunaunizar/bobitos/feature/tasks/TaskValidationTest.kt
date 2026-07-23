@@ -11,20 +11,21 @@ import java.time.ZoneId
 
 class TaskValidationTest {
     @Test
-    fun `title and assignee are required`() {
-        assertEquals(TaskUiMessage.TitleRequired, TaskValidation.validate(" ", null, "member"))
-        assertEquals(TaskUiMessage.AssigneeRequired, TaskValidation.validate("Tarea", null, null))
+    fun `title is required but the assignee is optional`() {
+        assertEquals(TaskUiMessage.TitleRequired, TaskValidation.validate(" ", null))
+        // Una tarea sin responsable es válida (responsable opcional).
+        assertNull(TaskValidation.validate("Tarea", null))
     }
 
     @Test
     fun `field limits are validated`() {
         assertEquals(
             TaskUiMessage.TitleTooLong,
-            TaskValidation.validate("a".repeat(121), null, "member"),
+            TaskValidation.validate("a".repeat(121), null),
         )
         assertEquals(
             TaskUiMessage.DescriptionTooLong,
-            TaskValidation.validate("Tarea", "a".repeat(1001), "member"),
+            TaskValidation.validate("Tarea", "a".repeat(1001)),
         )
     }
 

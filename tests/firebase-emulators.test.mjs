@@ -512,6 +512,49 @@ test("una tarea no puede asignarse a un usuario ajeno", async () => {
   ));
 });
 
+test("una tarea puede crearse y quedarse sin responsable, pero exige acoplar id y nombre", async () => {
+  await seedSpace("tasks-unassigned", "unassigned-owner", ["unassigned-member"]);
+  const owner = verifiedFirestore("unassigned-owner");
+  const reference = doc(owner, "spaces", "tasks-unassigned", "tasks", "orphan");
+
+  // Crear sin responsable (id y nombre a null) es válido.
+  await assertSucceeds(
+    setDoc(reference, taskData("unassigned-owner", null)),
+  );
+  // Reasignar a un miembro activo y volver a dejarla sin responsable también es válido.
+  await assertSucceeds(
+    updateDoc(reference, {
+      assigneeId: "unassigned-member",
+      assigneeName: "unassigned-member",
+      updatedBy: "unassigned-owner",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertSucceeds(
+    updateDoc(reference, {
+      assigneeId: null,
+      assigneeName: null,
+      updatedBy: "unassigned-owner",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  // Romper el acoplamiento id/nombre se rechaza en ambos sentidos:
+  // (a) id nulo con nombre presente.
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "tasks-unassigned", "tasks", "half-name"),
+      taskData("unassigned-owner", null, { assigneeName: "Fantasma" }),
+    ),
+  );
+  // (b) id de miembro activo con nombre nulo.
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "tasks-unassigned", "tasks", "half-id"),
+      taskData("unassigned-owner", "unassigned-member", { assigneeName: null }),
+    ),
+  );
+});
+
 test("cualquier miembro completa y reabre una tarea con atribución coherente", async () => {
   await seedSpace("tasks-complete", "complete-owner", ["complete-member"]);
   const owner = verifiedFirestore("complete-owner");
