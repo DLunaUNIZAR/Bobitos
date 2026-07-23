@@ -151,6 +151,8 @@
     <string name="shopping_quantity_label">Cantidad (opcional)</string>
     <string name="shopping_notes_label">Observaciones (opcionales)</string>
     <string name="shopping_added_by">Añadido por %1$s</string>
+    <string name="shopping_suggested">Sugerido: %1$s</string>
+    <string name="shopping_apply">Aplicar</string>
     <string name="shopping_marked_by">Marcado por %1$s</string>
     <string name="shopping_clear_purchased">Limpiar comprados</string>
     <string name="shopping_clear_title">Limpiar productos comprados</string>

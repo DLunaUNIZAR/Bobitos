@@ -198,6 +198,8 @@ fun ShoppingScreen(
                                     ShoppingItemCard(
                                         item = item,
                                         enabled = actionsEnabled,
+                                        suggestion = suggestedPref(item, state.ingredientPrefs),
+                                        onApplySuggestion = { viewModel.applyIngredientPref(spaceId, item) },
                                         onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
                                         onEdit = {
                                             editedItem = item
@@ -242,6 +244,8 @@ fun ShoppingScreen(
                                         ShoppingItemCard(
                                             item = item,
                                             enabled = actionsEnabled,
+                                            suggestion = null,
+                                            onApplySuggestion = {},
                                             onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
                                             onEdit = {
                                                 editedItem = item
@@ -463,6 +467,8 @@ private fun ShoppingSectionTitle(title: String, count: Int) {
 private fun ShoppingItemCard(
     item: ShoppingItem,
     enabled: Boolean,
+    suggestion: IngredientPref?,
+    onApplySuggestion: () -> Unit,
     onSetPurchased: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -498,6 +504,23 @@ private fun ShoppingItemCard(
                 )
                 if (item.supermarket != null || !item.brand.isNullOrBlank()) {
                     SupermarketBrandLine(supermarket = item.supermarket, brand = item.brand)
+                }
+                if (suggestion != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        val label = listOfNotNull(
+                            suggestion.supermarket?.let { stringResource(it.labelRes) },
+                            suggestion.brand,
+                        ).joinToString(" · ")
+                        Text(
+                            text = stringResource(R.string.shopping_suggested, label),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f),
+                        )
+                        TextButton(enabled = enabled, onClick = onApplySuggestion) {
+                            Text(stringResource(R.string.shopping_apply))
+                        }
+                    }
                 }
                 item.notes?.let {
                     Text(
@@ -838,4 +861,10 @@ private fun catalogSuggestions(catalog: List<CatalogIngredient>, query: String):
         .filter { it.contains(trimmed, ignoreCase = true) && !it.equals(trimmed, ignoreCase = true) }
         .distinct()
         .take(6)
+}
+
+// Preferencia a sugerir para un ítem sin super ni marca (o null si ya tiene alguno o no hay pref).
+private fun suggestedPref(item: ShoppingItem, prefs: Map<String, IngredientPref>): IngredientPref? {
+    if (item.supermarket != null || !item.brand.isNullOrBlank()) return null
+    return prefs[slug(item.name)]
 }
