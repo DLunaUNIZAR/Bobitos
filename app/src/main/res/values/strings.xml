@@ -320,6 +320,14 @@
     <string name="meals_notice_updated">Comida actualizada</string>
     <string name="meals_notice_deleted">Comida eliminada</string>
     <string name="meals_add_ingredients_to_shopping">Añadir ingredientes a la Compra</string>
+    <string name="meals_mark_cooked">Marcar como cocinada</string>
+    <string name="meals_mark_uncooked">Marcar como no cocinada</string>
+    <string name="meals_cooked_label">✓ Cocinada</string>
+    <string name="meals_cooked_crossoff_title">Tachar de la compra</string>
+    <string name="meals_cooked_crossoff_body">¿Marcar como comprados estos productos de la lista? %1$s</string>
+    <string name="meals_cooked_crossoff_confirm">Tachar</string>
+    <string name="meals_notice_cooked">Comida marcada como cocinada</string>
+    <string name="meals_notice_crossed_off">Ingredientes tachados de la compra</string>
     <string name="meals_notice_ingredients_added">Ingredientes añadidos a la Compra</string>
     <string name="meals_duplicate_day">Duplicar día…</string>
     <string name="meals_duplicate_week">Duplicar semana en la siguiente</string>

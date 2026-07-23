@@ -23,6 +23,7 @@
     <ID>LongMethod:IngredientsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun IngredientsScreen( onBack: () -&gt; Unit, onOpenIngredient: (String) -&gt; Unit, modifier: Modifier = Modifier, viewModel: IngredientsViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:LoginScreen.kt$@Composable fun LoginScreen( actionState: AuthActionUiState, onSignIn: (email: String, password: String) -&gt; Unit, onRegisterClick: () -&gt; Unit, onPasswordResetClick: () -&gt; Unit, onClearFeedback: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
     <ID>LongMethod:MealsScreen.kt$@Composable fun MealsScreen( spaceId: String, canWrite: Boolean, onOpenRecipes: () -&gt; Unit, onOpenIngredients: () -&gt; Unit, modifier: Modifier = Modifier, viewModel: MealsViewModel = hiltViewModel(), )</ID>
+    <ID>LongMethod:MealsScreen.kt$@Composable private fun MealCard( meal: Meal, ingredients: List&lt;Ingredient&gt;?, enabled: Boolean, canWrite: Boolean, onEdit: () -&gt; Unit, onDelete: () -&gt; Unit, onAddToShopping: () -&gt; Unit, onToggleCooked: () -&gt; Unit, )</ID>
     <ID>LongMethod:MealsScreen.kt$@Composable private fun MealEditor( request: MealEditorRequest, members: List&lt;SpaceMember&gt;, recipes: List&lt;Recipe&gt;, saving: Boolean, canWrite: Boolean, onDismiss: () -&gt; Unit, onSave: (String, List&lt;String&gt;, String?) -&gt; Unit, )</ID>
     <ID>LongMethod:PersonalCalendarScreen.kt$@Composable fun PersonalCalendarScreen( userId: String, spaces: List&lt;SpaceSummary&gt;, syncStatus: SyncStatus, canWrite: Boolean, onEventSelected: (spaceId: String, eventId: String, date: LocalDate) -&gt; Unit, modifier: Modifier = Modifier, viewModel: PersonalCalendarViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:ProfileScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ProfileScreen( user: AuthUser, actionState: AuthActionUiState, syncStatus: SyncStatus, canWrite: Boolean, onUpdateDisplayName: (String) -&gt; Unit, onSignOut: () -&gt; Unit, onDeleteAccount: (String) -&gt; Unit, onBack: () -&gt; Unit, onClearFeedback: () -&gt; Unit, modifier: Modifier = Modifier, themeViewModel: ThemeViewModel = hiltViewModel(), remindersViewModel: RemindersViewModel = hiltViewModel(), )</ID>
@@ -84,6 +85,7 @@
     <ID>TooGenericExceptionCaught:ShoppingViewModel.kt$ShoppingViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:SpacesViewModel.kt$SpacesViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:TasksViewModel.kt$TasksViewModel$error: Throwable</ID>
+    <ID>TooManyFunctions:MealsViewModel.kt$MealsViewModel : ViewModel</ID>
     <ID>TooManyFunctions:SpaceRepository.kt$SpaceRepository</ID>
   </CurrentIssues>
 </SmellBaseline>

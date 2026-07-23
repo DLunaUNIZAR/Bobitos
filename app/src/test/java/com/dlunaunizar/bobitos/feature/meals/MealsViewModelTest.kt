@@ -166,6 +166,29 @@ class MealsViewModelTest {
         }
 
     @Test
+    fun `marking a meal cooked offers to cross off its ingredients from the list`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Arroz", "300", "g"))))
+            shoppingRepository.itemsState.value = listOf(shoppingItem("s1", "Arroz"))
+            viewModel.observe("home")
+            advanceUntilIdle()
+
+            val cooked = meal("m1", LocalDate.now(), MealSlot.COMIDA, "Paella").copy(recipeId = "r1")
+            viewModel.markCooked(cooked)
+            advanceUntilIdle()
+
+            assertEquals("m1", mealRepository.cookedMealId)
+            assertEquals(true, mealRepository.cookedValue)
+            assertEquals(listOf("Arroz"), viewModel.uiState.value.cookedCrossOff?.map(ShoppingItem::name))
+
+            viewModel.crossOffCookedIngredients()
+            advanceUntilIdle()
+
+            assertEquals(listOf("s1"), shoppingRepository.purchasedIds)
+            assertEquals(null, viewModel.uiState.value.cookedCrossOff)
+        }
+
+    @Test
     fun `duplicating a day copies its meals to the target date`() = runTest(mainDispatcherRule.testDispatcher) {
         val today = LocalDate.now()
         mealRepository.mealsState.value = listOf(
@@ -291,6 +314,14 @@ private class FakeMealRepository : MealRepository {
         throwNextFailure()
     }
 
+    var cookedMealId: String? = null
+    var cookedValue: Boolean? = null
+    override suspend fun setCooked(spaceId: String, mealId: String, cooked: Boolean) {
+        throwNextFailure()
+        cookedMealId = mealId
+        cookedValue = cooked
+    }
+
     override suspend fun deleteMeal(spaceId: String, mealId: String) {
         throwNextFailure()
     }
@@ -361,8 +392,10 @@ private class FakeShoppingRepository : ShoppingRepository {
     val addedNotes = mutableListOf<String?>()
     val addedSupermarkets = mutableListOf<Supermarket?>()
     val addedBrands = mutableListOf<String?>()
+    val itemsState = MutableStateFlow<List<ShoppingItem>>(emptyList())
+    val purchasedIds = mutableListOf<String>()
 
-    override fun items(spaceId: String): Flow<List<ShoppingItem>> = MutableStateFlow(emptyList())
+    override fun items(spaceId: String): Flow<List<ShoppingItem>> = itemsState
     override suspend fun addItem(
         spaceId: String,
         name: String,
@@ -387,7 +420,10 @@ private class FakeShoppingRepository : ShoppingRepository {
         brand: String?,
     ) = Unit
 
-    override suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean) = Unit
+    override suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean) {
+        if (purchased) purchasedIds += itemId
+    }
+
     override suspend fun deleteItem(spaceId: String, itemId: String) = Unit
     override suspend fun clearPurchased(spaceId: String): Int = 0
 }
@@ -426,4 +462,20 @@ private fun meal(id: String, date: LocalDate, slot: MealSlot, name: String) = Me
     createdAt = Instant.EPOCH,
     updatedBy = "owner",
     updatedAt = Instant.EPOCH,
+)
+
+private fun shoppingItem(id: String, name: String) = ShoppingItem(
+    id = id,
+    name = name,
+    quantity = null,
+    notes = null,
+    purchased = false,
+    createdBy = "owner",
+    createdByName = "David",
+    createdAt = Instant.EPOCH,
+    updatedBy = "owner",
+    updatedAt = Instant.EPOCH,
+    purchasedBy = null,
+    purchasedByName = null,
+    purchasedAt = null,
 )

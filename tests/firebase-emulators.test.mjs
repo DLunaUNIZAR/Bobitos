@@ -1416,6 +1416,27 @@ test("una comida guarda su receta (recipeId) pero rechaza un valor no textual", 
   );
 });
 
+test("una comida admite el flag cooked booleano y permite alternarlo, pero rechaza un valor no booleano", async () => {
+  await seedSpace("meals-cooked", "meals-cooked-owner");
+  const owner = verifiedFirestore("meals-cooked-owner");
+  const reference = doc(owner, "spaces", "meals-cooked", "meals", "dinner");
+
+  await assertSucceeds(setDoc(reference, mealData("meals-cooked-owner", { cooked: true })));
+  await assertSucceeds(
+    updateDoc(reference, {
+      cooked: false,
+      updatedBy: "meals-cooked-owner",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "meals-cooked", "meals", "bad-cooked"),
+      mealData("meals-cooked-owner", { cooked: "sí" }),
+    ),
+  );
+});
+
 function mealData(userId, overrides = {}) {
   return {
     date: "2026-07-20",
