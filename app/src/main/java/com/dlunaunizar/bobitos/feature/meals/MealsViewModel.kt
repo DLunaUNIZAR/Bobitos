@@ -3,11 +3,9 @@ package com.dlunaunizar.bobitos.feature.meals
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.UiState
-import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
-import com.dlunaunizar.bobitos.core.model.slug
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.MealFailure
 import com.dlunaunizar.bobitos.data.repository.MealRepository
@@ -17,6 +15,8 @@ import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
+import com.dlunaunizar.bobitos.feature.common.applyIngredientReview
+import com.dlunaunizar.bobitos.feature.common.buildIngredientReviewRows
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -165,29 +165,13 @@ class MealsViewModel @Inject constructor(
     private fun prepareIngredientReview(meals: List<Meal>) {
         val spaceId = observedSpaceId ?: return
         val recipesById = mutableUiState.value.recipes.associateBy { it.id }
-        // Agrupar por nombre CONSERVANDO todas las apariciones (antes se descartaban con distinctBy y se
-        // perdían cantidades al volcar día/semana). groupBy respeta el orden de primera aparición.
-        val grouped = meals.mapNotNull(Meal::recipeId)
+        val ingredients = meals.mapNotNull(Meal::recipeId)
             .mapNotNull(recipesById::get)
             .flatMap { it.ingredients.orEmpty() }
-            .groupBy { it.name.trim().lowercase() }
-        if (grouped.isEmpty()) return
+        if (ingredients.isEmpty()) return
         viewModelScope.launch {
             val current = runCatching { shoppingRepository.items(spaceId).first() }.getOrDefault(emptyList())
-            val byName = current.associateBy { it.name.trim().lowercase() }
-            val rows = grouped.map { (key, occurrences) ->
-                val first = occurrences.first()
-                val contributions = occurrences.mapNotNull(Ingredient::formattedQuantity)
-                val single = contributions.size <= 1
-                IngredientReviewRow(
-                    name = first.name,
-                    // Con varias aportaciones, la unidad ya va dentro de cada cantidad formateada.
-                    unit = if (single) first.unit else null,
-                    recipeQuantity = if (single) first.quantity else contributions.joinToString(" + "),
-                    existing = byName[key],
-                    quantities = contributions,
-                )
-            }
+            val rows = buildIngredientReviewRows(ingredients, current)
             mutableUiState.update { it.copy(ingredientReview = rows) }
         }
     }
@@ -200,24 +184,7 @@ class MealsViewModel @Inject constructor(
         val rows = mutableUiState.value.ingredientReview ?: return
         mutableUiState.update { it.copy(ingredientReview = null) }
         runAction(MealUiMessage.IngredientsAddedToShopping) {
-            rows.forEachIndexed { index, row ->
-                val quantity = finalQuantities.getOrNull(index)?.trim()?.takeIf(String::isNotEmpty)
-                val existing = row.existing
-                if (existing != null) {
-                    shoppingRepository.updateItem(
-                        spaceId,
-                        existing.id,
-                        existing.name,
-                        quantity,
-                        existing.notes,
-                        existing.supermarket,
-                        existing.brand,
-                    )
-                } else {
-                    val pref = ingredientPrefs[slug(row.name)]
-                    shoppingRepository.addItem(spaceId, row.name, quantity, row.unit, pref?.supermarket, pref?.brand)
-                }
-            }
+            applyIngredientReview(spaceId, rows, finalQuantities, ingredientPrefs, shoppingRepository)
         }
     }
 
@@ -268,12 +235,6 @@ class MealsViewModel @Inject constructor(
             }
         }
     }
-}
-
-// «200 g» / «2» / null si el ingrediente no trae cantidad. Une cantidad y unidad para la revisión.
-private fun Ingredient.formattedQuantity(): String? {
-    val q = quantity?.trim()?.takeIf(String::isNotEmpty) ?: return null
-    return listOfNotNull(q, unit?.trim()?.takeIf(String::isNotEmpty)).joinToString(" ")
 }
 
 private fun Throwable.toUiMessage(): MealUiMessage = when (this) {

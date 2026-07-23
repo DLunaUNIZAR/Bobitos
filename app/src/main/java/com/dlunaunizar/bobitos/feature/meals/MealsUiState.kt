@@ -3,8 +3,8 @@ package com.dlunaunizar.bobitos.feature.meals
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.Recipe
-import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.SpaceMember
+import com.dlunaunizar.bobitos.feature.common.IngredientReviewRow
 import java.time.LocalDate
 import java.time.temporal.ChronoField
 
@@ -29,17 +29,3 @@ data class MealsUiState(
         const val DAYS_IN_WEEK = 7L
     }
 }
-
-/**
- * Ingrediente a volcar a la Compra. Si [existing] no es null, ya hay un producto con ese nombre en la
- * lista y se ofrece ajustar su cantidad (frente a la [recipeQuantity] de la receta).
- */
-data class IngredientReviewRow(
-    val name: String,
-    val unit: String?,
-    val recipeQuantity: String?,
-    val existing: ShoppingItem?,
-    // Cantidades formateadas de cada comida que aporta este ingrediente (p. ej. ["200 g", "300 g"]).
-    // Con 2+ elementos, la revisión muestra todas para que el usuario decida la cantidad final.
-    val quantities: List<String> = emptyList(),
-)

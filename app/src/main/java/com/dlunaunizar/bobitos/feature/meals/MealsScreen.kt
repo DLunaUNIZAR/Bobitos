@@ -17,8 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ChevronLeft
@@ -46,7 +44,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,6 +65,7 @@ import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.SpaceMember
+import com.dlunaunizar.bobitos.feature.common.IngredientReviewDialog
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -266,67 +264,6 @@ fun MealsScreen(
             onDismiss = viewModel::dismissIngredientReview,
         )
     }
-}
-
-@Composable
-private fun IngredientReviewDialog(
-    rows: List<IngredientReviewRow>,
-    onConfirm: (List<String?>) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val quantities = remember(rows) {
-        rows.map { (it.existing?.quantity ?: it.recipeQuantity).orEmpty() }.toMutableStateList()
-    }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.meals_review_title)) },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                rows.forEachIndexed { index, row ->
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(text = row.name, style = MaterialTheme.typography.titleSmall)
-                        val hint = when {
-                            row.existing != null -> stringResource(
-                                R.string.meals_review_existing,
-                                row.existing.quantity ?: "—",
-                                row.recipeQuantity ?: "—",
-                            )
-                            row.quantities.size >= 2 ->
-                                stringResource(R.string.meals_review_multi, row.quantities.joinToString(" + "))
-                            row.recipeQuantity != null ->
-                                stringResource(R.string.meals_review_recipe, row.recipeQuantity)
-                            else -> null
-                        }
-                        if (hint != null) {
-                            Text(
-                                text = hint,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        OutlinedTextField(
-                            value = quantities[index],
-                            onValueChange = { quantities[index] = it },
-                            label = { Text(stringResource(R.string.recipes_ingredient_quantity)) },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(quantities.map { it.trim().ifEmpty { null } }) }) {
-                Text(stringResource(R.string.confirm))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
-        },
-    )
 }
 
 @Composable

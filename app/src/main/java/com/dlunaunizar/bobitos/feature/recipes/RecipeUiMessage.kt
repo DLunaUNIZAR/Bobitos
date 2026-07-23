@@ -21,4 +21,6 @@ enum class RecipeUiMessage {
     ImportNotHtml,
     ImportNoRecipe,
     ImportTooLarge,
+    AddedToShopping,
+    NoIngredients,
 }
