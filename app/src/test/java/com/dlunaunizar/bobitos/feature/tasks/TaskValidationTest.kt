@@ -4,7 +4,9 @@ import com.dlunaunizar.bobitos.core.model.TaskItem
 import com.dlunaunizar.bobitos.core.model.TaskPriority
 import com.dlunaunizar.bobitos.core.model.TaskStatus
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 import java.time.ZoneId
@@ -100,6 +102,19 @@ class TaskValidationTest {
     fun `empty sections are omitted`() {
         val sections = listOf(task("nodate", "m", dueAt = null)).groupIntoSections()
         assertEquals(listOf(TaskSection.NO_DATE), sections.map { it.first })
+    }
+
+    @Test
+    fun `search matches title description and assignee, and blank matches all`() {
+        val chore = task("chore", "Ana").copy(title = "Fregar cocina", description = "con lavavajillas")
+
+        assertTrue(chore.matchesQuery(""))
+        assertTrue(chore.matchesQuery("  "))
+        assertTrue(chore.matchesQuery("fregar"))
+        assertTrue(chore.matchesQuery("LAVAVAJILLAS"))
+        // Buscar por responsable (assigneeName == "Ana", ver el helper task()).
+        assertTrue(chore.matchesQuery("ana"))
+        assertFalse(chore.matchesQuery("bici"))
     }
 }
 

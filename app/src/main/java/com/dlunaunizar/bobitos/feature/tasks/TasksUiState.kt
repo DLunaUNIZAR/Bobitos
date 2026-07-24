@@ -51,6 +51,15 @@ enum class TaskSection {
     COMPLETED,
 }
 
+// Coincidencia por texto para el buscador: título, descripción o responsable; en blanco no filtra.
+fun TaskItem.matchesQuery(query: String): Boolean {
+    val trimmed = query.trim()
+    if (trimmed.isEmpty()) return true
+    return title.contains(trimmed, ignoreCase = true) ||
+        description?.contains(trimmed, ignoreCase = true) == true ||
+        assigneeName?.contains(trimmed, ignoreCase = true) == true
+}
+
 // Agrupa una lista YA filtrada y ordenada en secciones, preservando el orden dentro de cada una.
 // Solo devuelve las secciones no vacías, en el orden del enum.
 fun List<TaskItem>.groupIntoSections(
