@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.feature.tasks
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -25,6 +27,8 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Repeat
@@ -40,9 +44,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -135,7 +136,7 @@ fun TasksScreen(
     var editorTask by remember { mutableStateOf<TaskItem?>(null) }
     var editorVisible by remember { mutableStateOf(false) }
     var deleteTask by remember { mutableStateOf<TaskItem?>(null) }
-    var tab by remember { mutableStateOf(TaskTab.RECURRENTES) }
+    var completedExpanded by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
 
     Column(modifier.fillMaxSize().padding(16.dp)) {
@@ -168,44 +169,57 @@ fun TasksScreen(
             visible = allTasks.isNotEmpty(),
             modifier = Modifier.padding(vertical = 4.dp),
         )
-        TaskTabSelector(tab, onSelect = { tab = it })
-        val tabTasks = visibleTasks.filter {
-            (it.recurrence != null) == (tab == TaskTab.RECURRENTES) && it.matchesQuery(query)
-        }
+        val queried = visibleTasks.filter { it.matchesQuery(query) }
+        val sections = queried.groupIntoSections()
         when (val tasks = state.tasks) {
             UiState.Loading -> LoadingState(Modifier.weight(1f))
             is UiState.Error -> ErrorState(Modifier.weight(1f), message = tasks.message)
-            is UiState.Content -> if (tabTasks.isEmpty()) {
+            is UiState.Content -> if (queried.isEmpty()) {
                 EmptyState(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Rounded.Checklist,
                     title = stringResource(if (allTasks.isEmpty()) R.string.tasks_empty else R.string.tasks_no_results),
                 )
             } else {
+                val taskRow: @Composable LazyItemScope.(TaskItem) -> Unit = { task ->
+                    SwipeActionsBox(
+                        startAction = SwipeAction(Icons.Rounded.Check, checkColor) {
+                            viewModel.setCompleted(spaceId, task.id, task.status != TaskStatus.DONE)
+                        }.takeIf { enabled },
+                        endAction = SwipeAction(Icons.Rounded.Delete, deleteColor) {
+                            deleteTaskWithUndo(task)
+                        }.takeIf { enabled },
+                        modifier = Modifier.animateItem(),
+                    ) {
+                        TaskCard(
+                            task,
+                            enabled,
+                            onSetCompleted = { viewModel.setCompleted(spaceId, task.id, it) },
+                            onEdit = {
+                                editorTask = task
+                                editorVisible = true
+                            },
+                            onDelete = { deleteTask = task },
+                        )
+                    }
+                }
                 LazyColumn(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items(tabTasks, key = TaskItem::id) { task ->
-                        SwipeActionsBox(
-                            startAction = SwipeAction(Icons.Rounded.Check, checkColor) {
-                                viewModel.setCompleted(spaceId, task.id, task.status != TaskStatus.DONE)
-                            }.takeIf { enabled },
-                            endAction = SwipeAction(Icons.Rounded.Delete, deleteColor) {
-                                deleteTaskWithUndo(task)
-                            }.takeIf { enabled },
-                            modifier = Modifier.animateItem(),
-                        ) {
-                            TaskCard(
-                                task,
-                                enabled,
-                                onSetCompleted = { viewModel.setCompleted(spaceId, task.id, it) },
-                                onEdit = {
-                                    editorTask = task
-                                    editorVisible = true
-                                },
-                                onDelete = { deleteTask = task },
+                    sections.forEach { (section, sectionTasks) ->
+                        val collapsible = section == TaskSection.COMPLETED
+                        item(key = "header-$section") {
+                            TaskSectionHeader(
+                                title = stringResource(section.titleRes),
+                                count = sectionTasks.size,
+                                collapsible = collapsible,
+                                expanded = completedExpanded,
+                                onToggle = { completedExpanded = !completedExpanded },
                             )
+                        }
+                        if (!collapsible || completedExpanded) {
+                            items(sectionTasks, key = TaskItem::id) { task -> taskRow(task) }
                         }
                     }
                 }
@@ -260,26 +274,42 @@ fun TasksScreen(
     }
 }
 
-private enum class TaskTab { RECURRENTES, UNICAS }
-
-private val TaskTab.labelRes: Int
+private val TaskSection.titleRes: Int
     get() = when (this) {
-        TaskTab.RECURRENTES -> R.string.tasks_tab_recurring
-        TaskTab.UNICAS -> R.string.tasks_tab_oneoff
+        TaskSection.OVERDUE -> R.string.tasks_overdue
+        TaskSection.TODAY -> R.string.tasks_today
+        TaskSection.UPCOMING -> R.string.tasks_upcoming
+        TaskSection.NO_DATE -> R.string.tasks_no_date
+        TaskSection.COMPLETED -> R.string.tasks_done
     }
 
+// Cabecera «Título · N». La de Completadas es plegable (colapsada por defecto).
 @Composable
-private fun TaskTabSelector(tab: TaskTab, onSelect: (TaskTab) -> Unit) {
-    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-        TaskTab.entries.forEachIndexed { index, option ->
-            SegmentedButton(
-                selected = tab == option,
-                onClick = { onSelect(option) },
-                shape = SegmentedButtonDefaults.itemShape(index, TaskTab.entries.size),
-            ) {
-                Text(stringResource(option.labelRes))
-            }
-        }
+private fun TaskSectionHeader(
+    title: String,
+    count: Int,
+    collapsible: Boolean,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+) {
+    val label = "$title · $count"
+    if (!collapsible) {
+        Text(label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = Spacing.xs))
+        return
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggle)
+            .padding(vertical = Spacing.xs),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.titleMedium)
+        Icon(
+            imageVector = if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+            contentDescription = stringResource(R.string.tasks_completed_toggle),
+        )
     }
 }
 
