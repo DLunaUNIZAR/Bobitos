@@ -22,6 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Checklist
@@ -39,6 +40,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -313,102 +315,120 @@ private fun TaskSectionHeader(
     }
 }
 
+// Barra de filtros con FilterChip de estado visible. Estado y prioridad son chips directos
+// (single-select con toggle: tocar el activo lo desmarca); tipo y responsable abren un menú.
+// La dimensión fecha ya la cubren las secciones de la lista (B3).
 @Composable
 private fun TaskFilterBar(filters: TaskFilters, members: List<SpaceMember>, onChange: (TaskFilters) -> Unit) {
-    var assigneeMenu by remember { mutableStateOf(false) }
-    var typeMenu by remember { mutableStateOf(false) }
     Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(top = Spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        TextButton(onClick = {
-            onChange(
-                filters.copy(
-                    status = when (filters.status) {
-                        TaskStatus.TODO -> TaskStatus.DONE
-                        TaskStatus.DONE -> null
-                        null -> TaskStatus.TODO
-                    },
-                ),
+        FilterChip(
+            selected = filters.status == TaskStatus.TODO,
+            onClick = {
+                onChange(filters.copy(status = if (filters.status == TaskStatus.TODO) null else TaskStatus.TODO))
+            },
+            label = { Text(stringResource(R.string.tasks_pending)) },
+        )
+        FilterChip(
+            selected = filters.status == TaskStatus.DONE,
+            onClick = {
+                onChange(filters.copy(status = if (filters.status == TaskStatus.DONE) null else TaskStatus.DONE))
+            },
+            label = { Text(stringResource(R.string.tasks_done)) },
+        )
+        TaskPriority.entries.forEach { option ->
+            FilterChip(
+                selected = filters.priority == option,
+                onClick = {
+                    onChange(filters.copy(priority = if (filters.priority == option) null else option))
+                },
+                label = { Text(option.label()) },
             )
-        }) { Text(filters.status?.label() ?: stringResource(R.string.tasks_filter_all)) }
-        TextButton(onClick = {
-            onChange(
-                filters.copy(
-                    priority = when (filters.priority) {
-                        null -> TaskPriority.HIGH
-                        TaskPriority.HIGH -> TaskPriority.MEDIUM
-                        TaskPriority.MEDIUM -> TaskPriority.LOW
-                        TaskPriority.LOW -> null
-                    },
-                ),
-            )
-        }) { Text(filters.priority?.label() ?: stringResource(R.string.tasks_filter_priority)) }
-        Box {
-            TextButton(onClick = { typeMenu = true }) {
+        }
+        TaskTypeFilterChip(filters, onChange)
+        TaskAssigneeFilterChip(filters, members, onChange)
+    }
+}
+
+@Composable
+private fun TaskTypeFilterChip(filters: TaskFilters, onChange: (TaskFilters) -> Unit) {
+    var menu by remember { mutableStateOf(false) }
+    Box {
+        FilterChip(
+            selected = filters.type != null,
+            onClick = { menu = true },
+            label = {
                 Text(filters.type?.let { stringResource(it.labelRes) } ?: stringResource(R.string.tasks_filter_type))
-            }
-            DropdownMenu(expanded = typeMenu, onDismissRequest = { typeMenu = false }) {
+            },
+            trailingIcon = { Icon(Icons.Rounded.ArrowDropDown, contentDescription = null) },
+        )
+        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.tasks_filter_all)) },
+                onClick = {
+                    onChange(filters.copy(type = null))
+                    menu = false
+                },
+            )
+            TaskType.entries.forEach { taskType ->
                 DropdownMenuItem(
-                    text = { Text(stringResource(R.string.tasks_filter_all)) },
+                    text = { Text(stringResource(taskType.labelRes)) },
+                    leadingIcon = { Icon(taskType.icon, contentDescription = null, tint = taskType.accent()) },
                     onClick = {
-                        onChange(filters.copy(type = null))
-                        typeMenu = false
+                        onChange(filters.copy(type = taskType))
+                        menu = false
                     },
                 )
-                TaskType.entries.forEach { taskType ->
-                    DropdownMenuItem(
-                        text = { Text(stringResource(taskType.labelRes)) },
-                        leadingIcon = { Icon(taskType.icon, contentDescription = null, tint = taskType.accent()) },
-                        onClick = {
-                            onChange(filters.copy(type = taskType))
-                            typeMenu = false
-                        },
-                    )
-                }
             }
         }
-        TextButton(onClick = {
-            val values = TaskDateFilter.entries
-            onChange(filters.copy(date = values[(filters.date.ordinal + 1) % values.size]))
-        }) { Text(filters.date.label()) }
-        Box {
-            TextButton(onClick = { assigneeMenu = true }) {
-                Text(
-                    when {
-                        filters.unassignedOnly -> stringResource(R.string.tasks_unassigned)
-                        filters.assigneeId != null -> members.firstOrNull {
-                            it.userId == filters.assigneeId
-                        }?.displayName ?: stringResource(R.string.tasks_assignee)
-                        else -> stringResource(R.string.tasks_assignee)
-                    },
-                )
-            }
-            DropdownMenu(expanded = assigneeMenu, onDismissRequest = { assigneeMenu = false }) {
+    }
+}
+
+@Composable
+private fun TaskAssigneeFilterChip(filters: TaskFilters, members: List<SpaceMember>, onChange: (TaskFilters) -> Unit) {
+    var menu by remember { mutableStateOf(false) }
+    val label = when {
+        filters.unassignedOnly -> stringResource(R.string.tasks_unassigned)
+        filters.assigneeId != null ->
+            members.firstOrNull { it.userId == filters.assigneeId }?.displayName
+                ?: stringResource(R.string.tasks_assignee)
+        else -> stringResource(R.string.tasks_assignee)
+    }
+    Box {
+        FilterChip(
+            selected = filters.assigneeId != null || filters.unassignedOnly,
+            onClick = { menu = true },
+            label = { Text(label) },
+            trailingIcon = { Icon(Icons.Rounded.ArrowDropDown, contentDescription = null) },
+        )
+        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.tasks_filter_all)) },
+                onClick = {
+                    onChange(filters.copy(assigneeId = null, unassignedOnly = false))
+                    menu = false
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.tasks_unassigned)) },
+                onClick = {
+                    onChange(filters.copy(assigneeId = null, unassignedOnly = true))
+                    menu = false
+                },
+            )
+            members.forEach { member ->
                 DropdownMenuItem(
-                    text = { Text(stringResource(R.string.tasks_filter_all)) },
+                    text = { Text(member.displayName) },
                     onClick = {
-                        onChange(filters.copy(assigneeId = null, unassignedOnly = false))
-                        assigneeMenu = false
+                        onChange(filters.copy(assigneeId = member.userId, unassignedOnly = false))
+                        menu = false
                     },
                 )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.tasks_unassigned)) },
-                    onClick = {
-                        onChange(filters.copy(assigneeId = null, unassignedOnly = true))
-                        assigneeMenu = false
-                    },
-                )
-                members.forEach { member ->
-                    DropdownMenuItem(
-                        text = { Text(member.displayName) },
-                        onClick = {
-                            onChange(filters.copy(assigneeId = member.userId, unassignedOnly = false))
-                            assigneeMenu =
-                                false
-                        },
-                    )
-                }
             }
         }
     }
@@ -871,31 +891,11 @@ private fun TaskFeedback(state: TasksUiState, onDismiss: () -> Unit) {
     }
 }
 
-@Composable private fun TaskStatus.label() = stringResource(
-    if (this ==
-        TaskStatus.TODO
-    ) {
-        R.string.tasks_pending
-    } else {
-        R.string.tasks_done
-    },
-)
-
 @Composable private fun TaskPriority.label() = stringResource(
     when (this) {
         TaskPriority.LOW -> R.string.tasks_priority_low
         TaskPriority.MEDIUM -> R.string.tasks_priority_medium
         TaskPriority.HIGH -> R.string.tasks_priority_high
-    },
-)
-
-@Composable private fun TaskDateFilter.label() = stringResource(
-    when (this) {
-        TaskDateFilter.ALL -> R.string.tasks_filter_date
-        TaskDateFilter.OVERDUE -> R.string.tasks_overdue
-        TaskDateFilter.TODAY -> R.string.tasks_today
-        TaskDateFilter.UPCOMING -> R.string.tasks_upcoming
-        TaskDateFilter.NO_DATE -> R.string.tasks_no_date
     },
 )
 

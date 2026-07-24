@@ -228,7 +228,6 @@
     <string name="tasks_filter_all">Todas</string>
     <string name="tasks_filter_priority">Prioridad</string>
     <string name="tasks_filter_type">Tipo</string>
-    <string name="tasks_filter_date">Fecha</string>
     <string name="tasks_priority_low">Baja</string>
     <string name="tasks_priority_medium">Media</string>
     <string name="tasks_priority_high">Alta</string>

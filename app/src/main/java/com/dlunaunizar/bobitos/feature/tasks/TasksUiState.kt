@@ -7,7 +7,6 @@ import com.dlunaunizar.bobitos.core.model.TaskPriority
 import com.dlunaunizar.bobitos.core.model.TaskStatus
 import com.dlunaunizar.bobitos.core.model.TaskType
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 
 data class TasksUiState(
@@ -25,49 +24,21 @@ data class TaskFilters(
     val type: TaskType? = null,
     val assigneeId: String? = null,
     val unassignedOnly: Boolean = false,
-    val date: TaskDateFilter = TaskDateFilter.ALL,
 ) {
-    fun apply(
-        tasks: List<TaskItem>,
-        now: Instant = Instant.now(),
-        zoneId: ZoneId = ZoneId.systemDefault(),
-    ): List<TaskItem> {
-        val today = now.atZone(zoneId).toLocalDate()
-        return tasks.filter { task ->
-            (status == null || task.status == status) &&
-                (priority == null || task.priority == priority) &&
-                (type == null || task.type == type) &&
-                (!unassignedOnly || task.assigneeId == null) &&
-                (assigneeId == null || task.assigneeId == assigneeId) &&
-                date.matches(task, today, zoneId)
-        }.sortedWith(
-            compareBy<TaskItem> { it.status == TaskStatus.DONE }
-                .thenBy { it.dueAt == null }
-                .thenBy { it.dueAt }
-                .thenByDescending { it.priority }
-                .thenByDescending { it.createdAt },
-        )
-    }
-}
-
-enum class TaskDateFilter {
-    ALL,
-    OVERDUE,
-    TODAY,
-    UPCOMING,
-    NO_DATE,
-    ;
-
-    fun matches(task: TaskItem, today: LocalDate, zoneId: ZoneId): Boolean {
-        val dueDate = task.dueAt?.atZone(zoneId)?.toLocalDate()
-        return when (this) {
-            ALL -> true
-            OVERDUE -> task.status == TaskStatus.TODO && dueDate?.isBefore(today) == true
-            TODAY -> dueDate == today
-            UPCOMING -> dueDate?.isAfter(today) == true
-            NO_DATE -> dueDate == null
-        }
-    }
+    // La dimensión temporal la cubren las secciones de la lista (groupIntoSections), no un filtro.
+    fun apply(tasks: List<TaskItem>): List<TaskItem> = tasks.filter { task ->
+        (status == null || task.status == status) &&
+            (priority == null || task.priority == priority) &&
+            (type == null || task.type == type) &&
+            (!unassignedOnly || task.assigneeId == null) &&
+            (assigneeId == null || task.assigneeId == assigneeId)
+    }.sortedWith(
+        compareBy<TaskItem> { it.status == TaskStatus.DONE }
+            .thenBy { it.dueAt == null }
+            .thenBy { it.dueAt }
+            .thenByDescending { it.priority }
+            .thenByDescending { it.createdAt },
+    )
 }
 
 // Secciones de la lista (en orden de aparición). Las tareas completadas van al final,
