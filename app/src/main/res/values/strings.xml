@@ -198,6 +198,7 @@
         <item quantity="other">%1$d de %2$d tareas</item>
     </plurals>
     <string name="tasks_add">Nueva tarea</string>
+    <string name="tasks_quick_add">Añadir tarea</string>
     <string name="tasks_add_title">Crear tarea</string>
     <string name="tasks_edit">Editar</string>
     <string name="tasks_edit_title">Editar tarea</string>
