@@ -10,6 +10,7 @@ import androidx.compose.material.icons.rounded.ShoppingBag
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.model.TaskPriority
 import com.dlunaunizar.bobitos.core.model.TaskType
 
 @get:StringRes
@@ -39,4 +40,12 @@ internal fun TaskType.accent(): Color = when (this) {
     TaskType.COMPRAS -> Color(0xFFC05621)
     TaskType.HOGAR -> Color(0xFF3F51B5)
     TaskType.OTROS -> Color(0xFF6E6E6E)
+}
+
+// Acento discreto de prioridad para el punto de la tarjeta (rojo = alta, ámbar = media, gris = baja).
+// Se superpone al tinte por tipo sin competir con él.
+internal fun TaskPriority.accent(): Color = when (this) {
+    TaskPriority.HIGH -> Color(0xFFD32F2F)
+    TaskPriority.MEDIUM -> Color(0xFFF9A825)
+    TaskPriority.LOW -> Color(0xFF9E9E9E)
 }

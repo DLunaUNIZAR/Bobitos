@@ -1,9 +1,12 @@
 package com.dlunaunizar.bobitos.feature.tasks
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CalendarMonth
@@ -21,6 +25,8 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -50,13 +56,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -71,6 +80,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.RecurrenceUnit
 import com.dlunaunizar.bobitos.core.model.SpaceMember
@@ -382,7 +392,8 @@ private fun TaskCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val overdue = task.status == TaskStatus.TODO &&
+    val done = task.status == TaskStatus.DONE
+    val overdue = !done &&
         task.dueAt
             ?.atZone(ZoneId.systemDefault())
             ?.toLocalDate()
@@ -391,42 +402,79 @@ private fun TaskCard(
         modifier = Modifier.fillMaxWidth(),
         colors = task.type?.let { categoryCardColors(it.accent()) } ?: CardDefaults.cardColors(),
     ) {
-        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
+        Row(
+            Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Checkbox(
-                checked = task.status == TaskStatus.DONE,
+                checked = done,
                 onCheckedChange = onSetCompleted,
                 enabled = enabled,
                 modifier = Modifier.semantics { contentDescription = task.title },
             )
-            Column(Modifier.weight(1f)) {
-                Text(
-                    task.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    textDecoration = if (task.status == TaskStatus.DONE) TextDecoration.LineThrough else null,
-                    color = if (overdue) MaterialTheme.colorScheme.error else Color.Unspecified,
-                )
-                task.description?.let { Text(it) }
-                Text(
-                    task.assigneeName ?: stringResource(R.string.tasks_unassigned),
-                    color = if (task.assigneeId == null) MaterialTheme.colorScheme.error else Color.Unspecified,
-                )
-                Text("${task.priority.label()} · ${task.dueAt?.formatDate() ?: stringResource(R.string.tasks_no_date)}")
-                TaskCardMeta(task)
-                Text(
-                    stringResource(R.string.tasks_created_by, task.createdByName),
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                if (task.status == TaskStatus.DONE) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    PriorityDot(task.priority)
+                    Spacer(Modifier.width(Spacing.sm))
                     Text(
-                        stringResource(R.string.tasks_completed_by, task.completedByName ?: task.completedBy.orEmpty()),
-                        style = MaterialTheme.typography.bodySmall,
+                        task.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        textDecoration = if (done) TextDecoration.LineThrough else null,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
                     )
                 }
-                Row {
-                    TextButton(enabled = enabled, onClick = onEdit) { Text(stringResource(R.string.tasks_edit)) }
-                    TextButton(enabled = enabled, onClick = onDelete) { Text(stringResource(R.string.tasks_delete)) }
+                task.description?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
+                TaskMetaRow(task, overdue, done)
             }
+            TaskCardMenu(enabled = enabled, onEdit = onEdit, onDelete = onDelete)
+        }
+    }
+}
+
+@Composable
+private fun PriorityDot(priority: TaskPriority) {
+    val description = stringResource(R.string.tasks_priority_cd, priority.label())
+    Box(
+        Modifier
+            .size(10.dp)
+            .clip(CircleShape)
+            .background(priority.accent())
+            .semantics { contentDescription = description },
+    )
+}
+
+@Composable
+private fun TaskCardMenu(enabled: Boolean, onEdit: () -> Unit, onDelete: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }, enabled = enabled) {
+            Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.more_options))
+        }
+        DropdownMenu(expanded, { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.tasks_edit)) },
+                onClick = {
+                    expanded = false
+                    onEdit()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.tasks_delete)) },
+                onClick = {
+                    expanded = false
+                    onDelete()
+                },
+            )
         }
     }
 }
@@ -523,46 +571,62 @@ private fun TaskEditor(
     )
 }
 
+// Línea de metadatos compacta (envuelve): estado/fecha, inicio, tipo, recurrencia, responsable y,
+// si está hecha, quién la completó. Cada dato es un «chip» de icono + texto.
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun TaskCardMeta(task: TaskItem) {
-    task.startAt?.let { start ->
-        Text(
-            text = stringResource(R.string.tasks_start_date_value, start.formatDate()),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+private fun TaskMetaRow(task: TaskItem, overdue: Boolean, done: Boolean) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
+    ) {
+        TaskDateMeta(task, overdue, done)
+        task.startAt?.let { start ->
+            MetaChip(Icons.Rounded.CalendarMonth, stringResource(R.string.tasks_start_date_value, start.formatDate()))
+        }
+        task.type?.let { type -> MetaChip(type.icon, stringResource(type.labelRes), type.accent()) }
+        task.recurrence?.let { rec -> MetaChip(Icons.Rounded.Repeat, rec.label()) }
+        MetaChip(
+            icon = Icons.Rounded.Person,
+            text = task.assigneeName ?: stringResource(R.string.tasks_unassigned),
+            tint = if (task.assigneeId == null) MaterialTheme.colorScheme.error else null,
         )
-    }
-    task.type?.let { type ->
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = type.icon,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = type.accent(),
-            )
-            Spacer(Modifier.width(4.dp))
-            Text(
-                text = stringResource(type.labelRes),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+        if (done) {
+            MetaChip(
+                icon = Icons.Rounded.Check,
+                text = stringResource(R.string.tasks_completed_by, task.completedByName ?: task.completedBy.orEmpty()),
             )
         }
     }
-    task.recurrence?.let { rec ->
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Rounded.Repeat,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.width(4.dp))
-            Text(
-                text = rec.label(),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+}
+
+// Chip de fecha con estado temporal: badge «Vencida»/«Hoy» resaltado, o la fecha de vencimiento.
+// Sin fecha no se muestra chip (lo indica el badge de la sección en B3).
+@Composable
+private fun TaskDateMeta(task: TaskItem, overdue: Boolean, done: Boolean) {
+    val dueDate = task.dueAt?.atZone(ZoneId.systemDefault())?.toLocalDate()
+    when {
+        overdue -> MetaChip(
+            Icons.Rounded.CalendarMonth,
+            stringResource(R.string.tasks_badge_overdue),
+            MaterialTheme.colorScheme.error,
+        )
+        !done && dueDate == LocalDate.now() -> MetaChip(
+            Icons.Rounded.CalendarMonth,
+            stringResource(R.string.tasks_today),
+            MaterialTheme.colorScheme.primary,
+        )
+        task.dueAt != null -> MetaChip(Icons.Rounded.CalendarMonth, task.dueAt.formatDate())
+    }
+}
+
+@Composable
+private fun MetaChip(icon: ImageVector, text: String, tint: Color? = null) {
+    val color = tint ?: MaterialTheme.colorScheme.onSurfaceVariant
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(14.dp), tint = color)
+        Spacer(Modifier.width(Spacing.xs))
+        Text(text, style = MaterialTheme.typography.bodySmall, color = color)
     }
 }
 
