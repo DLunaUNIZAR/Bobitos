@@ -20,8 +20,10 @@ import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Check
@@ -34,7 +36,6 @@ import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -66,6 +67,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -140,30 +142,36 @@ fun TasksScreen(
     var deleteTask by remember { mutableStateOf<TaskItem?>(null) }
     var completedExpanded by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
+    var quickTitle by rememberSaveable { mutableStateOf("") }
 
     Column(modifier.fillMaxSize().padding(16.dp)) {
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column {
-                Text(stringResource(R.string.tasks_list_title), style = MaterialTheme.typography.headlineSmall)
-                Text(
-                    pluralStringResource(
-                        R.plurals.tasks_visible_count,
-                        visibleTasks.size,
-                        visibleTasks.size,
-                        allTasks.size,
-                    ),
-                )
-            }
-            Button(enabled = enabled && members.isNotEmpty(), onClick = {
-                editorTask = null
-                editorVisible = true
-            }) { Text(stringResource(R.string.tasks_add)) }
+        Column {
+            Text(stringResource(R.string.tasks_list_title), style = MaterialTheme.typography.headlineSmall)
+            Text(
+                pluralStringResource(
+                    R.plurals.tasks_visible_count,
+                    visibleTasks.size,
+                    visibleTasks.size,
+                    allTasks.size,
+                ),
+            )
         }
         TaskFeedback(state, viewModel::clearFeedback)
+        TaskQuickAdd(
+            title = quickTitle,
+            enabled = enabled,
+            onTitleChange = { quickTitle = it },
+            onAdd = {
+                viewModel.createTask(
+                    spaceId, quickTitle.trim(), null, null, null, TaskPriority.MEDIUM, null, null, null,
+                )
+                quickTitle = ""
+            },
+            onMoreOptions = {
+                editorTask = null
+                editorVisible = true
+            },
+        )
         TaskFilterBar(state.filters, members, viewModel::setFilters)
         SearchField(
             query = query,
@@ -234,6 +242,8 @@ fun TasksScreen(
             task = editorTask,
             members = members,
             saving = state.isSaving,
+            // Al abrir «Más opciones» desde el quick-add, arranca con el título ya tecleado.
+            initialTitle = if (editorTask == null) quickTitle else "",
             onDismiss = { editorVisible = false },
             onInvalidDate = viewModel::showInvalidDate,
             onSave = { title, description, assignee, due, priority, type, recurrence, start ->
@@ -241,17 +251,12 @@ fun TasksScreen(
                     viewModel.updateTask(
                         spaceId, it.id, title, description, assignee, due, priority, type, recurrence, start,
                     )
-                } ?: viewModel.createTask(
-                    spaceId,
-                    title,
-                    description,
-                    assignee,
-                    due,
-                    priority,
-                    type,
-                    recurrence,
-                    start,
-                )
+                } ?: run {
+                    viewModel.createTask(
+                        spaceId, title, description, assignee, due, priority, type, recurrence, start,
+                    )
+                    quickTitle = ""
+                }
                 editorVisible = false
             },
         )
@@ -273,6 +278,39 @@ fun TasksScreen(
                 }
             },
         )
+    }
+}
+
+// Alta rápida: crear una tarea solo con el título (prioridad media, sin tipo/responsable/fecha).
+// «Más opciones» abre el editor completo con el título ya tecleado.
+@Composable
+private fun TaskQuickAdd(
+    title: String,
+    enabled: Boolean,
+    onTitleChange: (String) -> Unit,
+    onAdd: () -> Unit,
+    onMoreOptions: () -> Unit,
+) {
+    val canAdd = enabled && title.isNotBlank()
+    Column(modifier = Modifier.padding(top = Spacing.sm)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            OutlinedTextField(
+                value = title,
+                onValueChange = onTitleChange,
+                modifier = Modifier.weight(1f),
+                label = { Text(stringResource(R.string.tasks_add)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { if (canAdd) onAdd() }),
+            )
+            IconButton(onClick = onAdd, enabled = canAdd) {
+                Icon(Icons.Rounded.Add, contentDescription = stringResource(R.string.tasks_quick_add))
+            }
+        }
+        TextButton(onClick = onMoreOptions) { Text(stringResource(R.string.more_options)) }
     }
 }
 
@@ -534,11 +572,12 @@ private fun TaskEditor(
     task: TaskItem?,
     members: List<SpaceMember>,
     saving: Boolean,
+    initialTitle: String,
     onDismiss: () -> Unit,
     onInvalidDate: () -> Unit,
     onSave: (String, String?, String?, Instant?, TaskPriority, TaskType?, TaskRecurrence?, Instant?) -> Unit,
 ) {
-    var title by remember(task?.id) { mutableStateOf(task?.title.orEmpty()) }
+    var title by remember(task?.id) { mutableStateOf(task?.title ?: initialTitle) }
     var description by remember(task?.id) { mutableStateOf(task?.description.orEmpty()) }
     // Por defecto «sin responsable» en tareas nuevas (responsable opcional); al editar se conserva el actual.
     var assigneeId by remember(task?.id) { mutableStateOf(task?.assigneeId) }
