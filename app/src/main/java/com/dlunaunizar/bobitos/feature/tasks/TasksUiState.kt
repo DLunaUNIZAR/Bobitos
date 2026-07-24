@@ -70,6 +70,36 @@ enum class TaskDateFilter {
     }
 }
 
+// Secciones de la lista (en orden de aparición). Las tareas completadas van al final,
+// el resto se agrupan por su fecha de vencimiento relativa a hoy.
+enum class TaskSection {
+    OVERDUE,
+    TODAY,
+    UPCOMING,
+    NO_DATE,
+    COMPLETED,
+}
+
+// Agrupa una lista YA filtrada y ordenada en secciones, preservando el orden dentro de cada una.
+// Solo devuelve las secciones no vacías, en el orden del enum.
+fun List<TaskItem>.groupIntoSections(
+    now: Instant = Instant.now(),
+    zoneId: ZoneId = ZoneId.systemDefault(),
+): List<Pair<TaskSection, List<TaskItem>>> {
+    val today = now.atZone(zoneId).toLocalDate()
+    val grouped = groupBy { task ->
+        val dueDate = task.dueAt?.atZone(zoneId)?.toLocalDate()
+        when {
+            task.status == TaskStatus.DONE -> TaskSection.COMPLETED
+            dueDate == null -> TaskSection.NO_DATE
+            dueDate.isBefore(today) -> TaskSection.OVERDUE
+            dueDate.isEqual(today) -> TaskSection.TODAY
+            else -> TaskSection.UPCOMING
+        }
+    }
+    return TaskSection.entries.mapNotNull { section -> grouped[section]?.let { section to it } }
+}
+
 enum class TaskUiMessage {
     TitleRequired,
     TitleTooLong,

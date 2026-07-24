@@ -67,6 +67,41 @@ class TaskValidationTest {
         val filtered = TaskFilters(status = null, unassignedOnly = true).apply(tasks)
         assertEquals(listOf("orphan"), filtered.map(TaskItem::id))
     }
+
+    @Test
+    fun `tasks group into ordered sections by due date and completion`() {
+        val now = Instant.parse("2026-07-16T12:00:00Z")
+        val zone = ZoneId.of("UTC")
+        val tasks = listOf(
+            task("overdue", "m", dueAt = "2026-07-15T00:00:00Z"),
+            task("today", "m", dueAt = "2026-07-16T00:00:00Z"),
+            task("future", "m", dueAt = "2026-07-20T00:00:00Z"),
+            task("nodate", "m", dueAt = null),
+            task("done", "m", status = TaskStatus.DONE, dueAt = "2026-07-15T00:00:00Z"),
+        )
+
+        val sections = tasks.groupIntoSections(now, zone)
+
+        assertEquals(
+            listOf(
+                TaskSection.OVERDUE,
+                TaskSection.TODAY,
+                TaskSection.UPCOMING,
+                TaskSection.NO_DATE,
+                TaskSection.COMPLETED,
+            ),
+            sections.map { it.first },
+        )
+        assertEquals(listOf("overdue"), sections.first().second.map(TaskItem::id))
+        // Una tarea vencida pero completada va a Completadas, no a Vencidas.
+        assertEquals(listOf("done"), sections.last().second.map(TaskItem::id))
+    }
+
+    @Test
+    fun `empty sections are omitted`() {
+        val sections = listOf(task("nodate", "m", dueAt = null)).groupIntoSections()
+        assertEquals(listOf(TaskSection.NO_DATE), sections.map { it.first })
+    }
 }
 
 private fun task(
