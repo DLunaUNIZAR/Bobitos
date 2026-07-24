@@ -11,7 +11,6 @@
     <ID>CyclomaticComplexMethod:SpaceSettingsScreen.kt$@Composable fun SpaceSettingsScreen( space: SpaceSummary, currentUserId: String, state: SpaceManagementUiState, syncStatus: SyncStatus, canWrite: Boolean, onObserveSpaceSettings: (String, Boolean) -&gt; Unit, onStopObservingSpaceSettings: () -&gt; Unit, onRenameSpace: (String, String) -&gt; Unit, onLeaveSpace: (String) -&gt; Unit, onRemoveMember: (String, String) -&gt; Unit, onTransferOwnership: (String, String) -&gt; Unit, onDeleteSpace: (String) -&gt; Unit, onCreateInvitation: (String) -&gt; Unit, onRevokeInvitation: (String) -&gt; Unit, onShareInvitation: (SpaceInvitation) -&gt; Unit, onClearFeedback: () -&gt; Unit, onBack: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
     <ID>CyclomaticComplexMethod:SpacesViewModel.kt$private fun Throwable.toUiMessage(): SpaceUiMessage</ID>
     <ID>CyclomaticComplexMethod:TasksScreen.kt$@Composable fun TasksScreen( spaceId: String, canWrite: Boolean, modifier: Modifier = Modifier, viewModel: TasksViewModel = hiltViewModel(), )</ID>
-    <ID>CyclomaticComplexMethod:TasksScreen.kt$@Composable private fun TaskFilterBar(filters: TaskFilters, members: List&lt;SpaceMember&gt;, onChange: (TaskFilters) -&gt; Unit)</ID>
     <ID>CyclomaticComplexMethod:TasksScreen.kt$private fun TaskUiMessage.stringRes()</ID>
     <ID>ForEachOnRange:CalendarScreen.kt$(0L until 42L).map(first::plusDays).chunked(7)</ID>
     <ID>ForEachOnRange:CalendarScreen.kt$0L..6L</ID>
@@ -38,7 +37,6 @@
     <ID>LongMethod:SpacesScreen.kt$@Composable private fun SpacesContent( spaces: List&lt;SpaceSummary&gt;, managementState: SpaceManagementUiState, syncStatus: SyncStatus, canWrite: Boolean, onSpaceSelected: (SpaceSummary) -&gt; Unit, onCreateSpace: (String) -&gt; Unit, onAcceptInvitation: (String) -&gt; Unit, pendingInvitationCode: String?, onInvitationCodeConsumed: () -&gt; Unit, onProfileClick: () -&gt; Unit, onClearFeedback: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
     <ID>LongMethod:TasksScreen.kt$@Composable fun TasksScreen( spaceId: String, canWrite: Boolean, modifier: Modifier = Modifier, viewModel: TasksViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:TasksScreen.kt$@Composable private fun TaskEditor( task: TaskItem?, members: List&lt;SpaceMember&gt;, saving: Boolean, onDismiss: () -&gt; Unit, onInvalidDate: () -&gt; Unit, onSave: (String, String?, String?, Instant?, TaskPriority, TaskType?, TaskRecurrence?, Instant?) -&gt; Unit, )</ID>
-    <ID>LongMethod:TasksScreen.kt$@Composable private fun TaskFilterBar(filters: TaskFilters, members: List&lt;SpaceMember&gt;, onChange: (TaskFilters) -&gt; Unit)</ID>
     <ID>NestedBlockDepth:FirestoreSyncRepository.kt$FirestoreSyncRepository$override suspend fun refresh(spaceId: String?): Boolean</ID>
     <ID>ReturnCount:FirestoreCalendarRepository.kt$private fun DocumentSnapshot.toCalendarEvent(): CalendarEvent?</ID>
     <ID>ReturnCount:FirestoreIngredientBrandRepository.kt$private fun DocumentSnapshot.toIngredientBrand(ingredientId: String): IngredientBrand?</ID>

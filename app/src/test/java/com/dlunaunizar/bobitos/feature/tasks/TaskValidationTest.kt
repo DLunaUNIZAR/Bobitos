@@ -44,21 +44,20 @@ class TaskValidationTest {
     }
 
     @Test
-    fun `filters combine status assignee priority and due date`() {
-        val now = Instant.parse("2026-07-16T12:00:00Z")
+    fun `filters combine status priority and assignee`() {
         val tasks = listOf(
-            task("overdue", "member", TaskPriority.HIGH, TaskStatus.TODO, "2026-07-15T00:00:00Z"),
-            task("future", "member", TaskPriority.HIGH, TaskStatus.TODO, "2026-07-20T00:00:00Z"),
-            task("done", "member", TaskPriority.HIGH, TaskStatus.DONE, "2026-07-15T00:00:00Z"),
+            task("hi-mine", "member", TaskPriority.HIGH, TaskStatus.TODO),
+            task("low-mine", "member", TaskPriority.LOW, TaskStatus.TODO),
+            task("hi-other", "other", TaskPriority.HIGH, TaskStatus.TODO),
+            task("hi-done", "member", TaskPriority.HIGH, TaskStatus.DONE),
         )
         val filtered = TaskFilters(
             status = TaskStatus.TODO,
             priority = TaskPriority.HIGH,
             assigneeId = "member",
-            date = TaskDateFilter.OVERDUE,
-        ).apply(tasks, now, ZoneId.of("UTC"))
+        ).apply(tasks)
 
-        assertEquals(listOf("overdue"), filtered.map(TaskItem::id))
+        assertEquals(listOf("hi-mine"), filtered.map(TaskItem::id))
     }
 
     @Test
