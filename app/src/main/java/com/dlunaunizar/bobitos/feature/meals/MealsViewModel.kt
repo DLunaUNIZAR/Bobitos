@@ -102,11 +102,18 @@ class MealsViewModel @Inject constructor(
 
     fun selectDay(date: LocalDate) = goToDate(date)
 
-    fun addMeal(date: LocalDate, slot: MealSlot, name: String, participantIds: List<String>, recipeId: String?) {
+    fun addMeal(
+        date: LocalDate,
+        slot: MealSlot,
+        name: String,
+        participantIds: List<String>,
+        recipeId: String?,
+        cookId: String?,
+    ) {
         val spaceId = observedSpaceId ?: return
         if (!validate(name)) return
         runAction(MealUiMessage.MealAdded) {
-            repository.addMeal(spaceId, date, slot, name.trim(), participantIds, recipeId)
+            repository.addMeal(spaceId, date, slot, name.trim(), participantIds, recipeId, cookId)
         }
     }
 
@@ -117,11 +124,12 @@ class MealsViewModel @Inject constructor(
         name: String,
         participantIds: List<String>,
         recipeId: String?,
+        cookId: String?,
     ) {
         val spaceId = observedSpaceId ?: return
         if (!validate(name)) return
         runAction(MealUiMessage.MealUpdated) {
-            repository.updateMeal(spaceId, mealId, date, slot, name.trim(), participantIds, recipeId)
+            repository.updateMeal(spaceId, mealId, date, slot, name.trim(), participantIds, recipeId, cookId)
         }
     }
 
@@ -139,7 +147,9 @@ class MealsViewModel @Inject constructor(
         val meals = currentMeals().filter { it.date == mutableUiState.value.focusedDate }
         if (meals.isEmpty()) return
         runAction(MealUiMessage.MealsDuplicated) {
-            meals.forEach { repository.addMeal(spaceId, targetDate, it.slot, it.name, it.participantIds, it.recipeId) }
+            meals.forEach {
+                repository.addMeal(spaceId, targetDate, it.slot, it.name, it.participantIds, it.recipeId, it.cookId)
+            }
         }
     }
 
@@ -150,7 +160,15 @@ class MealsViewModel @Inject constructor(
         if (meals.isEmpty()) return
         runAction(MealUiMessage.MealsDuplicated) {
             meals.forEach {
-                repository.addMeal(spaceId, it.date.plusWeeks(1), it.slot, it.name, it.participantIds, it.recipeId)
+                repository.addMeal(
+                    spaceId,
+                    it.date.plusWeeks(1),
+                    it.slot,
+                    it.name,
+                    it.participantIds,
+                    it.recipeId,
+                    it.cookId,
+                )
             }
         }
     }
