@@ -9,11 +9,14 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.core.model.TaskStatus
 import com.dlunaunizar.bobitos.data.repository.CalendarRepository
+import com.dlunaunizar.bobitos.data.repository.MealRepository
+import com.dlunaunizar.bobitos.data.repository.ReminderPreferenceRepository
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import java.time.Duration
 import java.time.Instant
+import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,16 +32,22 @@ class ReminderScheduler @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val taskRepository: TaskRepository,
     private val calendarRepository: CalendarRepository,
+    private val mealRepository: MealRepository,
+    private val preferences: ReminderPreferenceRepository,
 ) {
     suspend fun reschedule(userId: String, spaces: List<SpaceSummary>) {
         val workManager = WorkManager.getInstance(context)
         workManager.cancelAllWorkByTag(ReminderWorker.TAG)
         val now = Instant.now()
         val end = now.plus(HORIZON)
+        val lead = preferences.leadTime.first()
         val reminders = spaces.flatMap { space -> remindersForSpace(space, userId, now, end) }
         reminders.forEach { reminder ->
+            // Se adelanta el disparo según la antelación elegida, sin bajar de «ahora».
+            val fireAt = reminderFireAt(reminder.at, lead)
+            val delay = Duration.between(now, fireAt).coerceAtLeast(Duration.ZERO)
             val request = OneTimeWorkRequestBuilder<ReminderWorker>()
-                .setInitialDelay(Duration.between(now, reminder.at))
+                .setInitialDelay(delay)
                 .addTag(ReminderWorker.TAG)
                 .setInputData(
                     Data.Builder()
@@ -82,7 +91,35 @@ class ReminderScheduler @Inject constructor(
                     text = space.name,
                 )
             }
-        return tasks + events
+        return tasks + events + mealsForSpace(space, userId, now, end)
+    }
+
+    // Comidas del cocinero o de los participantes dentro del horizonte. Las comidas no tienen hora
+    // exacta: se usa una hora fija por franja (ver mealReminderInstant).
+    private suspend fun mealsForSpace(
+        space: SpaceSummary,
+        userId: String,
+        now: Instant,
+        end: Instant,
+    ): List<Reminder> {
+        val zone = ZoneId.systemDefault()
+        val fromDate = now.atZone(zone).toLocalDate()
+        val toDateExclusive = end.atZone(zone).toLocalDate().plusDays(1)
+        return mealRepository.meals(space.id, fromDate, toDateExclusive).first()
+            .mapNotNull { meal ->
+                val at = mealReminderInstant(meal.date, meal.slot, zone)
+                val isCook = meal.cookId == userId
+                if (at !in now..end || (!isCook && userId !in meal.participantIds)) return@mapNotNull null
+                Reminder(
+                    key = "meal-${meal.id}",
+                    at = at,
+                    title = context.getString(
+                        if (isCook) R.string.reminder_meal_cook else R.string.reminder_meal,
+                        meal.name,
+                    ),
+                    text = space.name,
+                )
+            }
     }
 
     private companion object {
