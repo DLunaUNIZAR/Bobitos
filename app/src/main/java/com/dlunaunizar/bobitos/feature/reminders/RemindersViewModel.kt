@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.feature.reminders
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
+import com.dlunaunizar.bobitos.data.reminders.ReminderLeadTime
 import com.dlunaunizar.bobitos.data.reminders.ReminderScheduler
 import com.dlunaunizar.bobitos.data.repository.ReminderPreferenceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,11 +21,22 @@ class RemindersViewModel @Inject constructor(
     val enabled: StateFlow<Boolean> =
         preferences.enabled.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), false)
 
+    val leadTime: StateFlow<ReminderLeadTime> = preferences.leadTime.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
+        ReminderLeadTime.AT_TIME,
+    )
+
     fun setEnabled(value: Boolean) {
         viewModelScope.launch {
             preferences.setEnabled(value)
             if (!value) scheduler.cancelAll()
         }
+    }
+
+    // Al cambiar la antelación se reprograma vía el LaunchedEffect de BobitosApp (que observa leadTime).
+    fun setLeadTime(value: ReminderLeadTime) {
+        viewModelScope.launch { preferences.setLeadTime(value) }
     }
 
     /** Reprograma (o cancela) al entrar en la app, según la preferencia. */

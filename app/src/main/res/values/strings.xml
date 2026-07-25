@@ -114,7 +114,15 @@
     <string name="reminder_channel_name">Recordatorios</string>
     <string name="reminder_task">Tarea: %1$s</string>
     <string name="reminder_event">Evento: %1$s</string>
+    <string name="reminder_meal">Comida: %1$s</string>
+    <string name="reminder_meal_cook">Te toca cocinar: %1$s</string>
+    <string name="reminder_lead_at_time">En el momento</string>
+    <string name="reminder_lead_10">10 min antes</string>
+    <string name="reminder_lead_30">30 min antes</string>
+    <string name="reminder_lead_60">1 hora antes</string>
+    <string name="reminder_lead_day_before">El día antes</string>
     <string name="profile_reminders_label">Recordatorios</string>
+    <string name="profile_reminders_lead_label">Avisar</string>
     <string name="search_label">Buscar</string>
     <string name="undo">Deshacer</string>
     <string name="shopping_undo_deleted">Producto eliminado</string>

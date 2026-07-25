@@ -104,7 +104,8 @@ fun BobitosApp(
                         is UiState.Content -> {
                             val remindersViewModel: RemindersViewModel = hiltViewModel()
                             val remindersEnabled by remindersViewModel.enabled.collectAsStateWithLifecycle()
-                            LaunchedEffect(user.id, uiState.spaces, remindersEnabled) {
+                            val remindersLeadTime by remindersViewModel.leadTime.collectAsStateWithLifecycle()
+                            LaunchedEffect(user.id, uiState.spaces, remindersEnabled, remindersLeadTime) {
                                 remindersViewModel.sync(user.id, uiState.spaces.value, remindersEnabled)
                             }
                             BobitosNavHost(
