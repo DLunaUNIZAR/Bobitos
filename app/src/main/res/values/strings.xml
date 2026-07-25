@@ -199,6 +199,7 @@
     </plurals>
     <string name="tasks_add">Nueva tarea</string>
     <string name="tasks_quick_add">Añadir tarea</string>
+    <string name="tasks_quick_add_hint">Apunta una tarea…</string>
     <string name="tasks_add_title">Crear tarea</string>
     <string name="tasks_edit">Editar</string>
     <string name="tasks_edit_title">Editar tarea</string>
@@ -206,6 +207,7 @@
     <string name="tasks_delete_title">Eliminar tarea</string>
     <string name="tasks_delete_body">Se eliminará “%1$s” para todos los miembros.</string>
     <string name="tasks_empty">Todavía no hay tareas.</string>
+    <string name="tasks_empty_description">Crea la primera tarea del hogar y repártela entre los miembros.</string>
     <string name="tasks_no_results">Ninguna tarea coincide con los filtros.</string>
     <string name="tasks_title_label">Título</string>
     <string name="tasks_description_label">Descripción (opcional)</string>

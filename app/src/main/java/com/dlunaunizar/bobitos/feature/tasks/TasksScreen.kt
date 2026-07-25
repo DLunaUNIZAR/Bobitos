@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,12 +42,16 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -152,96 +157,120 @@ fun TasksScreen(
     var query by rememberSaveable { mutableStateOf("") }
     var quickTitle by rememberSaveable { mutableStateOf("") }
 
-    Column(modifier.fillMaxSize().padding(Spacing.lg)) {
-        Column {
-            Text(stringResource(R.string.tasks_list_title), style = MaterialTheme.typography.headlineSmall)
-            Text(
-                pluralStringResource(
-                    R.plurals.tasks_visible_count,
-                    visibleTasks.size,
-                    visibleTasks.size,
-                    allTasks.size,
-                ),
+    Box(modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize().padding(Spacing.lg)) {
+            Column {
+                Text(stringResource(R.string.tasks_list_title), style = MaterialTheme.typography.headlineSmall)
+                Text(
+                    pluralStringResource(
+                        R.plurals.tasks_visible_count,
+                        visibleTasks.size,
+                        visibleTasks.size,
+                        allTasks.size,
+                    ),
+                )
+            }
+            TaskFeedback(state, viewModel::clearFeedback)
+            TaskQuickAdd(
+                title = quickTitle,
+                enabled = enabled,
+                onTitleChange = { quickTitle = it },
+                onAdd = {
+                    viewModel.createTask(
+                        spaceId, quickTitle.trim(), null, null, null, TaskPriority.MEDIUM, null, null, null,
+                    )
+                    quickTitle = ""
+                },
             )
-        }
-        TaskFeedback(state, viewModel::clearFeedback)
-        TaskQuickAdd(
-            title = quickTitle,
-            enabled = enabled,
-            onTitleChange = { quickTitle = it },
-            onAdd = {
-                viewModel.createTask(
-                    spaceId, quickTitle.trim(), null, null, null, TaskPriority.MEDIUM, null, null, null,
-                )
-                quickTitle = ""
-            },
-            onMoreOptions = {
-                editorTask = null
-                editorVisible = true
-            },
-        )
-        TaskFilterBar(state.filters, members, viewModel::setFilters)
-        SearchField(
-            query = query,
-            onQueryChange = { query = it },
-            visible = allTasks.isNotEmpty(),
-            modifier = Modifier.padding(vertical = Spacing.xs),
-        )
-        val queried = visibleTasks.filter { it.matchesQuery(query) }
-        val sections = queried.groupIntoSections()
-        when (val tasks = state.tasks) {
-            UiState.Loading -> LoadingState(Modifier.weight(1f))
-            is UiState.Error -> ErrorState(Modifier.weight(1f), message = tasks.message)
-            is UiState.Content -> if (queried.isEmpty()) {
-                EmptyState(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Rounded.Checklist,
-                    title = stringResource(if (allTasks.isEmpty()) R.string.tasks_empty else R.string.tasks_no_results),
-                )
-            } else {
-                val taskRow: @Composable LazyItemScope.(TaskItem) -> Unit = { task ->
-                    SwipeActionsBox(
-                        startAction = SwipeAction(Icons.Rounded.Check, checkColor) {
-                            viewModel.setCompleted(spaceId, task.id, task.status != TaskStatus.DONE)
-                        }.takeIf { enabled },
-                        endAction = SwipeAction(Icons.Rounded.Delete, deleteColor) {
-                            deleteTaskWithUndo(task)
-                        }.takeIf { enabled },
-                        modifier = Modifier.animateItem(),
-                    ) {
-                        TaskCard(
-                            task,
-                            enabled,
-                            onSetCompleted = { viewModel.setCompleted(spaceId, task.id, it) },
-                            onEdit = {
-                                editorTask = task
+            TaskFilterBar(state.filters, members, viewModel::setFilters)
+            SearchField(
+                query = query,
+                onQueryChange = { query = it },
+                visible = allTasks.isNotEmpty(),
+                modifier = Modifier.padding(vertical = Spacing.xs),
+            )
+            val queried = visibleTasks.filter { it.matchesQuery(query) }
+            val sections = queried.groupIntoSections()
+            when (val tasks = state.tasks) {
+                UiState.Loading -> LoadingState(Modifier.weight(1f))
+                is UiState.Error -> ErrorState(Modifier.weight(1f), message = tasks.message)
+                is UiState.Content -> if (queried.isEmpty()) {
+                    val firstRun = allTasks.isEmpty()
+                    EmptyState(
+                        modifier = Modifier.weight(1f),
+                        icon = Icons.Rounded.Checklist,
+                        title = stringResource(if (firstRun) R.string.tasks_empty else R.string.tasks_no_results),
+                        description = if (firstRun) stringResource(R.string.tasks_empty_description) else null,
+                        actionLabel = if (firstRun && canWrite) stringResource(R.string.tasks_add) else null,
+                        onAction = if (firstRun && canWrite) {
+                            {
+                                editorTask = null
                                 editorVisible = true
-                            },
-                            onDelete = { deleteTask = task },
-                        )
-                    }
-                }
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    sections.forEach { (section, sectionTasks) ->
-                        val collapsible = section == TaskSection.COMPLETED
-                        item(key = "header-$section") {
-                            TaskSectionHeader(
-                                title = stringResource(section.titleRes),
-                                count = sectionTasks.size,
-                                collapsible = collapsible,
-                                expanded = completedExpanded,
-                                onToggle = { completedExpanded = !completedExpanded },
+                            }
+                        } else {
+                            null
+                        },
+                    )
+                } else {
+                    val taskRow: @Composable LazyItemScope.(TaskItem) -> Unit = { task ->
+                        SwipeActionsBox(
+                            startAction = SwipeAction(Icons.Rounded.Check, checkColor) {
+                                viewModel.setCompleted(spaceId, task.id, task.status != TaskStatus.DONE)
+                            }.takeIf { enabled },
+                            endAction = SwipeAction(Icons.Rounded.Delete, deleteColor) {
+                                deleteTaskWithUndo(task)
+                            }.takeIf { enabled },
+                            modifier = Modifier.animateItem(),
+                        ) {
+                            TaskCard(
+                                task,
+                                enabled,
+                                onSetCompleted = { viewModel.setCompleted(spaceId, task.id, it) },
+                                onEdit = {
+                                    editorTask = task
+                                    editorVisible = true
+                                },
+                                onDelete = { deleteTask = task },
                             )
                         }
-                        if (!collapsible || completedExpanded) {
-                            items(sectionTasks, key = TaskItem::id) { task -> taskRow(task) }
+                    }
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        // Deja hueco para que el FAB no tape el último elemento.
+                        contentPadding = PaddingValues(bottom = 88.dp),
+                    ) {
+                        sections.forEach { (section, sectionTasks) ->
+                            val collapsible = section == TaskSection.COMPLETED
+                            item(key = "header-$section") {
+                                TaskSectionHeader(
+                                    title = stringResource(section.titleRes),
+                                    count = sectionTasks.size,
+                                    collapsible = collapsible,
+                                    expanded = completedExpanded,
+                                    onToggle = { completedExpanded = !completedExpanded },
+                                )
+                            }
+                            if (!collapsible || completedExpanded) {
+                                items(sectionTasks, key = TaskItem::id) { task -> taskRow(task) }
+                            }
                         }
                     }
                 }
             }
+        }
+        if (canWrite) {
+            ExtendedFloatingActionButton(
+                onClick = {
+                    editorTask = null
+                    editorVisible = true
+                },
+                icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                text = { Text(stringResource(R.string.tasks_add)) },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(Spacing.lg),
+            )
         }
     }
 
@@ -250,8 +279,6 @@ fun TasksScreen(
             task = editorTask,
             members = members,
             saving = state.isSaving,
-            // Al abrir «Más opciones» desde el quick-add, arranca con el título ya tecleado.
-            initialTitle = if (editorTask == null) quickTitle else "",
             onDismiss = { editorVisible = false },
             onInvalidDate = viewModel::showInvalidDate,
             onSave = { title, description, assignee, due, priority, type, recurrence, start ->
@@ -290,35 +317,27 @@ fun TasksScreen(
 }
 
 // Alta rápida: crear una tarea solo con el título (prioridad media, sin tipo/responsable/fecha).
-// «Más opciones» abre el editor completo con el título ya tecleado.
+// Alta rápida (vía fugaz); para el formulario completo está el FAB «Nueva tarea».
 @Composable
-private fun TaskQuickAdd(
-    title: String,
-    enabled: Boolean,
-    onTitleChange: (String) -> Unit,
-    onAdd: () -> Unit,
-    onMoreOptions: () -> Unit,
-) {
+private fun TaskQuickAdd(title: String, enabled: Boolean, onTitleChange: (String) -> Unit, onAdd: () -> Unit) {
     val canAdd = enabled && title.isNotBlank()
-    Column(modifier = Modifier.padding(top = Spacing.sm)) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            OutlinedTextField(
-                value = title,
-                onValueChange = onTitleChange,
-                modifier = Modifier.weight(1f),
-                label = { Text(stringResource(R.string.tasks_add)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { if (canAdd) onAdd() }),
-            )
-            IconButton(onClick = onAdd, enabled = canAdd) {
-                Icon(Icons.Rounded.Add, contentDescription = stringResource(R.string.tasks_quick_add))
-            }
+    Row(
+        modifier = Modifier.padding(top = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        OutlinedTextField(
+            value = title,
+            onValueChange = onTitleChange,
+            modifier = Modifier.weight(1f),
+            label = { Text(stringResource(R.string.tasks_quick_add_hint)) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { if (canAdd) onAdd() }),
+        )
+        IconButton(onClick = onAdd, enabled = canAdd) {
+            Icon(Icons.Rounded.Add, contentDescription = stringResource(R.string.tasks_quick_add))
         }
-        TextButton(onClick = onMoreOptions) { Text(stringResource(R.string.more_options)) }
     }
 }
 
@@ -580,12 +599,11 @@ private fun TaskEditor(
     task: TaskItem?,
     members: List<SpaceMember>,
     saving: Boolean,
-    initialTitle: String,
     onDismiss: () -> Unit,
     onInvalidDate: () -> Unit,
     onSave: (String, String?, String?, Instant?, TaskPriority, TaskType?, TaskRecurrence?, Instant?) -> Unit,
 ) {
-    var title by remember(task?.id) { mutableStateOf(task?.title ?: initialTitle) }
+    var title by remember(task?.id) { mutableStateOf(task?.title.orEmpty()) }
     var description by remember(task?.id) { mutableStateOf(task?.description.orEmpty()) }
     // Por defecto «sin responsable» en tareas nuevas (responsable opcional); al editar se conserva el actual.
     var assigneeId by remember(task?.id) { mutableStateOf(task?.assigneeId) }
@@ -634,10 +652,22 @@ private fun TaskEditor(
                     }
                 }
                 TaskDateFields(startDate, { startDate = it }, dueDate, { dueDate = it })
-                Row {
-                    TaskPriority.entries.forEach { value ->
-                        TextButton(onClick = { priority = value }) {
-                            Text(if (priority == value) "✓ ${value.label()}" else value.label())
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    TaskPriority.entries.forEachIndexed { index, value ->
+                        SegmentedButton(
+                            selected = priority == value,
+                            onClick = { priority = value },
+                            shape = SegmentedButtonDefaults.itemShape(index, TaskPriority.entries.size),
+                            icon = {
+                                Box(
+                                    Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(value.accent()),
+                                )
+                            },
+                        ) {
+                            Text(value.label())
                         }
                     }
                 }
