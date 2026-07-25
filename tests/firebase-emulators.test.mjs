@@ -1480,6 +1480,107 @@ test("una comida admite el flag cooked booleano y permite alternarlo, pero recha
   );
 });
 
+test("todos los miembros crean, editan y eliminan notas del espacio", async () => {
+  await seedSpace("notes-crud", "notes-owner", ["notes-member"]);
+  const member = verifiedFirestore("notes-member");
+  const outsider = verifiedFirestore("notes-outsider");
+  const reference = doc(member, "spaces", "notes-crud", "notes", "welcome");
+
+  await assertSucceeds(setDoc(reference, noteData("notes-member")));
+  await assertSucceeds(
+    updateDoc(reference, {
+      title: "Normas de la casa",
+      body: "Sacar la basura los martes",
+      pinned: true,
+      updatedBy: "notes-member",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertFails(getDoc(doc(outsider, "spaces", "notes-crud", "notes", "welcome")));
+  await assertFails(
+    setDoc(doc(outsider, "spaces", "notes-crud", "notes", "sneaky"), noteData("notes-outsider")),
+  );
+  await assertSucceeds(writeBatch(member).delete(reference).commit());
+});
+
+test("las notas validan la forma y rechazan título vacío, cuerpo enorme o campos ajenos", async () => {
+  await seedSpace("notes-schema", "notes-schema-owner");
+  const owner = verifiedFirestore("notes-schema-owner");
+
+  await assertSucceeds(
+    setDoc(
+      doc(owner, "spaces", "notes-schema", "notes", "ok"),
+      noteData("notes-schema-owner", { body: "texto válido", pinned: true }),
+    ),
+  );
+  await assertFails(
+    setDoc(doc(owner, "spaces", "notes-schema", "notes", "empty-title"), noteData("notes-schema-owner", { title: "" })),
+  );
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "notes-schema", "notes", "long-body"),
+      noteData("notes-schema-owner", { body: "a".repeat(5001) }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "notes-schema", "notes", "bad-pinned"),
+      noteData("notes-schema-owner", { pinned: "sí" }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "notes-schema", "notes", "extra-field"),
+      noteData("notes-schema-owner", { assigneeId: "notes-schema-owner" }),
+    ),
+  );
+});
+
+test("al editar una nota no se pueden alterar los campos de creación", async () => {
+  await seedSpace("notes-immutable", "notes-imm-owner", ["notes-imm-member"]);
+  const owner = verifiedFirestore("notes-imm-owner");
+  const member = verifiedFirestore("notes-imm-member");
+  const reference = doc(owner, "spaces", "notes-immutable", "notes", "n1");
+  await assertSucceeds(setDoc(reference, noteData("notes-imm-owner")));
+
+  await assertFails(
+    updateDoc(doc(member, "spaces", "notes-immutable", "notes", "n1"), {
+      createdBy: "notes-imm-member",
+      updatedBy: "notes-imm-member",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+});
+
+test("un usuario puede anonimizar su nombre en sus notas pero no en las ajenas", async () => {
+  await seedSpace("notes-anon", "notes-anon-owner", ["notes-anon-member"]);
+  const owner = verifiedFirestore("notes-anon-owner");
+  const member = verifiedFirestore("notes-anon-member");
+  const memberNote = doc(member, "spaces", "notes-anon", "notes", "member-note");
+  await assertSucceeds(setDoc(memberNote, noteData("notes-anon-member")));
+
+  await assertSucceeds(updateDoc(memberNote, { createdByName: "Usuario eliminado" }));
+  await assertFails(
+    updateDoc(doc(owner, "spaces", "notes-anon", "notes", "member-note"), {
+      createdByName: "Nombre manipulado",
+    }),
+  );
+});
+
+function noteData(userId, overrides = {}) {
+  return {
+    title: "Nota",
+    body: null,
+    pinned: false,
+    createdBy: userId,
+    createdByName: userId,
+    createdAt: serverTimestamp(),
+    updatedBy: userId,
+    updatedAt: serverTimestamp(),
+    ...overrides,
+  };
+}
+
 function mealData(userId, overrides = {}) {
   return {
     date: "2026-07-20",

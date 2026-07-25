@@ -5,6 +5,8 @@
     <ID>CyclomaticComplexMethod:BobitosNavHost.kt$@Composable fun BobitosNavHost( navController: NavHostController, uiState: AppUiState, authUser: AuthUser, authActionState: AuthActionUiState, spaceManagementState: SpaceManagementUiState, onSpaceSelected: (String) -&gt; Unit, onRealtimeScopeChanged: (RealtimeScope) -&gt; Unit, onCreateSpace: (String) -&gt; Unit, onObserveSpaceSettings: (String, Boolean) -&gt; Unit, onStopObservingSpaceSettings: () -&gt; Unit, onRenameSpace: (String, String) -&gt; Unit, onLeaveSpace: (String) -&gt; Unit, onRemoveMember: (String, String) -&gt; Unit, onTransferOwnership: (String, String) -&gt; Unit, onDeleteSpace: (String) -&gt; Unit, onCreateInvitation: (String) -&gt; Unit, onRevokeInvitation: (String) -&gt; Unit, onAcceptInvitation: (String) -&gt; Unit, onShareInvitation: (SpaceInvitation) -&gt; Unit, onConsumeAcceptedSpace: () -&gt; Unit, pendingInvitationCode: String?, onInvitationCodeConsumed: () -&gt; Unit, pendingRecipeImportUrl: String?, onRecipeImportUrlConsumed: () -&gt; Unit, onClearSpaceFeedback: () -&gt; Unit, onUpdateDisplayName: (String) -&gt; Unit, onSignOut: () -&gt; Unit, onDeleteAccount: (String) -&gt; Unit, onClearAuthFeedback: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
     <ID>CyclomaticComplexMethod:CalendarScreen.kt$@Composable internal fun EventEditor( event: CalendarEvent?, day: LocalDate, initialStart: LocalTime?, members: List&lt;SpaceMember&gt;, saving: Boolean, canWrite: Boolean, dismiss: () -&gt; Unit, save: (String?, EventInput) -&gt; Unit, )</ID>
     <ID>CyclomaticComplexMethod:FirestoreCalendarRepository.kt$private fun EventInput.validated(): EventInput</ID>
+    <ID>CyclomaticComplexMethod:NotesScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun NotesScreen( onBack: () -&gt; Unit, canWrite: Boolean, modifier: Modifier = Modifier, spaceId: String? = null, viewModel: NotesViewModel = hiltViewModel(), )</ID>
+    <ID>CyclomaticComplexMethod:NotesScreen.kt$private fun NoteUiMessage.stringRes()</ID>
     <ID>CyclomaticComplexMethod:RecipesScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun RecipesScreen( onBack: () -&gt; Unit, canWrite: Boolean, modifier: Modifier = Modifier, spaceId: String? = null, importUrl: String? = null, onImportUrlConsumed: () -&gt; Unit = {}, viewModel: RecipesViewModel = hiltViewModel(), )</ID>
     <ID>CyclomaticComplexMethod:ShoppingScreen.kt$@Composable fun ShoppingScreen( spaceId: String, canWrite: Boolean, modifier: Modifier = Modifier, viewModel: ShoppingViewModel = hiltViewModel(), )</ID>
     <ID>CyclomaticComplexMethod:ShoppingScreen.kt$@Composable private fun ShoppingItemEditor( item: ShoppingItem?, saving: Boolean, resolveDuplicate: (String) -&gt; ShoppingItem?, suggestions: (String) -&gt; List&lt;String&gt;, prefFor: (String) -&gt; IngredientPref?, onDismiss: () -&gt; Unit, onSave: (String, String?, String?, Supermarket?, String?) -&gt; Unit, )</ID>
@@ -25,6 +27,7 @@
     <ID>LongMethod:MealsScreen.kt$@Composable fun MealsScreen( spaceId: String, canWrite: Boolean, onOpenRecipes: () -&gt; Unit, onOpenIngredients: () -&gt; Unit, modifier: Modifier = Modifier, viewModel: MealsViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:MealsScreen.kt$@Composable private fun MealCard( meal: Meal, ingredients: List&lt;Ingredient&gt;?, enabled: Boolean, canWrite: Boolean, onEdit: () -&gt; Unit, onDelete: () -&gt; Unit, onAddToShopping: () -&gt; Unit, onToggleCooked: () -&gt; Unit, )</ID>
     <ID>LongMethod:MealsScreen.kt$@Composable private fun MealEditor( request: MealEditorRequest, members: List&lt;SpaceMember&gt;, recipes: List&lt;Recipe&gt;, saving: Boolean, canWrite: Boolean, onDismiss: () -&gt; Unit, onSave: (String, List&lt;String&gt;, String?) -&gt; Unit, )</ID>
+    <ID>LongMethod:NotesScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun NotesScreen( onBack: () -&gt; Unit, canWrite: Boolean, modifier: Modifier = Modifier, spaceId: String? = null, viewModel: NotesViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:PersonalCalendarScreen.kt$@Composable fun PersonalCalendarScreen( userId: String, spaces: List&lt;SpaceSummary&gt;, syncStatus: SyncStatus, canWrite: Boolean, onEventSelected: (spaceId: String, eventId: String, date: LocalDate) -&gt; Unit, modifier: Modifier = Modifier, viewModel: PersonalCalendarViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:ProfileScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ProfileScreen( user: AuthUser, actionState: AuthActionUiState, syncStatus: SyncStatus, canWrite: Boolean, onUpdateDisplayName: (String) -&gt; Unit, onSignOut: () -&gt; Unit, onDeleteAccount: (String) -&gt; Unit, onBack: () -&gt; Unit, onClearFeedback: () -&gt; Unit, modifier: Modifier = Modifier, themeViewModel: ThemeViewModel = hiltViewModel(), remindersViewModel: RemindersViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:RecipesScreen.kt$@Composable private fun RecipeEditor( recipe: Recipe?, draft: ImportedRecipe?, saving: Boolean, canWrite: Boolean, isAdmin: Boolean, onDismiss: () -&gt; Unit, onSave: (RecipeVisibility, String, String?, String?, List&lt;Ingredient&gt;) -&gt; Unit, )</ID>
@@ -42,6 +45,7 @@
     <ID>ReturnCount:FirestoreIngredientBrandRepository.kt$private fun DocumentSnapshot.toIngredientBrand(ingredientId: String): IngredientBrand?</ID>
     <ID>ReturnCount:FirestoreIngredientRepository.kt$private fun DocumentSnapshot.toCatalogIngredient(): CatalogIngredient?</ID>
     <ID>ReturnCount:FirestoreMealRepository.kt$private fun DocumentSnapshot.toMeal(): Meal?</ID>
+    <ID>ReturnCount:FirestoreNoteRepository.kt$private fun DocumentSnapshot.toNote(): Note?</ID>
     <ID>ReturnCount:FirestoreRecipeRepository.kt$private fun DocumentSnapshot.toRecipe(): Recipe?</ID>
     <ID>ReturnCount:FirestoreShoppingRepository.kt$private fun DocumentSnapshot.toShoppingItem(): ShoppingItem?</ID>
     <ID>ReturnCount:FirestoreTaskRepository.kt$private fun DocumentSnapshot.toTaskItem(): TaskItem?</ID>
@@ -54,6 +58,8 @@
     <ID>ThrowsCount:FirestoreIngredientRepository.kt$FirestoreIngredientRepository$private suspend inline fun &lt;T&gt; runOperation(crossinline operation: suspend () -&gt; T): T</ID>
     <ID>ThrowsCount:FirestoreMealRepository.kt$FirestoreMealRepository$private fun validate(name: String, participantIds: List&lt;String&gt;): String</ID>
     <ID>ThrowsCount:FirestoreMealRepository.kt$FirestoreMealRepository$private suspend inline fun &lt;T&gt; runMealOperation(crossinline operation: suspend () -&gt; T): T</ID>
+    <ID>ThrowsCount:FirestoreNoteRepository.kt$FirestoreNoteRepository$private fun validate(title: String, body: String?): NoteValues</ID>
+    <ID>ThrowsCount:FirestoreNoteRepository.kt$FirestoreNoteRepository$private suspend inline fun &lt;T&gt; runNoteOperation(crossinline operation: suspend () -&gt; T): T</ID>
     <ID>ThrowsCount:FirestoreRecipeRepository.kt$FirestoreRecipeRepository$private fun validate(title: String, description: String?, category: String?): RecipeValues</ID>
     <ID>ThrowsCount:FirestoreRecipeRepository.kt$FirestoreRecipeRepository$private suspend inline fun &lt;T&gt; runRecipeOperation(crossinline operation: suspend () -&gt; T): T</ID>
     <ID>ThrowsCount:FirestoreShoppingRepository.kt$FirestoreShoppingRepository$private fun validateItem( name: String, quantity: String?, notes: String?, supermarket: Supermarket?, brand: String?, ): ItemValues</ID>
@@ -73,6 +79,7 @@
     <ID>TooGenericExceptionCaught:FirestoreIngredientPrefsRepository.kt$FirestoreIngredientPrefsRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreIngredientRepository.kt$FirestoreIngredientRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreMealRepository.kt$FirestoreMealRepository$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:FirestoreNoteRepository.kt$FirestoreNoteRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreRecipeRepository.kt$FirestoreRecipeRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreShoppingRepository.kt$FirestoreShoppingRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreSpaceRepository.kt$FirestoreSpaceRepository$error: Throwable</ID>
@@ -81,6 +88,7 @@
     <ID>TooGenericExceptionCaught:IngredientDetailViewModel.kt$IngredientDetailViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:IngredientsViewModel.kt$IngredientsViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:MealsViewModel.kt$MealsViewModel$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:NotesViewModel.kt$NotesViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:RecipesViewModel.kt$RecipesViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:ShoppingViewModel.kt$ShoppingViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:SpacesViewModel.kt$SpacesViewModel$error: Throwable</ID>

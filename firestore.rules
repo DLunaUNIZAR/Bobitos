@@ -524,6 +524,53 @@ service cloud.firestore {
         && request.resource.data.participantNames.size() == resource.data.participantNames.size();
     }
 
+    function validNoteShape() {
+      return request.resource.data.keys().hasAll([
+        "title", "body", "pinned",
+        "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt"
+      ]) && request.resource.data.keys().hasOnly([
+        "title", "body", "pinned",
+        "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt"
+      ])
+      && request.resource.data.title is string
+      && request.resource.data.title.size() > 0
+      && request.resource.data.title.size() <= 120
+      && (request.resource.data.body == null
+        || (request.resource.data.body is string && request.resource.data.body.size() <= 5000))
+      && request.resource.data.pinned is bool
+      && request.resource.data.createdBy is string
+      && request.resource.data.createdByName is string
+      && request.resource.data.createdByName.size() > 0
+      && request.resource.data.createdByName.size() <= 60
+      && request.resource.data.createdAt is timestamp
+      && request.resource.data.updatedBy is string
+      && request.resource.data.updatedAt is timestamp;
+    }
+
+    function validNewNote(spaceId) {
+      return isActiveMember(spaceId) && validNoteShape()
+        && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
+    }
+
+    function validNoteUpdate(spaceId) {
+      return isActiveMember(spaceId) && validNoteShape()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "title", "body", "pinned", "updatedBy", "updatedAt"
+        ])
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdByName == resource.data.createdByName
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
+    }
+
+    function validNoteAnonymization(spaceId) {
+      return isActiveMember(spaceId)
+        && resource.data.createdBy == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["createdByName"])
+        && request.resource.data.createdByName == "Usuario eliminado";
+    }
+
     function deletingOwnedSpace(spaceId) {
       return isOwner(spaceId) && !existsAfter(spacePath(spaceId));
     }
@@ -568,6 +615,14 @@ service cloud.firestore {
         allow create: if validNewMeal(spaceId);
         allow update: if validMealUpdate(spaceId)
           || validMealAnonymization(spaceId);
+        allow delete: if isActiveMember(spaceId);
+      }
+
+      match /notes/{noteId} {
+        allow read: if isActiveMember(spaceId);
+        allow create: if validNewNote(spaceId);
+        allow update: if validNoteUpdate(spaceId)
+          || validNoteAnonymization(spaceId);
         allow delete: if isActiveMember(spaceId);
       }
 

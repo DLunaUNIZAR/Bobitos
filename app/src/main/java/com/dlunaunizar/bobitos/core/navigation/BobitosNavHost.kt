@@ -82,6 +82,7 @@ import com.dlunaunizar.bobitos.feature.common.SyncStatusBanner
 import com.dlunaunizar.bobitos.feature.ingredients.IngredientDetailScreen
 import com.dlunaunizar.bobitos.feature.ingredients.IngredientsScreen
 import com.dlunaunizar.bobitos.feature.meals.MealsScreen
+import com.dlunaunizar.bobitos.feature.notes.NotesScreen
 import com.dlunaunizar.bobitos.feature.recipes.RecipesScreen
 import com.dlunaunizar.bobitos.feature.shopping.ShoppingScreen
 import com.dlunaunizar.bobitos.feature.spaces.SpaceHomeViewModel
@@ -130,6 +131,7 @@ fun BobitosNavHost(
     val protectedRoutes = BobitosDestination.workspaceDestinations.map { it.route } +
         BobitosDestination.SpaceSettings.route +
         BobitosDestination.SpaceHome.route +
+        BobitosDestination.Notes.route +
         CALENDAR_EVENT_ROUTE
 
     LaunchedEffect(currentRoute) {
@@ -274,6 +276,7 @@ fun BobitosNavHost(
                 onModuleSelected = navController::navigateToWorkspace,
                 onOpenRecipes = { navController.navigate(BobitosDestination.Recipes.route) },
                 onOpenIngredients = { navController.navigate(BobitosDestination.Ingredients.route) },
+                onOpenNotes = { navController.navigate(BobitosDestination.Notes.route) },
                 onSwitchSpace = navController::navigateToSpaces,
                 onSpaceSettings = {
                     onClearSpaceFeedback()
@@ -447,6 +450,14 @@ fun BobitosNavHost(
             IngredientsScreen(
                 onBack = { navController.popBackStack() },
                 onOpenIngredient = { id -> navController.navigate("ingredient-detail/${Uri.encode(id)}") },
+            )
+        }
+
+        composable(BobitosDestination.Notes.route) {
+            NotesScreen(
+                onBack = { navController.popBackStack() },
+                canWrite = uiState.syncStatus.canWrite,
+                spaceId = uiState.selectedSpace?.id,
             )
         }
 
@@ -634,6 +645,7 @@ private fun SpaceHomeScreen(
     onModuleSelected: (BobitosDestination) -> Unit,
     onOpenRecipes: () -> Unit,
     onOpenIngredients: () -> Unit,
+    onOpenNotes: () -> Unit,
     onSwitchSpace: () -> Unit,
     onSpaceSettings: () -> Unit,
     onProfile: () -> Unit,
@@ -690,6 +702,7 @@ private fun SpaceHomeScreen(
             )
             SpaceHomeCard(destination = BobitosDestination.Recipes, count = 0, onClick = onOpenRecipes)
             SpaceHomeCard(destination = BobitosDestination.Ingredients, count = 0, onClick = onOpenIngredients)
+            SpaceHomeCard(destination = BobitosDestination.Notes, count = 0, onClick = onOpenNotes)
         }
     }
 }
