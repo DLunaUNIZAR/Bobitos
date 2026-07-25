@@ -942,13 +942,6 @@ private fun Instant.formatDate() =
     DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(ZoneId.systemDefault()).format(this)
 private fun Instant.formatIsoDate() = atZone(ZoneId.systemDefault()).toLocalDate().toString()
 
-// Coincidencia por texto (título o descripción) para el buscador; en blanco no filtra.
-private fun TaskItem.matchesQuery(query: String): Boolean {
-    if (query.isBlank()) return true
-    val trimmed = query.trim()
-    return title.contains(trimmed, ignoreCase = true) || description?.contains(trimmed, ignoreCase = true) == true
-}
-
 private fun TaskUiMessage.stringRes() = when (this) {
     TaskUiMessage.TitleRequired -> R.string.tasks_error_title_required
     TaskUiMessage.TitleTooLong -> R.string.tasks_error_title_too_long
