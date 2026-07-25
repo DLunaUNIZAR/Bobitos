@@ -40,6 +40,14 @@
     <string name="space_home_title">Inicio del espacio</string>
     <string name="space_home_subtitle">¿Qué quieres organizar?</string>
     <string name="space_home_catalog_section">Recetario e ingredientes</string>
+    <string name="home_my_day_title">Mi día</string>
+    <string name="home_my_day_empty">Nada tuyo para hoy 🎉</string>
+    <string name="home_my_day_tasks">✅ Hoy: %1$s</string>
+    <string name="home_my_day_cooking">🍳 Cocinas: %1$s</string>
+    <string name="home_my_day_eating">🍽 Comes: %1$s</string>
+    <string name="home_my_day_events">📅 %1$s</string>
+    <string name="home_workload_title">Reparto de tareas</string>
+    <string name="home_workload_counts">%1$d pendientes · %2$d hechas</string>
     <string name="calendar_tasks_section">Tareas</string>
     <string name="space_settings_title">Ajustes del espacio</string>
     <string name="space_rename">Cambiar nombre</string>
