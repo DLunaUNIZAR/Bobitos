@@ -85,10 +85,13 @@ import com.dlunaunizar.bobitos.feature.meals.MealsScreen
 import com.dlunaunizar.bobitos.feature.notes.NotesScreen
 import com.dlunaunizar.bobitos.feature.recipes.RecipesScreen
 import com.dlunaunizar.bobitos.feature.shopping.ShoppingScreen
+import com.dlunaunizar.bobitos.feature.spaces.MyDayCard
+import com.dlunaunizar.bobitos.feature.spaces.SpaceHomeDigest
 import com.dlunaunizar.bobitos.feature.spaces.SpaceHomeViewModel
 import com.dlunaunizar.bobitos.feature.spaces.SpaceManagementUiState
 import com.dlunaunizar.bobitos.feature.spaces.SpaceSettingsScreen
 import com.dlunaunizar.bobitos.feature.spaces.SpacesScreen
+import com.dlunaunizar.bobitos.feature.spaces.WorkloadSection
 import com.dlunaunizar.bobitos.feature.tasks.TasksScreen
 import java.time.LocalDate
 
@@ -266,13 +269,15 @@ fun BobitosNavHost(
             BackHandler { navController.navigateToSpaces() }
             val summaryViewModel: SpaceHomeViewModel = hiltViewModel()
             val counts by summaryViewModel.counts.collectAsStateWithLifecycle()
+            val digest by summaryViewModel.digest.collectAsStateWithLifecycle()
             LaunchedEffect(uiState.selectedSpace?.id) {
-                uiState.selectedSpace?.id?.let(summaryViewModel::load)
+                uiState.selectedSpace?.id?.let { summaryViewModel.load(it, authUser.id) }
             }
             SpaceHomeScreen(
                 spaceName = spaceName,
                 syncStatus = uiState.syncStatus,
                 counts = counts,
+                digest = digest,
                 onModuleSelected = navController::navigateToWorkspace,
                 onOpenRecipes = { navController.navigate(BobitosDestination.Recipes.route) },
                 onOpenIngredients = { navController.navigate(BobitosDestination.Ingredients.route) },
@@ -642,6 +647,7 @@ private fun SpaceHomeScreen(
     spaceName: String,
     syncStatus: SyncStatus,
     counts: SpaceModuleCounts?,
+    digest: SpaceHomeDigest?,
     onModuleSelected: (BobitosDestination) -> Unit,
     onOpenRecipes: () -> Unit,
     onOpenIngredients: () -> Unit,
@@ -687,6 +693,7 @@ private fun SpaceHomeScreen(
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            digest?.let { MyDayCard(it) }
             BobitosDestination.workspaceDestinations.forEach { destination ->
                 SpaceHomeCard(
                     destination = destination,
@@ -703,6 +710,7 @@ private fun SpaceHomeScreen(
             SpaceHomeCard(destination = BobitosDestination.Recipes, count = 0, onClick = onOpenRecipes)
             SpaceHomeCard(destination = BobitosDestination.Ingredients, count = 0, onClick = onOpenIngredients)
             SpaceHomeCard(destination = BobitosDestination.Notes, count = 0, onClick = onOpenNotes)
+            digest?.workload?.let { WorkloadSection(it) }
         }
     }
 }
