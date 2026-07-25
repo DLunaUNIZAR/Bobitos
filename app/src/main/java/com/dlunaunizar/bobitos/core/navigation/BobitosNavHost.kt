@@ -92,6 +92,7 @@ import com.dlunaunizar.bobitos.feature.spaces.SpaceManagementUiState
 import com.dlunaunizar.bobitos.feature.spaces.SpaceSettingsScreen
 import com.dlunaunizar.bobitos.feature.spaces.SpacesScreen
 import com.dlunaunizar.bobitos.feature.spaces.WorkloadSection
+import com.dlunaunizar.bobitos.feature.sport.SportScreen
 import com.dlunaunizar.bobitos.feature.tasks.TasksScreen
 import java.time.LocalDate
 
@@ -388,6 +389,31 @@ fun BobitosNavHost(
                         canWrite = uiState.syncStatus.canWrite,
                         onOpenRecipes = { navController.navigate(BobitosDestination.Recipes.route) },
                         onOpenIngredients = { navController.navigate(BobitosDestination.Ingredients.route) },
+                    )
+                }
+            }
+        }
+
+        composable(BobitosDestination.Sport.route) {
+            WorkspaceScaffold(
+                currentDestination = BobitosDestination.Sport,
+                spaceName = spaceName,
+                onDestinationSelected = navController::navigateToWorkspace,
+                onSwitchSpace = navController::navigateToSpaces,
+                onSpaceSettings = {
+                    onClearSpaceFeedback()
+                    navController.navigate(BobitosDestination.SpaceSettings.route)
+                },
+                onProfile = {
+                    onClearAuthFeedback()
+                    navController.navigateToProfile()
+                },
+                syncStatus = uiState.syncStatus,
+            ) {
+                uiState.selectedSpace?.let { space ->
+                    SportScreen(
+                        spaceId = space.id,
+                        canWrite = uiState.syncStatus.canWrite,
                     )
                 }
             }

@@ -7,6 +7,7 @@ import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.Event
+import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Kitchen
 import androidx.compose.material.icons.rounded.MenuBook
@@ -54,6 +55,11 @@ enum class BobitosDestination(val route: String, @param:StringRes val titleRes: 
         titleRes = R.string.meals_title,
         icon = Icons.Rounded.Restaurant,
     ),
+    Sport(
+        route = "sport",
+        titleRes = R.string.sport_title,
+        icon = Icons.Rounded.FitnessCenter,
+    ),
     Recipes(
         route = "recipes",
         titleRes = R.string.recipes_title,
@@ -83,7 +89,7 @@ enum class BobitosDestination(val route: String, @param:StringRes val titleRes: 
 
     companion object {
         val rootDestinations = listOf(Spaces, MyCalendar)
-        val workspaceDestinations = listOf(Shopping, Tasks, Calendar, Meals)
+        val workspaceDestinations = listOf(Shopping, Tasks, Calendar, Meals, Sport)
     }
 }
 
@@ -94,5 +100,6 @@ fun BobitosDestination.moduleColor(): Color? = when (this) {
     BobitosDestination.Tasks -> Color(0xFF7E57C2)
     BobitosDestination.Calendar -> Color(0xFF00897B)
     BobitosDestination.Meals -> Color(0xFFAD1457)
+    BobitosDestination.Sport -> Color(0xFF1565C0)
     else -> null
 }

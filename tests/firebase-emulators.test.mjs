@@ -1611,6 +1611,117 @@ function noteData(userId, overrides = {}) {
   };
 }
 
+test("todos los miembros crean, editan y eliminan actividades de deporte", async () => {
+  await seedSpace("act-crud", "act-owner", ["act-member"]);
+  const member = verifiedFirestore("act-member");
+  const outsider = verifiedFirestore("act-outsider");
+  const reference = doc(member, "spaces", "act-crud", "activities", "padel");
+
+  await assertSucceeds(setDoc(reference, activityData("act-member")));
+  await assertSucceeds(
+    updateDoc(reference, {
+      type: "GIMNASIO",
+      name: "Pierna",
+      done: true,
+      participantIds: ["act-member"],
+      participantNames: ["act-member"],
+      updatedBy: "act-member",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertFails(getDoc(doc(outsider, "spaces", "act-crud", "activities", "padel")));
+  await assertFails(
+    setDoc(doc(outsider, "spaces", "act-crud", "activities", "sneaky"), activityData("act-outsider")),
+  );
+  await assertSucceeds(writeBatch(member).delete(reference).commit());
+});
+
+test("las actividades validan el tipo y rechazan campos ajenos al contrato", async () => {
+  await seedSpace("act-schema", "act-schema-owner");
+  const owner = verifiedFirestore("act-schema-owner");
+
+  await assertSucceeds(
+    setDoc(doc(owner, "spaces", "act-schema", "activities", "ok"), activityData("act-schema-owner", { type: "CORRER" })),
+  );
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "act-schema", "activities", "bad-type"),
+      activityData("act-schema-owner", { type: "NATACION" }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "act-schema", "activities", "bad-done"),
+      activityData("act-schema-owner", { done: "sí" }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "act-schema", "activities", "extra-field"),
+      activityData("act-schema-owner", { recipeId: "x" }),
+    ),
+  );
+});
+
+test("las actividades exigen que participantNames tenga el mismo tamaño que participantIds", async () => {
+  await seedSpace("act-parts", "act-parts-owner");
+  const owner = verifiedFirestore("act-parts-owner");
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "act-parts", "activities", "mismatch"),
+      activityData("act-parts-owner", { participantIds: ["act-parts-owner"], participantNames: [] }),
+    ),
+  );
+});
+
+test("al editar una actividad no se pueden alterar los campos de creación", async () => {
+  await seedSpace("act-immutable", "act-imm-owner", ["act-imm-member"]);
+  const owner = verifiedFirestore("act-imm-owner");
+  const member = verifiedFirestore("act-imm-member");
+  const reference = doc(owner, "spaces", "act-immutable", "activities", "a1");
+  await assertSucceeds(setDoc(reference, activityData("act-imm-owner")));
+
+  await assertFails(
+    updateDoc(doc(member, "spaces", "act-immutable", "activities", "a1"), {
+      createdBy: "act-imm-member",
+      updatedBy: "act-imm-member",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+});
+
+test("un usuario puede anonimizar su nombre en sus actividades pero no en las ajenas", async () => {
+  await seedSpace("act-anon", "act-anon-owner", ["act-anon-member"]);
+  const owner = verifiedFirestore("act-anon-owner");
+  const member = verifiedFirestore("act-anon-member");
+  const memberActivity = doc(member, "spaces", "act-anon", "activities", "member-act");
+  await assertSucceeds(setDoc(memberActivity, activityData("act-anon-member")));
+
+  await assertSucceeds(updateDoc(memberActivity, { createdByName: "Usuario eliminado" }));
+  await assertFails(
+    updateDoc(doc(owner, "spaces", "act-anon", "activities", "member-act"), {
+      createdByName: "Nombre manipulado",
+    }),
+  );
+});
+
+function activityData(userId, overrides = {}) {
+  return {
+    date: "2026-07-20",
+    type: "PADEL",
+    name: "Pádel",
+    participantIds: [],
+    participantNames: [],
+    done: false,
+    createdBy: userId,
+    createdByName: userId,
+    createdAt: serverTimestamp(),
+    updatedBy: userId,
+    updatedAt: serverTimestamp(),
+    ...overrides,
+  };
+}
+
 function mealData(userId, overrides = {}) {
   return {
     date: "2026-07-20",
