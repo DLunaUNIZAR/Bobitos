@@ -52,6 +52,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -117,6 +118,13 @@ fun TasksScreen(
     val enabled = canWrite && !state.isSaving
     val snackbar = LocalSnackbarHostState.current
     val scope = rememberCoroutineScope()
+    // Los avisos de éxito se muestran como snackbar efímero (el banner queda para errores).
+    val noticeMessage = state.notice?.let { stringResource(it.stringRes()) }
+    LaunchedEffect(state.notice) {
+        val text = noticeMessage ?: return@LaunchedEffect
+        snackbar?.showSnackbar(text)
+        viewModel.clearFeedback()
+    }
     val deletedMessage = stringResource(R.string.tasks_undo_deleted)
     val undoLabel = stringResource(R.string.undo)
     val deleteColor = MaterialTheme.colorScheme.error
@@ -144,7 +152,7 @@ fun TasksScreen(
     var query by rememberSaveable { mutableStateOf("") }
     var quickTitle by rememberSaveable { mutableStateOf("") }
 
-    Column(modifier.fillMaxSize().padding(16.dp)) {
+    Column(modifier.fillMaxSize().padding(Spacing.lg)) {
         Column {
             Text(stringResource(R.string.tasks_list_title), style = MaterialTheme.typography.headlineSmall)
             Text(
@@ -177,7 +185,7 @@ fun TasksScreen(
             query = query,
             onQueryChange = { query = it },
             visible = allTasks.isNotEmpty(),
-            modifier = Modifier.padding(vertical = 4.dp),
+            modifier = Modifier.padding(vertical = Spacing.xs),
         )
         val queried = visibleTasks.filter { it.matchesQuery(query) }
         val sections = queried.groupIntoSections()
@@ -215,7 +223,7 @@ fun TasksScreen(
                 }
                 LazyColumn(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
                     sections.forEach { (section, sectionTasks) ->
                         val collapsible = section == TaskSection.COMPLETED
@@ -734,15 +742,15 @@ private fun TaskDateFields(
 private fun DateField(label: String, value: String, onChange: (String) -> Unit) {
     val date = value.takeIf(String::isNotBlank)?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
     var showPicker by remember { mutableStateOf(false) }
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(label, style = MaterialTheme.typography.labelLarge)
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             OutlinedButton(onClick = { showPicker = true }) {
                 Icon(Icons.Rounded.CalendarMonth, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(Spacing.sm))
                 Text(date?.format(taskDateDisplayFormatter) ?: stringResource(R.string.tasks_no_date))
             }
             if (date != null) {
@@ -878,7 +886,7 @@ private fun CustomRecurrenceFields(recurrence: TaskRecurrence, onSelect: (TaskRe
     var unitMenu by remember { mutableStateOf(false) }
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         Text(stringResource(R.string.recurrence_every))
         OutlinedTextField(
@@ -910,21 +918,16 @@ private fun CustomRecurrenceFields(recurrence: TaskRecurrence, onSelect: (TaskRe
     }
 }
 
+// Banner solo para errores persistentes; los avisos de éxito van por snackbar (ver TasksScreen).
 @Composable
 private fun TaskFeedback(state: TasksUiState, onDismiss: () -> Unit) {
-    val message = state.error ?: state.notice ?: return
+    val error = state.error ?: return
     Surface(
-        Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        color = if (state.error !=
-            null
-        ) {
-            MaterialTheme.colorScheme.errorContainer
-        } else {
-            MaterialTheme.colorScheme.secondaryContainer
-        },
+        Modifier.fillMaxWidth().padding(vertical = Spacing.sm),
+        color = MaterialTheme.colorScheme.errorContainer,
     ) {
-        Row(Modifier.padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(message.stringRes()), Modifier.weight(1f))
+        Row(Modifier.padding(start = Spacing.md), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(error.stringRes()), Modifier.weight(1f))
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.dismiss)) }
         }
     }
