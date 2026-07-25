@@ -200,6 +200,16 @@
     <string name="tasks_add">Nueva tarea</string>
     <string name="tasks_quick_add">Añadir tarea</string>
     <string name="tasks_quick_add_hint">Apunta una tarea…</string>
+    <string name="tasks_templates">Plantillas</string>
+    <string name="tasks_templates_title">Plantillas del hogar</string>
+    <string name="tasks_tpl_bathroom">Limpiar el baño</string>
+    <string name="tasks_tpl_kitchen">Limpiar la cocina</string>
+    <string name="tasks_tpl_vacuum">Pasar la aspiradora</string>
+    <string name="tasks_tpl_trash">Sacar la basura</string>
+    <string name="tasks_tpl_dishes">Fregar los platos</string>
+    <string name="tasks_tpl_laundry">Poner la lavadora</string>
+    <string name="tasks_tpl_sheets">Cambiar las sábanas</string>
+    <string name="tasks_tpl_groceries">Compra semanal</string>
     <string name="tasks_add_title">Crear tarea</string>
     <string name="tasks_edit">Editar</string>
     <string name="tasks_edit_title">Editar tarea</string>
