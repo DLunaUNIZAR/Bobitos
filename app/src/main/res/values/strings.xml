@@ -320,6 +320,9 @@
     <string name="meals_name_label">Plato</string>
     <string name="meals_participants_label">¿Quiénes lo comen?</string>
     <string name="meals_no_participants">Sin asignar</string>
+    <string name="meals_cook_label">¿Quién cocina?</string>
+    <string name="meals_no_cook">Sin cocinero</string>
+    <string name="meals_cook_value">🍳 %1$s</string>
     <string name="meals_week_previous">Semana anterior</string>
     <string name="meals_week_next">Semana siguiente</string>
     <string name="meals_error_name_required">Escribe qué vais a comer.</string>

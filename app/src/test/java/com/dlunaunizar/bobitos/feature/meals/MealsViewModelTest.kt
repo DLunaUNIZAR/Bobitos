@@ -71,7 +71,7 @@ class MealsViewModelTest {
         viewModel.observe("home")
         advanceUntilIdle()
 
-        viewModel.addMeal(LocalDate.now(), MealSlot.CENA, "   ", emptyList(), recipeId = null)
+        viewModel.addMeal(LocalDate.now(), MealSlot.CENA, "   ", emptyList(), recipeId = null, cookId = null)
 
         assertEquals(0, mealRepository.addCount)
         assertEquals(MealUiMessage.NameRequired, viewModel.uiState.value.error)
@@ -82,7 +82,14 @@ class MealsViewModelTest {
         viewModel.observe("home")
         advanceUntilIdle()
 
-        viewModel.addMeal(LocalDate.now(), MealSlot.DESAYUNO, "  Tostadas  ", listOf("ana"), recipeId = null)
+        viewModel.addMeal(
+            LocalDate.now(),
+            MealSlot.DESAYUNO,
+            "  Tostadas  ",
+            listOf("ana"),
+            recipeId = null,
+            cookId = null,
+        )
         advanceUntilIdle()
 
         assertEquals("Tostadas", mealRepository.addedName)
@@ -96,10 +103,29 @@ class MealsViewModelTest {
         viewModel.observe("home")
         advanceUntilIdle()
 
-        viewModel.addMeal(LocalDate.now(), MealSlot.COMIDA, "Paella", emptyList(), recipeId = "receta-1")
+        viewModel.addMeal(LocalDate.now(), MealSlot.COMIDA, "Paella", emptyList(), recipeId = "receta-1", cookId = null)
         advanceUntilIdle()
 
         assertEquals("receta-1", mealRepository.addedRecipeId)
+        assertEquals(MealUiMessage.MealAdded, viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun `adding a meal with a cook passes the cook id`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.addMeal(
+            LocalDate.now(),
+            MealSlot.COMIDA,
+            "Lentejas",
+            listOf("ana", "leo"),
+            recipeId = null,
+            cookId = "leo",
+        )
+        advanceUntilIdle()
+
+        assertEquals("leo", mealRepository.addedCookId)
         assertEquals(MealUiMessage.MealAdded, viewModel.uiState.value.notice)
     }
 
@@ -276,6 +302,7 @@ private class FakeMealRepository : MealRepository {
     var lastWeekStart: LocalDate? = null
     var addedName: String? = null
     var addedRecipeId: String? = null
+    var addedCookId: String? = null
     var addCount = 0
     val addedDates = mutableListOf<LocalDate>()
     var nextFailure: MealRepositoryException? = null
@@ -294,10 +321,12 @@ private class FakeMealRepository : MealRepository {
         name: String,
         participantIds: List<String>,
         recipeId: String?,
+        cookId: String?,
     ) {
         throwNextFailure()
         addedName = name
         addedRecipeId = recipeId
+        addedCookId = cookId
         addedDates += date
         addCount++
     }
@@ -310,6 +339,7 @@ private class FakeMealRepository : MealRepository {
         name: String,
         participantIds: List<String>,
         recipeId: String?,
+        cookId: String?,
     ) {
         throwNextFailure()
     }

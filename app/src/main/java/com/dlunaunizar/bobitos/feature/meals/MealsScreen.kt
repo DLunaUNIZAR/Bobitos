@@ -214,12 +214,12 @@ fun MealsScreen(
             saving = state.isSaving,
             canWrite = canWrite,
             onDismiss = { editor = null },
-            onSave = { name, participantIds, recipeId ->
+            onSave = { name, participantIds, recipeId, cookId ->
                 val meal = request.meal
                 if (meal == null) {
-                    viewModel.addMeal(state.focusedDate, request.slot, name, participantIds, recipeId)
+                    viewModel.addMeal(state.focusedDate, request.slot, name, participantIds, recipeId, cookId)
                 } else {
-                    viewModel.updateMeal(meal.id, meal.date, meal.slot, name, participantIds, recipeId)
+                    viewModel.updateMeal(meal.id, meal.date, meal.slot, name, participantIds, recipeId, cookId)
                 }
                 editor = null
             },
@@ -238,7 +238,14 @@ fun MealsScreen(
                         viewModel.deleteMeal(meal.id)
                         mealToDelete = null
                         scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                            viewModel.addMeal(meal.date, meal.slot, meal.name, meal.participantIds, meal.recipeId)
+                            viewModel.addMeal(
+                                meal.date,
+                                meal.slot,
+                                meal.name,
+                                meal.participantIds,
+                                meal.recipeId,
+                                meal.cookId,
+                            )
                         }
                     },
                 ) { Text(stringResource(R.string.meals_delete)) }
@@ -421,6 +428,13 @@ private fun MealCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                meal.cookName?.let { cook ->
+                    Text(
+                        text = stringResource(R.string.meals_cook_value, cook),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 if (!ingredients.isNullOrEmpty()) {
                     Text(
                         text = ingredients.joinToString(", ") { it.formatted() },
@@ -495,13 +509,15 @@ private fun MealEditor(
     saving: Boolean,
     canWrite: Boolean,
     onDismiss: () -> Unit,
-    onSave: (String, List<String>, String?) -> Unit,
+    onSave: (String, List<String>, String?, String?) -> Unit,
 ) {
     val meal = request.meal
     var name by remember(meal?.id) { mutableStateOf(meal?.name.orEmpty()) }
     var recipeId by remember(meal?.id) { mutableStateOf(meal?.recipeId) }
     var selected by remember(meal?.id) { mutableStateOf(meal?.participantIds?.toSet().orEmpty()) }
+    var cookId by remember(meal?.id) { mutableStateOf(meal?.cookId) }
     var pickerOpen by remember { mutableStateOf(false) }
+    var cookMenu by remember { mutableStateOf(false) }
     val validation = MealsValidation.validate(name)
 
     AlertDialog(
@@ -549,9 +565,43 @@ private fun MealEditor(
                                 checked = member.userId in selected,
                                 onCheckedChange = { checked ->
                                     selected = if (checked) selected + member.userId else selected - member.userId
+                                    // Si el cocinero deja de ser participante, se descarta.
+                                    if (!checked && member.userId == cookId) cookId = null
                                 },
                             )
                             Text(member.displayName)
+                        }
+                    }
+                    if (selected.isNotEmpty()) {
+                        Text(
+                            text = stringResource(R.string.meals_cook_label),
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                        Box {
+                            TextButton(onClick = { cookMenu = true }) {
+                                Text(
+                                    members.firstOrNull { it.userId == cookId }?.displayName
+                                        ?: stringResource(R.string.meals_no_cook),
+                                )
+                            }
+                            DropdownMenu(expanded = cookMenu, onDismissRequest = { cookMenu = false }) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.meals_no_cook)) },
+                                    onClick = {
+                                        cookId = null
+                                        cookMenu = false
+                                    },
+                                )
+                                members.filter { it.userId in selected }.forEach { member ->
+                                    DropdownMenuItem(
+                                        text = { Text(member.displayName) },
+                                        onClick = {
+                                            cookId = member.userId
+                                            cookMenu = false
+                                        },
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -560,7 +610,7 @@ private fun MealEditor(
         confirmButton = {
             TextButton(
                 enabled = validation == null && canWrite && !saving,
-                onClick = { onSave(name, selected.toList(), recipeId) },
+                onClick = { onSave(name, selected.toList(), recipeId, cookId?.takeIf { it in selected }) },
             ) { Text(stringResource(R.string.confirm)) }
         },
         dismissButton = {

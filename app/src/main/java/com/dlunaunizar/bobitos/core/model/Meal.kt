@@ -18,6 +18,9 @@ data class Meal(
     val participantNames: List<String>,
     val recipeId: String? = null,
     val cooked: Boolean = false,
+    // Cocinero (uno de los participantes) opcional.
+    val cookId: String? = null,
+    val cookName: String? = null,
     val createdBy: String,
     val createdByName: String,
     val createdAt: Instant,

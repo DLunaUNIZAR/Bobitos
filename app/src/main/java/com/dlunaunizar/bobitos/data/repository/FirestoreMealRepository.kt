@@ -71,9 +71,10 @@ class FirestoreMealRepository @Inject constructor(
         name: String,
         participantIds: List<String>,
         recipeId: String?,
+        cookId: String?,
     ) = runMealOperation {
         val user = requireVerifiedUser()
-        val normalizedName = validate(name, participantIds)
+        val normalizedName = validate(name, participantIds, cookId)
         val spaceReference = firestore.collection(SPACES).document(spaceId)
         val mealReference = mealsCollection(spaceId).document()
         val memberReferences = participantIds.map { membership(spaceId, it) }
@@ -84,9 +85,17 @@ class FirestoreMealRepository @Inject constructor(
             }
             val members = memberReferences.map(transaction::get)
             requireParticipants(participantIds, members)
+            val names = members.displayNames()
             transaction.set(
                 mealReference,
-                mealData(user, date, slot, normalizedName, participantIds, members.displayNames(), recipeId),
+                mealData(
+                    user, date, slot, normalizedName, participantIds, names, recipeId, cookId,
+                    cookName(
+                        cookId,
+                        participantIds,
+                        names,
+                    ),
+                ),
             )
         }.await()
         Unit
@@ -100,9 +109,10 @@ class FirestoreMealRepository @Inject constructor(
         name: String,
         participantIds: List<String>,
         recipeId: String?,
+        cookId: String?,
     ) = runMealOperation {
         val user = requireVerifiedUser()
-        val normalizedName = validate(name, participantIds)
+        val normalizedName = validate(name, participantIds, cookId)
         val reference = mealsCollection(spaceId).document(mealId)
         val memberReferences = participantIds.map { membership(spaceId, it) }
 
@@ -110,9 +120,17 @@ class FirestoreMealRepository @Inject constructor(
             requireMeal(transaction.get(reference))
             val members = memberReferences.map(transaction::get)
             requireParticipants(participantIds, members)
+            val names = members.displayNames()
             transaction.update(
                 reference,
-                mealUpdateData(user, date, slot, normalizedName, participantIds, members.displayNames(), recipeId),
+                mealUpdateData(
+                    user, date, slot, normalizedName, participantIds, names, recipeId, cookId,
+                    cookName(
+                        cookId,
+                        participantIds,
+                        names,
+                    ),
+                ),
             )
         }.await()
         Unit
@@ -162,7 +180,7 @@ class FirestoreMealRepository @Inject constructor(
         return user
     }
 
-    private fun validate(name: String, participantIds: List<String>): String {
+    private fun validate(name: String, participantIds: List<String>, cookId: String?): String {
         val normalizedName = name.trim()
         when {
             normalizedName.isEmpty() -> throw MealRepositoryException(MealFailure.NameRequired)
@@ -171,9 +189,16 @@ class FirestoreMealRepository @Inject constructor(
                 participantIds.distinct().size != participantIds.size ||
                 participantIds.any(String::isBlank) ->
                 throw MealRepositoryException(MealFailure.InvalidParticipants)
+            // El cocinero, si lo hay, debe ser uno de los participantes.
+            cookId != null && cookId !in participantIds ->
+                throw MealRepositoryException(MealFailure.InvalidParticipants)
         }
         return normalizedName
     }
+
+    // Nombre del cocinero a partir de su posición en la lista de participantes (índices alineados).
+    private fun cookName(cookId: String?, participantIds: List<String>, names: List<String>): String? =
+        cookId?.let { id -> names.getOrNull(participantIds.indexOf(id)) }
 
     private fun requireParticipants(ids: List<String>, docs: List<DocumentSnapshot>) {
         if (docs.zip(ids).any { (doc, id) ->
@@ -195,6 +220,7 @@ class FirestoreMealRepository @Inject constructor(
 
     private fun List<DocumentSnapshot>.displayNames(): List<String> = map { it.getString(FIELD_DISPLAY_NAME).orEmpty() }
 
+    @Suppress("LongParameterList")
     private fun mealData(
         user: AuthUser,
         date: LocalDate,
@@ -203,7 +229,9 @@ class FirestoreMealRepository @Inject constructor(
         participantIds: List<String>,
         participantNames: List<String>,
         recipeId: String?,
-    ) = commonData(date, slot, name, participantIds, participantNames, recipeId) + mapOf(
+        cookId: String?,
+        cookName: String?,
+    ) = commonData(date, slot, name, participantIds, participantNames, recipeId, cookId, cookName) + mapOf(
         FIELD_CREATED_BY to user.id,
         FIELD_CREATED_BY_NAME to user.mealDisplayName,
         FIELD_CREATED_AT to FieldValue.serverTimestamp(),
@@ -211,6 +239,7 @@ class FirestoreMealRepository @Inject constructor(
         FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
     )
 
+    @Suppress("LongParameterList")
     private fun mealUpdateData(
         user: AuthUser,
         date: LocalDate,
@@ -219,11 +248,14 @@ class FirestoreMealRepository @Inject constructor(
         participantIds: List<String>,
         participantNames: List<String>,
         recipeId: String?,
-    ) = commonData(date, slot, name, participantIds, participantNames, recipeId) + mapOf(
+        cookId: String?,
+        cookName: String?,
+    ) = commonData(date, slot, name, participantIds, participantNames, recipeId, cookId, cookName) + mapOf(
         FIELD_UPDATED_BY to user.id,
         FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
     )
 
+    @Suppress("LongParameterList")
     private fun commonData(
         date: LocalDate,
         slot: MealSlot,
@@ -231,6 +263,8 @@ class FirestoreMealRepository @Inject constructor(
         participantIds: List<String>,
         participantNames: List<String>,
         recipeId: String?,
+        cookId: String?,
+        cookName: String?,
     ) = mapOf(
         FIELD_DATE to date.toString(),
         FIELD_SLOT to slot.name,
@@ -238,6 +272,8 @@ class FirestoreMealRepository @Inject constructor(
         FIELD_PARTICIPANT_IDS to participantIds,
         FIELD_PARTICIPANT_NAMES to participantNames,
         FIELD_RECIPE_ID to recipeId,
+        FIELD_COOK_ID to cookId,
+        FIELD_COOK_NAME to cookName,
     )
 
     private suspend inline fun <T> runMealOperation(crossinline operation: suspend () -> T): T {
@@ -268,6 +304,8 @@ class FirestoreMealRepository @Inject constructor(
         const val FIELD_PARTICIPANT_NAMES = "participantNames"
         const val FIELD_RECIPE_ID = "recipeId"
         const val FIELD_COOKED = "cooked"
+        const val FIELD_COOK_ID = "cookId"
+        const val FIELD_COOK_NAME = "cookName"
         const val FIELD_CREATED_BY = "createdBy"
         const val FIELD_CREATED_BY_NAME = "createdByName"
         const val FIELD_CREATED_AT = "createdAt"
@@ -300,6 +338,8 @@ private fun DocumentSnapshot.toMeal(): Meal? {
         participantNames = (get("participantNames") as? List<*>)?.filterIsInstance<String>().orEmpty(),
         recipeId = getString("recipeId"),
         cooked = getBoolean("cooked") == true,
+        cookId = getString("cookId"),
+        cookName = getString("cookName"),
         createdBy = getString("createdBy") ?: return null,
         createdByName = getString("createdByName") ?: getString("createdBy") ?: return null,
         createdAt = createdAt,

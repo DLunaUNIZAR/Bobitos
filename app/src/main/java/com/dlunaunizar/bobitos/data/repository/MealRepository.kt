@@ -15,6 +15,7 @@ interface MealRepository {
         name: String,
         participantIds: List<String>,
         recipeId: String?,
+        cookId: String?,
     )
 
     suspend fun updateMeal(
@@ -25,6 +26,7 @@ interface MealRepository {
         name: String,
         participantIds: List<String>,
         recipeId: String?,
+        cookId: String?,
     )
 
     suspend fun setCooked(spaceId: String, mealId: String, cooked: Boolean)

@@ -1480,6 +1480,36 @@ test("una comida admite el flag cooked booleano y permite alternarlo, pero recha
   );
 });
 
+test("una comida acepta cocinero si es participante y lo rechaza si no lo es", async () => {
+  await seedSpace("meals-cook", "meals-cook-owner");
+  const owner = verifiedFirestore("meals-cook-owner");
+
+  // Cocinero que es participante: válido.
+  await assertSucceeds(
+    setDoc(
+      doc(owner, "spaces", "meals-cook", "meals", "ok"),
+      mealData("meals-cook-owner", {
+        participantIds: ["meals-cook-owner"],
+        participantNames: ["meals-cook-owner"],
+        cookId: "meals-cook-owner",
+        cookName: "meals-cook-owner",
+      }),
+    ),
+  );
+  // Cocinero que NO está entre los participantes: rechazado.
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "meals-cook", "meals", "bad"),
+      mealData("meals-cook-owner", {
+        participantIds: ["meals-cook-owner"],
+        participantNames: ["meals-cook-owner"],
+        cookId: "outsider",
+        cookName: "Fantasma",
+      }),
+    ),
+  );
+});
+
 test("todos los miembros crean, editan y eliminan notas del espacio", async () => {
   await seedSpace("notes-crud", "notes-owner", ["notes-member"]);
   const member = verifiedFirestore("notes-member");
