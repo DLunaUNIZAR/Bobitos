@@ -23,9 +23,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowDropDown
+import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Checklist
@@ -151,24 +153,39 @@ fun TasksScreen(
         }
     }
     var editorTask by remember { mutableStateOf<TaskItem?>(null) }
+    var editorTemplate by remember { mutableStateOf<TaskTemplate?>(null) }
     var editorVisible by remember { mutableStateOf(false) }
     var deleteTask by remember { mutableStateOf<TaskItem?>(null) }
+    var templatesVisible by remember { mutableStateOf(false) }
     var completedExpanded by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
     var quickTitle by rememberSaveable { mutableStateOf("") }
 
     Box(modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().padding(Spacing.lg)) {
-            Column {
-                Text(stringResource(R.string.tasks_list_title), style = MaterialTheme.typography.headlineSmall)
-                Text(
-                    pluralStringResource(
-                        R.plurals.tasks_visible_count,
-                        visibleTasks.size,
-                        visibleTasks.size,
-                        allTasks.size,
-                    ),
-                )
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.tasks_list_title), style = MaterialTheme.typography.headlineSmall)
+                    Text(
+                        pluralStringResource(
+                            R.plurals.tasks_visible_count,
+                            visibleTasks.size,
+                            visibleTasks.size,
+                            allTasks.size,
+                        ),
+                    )
+                }
+                if (canWrite) {
+                    TextButton(onClick = { templatesVisible = true }) {
+                        Icon(Icons.Rounded.Bolt, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(Spacing.xs))
+                        Text(stringResource(R.string.tasks_templates))
+                    }
+                }
             }
             TaskFeedback(state, viewModel::clearFeedback)
             TaskQuickAdd(
@@ -205,6 +222,7 @@ fun TasksScreen(
                         onAction = if (firstRun && canWrite) {
                             {
                                 editorTask = null
+                                editorTemplate = null
                                 editorVisible = true
                             }
                         } else {
@@ -228,6 +246,7 @@ fun TasksScreen(
                                 onSetCompleted = { viewModel.setCompleted(spaceId, task.id, it) },
                                 onEdit = {
                                     editorTask = task
+                                    editorTemplate = null
                                     editorVisible = true
                                 },
                                 onDelete = { deleteTask = task },
@@ -263,6 +282,7 @@ fun TasksScreen(
             ExtendedFloatingActionButton(
                 onClick = {
                     editorTask = null
+                    editorTemplate = null
                     editorVisible = true
                 },
                 icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
@@ -274,9 +294,21 @@ fun TasksScreen(
         }
     }
 
+    if (templatesVisible) {
+        TaskTemplatePicker(
+            onDismiss = { templatesVisible = false },
+            onPick = { picked ->
+                templatesVisible = false
+                editorTask = null
+                editorTemplate = picked
+                editorVisible = true
+            },
+        )
+    }
     if (editorVisible) {
         TaskEditor(
             task = editorTask,
+            template = editorTemplate,
             members = members,
             saving = state.isSaving,
             onDismiss = { editorVisible = false },
@@ -594,24 +626,74 @@ private fun TaskCardMenu(enabled: Boolean, onEdit: () -> Unit, onDelete: () -> U
     }
 }
 
+// Selector de plantillas: al elegir una, abre el editor prerrellenado (título + tipo + recurrencia).
+@Composable
+private fun TaskTemplatePicker(onDismiss: () -> Unit, onPick: (TaskTemplate) -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.tasks_templates_title)) },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
+                homeTaskTemplates.forEach { template ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onPick(template) }
+                            .padding(vertical = Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        template.type?.let {
+                            Icon(
+                                it.icon,
+                                contentDescription = null,
+                                tint = it.accent(),
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                        Column(Modifier.weight(1f)) {
+                            Text(stringResource(template.titleRes), style = MaterialTheme.typography.bodyLarge)
+                            template.recurrence?.let { rec ->
+                                Text(
+                                    rec.label(),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
 @Composable
 private fun TaskEditor(
     task: TaskItem?,
+    template: TaskTemplate?,
     members: List<SpaceMember>,
     saving: Boolean,
     onDismiss: () -> Unit,
     onInvalidDate: () -> Unit,
     onSave: (String, String?, String?, Instant?, TaskPriority, TaskType?, TaskRecurrence?, Instant?) -> Unit,
 ) {
-    var title by remember(task?.id) { mutableStateOf(task?.title.orEmpty()) }
+    // Al crear desde una plantilla, se prerrellena título/tipo/recurrencia (editable antes de guardar).
+    val templateTitle = template?.titleRes?.let { stringResource(it) }.orEmpty()
+    var title by remember(task?.id, template) { mutableStateOf(task?.title ?: templateTitle) }
     var description by remember(task?.id) { mutableStateOf(task?.description.orEmpty()) }
     // Por defecto «sin responsable» en tareas nuevas (responsable opcional); al editar se conserva el actual.
     var assigneeId by remember(task?.id) { mutableStateOf(task?.assigneeId) }
     var startDate by remember(task?.id) { mutableStateOf(task?.startAt?.formatIsoDate().orEmpty()) }
     var dueDate by remember(task?.id) { mutableStateOf(task?.dueAt?.formatIsoDate().orEmpty()) }
     var priority by remember(task?.id) { mutableStateOf(task?.priority ?: TaskPriority.MEDIUM) }
-    var type by remember(task?.id) { mutableStateOf(task?.type) }
-    var recurrence by remember(task?.id) { mutableStateOf(task?.recurrence) }
+    var type by remember(task?.id, template) { mutableStateOf(task?.type ?: template?.type) }
+    var recurrence by remember(task?.id, template) { mutableStateOf(task?.recurrence ?: template?.recurrence) }
     var memberMenu by remember { mutableStateOf(false) }
     val validation = TaskValidation.validate(title, description)
     AlertDialog(
