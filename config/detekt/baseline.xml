@@ -35,14 +35,17 @@
     <ID>LongMethod:RecipesScreen.kt$@Composable private fun RecipeEditor( recipe: Recipe?, draft: ImportedRecipe?, saving: Boolean, canWrite: Boolean, isAdmin: Boolean, onDismiss: () -&gt; Unit, onSave: (RecipeVisibility, String, String?, String?, List&lt;Ingredient&gt;) -&gt; Unit, )</ID>
     <ID>LongMethod:RecipesScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun RecipesScreen( onBack: () -&gt; Unit, canWrite: Boolean, modifier: Modifier = Modifier, spaceId: String? = null, importUrl: String? = null, onImportUrlConsumed: () -&gt; Unit = {}, viewModel: RecipesViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:RegisterScreen.kt$@Composable fun RegisterScreen( actionState: AuthActionUiState, onRegister: ( displayName: String, email: String, password: String, passwordConfirmation: String, ) -&gt; Unit, onLoginClick: () -&gt; Unit, onClearFeedback: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
+    <ID>LongMethod:RoutineEditor.kt$@Composable internal fun RoutineEditor( request: RoutineEditorRequest, catalog: List&lt;CatalogExercise&gt;, isAdmin: Boolean, saving: Boolean, canWrite: Boolean, onDismiss: () -&gt; Unit, onSave: (RoutineVisibility, String, String?, List&lt;RoutineExercise&gt;) -&gt; Unit, )</ID>
+    <ID>LongMethod:RoutinesScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun RoutinesScreen( onBack: () -&gt; Unit, canWrite: Boolean, modifier: Modifier = Modifier, viewModel: RoutinesViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:ShoppingScreen.kt$@Composable fun ShoppingScreen( spaceId: String, canWrite: Boolean, modifier: Modifier = Modifier, viewModel: ShoppingViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:ShoppingScreen.kt$@Composable private fun ShoppingItemCard( item: ShoppingItem, enabled: Boolean, suggestion: IngredientPref?, onApplySuggestion: () -&gt; Unit, onSaveAsPref: () -&gt; Unit, onCreateIngredient: () -&gt; Unit, onSetPurchased: (Boolean) -&gt; Unit, onEdit: () -&gt; Unit, onDelete: () -&gt; Unit, )</ID>
     <ID>LongMethod:ShoppingScreen.kt$@Composable private fun ShoppingItemEditor( item: ShoppingItem?, saving: Boolean, resolveDuplicate: (String) -&gt; ShoppingItem?, suggestions: (String) -&gt; List&lt;String&gt;, prefFor: (String) -&gt; IngredientPref?, onDismiss: () -&gt; Unit, onSave: (String, String?, String?, Supermarket?, String?) -&gt; Unit, )</ID>
     <ID>LongMethod:SpaceSettingsScreen.kt$@Composable fun SpaceSettingsScreen( space: SpaceSummary, currentUserId: String, state: SpaceManagementUiState, syncStatus: SyncStatus, canWrite: Boolean, onObserveSpaceSettings: (String, Boolean) -&gt; Unit, onStopObservingSpaceSettings: () -&gt; Unit, onRenameSpace: (String, String) -&gt; Unit, onLeaveSpace: (String) -&gt; Unit, onRemoveMember: (String, String) -&gt; Unit, onTransferOwnership: (String, String) -&gt; Unit, onDeleteSpace: (String) -&gt; Unit, onCreateInvitation: (String) -&gt; Unit, onRevokeInvitation: (String) -&gt; Unit, onShareInvitation: (SpaceInvitation) -&gt; Unit, onClearFeedback: () -&gt; Unit, onBack: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
     <ID>LongMethod:SpacesScreen.kt$@Composable private fun SpacesContent( spaces: List&lt;SpaceSummary&gt;, managementState: SpaceManagementUiState, syncStatus: SyncStatus, canWrite: Boolean, onSpaceSelected: (SpaceSummary) -&gt; Unit, onCreateSpace: (String) -&gt; Unit, onAcceptInvitation: (String) -&gt; Unit, pendingInvitationCode: String?, onInvitationCodeConsumed: () -&gt; Unit, onProfileClick: () -&gt; Unit, onClearFeedback: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
-    <ID>LongMethod:SportScreen.kt$@Composable fun SportScreen( spaceId: String, canWrite: Boolean, onOpenExercises: () -&gt; Unit, modifier: Modifier = Modifier, viewModel: SportViewModel = hiltViewModel(), )</ID>
+    <ID>LongMethod:SportScreen.kt$@Composable fun SportScreen( spaceId: String, canWrite: Boolean, onOpenExercises: () -&gt; Unit, onOpenRoutines: () -&gt; Unit, modifier: Modifier = Modifier, viewModel: SportViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:TasksScreen.kt$@Composable fun TasksScreen( spaceId: String, canWrite: Boolean, modifier: Modifier = Modifier, viewModel: TasksViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:TasksScreen.kt$@Composable private fun TaskEditor( task: TaskItem?, template: TaskTemplate?, members: List&lt;SpaceMember&gt;, saving: Boolean, onDismiss: () -&gt; Unit, onInvalidDate: () -&gt; Unit, onSave: (String, String?, String?, Instant?, TaskPriority, TaskType?, TaskRecurrence?, Instant?) -&gt; Unit, )</ID>
+    <ID>MatchingDeclarationName:RoutineEditor.kt$RoutineEditorRequest</ID>
     <ID>NestedBlockDepth:FirestoreSyncRepository.kt$FirestoreSyncRepository$override suspend fun refresh(spaceId: String?): Boolean</ID>
     <ID>ReturnCount:FirestoreCalendarRepository.kt$private fun DocumentSnapshot.toCalendarEvent(): CalendarEvent?</ID>
     <ID>ReturnCount:FirestoreExerciseRepository.kt$private fun DocumentSnapshot.toCatalogExercise(): CatalogExercise?</ID>
@@ -51,6 +54,7 @@
     <ID>ReturnCount:FirestoreMealRepository.kt$private fun DocumentSnapshot.toMeal(): Meal?</ID>
     <ID>ReturnCount:FirestoreNoteRepository.kt$private fun DocumentSnapshot.toNote(): Note?</ID>
     <ID>ReturnCount:FirestoreRecipeRepository.kt$private fun DocumentSnapshot.toRecipe(): Recipe?</ID>
+    <ID>ReturnCount:FirestoreRoutineRepository.kt$private fun DocumentSnapshot.toRoutine(): Routine?</ID>
     <ID>ReturnCount:FirestoreShoppingRepository.kt$private fun DocumentSnapshot.toShoppingItem(): ShoppingItem?</ID>
     <ID>ReturnCount:FirestoreSportActivityRepository.kt$private fun DocumentSnapshot.toSportActivity(): SportActivity?</ID>
     <ID>ReturnCount:FirestoreTaskRepository.kt$private fun DocumentSnapshot.toTaskItem(): TaskItem?</ID>
@@ -69,6 +73,8 @@
     <ID>ThrowsCount:FirestoreNoteRepository.kt$FirestoreNoteRepository$private suspend inline fun &lt;T&gt; runNoteOperation(crossinline operation: suspend () -&gt; T): T</ID>
     <ID>ThrowsCount:FirestoreRecipeRepository.kt$FirestoreRecipeRepository$private fun validate(title: String, description: String?, category: String?): RecipeValues</ID>
     <ID>ThrowsCount:FirestoreRecipeRepository.kt$FirestoreRecipeRepository$private suspend inline fun &lt;T&gt; runRecipeOperation(crossinline operation: suspend () -&gt; T): T</ID>
+    <ID>ThrowsCount:FirestoreRoutineRepository.kt$FirestoreRoutineRepository$private fun validate(title: String, description: String?): RoutineValues</ID>
+    <ID>ThrowsCount:FirestoreRoutineRepository.kt$FirestoreRoutineRepository$private suspend inline fun &lt;T&gt; runRoutineOperation(crossinline operation: suspend () -&gt; T): T</ID>
     <ID>ThrowsCount:FirestoreShoppingRepository.kt$FirestoreShoppingRepository$private fun validateItem( name: String, quantity: String?, notes: String?, supermarket: Supermarket?, brand: String?, ): ItemValues</ID>
     <ID>ThrowsCount:FirestoreShoppingRepository.kt$FirestoreShoppingRepository$private suspend inline fun &lt;T&gt; runShoppingOperation(crossinline operation: suspend () -&gt; T): T</ID>
     <ID>ThrowsCount:FirestoreSpaceRepository.kt$FirestoreSpaceRepository$private fun checkInvitationAvailable(snapshot: DocumentSnapshot, allowExpired: Boolean = false)</ID>
@@ -92,6 +98,7 @@
     <ID>TooGenericExceptionCaught:FirestoreMealRepository.kt$FirestoreMealRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreNoteRepository.kt$FirestoreNoteRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreRecipeRepository.kt$FirestoreRecipeRepository$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:FirestoreRoutineRepository.kt$FirestoreRoutineRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreShoppingRepository.kt$FirestoreShoppingRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreSpaceRepository.kt$FirestoreSpaceRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreSportActivityRepository.kt$FirestoreSportActivityRepository$error: Throwable</ID>
@@ -102,6 +109,7 @@
     <ID>TooGenericExceptionCaught:MealsViewModel.kt$MealsViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:NotesViewModel.kt$NotesViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:RecipesViewModel.kt$RecipesViewModel$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:RoutinesViewModel.kt$RoutinesViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:ShoppingViewModel.kt$ShoppingViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:SpacesViewModel.kt$SpacesViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:SportViewModel.kt$SportViewModel$error: Throwable</ID>
