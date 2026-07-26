@@ -121,6 +121,13 @@ private fun ExerciseDraftCard(draft: ExerciseDraft, onRemove: () -> Unit) {
             } else {
                 CardioFields(draft)
             }
+            OutlinedTextField(
+                value = draft.notes,
+                onValueChange = { draft.notes = it },
+                label = { Text(stringResource(R.string.routines_notes_label)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }
@@ -226,12 +233,14 @@ internal class ExerciseDraft(
     sets: List<SetDraft> = emptyList(),
     duration: String = "",
     level: String = "",
+    notes: String = "",
 ) {
     var name by mutableStateOf(name)
     var type by mutableStateOf(type)
     val sets: SnapshotStateList<SetDraft> = sets.toMutableStateList()
     var duration by mutableStateOf(duration)
     var level by mutableStateOf(level)
+    var notes by mutableStateOf(notes)
 }
 
 internal fun List<RoutineExercise>.toExerciseDrafts(): List<ExerciseDraft> = map { exercise ->
@@ -242,6 +251,7 @@ internal fun List<RoutineExercise>.toExerciseDrafts(): List<ExerciseDraft> = map
         sets = exercise.sets.map { SetDraft(it.reps?.toString().orEmpty(), it.weight?.let(::formatWeight).orEmpty()) },
         duration = exercise.durationMinutes?.toString().orEmpty(),
         level = exercise.level.orEmpty(),
+        notes = exercise.notes.orEmpty(),
     )
 }
 
@@ -261,6 +271,7 @@ internal fun List<ExerciseDraft>.toRoutineExercises(): List<RoutineExercise> =
             },
             durationMinutes = if (draft.type.isStrength) null else draft.duration.toIntOrNull(),
             level = if (draft.type.isStrength) null else draft.level.trim().ifBlank { null },
+            notes = draft.notes.trim().ifBlank { null },
         )
     }
 

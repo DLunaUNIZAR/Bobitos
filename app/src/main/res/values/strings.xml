@@ -514,6 +514,7 @@
     <string name="routines_remove_set">Quitar serie</string>
     <string name="routines_duration_label">Minutos</string>
     <string name="routines_level_label">Nivel</string>
+    <string name="routines_notes_label">Notas (opcional)</string>
     <string name="routines_pick_exercise">Elegir ejercicio</string>
     <string name="routines_custom_exercise">Personalizado…</string>
     <string name="routines_summary_strength">%1$s · %2$d series</string>
