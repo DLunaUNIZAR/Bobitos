@@ -64,6 +64,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostStat
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
+import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.Routine
 import com.dlunaunizar.bobitos.core.model.RoutineExercise
 import com.dlunaunizar.bobitos.core.model.SpaceMember
@@ -189,6 +190,7 @@ fun SportScreen(
             request = request,
             members = members,
             routines = state.routines,
+            catalog = state.exercises,
             saving = state.isSaving,
             canWrite = canWrite,
             onDismiss = { editor = null },
@@ -384,6 +386,7 @@ private fun ActivityEditor(
     request: ActivityEditorRequest,
     members: List<SpaceMember>,
     routines: List<Routine>,
+    catalog: List<CatalogExercise>,
     saving: Boolean,
     canWrite: Boolean,
     onDismiss: () -> Unit,
@@ -449,6 +452,7 @@ private fun ActivityEditor(
                     GymSessionSection(
                         routineTitle = routines.firstOrNull { it.id == routineId }?.title,
                         session = session,
+                        catalog = catalog,
                         onPickRoutine = { pickingRoutine = true },
                     )
                 }
@@ -497,6 +501,7 @@ private fun ActivityEditor(
 private fun GymSessionSection(
     routineTitle: String?,
     session: SnapshotStateList<ExerciseDraft>,
+    catalog: List<CatalogExercise>,
     onPickRoutine: () -> Unit,
 ) {
     Text(stringResource(R.string.sport_session_label), style = MaterialTheme.typography.titleSmall)
@@ -509,7 +514,7 @@ private fun GymSessionSection(
         )
         TextButton(onClick = onPickRoutine) { Text(stringResource(R.string.sport_routine_pick)) }
     }
-    ExerciseListEditor(drafts = session, catalog = emptyList())
+    ExerciseListEditor(drafts = session, catalog = catalog)
 }
 
 @Composable
