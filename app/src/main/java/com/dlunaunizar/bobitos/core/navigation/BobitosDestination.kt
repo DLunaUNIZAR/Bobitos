@@ -21,6 +21,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.dlunaunizar.bobitos.R
 
 enum class BobitosDestination(val route: String, @param:StringRes val titleRes: Int, val icon: ImageVector) {
+    Home(
+        route = "home",
+        titleRes = R.string.app_name,
+        icon = Icons.Rounded.Dashboard,
+    ),
     Spaces(
         route = "spaces",
         titleRes = R.string.spaces_title,
@@ -99,7 +104,8 @@ enum class BobitosDestination(val route: String, @param:StringRes val titleRes: 
     ;
 
     companion object {
-        val rootDestinations = listOf(Spaces, MyCalendar)
+        // Tarjetas del menú principal (al abrir la app): espacios + catálogos globales + calendario personal.
+        val mainMenuDestinations = listOf(Spaces, Recipes, Ingredients, Routines, Exercises, MyCalendar)
         val workspaceDestinations = listOf(Shopping, Tasks, Calendar, Meals, Sport)
     }
 }

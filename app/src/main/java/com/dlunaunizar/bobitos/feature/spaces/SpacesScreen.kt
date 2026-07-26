@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Groups
@@ -66,6 +67,7 @@ fun SpacesScreen(
     onProfileClick: () -> Unit,
     onClearFeedback: () -> Unit,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
 ) {
     when (state) {
         UiState.Loading -> LoadingContent(modifier)
@@ -82,6 +84,7 @@ fun SpacesScreen(
             onInvitationCodeConsumed = onInvitationCodeConsumed,
             onProfileClick = onProfileClick,
             onClearFeedback = onClearFeedback,
+            onBack = onBack,
             modifier = modifier,
         )
     }
@@ -100,6 +103,7 @@ private fun SpacesContent(
     onInvitationCodeConsumed: () -> Unit,
     onProfileClick: () -> Unit,
     onClearFeedback: () -> Unit,
+    onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     var showCreateDialog by rememberSaveable { mutableStateOf(false) }
@@ -123,12 +127,20 @@ private fun SpacesContent(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                if (onBack != null) {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = stringResource(R.string.navigate_back),
+                        )
+                    }
+                }
                 Text(
                     text = stringResource(R.string.spaces_title),
                     style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.weight(1f),
                 )
                 IconButton(onClick = onProfileClick) {
                     Icon(

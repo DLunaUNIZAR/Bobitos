@@ -144,6 +144,7 @@ fun BobitosNavHost(
         onRealtimeScopeChanged(
             when (currentRoute) {
                 null -> RealtimeScope.AUTOMATIC
+                BobitosDestination.Home.route,
                 BobitosDestination.Spaces.route,
                 BobitosDestination.MyCalendar.route,
                 -> RealtimeScope.ALL_SPACES
@@ -207,71 +208,75 @@ fun BobitosNavHost(
     val reduceMotion = rememberReduceMotion()
     NavHost(
         navController = navController,
-        startDestination = if (uiState.selectedSpace == null) {
-            BobitosDestination.Spaces.route
-        } else {
-            BobitosDestination.SpaceHome.route
-        },
+        startDestination = BobitosDestination.Home.route,
         modifier = modifier.fillMaxSize(),
         enterTransition = { if (reduceMotion) EnterTransition.None else fadeIn(tween(NAV_ANIM_MS)) },
         exitTransition = { if (reduceMotion) ExitTransition.None else fadeOut(tween(NAV_ANIM_MS)) },
         popEnterTransition = { if (reduceMotion) EnterTransition.None else fadeIn(tween(NAV_ANIM_MS)) },
         popExitTransition = { if (reduceMotion) ExitTransition.None else fadeOut(tween(NAV_ANIM_MS)) },
     ) {
+        composable(BobitosDestination.Home.route) {
+            MainMenuScreen(
+                syncStatus = uiState.syncStatus,
+                onOpenSpaces = { navController.navigate(BobitosDestination.Spaces.route) },
+                onOpenRecipes = { navController.navigate(BobitosDestination.Recipes.route) },
+                onOpenIngredients = { navController.navigate(BobitosDestination.Ingredients.route) },
+                onOpenRoutines = { navController.navigate(BobitosDestination.Routines.route) },
+                onOpenExercises = { navController.navigate(BobitosDestination.Exercises.route) },
+                onOpenMyCalendar = { navController.navigate(BobitosDestination.MyCalendar.route) },
+                onProfile = {
+                    onClearAuthFeedback()
+                    navController.navigateToProfile()
+                },
+            )
+        }
+
         composable(BobitosDestination.Spaces.route) {
-            RootScaffold(
-                currentDestination = BobitosDestination.Spaces,
-                onDestinationSelected = navController::navigateToRoot,
-            ) {
-                SpacesScreen(
-                    state = uiState.spaces,
-                    managementState = spaceManagementState,
-                    syncStatus = uiState.syncStatus,
-                    canWrite = uiState.syncStatus.canWrite,
-                    onProfileClick = {
-                        onClearAuthFeedback()
-                        navController.navigateToProfile()
-                    },
-                    onSpaceSelected = { space ->
-                        onClearSpaceFeedback()
-                        onSpaceSelected(space.id)
-                        navController.navigate(BobitosDestination.SpaceHome.route) {
-                            popUpTo(BobitosDestination.Spaces.route) {
-                                inclusive = true
-                            }
+            SpacesScreen(
+                state = uiState.spaces,
+                managementState = spaceManagementState,
+                syncStatus = uiState.syncStatus,
+                canWrite = uiState.syncStatus.canWrite,
+                onBack = { navController.popBackStack() },
+                onProfileClick = {
+                    onClearAuthFeedback()
+                    navController.navigateToProfile()
+                },
+                onSpaceSelected = { space ->
+                    onClearSpaceFeedback()
+                    onSpaceSelected(space.id)
+                    navController.navigate(BobitosDestination.SpaceHome.route) {
+                        popUpTo(BobitosDestination.Spaces.route) {
+                            inclusive = true
                         }
-                    },
-                    onCreateSpace = onCreateSpace,
-                    onAcceptInvitation = onAcceptInvitation,
-                    pendingInvitationCode = pendingInvitationCode,
-                    onInvitationCodeConsumed = onInvitationCodeConsumed,
-                    onClearFeedback = onClearSpaceFeedback,
-                )
-            }
+                    }
+                },
+                onCreateSpace = onCreateSpace,
+                onAcceptInvitation = onAcceptInvitation,
+                pendingInvitationCode = pendingInvitationCode,
+                onInvitationCodeConsumed = onInvitationCodeConsumed,
+                onClearFeedback = onClearSpaceFeedback,
+            )
         }
 
         composable(BobitosDestination.MyCalendar.route) {
-            RootScaffold(
-                currentDestination = BobitosDestination.MyCalendar,
-                onDestinationSelected = navController::navigateToRoot,
-            ) {
-                PersonalCalendarScreen(
-                    userId = authUser.id,
-                    spaces = (uiState.spaces as? UiState.Content)?.value.orEmpty(),
-                    syncStatus = uiState.syncStatus,
-                    canWrite = uiState.syncStatus.canWrite,
-                    onEventSelected = { eventSpaceId, eventId, date ->
-                        onSpaceSelected(eventSpaceId)
-                        navController.navigate(
-                            "calendar-event/${Uri.encode(eventId)}/$date",
-                        )
-                    },
-                )
-            }
+            PersonalCalendarScreen(
+                userId = authUser.id,
+                spaces = (uiState.spaces as? UiState.Content)?.value.orEmpty(),
+                syncStatus = uiState.syncStatus,
+                canWrite = uiState.syncStatus.canWrite,
+                onBack = { navController.popBackStack() },
+                onEventSelected = { eventSpaceId, eventId, date ->
+                    onSpaceSelected(eventSpaceId)
+                    navController.navigate(
+                        "calendar-event/${Uri.encode(eventId)}/$date",
+                    )
+                },
+            )
         }
 
         composable(BobitosDestination.SpaceHome.route) {
-            BackHandler { navController.navigateToSpaces() }
+            BackHandler { navController.navigateToHome() }
             val summaryViewModel: SpaceHomeViewModel = hiltViewModel()
             val counts by summaryViewModel.counts.collectAsStateWithLifecycle()
             val digest by summaryViewModel.digest.collectAsStateWithLifecycle()
@@ -284,10 +289,6 @@ fun BobitosNavHost(
                 counts = counts,
                 digest = digest,
                 onModuleSelected = navController::navigateToWorkspace,
-                onOpenRecipes = { navController.navigate(BobitosDestination.Recipes.route) },
-                onOpenIngredients = { navController.navigate(BobitosDestination.Ingredients.route) },
-                onOpenExercises = { navController.navigate(BobitosDestination.Exercises.route) },
-                onOpenRoutines = { navController.navigate(BobitosDestination.Routines.route) },
                 onOpenNotes = { navController.navigate(BobitosDestination.Notes.route) },
                 onSwitchSpace = navController::navigateToSpaces,
                 onSpaceSettings = {
@@ -550,27 +551,66 @@ fun BobitosNavHost(
     }
 }
 
+// Menú principal (al abrir la app): espacios + catálogos globales (recetario, ingredientes, rutinas,
+// ejercicios) + calendario personal. Los catálogos no dependen de ningún espacio.
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RootScaffold(
-    currentDestination: BobitosDestination,
-    onDestinationSelected: (BobitosDestination) -> Unit,
-    content: @Composable () -> Unit,
+private fun MainMenuScreen(
+    syncStatus: SyncStatus,
+    onOpenSpaces: () -> Unit,
+    onOpenRecipes: () -> Unit,
+    onOpenIngredients: () -> Unit,
+    onOpenRoutines: () -> Unit,
+    onOpenExercises: () -> Unit,
+    onOpenMyCalendar: () -> Unit,
+    onProfile: () -> Unit,
 ) {
+    val onCardClick: (BobitosDestination) -> Unit = { destination ->
+        when (destination) {
+            BobitosDestination.Spaces -> onOpenSpaces()
+            BobitosDestination.Recipes -> onOpenRecipes()
+            BobitosDestination.Ingredients -> onOpenIngredients()
+            BobitosDestination.Routines -> onOpenRoutines()
+            BobitosDestination.Exercises -> onOpenExercises()
+            BobitosDestination.MyCalendar -> onOpenMyCalendar()
+            else -> Unit
+        }
+    }
     Scaffold(
-        bottomBar = {
-            NavigationBar {
-                BobitosDestination.rootDestinations.forEach { destination ->
-                    NavigationBarItem(
-                        selected = destination == currentDestination,
-                        onClick = { onDestinationSelected(destination) },
-                        icon = { Icon(destination.icon, contentDescription = null) },
-                        label = { Text(stringResource(destination.titleRes)) },
-                    )
-                }
+        topBar = {
+            Column {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = stringResource(R.string.app_name),
+                            style = MaterialTheme.typography.headlineSmall,
+                        )
+                    },
+                    actions = {
+                        IconButton(onClick = onProfile) {
+                            Icon(
+                                Icons.Rounded.AccountCircle,
+                                contentDescription = stringResource(R.string.profile_open),
+                            )
+                        }
+                    },
+                )
+                SyncStatusBanner(syncStatus)
             }
         },
     ) { innerPadding ->
-        Box(Modifier.fillMaxSize().padding(innerPadding)) { content() }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            BobitosDestination.mainMenuDestinations.forEach { destination ->
+                SpaceHomeCard(destination = destination, count = 0, onClick = { onCardClick(destination) })
+            }
+        }
     }
 }
 
@@ -694,10 +734,6 @@ private fun SpaceHomeScreen(
     counts: SpaceModuleCounts?,
     digest: SpaceHomeDigest?,
     onModuleSelected: (BobitosDestination) -> Unit,
-    onOpenRecipes: () -> Unit,
-    onOpenIngredients: () -> Unit,
-    onOpenExercises: () -> Unit,
-    onOpenRoutines: () -> Unit,
     onOpenNotes: () -> Unit,
     onSwitchSpace: () -> Unit,
     onSpaceSettings: () -> Unit,
@@ -748,16 +784,6 @@ private fun SpaceHomeScreen(
                     onClick = { onModuleSelected(destination) },
                 )
             }
-            Text(
-                text = stringResource(R.string.space_home_catalog_section),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-            SpaceHomeCard(destination = BobitosDestination.Recipes, count = 0, onClick = onOpenRecipes)
-            SpaceHomeCard(destination = BobitosDestination.Ingredients, count = 0, onClick = onOpenIngredients)
-            SpaceHomeCard(destination = BobitosDestination.Exercises, count = 0, onClick = onOpenExercises)
-            SpaceHomeCard(destination = BobitosDestination.Routines, count = 0, onClick = onOpenRoutines)
             SpaceHomeCard(destination = BobitosDestination.Notes, count = 0, onClick = onOpenNotes)
             digest?.workload?.let { WorkloadSection(it) }
         }
@@ -830,17 +856,16 @@ private fun NavHostController.navigateToWorkspace(destination: BobitosDestinatio
     }
 }
 
-private fun NavHostController.navigateToRoot(destination: BobitosDestination) {
-    navigate(destination.route) {
-        popUpTo(BobitosDestination.Spaces.route) { saveState = true }
+private fun NavHostController.navigateToHome() {
+    navigate(BobitosDestination.Home.route) {
+        popUpTo(graph.findStartDestination().id) { inclusive = true }
         launchSingleTop = true
-        restoreState = true
     }
 }
 
 private fun NavHostController.navigateToSpaces() {
     navigate(BobitosDestination.Spaces.route) {
-        popUpTo(graph.findStartDestination().id) { inclusive = true }
+        popUpTo(BobitosDestination.Home.route) { inclusive = false }
         launchSingleTop = true
     }
 }
