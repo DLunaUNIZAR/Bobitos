@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.feature.sport
 
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.Routine
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SportActivity
@@ -13,6 +14,8 @@ data class SportUiState(
     val members: UiState<List<SpaceMember>> = UiState.Loading,
     // Catálogo de rutinas (mías + comunes, deduplicado) para el picker de la sesión de gimnasio.
     val routines: List<Routine> = emptyList(),
+    // Catálogo de ejercicios para elegir al añadir uno a la sesión de gimnasio.
+    val exercises: List<CatalogExercise> = emptyList(),
     val isSaving: Boolean = false,
     val error: SportUiMessage? = null,
     val notice: SportUiMessage? = null,

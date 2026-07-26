@@ -6,6 +6,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.Routine
 import com.dlunaunizar.bobitos.core.model.RoutineExercise
 import com.dlunaunizar.bobitos.core.model.SportType
+import com.dlunaunizar.bobitos.data.repository.ExerciseRepository
 import com.dlunaunizar.bobitos.data.repository.RoutineRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.SportActivityRepository
@@ -28,6 +29,7 @@ class SportViewModel @Inject constructor(
     private val repository: SportActivityRepository,
     private val spaces: SpaceRepository,
     private val routines: RoutineRepository,
+    private val exercises: ExerciseRepository,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(SportUiState())
     val uiState: StateFlow<SportUiState> = mutableUiState.asStateFlow()
@@ -37,6 +39,7 @@ class SportViewModel @Inject constructor(
     private var activitiesJob: Job? = null
     private var membersJob: Job? = null
     private var routinesJob: Job? = null
+    private var exercisesJob: Job? = null
 
     fun observe(spaceId: String) {
         if (spaceId == observedSpaceId && activitiesJob?.isActive == true) return
@@ -50,6 +53,7 @@ class SportViewModel @Inject constructor(
                 .collect { members -> mutableUiState.update { it.copy(members = UiState.Content(members)) } }
         }
         observeRoutines()
+        observeExercises()
     }
 
     // Catálogo de rutinas (comunes + mías, deduplicado) para el picker de la sesión de gimnasio. Es
@@ -63,6 +67,16 @@ class SportViewModel @Inject constructor(
             }
                 .catch { mutableUiState.update { it.copy(routines = emptyList()) } }
                 .collect { list -> mutableUiState.update { it.copy(routines = list) } }
+        }
+    }
+
+    // Catálogo de ejercicios para elegir al añadir uno a la sesión. Global; un fallo se ignora.
+    private fun observeExercises() {
+        if (exercisesJob?.isActive == true) return
+        exercisesJob = viewModelScope.launch {
+            exercises.catalog()
+                .catch { mutableUiState.update { it.copy(exercises = emptyList()) } }
+                .collect { list -> mutableUiState.update { it.copy(exercises = list) } }
         }
     }
 
@@ -83,9 +97,11 @@ class SportViewModel @Inject constructor(
         activitiesJob?.cancel()
         membersJob?.cancel()
         routinesJob?.cancel()
+        exercisesJob?.cancel()
         activitiesJob = null
         membersJob = null
         routinesJob = null
+        exercisesJob = null
         observedSpaceId = null
         observedWeekStart = null
     }

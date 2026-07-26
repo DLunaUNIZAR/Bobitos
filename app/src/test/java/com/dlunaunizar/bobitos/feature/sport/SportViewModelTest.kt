@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.feature.sport
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseType
 import com.dlunaunizar.bobitos.core.model.Routine
 import com.dlunaunizar.bobitos.core.model.RoutineExercise
@@ -12,6 +13,7 @@ import com.dlunaunizar.bobitos.core.model.SpaceRole
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.core.model.SportActivity
 import com.dlunaunizar.bobitos.core.model.SportType
+import com.dlunaunizar.bobitos.data.repository.ExerciseRepository
 import com.dlunaunizar.bobitos.data.repository.RoutineRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.SportActivityRepository
@@ -38,7 +40,8 @@ class SportViewModelTest {
     private val repository = FakeSportActivityRepository()
     private val spaceRepository = FakeSpaceRepository()
     private val routineRepository = FakeSportRoutineRepository()
-    private val viewModel = SportViewModel(repository, spaceRepository, routineRepository)
+    private val exerciseRepository = FakeSportExerciseRepository()
+    private val viewModel = SportViewModel(repository, spaceRepository, routineRepository, exerciseRepository)
 
     @Test
     fun `observes activities and members for the active space`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -101,6 +104,16 @@ class SportViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf("Empuje", "Full body"), viewModel.uiState.value.routines.map(Routine::title))
+    }
+
+    @Test
+    fun `observes the exercise catalog for the session editor`() = runTest(mainDispatcherRule.testDispatcher) {
+        exerciseRepository.catalogState.value = listOf(catalogExercise("press-banca", "Press banca"))
+
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        assertEquals(listOf("Press banca"), viewModel.uiState.value.exercises.map(CatalogExercise::name))
     }
 
     @Test
@@ -232,6 +245,31 @@ private class FakeSportRoutineRepository : RoutineRepository {
 
     override suspend fun deleteRoutine(routineId: String) = Unit
 }
+
+private class FakeSportExerciseRepository : ExerciseRepository {
+    val catalogState = MutableStateFlow<List<CatalogExercise>>(emptyList())
+
+    override fun catalog(): Flow<List<CatalogExercise>> = catalogState
+    override fun isCurrentUserCatalogAdmin(): Boolean = false
+    override fun currentUserId(): String? = "u"
+    override suspend fun exerciseById(id: String): CatalogExercise? = null
+    override suspend fun createExercise(name: String, type: ExerciseType, muscleGroup: String?) = Unit
+    override suspend fun updateExercise(id: String, name: String, type: ExerciseType, muscleGroup: String?) = Unit
+    override suspend fun deleteExercise(id: String) = Unit
+}
+
+private fun catalogExercise(id: String, name: String) = CatalogExercise(
+    id = id,
+    name = name,
+    type = ExerciseType.PESO_LIBRE,
+    muscleGroup = null,
+    ownerUid = "u",
+    createdBy = "u",
+    createdByName = "U",
+    createdAt = Instant.EPOCH,
+    updatedBy = "u",
+    updatedAt = Instant.EPOCH,
+)
 
 private fun routine(id: String, title: String) = Routine(
     id = id,
