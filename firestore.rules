@@ -1001,6 +1001,67 @@ service cloud.firestore {
         && request.resource.data.createdByName == "Usuario eliminado";
     }
 
+    function validRoutineShape() {
+      return request.resource.data.keys().hasAll([
+          "ownerUid", "visibility", "title", "description",
+          "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt"
+        ])
+        && request.resource.data.keys().hasOnly([
+          "ownerUid", "visibility", "title", "description",
+          "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt", "exercises"
+        ])
+        && (!request.resource.data.keys().hasAny(["exercises"])
+          || (request.resource.data.exercises is list
+            && request.resource.data.exercises.size() <= 30))
+        && request.resource.data.ownerUid is string
+        && request.resource.data.visibility in ["GLOBAL", "PRIVATE"]
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 120
+        && (request.resource.data.description == null
+          || (request.resource.data.description is string && request.resource.data.description.size() <= 1000))
+        && request.resource.data.createdBy is string
+        && request.resource.data.createdByName is string
+        && request.resource.data.createdByName.size() > 0
+        && request.resource.data.createdByName.size() <= 60
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedBy is string
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function validNewRoutine() {
+      return verifiedUser() && validRoutineShape()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time
+        && (request.resource.data.visibility == "PRIVATE" || isRecipeAdmin());
+    }
+
+    function ownsOrCuratesRoutine() {
+      return verifiedUser()
+        && (resource.data.ownerUid == request.auth.uid
+          || (resource.data.visibility == "GLOBAL" && isRecipeAdmin()));
+    }
+
+    function validRoutineUpdate() {
+      return ownsOrCuratesRoutine() && validRoutineShape()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["title", "description", "exercises", "updatedBy", "updatedAt"])
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.visibility == resource.data.visibility
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdByName == resource.data.createdByName
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
+    }
+
+    function validRoutineAnonymization() {
+      return verifiedUser()
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["createdByName"])
+        && request.resource.data.createdByName == "Usuario eliminado";
+    }
+
     match /recipes/{recipeId} {
       allow get: if verifiedUser()
         && (resource.data.visibility == "GLOBAL" || resource.data.ownerUid == request.auth.uid);
@@ -1010,6 +1071,17 @@ service cloud.firestore {
       allow update: if validRecipeUpdate()
         || validRecipeAnonymization();
       allow delete: if ownsOrCuratesRecipe();
+    }
+
+    match /routines/{routineId} {
+      allow get: if verifiedUser()
+        && (resource.data.visibility == "GLOBAL" || resource.data.ownerUid == request.auth.uid);
+      allow list: if verifiedUser()
+        && (resource.data.visibility == "GLOBAL" || resource.data.ownerUid == request.auth.uid);
+      allow create: if validNewRoutine();
+      allow update: if validRoutineUpdate()
+        || validRoutineAnonymization();
+      allow delete: if ownsOrCuratesRoutine();
     }
 
     // Catálogo global de ingredientes: compartido por todos (cualquiera lee y crea); solo el autor o

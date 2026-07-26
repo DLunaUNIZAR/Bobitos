@@ -85,6 +85,7 @@ import com.dlunaunizar.bobitos.feature.ingredients.IngredientsScreen
 import com.dlunaunizar.bobitos.feature.meals.MealsScreen
 import com.dlunaunizar.bobitos.feature.notes.NotesScreen
 import com.dlunaunizar.bobitos.feature.recipes.RecipesScreen
+import com.dlunaunizar.bobitos.feature.routines.RoutinesScreen
 import com.dlunaunizar.bobitos.feature.shopping.ShoppingScreen
 import com.dlunaunizar.bobitos.feature.spaces.MyDayCard
 import com.dlunaunizar.bobitos.feature.spaces.SpaceHomeDigest
@@ -150,6 +151,7 @@ fun BobitosNavHost(
                 BobitosDestination.Recipes.route,
                 BobitosDestination.Ingredients.route,
                 BobitosDestination.Exercises.route,
+                BobitosDestination.Routines.route,
                 INGREDIENT_DETAIL_ROUTE,
                 -> RealtimeScope.PAUSED
                 else -> RealtimeScope.ACTIVE_SPACE
@@ -285,6 +287,7 @@ fun BobitosNavHost(
                 onOpenRecipes = { navController.navigate(BobitosDestination.Recipes.route) },
                 onOpenIngredients = { navController.navigate(BobitosDestination.Ingredients.route) },
                 onOpenExercises = { navController.navigate(BobitosDestination.Exercises.route) },
+                onOpenRoutines = { navController.navigate(BobitosDestination.Routines.route) },
                 onOpenNotes = { navController.navigate(BobitosDestination.Notes.route) },
                 onSwitchSpace = navController::navigateToSpaces,
                 onSpaceSettings = {
@@ -418,6 +421,7 @@ fun BobitosNavHost(
                         spaceId = space.id,
                         canWrite = uiState.syncStatus.canWrite,
                         onOpenExercises = { navController.navigate(BobitosDestination.Exercises.route) },
+                        onOpenRoutines = { navController.navigate(BobitosDestination.Routines.route) },
                     )
                 }
             }
@@ -490,6 +494,13 @@ fun BobitosNavHost(
 
         composable(BobitosDestination.Exercises.route) {
             ExercisesScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(BobitosDestination.Routines.route) {
+            RoutinesScreen(
+                onBack = { navController.popBackStack() },
+                canWrite = uiState.syncStatus.canWrite,
+            )
         }
 
         composable(BobitosDestination.Notes.route) {
@@ -686,6 +697,7 @@ private fun SpaceHomeScreen(
     onOpenRecipes: () -> Unit,
     onOpenIngredients: () -> Unit,
     onOpenExercises: () -> Unit,
+    onOpenRoutines: () -> Unit,
     onOpenNotes: () -> Unit,
     onSwitchSpace: () -> Unit,
     onSpaceSettings: () -> Unit,
@@ -745,6 +757,7 @@ private fun SpaceHomeScreen(
             SpaceHomeCard(destination = BobitosDestination.Recipes, count = 0, onClick = onOpenRecipes)
             SpaceHomeCard(destination = BobitosDestination.Ingredients, count = 0, onClick = onOpenIngredients)
             SpaceHomeCard(destination = BobitosDestination.Exercises, count = 0, onClick = onOpenExercises)
+            SpaceHomeCard(destination = BobitosDestination.Routines, count = 0, onClick = onOpenRoutines)
             SpaceHomeCard(destination = BobitosDestination.Notes, count = 0, onClick = onOpenNotes)
             digest?.workload?.let { WorkloadSection(it) }
         }

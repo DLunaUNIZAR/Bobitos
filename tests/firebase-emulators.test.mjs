@@ -1345,6 +1345,146 @@ test("solo el autor o un admin editan/borran un ejercicio del catálogo", async 
   await assertSucceeds(writeBatch(admin).delete(doc(admin, "exercises", "curl")).commit());
 });
 
+test("cualquier usuario verificado crea y lee sus rutinas personales, no las ajenas", async () => {
+  const trainer = verifiedFirestore("routine-trainer");
+  const other = verifiedFirestore("routine-other");
+  const reference = doc(trainer, "routines", "trainer-private");
+
+  await assertSucceeds(setDoc(reference, routineData("routine-trainer")));
+  await assertSucceeds(getDoc(reference));
+  await assertFails(getDoc(doc(other, "routines", "trainer-private")));
+});
+
+test("las rutinas del catálogo común (GLOBAL) las lee cualquier usuario verificado", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const timestamp = Timestamp.now();
+    await setDoc(doc(context.firestore(), "routines", "global-routine-1"), {
+      ...routineData("routine-catalog-owner", { visibility: "GLOBAL" }),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+  });
+  const anyone = verifiedFirestore("routine-reader");
+
+  await assertSucceeds(getDoc(doc(anyone, "routines", "global-routine-1")));
+  await assertSucceeds(
+    getDocs(query(collection(anyone, "routines"), where("visibility", "==", "GLOBAL"))),
+  );
+});
+
+test("un usuario no puede crear una rutina a nombre de otro ni una GLOBAL sin ser admin", async () => {
+  const trainer = verifiedFirestore("routine-spoof");
+
+  await assertFails(
+    setDoc(doc(trainer, "routines", "spoofed"), routineData("routine-spoof", { ownerUid: "someone-else" })),
+  );
+  await assertFails(
+    setDoc(doc(trainer, "routines", "sneaky-global"), routineData("routine-spoof", { visibility: "GLOBAL" })),
+  );
+});
+
+test("un admin del catálogo puede publicar una rutina GLOBAL y curar (borrar) la ajena", async () => {
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  await assertSucceeds(
+    setDoc(
+      doc(admin, "routines", "curated-routine"),
+      routineData(RECIPE_ADMIN_UID, { visibility: "GLOBAL", title: "Full body común" }),
+    ),
+  );
+
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const timestamp = Timestamp.now();
+    await setDoc(doc(context.firestore(), "routines", "curated-foreign"), {
+      ...routineData("otro-autor", { visibility: "GLOBAL" }),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+  });
+  const normal = verifiedFirestore("routine-normal");
+  await assertFails(writeBatch(normal).delete(doc(normal, "routines", "curated-foreign")).commit());
+  await assertSucceeds(writeBatch(admin).delete(doc(admin, "routines", "curated-foreign")).commit());
+});
+
+test("solo el propietario edita o borra su rutina personal", async () => {
+  const trainer = verifiedFirestore("routine-owner");
+  const other = verifiedFirestore("routine-intruder");
+  const reference = doc(trainer, "routines", "owned-routine");
+  await assertSucceeds(setDoc(reference, routineData("routine-owner")));
+
+  await assertFails(
+    updateDoc(doc(other, "routines", "owned-routine"), {
+      title: "Editada por otro",
+      updatedBy: "routine-intruder",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertFails(writeBatch(other).delete(doc(other, "routines", "owned-routine")).commit());
+  await assertSucceeds(
+    updateDoc(reference, {
+      title: "Editada por su dueño",
+      updatedBy: "routine-owner",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertSucceeds(writeBatch(trainer).delete(reference).commit());
+});
+
+test("una rutina no puede cambiar de propietario ni de visibilidad al editarla", async () => {
+  const trainer = verifiedFirestore("routine-immutable");
+  const reference = doc(trainer, "routines", "fixed-routine");
+  await assertSucceeds(setDoc(reference, routineData("routine-immutable")));
+
+  await assertFails(
+    updateDoc(reference, {
+      visibility: "GLOBAL",
+      updatedBy: "routine-immutable",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+});
+
+test("la rutina valida la forma y rechaza campos ajenos o una lista de ejercicios enorme", async () => {
+  const trainer = verifiedFirestore("routine-schema");
+
+  await assertFails(
+    setDoc(doc(trainer, "routines", "bad-visibility"), routineData("routine-schema", { visibility: "SECRETO" })),
+  );
+  await assertFails(
+    setDoc(doc(trainer, "routines", "extra-field"), routineData("routine-schema", { spaceId: "x" })),
+  );
+  await assertFails(
+    setDoc(
+      doc(trainer, "routines", "too-many-exercises"),
+      routineData("routine-schema", {
+        exercises: Array.from({ length: 31 }, (_, index) => ({ name: `ej-${index}`, type: "OTROS" })),
+      }),
+    ),
+  );
+  await assertFails(
+    setDoc(doc(trainer, "routines", "bad-exercises"), routineData("routine-schema", { exercises: "press, curl" })),
+  );
+});
+
+test("un usuario puede anonimizar el autor de su rutina pero no el de otra", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const timestamp = Timestamp.now();
+    await setDoc(doc(context.firestore(), "routines", "anon-routine"), {
+      ...routineData("routine-anon", { visibility: "GLOBAL" }),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+  });
+  const owner = verifiedFirestore("routine-anon");
+  const other = verifiedFirestore("routine-anon-other");
+
+  await assertSucceeds(
+    updateDoc(doc(owner, "routines", "anon-routine"), { createdByName: "Usuario eliminado" }),
+  );
+  await assertFails(
+    updateDoc(doc(other, "routines", "anon-routine"), { createdByName: "Nombre manipulado" }),
+  );
+});
+
 test("las preferencias de ingredientes solo las lee y escribe su dueño", async () => {
   const alice = verifiedFirestore("pref-alice");
   const bob = verifiedFirestore("pref-bob");
@@ -1476,6 +1616,22 @@ function recipeData(userId, overrides = {}) {
     title: "Lentejas",
     description: null,
     category: null,
+    createdBy: userId,
+    createdByName: userId,
+    createdAt: serverTimestamp(),
+    updatedBy: userId,
+    updatedAt: serverTimestamp(),
+    ...overrides,
+  };
+}
+
+function routineData(userId, overrides = {}) {
+  return {
+    ownerUid: userId,
+    visibility: "PRIVATE",
+    title: "Empuje",
+    description: null,
+    exercises: [{ name: "Press banca", type: "PESO_LIBRE", sets: [{ reps: 10, weight: 60 }] }],
     createdBy: userId,
     createdByName: userId,
     createdAt: serverTimestamp(),

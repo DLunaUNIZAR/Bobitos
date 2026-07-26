@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.core.navigation
 
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ListAlt
 import androidx.compose.material.icons.automirrored.rounded.StickyNote2
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Checklist
@@ -74,6 +75,11 @@ enum class BobitosDestination(val route: String, @param:StringRes val titleRes: 
         route = "exercises",
         titleRes = R.string.exercises_title,
         icon = Icons.Rounded.FitnessCenter,
+    ),
+    Routines(
+        route = "routines",
+        titleRes = R.string.routines_title,
+        icon = Icons.AutoMirrored.Rounded.ListAlt,
     ),
     Notes(
         route = "notes",
