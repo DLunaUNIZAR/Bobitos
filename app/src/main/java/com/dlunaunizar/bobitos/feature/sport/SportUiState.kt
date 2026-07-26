@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.feature.sport
 
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.Routine
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SportActivity
 import java.time.LocalDate
@@ -10,6 +11,8 @@ data class SportUiState(
     val focusedDate: LocalDate = LocalDate.now(),
     val activities: UiState<List<SportActivity>> = UiState.Loading,
     val members: UiState<List<SpaceMember>> = UiState.Loading,
+    // Catálogo de rutinas (mías + comunes, deduplicado) para el picker de la sesión de gimnasio.
+    val routines: List<Routine> = emptyList(),
     val isSaving: Boolean = false,
     val error: SportUiMessage? = null,
     val notice: SportUiMessage? = null,

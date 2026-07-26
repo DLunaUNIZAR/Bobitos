@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.data.repository
 
 import com.dlunaunizar.bobitos.core.model.AuthUser
+import com.dlunaunizar.bobitos.core.model.RoutineExercise
 import com.dlunaunizar.bobitos.core.model.SportActivity
 import com.dlunaunizar.bobitos.core.model.SportType
 import com.dlunaunizar.bobitos.data.sync.RealtimeMetrics
@@ -72,9 +73,12 @@ class FirestoreSportActivityRepository @Inject constructor(
         type: SportType,
         name: String,
         participantIds: List<String>,
+        routineId: String?,
+        session: List<RoutineExercise>,
     ) = runActivityOperation {
         val user = requireVerifiedUser()
         val normalizedName = validate(name, participantIds)
+        val gym = GymSession(type, routineId, session)
         val spaceReference = firestore.collection(SPACES).document(spaceId)
         val activityReference = activitiesCollection(spaceId).document()
         val memberReferences = participantIds.map { membership(spaceId, it) }
@@ -87,7 +91,7 @@ class FirestoreSportActivityRepository @Inject constructor(
             requireParticipants(participantIds, members)
             transaction.set(
                 activityReference,
-                activityData(user, date, type, normalizedName, participantIds, members.displayNames()),
+                activityData(user, date, type, normalizedName, participantIds, members.displayNames(), gym),
             )
         }.await()
         Unit
@@ -100,9 +104,12 @@ class FirestoreSportActivityRepository @Inject constructor(
         type: SportType,
         name: String,
         participantIds: List<String>,
+        routineId: String?,
+        session: List<RoutineExercise>,
     ) = runActivityOperation {
         val user = requireVerifiedUser()
         val normalizedName = validate(name, participantIds)
+        val gym = GymSession(type, routineId, session)
         val reference = activitiesCollection(spaceId).document(activityId)
         val memberReferences = participantIds.map { membership(spaceId, it) }
 
@@ -112,7 +119,7 @@ class FirestoreSportActivityRepository @Inject constructor(
             requireParticipants(participantIds, members)
             transaction.update(
                 reference,
-                activityUpdateData(user, date, type, normalizedName, participantIds, members.displayNames()),
+                activityUpdateData(user, date, type, normalizedName, participantIds, members.displayNames(), gym),
             )
         }.await()
         Unit
@@ -195,6 +202,13 @@ class FirestoreSportActivityRepository @Inject constructor(
 
     private fun List<DocumentSnapshot>.displayNames(): List<String> = map { it.getString(FIELD_DISPLAY_NAME).orEmpty() }
 
+    // La rutina y la sesión solo tienen sentido en GIMNASIO: para el resto se fuerzan a vacío para
+    // que ningún tipo arrastre datos de sesión ajenos.
+    private class GymSession(type: SportType, routineId: String?, session: List<RoutineExercise>) {
+        val routineId: String? = routineId?.takeIf { type == SportType.GIMNASIO }
+        val session: List<RoutineExercise> = if (type == SportType.GIMNASIO) session else emptyList()
+    }
+
     private fun activityData(
         user: AuthUser,
         date: LocalDate,
@@ -202,7 +216,8 @@ class FirestoreSportActivityRepository @Inject constructor(
         name: String,
         participantIds: List<String>,
         participantNames: List<String>,
-    ) = commonData(date, type, name, participantIds, participantNames) + mapOf(
+        gym: GymSession,
+    ) = commonData(date, type, name, participantIds, participantNames, gym) + mapOf(
         FIELD_DONE to false,
         FIELD_CREATED_BY to user.id,
         FIELD_CREATED_BY_NAME to user.sportDisplayName,
@@ -218,7 +233,8 @@ class FirestoreSportActivityRepository @Inject constructor(
         name: String,
         participantIds: List<String>,
         participantNames: List<String>,
-    ) = commonData(date, type, name, participantIds, participantNames) + mapOf(
+        gym: GymSession,
+    ) = commonData(date, type, name, participantIds, participantNames, gym) + mapOf(
         FIELD_UPDATED_BY to user.id,
         FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
     )
@@ -229,12 +245,15 @@ class FirestoreSportActivityRepository @Inject constructor(
         name: String,
         participantIds: List<String>,
         participantNames: List<String>,
+        gym: GymSession,
     ) = mapOf(
         FIELD_DATE to date.toString(),
         FIELD_TYPE to type.name,
         FIELD_NAME to name,
         FIELD_PARTICIPANT_IDS to participantIds,
         FIELD_PARTICIPANT_NAMES to participantNames,
+        FIELD_ROUTINE_ID to gym.routineId,
+        FIELD_SESSION to gym.session.toFirestoreExercises(),
     )
 
     private suspend inline fun <T> runActivityOperation(crossinline operation: suspend () -> T): T {
@@ -263,6 +282,8 @@ class FirestoreSportActivityRepository @Inject constructor(
         const val FIELD_NAME = "name"
         const val FIELD_PARTICIPANT_IDS = "participantIds"
         const val FIELD_PARTICIPANT_NAMES = "participantNames"
+        const val FIELD_ROUTINE_ID = "routineId"
+        const val FIELD_SESSION = "session"
         const val FIELD_DONE = "done"
         const val FIELD_CREATED_BY = "createdBy"
         const val FIELD_CREATED_BY_NAME = "createdByName"
@@ -295,6 +316,8 @@ private fun DocumentSnapshot.toSportActivity(): SportActivity? {
         participantIds = (get("participantIds") as? List<*>)?.filterIsInstance<String>().orEmpty(),
         participantNames = (get("participantNames") as? List<*>)?.filterIsInstance<String>().orEmpty(),
         done = getBoolean("done") == true,
+        routineId = getString("routineId"),
+        session = parseRoutineExercises(get("session")).orEmpty(),
         createdBy = getString("createdBy") ?: return null,
         createdByName = getString("createdByName") ?: getString("createdBy") ?: return null,
         createdAt = createdAt,

@@ -1887,6 +1887,54 @@ test("las actividades validan el tipo y rechazan campos ajenos al contrato", asy
   );
 });
 
+test("una actividad de gimnasio guarda rutina y sesión, y las admite al editar", async () => {
+  await seedSpace("act-gym", "act-gym-owner");
+  const owner = verifiedFirestore("act-gym-owner");
+
+  await assertSucceeds(
+    setDoc(
+      doc(owner, "spaces", "act-gym", "activities", "gym-ok"),
+      activityData("act-gym-owner", {
+        type: "GIMNASIO",
+        routineId: "rutina-1",
+        session: [{ name: "Sentadilla", type: "PESO_LIBRE", sets: [{ reps: 8, weight: 80 }] }],
+      }),
+    ),
+  );
+
+  const editable = doc(owner, "spaces", "act-gym", "activities", "gym-edit");
+  await assertSucceeds(setDoc(editable, activityData("act-gym-owner", { type: "GIMNASIO" })));
+  await assertSucceeds(
+    updateDoc(editable, {
+      routineId: "rutina-2",
+      session: [{ name: "Press", type: "MAQUINA", sets: [] }],
+      updatedBy: "act-gym-owner",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+});
+
+test("una actividad rechaza una sesión enorme o un routineId no textual", async () => {
+  await seedSpace("act-session", "act-session-owner");
+  const owner = verifiedFirestore("act-session-owner");
+
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "act-session", "activities", "bad-routine"),
+      activityData("act-session-owner", { type: "GIMNASIO", routineId: 123 }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "act-session", "activities", "huge-session"),
+      activityData("act-session-owner", {
+        type: "GIMNASIO",
+        session: Array.from({ length: 31 }, (_, index) => ({ name: `ej-${index}`, type: "OTROS" })),
+      }),
+    ),
+  );
+});
+
 test("las actividades exigen que participantNames tenga el mismo tamaño que participantIds", async () => {
   await seedSpace("act-parts", "act-parts-owner");
   const owner = verifiedFirestore("act-parts-owner");

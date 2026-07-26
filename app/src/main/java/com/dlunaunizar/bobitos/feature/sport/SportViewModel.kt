@@ -3,7 +3,10 @@ package com.dlunaunizar.bobitos.feature.sport
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.Routine
+import com.dlunaunizar.bobitos.core.model.RoutineExercise
 import com.dlunaunizar.bobitos.core.model.SportType
+import com.dlunaunizar.bobitos.data.repository.RoutineRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.SportActivityRepository
 import com.dlunaunizar.bobitos.data.repository.SportFailure
@@ -14,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -23,6 +27,7 @@ import javax.inject.Inject
 class SportViewModel @Inject constructor(
     private val repository: SportActivityRepository,
     private val spaces: SpaceRepository,
+    private val routines: RoutineRepository,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(SportUiState())
     val uiState: StateFlow<SportUiState> = mutableUiState.asStateFlow()
@@ -31,6 +36,7 @@ class SportViewModel @Inject constructor(
     private var observedWeekStart: LocalDate? = null
     private var activitiesJob: Job? = null
     private var membersJob: Job? = null
+    private var routinesJob: Job? = null
 
     fun observe(spaceId: String) {
         if (spaceId == observedSpaceId && activitiesJob?.isActive == true) return
@@ -42,6 +48,21 @@ class SportViewModel @Inject constructor(
             spaces.members(spaceId)
                 .catch { error -> mutableUiState.update { it.copy(members = UiState.Error(error.message)) } }
                 .collect { members -> mutableUiState.update { it.copy(members = UiState.Content(members)) } }
+        }
+        observeRoutines()
+    }
+
+    // Catálogo de rutinas (comunes + mías, deduplicado) para el picker de la sesión de gimnasio. Es
+    // global (independiente del espacio); un fallo se ignora (el picker aparecerá vacío).
+    private fun observeRoutines() {
+        if (routinesJob?.isActive == true) return
+        routinesJob = viewModelScope.launch {
+            combine(routines.globalRoutines(), routines.myRoutines()) { global, mine ->
+                val mineIds = mine.map(Routine::id).toSet()
+                mine + global.filter { it.id !in mineIds }
+            }
+                .catch { mutableUiState.update { it.copy(routines = emptyList()) } }
+                .collect { list -> mutableUiState.update { it.copy(routines = list) } }
         }
     }
 
@@ -61,8 +82,10 @@ class SportViewModel @Inject constructor(
     fun stopObserving() {
         activitiesJob?.cancel()
         membersJob?.cancel()
+        routinesJob?.cancel()
         activitiesJob = null
         membersJob = null
+        routinesJob = null
         observedSpaceId = null
         observedWeekStart = null
     }
@@ -78,11 +101,18 @@ class SportViewModel @Inject constructor(
         observedSpaceId?.let(::observeWeek)
     }
 
-    fun addActivity(date: LocalDate, type: SportType, name: String, participantIds: List<String>) {
+    fun addActivity(
+        date: LocalDate,
+        type: SportType,
+        name: String,
+        participantIds: List<String>,
+        routineId: String? = null,
+        session: List<RoutineExercise> = emptyList(),
+    ) {
         val spaceId = observedSpaceId ?: return
         if (!validate(name)) return
         runAction(SportUiMessage.ActivityAdded) {
-            repository.addActivity(spaceId, date, type, name.trim(), participantIds)
+            repository.addActivity(spaceId, date, type, name.trim(), participantIds, routineId, session)
         }
     }
 
@@ -92,11 +122,13 @@ class SportViewModel @Inject constructor(
         type: SportType,
         name: String,
         participantIds: List<String>,
+        routineId: String? = null,
+        session: List<RoutineExercise> = emptyList(),
     ) {
         val spaceId = observedSpaceId ?: return
         if (!validate(name)) return
         runAction(SportUiMessage.ActivityUpdated) {
-            repository.updateActivity(spaceId, activityId, date, type, name.trim(), participantIds)
+            repository.updateActivity(spaceId, activityId, date, type, name.trim(), participantIds, routineId, session)
         }
     }
 
