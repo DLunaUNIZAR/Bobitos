@@ -71,6 +71,7 @@ import java.util.Locale
 fun SportScreen(
     spaceId: String,
     canWrite: Boolean,
+    onOpenExercises: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SportViewModel = hiltViewModel(),
 ) {
@@ -105,10 +106,18 @@ fun SportScreen(
                 onSelectDay = viewModel::selectDay,
             )
             Spacer(Modifier.height(Spacing.sm))
-            Text(
-                text = state.focusedDate.formatHeader(),
-                style = MaterialTheme.typography.titleMedium,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = state.focusedDate.formatHeader(),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = onOpenExercises) {
+                    Icon(Icons.Rounded.FitnessCenter, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(Spacing.xs))
+                    Text(stringResource(R.string.exercises_open))
+                }
+            }
             SportFeedback(state, viewModel::clearFeedback)
             when (val activities = state.activities) {
                 UiState.Loading -> LoadingState(Modifier.weight(1f))

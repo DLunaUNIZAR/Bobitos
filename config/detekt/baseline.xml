@@ -22,6 +22,7 @@
     <ID>LongMethod:BobitosNavHost.kt$@Composable fun BobitosNavHost( navController: NavHostController, uiState: AppUiState, authUser: AuthUser, authActionState: AuthActionUiState, spaceManagementState: SpaceManagementUiState, onSpaceSelected: (String) -&gt; Unit, onRealtimeScopeChanged: (RealtimeScope) -&gt; Unit, onCreateSpace: (String) -&gt; Unit, onObserveSpaceSettings: (String, Boolean) -&gt; Unit, onStopObservingSpaceSettings: () -&gt; Unit, onRenameSpace: (String, String) -&gt; Unit, onLeaveSpace: (String) -&gt; Unit, onRemoveMember: (String, String) -&gt; Unit, onTransferOwnership: (String, String) -&gt; Unit, onDeleteSpace: (String) -&gt; Unit, onCreateInvitation: (String) -&gt; Unit, onRevokeInvitation: (String) -&gt; Unit, onAcceptInvitation: (String) -&gt; Unit, onShareInvitation: (SpaceInvitation) -&gt; Unit, onConsumeAcceptedSpace: () -&gt; Unit, pendingInvitationCode: String?, onInvitationCodeConsumed: () -&gt; Unit, pendingRecipeImportUrl: String?, onRecipeImportUrlConsumed: () -&gt; Unit, onClearSpaceFeedback: () -&gt; Unit, onUpdateDisplayName: (String) -&gt; Unit, onSignOut: () -&gt; Unit, onDeleteAccount: (String) -&gt; Unit, onClearAuthFeedback: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
     <ID>LongMethod:CalendarScreen.kt$@Composable fun CalendarScreen( spaceId: String, canWrite: Boolean, modifier: Modifier = Modifier, initialEventId: String? = null, initialDate: LocalDate? = null, viewModel: CalendarViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:CalendarScreen.kt$@Composable internal fun EventEditor( event: CalendarEvent?, day: LocalDate, initialStart: LocalTime?, members: List&lt;SpaceMember&gt;, saving: Boolean, canWrite: Boolean, dismiss: () -&gt; Unit, save: (String?, EventInput) -&gt; Unit, )</ID>
+    <ID>LongMethod:ExercisesScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ExercisesScreen( onBack: () -&gt; Unit, modifier: Modifier = Modifier, viewModel: ExercisesViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:IngredientDetailScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun IngredientDetailScreen( ingredientId: String, onBack: () -&gt; Unit, modifier: Modifier = Modifier, viewModel: IngredientDetailViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:IngredientsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun IngredientsScreen( onBack: () -&gt; Unit, onOpenIngredient: (String) -&gt; Unit, modifier: Modifier = Modifier, viewModel: IngredientsViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:LoginScreen.kt$@Composable fun LoginScreen( actionState: AuthActionUiState, onSignIn: (email: String, password: String) -&gt; Unit, onRegisterClick: () -&gt; Unit, onPasswordResetClick: () -&gt; Unit, onClearFeedback: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
@@ -39,11 +40,12 @@
     <ID>LongMethod:ShoppingScreen.kt$@Composable private fun ShoppingItemEditor( item: ShoppingItem?, saving: Boolean, resolveDuplicate: (String) -&gt; ShoppingItem?, suggestions: (String) -&gt; List&lt;String&gt;, prefFor: (String) -&gt; IngredientPref?, onDismiss: () -&gt; Unit, onSave: (String, String?, String?, Supermarket?, String?) -&gt; Unit, )</ID>
     <ID>LongMethod:SpaceSettingsScreen.kt$@Composable fun SpaceSettingsScreen( space: SpaceSummary, currentUserId: String, state: SpaceManagementUiState, syncStatus: SyncStatus, canWrite: Boolean, onObserveSpaceSettings: (String, Boolean) -&gt; Unit, onStopObservingSpaceSettings: () -&gt; Unit, onRenameSpace: (String, String) -&gt; Unit, onLeaveSpace: (String) -&gt; Unit, onRemoveMember: (String, String) -&gt; Unit, onTransferOwnership: (String, String) -&gt; Unit, onDeleteSpace: (String) -&gt; Unit, onCreateInvitation: (String) -&gt; Unit, onRevokeInvitation: (String) -&gt; Unit, onShareInvitation: (SpaceInvitation) -&gt; Unit, onClearFeedback: () -&gt; Unit, onBack: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
     <ID>LongMethod:SpacesScreen.kt$@Composable private fun SpacesContent( spaces: List&lt;SpaceSummary&gt;, managementState: SpaceManagementUiState, syncStatus: SyncStatus, canWrite: Boolean, onSpaceSelected: (SpaceSummary) -&gt; Unit, onCreateSpace: (String) -&gt; Unit, onAcceptInvitation: (String) -&gt; Unit, pendingInvitationCode: String?, onInvitationCodeConsumed: () -&gt; Unit, onProfileClick: () -&gt; Unit, onClearFeedback: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
-    <ID>LongMethod:SportScreen.kt$@Composable fun SportScreen( spaceId: String, canWrite: Boolean, modifier: Modifier = Modifier, viewModel: SportViewModel = hiltViewModel(), )</ID>
+    <ID>LongMethod:SportScreen.kt$@Composable fun SportScreen( spaceId: String, canWrite: Boolean, onOpenExercises: () -&gt; Unit, modifier: Modifier = Modifier, viewModel: SportViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:TasksScreen.kt$@Composable fun TasksScreen( spaceId: String, canWrite: Boolean, modifier: Modifier = Modifier, viewModel: TasksViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:TasksScreen.kt$@Composable private fun TaskEditor( task: TaskItem?, template: TaskTemplate?, members: List&lt;SpaceMember&gt;, saving: Boolean, onDismiss: () -&gt; Unit, onInvalidDate: () -&gt; Unit, onSave: (String, String?, String?, Instant?, TaskPriority, TaskType?, TaskRecurrence?, Instant?) -&gt; Unit, )</ID>
     <ID>NestedBlockDepth:FirestoreSyncRepository.kt$FirestoreSyncRepository$override suspend fun refresh(spaceId: String?): Boolean</ID>
     <ID>ReturnCount:FirestoreCalendarRepository.kt$private fun DocumentSnapshot.toCalendarEvent(): CalendarEvent?</ID>
+    <ID>ReturnCount:FirestoreExerciseRepository.kt$private fun DocumentSnapshot.toCatalogExercise(): CatalogExercise?</ID>
     <ID>ReturnCount:FirestoreIngredientBrandRepository.kt$private fun DocumentSnapshot.toIngredientBrand(ingredientId: String): IngredientBrand?</ID>
     <ID>ReturnCount:FirestoreIngredientRepository.kt$private fun DocumentSnapshot.toCatalogIngredient(): CatalogIngredient?</ID>
     <ID>ReturnCount:FirestoreMealRepository.kt$private fun DocumentSnapshot.toMeal(): Meal?</ID>
@@ -54,6 +56,8 @@
     <ID>ReturnCount:FirestoreTaskRepository.kt$private fun DocumentSnapshot.toTaskItem(): TaskItem?</ID>
     <ID>SwallowedException:FirestoreSyncRepository.kt$FirestoreSyncRepository$error: Throwable</ID>
     <ID>ThrowsCount:FirestoreCalendarRepository.kt$private fun EventInput.validated(): EventInput</ID>
+    <ID>ThrowsCount:FirestoreExerciseRepository.kt$FirestoreExerciseRepository$private fun validate(name: String, muscleGroup: String?): ExerciseValues</ID>
+    <ID>ThrowsCount:FirestoreExerciseRepository.kt$FirestoreExerciseRepository$private suspend inline fun &lt;T&gt; runOperation(crossinline operation: suspend () -&gt; T): T</ID>
     <ID>ThrowsCount:FirestoreIngredientBrandRepository.kt$FirestoreIngredientBrandRepository$private fun validate(name: String, barcode: String?): BrandValues</ID>
     <ID>ThrowsCount:FirestoreIngredientBrandRepository.kt$FirestoreIngredientBrandRepository$private suspend inline fun &lt;T&gt; runOperation(crossinline operation: suspend () -&gt; T): T</ID>
     <ID>ThrowsCount:FirestoreIngredientPrefsRepository.kt$FirestoreIngredientPrefsRepository$private suspend inline fun &lt;T&gt; runOperation(crossinline operation: suspend () -&gt; T): T</ID>
@@ -76,10 +80,12 @@
     <ID>ThrowsCount:FirestoreTaskRepository.kt$FirestoreTaskRepository$private suspend inline fun &lt;T&gt; runTaskOperation(crossinline operation: suspend () -&gt; T): T</ID>
     <ID>TooGenericExceptionCaught:AuthViewModel.kt$AuthViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:CalendarViewModel.kt$CalendarViewModel$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:ExercisesViewModel.kt$ExercisesViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirebaseAccountRepository.kt$FirebaseAccountRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirebaseAuthRepository.kt$FirebaseAuthRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirebaseAuthRepository.kt$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreCalendarRepository.kt$FirestoreCalendarRepository$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:FirestoreExerciseRepository.kt$FirestoreExerciseRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreIngredientBrandRepository.kt$FirestoreIngredientBrandRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreIngredientPrefsRepository.kt$FirestoreIngredientPrefsRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreIngredientRepository.kt$FirestoreIngredientRepository$error: Throwable</ID>
@@ -100,6 +106,7 @@
     <ID>TooGenericExceptionCaught:SpacesViewModel.kt$SpacesViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:SportViewModel.kt$SportViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:TasksViewModel.kt$TasksViewModel$error: Throwable</ID>
+    <ID>TooManyFunctions:DataModule.kt$DataModule</ID>
     <ID>TooManyFunctions:MealsViewModel.kt$MealsViewModel : ViewModel</ID>
     <ID>TooManyFunctions:SpaceRepository.kt$SpaceRepository</ID>
     <ID>TooManyFunctions:TasksScreen.kt$com.dlunaunizar.bobitos.feature.tasks.TasksScreen.kt</ID>

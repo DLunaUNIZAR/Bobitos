@@ -70,6 +70,11 @@ enum class BobitosDestination(val route: String, @param:StringRes val titleRes: 
         titleRes = R.string.ingredients_title,
         icon = Icons.Rounded.Kitchen,
     ),
+    Exercises(
+        route = "exercises",
+        titleRes = R.string.exercises_title,
+        icon = Icons.Rounded.FitnessCenter,
+    ),
     Notes(
         route = "notes",
         titleRes = R.string.notes_title,

@@ -1066,6 +1066,56 @@ service cloud.firestore {
         && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
     }
 
+    function validExerciseShape() {
+      return request.resource.data.keys().hasAll([
+          "name", "nameLower", "type", "ownerUid", "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt"
+        ])
+        && request.resource.data.keys().hasOnly([
+          "name", "nameLower", "type", "ownerUid", "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt",
+          "muscleGroup"
+        ])
+        && request.resource.data.type in ["MAQUINA", "PESO_LIBRE", "CARDIO", "OTROS"]
+        && (!request.resource.data.keys().hasAny(["muscleGroup"])
+          || request.resource.data.muscleGroup == null
+          || (request.resource.data.muscleGroup is string && request.resource.data.muscleGroup.size() <= 60))
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.nameLower is string
+        && request.resource.data.nameLower.size() <= 120
+        && request.resource.data.ownerUid is string
+        && request.resource.data.createdBy is string
+        && request.resource.data.createdByName is string
+        && request.resource.data.createdByName.size() > 0
+        && request.resource.data.createdByName.size() <= 60
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedBy is string
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function validNewExercise() {
+      return verifiedUser() && validExerciseShape()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
+    }
+
+    function ownsOrCuratesExercise() {
+      return verifiedUser()
+        && (resource.data.ownerUid == request.auth.uid || isRecipeAdmin());
+    }
+
+    function validExerciseUpdate() {
+      return ownsOrCuratesExercise() && validExerciseShape()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["name", "nameLower", "type", "muscleGroup", "updatedBy", "updatedAt"])
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdByName == resource.data.createdByName
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
+    }
+
     // Marca del catálogo con nutrición (por 100 g/ml). `barcode` opcional (≤32) y los 6 valores
     // nutricionales opcionales de tipo number. Ninguna clave fuera del contrato.
     function optionalNumberField(key) {
@@ -1138,6 +1188,15 @@ service cloud.firestore {
         allow update: if validBrandUpdate();
         allow delete: if ownsOrCuratesBrand();
       }
+    }
+
+    // Catálogo global de ejercicios (≈ ingredientes): lo lee cualquier verificado; crea/edita el dueño
+    // o un admin. Sin subcolecciones. Sin get()/exists().
+    match /exercises/{exerciseId} {
+      allow get, list: if verifiedUser();
+      allow create: if validNewExercise();
+      allow update: if validExerciseUpdate();
+      allow delete: if ownsOrCuratesExercise();
     }
 
     // Preferencias de ingredientes por usuario (supermercado/marca por defecto): documento privado del

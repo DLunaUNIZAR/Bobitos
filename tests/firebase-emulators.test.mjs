@@ -1292,6 +1292,59 @@ test("una ficha del catálogo congela su ownerUid y rechaza campos ajenos al con
   await assertFails(setDoc(doc(chef, "ingredients", "vacio"), ingredientData("ing-shape", { name: "" })));
 });
 
+test("cualquier usuario crea un ejercicio del catálogo y todos lo leen, pero no a nombre de otro", async () => {
+  const alice = verifiedFirestore("ex-alice");
+  const bob = verifiedFirestore("ex-bob");
+
+  await assertSucceeds(setDoc(doc(alice, "exercises", "press-banca"), exerciseData("ex-alice")));
+  await assertSucceeds(getDoc(doc(bob, "exercises", "press-banca")));
+  await assertFails(setDoc(doc(bob, "exercises", "sentadilla"), exerciseData("ex-alice")));
+});
+
+test("un ejercicio valida el tipo y rechaza campos ajenos o nombre vacío", async () => {
+  const chef = verifiedFirestore("ex-shape");
+
+  await assertSucceeds(setDoc(doc(chef, "exercises", "remo"), exerciseData("ex-shape", { type: "MAQUINA" })));
+  await assertFails(
+    setDoc(doc(chef, "exercises", "bad-type"), exerciseData("ex-shape", { type: "YOGA" })),
+  );
+  await assertFails(setDoc(doc(chef, "exercises", "extra"), exerciseData("ex-shape", { spaceId: "x" })));
+  await assertFails(setDoc(doc(chef, "exercises", "vacio"), exerciseData("ex-shape", { name: "", nameLower: "" })));
+});
+
+test("solo el autor o un admin editan/borran un ejercicio del catálogo", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const timestamp = Timestamp.now();
+    await setDoc(doc(context.firestore(), "exercises", "curl"), {
+      ...exerciseData("ex-owner"),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+  });
+  const owner = verifiedFirestore("ex-owner");
+  const other = verifiedFirestore("ex-other");
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+
+  await assertSucceeds(
+    updateDoc(doc(owner, "exercises", "curl"), {
+      name: "Curl bíceps",
+      nameLower: "curl bíceps",
+      updatedBy: "ex-owner",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertFails(
+    updateDoc(doc(other, "exercises", "curl"), {
+      name: "Manipulado",
+      nameLower: "manipulado",
+      updatedBy: "ex-other",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertFails(writeBatch(other).delete(doc(other, "exercises", "curl")).commit());
+  await assertSucceeds(writeBatch(admin).delete(doc(admin, "exercises", "curl")).commit());
+});
+
 test("las preferencias de ingredientes solo las lee y escribe su dueño", async () => {
   const alice = verifiedFirestore("pref-alice");
   const bob = verifiedFirestore("pref-bob");
@@ -1391,6 +1444,21 @@ function ingredientData(userId, overrides = {}) {
   return {
     name: "Tomate",
     nameLower: "tomate",
+    ownerUid: userId,
+    createdBy: userId,
+    createdByName: userId,
+    createdAt: serverTimestamp(),
+    updatedBy: userId,
+    updatedAt: serverTimestamp(),
+    ...overrides,
+  };
+}
+
+function exerciseData(userId, overrides = {}) {
+  return {
+    name: "Press banca",
+    nameLower: "press banca",
+    type: "PESO_LIBRE",
     ownerUid: userId,
     createdBy: userId,
     createdByName: userId,
