@@ -267,10 +267,14 @@ fun BobitosNavHost(
                 canWrite = uiState.syncStatus.canWrite,
                 onBack = { navController.popBackStack() },
                 onEventSelected = { eventSpaceId, eventId, date ->
+                    // Abrir un evento del calendario personal entra en su espacio: se ancla el hub del
+                    // espacio bajo la vista del evento para que la barra inferior de módulos reemplace
+                    // pestañas (popUpTo(SpaceHome)) en vez de acumular entradas.
                     onSpaceSelected(eventSpaceId)
-                    navController.navigate(
-                        "calendar-event/${Uri.encode(eventId)}/$date",
-                    )
+                    navController.navigate(BobitosDestination.SpaceHome.route) {
+                        popUpTo(BobitosDestination.MyCalendar.route) { inclusive = true }
+                    }
+                    navController.navigate("calendar-event/${Uri.encode(eventId)}/$date")
                 },
             )
         }
