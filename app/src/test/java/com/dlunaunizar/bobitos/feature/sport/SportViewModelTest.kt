@@ -2,12 +2,17 @@ package com.dlunaunizar.bobitos.feature.sport
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.ExerciseType
+import com.dlunaunizar.bobitos.core.model.Routine
+import com.dlunaunizar.bobitos.core.model.RoutineExercise
+import com.dlunaunizar.bobitos.core.model.RoutineVisibility
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceRole
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.core.model.SportActivity
 import com.dlunaunizar.bobitos.core.model.SportType
+import com.dlunaunizar.bobitos.data.repository.RoutineRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.SportActivityRepository
 import com.dlunaunizar.bobitos.data.repository.SportFailure
@@ -32,7 +37,8 @@ class SportViewModelTest {
 
     private val repository = FakeSportActivityRepository()
     private val spaceRepository = FakeSpaceRepository()
-    private val viewModel = SportViewModel(repository, spaceRepository)
+    private val routineRepository = FakeSportRoutineRepository()
+    private val viewModel = SportViewModel(repository, spaceRepository, routineRepository)
 
     @Test
     fun `observes activities and members for the active space`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -74,6 +80,30 @@ class SportViewModelTest {
     }
 
     @Test
+    fun `adding a gym activity forwards its routine and session`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        advanceUntilIdle()
+        val session = listOf(RoutineExercise("Sentadilla", type = ExerciseType.PESO_LIBRE))
+
+        viewModel.addActivity(LocalDate.now(), SportType.GIMNASIO, "Pierna", emptyList(), "rutina-1", session)
+        advanceUntilIdle()
+
+        assertEquals("rutina-1", repository.addedRoutineId)
+        assertEquals(session, repository.addedSession)
+    }
+
+    @Test
+    fun `observes the routine catalog for the picker`() = runTest(mainDispatcherRule.testDispatcher) {
+        routineRepository.mineState.value = listOf(routine("r1", "Empuje"))
+        routineRepository.globalState.value = listOf(routine("r2", "Full body"))
+
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        assertEquals(listOf("Empuje", "Full body"), viewModel.uiState.value.routines.map(Routine::title))
+    }
+
+    @Test
     fun `marking an activity done delegates to the repository`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("home")
         advanceUntilIdle()
@@ -104,6 +134,8 @@ private class FakeSportActivityRepository : SportActivityRepository {
     var observedSpaceId: String? = null
     var addedName: String? = null
     var addedType: SportType? = null
+    var addedRoutineId: String? = null
+    var addedSession: List<RoutineExercise> = emptyList()
     var doneChange: Pair<String, Boolean>? = null
     var nextFailure: SportRepositoryException? = null
 
@@ -122,10 +154,14 @@ private class FakeSportActivityRepository : SportActivityRepository {
         type: SportType,
         name: String,
         participantIds: List<String>,
+        routineId: String?,
+        session: List<RoutineExercise>,
     ) {
         throwNextFailure()
         addedName = name
         addedType = type
+        addedRoutineId = routineId
+        addedSession = session
     }
 
     override suspend fun updateActivity(
@@ -135,6 +171,8 @@ private class FakeSportActivityRepository : SportActivityRepository {
         type: SportType,
         name: String,
         participantIds: List<String>,
+        routineId: String?,
+        session: List<RoutineExercise>,
     ) {
         throwNextFailure()
     }
@@ -170,6 +208,44 @@ private class FakeSpaceRepository : SpaceRepository {
     override suspend fun revokeInvitation(invitationId: String) = error("no usado en el test")
     override suspend fun acceptInvitation(code: String): String = error("no usado en el test")
 }
+
+private class FakeSportRoutineRepository : RoutineRepository {
+    val globalState = MutableStateFlow<List<Routine>>(emptyList())
+    val mineState = MutableStateFlow<List<Routine>>(emptyList())
+
+    override fun globalRoutines(): Flow<List<Routine>> = globalState
+    override fun myRoutines(): Flow<List<Routine>> = mineState
+    override fun isCurrentUserRoutineAdmin(): Boolean = false
+    override suspend fun createRoutine(
+        visibility: RoutineVisibility,
+        title: String,
+        description: String?,
+        exercises: List<RoutineExercise>,
+    ) = Unit
+
+    override suspend fun updateRoutine(
+        routineId: String,
+        title: String,
+        description: String?,
+        exercises: List<RoutineExercise>,
+    ) = Unit
+
+    override suspend fun deleteRoutine(routineId: String) = Unit
+}
+
+private fun routine(id: String, title: String) = Routine(
+    id = id,
+    ownerUid = "u",
+    visibility = RoutineVisibility.PRIVATE,
+    title = title,
+    description = null,
+    exercises = null,
+    createdBy = "u",
+    createdByName = "U",
+    createdAt = Instant.EPOCH,
+    updatedBy = "u",
+    updatedAt = Instant.EPOCH,
+)
 
 private fun activity(id: String, date: LocalDate, type: SportType, name: String) = SportActivity(
     id = id,

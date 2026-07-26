@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.data.repository
 
+import com.dlunaunizar.bobitos.core.model.RoutineExercise
 import com.dlunaunizar.bobitos.core.model.SportActivity
 import com.dlunaunizar.bobitos.core.model.SportType
 import kotlinx.coroutines.flow.Flow
@@ -14,6 +15,8 @@ interface SportActivityRepository {
         type: SportType,
         name: String,
         participantIds: List<String>,
+        routineId: String? = null,
+        session: List<RoutineExercise> = emptyList(),
     )
 
     suspend fun updateActivity(
@@ -23,6 +26,8 @@ interface SportActivityRepository {
         type: SportType,
         name: String,
         participantIds: List<String>,
+        routineId: String? = null,
+        session: List<RoutineExercise> = emptyList(),
     )
 
     suspend fun setDone(spaceId: String, activityId: String, done: Boolean)

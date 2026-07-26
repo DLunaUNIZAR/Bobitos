@@ -336,6 +336,12 @@
     <string name="sport_participants_label">¿Quién participa?</string>
     <string name="sport_no_participants">Sin participantes</string>
     <string name="sport_done_label">✓ Hecha</string>
+    <string name="sport_session_label">Ejercicios de la sesión</string>
+    <string name="sport_routine_label">Rutina</string>
+    <string name="sport_routine_pick">Elegir rutina</string>
+    <string name="sport_routine_none">Sin rutina</string>
+    <string name="sport_routine_clear">Sin rutina (vaciar)</string>
+    <string name="sport_no_routines">Aún no hay rutinas guardadas.</string>
     <string name="sport_mark_done">Marcar hecha</string>
     <string name="sport_mark_pending">Marcar pendiente</string>
     <string name="sport_edit">Editar</string>

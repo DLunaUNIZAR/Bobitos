@@ -11,12 +11,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ChevronLeft
@@ -44,6 +46,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -60,9 +64,15 @@ import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostStat
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
+import com.dlunaunizar.bobitos.core.model.Routine
+import com.dlunaunizar.bobitos.core.model.RoutineExercise
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SportActivity
 import com.dlunaunizar.bobitos.core.model.SportType
+import com.dlunaunizar.bobitos.feature.exercises.ExerciseDraft
+import com.dlunaunizar.bobitos.feature.exercises.ExerciseListEditor
+import com.dlunaunizar.bobitos.feature.exercises.toExerciseDrafts
+import com.dlunaunizar.bobitos.feature.exercises.toRoutineExercises
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -93,7 +103,14 @@ fun SportScreen(
     val deleteWithUndo: (SportActivity) -> Unit = { activity ->
         viewModel.deleteActivity(activity.id)
         scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-            viewModel.addActivity(activity.date, activity.type, activity.name, activity.participantIds)
+            viewModel.addActivity(
+                activity.date,
+                activity.type,
+                activity.name,
+                activity.participantIds,
+                activity.routineId,
+                activity.session,
+            )
         }
     }
 
@@ -171,13 +188,14 @@ fun SportScreen(
         ActivityEditor(
             request = request,
             members = members,
+            routines = state.routines,
             saving = state.isSaving,
             canWrite = canWrite,
             onDismiss = { editor = null },
-            onSave = { type, name, participantIds ->
+            onSave = { type, name, participantIds, routineId, session ->
                 request.activity?.let {
-                    viewModel.updateActivity(it.id, it.date, type, name, participantIds)
-                } ?: viewModel.addActivity(state.focusedDate, type, name, participantIds)
+                    viewModel.updateActivity(it.id, it.date, type, name, participantIds, routineId, session)
+                } ?: viewModel.addActivity(state.focusedDate, type, name, participantIds, routineId, session)
                 editor = null
             },
         )
@@ -305,6 +323,13 @@ private fun ActivityCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (activity.type == SportType.GIMNASIO && activity.session.isNotEmpty()) {
+                    Text(
+                        text = stringResource(R.string.routines_exercise_count, activity.session.size),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 if (activity.done) {
                     Text(
                         text = stringResource(R.string.sport_done_label),
@@ -358,15 +383,19 @@ private fun ActivityCard(
 private fun ActivityEditor(
     request: ActivityEditorRequest,
     members: List<SpaceMember>,
+    routines: List<Routine>,
     saving: Boolean,
     canWrite: Boolean,
     onDismiss: () -> Unit,
-    onSave: (SportType, String, List<String>) -> Unit,
+    onSave: (SportType, String, List<String>, String?, List<RoutineExercise>) -> Unit,
 ) {
     val activity = request.activity
     var type by remember(activity?.id) { mutableStateOf(activity?.type ?: SportType.PADEL) }
     var name by remember(activity?.id) { mutableStateOf(activity?.name.orEmpty()) }
     var selected by remember(activity?.id) { mutableStateOf(activity?.participantIds?.toSet().orEmpty()) }
+    var routineId by remember(activity?.id) { mutableStateOf(activity?.routineId) }
+    val session = remember(activity?.id) { activity?.session.orEmpty().toExerciseDrafts().toMutableStateList() }
+    var pickingRoutine by remember { mutableStateOf(false) }
     val typeLabel = stringResource(type.labelRes)
 
     AlertDialog(
@@ -375,7 +404,10 @@ private fun ActivityEditor(
             Text(stringResource(if (activity == null) R.string.sport_add_title else R.string.sport_edit_title))
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
                 Row(
                     Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -413,17 +445,107 @@ private fun ActivityEditor(
                         }
                     }
                 }
+                if (type == SportType.GIMNASIO) {
+                    GymSessionSection(
+                        routineTitle = routines.firstOrNull { it.id == routineId }?.title,
+                        session = session,
+                        onPickRoutine = { pickingRoutine = true },
+                    )
+                }
             }
         },
         confirmButton = {
             TextButton(
                 enabled = canWrite && !saving,
-                onClick = { onSave(type, name.ifBlank { typeLabel }, selected.toList()) },
+                onClick = {
+                    val gym = type == SportType.GIMNASIO
+                    onSave(
+                        type,
+                        name.ifBlank { typeLabel },
+                        selected.toList(),
+                        routineId.takeIf { gym },
+                        if (gym) session.toRoutineExercises() else emptyList(),
+                    )
+                },
             ) { Text(stringResource(R.string.confirm)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
+    )
+
+    if (pickingRoutine) {
+        RoutinePickerDialog(
+            routines = routines,
+            onDismiss = { pickingRoutine = false },
+            onClear = {
+                routineId = null
+                session.clear()
+                pickingRoutine = false
+            },
+            onPick = { routine ->
+                routineId = routine.id
+                session.clear()
+                session.addAll(routine.exercises.orEmpty().toExerciseDrafts())
+                pickingRoutine = false
+            },
+        )
+    }
+}
+
+@Composable
+private fun GymSessionSection(
+    routineTitle: String?,
+    session: SnapshotStateList<ExerciseDraft>,
+    onPickRoutine: () -> Unit,
+) {
+    Text(stringResource(R.string.sport_session_label), style = MaterialTheme.typography.titleSmall)
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = routineTitle ?: stringResource(R.string.sport_routine_none),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = onPickRoutine) { Text(stringResource(R.string.sport_routine_pick)) }
+    }
+    ExerciseListEditor(drafts = session, catalog = emptyList())
+}
+
+@Composable
+private fun RoutinePickerDialog(
+    routines: List<Routine>,
+    onDismiss: () -> Unit,
+    onClear: () -> Unit,
+    onPick: (Routine) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.sport_routine_pick)) },
+        text = {
+            Column(
+                modifier = Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
+                TextButton(onClick = onClear, modifier = Modifier.fillMaxWidth()) {
+                    Box(Modifier.fillMaxWidth()) { Text(stringResource(R.string.sport_routine_clear)) }
+                }
+                if (routines.isEmpty()) {
+                    Text(
+                        stringResource(R.string.sport_no_routines),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    routines.forEach { routine ->
+                        TextButton(onClick = { onPick(routine) }, modifier = Modifier.fillMaxWidth()) {
+                            Box(Modifier.fillMaxWidth()) { Text(routine.title) }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }
 
