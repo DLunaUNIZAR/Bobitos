@@ -1,14 +1,29 @@
-Beta de Bobitos — escaneo rápido de ingredientes y corrección de un cierre.
+Beta de Bobitos — nueva sección Deporte y un montón de mejoras en comidas, tareas y notas.
 
 Novedades desde la beta anterior:
 
-Ingredientes
-- Nuevo: escanear un código de barras directamente desde la lista de Ingredientes (icono de escáner arriba). Consulta Open Food Facts y abre «Nuevo ingrediente» con el nombre del producto ya puesto (edítalo para dejarlo genérico, p. ej. «Tomate frito»); al guardar crea el ingrediente y le añade esa marca con sus valores nutricionales, todo de una.
-- Recuerda: dentro de cada ingrediente sigues teniendo «Escanear código» para añadir más marcas.
+Deporte (nuevo)
+- Nueva sección Deporte con planificador semanal: añade actividades (pádel, fútbol, caminata, correr, pilates, gimnasio…), elige quién participa y márcalas como hechas.
+- Catálogo de Ejercicios y de Rutinas reutilizables (como el recetario): crea rutinas con ejercicios de fuerza (series y peso por serie) o de cardio (tiempo y nivel), con notas por ejercicio.
+- Sesión de gimnasio: enlaza una rutina a una actividad de gimnasio y registra lo que hiciste ese día.
 
-Correcciones
-- Arreglado un cierre inesperado al abrir un ingrediente que tenía dos marcas con el mismo nombre.
+Comidas y compra
+- Añade los ingredientes de una receta a la lista de la compra de una vez, con tu supermercado y marca por defecto y una revisión previa de cantidades.
+- Guarda un artículo de la compra como ingrediente del catálogo sin salir de la lista.
+- Marca una receta como cocinada y usa el modo cocinero (la pantalla no se apaga mientras cocinas).
 
-Incluye: espacios privados con invitaciones, lista de la compra compartida, tareas asignables, calendario compartido, planificador de comidas con recetario, importación de recetas desde la web, base de datos de ingredientes (catálogo común, tu supermercado/marca por defecto, marcas con nutrición y escaneo de código de barras), recordatorios locales, buscadores, gestos de deslizar y modo sin conexión de solo lectura.
+Tareas
+- Asignar a alguien ahora es opcional.
+- Tarjetas de tarea más claras, con secciones, filtros por etiquetas, añadir rápido y buscador.
+- Plantillas de tareas para lo que se repite.
+
+Notas y recordatorios
+- Nueva sección de Notas por espacio.
+- Recordatorios locales para tareas y eventos.
+
+Inicio del espacio
+- Resumen del día en el inicio: lo que toca hoy de un vistazo, con accesos directos a cada sección.
+
+Incluye: espacios privados con invitaciones, lista de la compra compartida, tareas asignables con plantillas, calendario compartido, planificador de comidas con recetario e importación de recetas desde la web, base de datos de ingredientes (catálogo común, tu supermercado/marca por defecto, marcas con nutrición y escaneo de código de barras), sección Deporte con rutinas y sesiones de gimnasio, notas, recordatorios locales, resumen del día, buscadores, gestos de deslizar, tema claro/oscuro y modo sin conexión de solo lectura.
 
 Comunica cualquier error indicando el modelo del dispositivo, la versión de Android y los pasos para reproducirlo.
