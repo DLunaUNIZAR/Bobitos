@@ -587,7 +587,7 @@ service cloud.firestore {
       ]) && request.resource.data.keys().hasOnly([
         "date", "type", "name", "participantIds", "participantNames",
         "done", "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt",
-        "routineId", "session"
+        "routineId", "session", "eventId"
       ])
       && request.resource.data.date is string
       && request.resource.data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
@@ -599,6 +599,9 @@ service cloud.firestore {
         || (request.resource.data.routineId is string && request.resource.data.routineId.size() <= 200))
       && (!request.resource.data.keys().hasAny(["session"])
         || (request.resource.data.session is list && request.resource.data.session.size() <= 30))
+      && (!request.resource.data.keys().hasAny(["eventId"])
+        || request.resource.data.eventId == null
+        || (request.resource.data.eventId is string && request.resource.data.eventId.size() <= 200))
       && request.resource.data.participantIds is list && request.resource.data.participantIds.size() <= 10
       && request.resource.data.participantNames is list && request.resource.data.participantNames.size() == request.resource.data.participantIds.size()
       && request.resource.data.createdBy is string && request.resource.data.createdByName is string
@@ -617,7 +620,7 @@ service cloud.firestore {
       return isActiveMember(spaceId) && validActivityShape()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           "date", "type", "name", "participantIds", "participantNames", "done",
-          "routineId", "session", "updatedBy", "updatedAt"
+          "routineId", "session", "eventId", "updatedBy", "updatedAt"
         ])
         && request.resource.data.createdBy == resource.data.createdBy
         && request.resource.data.createdByName == resource.data.createdByName

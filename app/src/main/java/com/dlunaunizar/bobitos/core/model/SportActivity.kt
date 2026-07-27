@@ -27,6 +27,9 @@ data class SportActivity(
     val done: Boolean = false,
     val routineId: String? = null,
     val session: List<RoutineExercise> = emptyList(),
+    // Evento de calendario enlazado (todo el día) que refleja la actividad en el calendario del
+    // espacio y en el personal. Se crea/actualiza/borra junto con la actividad.
+    val eventId: String? = null,
     val createdBy: String,
     val createdByName: String,
     val createdAt: Instant,

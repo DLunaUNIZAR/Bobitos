@@ -1935,6 +1935,44 @@ test("una actividad rechaza una sesión enorme o un routineId no textual", async
   );
 });
 
+test("al añadir una actividad se puede crear su evento de calendario enlazado (eventId + evento todo el día)", async () => {
+  await seedSpace("act-ev", "act-ev-owner");
+  const owner = verifiedFirestore("act-ev-owner");
+
+  // Actividad con el id del evento enlazado.
+  await assertSucceeds(
+    setDoc(
+      doc(owner, "spaces", "act-ev", "activities", "run"),
+      activityData("act-ev-owner", { type: "CORRER", eventId: "ev-run" }),
+    ),
+  );
+  // Evento de calendario (todo el día) que la refleja, con la forma que escribe el repo.
+  await assertSucceeds(
+    setDoc(
+      doc(owner, "spaces", "act-ev", "events", "ev-run"),
+      eventData("act-ev-owner", {
+        title: "Correr",
+        allDay: true,
+        startDate: "2026-07-20",
+        endDateExclusive: "2026-07-21",
+      }),
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "act-ev", "activities", "bad-event"),
+      activityData("act-ev-owner", { eventId: 123 }),
+    ),
+  );
+
+  // El evento se puede enlazar al editar una actividad previa (affectedKeys incluye eventId).
+  const ref = doc(owner, "spaces", "act-ev", "activities", "link-later");
+  await assertSucceeds(setDoc(ref, activityData("act-ev-owner")));
+  await assertSucceeds(
+    updateDoc(ref, { eventId: "ev-later", updatedBy: "act-ev-owner", updatedAt: serverTimestamp() }),
+  );
+});
+
 test("las actividades exigen que participantNames tenga el mismo tamaño que participantIds", async () => {
   await seedSpace("act-parts", "act-parts-owner");
   const owner = verifiedFirestore("act-parts-owner");
