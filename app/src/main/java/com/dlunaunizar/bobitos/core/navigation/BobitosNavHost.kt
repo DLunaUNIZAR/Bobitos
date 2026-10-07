@@ -102,6 +102,16 @@ fun BobitosNavHost(
     modifier: Modifier = Modifier,
 ) {
     val spaceName = uiState.selectedSpace?.name ?: stringResource(R.string.app_name)
+    // Cambiar de espacio desde la barra: se selecciona y se vuelve a «Hoy» (los datos son del nuevo espacio).
+    val spaceSwitcher = SpaceSwitcher(
+        spaces = (uiState.spaces as? UiState.Content)?.value.orEmpty(),
+        selectedSpaceId = uiState.selectedSpace?.id,
+        onSelect = { space ->
+            onClearSpaceFeedback()
+            onSpaceSelected(space.id)
+            navController.popBackStack(BobitosDestination.SpaceHome.route, inclusive = false)
+        },
+    )
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
     val protectedRoutes = BobitosDestination.workspaceDestinations.map { it.route } +
@@ -265,6 +275,7 @@ fun BobitosNavHost(
                 selectedTab = BobitosDestination.SpaceHome,
                 screenTitle = null,
                 spaceName = spaceName,
+                switcher = spaceSwitcher,
                 syncStatus = uiState.syncStatus,
                 onClearSpaceFeedback = onClearSpaceFeedback,
                 onClearAuthFeedback = onClearAuthFeedback,
@@ -290,6 +301,7 @@ fun BobitosNavHost(
                 selectedTab = BobitosDestination.SpaceMore,
                 screenTitle = null,
                 spaceName = spaceName,
+                switcher = spaceSwitcher,
                 syncStatus = uiState.syncStatus,
                 onClearSpaceFeedback = onClearSpaceFeedback,
                 onClearAuthFeedback = onClearAuthFeedback,
@@ -304,6 +316,7 @@ fun BobitosNavHost(
                 selectedTab = workspaceTabFor(BobitosDestination.Shopping.route) ?: BobitosDestination.Shopping,
                 screenTitle = stringResource(BobitosDestination.Shopping.titleRes),
                 spaceName = spaceName,
+                switcher = spaceSwitcher,
                 syncStatus = uiState.syncStatus,
                 onClearSpaceFeedback = onClearSpaceFeedback,
                 onClearAuthFeedback = onClearAuthFeedback,
@@ -323,6 +336,7 @@ fun BobitosNavHost(
                 selectedTab = workspaceTabFor(BobitosDestination.Tasks.route) ?: BobitosDestination.Tasks,
                 screenTitle = stringResource(BobitosDestination.Tasks.titleRes),
                 spaceName = spaceName,
+                switcher = spaceSwitcher,
                 syncStatus = uiState.syncStatus,
                 onClearSpaceFeedback = onClearSpaceFeedback,
                 onClearAuthFeedback = onClearAuthFeedback,
@@ -342,6 +356,7 @@ fun BobitosNavHost(
                 selectedTab = workspaceTabFor(BobitosDestination.Calendar.route) ?: BobitosDestination.Calendar,
                 screenTitle = stringResource(BobitosDestination.Calendar.titleRes),
                 spaceName = spaceName,
+                switcher = spaceSwitcher,
                 syncStatus = uiState.syncStatus,
                 onClearSpaceFeedback = onClearSpaceFeedback,
                 onClearAuthFeedback = onClearAuthFeedback,
@@ -358,6 +373,7 @@ fun BobitosNavHost(
                 selectedTab = workspaceTabFor(BobitosDestination.Meals.route) ?: BobitosDestination.Meals,
                 screenTitle = stringResource(BobitosDestination.Meals.titleRes),
                 spaceName = spaceName,
+                switcher = spaceSwitcher,
                 syncStatus = uiState.syncStatus,
                 onClearSpaceFeedback = onClearSpaceFeedback,
                 onClearAuthFeedback = onClearAuthFeedback,
@@ -379,6 +395,7 @@ fun BobitosNavHost(
                 selectedTab = workspaceTabFor(BobitosDestination.Sport.route) ?: BobitosDestination.Sport,
                 screenTitle = stringResource(BobitosDestination.Sport.titleRes),
                 spaceName = spaceName,
+                switcher = spaceSwitcher,
                 syncStatus = uiState.syncStatus,
                 onClearSpaceFeedback = onClearSpaceFeedback,
                 onClearAuthFeedback = onClearAuthFeedback,
@@ -406,6 +423,7 @@ fun BobitosNavHost(
                 selectedTab = workspaceTabFor(BobitosDestination.Calendar.route) ?: BobitosDestination.Calendar,
                 screenTitle = stringResource(BobitosDestination.Calendar.titleRes),
                 spaceName = spaceName,
+                switcher = spaceSwitcher,
                 syncStatus = uiState.syncStatus,
                 onClearSpaceFeedback = onClearSpaceFeedback,
                 onClearAuthFeedback = onClearAuthFeedback,
@@ -581,6 +599,7 @@ private fun SpaceScaffold(
     selectedTab: BobitosDestination,
     screenTitle: String?,
     spaceName: String,
+    switcher: SpaceSwitcher,
     syncStatus: SyncStatus,
     onClearSpaceFeedback: () -> Unit,
     onClearAuthFeedback: () -> Unit,
@@ -591,7 +610,8 @@ private fun SpaceScaffold(
         screenTitle = screenTitle,
         spaceName = spaceName,
         onTabSelected = navController::navigateToTab,
-        onSwitchSpace = navController::navigateToSpaces,
+        switcher = switcher,
+        onManageSpaces = navController::navigateToSpaces,
         onSpaceSettings = {
             onClearSpaceFeedback()
             navController.navigate(BobitosDestination.SpaceSettings.route)
