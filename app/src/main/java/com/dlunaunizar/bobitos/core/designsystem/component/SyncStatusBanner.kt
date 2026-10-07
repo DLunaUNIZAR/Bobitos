@@ -1,4 +1,4 @@
-package com.dlunaunizar.bobitos.feature.common
+package com.dlunaunizar.bobitos.core.designsystem.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row

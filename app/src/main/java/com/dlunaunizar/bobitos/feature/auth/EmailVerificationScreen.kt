@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.designsystem.component.InitialsAvatar
 import com.dlunaunizar.bobitos.core.model.AuthUser
 
 @Composable
@@ -30,7 +31,7 @@ fun EmailVerificationScreen(
         actionState = actionState,
         modifier = modifier,
     ) {
-        AuthAvatar(
+        InitialsAvatar(
             initials = user.initials,
             modifier = Modifier
                 .size(88.dp)

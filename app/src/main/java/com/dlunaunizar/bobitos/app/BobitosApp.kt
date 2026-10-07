@@ -15,12 +15,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.FullScreenLoading
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.navigation.BobitosNavHost
 import com.dlunaunizar.bobitos.feature.auth.AuthActionUiState
 import com.dlunaunizar.bobitos.feature.auth.AuthNavHost
 import com.dlunaunizar.bobitos.feature.auth.EmailVerificationScreen
-import com.dlunaunizar.bobitos.feature.auth.FullScreenLoading
 import com.dlunaunizar.bobitos.feature.auth.WelcomeScreen
 import com.dlunaunizar.bobitos.feature.auth.WelcomeViewModel
 import com.dlunaunizar.bobitos.feature.reminders.RemindersViewModel
