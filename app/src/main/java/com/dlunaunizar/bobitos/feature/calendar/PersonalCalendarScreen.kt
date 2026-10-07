@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -178,7 +179,7 @@ fun PersonalCalendarScreen(
                 LaunchedEffect(message) { viewModel.clearMessage() }
             }
         }
-        NewEventFab(visible = canWrite, onClick = { onCreateAt(null) })
+        NewEventFab(canWrite = canWrite, spaceCount = spaces.size, onClick = { onCreateAt(null) })
     }
 
     if (spacePickerOpen) {
@@ -286,7 +287,11 @@ private fun PersonalWeekEventList(
     modifier: Modifier = Modifier,
 ) {
     val monday = focusedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-    LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    LazyColumn(
+        modifier,
+        contentPadding = PaddingValues(bottom = 88.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
         (0L..6L).forEach { offset ->
             val date = monday.plusDays(offset)
             item("header-$date") {
@@ -337,9 +342,10 @@ private fun List<PersonalCalendarEvent>.eventsOn(date: LocalDate): List<Personal
 private fun List<PersonalCalendarEvent>.eventOf(spaceId: String?, eventId: String?): CalendarEvent? =
     firstOrNull { it.spaceId == spaceId && it.event.id == eventId }?.event
 
+// Sin conexión o sin espacios no hay dónde crear el evento: no se muestra.
 @Composable
-private fun BoxScope.NewEventFab(visible: Boolean, onClick: () -> Unit) {
-    if (!visible) return
+private fun BoxScope.NewEventFab(canWrite: Boolean, spaceCount: Int, onClick: () -> Unit) {
+    if (!canWrite || spaceCount == 0) return
     ExtendedFloatingActionButton(
         onClick = onClick,
         icon = { Icon(Icons.Rounded.Add, contentDescription = null) },

@@ -66,6 +66,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Meal
@@ -534,7 +535,8 @@ private fun MealEditorHost(
     onClose: () -> Unit,
     onSave: (Meal?, MealSlot, String, List<String>, String?, String?) -> Unit,
 ) {
-    val meal = mealId?.let { id -> meals.firstOrNull { it.id == id } }
+    // Se mantiene la comida mientras la lista recarga (p. ej. al girar), para no perder el borrador.
+    val meal = rememberEditorItem(mealId, mealId?.let { id -> meals.firstOrNull { it.id == id } }, mealsLoaded)
     val unresolved = open && mealId != null && meal == null
     LaunchedEffect(unresolved, mealsLoaded) {
         if (unresolved && mealsLoaded) onClose()

@@ -96,6 +96,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.RecurrenceUnit
@@ -159,7 +160,12 @@ fun TasksScreen(
     var editorTaskId by rememberSaveable { mutableStateOf<String?>(null) }
     var editorTemplateIndex by rememberSaveable { mutableStateOf(-1) }
     var editorVisible by rememberSaveable { mutableStateOf(false) }
-    val editorTask = editorTaskId?.let { id -> allTasks.firstOrNull { it.id == id } }
+    // Se mantiene el último elemento mientras la lista recarga (p. ej. al girar), para no perder el borrador.
+    val editorTask = rememberEditorItem(
+        editorTaskId,
+        editorTaskId?.let { id -> allTasks.firstOrNull { it.id == id } },
+        state.tasks is UiState.Content,
+    )
     val editorTemplate = homeTaskTemplates.getOrNull(editorTemplateIndex)
     var deleteTask by remember { mutableStateOf<TaskItem?>(null) }
     var templatesVisible by remember { mutableStateOf(false) }

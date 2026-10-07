@@ -71,6 +71,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientPref
@@ -104,7 +105,12 @@ fun ShoppingScreen(
     var duplicatePrompt by remember { mutableStateOf<ShoppingDuplicate?>(null) }
     val content = state.items as? UiState.Content
     val allItems = content?.value.orEmpty()
-    val editedItem = editedItemId?.let { id -> allItems.firstOrNull { it.id == id } }
+    // Se mantiene el último elemento mientras la lista recarga (p. ej. al girar), para no perder el borrador.
+    val editedItem = rememberEditorItem(
+        editedItemId,
+        editedItemId?.let { id -> allItems.firstOrNull { it.id == id } },
+        content != null,
+    )
     val findByName: (String) -> ShoppingItem? = { raw ->
         raw.trim().takeIf(String::isNotEmpty)?.let { name ->
             allItems.firstOrNull { it.name.trim().equals(name, ignoreCase = true) }

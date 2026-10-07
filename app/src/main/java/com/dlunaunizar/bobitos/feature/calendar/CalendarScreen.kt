@@ -89,6 +89,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.EventColor
@@ -888,13 +889,15 @@ internal fun CalendarEditorHost(
     onClose: () -> Unit,
     onSave: (String?, EventInput) -> Unit,
 ) {
-    val unresolved = editorEventId != null && editor == null
+    // Se mantiene el evento mientras la lista recarga (p. ej. al girar), para no perder el borrador.
+    val shown = rememberEditorItem(editorEventId, editor, eventsLoaded)
+    val unresolved = editorEventId != null && shown == null
     LaunchedEffect(unresolved, eventsLoaded) {
         if (unresolved && eventsLoaded) onDropUnresolved()
     }
-    if (creating || creatingAt != null || editor != null) {
+    if (creating || creatingAt != null || shown != null) {
         EventEditor(
-            event = editor,
+            event = shown,
             day = day,
             initialStart = creatingAt,
             members = members,
