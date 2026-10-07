@@ -9,6 +9,8 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,11 +23,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
@@ -33,7 +37,6 @@ import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
@@ -66,8 +69,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -80,8 +85,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
+import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.EventColor
 import com.dlunaunizar.bobitos.core.model.SpaceMember
@@ -108,11 +117,12 @@ fun CalendarScreen(
     viewModel: CalendarViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var editor by remember { mutableStateOf<CalendarEvent?>(null) }
-    var creating by remember { mutableStateOf(false) }
+    // El editor sobrevive a una rotación: se guarda el id del evento y la hora de creación como texto.
+    var editorEventId by rememberSaveable { mutableStateOf<String?>(null) }
+    var creating by rememberSaveable { mutableStateOf(false) }
     var handledInitialEvent by rememberSaveable(initialEventId) { mutableStateOf(false) }
     var drilledFrom by remember { mutableStateOf<CalendarDisplayMode?>(null) }
-    var creatingAt by remember { mutableStateOf<LocalTime?>(null) }
+    var creatingAtText by rememberSaveable { mutableStateOf<String?>(null) }
     var eventToDelete by remember { mutableStateOf<CalendarEvent?>(null) }
     val snackbar = LocalSnackbarHostState.current
     val scope = rememberCoroutineScope()
@@ -131,11 +141,13 @@ fun CalendarScreen(
     val events = (state.events as? UiState.Content)?.value.orEmpty()
     val filteredEvents = events.forSelectedMembers(state.selectedMemberIds)
     val members = (state.members as? UiState.Content)?.value.orEmpty()
+    val editor = editorEventId?.let { id -> events.firstOrNull { it.id == id } }
+    val creatingAt = creatingAtText?.let(LocalTime::parse)
 
     LaunchedEffect(initialEventId, events) {
         if (initialEventId != null && !handledInitialEvent) {
             events.firstOrNull { it.id == initialEventId }?.let {
-                editor = it
+                editorEventId = it.id
                 handledInitialEvent = true
             }
         }
@@ -187,16 +199,16 @@ fun CalendarScreen(
                     events = filteredEvents.eventsOn(state.focusedDate),
                     tasks = state.tasks.tasksOn(state.focusedDate),
                     canWrite = canWrite,
-                    onEdit = { editor = it },
+                    onEdit = { editorEventId = it.id },
                     onDelete = { id -> eventToDelete = filteredEvents.firstOrNull { it.id == id } },
-                    onCreateAt = { creatingAt = it },
+                    onCreateAt = { creatingAtText = it.toString() },
                     modifier = Modifier.weight(1f),
                 )
                 CalendarDisplayMode.WEEK -> WeekEventList(
                     focusedDate = state.focusedDate,
                     events = filteredEvents,
                     canWrite = canWrite,
-                    onEdit = { editor = it },
+                    onEdit = { editorEventId = it.id },
                     onDelete = { id -> eventToDelete = filteredEvents.firstOrNull { it.id == id } },
                     onDayTap = onDayTap,
                     modifier = Modifier.weight(1f),
@@ -221,47 +233,37 @@ fun CalendarScreen(
         }
     }
 
-    if (creating || editor != null || creatingAt != null) {
-        EventEditor(
-            event = editor,
-            day = state.focusedDate,
-            initialStart = creatingAt,
-            members = members,
-            saving = state.saving,
-            canWrite = canWrite,
-            dismiss = {
-                creating = false
-                editor = null
-                creatingAt = null
-            },
-        ) { id, input ->
-            viewModel.save(id, input)
+    CalendarEditorHost(
+        editorEventId = editorEventId,
+        editor = editor,
+        creating = creating,
+        creatingAt = creatingAt,
+        eventsLoaded = state.events is UiState.Content,
+        day = state.focusedDate,
+        members = members,
+        saving = state.saving,
+        canWrite = canWrite,
+        onDropUnresolved = { editorEventId = null },
+        onClose = {
             creating = false
-            editor = null
-            creatingAt = null
-        }
-    }
+            editorEventId = null
+            creatingAtText = null
+        },
+        onSave = { id, input -> viewModel.save(id, input) },
+    )
 
     eventToDelete?.let { event ->
-        AlertDialog(
-            onDismissRequest = { eventToDelete = null },
-            title = { Text(stringResource(R.string.calendar_delete_title)) },
-            text = { Text(stringResource(R.string.calendar_delete_body, event.title)) },
-            confirmButton = {
-                TextButton(
-                    enabled = canWrite && !state.saving,
-                    onClick = {
-                        viewModel.delete(event.id)
-                        eventToDelete = null
-                        scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                            viewModel.save(null, event.toInput())
-                        }
-                    },
-                ) { Text(stringResource(R.string.calendar_delete)) }
+        DeleteEventDialog(
+            event = event,
+            enabled = canWrite && !state.saving,
+            onConfirm = {
+                viewModel.delete(event.id)
+                eventToDelete = null
+                scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+                    viewModel.save(null, event.toInput())
+                }
             },
-            dismissButton = {
-                TextButton(onClick = { eventToDelete = null }) { Text(stringResource(R.string.cancel)) }
-            },
+            onDismiss = { eventToDelete = null },
         )
     }
 }
@@ -600,7 +602,12 @@ private fun HourRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .combinedClickable(enabled = canWrite, onClick = {}, onLongClick = onLongPress)
+            .combinedClickable(
+                enabled = canWrite,
+                onClick = {},
+                onLongClickLabel = stringResource(R.string.calendar_create_at_hour),
+                onLongClick = onLongPress,
+            )
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.Top,
     ) {
@@ -728,203 +735,235 @@ internal fun EventEditor(
     save: (String?, EventInput) -> Unit,
 ) {
     val zone = ZoneId.systemDefault()
-    var title by remember { mutableStateOf(event?.title.orEmpty()) }
-    var description by remember { mutableStateOf(event?.description.orEmpty()) }
-    var allDay by remember { mutableStateOf(event?.allDay ?: (initialStart == null)) }
-    val startZdt = event?.startAt?.atZone(zone)
-    val endZdt = event?.endAt?.atZone(zone)
-    var startDate by remember {
-        mutableStateOf(
-            when {
-                event == null -> day
-                event.allDay -> event.startDate!!
-                else -> startZdt!!.toLocalDate()
-            },
-        )
-    }
-    var endDate by remember {
-        mutableStateOf(
-            when {
-                event == null -> day
-                event.allDay -> event.endDateExclusive!!.minusDays(1)
-                else -> endZdt!!.toLocalDate()
-            },
-        )
-    }
-    var startTime by remember {
-        mutableStateOf(
-            when {
-                event?.allDay == false -> startZdt!!.toLocalTime()
-                initialStart != null -> initialStart
-                else -> LocalTime.of(9, 0)
-            },
-        )
-    }
-    var endTime by remember {
-        mutableStateOf(
-            when {
-                event?.allDay == false -> endZdt!!.toLocalTime()
-                initialStart != null -> initialStart.plusHours(1)
-                else -> LocalTime.of(10, 0)
-            },
-        )
+    val initial = EventDraft.of(event, day, initialStart, zone)
+    var draft by rememberSaveable(event?.id, initialStart?.toString(), stateSaver = EventDraftSaver) {
+        mutableStateOf(initial)
     }
     var activePicker by remember { mutableStateOf<EventPicker?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
-    var color by remember { mutableStateOf(event?.color ?: EventColor.BLUE) }
-    var selected by remember { mutableStateOf(event?.participantIds?.toSet().orEmpty()) }
     val dateError = stringResource(R.string.calendar_date_error)
-    val startLabelRes = if (allDay) R.string.calendar_start_date_label else R.string.calendar_start_datetime_label
-    val endLabelRes = if (allDay) R.string.calendar_end_date_label else R.string.calendar_end_datetime_label
+    val startLabelRes = if (draft.allDay) R.string.calendar_start_date_label else R.string.calendar_start_datetime_label
+    val endLabelRes = if (draft.allDay) R.string.calendar_end_date_label else R.string.calendar_end_datetime_label
 
-    AlertDialog(
-        onDismissRequest = dismiss,
-        title = {
-            Text(
-                stringResource(
-                    if (event == null) R.string.calendar_new_event else R.string.calendar_edit_event_title,
-                ),
+    BobitosFormSheet(
+        title = stringResource(if (event == null) R.string.calendar_new_event else R.string.calendar_edit_event_title),
+        confirmLabel = stringResource(R.string.calendar_save),
+        confirmEnabled = canWrite,
+        saving = saving,
+        dirty = draft != initial,
+        onDismiss = dismiss,
+        onConfirm = {
+            val input = buildEventInput(
+                title = draft.title,
+                description = draft.description,
+                allDay = draft.allDay,
+                startDate = draft.startDate,
+                endDate = draft.endDate,
+                startTime = draft.startTime,
+                endTime = draft.endTime,
+                zone = zone,
+                color = draft.color,
+                participants = draft.selectedIds,
             )
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    title,
-                    { title = it },
-                    label = { Text(stringResource(R.string.calendar_event_title_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    description,
-                    { description = it },
-                    label = { Text(stringResource(R.string.calendar_event_description_label)) },
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(allDay, { allDay = it })
-                    Text(stringResource(R.string.calendar_all_day))
-                }
-                DateTimeField(
-                    label = stringResource(startLabelRes),
-                    date = startDate,
-                    time = if (allDay) null else startTime,
-                    onDateClick = { activePicker = EventPicker.START_DATE },
-                    onTimeClick = { activePicker = EventPicker.START_TIME },
-                )
-                DateTimeField(
-                    label = stringResource(endLabelRes),
-                    date = endDate,
-                    time = if (allDay) null else endTime,
-                    onDateClick = { activePicker = EventPicker.END_DATE },
-                    onTimeClick = { activePicker = EventPicker.END_TIME },
-                )
-                Text(stringResource(R.string.calendar_color_label), style = MaterialTheme.typography.labelLarge)
-                ColorPicker(selected = color, onSelect = { color = it })
-                if (members.isNotEmpty()) {
-                    Text(stringResource(R.string.calendar_participants_label))
-                }
-                members.forEach { member ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(
-                            member.userId in selected,
-                            { checked ->
-                                selected = if (checked) {
-                                    selected + member.userId
-                                } else {
-                                    selected - member.userId
-                                }
-                            },
-                        )
-                        Text(member.displayName)
-                    }
-                }
-                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            if (input == null) {
+                error = dateError
+            } else {
+                save(event?.id, input)
             }
         },
-        confirmButton = {
-            Button(
-                enabled = canWrite && !saving,
-                onClick = {
-                    val input = buildEventInput(
-                        title = title,
-                        description = description,
-                        allDay = allDay,
-                        startDate = startDate,
-                        endDate = endDate,
-                        startTime = startTime,
-                        endTime = endTime,
-                        zone = zone,
-                        color = color,
-                        participants = selected.toList(),
-                    )
-                    if (input == null) {
-                        error = dateError
-                    } else {
-                        save(event?.id, input)
-                    }
-                },
-            ) { Text(stringResource(R.string.calendar_save)) }
-        },
-        dismissButton = { TextButton(onClick = dismiss) { Text(stringResource(R.string.cancel)) } },
-    )
+    ) {
+        OutlinedTextField(
+            draft.title,
+            { draft = draft.copy(title = it) },
+            label = { Text(stringResource(R.string.calendar_event_title_label)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            draft.description,
+            { draft = draft.copy(description = it) },
+            label = { Text(stringResource(R.string.calendar_event_description_label)) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(draft.allDay, { draft = draft.copy(allDay = it) })
+            Text(stringResource(R.string.calendar_all_day))
+        }
+        DateTimeField(
+            label = stringResource(startLabelRes),
+            date = draft.startDate,
+            time = if (draft.allDay) null else draft.startTime,
+            onDateClick = { activePicker = EventPicker.START_DATE },
+            onTimeClick = { activePicker = EventPicker.START_TIME },
+        )
+        DateTimeField(
+            label = stringResource(endLabelRes),
+            date = draft.endDate,
+            time = if (draft.allDay) null else draft.endTime,
+            onDateClick = { activePicker = EventPicker.END_DATE },
+            onTimeClick = { activePicker = EventPicker.END_TIME },
+        )
+        Text(stringResource(R.string.calendar_color_label), style = MaterialTheme.typography.labelLarge)
+        ColorPicker(selected = draft.color, onSelect = { draft = draft.withColor(it) })
+        if (members.isNotEmpty()) {
+            Text(stringResource(R.string.calendar_participants_label))
+        }
+        members.forEach { member ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(
+                    member.userId in draft.selectedIds,
+                    { checked -> draft = draft.withParticipant(member.userId, checked) },
+                )
+                Text(member.displayName)
+            }
+        }
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+    }
 
+    EventPickers(
+        draft = draft,
+        activePicker = activePicker,
+        onDraft = { draft = it },
+        onClose = { activePicker = null },
+    )
+}
+
+@Composable
+private fun EventPickers(
+    draft: EventDraft,
+    activePicker: EventPicker?,
+    onDraft: (EventDraft) -> Unit,
+    onClose: () -> Unit,
+) {
     when (activePicker) {
         EventPicker.START_DATE -> AppDatePickerDialog(
-            initialDate = startDate,
+            initialDate = draft.startDate,
             onConfirm = {
-                startDate = it
-                activePicker = null
+                onDraft(draft.withStartDate(it))
+                onClose()
             },
-            onDismiss = { activePicker = null },
+            onDismiss = onClose,
         )
         EventPicker.END_DATE -> AppDatePickerDialog(
-            initialDate = endDate,
+            initialDate = draft.endDate,
             onConfirm = {
-                endDate = it
-                activePicker = null
+                onDraft(draft.withEndDate(it))
+                onClose()
             },
-            onDismiss = { activePicker = null },
+            onDismiss = onClose,
         )
         EventPicker.START_TIME -> EventTimePickerDialog(
-            initialTime = startTime,
+            initialTime = draft.startTime,
             onConfirm = {
-                startTime = it
-                activePicker = null
+                onDraft(draft.withStartTime(it))
+                onClose()
             },
-            onDismiss = { activePicker = null },
+            onDismiss = onClose,
         )
         EventPicker.END_TIME -> EventTimePickerDialog(
-            initialTime = endTime,
+            initialTime = draft.endTime,
             onConfirm = {
-                endTime = it
-                activePicker = null
+                onDraft(draft.withEndTime(it))
+                onClose()
             },
-            onDismiss = { activePicker = null },
+            onDismiss = onClose,
         )
         null -> Unit
     }
 }
 
+// Muestra el editor de evento (nuevo, desde una hora o existente). Si el evento que se editaba ya no
+// existe, lo descarta (mientras la lista carga, espera).
+@Composable
+internal fun CalendarEditorHost(
+    editorEventId: String?,
+    editor: CalendarEvent?,
+    creating: Boolean,
+    creatingAt: LocalTime?,
+    eventsLoaded: Boolean,
+    day: LocalDate,
+    members: List<SpaceMember>,
+    saving: Boolean,
+    canWrite: Boolean,
+    onDropUnresolved: () -> Unit,
+    onClose: () -> Unit,
+    onSave: (String?, EventInput) -> Unit,
+) {
+    // Se mantiene el evento mientras la lista recarga (p. ej. al girar), para no perder el borrador.
+    val shown = rememberEditorItem(editorEventId, editor, eventsLoaded)
+    val unresolved = editorEventId != null && shown == null
+    LaunchedEffect(unresolved, eventsLoaded) {
+        if (unresolved && eventsLoaded) onDropUnresolved()
+    }
+    if (creating || creatingAt != null || shown != null) {
+        EventEditor(
+            event = shown,
+            day = day,
+            initialStart = creatingAt,
+            members = members,
+            saving = saving,
+            canWrite = canWrite,
+            dismiss = onClose,
+        ) { id, input ->
+            onSave(id, input)
+            onClose()
+        }
+    }
+}
+
+@Composable
+internal fun DeleteEventDialog(event: CalendarEvent, enabled: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    BobitosDialog(
+        title = stringResource(R.string.calendar_delete_title),
+        message = stringResource(R.string.calendar_delete_body, event.title),
+        confirmLabel = stringResource(R.string.calendar_delete),
+        destructive = true,
+        confirmEnabled = enabled,
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+    )
+}
+
+// Cada opción es un botón de radio de 48 dp (círculo de 32 dp dentro): el seleccionado lleva un ✓ además
+// del borde, así no depende solo del color, y las opciones saltan de línea con fuentes grandes.
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ColorPicker(selected: EventColor, onSelect: (EventColor) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         EventColor.entries.forEach { option ->
             val label = stringResource(option.labelRes)
             val isSelected = option == selected
             Box(
                 modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(option.accent())
-                    .then(
-                        if (isSelected) {
-                            Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
-                        } else {
-                            Modifier
-                        },
-                    )
-                    .clickable { onSelect(option) }
+                    .size(48.dp)
+                    .selectable(selected = isSelected, role = Role.RadioButton, onClick = { onSelect(option) })
                     .semantics { contentDescription = label },
-            )
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(option.accent())
+                        .then(
+                            if (isSelected) {
+                                Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
+                            } else {
+                                Modifier
+                            },
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (isSelected) {
+                        Icon(
+                            imageVector = Icons.Rounded.Check,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+            }
         }
     }
 }

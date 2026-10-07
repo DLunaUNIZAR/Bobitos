@@ -3,7 +3,10 @@ package com.dlunaunizar.bobitos.feature.calendar
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,9 +16,11 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,7 +70,12 @@ fun PersonalCalendarScreen(
     LaunchedEffect(userId, spaces) { viewModel.observe(userId, spaces) }
     DisposableEffect(Unit) { onDispose(viewModel::stop) }
     var drilledFrom by remember { mutableStateOf<CalendarDisplayMode?>(null) }
-    var editorRequest by remember { mutableStateOf<PersonalEditorRequest?>(null) }
+    // El editor sobrevive a una rotación: se guardan espacio, id del evento y hora de creación.
+    var editorOpen by rememberSaveable { mutableStateOf(false) }
+    var editorSpaceId by rememberSaveable { mutableStateOf<String?>(null) }
+    var editorEventId by rememberSaveable { mutableStateOf<String?>(null) }
+    var editorStartText by rememberSaveable { mutableStateOf<String?>(null) }
+    var spacePickerOpen by remember { mutableStateOf(false) }
     var spacePickerTime by remember { mutableStateOf<LocalTime?>(null) }
     var eventToDelete by remember { mutableStateOf<PersonalCalendarEvent?>(null) }
 
@@ -73,13 +84,23 @@ fun PersonalCalendarScreen(
     val dayEvents = events.eventsOn(state.focusedDate)
     val dayEventsById = dayEvents.associateBy { it.event.id }
 
+    val editorEvent = events.eventOf(editorSpaceId, editorEventId)
     val openEditor: (String, CalendarEvent?, LocalTime?) -> Unit = { spaceId, event, initialStart ->
-        editorRequest = PersonalEditorRequest(spaceId, event, initialStart)
+        editorSpaceId = spaceId
+        editorEventId = event?.id
+        editorStartText = initialStart?.toString()
+        editorOpen = true
         viewModel.observeEditorMembers(spaceId)
     }
-    val onCreateAt: (LocalTime) -> Unit = { time ->
+    // Un solo espacio: se abre el editor directamente; con varios, primero se elige espacio.
+    val onCreateAt: (LocalTime?) -> Unit = { time ->
         val single = spaces.singleOrNull()
-        if (single != null) openEditor(single.id, null, time) else spacePickerTime = time
+        if (single != null) {
+            openEditor(single.id, null, time)
+        } else {
+            spacePickerTime = time
+            spacePickerOpen = true
+        }
     }
 
     // Atrás desde la vista diaria a la que se llegó pulsando un día → vuelve al modo anterior.
@@ -88,128 +109,127 @@ fun PersonalCalendarScreen(
         drilledFrom = null
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (onBack != null) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                        contentDescription = stringResource(R.string.navigate_back),
-                    )
+    Box(modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (onBack != null) {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = stringResource(R.string.navigate_back),
+                        )
+                    }
                 }
+                Text(stringResource(R.string.my_calendar_title), style = MaterialTheme.typography.headlineMedium)
             }
-            Text(stringResource(R.string.my_calendar_title), style = MaterialTheme.typography.headlineMedium)
-        }
-        SyncStatusBanner(syncStatus)
-        CalendarPeriodHeader(
-            date = state.focusedDate,
-            mode = state.mode,
-            onPrevious = viewModel::previous,
-            onNext = viewModel::next,
-        )
-        CalendarModeSelector(state.mode) { mode ->
-            drilledFrom = null
-            viewModel.setMode(mode)
-        }
-        SpaceFilters(
-            spaces = spaces,
-            selectedIds = state.selectedSpaceIds,
-            onToggle = viewModel::toggleSpace,
-            onSelectAll = viewModel::selectAllSpaces,
-            onClear = viewModel::clearSpaceSelection,
-        )
+            SyncStatusBanner(syncStatus)
+            CalendarPeriodHeader(
+                date = state.focusedDate,
+                mode = state.mode,
+                onPrevious = viewModel::previous,
+                onNext = viewModel::next,
+            )
+            CalendarModeSelector(state.mode) { mode ->
+                drilledFrom = null
+                viewModel.setMode(mode)
+            }
+            SpaceFilters(
+                spaces = spaces,
+                selectedIds = state.selectedSpaceIds,
+                onToggle = viewModel::toggleSpace,
+                onSelectAll = viewModel::selectAllSpaces,
+                onClear = viewModel::clearSpaceSelection,
+            )
 
-        when (state.mode) {
-            CalendarDisplayMode.MONTH -> MonthGrid(
-                month = YearMonth.from(state.focusedDate),
-                selected = state.focusedDate,
-                events = events.map(PersonalCalendarEvent::event),
-                select = { date ->
-                    viewModel.select(date)
-                    drilledFrom = state.mode
-                    viewModel.setMode(CalendarDisplayMode.DAY)
-                },
-            )
-            CalendarDisplayMode.DAY -> DayHourGrid(
-                events = dayEvents.map(PersonalCalendarEvent::event),
-                tasks = emptyList(),
-                canWrite = canWrite,
-                onEdit = { event -> dayEventsById[event.id]?.let { openEditor(it.spaceId, it.event, null) } },
-                onDelete = { id -> dayEventsById[id]?.let { eventToDelete = it } },
-                onCreateAt = onCreateAt,
-                modifier = Modifier.weight(1f),
-            )
-            CalendarDisplayMode.WEEK -> PersonalWeekEventList(
-                events = events,
-                focusedDate = state.focusedDate,
-                onSelected = onEventSelected,
-                modifier = Modifier.weight(1f),
-            )
-        }
+            when (state.mode) {
+                CalendarDisplayMode.MONTH -> MonthGrid(
+                    month = YearMonth.from(state.focusedDate),
+                    selected = state.focusedDate,
+                    events = events.map(PersonalCalendarEvent::event),
+                    select = { date ->
+                        viewModel.select(date)
+                        drilledFrom = state.mode
+                        viewModel.setMode(CalendarDisplayMode.DAY)
+                    },
+                )
+                CalendarDisplayMode.DAY -> DayHourGrid(
+                    events = dayEvents.map(PersonalCalendarEvent::event),
+                    tasks = emptyList(),
+                    canWrite = canWrite,
+                    onEdit = { event -> dayEventsById[event.id]?.let { openEditor(it.spaceId, it.event, null) } },
+                    onDelete = { id -> dayEventsById[id]?.let { eventToDelete = it } },
+                    onCreateAt = onCreateAt,
+                    modifier = Modifier.weight(1f),
+                )
+                CalendarDisplayMode.WEEK -> PersonalWeekEventList(
+                    events = events,
+                    focusedDate = state.focusedDate,
+                    onSelected = onEventSelected,
+                    modifier = Modifier.weight(1f),
+                )
+            }
 
-        state.message?.let { message ->
-            Text(message, color = MaterialTheme.colorScheme.error)
-            LaunchedEffect(message) { viewModel.clearMessage() }
+            state.message?.let { message ->
+                Text(message, color = MaterialTheme.colorScheme.error)
+                LaunchedEffect(message) { viewModel.clearMessage() }
+            }
         }
+        NewEventFab(canWrite = canWrite, spaceCount = spaces.size, onClick = { onCreateAt(null) })
     }
 
-    spacePickerTime?.let { time ->
+    if (spacePickerOpen) {
         SpacePickerDialog(
             spaces = spaces,
             onPick = { spaceId ->
-                spacePickerTime = null
-                openEditor(spaceId, null, time)
+                spacePickerOpen = false
+                openEditor(spaceId, null, spacePickerTime)
             },
-            onDismiss = { spacePickerTime = null },
+            onDismiss = { spacePickerOpen = false },
         )
     }
 
-    editorRequest?.let { request ->
-        EventEditor(
-            event = request.event,
-            day = state.focusedDate,
-            initialStart = request.initialStart,
-            members = state.editorMembers,
-            saving = state.saving,
-            canWrite = canWrite,
-            dismiss = {
-                editorRequest = null
-                viewModel.clearEditorMembers()
-            },
-        ) { id, input ->
-            viewModel.saveEvent(request.spaceId, id, input)
-            editorRequest = null
+    CalendarEditorHost(
+        editorEventId = editorEventId,
+        editor = editorEvent,
+        creating = editorOpen && editorEventId == null,
+        creatingAt = editorStartText?.let(LocalTime::parse),
+        eventsLoaded = state.events is UiState.Content,
+        day = state.focusedDate,
+        members = state.editorMembers,
+        saving = state.saving,
+        canWrite = canWrite,
+        onDropUnresolved = {
+            editorOpen = false
+            editorEventId = null
+            editorStartText = null
             viewModel.clearEditorMembers()
-        }
-    }
+        },
+        onClose = {
+            editorOpen = false
+            editorEventId = null
+            editorStartText = null
+            viewModel.clearEditorMembers()
+        },
+        onSave = { id, input -> editorSpaceId?.let { viewModel.saveEvent(it, id, input) } },
+    )
 
     eventToDelete?.let { personal ->
-        AlertDialog(
-            onDismissRequest = { eventToDelete = null },
-            title = { Text(stringResource(R.string.calendar_delete_title)) },
-            text = { Text(stringResource(R.string.calendar_delete_body, personal.event.title)) },
-            confirmButton = {
-                TextButton(
-                    enabled = canWrite && !state.saving,
-                    onClick = {
-                        viewModel.deleteEvent(personal.spaceId, personal.event.id)
-                        eventToDelete = null
-                    },
-                ) { Text(stringResource(R.string.calendar_delete)) }
+        DeleteEventDialog(
+            event = personal.event,
+            enabled = canWrite && !state.saving,
+            onConfirm = {
+                viewModel.deleteEvent(personal.spaceId, personal.event.id)
+                eventToDelete = null
             },
-            dismissButton = {
-                TextButton(onClick = { eventToDelete = null }) { Text(stringResource(R.string.cancel)) }
-            },
+            onDismiss = { eventToDelete = null },
         )
     }
 }
-
-private data class PersonalEditorRequest(val spaceId: String, val event: CalendarEvent?, val initialStart: LocalTime?)
 
 @Composable
 private fun SpacePickerDialog(spaces: List<SpaceSummary>, onPick: (String) -> Unit, onDismiss: () -> Unit) {
@@ -267,7 +287,11 @@ private fun PersonalWeekEventList(
     modifier: Modifier = Modifier,
 ) {
     val monday = focusedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-    LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    LazyColumn(
+        modifier,
+        contentPadding = PaddingValues(bottom = 88.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
         (0L..6L).forEach { offset ->
             val date = monday.plusDays(offset)
             item("header-$date") {
@@ -313,4 +337,21 @@ private fun List<PersonalCalendarEvent>.eventsOn(date: LocalDate): List<Personal
     val interval = date.visibleInterval(CalendarDisplayMode.DAY, zone)
     return filter { it.event.overlaps(interval.start, interval.endExclusive) }
         .sortedBy { it.event.startAt }
+}
+
+private fun List<PersonalCalendarEvent>.eventOf(spaceId: String?, eventId: String?): CalendarEvent? =
+    firstOrNull { it.spaceId == spaceId && it.event.id == eventId }?.event
+
+// Sin conexión o sin espacios no hay dónde crear el evento: no se muestra.
+@Composable
+private fun BoxScope.NewEventFab(canWrite: Boolean, spaceCount: Int, onClick: () -> Unit) {
+    if (!canWrite || spaceCount == 0) return
+    ExtendedFloatingActionButton(
+        onClick = onClick,
+        icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+        text = { Text(stringResource(R.string.calendar_new_event)) },
+        modifier = Modifier
+            .align(Alignment.BottomEnd)
+            .padding(16.dp),
+    )
 }
