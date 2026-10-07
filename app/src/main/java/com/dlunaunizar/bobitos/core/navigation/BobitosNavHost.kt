@@ -880,6 +880,5 @@ private fun NavHostController.navigateToProfile() {
     }
 }
 
-private const val CALENDAR_EVENT_ROUTE = "calendar-event/{eventId}/{date}"
 private const val INGREDIENT_DETAIL_ROUTE = "ingredient-detail/{ingredientId}"
 private const val NAV_ANIM_MS = 220

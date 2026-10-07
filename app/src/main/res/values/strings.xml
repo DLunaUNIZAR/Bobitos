@@ -37,6 +37,8 @@
     <string name="recurrence_every_n_days">Cada %1$d días</string>
     <string name="recurrence_every_n_weeks">Cada %1$d semanas</string>
     <string name="recurrence_every_n_months">Cada %1$d meses</string>
+    <string name="space_today_title">Hoy</string>
+    <string name="space_more_title">Más</string>
     <string name="space_home_title">Inicio del espacio</string>
     <string name="space_home_subtitle">¿Qué quieres organizar?</string>
     <string name="space_home_catalog_section">Recetario e ingredientes</string>
