@@ -37,8 +37,17 @@
     <string name="recurrence_every_n_days">Cada %1$d días</string>
     <string name="recurrence_every_n_weeks">Cada %1$d semanas</string>
     <string name="recurrence_every_n_months">Cada %1$d meses</string>
-    <string name="space_home_title">Inicio del espacio</string>
-    <string name="space_home_subtitle">¿Qué quieres organizar?</string>
+    <string name="space_today_title">Hoy</string>
+    <string name="space_more_title">Más</string>
+    <string name="space_today_greeting_morning">Buenos días</string>
+    <string name="space_today_greeting_afternoon">Buenas tardes</string>
+    <string name="space_today_greeting_evening">Buenas noches</string>
+    <string name="space_today_greeting_named">%1$s, %2$s</string>
+    <string name="space_today_nothing">Hoy no tienes nada pendiente</string>
+    <plurals name="space_today_summary">
+        <item quantity="one">Tienes %1$d cosa para hoy</item>
+        <item quantity="other">Tienes %1$d cosas para hoy</item>
+    </plurals>
     <string name="space_home_catalog_section">Recetario e ingredientes</string>
     <string name="home_my_day_title">Mi día</string>
     <string name="home_my_day_empty">Nada tuyo para hoy 🎉</string>

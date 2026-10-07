@@ -8,49 +8,25 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
-import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -66,15 +42,12 @@ import com.dlunaunizar.bobitos.app.AppUiState
 import com.dlunaunizar.bobitos.app.RealtimeScope
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
-import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.SyncStatusBanner
 import com.dlunaunizar.bobitos.core.designsystem.rememberReduceMotion
-import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SyncStatus
 import com.dlunaunizar.bobitos.core.model.canWrite
-import com.dlunaunizar.bobitos.data.repository.SpaceModuleCounts
 import com.dlunaunizar.bobitos.feature.auth.AuthActionUiState
 import com.dlunaunizar.bobitos.feature.auth.ProfileScreen
 import com.dlunaunizar.bobitos.feature.calendar.CalendarScreen
@@ -87,13 +60,10 @@ import com.dlunaunizar.bobitos.feature.notes.NotesScreen
 import com.dlunaunizar.bobitos.feature.recipes.RecipesScreen
 import com.dlunaunizar.bobitos.feature.routines.RoutinesScreen
 import com.dlunaunizar.bobitos.feature.shopping.ShoppingScreen
-import com.dlunaunizar.bobitos.feature.spaces.MyDayCard
-import com.dlunaunizar.bobitos.feature.spaces.SpaceHomeDigest
 import com.dlunaunizar.bobitos.feature.spaces.SpaceHomeViewModel
 import com.dlunaunizar.bobitos.feature.spaces.SpaceManagementUiState
 import com.dlunaunizar.bobitos.feature.spaces.SpaceSettingsScreen
 import com.dlunaunizar.bobitos.feature.spaces.SpacesScreen
-import com.dlunaunizar.bobitos.feature.spaces.WorkloadSection
 import com.dlunaunizar.bobitos.feature.sport.SportScreen
 import com.dlunaunizar.bobitos.feature.tasks.TasksScreen
 import java.time.LocalDate
@@ -137,6 +107,7 @@ fun BobitosNavHost(
     val protectedRoutes = BobitosDestination.workspaceDestinations.map { it.route } +
         BobitosDestination.SpaceSettings.route +
         BobitosDestination.SpaceHome.route +
+        BobitosDestination.SpaceMore.route +
         BobitosDestination.Notes.route +
         CALENDAR_EVENT_ROUTE
 
@@ -285,42 +256,57 @@ fun BobitosNavHost(
             val counts by summaryViewModel.counts.collectAsStateWithLifecycle()
             val digest by summaryViewModel.digest.collectAsStateWithLifecycle()
             LaunchedEffect(uiState.selectedSpace?.id) {
-                uiState.selectedSpace?.id?.let { summaryViewModel.load(it, authUser.id) }
+                // «Hoy» vuelve a componerse cada vez que se regresa a la pestaña: se recarga para no
+                // mostrar contadores de antes de editar en otro módulo.
+                uiState.selectedSpace?.id?.let { summaryViewModel.load(it, authUser.id, force = true) }
             }
-            SpaceHomeScreen(
+            SpaceScaffold(
+                navController = navController,
+                selectedTab = BobitosDestination.SpaceHome,
+                screenTitle = null,
                 spaceName = spaceName,
                 syncStatus = uiState.syncStatus,
-                counts = counts,
-                digest = digest,
-                onModuleSelected = navController::navigateToWorkspace,
-                onOpenNotes = { navController.navigate(BobitosDestination.Notes.route) },
-                onSwitchSpace = navController::navigateToSpaces,
-                onSpaceSettings = {
-                    onClearSpaceFeedback()
-                    navController.navigate(BobitosDestination.SpaceSettings.route)
-                },
-                onProfile = {
-                    onClearAuthFeedback()
-                    navController.navigateToProfile()
-                },
-            )
+                onClearSpaceFeedback = onClearSpaceFeedback,
+                onClearAuthFeedback = onClearAuthFeedback,
+            ) {
+                SpaceTodayScreen(
+                    displayName = authUser.displayName,
+                    counts = counts,
+                    digest = digest,
+                    onOpen = { destination ->
+                        if (destination in BobitosDestination.workspaceTabs) {
+                            navController.navigateToTab(destination)
+                        } else {
+                            navController.openFromMore(destination)
+                        }
+                    },
+                )
+            }
+        }
+
+        composable(BobitosDestination.SpaceMore.route) {
+            SpaceScaffold(
+                navController = navController,
+                selectedTab = BobitosDestination.SpaceMore,
+                screenTitle = null,
+                spaceName = spaceName,
+                syncStatus = uiState.syncStatus,
+                onClearSpaceFeedback = onClearSpaceFeedback,
+                onClearAuthFeedback = onClearAuthFeedback,
+            ) {
+                SpaceMoreScreen(onOpen = navController::openFromMore)
+            }
         }
 
         composable(BobitosDestination.Shopping.route) {
-            WorkspaceScaffold(
-                currentDestination = BobitosDestination.Shopping,
+            SpaceScaffold(
+                navController = navController,
+                selectedTab = workspaceTabFor(BobitosDestination.Shopping.route) ?: BobitosDestination.Shopping,
+                screenTitle = stringResource(BobitosDestination.Shopping.titleRes),
                 spaceName = spaceName,
-                onDestinationSelected = navController::navigateToWorkspace,
-                onSwitchSpace = navController::navigateToSpaces,
-                onSpaceSettings = {
-                    onClearSpaceFeedback()
-                    navController.navigate(BobitosDestination.SpaceSettings.route)
-                },
-                onProfile = {
-                    onClearAuthFeedback()
-                    navController.navigateToProfile()
-                },
                 syncStatus = uiState.syncStatus,
+                onClearSpaceFeedback = onClearSpaceFeedback,
+                onClearAuthFeedback = onClearAuthFeedback,
             ) {
                 uiState.selectedSpace?.let { space ->
                     ShoppingScreen(
@@ -332,20 +318,14 @@ fun BobitosNavHost(
         }
 
         composable(BobitosDestination.Tasks.route) {
-            WorkspaceScaffold(
-                currentDestination = BobitosDestination.Tasks,
+            SpaceScaffold(
+                navController = navController,
+                selectedTab = workspaceTabFor(BobitosDestination.Tasks.route) ?: BobitosDestination.Tasks,
+                screenTitle = stringResource(BobitosDestination.Tasks.titleRes),
                 spaceName = spaceName,
-                onDestinationSelected = navController::navigateToWorkspace,
-                onSwitchSpace = navController::navigateToSpaces,
-                onSpaceSettings = {
-                    onClearSpaceFeedback()
-                    navController.navigate(BobitosDestination.SpaceSettings.route)
-                },
-                onProfile = {
-                    onClearAuthFeedback()
-                    navController.navigateToProfile()
-                },
                 syncStatus = uiState.syncStatus,
+                onClearSpaceFeedback = onClearSpaceFeedback,
+                onClearAuthFeedback = onClearAuthFeedback,
             ) {
                 uiState.selectedSpace?.let { space ->
                     TasksScreen(
@@ -357,20 +337,14 @@ fun BobitosNavHost(
         }
 
         composable(BobitosDestination.Calendar.route) {
-            WorkspaceScaffold(
-                currentDestination = BobitosDestination.Calendar,
+            SpaceScaffold(
+                navController = navController,
+                selectedTab = workspaceTabFor(BobitosDestination.Calendar.route) ?: BobitosDestination.Calendar,
+                screenTitle = stringResource(BobitosDestination.Calendar.titleRes),
                 spaceName = spaceName,
-                onDestinationSelected = navController::navigateToWorkspace,
-                onSwitchSpace = navController::navigateToSpaces,
-                onSpaceSettings = {
-                    onClearSpaceFeedback()
-                    navController.navigate(BobitosDestination.SpaceSettings.route)
-                },
-                onProfile = {
-                    onClearAuthFeedback()
-                    navController.navigateToProfile()
-                },
                 syncStatus = uiState.syncStatus,
+                onClearSpaceFeedback = onClearSpaceFeedback,
+                onClearAuthFeedback = onClearAuthFeedback,
             ) {
                 uiState.selectedSpace?.let { space ->
                     CalendarScreen(spaceId = space.id, canWrite = uiState.syncStatus.canWrite)
@@ -379,20 +353,14 @@ fun BobitosNavHost(
         }
 
         composable(BobitosDestination.Meals.route) {
-            WorkspaceScaffold(
-                currentDestination = BobitosDestination.Meals,
+            SpaceScaffold(
+                navController = navController,
+                selectedTab = workspaceTabFor(BobitosDestination.Meals.route) ?: BobitosDestination.Meals,
+                screenTitle = stringResource(BobitosDestination.Meals.titleRes),
                 spaceName = spaceName,
-                onDestinationSelected = navController::navigateToWorkspace,
-                onSwitchSpace = navController::navigateToSpaces,
-                onSpaceSettings = {
-                    onClearSpaceFeedback()
-                    navController.navigate(BobitosDestination.SpaceSettings.route)
-                },
-                onProfile = {
-                    onClearAuthFeedback()
-                    navController.navigateToProfile()
-                },
                 syncStatus = uiState.syncStatus,
+                onClearSpaceFeedback = onClearSpaceFeedback,
+                onClearAuthFeedback = onClearAuthFeedback,
             ) {
                 uiState.selectedSpace?.let { space ->
                     MealsScreen(
@@ -406,20 +374,14 @@ fun BobitosNavHost(
         }
 
         composable(BobitosDestination.Sport.route) {
-            WorkspaceScaffold(
-                currentDestination = BobitosDestination.Sport,
+            SpaceScaffold(
+                navController = navController,
+                selectedTab = workspaceTabFor(BobitosDestination.Sport.route) ?: BobitosDestination.Sport,
+                screenTitle = stringResource(BobitosDestination.Sport.titleRes),
                 spaceName = spaceName,
-                onDestinationSelected = navController::navigateToWorkspace,
-                onSwitchSpace = navController::navigateToSpaces,
-                onSpaceSettings = {
-                    onClearSpaceFeedback()
-                    navController.navigate(BobitosDestination.SpaceSettings.route)
-                },
-                onProfile = {
-                    onClearAuthFeedback()
-                    navController.navigateToProfile()
-                },
                 syncStatus = uiState.syncStatus,
+                onClearSpaceFeedback = onClearSpaceFeedback,
+                onClearAuthFeedback = onClearAuthFeedback,
             ) {
                 uiState.selectedSpace?.let { space ->
                     SportScreen(
@@ -439,20 +401,14 @@ fun BobitosNavHost(
                 navArgument("date") { type = NavType.StringType },
             ),
         ) { backStackEntry ->
-            WorkspaceScaffold(
-                currentDestination = BobitosDestination.Calendar,
+            SpaceScaffold(
+                navController = navController,
+                selectedTab = workspaceTabFor(BobitosDestination.Calendar.route) ?: BobitosDestination.Calendar,
+                screenTitle = stringResource(BobitosDestination.Calendar.titleRes),
                 spaceName = spaceName,
-                onDestinationSelected = navController::navigateToWorkspace,
-                onSwitchSpace = navController::navigateToSpaces,
-                onSpaceSettings = {
-                    onClearSpaceFeedback()
-                    navController.navigate(BobitosDestination.SpaceSettings.route)
-                },
-                onProfile = {
-                    onClearAuthFeedback()
-                    navController.navigateToProfile()
-                },
                 syncStatus = uiState.syncStatus,
+                onClearSpaceFeedback = onClearSpaceFeedback,
+                onClearAuthFeedback = onClearAuthFeedback,
             ) {
                 uiState.selectedSpace?.let { space ->
                     CalendarScreen(
@@ -618,236 +574,35 @@ private fun MainMenuScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+// Marco de las pantallas del espacio con el cableado de navegación común.
 @Composable
-private fun WorkspaceScaffold(
-    currentDestination: BobitosDestination,
+private fun SpaceScaffold(
+    navController: NavHostController,
+    selectedTab: BobitosDestination,
+    screenTitle: String?,
     spaceName: String,
-    onDestinationSelected: (BobitosDestination) -> Unit,
-    onSwitchSpace: () -> Unit,
-    onSpaceSettings: () -> Unit,
-    onProfile: () -> Unit,
     syncStatus: SyncStatus,
+    onClearSpaceFeedback: () -> Unit,
+    onClearAuthFeedback: () -> Unit,
     content: @Composable () -> Unit,
 ) {
-    val snackbarHostState = remember { SnackbarHostState() }
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            Column {
-                BobitosTopBar(
-                    titleContent = {
-                        Column {
-                            Text(
-                                text = spaceName,
-                                style = MaterialTheme.typography.headlineSmall,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                text = stringResource(currentDestination.titleRes),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    },
-                    actions = {
-                        SpaceActions(
-                            onProfile = onProfile,
-                            onSpaceSettings = onSpaceSettings,
-                            onSwitchSpace = onSwitchSpace,
-                        )
-                    },
-                )
-                SyncStatusBanner(syncStatus)
-            }
+    WorkspaceScaffold(
+        selectedTab = selectedTab,
+        screenTitle = screenTitle,
+        spaceName = spaceName,
+        onTabSelected = navController::navigateToTab,
+        onSwitchSpace = navController::navigateToSpaces,
+        onSpaceSettings = {
+            onClearSpaceFeedback()
+            navController.navigate(BobitosDestination.SpaceSettings.route)
         },
-        bottomBar = {
-            NavigationBar {
-                BobitosDestination.workspaceDestinations.forEach { destination ->
-                    NavigationBarItem(
-                        selected = destination == currentDestination,
-                        onClick = { onDestinationSelected(destination) },
-                        icon = { Icon(destination.icon, contentDescription = null) },
-                        label = { Text(text = stringResource(destination.titleRes)) },
-                        colors = destination.moduleColor()?.let {
-                            NavigationBarItemDefaults.colors(
-                                selectedIconColor = it,
-                                selectedTextColor = it,
-                                indicatorColor = it.copy(alpha = 0.2f),
-                            )
-                        } ?: NavigationBarItemDefaults.colors(),
-                    )
-                }
-            }
+        onProfile = {
+            onClearAuthFeedback()
+            navController.navigateToProfile()
         },
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        ) {
-            CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
-                content()
-            }
-        }
-    }
-}
-
-@Composable
-private fun SpaceActions(onProfile: () -> Unit, onSpaceSettings: () -> Unit, onSwitchSpace: () -> Unit) {
-    IconButton(onClick = onProfile) {
-        Icon(
-            imageVector = Icons.Rounded.AccountCircle,
-            contentDescription = stringResource(R.string.profile_open),
-        )
-    }
-    var menuExpanded by remember { mutableStateOf(false) }
-    IconButton(onClick = { menuExpanded = true }) {
-        Icon(
-            imageVector = Icons.Rounded.MoreVert,
-            contentDescription = stringResource(R.string.more_options),
-        )
-    }
-    DropdownMenu(
-        expanded = menuExpanded,
-        onDismissRequest = { menuExpanded = false },
-    ) {
-        DropdownMenuItem(
-            text = { Text(text = stringResource(R.string.space_settings)) },
-            onClick = {
-                menuExpanded = false
-                onSpaceSettings()
-            },
-        )
-        DropdownMenuItem(
-            text = { Text(text = stringResource(R.string.change_space)) },
-            onClick = {
-                menuExpanded = false
-                onSwitchSpace()
-            },
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SpaceHomeScreen(
-    spaceName: String,
-    syncStatus: SyncStatus,
-    counts: SpaceModuleCounts?,
-    digest: SpaceHomeDigest?,
-    onModuleSelected: (BobitosDestination) -> Unit,
-    onOpenNotes: () -> Unit,
-    onSwitchSpace: () -> Unit,
-    onSpaceSettings: () -> Unit,
-    onProfile: () -> Unit,
-) {
-    Scaffold(
-        topBar = {
-            Column {
-                BobitosTopBar(
-                    titleContent = {
-                        Text(
-                            text = spaceName,
-                            style = MaterialTheme.typography.headlineSmall,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    },
-                    actions = {
-                        SpaceActions(
-                            onProfile = onProfile,
-                            onSpaceSettings = onSpaceSettings,
-                            onSwitchSpace = onSwitchSpace,
-                        )
-                    },
-                )
-                SyncStatusBanner(syncStatus)
-            }
-        },
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.space_home_subtitle),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            digest?.let { MyDayCard(it) }
-            BobitosDestination.workspaceDestinations.forEach { destination ->
-                SpaceHomeCard(
-                    destination = destination,
-                    count = counts?.forDestination(destination) ?: 0,
-                    onClick = { onModuleSelected(destination) },
-                )
-            }
-            SpaceHomeCard(destination = BobitosDestination.Notes, count = 0, onClick = onOpenNotes)
-            digest?.workload?.let { WorkloadSection(it) }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SpaceHomeCard(destination: BobitosDestination, count: Int, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        colors = destination.moduleColor()?.let { categoryCardColors(it) } ?: CardDefaults.cardColors(),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Icon(
-                destination.icon,
-                contentDescription = null,
-                tint = destination.moduleColor() ?: MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = stringResource(destination.titleRes),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.weight(1f),
-            )
-            if (count > 0) {
-                SpaceHomeCountBadge(count = count, color = destination.moduleColor())
-            }
-        }
-    }
-}
-
-@Composable
-private fun SpaceHomeCountBadge(count: Int, color: Color?) {
-    val badgeColor = color ?: MaterialTheme.colorScheme.primary
-    Surface(shape = CircleShape, color = badgeColor) {
-        Text(
-            text = count.toString(),
-            modifier = Modifier
-                .defaultMinSize(minWidth = 24.dp)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            color = contentColorFor(badgeColor),
-            style = MaterialTheme.typography.labelLarge,
-            textAlign = TextAlign.Center,
-        )
-    }
-}
-
-private fun SpaceModuleCounts.forDestination(destination: BobitosDestination): Int = when (destination) {
-    BobitosDestination.Shopping -> pendingShopping
-    BobitosDestination.Tasks -> pendingTasks
-    BobitosDestination.Calendar -> upcomingEvents
-    BobitosDestination.Meals -> todayMeals
-    else -> 0
+        syncStatus = syncStatus,
+        content = content,
+    )
 }
 
 private fun NavHostController.navigateToWorkspace(destination: BobitosDestination) {
@@ -858,6 +613,28 @@ private fun NavHostController.navigateToWorkspace(destination: BobitosDestinatio
         launchSingleTop = true
         restoreState = true
     }
+}
+
+private fun NavHostController.navigateToTab(tab: BobitosDestination) {
+    when (tab) {
+        // «Hoy» es el ancla de la pila: basta con volver a ella.
+        BobitosDestination.SpaceHome -> popBackStack(BobitosDestination.SpaceHome.route, inclusive = false)
+        // «Más» siempre abre su propia pantalla: si ya está en la pila (estando en Comidas/Deporte) se
+        // vuelve a ella; si no, se navega sin restaurar la cadena guardada, que aterrizaría en Comidas.
+        BobitosDestination.SpaceMore ->
+            if (!popBackStack(BobitosDestination.SpaceMore.route, inclusive = false)) {
+                navigate(BobitosDestination.SpaceMore.route) {
+                    popUpTo(BobitosDestination.SpaceHome.route) { saveState = true }
+                    launchSingleTop = true
+                }
+            }
+        else -> navigateToWorkspace(tab)
+    }
+}
+
+// Comidas, Deporte y Notas se apilan sobre «Más» para que atrás vuelva a «Más».
+private fun NavHostController.openFromMore(destination: BobitosDestination) {
+    navigate(destination.route) { launchSingleTop = true }
 }
 
 private fun NavHostController.navigateToHome() {
@@ -880,6 +657,5 @@ private fun NavHostController.navigateToProfile() {
     }
 }
 
-private const val CALENDAR_EVENT_ROUTE = "calendar-event/{eventId}/{date}"
 private const val INGREDIENT_DETAIL_ROUTE = "ingredient-detail/{ingredientId}"
 private const val NAV_ANIM_MS = 220

@@ -37,8 +37,10 @@ class SpaceHomeViewModel @Inject constructor(
     val digest: StateFlow<SpaceHomeDigest?> = mutableDigest.asStateFlow()
     private var loadedSpaceId: String? = null
 
-    fun load(spaceId: String, userId: String) {
-        if (spaceId == loadedSpaceId && mutableCounts.value != null && mutableDigest.value != null) return
+    /** [force] recarga aunque ya haya datos del mismo espacio (al volver a «Hoy» tras editar algo). */
+    fun load(spaceId: String, userId: String, force: Boolean = false) {
+        val hasData = mutableCounts.value != null && mutableDigest.value != null
+        if (!shouldLoadHome(spaceId, loadedSpaceId, hasData, force)) return
         loadedSpaceId = spaceId
         viewModelScope.launch {
             mutableCounts.value = runCatching { summaryRepository.counts(spaceId) }.getOrNull()
@@ -60,3 +62,7 @@ class SpaceHomeViewModel @Inject constructor(
         return buildHomeDigest(userId, today, zone, tasks, meals, events, members)
     }
 }
+
+/** Cargar si se fuerza, si cambió el espacio o si aún no hay datos completos (primera vez o fallo previo). */
+internal fun shouldLoadHome(spaceId: String, loadedSpaceId: String?, hasData: Boolean, force: Boolean): Boolean =
+    force || spaceId != loadedSpaceId || !hasData

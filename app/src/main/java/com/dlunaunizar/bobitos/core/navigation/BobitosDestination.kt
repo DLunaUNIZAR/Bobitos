@@ -12,6 +12,7 @@ import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Kitchen
 import androidx.compose.material.icons.rounded.MenuBook
+import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material.icons.rounded.Settings
@@ -36,8 +37,13 @@ enum class BobitosDestination(val route: String, @param:StringRes val titleRes: 
     ),
     SpaceHome(
         route = "space-home",
-        titleRes = R.string.space_home_title,
+        titleRes = R.string.space_today_title,
         icon = Icons.Rounded.Dashboard,
+    ),
+    SpaceMore(
+        route = "space-more",
+        titleRes = R.string.space_more_title,
+        icon = Icons.Rounded.MoreHoriz,
     ),
     MyCalendar(
         route = "my-calendar",
@@ -110,6 +116,9 @@ enum class BobitosDestination(val route: String, @param:StringRes val titleRes: 
         // Tarjetas del menú principal (al abrir la app): espacios + catálogos globales + calendario personal.
         val mainMenuDestinations = listOf(Spaces, Recipes, Ingredients, Routines, Exercises, MyCalendar)
         val workspaceDestinations = listOf(Shopping, Tasks, Calendar, Meals, Sport)
+
+        // Pestañas de la barra inferior dentro de un espacio. Comidas y Deporte cuelgan de «Más».
+        val workspaceTabs = listOf(SpaceHome, Calendar, Tasks, Shopping, SpaceMore)
     }
 }
 
@@ -122,5 +131,20 @@ fun BobitosDestination.moduleColor(): Color? = when (this) {
     BobitosDestination.Calendar -> moduleColors(AppModule.CALENDAR).accent
     BobitosDestination.Meals -> moduleColors(AppModule.MEALS).accent
     BobitosDestination.Sport -> moduleColors(AppModule.SPORT).accent
+    else -> null
+}
+
+internal const val CALENDAR_EVENT_ROUTE = "calendar-event/{eventId}/{date}"
+
+/** Pestaña que se resalta para la ruta actual, o null si la ruta no es una pantalla del espacio. */
+fun workspaceTabFor(route: String?): BobitosDestination? = when (route) {
+    BobitosDestination.SpaceHome.route -> BobitosDestination.SpaceHome
+    BobitosDestination.Calendar.route, CALENDAR_EVENT_ROUTE -> BobitosDestination.Calendar
+    BobitosDestination.Tasks.route -> BobitosDestination.Tasks
+    BobitosDestination.Shopping.route -> BobitosDestination.Shopping
+    BobitosDestination.SpaceMore.route,
+    BobitosDestination.Meals.route,
+    BobitosDestination.Sport.route,
+    -> BobitosDestination.SpaceMore
     else -> null
 }
