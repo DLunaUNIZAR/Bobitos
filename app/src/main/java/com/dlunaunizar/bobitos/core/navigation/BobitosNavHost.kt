@@ -24,6 +24,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -102,10 +104,14 @@ fun BobitosNavHost(
     modifier: Modifier = Modifier,
 ) {
     val spaceName = uiState.selectedSpace?.name ?: stringResource(R.string.app_name)
+    // El selector de espacio vive aquí para poder pedir todos los espacios mientras está abierto.
+    var spacePickerOpen by rememberSaveable { mutableStateOf(false) }
     // Cambiar de espacio desde la barra: se selecciona y se vuelve a «Hoy» (los datos son del nuevo espacio).
     val spaceSwitcher = SpaceSwitcher(
         spaces = (uiState.spaces as? UiState.Content)?.value.orEmpty(),
         selectedSpaceId = uiState.selectedSpace?.id,
+        pickerOpen = spacePickerOpen,
+        onPickerOpenChange = { spacePickerOpen = it },
         onSelect = { space ->
             onClearSpaceFeedback()
             onSpaceSelected(space.id)
@@ -121,24 +127,8 @@ fun BobitosNavHost(
         BobitosDestination.Notes.route +
         CALENDAR_EVENT_ROUTE
 
-    LaunchedEffect(currentRoute) {
-        onRealtimeScopeChanged(
-            when (currentRoute) {
-                null -> RealtimeScope.AUTOMATIC
-                BobitosDestination.Home.route,
-                BobitosDestination.Spaces.route,
-                BobitosDestination.MyCalendar.route,
-                -> RealtimeScope.ALL_SPACES
-                BobitosDestination.Profile.route,
-                BobitosDestination.Recipes.route,
-                BobitosDestination.Ingredients.route,
-                BobitosDestination.Exercises.route,
-                BobitosDestination.Routines.route,
-                INGREDIENT_DETAIL_ROUTE,
-                -> RealtimeScope.PAUSED
-                else -> RealtimeScope.ACTIVE_SPACE
-            },
-        )
+    LaunchedEffect(currentRoute, spacePickerOpen) {
+        onRealtimeScopeChanged(realtimeScopeFor(currentRoute, spacePickerOpen))
     }
 
     LaunchedEffect(uiState.selectedSpace, currentRoute) {
@@ -677,5 +667,4 @@ private fun NavHostController.navigateToProfile() {
     }
 }
 
-private const val INGREDIENT_DETAIL_ROUTE = "ingredient-detail/{ingredientId}"
 private const val NAV_ANIM_MS = 220

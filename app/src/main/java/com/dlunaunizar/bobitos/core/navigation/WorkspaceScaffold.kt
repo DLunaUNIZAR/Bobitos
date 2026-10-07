@@ -24,9 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,13 +59,14 @@ internal fun WorkspaceScaffold(
     content: @Composable () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
-    var showSpacePicker by rememberSaveable { mutableStateOf(false) }
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Column {
                 BobitosTopBar(
-                    titleContent = { SpaceTitle(spaceName, screenTitle, onClick = { showSpacePicker = true }) },
+                    titleContent = {
+                        SpaceTitle(spaceName, screenTitle, onClick = { switcher.onPickerOpenChange(true) })
+                    },
                     actions = {
                         IconButton(onClick = onSpaceSettings) {
                             Icon(
@@ -123,11 +122,11 @@ internal fun WorkspaceScaffold(
             }
         }
     }
-    if (showSpacePicker) {
+    if (switcher.pickerOpen) {
         SpacePickerSheet(
             switcher = switcher,
             onManageSpaces = onManageSpaces,
-            onDismiss = { showSpacePicker = false },
+            onDismiss = { switcher.onPickerOpenChange(false) },
         )
     }
 }

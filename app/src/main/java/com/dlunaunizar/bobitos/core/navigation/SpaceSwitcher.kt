@@ -6,5 +6,7 @@ import com.dlunaunizar.bobitos.core.model.SpaceSummary
 internal data class SpaceSwitcher(
     val spaces: List<SpaceSummary>,
     val selectedSpaceId: String?,
+    val pickerOpen: Boolean,
+    val onPickerOpenChange: (Boolean) -> Unit,
     val onSelect: (SpaceSummary) -> Unit,
 )
