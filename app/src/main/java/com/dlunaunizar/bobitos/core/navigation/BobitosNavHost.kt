@@ -256,7 +256,9 @@ fun BobitosNavHost(
             val counts by summaryViewModel.counts.collectAsStateWithLifecycle()
             val digest by summaryViewModel.digest.collectAsStateWithLifecycle()
             LaunchedEffect(uiState.selectedSpace?.id) {
-                uiState.selectedSpace?.id?.let { summaryViewModel.load(it, authUser.id) }
+                // «Hoy» vuelve a componerse cada vez que se regresa a la pestaña: se recarga para no
+                // mostrar contadores de antes de editar en otro módulo.
+                uiState.selectedSpace?.id?.let { summaryViewModel.load(it, authUser.id, force = true) }
             }
             SpaceScaffold(
                 navController = navController,
@@ -617,9 +619,15 @@ private fun NavHostController.navigateToTab(tab: BobitosDestination) {
     when (tab) {
         // «Hoy» es el ancla de la pila: basta con volver a ella.
         BobitosDestination.SpaceHome -> popBackStack(BobitosDestination.SpaceHome.route, inclusive = false)
-        // Estando en Comidas/Deporte, «Más» vuelve a su pantalla en vez de apilar otra.
+        // «Más» siempre abre su propia pantalla: si ya está en la pila (estando en Comidas/Deporte) se
+        // vuelve a ella; si no, se navega sin restaurar la cadena guardada, que aterrizaría en Comidas.
         BobitosDestination.SpaceMore ->
-            if (!popBackStack(BobitosDestination.SpaceMore.route, inclusive = false)) navigateToWorkspace(tab)
+            if (!popBackStack(BobitosDestination.SpaceMore.route, inclusive = false)) {
+                navigate(BobitosDestination.SpaceMore.route) {
+                    popUpTo(BobitosDestination.SpaceHome.route) { saveState = true }
+                    launchSingleTop = true
+                }
+            }
         else -> navigateToWorkspace(tab)
     }
 }
