@@ -33,7 +33,6 @@ import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
@@ -80,6 +79,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
@@ -728,177 +728,138 @@ internal fun EventEditor(
     save: (String?, EventInput) -> Unit,
 ) {
     val zone = ZoneId.systemDefault()
-    var title by remember { mutableStateOf(event?.title.orEmpty()) }
-    var description by remember { mutableStateOf(event?.description.orEmpty()) }
-    var allDay by remember { mutableStateOf(event?.allDay ?: (initialStart == null)) }
-    val startZdt = event?.startAt?.atZone(zone)
-    val endZdt = event?.endAt?.atZone(zone)
-    var startDate by remember {
-        mutableStateOf(
-            when {
-                event == null -> day
-                event.allDay -> event.startDate!!
-                else -> startZdt!!.toLocalDate()
-            },
-        )
-    }
-    var endDate by remember {
-        mutableStateOf(
-            when {
-                event == null -> day
-                event.allDay -> event.endDateExclusive!!.minusDays(1)
-                else -> endZdt!!.toLocalDate()
-            },
-        )
-    }
-    var startTime by remember {
-        mutableStateOf(
-            when {
-                event?.allDay == false -> startZdt!!.toLocalTime()
-                initialStart != null -> initialStart
-                else -> LocalTime.of(9, 0)
-            },
-        )
-    }
-    var endTime by remember {
-        mutableStateOf(
-            when {
-                event?.allDay == false -> endZdt!!.toLocalTime()
-                initialStart != null -> initialStart.plusHours(1)
-                else -> LocalTime.of(10, 0)
-            },
-        )
+    val initial = EventDraft.of(event, day, initialStart, zone)
+    var draft by rememberSaveable(event?.id, initialStart?.toString(), stateSaver = EventDraftSaver) {
+        mutableStateOf(initial)
     }
     var activePicker by remember { mutableStateOf<EventPicker?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
-    var color by remember { mutableStateOf(event?.color ?: EventColor.BLUE) }
-    var selected by remember { mutableStateOf(event?.participantIds?.toSet().orEmpty()) }
     val dateError = stringResource(R.string.calendar_date_error)
-    val startLabelRes = if (allDay) R.string.calendar_start_date_label else R.string.calendar_start_datetime_label
-    val endLabelRes = if (allDay) R.string.calendar_end_date_label else R.string.calendar_end_datetime_label
+    val startLabelRes = if (draft.allDay) R.string.calendar_start_date_label else R.string.calendar_start_datetime_label
+    val endLabelRes = if (draft.allDay) R.string.calendar_end_date_label else R.string.calendar_end_datetime_label
 
-    AlertDialog(
-        onDismissRequest = dismiss,
-        title = {
-            Text(
-                stringResource(
-                    if (event == null) R.string.calendar_new_event else R.string.calendar_edit_event_title,
-                ),
+    BobitosFormSheet(
+        title = stringResource(if (event == null) R.string.calendar_new_event else R.string.calendar_edit_event_title),
+        confirmLabel = stringResource(R.string.calendar_save),
+        confirmEnabled = canWrite,
+        saving = saving,
+        dirty = draft != initial,
+        onDismiss = dismiss,
+        onConfirm = {
+            val input = buildEventInput(
+                title = draft.title,
+                description = draft.description,
+                allDay = draft.allDay,
+                startDate = draft.startDate,
+                endDate = draft.endDate,
+                startTime = draft.startTime,
+                endTime = draft.endTime,
+                zone = zone,
+                color = draft.color,
+                participants = draft.selectedIds,
             )
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    title,
-                    { title = it },
-                    label = { Text(stringResource(R.string.calendar_event_title_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    description,
-                    { description = it },
-                    label = { Text(stringResource(R.string.calendar_event_description_label)) },
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(allDay, { allDay = it })
-                    Text(stringResource(R.string.calendar_all_day))
-                }
-                DateTimeField(
-                    label = stringResource(startLabelRes),
-                    date = startDate,
-                    time = if (allDay) null else startTime,
-                    onDateClick = { activePicker = EventPicker.START_DATE },
-                    onTimeClick = { activePicker = EventPicker.START_TIME },
-                )
-                DateTimeField(
-                    label = stringResource(endLabelRes),
-                    date = endDate,
-                    time = if (allDay) null else endTime,
-                    onDateClick = { activePicker = EventPicker.END_DATE },
-                    onTimeClick = { activePicker = EventPicker.END_TIME },
-                )
-                Text(stringResource(R.string.calendar_color_label), style = MaterialTheme.typography.labelLarge)
-                ColorPicker(selected = color, onSelect = { color = it })
-                if (members.isNotEmpty()) {
-                    Text(stringResource(R.string.calendar_participants_label))
-                }
-                members.forEach { member ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(
-                            member.userId in selected,
-                            { checked ->
-                                selected = if (checked) {
-                                    selected + member.userId
-                                } else {
-                                    selected - member.userId
-                                }
-                            },
-                        )
-                        Text(member.displayName)
-                    }
-                }
-                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            if (input == null) {
+                error = dateError
+            } else {
+                save(event?.id, input)
             }
         },
-        confirmButton = {
-            Button(
-                enabled = canWrite && !saving,
-                onClick = {
-                    val input = buildEventInput(
-                        title = title,
-                        description = description,
-                        allDay = allDay,
-                        startDate = startDate,
-                        endDate = endDate,
-                        startTime = startTime,
-                        endTime = endTime,
-                        zone = zone,
-                        color = color,
-                        participants = selected.toList(),
-                    )
-                    if (input == null) {
-                        error = dateError
-                    } else {
-                        save(event?.id, input)
-                    }
-                },
-            ) { Text(stringResource(R.string.calendar_save)) }
-        },
-        dismissButton = { TextButton(onClick = dismiss) { Text(stringResource(R.string.cancel)) } },
-    )
+    ) {
+        OutlinedTextField(
+            draft.title,
+            { draft = draft.copy(title = it) },
+            label = { Text(stringResource(R.string.calendar_event_title_label)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            draft.description,
+            { draft = draft.copy(description = it) },
+            label = { Text(stringResource(R.string.calendar_event_description_label)) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(draft.allDay, { draft = draft.copy(allDay = it) })
+            Text(stringResource(R.string.calendar_all_day))
+        }
+        DateTimeField(
+            label = stringResource(startLabelRes),
+            date = draft.startDate,
+            time = if (draft.allDay) null else draft.startTime,
+            onDateClick = { activePicker = EventPicker.START_DATE },
+            onTimeClick = { activePicker = EventPicker.START_TIME },
+        )
+        DateTimeField(
+            label = stringResource(endLabelRes),
+            date = draft.endDate,
+            time = if (draft.allDay) null else draft.endTime,
+            onDateClick = { activePicker = EventPicker.END_DATE },
+            onTimeClick = { activePicker = EventPicker.END_TIME },
+        )
+        Text(stringResource(R.string.calendar_color_label), style = MaterialTheme.typography.labelLarge)
+        ColorPicker(selected = draft.color, onSelect = { draft = draft.withColor(it) })
+        if (members.isNotEmpty()) {
+            Text(stringResource(R.string.calendar_participants_label))
+        }
+        members.forEach { member ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(
+                    member.userId in draft.selectedIds,
+                    { checked -> draft = draft.withParticipant(member.userId, checked) },
+                )
+                Text(member.displayName)
+            }
+        }
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+    }
 
+    EventPickers(
+        draft = draft,
+        activePicker = activePicker,
+        onDraft = { draft = it },
+        onClose = { activePicker = null },
+    )
+}
+
+@Composable
+private fun EventPickers(
+    draft: EventDraft,
+    activePicker: EventPicker?,
+    onDraft: (EventDraft) -> Unit,
+    onClose: () -> Unit,
+) {
     when (activePicker) {
         EventPicker.START_DATE -> AppDatePickerDialog(
-            initialDate = startDate,
+            initialDate = draft.startDate,
             onConfirm = {
-                startDate = it
-                activePicker = null
+                onDraft(draft.withStartDate(it))
+                onClose()
             },
-            onDismiss = { activePicker = null },
+            onDismiss = onClose,
         )
         EventPicker.END_DATE -> AppDatePickerDialog(
-            initialDate = endDate,
+            initialDate = draft.endDate,
             onConfirm = {
-                endDate = it
-                activePicker = null
+                onDraft(draft.withEndDate(it))
+                onClose()
             },
-            onDismiss = { activePicker = null },
+            onDismiss = onClose,
         )
         EventPicker.START_TIME -> EventTimePickerDialog(
-            initialTime = startTime,
+            initialTime = draft.startTime,
             onConfirm = {
-                startTime = it
-                activePicker = null
+                onDraft(draft.withStartTime(it))
+                onClose()
             },
-            onDismiss = { activePicker = null },
+            onDismiss = onClose,
         )
         EventPicker.END_TIME -> EventTimePickerDialog(
-            initialTime = endTime,
+            initialTime = draft.endTime,
             onConfirm = {
-                endTime = it
-                activePicker = null
+                onDraft(draft.withEndTime(it))
+                onClose()
             },
-            onDismiss = { activePicker = null },
+            onDismiss = onClose,
         )
         null -> Unit
     }
