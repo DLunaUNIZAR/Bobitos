@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
@@ -157,11 +158,12 @@ fun IngredientDetailScreen(
     }
 
     if (confirmDeleteIngredient && ingredient != null) {
-        ConfirmDialog(
+        BobitosDialog(
             title = stringResource(R.string.ingredients_delete_title),
-            body = stringResource(R.string.ingredients_delete_body, ingredient.name),
-            confirm = stringResource(R.string.ingredients_delete),
-            enabled = !state.isSaving,
+            message = stringResource(R.string.ingredients_delete_body, ingredient.name),
+            confirmLabel = stringResource(R.string.ingredients_delete),
+            destructive = true,
+            confirmEnabled = !state.isSaving,
             onConfirm = {
                 viewModel.deleteIngredient()
                 confirmDeleteIngredient = false
@@ -171,11 +173,12 @@ fun IngredientDetailScreen(
     }
 
     brandToDelete?.let { brand ->
-        ConfirmDialog(
+        BobitosDialog(
             title = stringResource(R.string.ingredients_brand_delete_title),
-            body = stringResource(R.string.ingredients_brand_delete_body, brand.name),
-            confirm = stringResource(R.string.ingredients_delete),
-            enabled = !state.isSaving,
+            message = stringResource(R.string.ingredients_brand_delete_body, brand.name),
+            confirmLabel = stringResource(R.string.ingredients_delete),
+            destructive = true,
+            confirmEnabled = !state.isSaving,
             onConfirm = {
                 viewModel.deleteBrand(brand.id)
                 brandToDelete = null
@@ -396,24 +399,6 @@ private fun BrandEditorDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         },
-    )
-}
-
-@Composable
-private fun ConfirmDialog(
-    title: String,
-    body: String,
-    confirm: String,
-    enabled: Boolean,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = { Text(body) },
-        confirmButton = { TextButton(enabled = enabled, onClick = onConfirm) { Text(confirm) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }
 

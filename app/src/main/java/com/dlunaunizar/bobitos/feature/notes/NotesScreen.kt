@@ -46,6 +46,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -150,19 +151,17 @@ fun NotesScreen(
         )
     }
     noteToDelete?.let { note ->
-        AlertDialog(
-            onDismissRequest = { noteToDelete = null },
-            title = { Text(stringResource(R.string.notes_delete_title)) },
-            text = { Text(stringResource(R.string.notes_delete_body, note.title)) },
-            confirmButton = {
-                TextButton(enabled = enabled, onClick = {
-                    viewModel.deleteNote(note.id)
-                    noteToDelete = null
-                }) { Text(stringResource(R.string.notes_delete)) }
+        BobitosDialog(
+            title = stringResource(R.string.notes_delete_title),
+            message = stringResource(R.string.notes_delete_body, note.title),
+            confirmLabel = stringResource(R.string.notes_delete),
+            destructive = true,
+            confirmEnabled = enabled,
+            onConfirm = {
+                viewModel.deleteNote(note.id)
+                noteToDelete = null
             },
-            dismissButton = {
-                TextButton(onClick = { noteToDelete = null }) { Text(stringResource(R.string.cancel)) }
-            },
+            onDismiss = { noteToDelete = null },
         )
     }
 }

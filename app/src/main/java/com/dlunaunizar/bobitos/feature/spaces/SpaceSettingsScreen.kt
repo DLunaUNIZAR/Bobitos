@@ -36,6 +36,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.QrCodeImage
 import com.dlunaunizar.bobitos.core.designsystem.component.SyncStatusBanner
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
@@ -232,21 +233,17 @@ fun SpaceSettingsScreen(
     }
 
     if (showDeleteSpaceDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteSpaceDialog = false },
-            title = { Text(stringResource(R.string.space_delete_title)) },
-            text = { Text(stringResource(R.string.space_delete_body, space.name)) },
-            confirmButton = {
-                Button(enabled = canWrite && !state.isLoading, onClick = {
-                    onDeleteSpace(space.id)
-                    showDeleteSpaceDialog = false
-                }) { Text(stringResource(R.string.space_delete_confirm)) }
+        BobitosDialog(
+            title = stringResource(R.string.space_delete_title),
+            message = stringResource(R.string.space_delete_body, space.name),
+            confirmLabel = stringResource(R.string.space_delete_confirm),
+            destructive = true,
+            confirmEnabled = canWrite && !state.isLoading,
+            onConfirm = {
+                onDeleteSpace(space.id)
+                showDeleteSpaceDialog = false
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteSpaceDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
+            onDismiss = { showDeleteSpaceDialog = false },
         )
     }
 }
@@ -474,20 +471,15 @@ private fun ConfirmMemberActionDialog(
         )
         MemberActionType.Leave -> stringResource(R.string.space_leave_confirm_body)
     }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = title) },
-        text = { Text(text = body) },
-        confirmButton = {
-            TextButton(onClick = onConfirm, enabled = confirmEnabled) {
-                Text(text = stringResource(R.string.confirm))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = stringResource(R.string.cancel))
-            }
-        },
+    BobitosDialog(
+        title = title,
+        message = body,
+        confirmLabel = stringResource(R.string.confirm),
+        // Transferir la propiedad no destruye nada; quitar a alguien o salir del espacio, sí.
+        destructive = action.type != MemberActionType.Transfer,
+        confirmEnabled = confirmEnabled,
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
     )
 }
 

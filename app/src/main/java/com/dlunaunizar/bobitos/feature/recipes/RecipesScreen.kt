@@ -58,6 +58,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -245,31 +246,26 @@ fun RecipesScreen(
     }
 
     recipeToDelete?.let { recipe ->
-        AlertDialog(
-            onDismissRequest = { recipeToDelete = null },
-            title = { Text(stringResource(R.string.recipes_delete_title)) },
-            text = { Text(stringResource(R.string.recipes_delete_body, recipe.title)) },
-            confirmButton = {
-                TextButton(
-                    enabled = canWrite && !state.isSaving,
-                    onClick = {
-                        viewModel.deleteRecipe(recipe.id)
-                        recipeToDelete = null
-                        scope.launchUndo(snackbarHostState, deletedMessage, undoLabel) {
-                            viewModel.createRecipe(
-                                recipe.visibility,
-                                recipe.title,
-                                recipe.description,
-                                recipe.category,
-                                recipe.ingredients.orEmpty(),
-                            )
-                        }
-                    },
-                ) { Text(stringResource(R.string.recipes_delete)) }
+        BobitosDialog(
+            title = stringResource(R.string.recipes_delete_title),
+            message = stringResource(R.string.recipes_delete_body, recipe.title),
+            confirmLabel = stringResource(R.string.recipes_delete),
+            destructive = true,
+            confirmEnabled = canWrite && !state.isSaving,
+            onConfirm = {
+                viewModel.deleteRecipe(recipe.id)
+                recipeToDelete = null
+                scope.launchUndo(snackbarHostState, deletedMessage, undoLabel) {
+                    viewModel.createRecipe(
+                        recipe.visibility,
+                        recipe.title,
+                        recipe.description,
+                        recipe.category,
+                        recipe.ingredients.orEmpty(),
+                    )
+                }
             },
-            dismissButton = {
-                TextButton(onClick = { recipeToDelete = null }) { Text(stringResource(R.string.cancel)) }
-            },
+            onDismiss = { recipeToDelete = null },
         )
     }
 
