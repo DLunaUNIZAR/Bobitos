@@ -14,7 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Kitchen
 import androidx.compose.material.icons.rounded.QrCodeScanner
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -45,6 +44,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -68,7 +68,8 @@ fun IngredientsScreen(
         viewModel.observe()
         onDispose { viewModel.stopObserving() }
     }
-    var showEditor by remember { mutableStateOf(false) }
+    // Crear a mano sobrevive a una rotación; el flujo desde escaneo (scanCreate) lleva la nutrición y no.
+    var showEditor by rememberSaveable { mutableStateOf(false) }
     var scanCreate by remember { mutableStateOf<ScannedProduct?>(null) }
     var query by rememberSaveable { mutableStateOf("") }
     LaunchedEffect(query) { viewModel.setQuery(query) }
@@ -254,51 +255,45 @@ internal fun IngredientEditorDialog(
     onSave: (String, String?, String?) -> Unit,
     initialName: String = "",
 ) {
-    var name by remember(ingredient?.id) { mutableStateOf(ingredient?.name ?: initialName) }
-    var category by remember(ingredient?.id) { mutableStateOf(ingredient?.category.orEmpty()) }
-    var unit by remember(ingredient?.id) { mutableStateOf(ingredient?.defaultUnit.orEmpty()) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                stringResource(
-                    if (ingredient == null) R.string.ingredients_add_title else R.string.ingredients_edit_title,
-                ),
-            )
+    val initial = CatalogIngredientDraft.of(ingredient, initialName)
+    var draft by rememberSaveable(ingredient?.id, initialName, stateSaver = CatalogIngredientDraftSaver) {
+        mutableStateOf(initial)
+    }
+    BobitosFormSheet(
+        title = stringResource(
+            if (ingredient == null) R.string.ingredients_add_title else R.string.ingredients_edit_title,
+        ),
+        confirmLabel = stringResource(R.string.save),
+        confirmEnabled = draft.name.isNotBlank(),
+        saving = saving,
+        dirty = draft != initial,
+        onDismiss = onDismiss,
+        onConfirm = {
+            onSave(draft.name, draft.category.trim().ifBlank { null }, draft.unit.trim().ifBlank { null })
         },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(stringResource(R.string.ingredients_name_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = category,
-                    onValueChange = { category = it },
-                    label = { Text(stringResource(R.string.ingredients_category_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = unit,
-                    onValueChange = { unit = it },
-                    label = { Text(stringResource(R.string.ingredients_unit_label)) },
-                    singleLine = true,
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = name.isNotBlank() && !saving,
-                onClick = { onSave(name, category.trim().ifBlank { null }, unit.trim().ifBlank { null }) },
-            ) { Text(stringResource(R.string.confirm)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
-        },
-    )
+    ) {
+        OutlinedTextField(
+            value = draft.name,
+            onValueChange = { draft = draft.copy(name = it) },
+            label = { Text(stringResource(R.string.ingredients_name_label)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = draft.category,
+            onValueChange = { draft = draft.copy(category = it) },
+            label = { Text(stringResource(R.string.ingredients_category_label)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = draft.unit,
+            onValueChange = { draft = draft.copy(unit = it) },
+            label = { Text(stringResource(R.string.ingredients_unit_label)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
 
 @Composable
