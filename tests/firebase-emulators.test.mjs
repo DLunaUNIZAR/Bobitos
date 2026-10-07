@@ -1973,6 +1973,38 @@ test("al añadir una actividad se puede crear su evento de calendario enlazado (
   );
 });
 
+test("al editar una actividad el evento enlazado se actualiza parcialmente y conserva lo que el usuario cambió en el calendario", async () => {
+  await seedSpace("act-ev-partial", "act-evp-owner", ["act-evp-member"]);
+  const owner = verifiedFirestore("act-evp-owner");
+  const member = verifiedFirestore("act-evp-member");
+  const ref = doc(owner, "spaces", "act-ev-partial", "events", "ev-run");
+
+  await assertSucceeds(
+    setDoc(
+      ref,
+      eventData("act-evp-owner", {
+        title: "Correr", description: "con el perro", color: "GREEN", allDay: true,
+        startDate: "2026-07-20", endDateExclusive: "2026-07-21",
+        participantIds: ["act-evp-owner"], participantNames: ["act-evp-owner"],
+      }),
+    ),
+  );
+  // Otro miembro edita la actividad: solo cambian título y participantes, sin tocar descripción ni color.
+  await assertSucceeds(
+    updateDoc(doc(member, "spaces", "act-ev-partial", "events", "ev-run"), {
+      title: "Correr 5k",
+      participantIds: ["act-evp-owner", "act-evp-member"],
+      participantNames: ["act-evp-owner", "act-evp-member"],
+      updatedBy: "act-evp-member",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+  const data = (await getDoc(ref)).data();
+  assert.equal(data.description, "con el perro");
+  assert.equal(data.color, "GREEN");
+  assert.equal(data.createdBy, "act-evp-owner");
+});
+
 test("las actividades exigen que participantNames tenga el mismo tamaño que participantIds", async () => {
   await seedSpace("act-parts", "act-parts-owner");
   const owner = verifiedFirestore("act-parts-owner");

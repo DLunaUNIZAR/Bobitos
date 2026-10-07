@@ -103,7 +103,7 @@ class FirestoreSportActivityRepository @Inject constructor(
             )
             transaction.set(
                 eventReference,
-                sportEventData(user, date, normalizedName, participantIds, names, forCreate = true),
+                newSportEventData(user, user.id, user.sportDisplayName, date, normalizedName, participantIds, names),
             )
         }.await()
         Unit
@@ -127,30 +127,41 @@ class FirestoreSportActivityRepository @Inject constructor(
 
         firestore.runTransaction { transaction ->
             val snapshot = requireActivity(transaction.get(reference))
-            // Reutiliza el evento enlazado; si no existía (actividad previa a esta función) o fue
-            // borrado a mano desde el calendario, se crea de nuevo. Todas las lecturas antes de escribir.
+            // Reutiliza el evento enlazado. Solo una actividad previa a esta función (sin eventId) crea
+            // uno nuevo: si el evento enlazado ya no existe es que se borró a propósito desde el
+            // calendario y no se recrea. Todas las lecturas antes de escribir.
             val existingEventId = snapshot.getString(FIELD_EVENT_ID)
             val eventReference = existingEventId
                 ?.let { eventsCollection(spaceId).document(it) }
                 ?: eventsCollection(spaceId).document()
-            val eventExists = existingEventId != null && transaction.get(eventReference).exists()
+            val eventSnapshot = existingEventId?.let { transaction.get(eventReference) }
             val members = memberReferences.map(transaction::get)
             requireParticipants(participantIds, members)
             val names = members.displayNames()
+            // El organizador del evento es siempre el creador de la actividad, no quien edita.
+            val organizerId = snapshot.getString(FIELD_CREATED_BY) ?: user.id
+            val organizerName = snapshot.getString(FIELD_CREATED_BY_NAME) ?: user.sportDisplayName
             transaction.update(
                 reference,
                 activityUpdateData(user, date, type, normalizedName, participantIds, names, gym, eventReference.id),
             )
-            if (eventExists) {
-                transaction.update(
+            when {
+                eventSnapshot == null -> transaction.set(
                     eventReference,
-                    sportEventData(user, date, normalizedName, participantIds, names, forCreate = false),
+                    newSportEventData(user, organizerId, organizerName, date, normalizedName, participantIds, names),
                 )
-            } else {
-                transaction.set(
+                eventSnapshot.exists() -> transaction.update(
                     eventReference,
-                    sportEventData(user, date, normalizedName, participantIds, names, forCreate = true),
+                    sportEventUpdateData(
+                        user,
+                        eventSnapshot,
+                        snapshot.getString(FIELD_DATE),
+                        date,
+                        normalizedName,
+                        eventParticipants(organizerId, organizerName, participantIds, names),
+                    ),
                 )
+                else -> Unit
             }
         }.await()
         Unit
@@ -301,53 +312,86 @@ class FirestoreSportActivityRepository @Inject constructor(
     )
 
     // Evento de calendario (todo el día) que refleja una actividad deportiva. Debe tener EXACTAMENTE
-    // las 16 claves del contrato de eventos (reglas con hasOnly); para update se omiten las de creación.
-    private fun sportEventData(
+    // las 16 claves del contrato de eventos (reglas con hasOnly).
+    private fun newSportEventData(
         user: AuthUser,
+        organizerId: String,
+        organizerName: String,
         date: LocalDate,
         name: String,
         participantIds: List<String>,
         participantNames: List<String>,
-        forCreate: Boolean,
     ): Map<String, Any?> {
-        val zone = ZoneId.systemDefault()
-        val start = date.atStartOfDay(zone).toInstant()
-        val end = date.plusDays(1).atStartOfDay(zone).toInstant()
-        // El calendario personal solo muestra eventos donde el usuario es participante, así que el
-        // evento incluye SIEMPRE al creador (organizador) además de los participantes de la actividad;
-        // de lo contrario una actividad sin participantes no aparecería en ningún calendario personal.
-        val eventIds = mutableListOf(user.id)
-        val eventNames = mutableListOf(user.sportDisplayName)
-        participantIds.forEachIndexed { index, id ->
-            if (id !in eventIds) {
-                eventIds += id
-                eventNames += participantNames.getOrElse(index) { "" }
-            }
-        }
-        val common = mapOf(
+        val (ids, names) = eventParticipants(organizerId, organizerName, participantIds, participantNames)
+        return mapOf(
             EV_TITLE to name,
             EV_DESCRIPTION to null,
             EV_ALL_DAY to true,
-            EV_START_AT to Timestamp(Date.from(start)),
-            EV_END_AT to Timestamp(Date.from(end)),
-            EV_START_DATE to date.toString(),
-            EV_END_DATE_EXCLUSIVE to date.plusDays(1).toString(),
-            EV_TIME_ZONE to zone.id,
             EV_COLOR to EventColor.BLUE.name,
-            FIELD_PARTICIPANT_IDS to eventIds.take(MAX_EVENT_PARTICIPANTS),
-            FIELD_PARTICIPANT_NAMES to eventNames.take(MAX_EVENT_PARTICIPANTS),
+            FIELD_PARTICIPANT_IDS to ids,
+            FIELD_PARTICIPANT_NAMES to names,
+            FIELD_CREATED_BY to user.id,
+            FIELD_CREATED_BY_NAME to user.sportDisplayName,
+            FIELD_CREATED_AT to FieldValue.serverTimestamp(),
+            FIELD_UPDATED_BY to user.id,
+            FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+        ) + dayFields(date, ZoneId.systemDefault())
+    }
+
+    // Al editar solo se tocan los campos que dependen de la actividad (título, participantes y, si
+    // cambia el día, las fechas): la descripción, el color o el horario que el usuario haya puesto al
+    // evento desde el calendario se conservan.
+    private fun sportEventUpdateData(
+        user: AuthUser,
+        event: DocumentSnapshot,
+        previousDate: String?,
+        date: LocalDate,
+        name: String,
+        participants: Pair<List<String>, List<String>>,
+    ): Map<String, Any?> {
+        val data = mutableMapOf<String, Any?>(
+            EV_TITLE to name,
+            FIELD_PARTICIPANT_IDS to participants.first,
+            FIELD_PARTICIPANT_NAMES to participants.second,
             FIELD_UPDATED_BY to user.id,
             FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
         )
-        return if (forCreate) {
-            common + mapOf(
-                FIELD_CREATED_BY to user.id,
-                FIELD_CREATED_BY_NAME to user.sportDisplayName,
-                FIELD_CREATED_AT to FieldValue.serverTimestamp(),
-            )
-        } else {
-            common
+        // Un evento al que el usuario ya puso horario (no es de todo el día) no se mueve de día.
+        if (previousDate != date.toString() && event.getBoolean(EV_ALL_DAY) != false) {
+            val zone = event.getString(EV_TIME_ZONE)
+                ?.let { runCatching { ZoneId.of(it) }.getOrNull() }
+                ?: ZoneId.systemDefault()
+            data += dayFields(date, zone)
         }
+        return data
+    }
+
+    private fun dayFields(date: LocalDate, zone: ZoneId): Map<String, Any?> = mapOf(
+        EV_START_AT to Timestamp(Date.from(date.atStartOfDay(zone).toInstant())),
+        EV_END_AT to Timestamp(Date.from(date.plusDays(1).atStartOfDay(zone).toInstant())),
+        EV_START_DATE to date.toString(),
+        EV_END_DATE_EXCLUSIVE to date.plusDays(1).toString(),
+        EV_TIME_ZONE to zone.id,
+        EV_ALL_DAY to true,
+    )
+
+    // El calendario personal solo muestra eventos donde el usuario es participante, así que el evento
+    // incluye al organizador (creador de la actividad) para que una actividad sin participantes
+    // aparezca en algún calendario personal. Los participantes van primero: si con el organizador se
+    // superase el máximo, el que se queda fuera es el organizador y nunca un participante.
+    private fun eventParticipants(
+        organizerId: String,
+        organizerName: String,
+        participantIds: List<String>,
+        participantNames: List<String>,
+    ): Pair<List<String>, List<String>> {
+        val ids = participantIds.toMutableList()
+        val names = participantNames.toMutableList()
+        if (organizerId !in ids && ids.size < MAX_EVENT_PARTICIPANTS) {
+            ids += organizerId
+            names += organizerName
+        }
+        return ids to names
     }
 
     private suspend inline fun <T> runActivityOperation(crossinline operation: suspend () -> T): T {
