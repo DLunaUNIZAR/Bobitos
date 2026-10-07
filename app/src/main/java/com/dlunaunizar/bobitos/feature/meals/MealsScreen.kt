@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -29,6 +30,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,11 +59,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
@@ -68,6 +75,7 @@ import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewDialog
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -87,7 +95,15 @@ fun MealsScreen(
         onDispose { viewModel.stopObserving() }
     }
 
-    var editor by remember { mutableStateOf<MealEditorRequest?>(null) }
+    // El editor sobrevive a una rotación: se guarda el id de la comida y la franja, no el objeto.
+    var editorOpen by rememberSaveable { mutableStateOf(false) }
+    var editorMealId by rememberSaveable { mutableStateOf<String?>(null) }
+    var editorSlotName by rememberSaveable { mutableStateOf(MealSlot.COMIDA.name) }
+    val openEditor: (Meal?, MealSlot) -> Unit = { meal, slot ->
+        editorMealId = meal?.id
+        editorSlotName = slot.name
+        editorOpen = true
+    }
     var mealToDelete by remember { mutableStateOf<Meal?>(null) }
     var query by rememberSaveable { mutableStateOf("") }
     var dayMenuExpanded by remember { mutableStateOf(false) }
@@ -99,160 +115,161 @@ fun MealsScreen(
     val deletedMessage = stringResource(R.string.meals_undo_deleted)
     val undoLabel = stringResource(R.string.undo)
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-    ) {
-        WeekSelector(
-            weekDays = state.weekDays,
-            focusedDate = state.focusedDate,
-            onPrevious = viewModel::previousWeek,
-            onNext = viewModel::nextWeek,
-            onSelectDay = viewModel::selectDay,
-        )
-        Spacer(Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = state.focusedDate.formatHeader(),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f),
+    Box(modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            WeekSelector(
+                weekDays = state.weekDays,
+                focusedDate = state.focusedDate,
+                onPrevious = viewModel::previousWeek,
+                onNext = viewModel::nextWeek,
+                onSelectDay = viewModel::selectDay,
             )
-            IconButton(onClick = onOpenIngredients) {
-                Icon(Icons.Rounded.Kitchen, contentDescription = stringResource(R.string.ingredients_open))
-            }
-            TextButton(onClick = onOpenRecipes) {
-                Icon(Icons.Rounded.MenuBook, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(4.dp))
-                Text(stringResource(R.string.recipes_open))
-            }
-            if (canWrite) {
-                Box {
-                    IconButton(onClick = { dayMenuExpanded = true }) {
-                        Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.more_options))
-                    }
-                    DropdownMenu(expanded = dayMenuExpanded, onDismissRequest = { dayMenuExpanded = false }) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.meals_duplicate_day)) },
-                            onClick = {
-                                dayMenuExpanded = false
-                                duplicateDayPicker = true
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.meals_duplicate_week)) },
-                            onClick = {
-                                dayMenuExpanded = false
-                                viewModel.duplicateWeekToNext()
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.meals_add_day_to_shopping)) },
-                            onClick = {
-                                dayMenuExpanded = false
-                                viewModel.addDayIngredientsToShopping()
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.meals_add_week_to_shopping)) },
-                            onClick = {
-                                dayMenuExpanded = false
-                                viewModel.addWeekIngredientsToShopping()
-                            },
-                        )
-                    }
-                }
-            }
-        }
-        MealsFeedback(state, viewModel::clearFeedback)
-        Spacer(Modifier.height(8.dp))
-
-        when (val mealsState = state.meals) {
-            UiState.Loading -> LoadingState(Modifier.weight(1f))
-            is UiState.Error -> ErrorState(Modifier.weight(1f), message = mealsState.message)
-            is UiState.Content -> {
-                val dayMeals = mealsState.value.filter { it.date == state.focusedDate }
-                SearchField(
-                    query = query,
-                    onQueryChange = { query = it },
-                    visible = dayMeals.isNotEmpty(),
-                    modifier = Modifier.padding(bottom = 8.dp),
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = state.focusedDate.formatHeader(),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f),
                 )
-                val queriedMeals = dayMeals.filter { it.matchesQuery(query) }
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
-                ) {
-                    MealSlot.entries.forEach { slot ->
-                        item(key = slot.name) {
-                            MealSlotSection(
-                                slot = slot,
-                                meals = queriedMeals.filter { it.slot == slot },
-                                recipes = state.recipes,
-                                canWrite = canWrite,
-                                actionsEnabled = actionsEnabled,
-                                onAdd = { editor = MealEditorRequest(slot = slot, meal = null) },
-                                onEdit = { meal -> editor = MealEditorRequest(slot = meal.slot, meal = meal) },
-                                onDelete = { mealToDelete = it },
-                                onAddToShopping = { viewModel.addIngredientsToShopping(it) },
-                                onToggleCooked = {
-                                    if (it.cooked) viewModel.unmarkCooked(it) else viewModel.markCooked(it)
+                IconButton(onClick = onOpenIngredients) {
+                    Icon(Icons.Rounded.Kitchen, contentDescription = stringResource(R.string.ingredients_open))
+                }
+                TextButton(onClick = onOpenRecipes) {
+                    Icon(Icons.Rounded.MenuBook, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text(stringResource(R.string.recipes_open))
+                }
+                if (canWrite) {
+                    Box {
+                        IconButton(onClick = { dayMenuExpanded = true }) {
+                            Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.more_options))
+                        }
+                        DropdownMenu(expanded = dayMenuExpanded, onDismissRequest = { dayMenuExpanded = false }) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.meals_duplicate_day)) },
+                                onClick = {
+                                    dayMenuExpanded = false
+                                    duplicateDayPicker = true
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.meals_duplicate_week)) },
+                                onClick = {
+                                    dayMenuExpanded = false
+                                    viewModel.duplicateWeekToNext()
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.meals_add_day_to_shopping)) },
+                                onClick = {
+                                    dayMenuExpanded = false
+                                    viewModel.addDayIngredientsToShopping()
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.meals_add_week_to_shopping)) },
+                                onClick = {
+                                    dayMenuExpanded = false
+                                    viewModel.addWeekIngredientsToShopping()
                                 },
                             )
                         }
                     }
                 }
             }
-        }
-    }
+            MealsFeedback(state, viewModel::clearFeedback)
+            Spacer(Modifier.height(8.dp))
 
-    editor?.let { request ->
-        MealEditor(
-            request = request,
-            members = members,
-            recipes = state.recipes,
-            saving = state.isSaving,
-            canWrite = canWrite,
-            onDismiss = { editor = null },
-            onSave = { name, participantIds, recipeId, cookId ->
-                val meal = request.meal
-                if (meal == null) {
-                    viewModel.addMeal(state.focusedDate, request.slot, name, participantIds, recipeId, cookId)
-                } else {
-                    viewModel.updateMeal(meal.id, meal.date, meal.slot, name, participantIds, recipeId, cookId)
+            when (val mealsState = state.meals) {
+                UiState.Loading -> LoadingState(Modifier.weight(1f))
+                is UiState.Error -> ErrorState(Modifier.weight(1f), message = mealsState.message)
+                is UiState.Content -> {
+                    val dayMeals = mealsState.value.filter { it.date == state.focusedDate }
+                    SearchField(
+                        query = query,
+                        onQueryChange = { query = it },
+                        visible = dayMeals.isNotEmpty(),
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                    val queriedMeals = dayMeals.filter { it.matchesQuery(query) }
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(top = 8.dp, bottom = 88.dp),
+                    ) {
+                        MealSlot.entries.forEach { slot ->
+                            item(key = slot.name) {
+                                MealSlotSection(
+                                    slot = slot,
+                                    meals = queriedMeals.filter { it.slot == slot },
+                                    recipes = state.recipes,
+                                    canWrite = canWrite,
+                                    actionsEnabled = actionsEnabled,
+                                    onAdd = { openEditor(null, slot) },
+                                    onEdit = { meal -> openEditor(meal, meal.slot) },
+                                    onDelete = { mealToDelete = it },
+                                    onAddToShopping = { viewModel.addIngredientsToShopping(it) },
+                                    onToggleCooked = {
+                                        if (it.cooked) viewModel.unmarkCooked(it) else viewModel.markCooked(it)
+                                    },
+                                )
+                            }
+                        }
+                    }
                 }
-                editor = null
-            },
+            }
+        }
+        NewMealFab(
+            visible = canWrite,
+            onClick = { openEditor(null, defaultMealSlot(LocalTime.now().hour)) },
         )
     }
 
+    MealEditorHost(
+        open = editorOpen,
+        mealId = editorMealId,
+        slotName = editorSlotName,
+        meals = (state.meals as? UiState.Content)?.value.orEmpty(),
+        mealsLoaded = state.meals is UiState.Content,
+        members = members,
+        recipes = state.recipes,
+        saving = state.isSaving,
+        canWrite = canWrite,
+        onClose = {
+            editorOpen = false
+            editorMealId = null
+        },
+        onSave = { meal, slot, name, participantIds, recipeId, cookId ->
+            if (meal == null) {
+                viewModel.addMeal(state.focusedDate, slot, name, participantIds, recipeId, cookId)
+            } else {
+                viewModel.updateMeal(meal.id, meal.date, slot, name, participantIds, recipeId, cookId)
+            }
+        },
+    )
+
     mealToDelete?.let { meal ->
-        AlertDialog(
-            onDismissRequest = { mealToDelete = null },
-            title = { Text(stringResource(R.string.meals_delete_title)) },
-            text = { Text(stringResource(R.string.meals_delete_body, meal.name)) },
-            confirmButton = {
-                TextButton(
-                    enabled = actionsEnabled,
-                    onClick = {
-                        viewModel.deleteMeal(meal.id)
-                        mealToDelete = null
-                        scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                            viewModel.addMeal(
-                                meal.date,
-                                meal.slot,
-                                meal.name,
-                                meal.participantIds,
-                                meal.recipeId,
-                                meal.cookId,
-                            )
-                        }
-                    },
-                ) { Text(stringResource(R.string.meals_delete)) }
+        DeleteMealDialog(
+            meal = meal,
+            enabled = actionsEnabled,
+            onConfirm = {
+                viewModel.deleteMeal(meal.id)
+                mealToDelete = null
+                scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+                    viewModel.addMeal(
+                        meal.date,
+                        meal.slot,
+                        meal.name,
+                        meal.participantIds,
+                        meal.recipeId,
+                        meal.cookId,
+                    )
+                }
             },
-            dismissButton = {
-                TextButton(onClick = { mealToDelete = null }) { Text(stringResource(R.string.cancel)) }
-            },
+            onDismiss = { mealToDelete = null },
         )
     }
 
@@ -501,134 +518,193 @@ private fun MealCard(
     }
 }
 
+// Muestra el editor de comida (nueva o existente). Si la comida que se editaba ya no existe, lo cierra
+// (mientras la lista carga, espera).
+@Composable
+private fun MealEditorHost(
+    open: Boolean,
+    mealId: String?,
+    slotName: String,
+    meals: List<Meal>,
+    mealsLoaded: Boolean,
+    members: List<SpaceMember>,
+    recipes: List<Recipe>,
+    saving: Boolean,
+    canWrite: Boolean,
+    onClose: () -> Unit,
+    onSave: (Meal?, MealSlot, String, List<String>, String?, String?) -> Unit,
+) {
+    val meal = mealId?.let { id -> meals.firstOrNull { it.id == id } }
+    val unresolved = open && mealId != null && meal == null
+    LaunchedEffect(unresolved, mealsLoaded) {
+        if (unresolved && mealsLoaded) onClose()
+    }
+    if (!open || unresolved) return
+    MealEditor(
+        meal = meal,
+        initialSlot = MealSlot.valueOf(slotName),
+        members = members,
+        recipes = recipes,
+        saving = saving,
+        canWrite = canWrite,
+        onDismiss = onClose,
+        onSave = { slot, name, participantIds, recipeId, cookId ->
+            onSave(meal, slot, name, participantIds, recipeId, cookId)
+            onClose()
+        },
+    )
+}
+
 @Composable
 private fun MealEditor(
-    request: MealEditorRequest,
+    meal: Meal?,
+    initialSlot: MealSlot,
     members: List<SpaceMember>,
     recipes: List<Recipe>,
     saving: Boolean,
     canWrite: Boolean,
     onDismiss: () -> Unit,
-    onSave: (String, List<String>, String?, String?) -> Unit,
+    onSave: (MealSlot, String, List<String>, String?, String?) -> Unit,
 ) {
-    val meal = request.meal
-    var name by remember(meal?.id) { mutableStateOf(meal?.name.orEmpty()) }
-    var recipeId by remember(meal?.id) { mutableStateOf(meal?.recipeId) }
-    var selected by remember(meal?.id) { mutableStateOf(meal?.participantIds?.toSet().orEmpty()) }
-    var cookId by remember(meal?.id) { mutableStateOf(meal?.cookId) }
+    val initial = MealDraft.of(meal, initialSlot)
+    var draft by rememberSaveable(meal?.id, stateSaver = MealDraftSaver) { mutableStateOf(initial) }
     var pickerOpen by remember { mutableStateOf(false) }
-    var cookMenu by remember { mutableStateOf(false) }
-    val validation = MealsValidation.validate(name)
+    val validation = MealsValidation.validate(draft.name)
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                stringResource(if (meal == null) R.string.meals_add_title else R.string.meals_edit_title),
+    BobitosFormSheet(
+        title = stringResource(if (meal == null) R.string.meals_add_title else R.string.meals_edit_title),
+        confirmLabel = stringResource(R.string.save),
+        confirmEnabled = validation == null && canWrite,
+        saving = saving,
+        dirty = draft != initial,
+        onDismiss = onDismiss,
+        onConfirm = {
+            onSave(
+                draft.slot,
+                draft.name,
+                draft.selectedIds,
+                draft.recipeId,
+                draft.cookId?.takeIf { it in draft.selectedIds },
             )
         },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = stringResource(request.slot.labelRes),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            MealSlot.entries.forEach { option ->
+                FilterChip(
+                    selected = draft.slot == option,
+                    onClick = { draft = draft.withSlot(option) },
+                    label = { Text(stringResource(option.labelRes)) },
                 )
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = {
-                        name = it
-                        recipeId = null
-                    },
-                    label = { Text(stringResource(R.string.meals_name_label)) },
-                    supportingText = {
-                        if (validation != null) Text(stringResource(validation.stringResourceId))
-                    },
-                    isError = validation != null,
-                    singleLine = true,
-                )
-                if (recipes.isNotEmpty()) {
-                    TextButton(onClick = { pickerOpen = true }) {
-                        Icon(Icons.Rounded.MenuBook, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text(stringResource(R.string.meals_choose_recipe))
-                    }
-                }
-                if (members.isNotEmpty()) {
-                    Text(
-                        text = stringResource(R.string.meals_participants_label),
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                    members.forEach { member ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = member.userId in selected,
-                                onCheckedChange = { checked ->
-                                    selected = if (checked) selected + member.userId else selected - member.userId
-                                    // Si el cocinero deja de ser participante, se descarta.
-                                    if (!checked && member.userId == cookId) cookId = null
-                                },
-                            )
-                            Text(member.displayName)
-                        }
-                    }
-                    if (selected.isNotEmpty()) {
-                        Text(
-                            text = stringResource(R.string.meals_cook_label),
-                            style = MaterialTheme.typography.labelLarge,
-                        )
-                        Box {
-                            TextButton(onClick = { cookMenu = true }) {
-                                Text(
-                                    members.firstOrNull { it.userId == cookId }?.displayName
-                                        ?: stringResource(R.string.meals_no_cook),
-                                )
-                            }
-                            DropdownMenu(expanded = cookMenu, onDismissRequest = { cookMenu = false }) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.meals_no_cook)) },
-                                    onClick = {
-                                        cookId = null
-                                        cookMenu = false
-                                    },
-                                )
-                                members.filter { it.userId in selected }.forEach { member ->
-                                    DropdownMenuItem(
-                                        text = { Text(member.displayName) },
-                                        onClick = {
-                                            cookId = member.userId
-                                            cookMenu = false
-                                        },
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
             }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = validation == null && canWrite && !saving,
-                onClick = { onSave(name, selected.toList(), recipeId, cookId?.takeIf { it in selected }) },
-            ) { Text(stringResource(R.string.confirm)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
-        },
-    )
+        }
+        OutlinedTextField(
+            value = draft.name,
+            onValueChange = { draft = draft.withName(it) },
+            label = { Text(stringResource(R.string.meals_name_label)) },
+            supportingText = {
+                if (validation != null) Text(stringResource(validation.stringResourceId))
+            },
+            isError = validation != null,
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        if (recipes.isNotEmpty()) {
+            TextButton(onClick = { pickerOpen = true }) {
+                Icon(Icons.Rounded.MenuBook, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(stringResource(R.string.meals_choose_recipe))
+            }
+        }
+        MealParticipants(members = members, draft = draft, onDraft = { draft = it })
+    }
 
     if (pickerOpen) {
         RecipePickerDialog(
             recipes = recipes,
             onPick = { recipe ->
-                name = recipe.title
-                recipeId = recipe.id
+                draft = draft.withRecipe(recipe.title, recipe.id)
                 pickerOpen = false
             },
             onDismiss = { pickerOpen = false },
         )
     }
+}
+
+// Participantes (casillas) y, si hay alguno, el cocinero entre ellos.
+@Composable
+private fun MealParticipants(members: List<SpaceMember>, draft: MealDraft, onDraft: (MealDraft) -> Unit) {
+    if (members.isEmpty()) return
+    var cookMenu by remember { mutableStateOf(false) }
+    Text(
+        text = stringResource(R.string.meals_participants_label),
+        style = MaterialTheme.typography.labelLarge,
+    )
+    members.forEach { member ->
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(
+                checked = member.userId in draft.selectedIds,
+                onCheckedChange = { checked -> onDraft(draft.withParticipant(member.userId, checked)) },
+            )
+            Text(member.displayName)
+        }
+    }
+    if (draft.selectedIds.isEmpty()) return
+    Text(
+        text = stringResource(R.string.meals_cook_label),
+        style = MaterialTheme.typography.labelLarge,
+    )
+    Box {
+        TextButton(onClick = { cookMenu = true }) {
+            Text(
+                members.firstOrNull { it.userId == draft.cookId }?.displayName
+                    ?: stringResource(R.string.meals_no_cook),
+            )
+        }
+        DropdownMenu(expanded = cookMenu, onDismissRequest = { cookMenu = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.meals_no_cook)) },
+                onClick = {
+                    onDraft(draft.copy(cookId = null))
+                    cookMenu = false
+                },
+            )
+            members.filter { it.userId in draft.selectedIds }.forEach { member ->
+                DropdownMenuItem(
+                    text = { Text(member.displayName) },
+                    onClick = {
+                        onDraft(draft.copy(cookId = member.userId))
+                        cookMenu = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BoxScope.NewMealFab(visible: Boolean, onClick: () -> Unit) {
+    if (!visible) return
+    ExtendedFloatingActionButton(
+        onClick = onClick,
+        icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+        text = { Text(stringResource(R.string.meals_add_title)) },
+        modifier = Modifier
+            .align(Alignment.BottomEnd)
+            .padding(16.dp),
+    )
+}
+
+@Composable
+private fun DeleteMealDialog(meal: Meal, enabled: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    BobitosDialog(
+        title = stringResource(R.string.meals_delete_title),
+        message = stringResource(R.string.meals_delete_body, meal.name),
+        confirmLabel = stringResource(R.string.meals_delete),
+        destructive = true,
+        confirmEnabled = enabled,
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+    )
 }
 
 @Composable
@@ -689,8 +765,6 @@ private fun MealsFeedback(state: MealsUiState, onDismiss: () -> Unit) {
         }
     }
 }
-
-private data class MealEditorRequest(val slot: MealSlot, val meal: Meal?)
 
 private val HEADER_FORMAT = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Locale.forLanguageTag("es"))
 
