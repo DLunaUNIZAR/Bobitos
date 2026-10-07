@@ -122,6 +122,7 @@
     <string name="cancel">Cancelar</string>
     <string name="accept">Aceptar</string>
     <string name="confirm">Confirmar</string>
+    <string name="save">Guardar</string>
     <string name="discard_changes_title">¿Descartar los cambios?</string>
     <string name="discard_changes_message">Lo que has escrito no se guardará.</string>
     <string name="discard_changes_confirm">Descartar</string>
