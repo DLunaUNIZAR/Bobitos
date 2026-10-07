@@ -44,6 +44,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -85,6 +86,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -236,10 +238,26 @@ fun TasksScreen(
                 } else {
                     val taskRow: @Composable LazyItemScope.(TaskItem) -> Unit = { task ->
                         SwipeActionsBox(
-                            startAction = SwipeAction(Icons.Rounded.Check, checkColor) {
+                            startAction = SwipeAction(
+                                Icons.Rounded.Check,
+                                checkColor,
+                                stringResource(
+                                    if (task.status ==
+                                        TaskStatus.DONE
+                                    ) {
+                                        R.string.swipe_task_reopen
+                                    } else {
+                                        R.string.swipe_task_complete
+                                    },
+                                ),
+                            ) {
                                 viewModel.setCompleted(spaceId, task.id, task.status != TaskStatus.DONE)
                             }.takeIf { enabled },
-                            endAction = SwipeAction(Icons.Rounded.Delete, deleteColor) {
+                            endAction = SwipeAction(
+                                Icons.Rounded.Delete,
+                                deleteColor,
+                                stringResource(R.string.tasks_delete),
+                            ) {
                                 deleteTaskWithUndo(task)
                             }.takeIf { enabled },
                             modifier = Modifier.animateItem(),
@@ -339,21 +357,17 @@ fun TasksScreen(
         )
     }
     deleteTask?.let { task ->
-        AlertDialog(
-            onDismissRequest = { deleteTask = null },
-            title = { Text(stringResource(R.string.tasks_delete_title)) },
-            text = { Text(stringResource(R.string.tasks_delete_body, task.title)) },
-            confirmButton = {
-                TextButton(enabled = enabled, onClick = {
-                    deleteTaskWithUndo(task)
-                    deleteTask = null
-                }) { Text(stringResource(R.string.tasks_delete)) }
+        BobitosDialog(
+            title = stringResource(R.string.tasks_delete_title),
+            message = stringResource(R.string.tasks_delete_body, task.title),
+            confirmLabel = stringResource(R.string.tasks_delete),
+            destructive = true,
+            confirmEnabled = enabled,
+            onConfirm = {
+                deleteTaskWithUndo(task)
+                deleteTask = null
             },
-            dismissButton = {
-                TextButton(onClick = { deleteTask = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
+            onDismiss = { deleteTask = null },
         )
     }
 }
@@ -541,6 +555,7 @@ private fun TaskAssigneeFilterChip(filters: TaskFilters, members: List<SpaceMemb
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TaskCard(
     task: TaskItem,
@@ -556,6 +571,8 @@ private fun TaskCard(
             ?.toLocalDate()
             ?.isBefore(LocalDate.now()) == true
     Card(
+        onClick = onEdit,
+        enabled = enabled,
         modifier = Modifier.fillMaxWidth(),
         colors = task.type?.let { categoryCardColors(it.accent()) } ?: CardDefaults.cardColors(),
     ) {

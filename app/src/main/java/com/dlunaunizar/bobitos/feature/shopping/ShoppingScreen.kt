@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.dlunaunizar.bobitos.feature.shopping
 
 import androidx.compose.foundation.horizontalScroll
@@ -29,6 +31,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -191,10 +194,18 @@ fun ShoppingScreen(
                             }
                             items(pending, key = ShoppingItem::id) { item ->
                                 SwipeActionsBox(
-                                    startAction = SwipeAction(Icons.Rounded.Check, checkColor) {
+                                    startAction = SwipeAction(
+                                        Icons.Rounded.Check,
+                                        checkColor,
+                                        stringResource(R.string.swipe_item_purchased),
+                                    ) {
                                         viewModel.setPurchased(spaceId, item.id, true)
                                     }.takeIf { actionsEnabled },
-                                    endAction = SwipeAction(Icons.Rounded.Delete, deleteColor) {
+                                    endAction = SwipeAction(
+                                        Icons.Rounded.Delete,
+                                        deleteColor,
+                                        stringResource(R.string.shopping_delete),
+                                    ) {
                                         deleteItemWithUndo(item)
                                     }.takeIf { actionsEnabled },
                                     modifier = Modifier.animateItem(),
@@ -239,10 +250,18 @@ fun ShoppingScreen(
                                 }
                                 items(purchased, key = ShoppingItem::id) { item ->
                                     SwipeActionsBox(
-                                        startAction = SwipeAction(Icons.Rounded.Check, checkColor) {
+                                        startAction = SwipeAction(
+                                            Icons.Rounded.Check,
+                                            checkColor,
+                                            stringResource(R.string.swipe_item_pending),
+                                        ) {
                                             viewModel.setPurchased(spaceId, item.id, false)
                                         }.takeIf { actionsEnabled },
-                                        endAction = SwipeAction(Icons.Rounded.Delete, deleteColor) {
+                                        endAction = SwipeAction(
+                                            Icons.Rounded.Delete,
+                                            deleteColor,
+                                            stringResource(R.string.shopping_delete),
+                                        ) {
                                             deleteItemWithUndo(item)
                                         }.takeIf { actionsEnabled },
                                         modifier = Modifier.animateItem(),
@@ -468,6 +487,8 @@ private fun ShoppingItemCard(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     Card(
+        onClick = onEdit,
+        enabled = enabled,
         modifier = Modifier.fillMaxWidth(),
         colors = item.supermarket?.let { categoryCardColors(it.brandColor()) }
             ?: CardDefaults.cardColors(),
