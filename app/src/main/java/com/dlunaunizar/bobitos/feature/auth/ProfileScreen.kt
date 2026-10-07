@@ -32,7 +32,6 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,6 +50,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.theme.ThemeMode
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.SyncStatus
@@ -106,14 +106,7 @@ fun ProfileScreen(
         modifier = modifier,
         topBar = {
             Column {
-                TopAppBar(
-                    title = { Text(stringResource(R.string.profile_title)) },
-                    navigationIcon = {
-                        TextButton(onClick = onBack) {
-                            Text(stringResource(R.string.navigate_back))
-                        }
-                    },
-                )
+                BobitosTopBar(title = stringResource(R.string.profile_title), onBack = onBack)
                 SyncStatusBanner(status = syncStatus)
             }
         },

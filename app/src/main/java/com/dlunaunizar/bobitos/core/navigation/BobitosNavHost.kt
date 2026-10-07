@@ -37,7 +37,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -66,6 +65,7 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.app.AppUiState
 import com.dlunaunizar.bobitos.app.RealtimeScope
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.rememberReduceMotion
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
@@ -583,8 +583,8 @@ private fun MainMenuScreen(
     Scaffold(
         topBar = {
             Column {
-                TopAppBar(
-                    title = {
+                BobitosTopBar(
+                    titleContent = {
                         Text(
                             text = stringResource(R.string.app_name),
                             style = MaterialTheme.typography.headlineSmall,
@@ -635,8 +635,8 @@ private fun WorkspaceScaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Column {
-                TopAppBar(
-                    title = {
+                BobitosTopBar(
+                    titleContent = {
                         Column {
                             Text(
                                 text = spaceName,
@@ -746,8 +746,8 @@ private fun SpaceHomeScreen(
     Scaffold(
         topBar = {
             Column {
-                TopAppBar(
-                    title = {
+                BobitosTopBar(
+                    titleContent = {
                         Text(
                             text = spaceName,
                             style = MaterialTheme.typography.headlineSmall,
