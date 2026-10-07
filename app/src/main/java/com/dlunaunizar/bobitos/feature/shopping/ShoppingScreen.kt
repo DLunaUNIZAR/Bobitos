@@ -61,6 +61,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
@@ -87,8 +89,9 @@ fun ShoppingScreen(
         onDispose { viewModel.stopObserving() }
     }
 
-    var editedItem by remember { mutableStateOf<ShoppingItem?>(null) }
-    var editorVisible by remember { mutableStateOf(false) }
+    // El editor sobrevive a una rotación: se guarda el id del ítem, no el objeto.
+    var editedItemId by rememberSaveable { mutableStateOf<String?>(null) }
+    var editorVisible by rememberSaveable { mutableStateOf(false) }
     // Catálogo + preferencias solo mientras el editor está abierto (listener acotado y perezoso).
     LaunchedEffect(editorVisible) {
         if (editorVisible) viewModel.startIngredientAssist() else viewModel.stopIngredientAssist()
@@ -98,6 +101,7 @@ fun ShoppingScreen(
     var duplicatePrompt by remember { mutableStateOf<ShoppingDuplicate?>(null) }
     val content = state.items as? UiState.Content
     val allItems = content?.value.orEmpty()
+    val editedItem = editedItemId?.let { id -> allItems.firstOrNull { it.id == id } }
     val findByName: (String) -> ShoppingItem? = { raw ->
         raw.trim().takeIf(String::isNotEmpty)?.let { name ->
             allItems.firstOrNull { it.name.trim().equals(name, ignoreCase = true) }
@@ -204,7 +208,7 @@ fun ShoppingScreen(
                                         onCreateIngredient = { viewModel.createIngredientFromItem(item) },
                                         onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
                                         onEdit = {
-                                            editedItem = item
+                                            editedItemId = item.id
                                             editorVisible = true
                                         },
                                         onDelete = { itemToDelete = item },
@@ -252,7 +256,7 @@ fun ShoppingScreen(
                                             onCreateIngredient = { viewModel.createIngredientFromItem(item) },
                                             onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
                                             onEdit = {
-                                                editedItem = item
+                                                editedItemId = item.id
                                                 editorVisible = true
                                             },
                                             onDelete = { itemToDelete = item },
@@ -269,7 +273,7 @@ fun ShoppingScreen(
         if (canWrite) {
             ExtendedFloatingActionButton(
                 onClick = {
-                    editedItem = null
+                    editedItemId = null
                     editorVisible = true
                 },
                 icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
@@ -281,7 +285,12 @@ fun ShoppingScreen(
         }
     }
 
-    if (editorVisible) {
+    // Si el ítem que se editaba ya no existe, se cierra el editor (mientras carga, se espera).
+    val editorUnresolved = editedItemId != null && editedItem == null
+    LaunchedEffect(editorVisible, editorUnresolved, content != null) {
+        if (editorVisible && editorUnresolved && content != null) editorVisible = false
+    }
+    if (editorVisible && !editorUnresolved) {
         ShoppingItemEditor(
             item = editedItem,
             saving = state.isSaving,
@@ -348,54 +357,32 @@ fun ShoppingScreen(
     }
 
     itemToDelete?.let { item ->
-        AlertDialog(
-            onDismissRequest = { itemToDelete = null },
-            title = { Text(stringResource(R.string.shopping_delete_title)) },
-            text = { Text(stringResource(R.string.shopping_delete_body, item.name)) },
-            confirmButton = {
-                TextButton(
-                    enabled = actionsEnabled,
-                    onClick = {
-                        deleteItemWithUndo(item)
-                        itemToDelete = null
-                    },
-                ) { Text(stringResource(R.string.shopping_delete)) }
+        BobitosDialog(
+            title = stringResource(R.string.shopping_delete_title),
+            message = stringResource(R.string.shopping_delete_body, item.name),
+            confirmLabel = stringResource(R.string.shopping_delete),
+            destructive = true,
+            confirmEnabled = actionsEnabled,
+            onConfirm = {
+                deleteItemWithUndo(item)
+                itemToDelete = null
             },
-            dismissButton = {
-                TextButton(onClick = { itemToDelete = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
+            onDismiss = { itemToDelete = null },
         )
     }
 
     if (clearConfirmationVisible) {
-        AlertDialog(
-            onDismissRequest = { clearConfirmationVisible = false },
-            title = { Text(stringResource(R.string.shopping_clear_title)) },
-            text = {
-                Text(
-                    pluralStringResource(
-                        R.plurals.shopping_clear_body,
-                        purchased.size,
-                        purchased.size,
-                    ),
-                )
+        BobitosDialog(
+            title = stringResource(R.string.shopping_clear_title),
+            message = pluralStringResource(R.plurals.shopping_clear_body, purchased.size, purchased.size),
+            confirmLabel = stringResource(R.string.shopping_clear_purchased),
+            destructive = true,
+            confirmEnabled = actionsEnabled,
+            onConfirm = {
+                viewModel.clearPurchased(spaceId)
+                clearConfirmationVisible = false
             },
-            confirmButton = {
-                TextButton(
-                    enabled = actionsEnabled,
-                    onClick = {
-                        viewModel.clearPurchased(spaceId)
-                        clearConfirmationVisible = false
-                    },
-                ) { Text(stringResource(R.string.shopping_clear_purchased)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { clearConfirmationVisible = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
+            onDismiss = { clearConfirmationVisible = false },
         )
     }
 }
@@ -599,103 +586,95 @@ private fun ShoppingItemEditor(
     onDismiss: () -> Unit,
     onSave: (String, String?, String?, Supermarket?, String?) -> Unit,
 ) {
-    var name by remember(item?.id) { mutableStateOf(item?.name.orEmpty()) }
-    var quantity by remember(item?.id) { mutableStateOf(item?.quantity.orEmpty()) }
-    var notes by remember(item?.id) { mutableStateOf(item?.notes.orEmpty()) }
-    var supermarket by remember(item?.id) { mutableStateOf(item?.supermarket) }
-    var brand by remember(item?.id) { mutableStateOf(item?.brand.orEmpty()) }
+    val initial = ShoppingDraft.of(item)
+    var draft by rememberSaveable(item?.id, stateSaver = ShoppingDraftSaver) { mutableStateOf(initial) }
+    val name = draft.name
+    val quantity = draft.quantity
+    val notes = draft.notes
+    val brand = draft.brand
     val validation = ShoppingValidation.validate(name, quantity, notes)
     // Solo al crear: avisa si ya hay un producto con ese nombre en la lista.
     val duplicate = if (item == null) resolveDuplicate(name) else null
     val nameError = validation == ShoppingUiMessage.NameRequired || validation == ShoppingUiMessage.NameTooLong
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                stringResource(
-                    if (item == null) R.string.shopping_add_title else R.string.shopping_edit_title,
-                ),
-            )
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(stringResource(R.string.shopping_name_label)) },
-                    supportingText = {
-                        when {
-                            nameError -> Text(stringResource(validation!!.stringResourceId))
-                            duplicate != null -> Text(
-                                stringResource(R.string.shopping_already_in_list) +
-                                    (duplicate.quantity?.let { " · $it" } ?: ""),
-                            )
-                        }
-                    },
-                    isError = nameError,
-                    singleLine = true,
-                )
-                val nameSuggestions = if (item == null) suggestions(name) else emptyList()
-                if (nameSuggestions.isNotEmpty()) {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(nameSuggestions, key = { it }) { suggestion ->
-                            AssistChip(
-                                onClick = {
-                                    name = suggestion
-                                    prefFor(suggestion)?.let { pref ->
-                                        pref.supermarket?.let { supermarket = it }
-                                        pref.brand?.let { brand = it }
-                                    }
-                                },
-                                label = { Text(suggestion) },
-                            )
-                        }
-                    }
+    BobitosFormSheet(
+        title = stringResource(if (item == null) R.string.shopping_add_title else R.string.shopping_edit_title),
+        confirmLabel = stringResource(R.string.save),
+        confirmEnabled = validation == null,
+        saving = saving,
+        dirty = draft != initial,
+        onDismiss = onDismiss,
+        onConfirm = { onSave(name, quantity, notes, draft.supermarket, brand.trim().ifEmpty { null }) },
+    ) {
+        OutlinedTextField(
+            value = name,
+            onValueChange = { draft = draft.copy(name = it) },
+            label = { Text(stringResource(R.string.shopping_name_label)) },
+            supportingText = {
+                when {
+                    nameError -> Text(stringResource(validation!!.stringResourceId))
+                    duplicate != null -> Text(
+                        stringResource(R.string.shopping_already_in_list) +
+                            (duplicate.quantity?.let { " · $it" } ?: ""),
+                    )
                 }
-                OutlinedTextField(
-                    value = quantity,
-                    onValueChange = { quantity = it },
-                    label = { Text(stringResource(R.string.shopping_quantity_label)) },
-                    supportingText = {
-                        if (validation == ShoppingUiMessage.QuantityTooLong) {
-                            Text(stringResource(validation.stringResourceId))
-                        }
-                    },
-                    isError = validation == ShoppingUiMessage.QuantityTooLong,
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text(stringResource(R.string.shopping_notes_label)) },
-                    supportingText = {
-                        if (validation == ShoppingUiMessage.NotesTooLong) {
-                            Text(stringResource(validation.stringResourceId))
-                        }
-                    },
-                    isError = validation == ShoppingUiMessage.NotesTooLong,
-                    minLines = 2,
-                    maxLines = 4,
-                )
-                SupermarketAndBrandFields(
-                    supermarket = supermarket,
-                    onSupermarket = { supermarket = it },
-                    brand = brand,
-                    onBrand = { brand = it },
-                )
+            },
+            isError = nameError,
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        val nameSuggestions = if (item == null) suggestions(name) else emptyList()
+        if (nameSuggestions.isNotEmpty()) {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(nameSuggestions, key = { it }) { suggestion ->
+                    AssistChip(
+                        onClick = {
+                            val pref = prefFor(suggestion)
+                            draft = draft.copy(
+                                name = suggestion,
+                                supermarketName = pref?.supermarket?.name ?: draft.supermarketName,
+                                brand = pref?.brand ?: draft.brand,
+                            )
+                        },
+                        label = { Text(suggestion) },
+                    )
+                }
             }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = validation == null && !saving,
-                onClick = { onSave(name, quantity, notes, supermarket, brand.trim().ifEmpty { null }) },
-            ) { Text(stringResource(R.string.confirm)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
-        },
-    )
+        }
+        OutlinedTextField(
+            value = quantity,
+            onValueChange = { draft = draft.copy(quantity = it) },
+            label = { Text(stringResource(R.string.shopping_quantity_label)) },
+            supportingText = {
+                if (validation == ShoppingUiMessage.QuantityTooLong) {
+                    Text(stringResource(validation.stringResourceId))
+                }
+            },
+            isError = validation == ShoppingUiMessage.QuantityTooLong,
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = notes,
+            onValueChange = { draft = draft.copy(notes = it) },
+            label = { Text(stringResource(R.string.shopping_notes_label)) },
+            supportingText = {
+                if (validation == ShoppingUiMessage.NotesTooLong) {
+                    Text(stringResource(validation.stringResourceId))
+                }
+            },
+            isError = validation == ShoppingUiMessage.NotesTooLong,
+            minLines = 2,
+            maxLines = 4,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        SupermarketAndBrandFields(
+            supermarket = draft.supermarket,
+            onSupermarket = { draft = draft.copy(supermarketName = it?.name) },
+            brand = brand,
+            onBrand = { draft = draft.copy(brand = it) },
+        )
+    }
 }
 
 @Composable
