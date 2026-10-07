@@ -44,6 +44,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -85,6 +86,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
@@ -152,9 +155,12 @@ fun TasksScreen(
             )
         }
     }
-    var editorTask by remember { mutableStateOf<TaskItem?>(null) }
-    var editorTemplate by remember { mutableStateOf<TaskTemplate?>(null) }
-    var editorVisible by remember { mutableStateOf(false) }
+    // El editor sobrevive a una rotación: se guarda el id de la tarea (no el objeto) y el índice de la plantilla.
+    var editorTaskId by rememberSaveable { mutableStateOf<String?>(null) }
+    var editorTemplateIndex by rememberSaveable { mutableStateOf(-1) }
+    var editorVisible by rememberSaveable { mutableStateOf(false) }
+    val editorTask = editorTaskId?.let { id -> allTasks.firstOrNull { it.id == id } }
+    val editorTemplate = homeTaskTemplates.getOrNull(editorTemplateIndex)
     var deleteTask by remember { mutableStateOf<TaskItem?>(null) }
     var templatesVisible by remember { mutableStateOf(false) }
     var completedExpanded by rememberSaveable { mutableStateOf(false) }
@@ -221,8 +227,8 @@ fun TasksScreen(
                         actionLabel = if (firstRun && canWrite) stringResource(R.string.tasks_add) else null,
                         onAction = if (firstRun && canWrite) {
                             {
-                                editorTask = null
-                                editorTemplate = null
+                                editorTaskId = null
+                                editorTemplateIndex = -1
                                 editorVisible = true
                             }
                         } else {
@@ -232,24 +238,41 @@ fun TasksScreen(
                 } else {
                     val taskRow: @Composable LazyItemScope.(TaskItem) -> Unit = { task ->
                         SwipeActionsBox(
-                            startAction = SwipeAction(Icons.Rounded.Check, checkColor) {
+                            startAction = SwipeAction(
+                                Icons.Rounded.Check,
+                                checkColor,
+                                stringResource(
+                                    if (task.status ==
+                                        TaskStatus.DONE
+                                    ) {
+                                        R.string.swipe_task_reopen
+                                    } else {
+                                        R.string.swipe_task_complete
+                                    },
+                                ),
+                            ) {
                                 viewModel.setCompleted(spaceId, task.id, task.status != TaskStatus.DONE)
                             }.takeIf { enabled },
-                            endAction = SwipeAction(Icons.Rounded.Delete, deleteColor) {
+                            endAction = SwipeAction(
+                                Icons.Rounded.Delete,
+                                deleteColor,
+                                stringResource(R.string.tasks_delete),
+                            ) {
                                 deleteTaskWithUndo(task)
                             }.takeIf { enabled },
                             modifier = Modifier.animateItem(),
-                        ) {
+                        ) { accessibilityModifier ->
                             TaskCard(
                                 task,
                                 enabled,
                                 onSetCompleted = { viewModel.setCompleted(spaceId, task.id, it) },
                                 onEdit = {
-                                    editorTask = task
-                                    editorTemplate = null
+                                    editorTaskId = task.id
+                                    editorTemplateIndex = -1
                                     editorVisible = true
                                 },
                                 onDelete = { deleteTask = task },
+                                modifier = accessibilityModifier,
                             )
                         }
                     }
@@ -281,8 +304,8 @@ fun TasksScreen(
         if (canWrite) {
             ExtendedFloatingActionButton(
                 onClick = {
-                    editorTask = null
-                    editorTemplate = null
+                    editorTaskId = null
+                    editorTemplateIndex = -1
                     editorVisible = true
                 },
                 icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
@@ -299,13 +322,19 @@ fun TasksScreen(
             onDismiss = { templatesVisible = false },
             onPick = { picked ->
                 templatesVisible = false
-                editorTask = null
-                editorTemplate = picked
+                editorTaskId = null
+                editorTemplateIndex = homeTaskTemplates.indexOf(picked)
                 editorVisible = true
             },
         )
     }
-    if (editorVisible) {
+    // Si la tarea que se editaba ya no existe, se cierra el editor (mientras carga, se espera).
+    val editorUnresolved = editorTaskId != null && editorTask == null
+    val tasksLoaded = state.tasks is UiState.Content
+    LaunchedEffect(editorVisible, editorUnresolved, tasksLoaded) {
+        if (editorVisible && editorUnresolved && tasksLoaded) editorVisible = false
+    }
+    if (editorVisible && !editorUnresolved) {
         TaskEditor(
             task = editorTask,
             template = editorTemplate,
@@ -329,21 +358,17 @@ fun TasksScreen(
         )
     }
     deleteTask?.let { task ->
-        AlertDialog(
-            onDismissRequest = { deleteTask = null },
-            title = { Text(stringResource(R.string.tasks_delete_title)) },
-            text = { Text(stringResource(R.string.tasks_delete_body, task.title)) },
-            confirmButton = {
-                TextButton(enabled = enabled, onClick = {
-                    deleteTaskWithUndo(task)
-                    deleteTask = null
-                }) { Text(stringResource(R.string.tasks_delete)) }
+        BobitosDialog(
+            title = stringResource(R.string.tasks_delete_title),
+            message = stringResource(R.string.tasks_delete_body, task.title),
+            confirmLabel = stringResource(R.string.tasks_delete),
+            destructive = true,
+            confirmEnabled = enabled,
+            onConfirm = {
+                deleteTaskWithUndo(task)
+                deleteTask = null
             },
-            dismissButton = {
-                TextButton(onClick = { deleteTask = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
+            onDismiss = { deleteTask = null },
         )
     }
 }
@@ -531,6 +556,7 @@ private fun TaskAssigneeFilterChip(filters: TaskFilters, members: List<SpaceMemb
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TaskCard(
     task: TaskItem,
@@ -538,6 +564,7 @@ private fun TaskCard(
     onSetCompleted: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val done = task.status == TaskStatus.DONE
     val overdue = !done &&
@@ -546,7 +573,9 @@ private fun TaskCard(
             ?.toLocalDate()
             ?.isBefore(LocalDate.now()) == true
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        // No se usa `enabled` de la Card: la atenuaría (y la anunciaría «desactivada») sin conexión o al guardar.
+        onClick = { if (enabled) onEdit() },
+        modifier = modifier.fillMaxWidth(),
         colors = task.type?.let { categoryCardColors(it.accent()) } ?: CardDefaults.cardColors(),
     ) {
         Row(
@@ -685,99 +714,120 @@ private fun TaskEditor(
 ) {
     // Al crear desde una plantilla, se prerrellena título/tipo/recurrencia (editable antes de guardar).
     val templateTitle = template?.titleRes?.let { stringResource(it) }.orEmpty()
-    var title by remember(task?.id, template) { mutableStateOf(task?.title ?: templateTitle) }
-    var description by remember(task?.id) { mutableStateOf(task?.description.orEmpty()) }
-    // Por defecto «sin responsable» en tareas nuevas (responsable opcional); al editar se conserva el actual.
-    var assigneeId by remember(task?.id) { mutableStateOf(task?.assigneeId) }
-    var startDate by remember(task?.id) { mutableStateOf(task?.startAt?.formatIsoDate().orEmpty()) }
-    var dueDate by remember(task?.id) { mutableStateOf(task?.dueAt?.formatIsoDate().orEmpty()) }
-    var priority by remember(task?.id) { mutableStateOf(task?.priority ?: TaskPriority.MEDIUM) }
-    var type by remember(task?.id, template) { mutableStateOf(task?.type ?: template?.type) }
-    var recurrence by remember(task?.id, template) { mutableStateOf(task?.recurrence ?: template?.recurrence) }
+    val initial = TaskDraft.of(task, template, templateTitle)
+    var draft by rememberSaveable(task?.id, template?.titleRes, stateSaver = TaskDraftSaver) {
+        mutableStateOf(initial)
+    }
     var memberMenu by remember { mutableStateOf(false) }
-    val validation = TaskValidation.validate(title, description)
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(if (task == null) R.string.tasks_add_title else R.string.tasks_edit_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                OutlinedTextField(title, {
-                    title = it
-                }, label = { Text(stringResource(R.string.tasks_title_label)) }, singleLine = true)
-                OutlinedTextField(description, {
-                    description = it
-                }, label = { Text(stringResource(R.string.tasks_description_label)) }, minLines = 2)
-                Box {
-                    TextButton(onClick = { memberMenu = true }) {
-                        Text(
-                            members.firstOrNull { it.userId == assigneeId }?.displayName
-                                ?: stringResource(R.string.tasks_unassigned),
-                        )
-                    }
-                    DropdownMenu(memberMenu, { memberMenu = false }) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.tasks_unassigned)) },
-                            onClick = {
-                                assigneeId = null
-                                memberMenu = false
-                            },
-                        )
-                        members.forEach { member ->
-                            DropdownMenuItem(
-                                text = { Text(member.displayName) },
-                                onClick = {
-                                    assigneeId = member.userId
-                                    memberMenu = false
-                                },
-                            )
-                        }
-                    }
-                }
-                TaskDateFields(startDate, { startDate = it }, dueDate, { dueDate = it })
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    TaskPriority.entries.forEachIndexed { index, value ->
-                        SegmentedButton(
-                            selected = priority == value,
-                            onClick = { priority = value },
-                            shape = SegmentedButtonDefaults.itemShape(index, TaskPriority.entries.size),
-                            icon = {
-                                Box(
-                                    Modifier
-                                        .size(10.dp)
-                                        .clip(CircleShape)
-                                        .background(value.accent()),
-                                )
-                            },
-                        ) {
-                            Text(value.label())
-                        }
-                    }
-                }
-                TaskTypePicker(selected = type, onSelect = { type = it })
-                RecurrencePicker(selected = recurrence, onSelect = { recurrence = it })
-                validation?.let { Text(stringResource(it.stringRes()), color = MaterialTheme.colorScheme.error) }
+
+    val validation = TaskValidation.validate(draft.title, draft.description)
+    val title = draft.title
+    val description = draft.description
+    val assigneeId = draft.assigneeId
+    val startDate = draft.startDate
+    val dueDate = draft.dueDate
+    val priority = draft.priority
+    val type = draft.type
+    val recurrence = draft.recurrence
+
+    BobitosFormSheet(
+        title = stringResource(if (task == null) R.string.tasks_add_title else R.string.tasks_edit_title),
+        confirmLabel = stringResource(R.string.save),
+        confirmEnabled = validation == null,
+        saving = saving,
+        dirty = draft != initial,
+        onDismiss = onDismiss,
+        onConfirm = {
+            try {
+                onSave(
+                    title,
+                    description,
+                    assigneeId,
+                    TaskValidation.parseDueDate(dueDate),
+                    priority,
+                    type,
+                    recurrence,
+                    TaskValidation.parseDueDate(startDate),
+                )
+            } catch (_: InvalidTaskDateException) {
+                onInvalidDate()
             }
         },
-        confirmButton = {
-            TextButton(enabled = validation == null && !saving, onClick = {
-                try {
-                    onSave(
-                        title,
-                        description,
-                        assigneeId,
-                        TaskValidation.parseDueDate(dueDate),
-                        priority,
-                        type,
-                        recurrence,
-                        TaskValidation.parseDueDate(startDate),
+    ) {
+        OutlinedTextField(
+            title,
+            { draft = draft.copy(title = it) },
+            label = { Text(stringResource(R.string.tasks_title_label)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            description,
+            { draft = draft.copy(description = it) },
+            label = { Text(stringResource(R.string.tasks_description_label)) },
+            minLines = 2,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Box {
+            TextButton(onClick = { memberMenu = true }) {
+                Text(
+                    members.firstOrNull { it.userId == assigneeId }?.displayName
+                        ?: stringResource(R.string.tasks_unassigned),
+                )
+            }
+            DropdownMenu(memberMenu, { memberMenu = false }) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.tasks_unassigned)) },
+                    onClick = {
+                        draft = draft.copy(assigneeId = null)
+                        memberMenu = false
+                    },
+                )
+                members.forEach { member ->
+                    DropdownMenuItem(
+                        text = { Text(member.displayName) },
+                        onClick = {
+                            draft = draft.copy(assigneeId = member.userId)
+                            memberMenu = false
+                        },
                     )
-                } catch (_: InvalidTaskDateException) {
-                    onInvalidDate()
                 }
-            }) { Text(stringResource(R.string.confirm)) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
-    )
+            }
+        }
+        TaskDateFields(
+            startDate,
+            { draft = draft.copy(startDate = it) },
+            dueDate,
+            { draft = draft.copy(dueDate = it) },
+        )
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            TaskPriority.entries.forEachIndexed { index, value ->
+                SegmentedButton(
+                    selected = priority == value,
+                    onClick = { draft = draft.copy(priorityName = value.name) },
+                    shape = SegmentedButtonDefaults.itemShape(index, TaskPriority.entries.size),
+                    icon = {
+                        Box(
+                            Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(value.accent()),
+                        )
+                    },
+                ) {
+                    Text(value.label())
+                }
+            }
+        }
+        TaskTypePicker(selected = type, onSelect = { draft = draft.copy(typeName = it?.name) })
+        RecurrencePicker(
+            selected = recurrence,
+            onSelect = {
+                draft = draft.copy(recurrenceUnit = it?.unit?.name, recurrenceInterval = it?.interval ?: 1)
+            },
+        )
+        validation?.let { Text(stringResource(it.stringRes()), color = MaterialTheme.colorScheme.error) }
+    }
 }
 
 // Línea de metadatos compacta (envuelve): estado/fecha, inicio, tipo, recurrencia, responsable y,
@@ -1055,7 +1105,7 @@ private fun TaskFeedback(state: TasksUiState, onDismiss: () -> Unit) {
 
 private fun Instant.formatDate() =
     DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(ZoneId.systemDefault()).format(this)
-private fun Instant.formatIsoDate() = atZone(ZoneId.systemDefault()).toLocalDate().toString()
+internal fun Instant.formatIsoDate() = atZone(ZoneId.systemDefault()).toLocalDate().toString()
 
 private fun TaskUiMessage.stringRes() = when (this) {
     TaskUiMessage.TitleRequired -> R.string.tasks_error_title_required

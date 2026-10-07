@@ -122,6 +122,15 @@
     <string name="cancel">Cancelar</string>
     <string name="accept">Aceptar</string>
     <string name="confirm">Confirmar</string>
+    <string name="save">Guardar</string>
+    <string name="swipe_task_complete">Completar tarea</string>
+    <string name="swipe_task_reopen">Reabrir tarea</string>
+    <string name="swipe_item_purchased">Marcar como comprado</string>
+    <string name="swipe_item_pending">Marcar como pendiente</string>
+    <string name="discard_changes_title">¿Descartar los cambios?</string>
+    <string name="discard_changes_message">Lo que has escrito no se guardará.</string>
+    <string name="discard_changes_confirm">Descartar</string>
+    <string name="discard_changes_keep_editing">Seguir editando</string>
     <string name="dismiss">Cerrar</string>
     <string name="change_space">Cambiar de espacio</string>
     <string name="more_options">Más opciones</string>

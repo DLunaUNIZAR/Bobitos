@@ -13,6 +13,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 
 /**
@@ -26,7 +29,7 @@ fun SwipeActionsBox(
     startAction: SwipeAction?,
     endAction: SwipeAction?,
     modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
+    content: @Composable (accessibilityModifier: Modifier) -> Unit,
 ) {
     val state = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
@@ -38,6 +41,15 @@ fun SwipeActionsBox(
             false
         },
     )
+    val accessibilityActions = listOfNotNull(startAction, endAction).map { action ->
+        CustomAccessibilityAction(action.label) {
+            action.onSwipe()
+            true
+        }
+    }
+    // Las acciones se publican en el nodo del contenido (la tarjeta), que es el que enfoca TalkBack:
+    // en el contenedor del deslizamiento no serían alcanzables.
+    val accessibilityModifier = Modifier.semantics { customActions = accessibilityActions }
     SwipeToDismissBox(
         state = state,
         modifier = modifier,
@@ -51,12 +63,15 @@ fun SwipeActionsBox(
             }
             SwipeBackground(action, alignEnd = state.dismissDirection == SwipeToDismissBoxValue.EndToStart)
         },
-        content = { content() },
+        content = { content(accessibilityModifier) },
     )
 }
 
-/** Acción de deslizar: icono, color de fondo y qué hacer al confirmarla. */
-data class SwipeAction(val icon: ImageVector, val background: Color, val onSwipe: () -> Unit)
+/**
+ * Acción de deslizar: icono, color de fondo, nombre para lectores de pantalla y qué hacer al
+ * confirmarla. El [label] se expone como acción personalizada de la fila (TalkBack no puede deslizar).
+ */
+data class SwipeAction(val icon: ImageVector, val background: Color, val label: String, val onSwipe: () -> Unit)
 
 @Composable
 private fun SwipeBackground(action: SwipeAction?, alignEnd: Boolean) {
