@@ -32,7 +32,6 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,11 +50,13 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
+import com.dlunaunizar.bobitos.core.designsystem.component.InitialsAvatar
+import com.dlunaunizar.bobitos.core.designsystem.component.SyncStatusBanner
 import com.dlunaunizar.bobitos.core.designsystem.theme.ThemeMode
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.SyncStatus
 import com.dlunaunizar.bobitos.data.reminders.ReminderLeadTime
-import com.dlunaunizar.bobitos.feature.common.SyncStatusBanner
 import com.dlunaunizar.bobitos.feature.reminders.RemindersViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -106,14 +107,7 @@ fun ProfileScreen(
         modifier = modifier,
         topBar = {
             Column {
-                TopAppBar(
-                    title = { Text(stringResource(R.string.profile_title)) },
-                    navigationIcon = {
-                        TextButton(onClick = onBack) {
-                            Text(stringResource(R.string.navigate_back))
-                        }
-                    },
-                )
+                BobitosTopBar(title = stringResource(R.string.profile_title), onBack = onBack)
                 SyncStatusBanner(status = syncStatus)
             }
         },
@@ -127,7 +121,7 @@ fun ProfileScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            AuthAvatar(
+            InitialsAvatar(
                 initials = user.initials,
                 modifier = Modifier.size(96.dp),
             )
