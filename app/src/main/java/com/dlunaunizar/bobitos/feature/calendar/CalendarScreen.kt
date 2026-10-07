@@ -79,6 +79,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
@@ -108,11 +109,12 @@ fun CalendarScreen(
     viewModel: CalendarViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var editor by remember { mutableStateOf<CalendarEvent?>(null) }
-    var creating by remember { mutableStateOf(false) }
+    // El editor sobrevive a una rotación: se guarda el id del evento y la hora de creación como texto.
+    var editorEventId by rememberSaveable { mutableStateOf<String?>(null) }
+    var creating by rememberSaveable { mutableStateOf(false) }
     var handledInitialEvent by rememberSaveable(initialEventId) { mutableStateOf(false) }
     var drilledFrom by remember { mutableStateOf<CalendarDisplayMode?>(null) }
-    var creatingAt by remember { mutableStateOf<LocalTime?>(null) }
+    var creatingAtText by rememberSaveable { mutableStateOf<String?>(null) }
     var eventToDelete by remember { mutableStateOf<CalendarEvent?>(null) }
     val snackbar = LocalSnackbarHostState.current
     val scope = rememberCoroutineScope()
@@ -131,11 +133,13 @@ fun CalendarScreen(
     val events = (state.events as? UiState.Content)?.value.orEmpty()
     val filteredEvents = events.forSelectedMembers(state.selectedMemberIds)
     val members = (state.members as? UiState.Content)?.value.orEmpty()
+    val editor = editorEventId?.let { id -> events.firstOrNull { it.id == id } }
+    val creatingAt = creatingAtText?.let(LocalTime::parse)
 
     LaunchedEffect(initialEventId, events) {
         if (initialEventId != null && !handledInitialEvent) {
             events.firstOrNull { it.id == initialEventId }?.let {
-                editor = it
+                editorEventId = it.id
                 handledInitialEvent = true
             }
         }
@@ -187,16 +191,16 @@ fun CalendarScreen(
                     events = filteredEvents.eventsOn(state.focusedDate),
                     tasks = state.tasks.tasksOn(state.focusedDate),
                     canWrite = canWrite,
-                    onEdit = { editor = it },
+                    onEdit = { editorEventId = it.id },
                     onDelete = { id -> eventToDelete = filteredEvents.firstOrNull { it.id == id } },
-                    onCreateAt = { creatingAt = it },
+                    onCreateAt = { creatingAtText = it.toString() },
                     modifier = Modifier.weight(1f),
                 )
                 CalendarDisplayMode.WEEK -> WeekEventList(
                     focusedDate = state.focusedDate,
                     events = filteredEvents,
                     canWrite = canWrite,
-                    onEdit = { editor = it },
+                    onEdit = { editorEventId = it.id },
                     onDelete = { id -> eventToDelete = filteredEvents.firstOrNull { it.id == id } },
                     onDayTap = onDayTap,
                     modifier = Modifier.weight(1f),
@@ -221,47 +225,37 @@ fun CalendarScreen(
         }
     }
 
-    if (creating || editor != null || creatingAt != null) {
-        EventEditor(
-            event = editor,
-            day = state.focusedDate,
-            initialStart = creatingAt,
-            members = members,
-            saving = state.saving,
-            canWrite = canWrite,
-            dismiss = {
-                creating = false
-                editor = null
-                creatingAt = null
-            },
-        ) { id, input ->
-            viewModel.save(id, input)
+    CalendarEditorHost(
+        editorEventId = editorEventId,
+        editor = editor,
+        creating = creating,
+        creatingAt = creatingAt,
+        eventsLoaded = state.events is UiState.Content,
+        day = state.focusedDate,
+        members = members,
+        saving = state.saving,
+        canWrite = canWrite,
+        onDropUnresolved = { editorEventId = null },
+        onClose = {
             creating = false
-            editor = null
-            creatingAt = null
-        }
-    }
+            editorEventId = null
+            creatingAtText = null
+        },
+        onSave = { id, input -> viewModel.save(id, input) },
+    )
 
     eventToDelete?.let { event ->
-        AlertDialog(
-            onDismissRequest = { eventToDelete = null },
-            title = { Text(stringResource(R.string.calendar_delete_title)) },
-            text = { Text(stringResource(R.string.calendar_delete_body, event.title)) },
-            confirmButton = {
-                TextButton(
-                    enabled = canWrite && !state.saving,
-                    onClick = {
-                        viewModel.delete(event.id)
-                        eventToDelete = null
-                        scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                            viewModel.save(null, event.toInput())
-                        }
-                    },
-                ) { Text(stringResource(R.string.calendar_delete)) }
+        DeleteEventDialog(
+            event = event,
+            enabled = canWrite && !state.saving,
+            onConfirm = {
+                viewModel.delete(event.id)
+                eventToDelete = null
+                scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+                    viewModel.save(null, event.toInput())
+                }
             },
-            dismissButton = {
-                TextButton(onClick = { eventToDelete = null }) { Text(stringResource(R.string.cancel)) }
-            },
+            onDismiss = { eventToDelete = null },
         )
     }
 }
@@ -600,7 +594,12 @@ private fun HourRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .combinedClickable(enabled = canWrite, onClick = {}, onLongClick = onLongPress)
+            .combinedClickable(
+                enabled = canWrite,
+                onClick = {},
+                onLongClickLabel = stringResource(R.string.calendar_create_at_hour),
+                onLongClick = onLongPress,
+            )
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.Top,
     ) {
@@ -863,6 +862,56 @@ private fun EventPickers(
         )
         null -> Unit
     }
+}
+
+// Muestra el editor de evento (nuevo, desde una hora o existente). Si el evento que se editaba ya no
+// existe, lo descarta (mientras la lista carga, espera).
+@Composable
+internal fun CalendarEditorHost(
+    editorEventId: String?,
+    editor: CalendarEvent?,
+    creating: Boolean,
+    creatingAt: LocalTime?,
+    eventsLoaded: Boolean,
+    day: LocalDate,
+    members: List<SpaceMember>,
+    saving: Boolean,
+    canWrite: Boolean,
+    onDropUnresolved: () -> Unit,
+    onClose: () -> Unit,
+    onSave: (String?, EventInput) -> Unit,
+) {
+    val unresolved = editorEventId != null && editor == null
+    LaunchedEffect(unresolved, eventsLoaded) {
+        if (unresolved && eventsLoaded) onDropUnresolved()
+    }
+    if (creating || creatingAt != null || editor != null) {
+        EventEditor(
+            event = editor,
+            day = day,
+            initialStart = creatingAt,
+            members = members,
+            saving = saving,
+            canWrite = canWrite,
+            dismiss = onClose,
+        ) { id, input ->
+            onSave(id, input)
+            onClose()
+        }
+    }
+}
+
+@Composable
+internal fun DeleteEventDialog(event: CalendarEvent, enabled: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    BobitosDialog(
+        title = stringResource(R.string.calendar_delete_title),
+        message = stringResource(R.string.calendar_delete_body, event.title),
+        confirmLabel = stringResource(R.string.calendar_delete),
+        destructive = true,
+        confirmEnabled = enabled,
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+    )
 }
 
 @Composable
