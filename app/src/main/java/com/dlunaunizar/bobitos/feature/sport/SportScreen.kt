@@ -57,6 +57,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
@@ -203,19 +205,17 @@ fun SportScreen(
         )
     }
     activityToDelete?.let { activity ->
-        AlertDialog(
-            onDismissRequest = { activityToDelete = null },
-            title = { Text(stringResource(R.string.sport_delete_title)) },
-            text = { Text(stringResource(R.string.sport_delete_body, activity.name)) },
-            confirmButton = {
-                TextButton(enabled = actionsEnabled, onClick = {
-                    deleteWithUndo(activity)
-                    activityToDelete = null
-                }) { Text(stringResource(R.string.sport_delete)) }
+        BobitosDialog(
+            title = stringResource(R.string.sport_delete_title),
+            message = stringResource(R.string.sport_delete_body, activity.name),
+            confirmLabel = stringResource(R.string.sport_delete),
+            destructive = true,
+            confirmEnabled = actionsEnabled,
+            onConfirm = {
+                deleteWithUndo(activity)
+                activityToDelete = null
             },
-            dismissButton = {
-                TextButton(onClick = { activityToDelete = null }) { Text(stringResource(R.string.cancel)) }
-            },
+            onDismiss = { activityToDelete = null },
         )
     }
 }
@@ -381,6 +381,31 @@ private fun ActivityCard(
     }
 }
 
+// Participantes de la actividad (casillas por miembro).
+@Composable
+private fun SportParticipants(
+    members: List<SpaceMember>,
+    selected: Set<String>,
+    onSelectedChange: (Set<String>) -> Unit,
+) {
+    if (members.isEmpty()) return
+    Text(
+        text = stringResource(R.string.sport_participants_label),
+        style = MaterialTheme.typography.labelLarge,
+    )
+    members.forEach { member ->
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(
+                checked = member.userId in selected,
+                onCheckedChange = { checked ->
+                    onSelectedChange(if (checked) selected + member.userId else selected - member.userId)
+                },
+            )
+            Text(member.displayName)
+        }
+    }
+}
+
 @Composable
 private fun ActivityEditor(
     request: ActivityEditorRequest,
@@ -401,82 +426,62 @@ private fun ActivityEditor(
     var pickingRoutine by remember { mutableStateOf(false) }
     val typeLabel = stringResource(type.labelRes)
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(stringResource(if (activity == null) R.string.sport_add_title else R.string.sport_edit_title))
+    val initialSession = activity?.session.orEmpty().toExerciseDrafts().toRoutineExercises()
+    val dirty = type != (activity?.type ?: SportType.PADEL) ||
+        name != activity?.name.orEmpty() ||
+        selected != activity?.participantIds?.toSet().orEmpty() ||
+        routineId != activity?.routineId ||
+        session.toRoutineExercises() != initialSession
+
+    BobitosFormSheet(
+        title = stringResource(if (activity == null) R.string.sport_add_title else R.string.sport_edit_title),
+        confirmLabel = stringResource(R.string.save),
+        confirmEnabled = canWrite,
+        saving = saving,
+        dirty = dirty,
+        onDismiss = onDismiss,
+        onConfirm = {
+            val gym = type == SportType.GIMNASIO
+            onSave(
+                type,
+                name.ifBlank { typeLabel },
+                selected.toList(),
+                routineId.takeIf { gym },
+                if (gym) session.toRoutineExercises() else emptyList(),
+            )
         },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                Row(
-                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    SportType.entries.forEach { option ->
-                        FilterChip(
-                            selected = type == option,
-                            onClick = { type = option },
-                            leadingIcon = { Icon(option.icon, contentDescription = null, tint = option.accent()) },
-                            label = { Text(stringResource(option.labelRes)) },
-                        )
-                    }
-                }
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(stringResource(R.string.sport_name_label)) },
-                    placeholder = { Text(typeLabel) },
-                    singleLine = true,
+    ) {
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            SportType.entries.forEach { option ->
+                FilterChip(
+                    selected = type == option,
+                    onClick = { type = option },
+                    leadingIcon = { Icon(option.icon, contentDescription = null, tint = option.accent()) },
+                    label = { Text(stringResource(option.labelRes)) },
                 )
-                if (members.isNotEmpty()) {
-                    Text(
-                        text = stringResource(R.string.sport_participants_label),
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                    members.forEach { member ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = member.userId in selected,
-                                onCheckedChange = { checked ->
-                                    selected = if (checked) selected + member.userId else selected - member.userId
-                                },
-                            )
-                            Text(member.displayName)
-                        }
-                    }
-                }
-                if (type == SportType.GIMNASIO) {
-                    GymSessionSection(
-                        routineTitle = routines.firstOrNull { it.id == routineId }?.title,
-                        session = session,
-                        catalog = catalog,
-                        onPickRoutine = { pickingRoutine = true },
-                    )
-                }
             }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = canWrite && !saving,
-                onClick = {
-                    val gym = type == SportType.GIMNASIO
-                    onSave(
-                        type,
-                        name.ifBlank { typeLabel },
-                        selected.toList(),
-                        routineId.takeIf { gym },
-                        if (gym) session.toRoutineExercises() else emptyList(),
-                    )
-                },
-            ) { Text(stringResource(R.string.confirm)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
-        },
-    )
+        }
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text(stringResource(R.string.sport_name_label)) },
+            placeholder = { Text(typeLabel) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        SportParticipants(members = members, selected = selected, onSelectedChange = { selected = it })
+        if (type == SportType.GIMNASIO) {
+            GymSessionSection(
+                routineTitle = routines.firstOrNull { it.id == routineId }?.title,
+                session = session,
+                catalog = catalog,
+                onPickRoutine = { pickingRoutine = true },
+            )
+        }
+    }
 
     if (pickingRoutine) {
         RoutinePickerDialog(
