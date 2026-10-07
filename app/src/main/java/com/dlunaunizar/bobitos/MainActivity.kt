@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos
 
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -52,6 +53,9 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
             }
             DisposableEffect(darkTheme) {
+                // La ventana previa a Compose sigue al sistema; si la app fuerza otro tema, se alinea aquí
+                // para que rotaciones y reaperturas no dejen ver un fondo de otro tema.
+                window.setBackgroundDrawable(ColorDrawable(if (darkTheme) windowDark else windowLight))
                 enableEdgeToEdge(
                     statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { darkTheme },
                     navigationBarStyle = SystemBarStyle.auto(lightScrim, darkScrim) { darkTheme },
@@ -127,3 +131,7 @@ class MainActivity : ComponentActivity() {
 // Velos (scrims) de las barras del sistema en edge-to-edge, atados al tema de la app (no al móvil).
 private val lightScrim = Color.argb(0xe6, 0xFF, 0xFF, 0xFF)
 private val darkScrim = Color.argb(0x80, 0x1b, 0x1b, 0x1b)
+
+// Fondos del tema (Color.kt: backgroundLight / backgroundDark) para la ventana previa a Compose.
+private val windowLight = Color.rgb(0xFB, 0xFA, 0xF8)
+private val windowDark = Color.rgb(0x14, 0x15, 0x13)
