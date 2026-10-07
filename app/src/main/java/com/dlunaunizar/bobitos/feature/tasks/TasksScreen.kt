@@ -261,7 +261,7 @@ fun TasksScreen(
                                 deleteTaskWithUndo(task)
                             }.takeIf { enabled },
                             modifier = Modifier.animateItem(),
-                        ) {
+                        ) { accessibilityModifier ->
                             TaskCard(
                                 task,
                                 enabled,
@@ -272,6 +272,7 @@ fun TasksScreen(
                                     editorVisible = true
                                 },
                                 onDelete = { deleteTask = task },
+                                modifier = accessibilityModifier,
                             )
                         }
                     }
@@ -563,6 +564,7 @@ private fun TaskCard(
     onSetCompleted: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val done = task.status == TaskStatus.DONE
     val overdue = !done &&
@@ -571,9 +573,9 @@ private fun TaskCard(
             ?.toLocalDate()
             ?.isBefore(LocalDate.now()) == true
     Card(
-        onClick = onEdit,
-        enabled = enabled,
-        modifier = Modifier.fillMaxWidth(),
+        // No se usa `enabled` de la Card: la atenuaría (y la anunciaría «desactivada») sin conexión o al guardar.
+        onClick = { if (enabled) onEdit() },
+        modifier = modifier.fillMaxWidth(),
         colors = task.type?.let { categoryCardColors(it.accent()) } ?: CardDefaults.cardColors(),
     ) {
         Row(

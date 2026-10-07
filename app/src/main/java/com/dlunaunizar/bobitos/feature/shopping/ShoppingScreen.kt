@@ -209,7 +209,7 @@ fun ShoppingScreen(
                                         deleteItemWithUndo(item)
                                     }.takeIf { actionsEnabled },
                                     modifier = Modifier.animateItem(),
-                                ) {
+                                ) { accessibilityModifier ->
                                     ShoppingItemCard(
                                         item = item,
                                         enabled = actionsEnabled,
@@ -219,10 +219,13 @@ fun ShoppingScreen(
                                         onCreateIngredient = { viewModel.createIngredientFromItem(item) },
                                         onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
                                         onEdit = {
-                                            editedItemId = item.id
-                                            editorVisible = true
+                                            if (actionsEnabled) {
+                                                editedItemId = item.id
+                                                editorVisible = true
+                                            }
                                         },
                                         onDelete = { itemToDelete = item },
+                                        modifier = accessibilityModifier,
                                     )
                                 }
                             }
@@ -265,7 +268,7 @@ fun ShoppingScreen(
                                             deleteItemWithUndo(item)
                                         }.takeIf { actionsEnabled },
                                         modifier = Modifier.animateItem(),
-                                    ) {
+                                    ) { accessibilityModifier ->
                                         ShoppingItemCard(
                                             item = item,
                                             enabled = actionsEnabled,
@@ -275,10 +278,13 @@ fun ShoppingScreen(
                                             onCreateIngredient = { viewModel.createIngredientFromItem(item) },
                                             onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
                                             onEdit = {
-                                                editedItemId = item.id
-                                                editorVisible = true
+                                                if (actionsEnabled) {
+                                                    editedItemId = item.id
+                                                    editorVisible = true
+                                                }
                                             },
                                             onDelete = { itemToDelete = item },
+                                            modifier = accessibilityModifier,
                                         )
                                     }
                                 }
@@ -484,12 +490,14 @@ private fun ShoppingItemCard(
     onSetPurchased: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     Card(
+        // No se usa `enabled` de la Card (la atenuaría y la anunciaría «desactivada»): quien la usa
+        // pasa un `onEdit` que no hace nada si no se puede editar.
         onClick = onEdit,
-        enabled = enabled,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         colors = item.supermarket?.let { categoryCardColors(it.brandColor()) }
             ?: CardDefaults.cardColors(),
     ) {

@@ -130,6 +130,7 @@
     <string name="discard_changes_title">¿Descartar los cambios?</string>
     <string name="discard_changes_message">Lo que has escrito no se guardará.</string>
     <string name="discard_changes_confirm">Descartar</string>
+    <string name="discard_changes_keep_editing">Seguir editando</string>
     <string name="dismiss">Cerrar</string>
     <string name="change_space">Cambiar de espacio</string>
     <string name="more_options">Más opciones</string>

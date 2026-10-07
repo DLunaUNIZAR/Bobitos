@@ -29,7 +29,7 @@ fun SwipeActionsBox(
     startAction: SwipeAction?,
     endAction: SwipeAction?,
     modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
+    content: @Composable (accessibilityModifier: Modifier) -> Unit,
 ) {
     val state = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
@@ -47,9 +47,12 @@ fun SwipeActionsBox(
             true
         }
     }
+    // Las acciones se publican en el nodo del contenido (la tarjeta), que es el que enfoca TalkBack:
+    // en el contenedor del deslizamiento no serían alcanzables.
+    val accessibilityModifier = Modifier.semantics { customActions = accessibilityActions }
     SwipeToDismissBox(
         state = state,
-        modifier = modifier.semantics { customActions = accessibilityActions },
+        modifier = modifier,
         enableDismissFromStartToEnd = startAction != null,
         enableDismissFromEndToStart = endAction != null,
         backgroundContent = {
@@ -60,7 +63,7 @@ fun SwipeActionsBox(
             }
             SwipeBackground(action, alignEnd = state.dismissDirection == SwipeToDismissBoxValue.EndToStart)
         },
-        content = { content() },
+        content = { content(accessibilityModifier) },
     )
 }
 

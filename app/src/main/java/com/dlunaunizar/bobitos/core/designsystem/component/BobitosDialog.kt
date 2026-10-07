@@ -26,6 +26,7 @@ fun BobitosDialog(
     onDismiss: () -> Unit,
     destructive: Boolean = false,
     confirmEnabled: Boolean = true,
+    dismissLabel: String = stringResource(R.string.cancel),
     content: (@Composable () -> Unit)? = null,
 ) {
     AlertDialog(
@@ -52,7 +53,7 @@ fun BobitosDialog(
             ) { Text(confirmLabel) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+            TextButton(onClick = onDismiss) { Text(dismissLabel) }
         },
     )
 }

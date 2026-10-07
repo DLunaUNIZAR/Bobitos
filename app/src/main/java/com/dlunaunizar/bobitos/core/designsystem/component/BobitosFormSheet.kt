@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.core.designsystem.component
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -14,6 +15,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -76,7 +78,14 @@ fun BobitosFormSheet(
             DismissAction.BLOCK -> Unit
         }
     }
-    ModalBottomSheet(onDismissRequest = requestClose, sheetState = sheetState) {
+    // Atrás lo gestiona el BackHandler de abajo: con el atrás predictivo, un cierre vetado por
+    // confirmValueChange dejaría el sheet encogido tras «Seguir editando».
+    ModalBottomSheet(
+        onDismissRequest = requestClose,
+        sheetState = sheetState,
+        properties = ModalBottomSheetProperties(shouldDismissOnBackPress = false),
+    ) {
+        BackHandler(onBack = requestClose)
         Column(
             modifier = Modifier
                 .padding(horizontal = Spacing.lg)
@@ -110,16 +119,25 @@ fun BobitosFormSheet(
         }
     }
     if (askDiscard) {
-        BobitosDialog(
-            title = stringResource(R.string.discard_changes_title),
-            message = stringResource(R.string.discard_changes_message),
-            confirmLabel = stringResource(R.string.discard_changes_confirm),
-            destructive = true,
-            onConfirm = {
+        DiscardChangesDialog(
+            onDiscard = {
                 askDiscard = false
                 onDismiss()
             },
-            onDismiss = { askDiscard = false },
+            onKeepEditing = { askDiscard = false },
         )
     }
+}
+
+@Composable
+private fun DiscardChangesDialog(onDiscard: () -> Unit, onKeepEditing: () -> Unit) {
+    BobitosDialog(
+        title = stringResource(R.string.discard_changes_title),
+        message = stringResource(R.string.discard_changes_message),
+        confirmLabel = stringResource(R.string.discard_changes_confirm),
+        destructive = true,
+        dismissLabel = stringResource(R.string.discard_changes_keep_editing),
+        onConfirm = onDiscard,
+        onDismiss = onKeepEditing,
+    )
 }
