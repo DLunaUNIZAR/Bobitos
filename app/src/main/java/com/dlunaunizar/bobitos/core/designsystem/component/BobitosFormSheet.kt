@@ -1,0 +1,125 @@
+package com.dlunaunizar.bobitos.core.designsystem.component
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
+
+/**
+ * Formulario en un bottom sheet: título, contenido con scroll y botones fijos abajo (siempre
+ * visibles con el teclado abierto). Si hay cambios sin guardar ([dirty]), deslizar, tocar fuera o
+ * «Cancelar» pide confirmar el descarte; mientras se guarda ([saving]) no se puede cerrar.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BobitosFormSheet(
+    title: String,
+    confirmLabel: String,
+    confirmEnabled: Boolean,
+    saving: Boolean,
+    dirty: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    var askDiscard by rememberSaveable { mutableStateOf(false) }
+    val currentDirty by rememberUpdatedState(dirty)
+    val currentSaving by rememberUpdatedState(saving)
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { target ->
+            if (target != SheetValue.Hidden) {
+                true
+            } else {
+                when (dismissActionFor(currentDirty, currentSaving)) {
+                    DismissAction.CLOSE -> true
+                    DismissAction.ASK_DISCARD -> {
+                        askDiscard = true
+                        false
+                    }
+                    DismissAction.BLOCK -> false
+                }
+            }
+        },
+    )
+    val requestClose = {
+        when (dismissActionFor(dirty, saving)) {
+            DismissAction.CLOSE -> onDismiss()
+            DismissAction.ASK_DISCARD -> askDiscard = true
+            DismissAction.BLOCK -> Unit
+        }
+    }
+    ModalBottomSheet(onDismissRequest = requestClose, sheetState = sheetState) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = Spacing.lg)
+                .navigationBarsPadding()
+                .imePadding(),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.semantics { heading() },
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                content = content,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.End),
+            ) {
+                TextButton(onClick = requestClose, enabled = !saving) {
+                    Text(stringResource(R.string.cancel))
+                }
+                Button(onClick = onConfirm, enabled = confirmEnabled && !saving) {
+                    Text(confirmLabel)
+                }
+            }
+        }
+    }
+    if (askDiscard) {
+        BobitosDialog(
+            title = stringResource(R.string.discard_changes_title),
+            message = stringResource(R.string.discard_changes_message),
+            confirmLabel = stringResource(R.string.discard_changes_confirm),
+            destructive = true,
+            onConfirm = {
+                askDiscard = false
+                onDismiss()
+            },
+            onDismiss = { askDiscard = false },
+        )
+    }
+}
