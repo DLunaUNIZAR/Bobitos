@@ -8,7 +8,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
@@ -29,17 +28,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -66,7 +59,6 @@ import com.dlunaunizar.bobitos.app.AppUiState
 import com.dlunaunizar.bobitos.app.RealtimeScope
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
-import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.SyncStatusBanner
 import com.dlunaunizar.bobitos.core.designsystem.rememberReduceMotion
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
@@ -307,20 +299,14 @@ fun BobitosNavHost(
         }
 
         composable(BobitosDestination.Shopping.route) {
-            WorkspaceScaffold(
-                currentDestination = BobitosDestination.Shopping,
+            SpaceScaffold(
+                navController = navController,
+                selectedTab = workspaceTabFor(BobitosDestination.Shopping.route) ?: BobitosDestination.Shopping,
+                screenTitle = stringResource(BobitosDestination.Shopping.titleRes),
                 spaceName = spaceName,
-                onDestinationSelected = navController::navigateToWorkspace,
-                onSwitchSpace = navController::navigateToSpaces,
-                onSpaceSettings = {
-                    onClearSpaceFeedback()
-                    navController.navigate(BobitosDestination.SpaceSettings.route)
-                },
-                onProfile = {
-                    onClearAuthFeedback()
-                    navController.navigateToProfile()
-                },
                 syncStatus = uiState.syncStatus,
+                onClearSpaceFeedback = onClearSpaceFeedback,
+                onClearAuthFeedback = onClearAuthFeedback,
             ) {
                 uiState.selectedSpace?.let { space ->
                     ShoppingScreen(
@@ -332,20 +318,14 @@ fun BobitosNavHost(
         }
 
         composable(BobitosDestination.Tasks.route) {
-            WorkspaceScaffold(
-                currentDestination = BobitosDestination.Tasks,
+            SpaceScaffold(
+                navController = navController,
+                selectedTab = workspaceTabFor(BobitosDestination.Tasks.route) ?: BobitosDestination.Tasks,
+                screenTitle = stringResource(BobitosDestination.Tasks.titleRes),
                 spaceName = spaceName,
-                onDestinationSelected = navController::navigateToWorkspace,
-                onSwitchSpace = navController::navigateToSpaces,
-                onSpaceSettings = {
-                    onClearSpaceFeedback()
-                    navController.navigate(BobitosDestination.SpaceSettings.route)
-                },
-                onProfile = {
-                    onClearAuthFeedback()
-                    navController.navigateToProfile()
-                },
                 syncStatus = uiState.syncStatus,
+                onClearSpaceFeedback = onClearSpaceFeedback,
+                onClearAuthFeedback = onClearAuthFeedback,
             ) {
                 uiState.selectedSpace?.let { space ->
                     TasksScreen(
@@ -357,20 +337,14 @@ fun BobitosNavHost(
         }
 
         composable(BobitosDestination.Calendar.route) {
-            WorkspaceScaffold(
-                currentDestination = BobitosDestination.Calendar,
+            SpaceScaffold(
+                navController = navController,
+                selectedTab = workspaceTabFor(BobitosDestination.Calendar.route) ?: BobitosDestination.Calendar,
+                screenTitle = stringResource(BobitosDestination.Calendar.titleRes),
                 spaceName = spaceName,
-                onDestinationSelected = navController::navigateToWorkspace,
-                onSwitchSpace = navController::navigateToSpaces,
-                onSpaceSettings = {
-                    onClearSpaceFeedback()
-                    navController.navigate(BobitosDestination.SpaceSettings.route)
-                },
-                onProfile = {
-                    onClearAuthFeedback()
-                    navController.navigateToProfile()
-                },
                 syncStatus = uiState.syncStatus,
+                onClearSpaceFeedback = onClearSpaceFeedback,
+                onClearAuthFeedback = onClearAuthFeedback,
             ) {
                 uiState.selectedSpace?.let { space ->
                     CalendarScreen(spaceId = space.id, canWrite = uiState.syncStatus.canWrite)
@@ -379,20 +353,14 @@ fun BobitosNavHost(
         }
 
         composable(BobitosDestination.Meals.route) {
-            WorkspaceScaffold(
-                currentDestination = BobitosDestination.Meals,
+            SpaceScaffold(
+                navController = navController,
+                selectedTab = workspaceTabFor(BobitosDestination.Meals.route) ?: BobitosDestination.Meals,
+                screenTitle = stringResource(BobitosDestination.Meals.titleRes),
                 spaceName = spaceName,
-                onDestinationSelected = navController::navigateToWorkspace,
-                onSwitchSpace = navController::navigateToSpaces,
-                onSpaceSettings = {
-                    onClearSpaceFeedback()
-                    navController.navigate(BobitosDestination.SpaceSettings.route)
-                },
-                onProfile = {
-                    onClearAuthFeedback()
-                    navController.navigateToProfile()
-                },
                 syncStatus = uiState.syncStatus,
+                onClearSpaceFeedback = onClearSpaceFeedback,
+                onClearAuthFeedback = onClearAuthFeedback,
             ) {
                 uiState.selectedSpace?.let { space ->
                     MealsScreen(
@@ -406,20 +374,14 @@ fun BobitosNavHost(
         }
 
         composable(BobitosDestination.Sport.route) {
-            WorkspaceScaffold(
-                currentDestination = BobitosDestination.Sport,
+            SpaceScaffold(
+                navController = navController,
+                selectedTab = workspaceTabFor(BobitosDestination.Sport.route) ?: BobitosDestination.Sport,
+                screenTitle = stringResource(BobitosDestination.Sport.titleRes),
                 spaceName = spaceName,
-                onDestinationSelected = navController::navigateToWorkspace,
-                onSwitchSpace = navController::navigateToSpaces,
-                onSpaceSettings = {
-                    onClearSpaceFeedback()
-                    navController.navigate(BobitosDestination.SpaceSettings.route)
-                },
-                onProfile = {
-                    onClearAuthFeedback()
-                    navController.navigateToProfile()
-                },
                 syncStatus = uiState.syncStatus,
+                onClearSpaceFeedback = onClearSpaceFeedback,
+                onClearAuthFeedback = onClearAuthFeedback,
             ) {
                 uiState.selectedSpace?.let { space ->
                     SportScreen(
@@ -439,20 +401,14 @@ fun BobitosNavHost(
                 navArgument("date") { type = NavType.StringType },
             ),
         ) { backStackEntry ->
-            WorkspaceScaffold(
-                currentDestination = BobitosDestination.Calendar,
+            SpaceScaffold(
+                navController = navController,
+                selectedTab = workspaceTabFor(BobitosDestination.Calendar.route) ?: BobitosDestination.Calendar,
+                screenTitle = stringResource(BobitosDestination.Calendar.titleRes),
                 spaceName = spaceName,
-                onDestinationSelected = navController::navigateToWorkspace,
-                onSwitchSpace = navController::navigateToSpaces,
-                onSpaceSettings = {
-                    onClearSpaceFeedback()
-                    navController.navigate(BobitosDestination.SpaceSettings.route)
-                },
-                onProfile = {
-                    onClearAuthFeedback()
-                    navController.navigateToProfile()
-                },
                 syncStatus = uiState.syncStatus,
+                onClearSpaceFeedback = onClearSpaceFeedback,
+                onClearAuthFeedback = onClearAuthFeedback,
             ) {
                 uiState.selectedSpace?.let { space ->
                     CalendarScreen(
@@ -618,80 +574,35 @@ private fun MainMenuScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+// Marco de las pantallas del espacio con el cableado de navegación común.
 @Composable
-private fun WorkspaceScaffold(
-    currentDestination: BobitosDestination,
+private fun SpaceScaffold(
+    navController: NavHostController,
+    selectedTab: BobitosDestination,
+    screenTitle: String?,
     spaceName: String,
-    onDestinationSelected: (BobitosDestination) -> Unit,
-    onSwitchSpace: () -> Unit,
-    onSpaceSettings: () -> Unit,
-    onProfile: () -> Unit,
     syncStatus: SyncStatus,
+    onClearSpaceFeedback: () -> Unit,
+    onClearAuthFeedback: () -> Unit,
     content: @Composable () -> Unit,
 ) {
-    val snackbarHostState = remember { SnackbarHostState() }
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            Column {
-                BobitosTopBar(
-                    titleContent = {
-                        Column {
-                            Text(
-                                text = spaceName,
-                                style = MaterialTheme.typography.headlineSmall,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                text = stringResource(currentDestination.titleRes),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    },
-                    actions = {
-                        SpaceActions(
-                            onProfile = onProfile,
-                            onSpaceSettings = onSpaceSettings,
-                            onSwitchSpace = onSwitchSpace,
-                        )
-                    },
-                )
-                SyncStatusBanner(syncStatus)
-            }
+    WorkspaceScaffold(
+        selectedTab = selectedTab,
+        screenTitle = screenTitle,
+        spaceName = spaceName,
+        onTabSelected = navController::navigateToTab,
+        onSwitchSpace = navController::navigateToSpaces,
+        onSpaceSettings = {
+            onClearSpaceFeedback()
+            navController.navigate(BobitosDestination.SpaceSettings.route)
         },
-        bottomBar = {
-            NavigationBar {
-                BobitosDestination.workspaceDestinations.forEach { destination ->
-                    NavigationBarItem(
-                        selected = destination == currentDestination,
-                        onClick = { onDestinationSelected(destination) },
-                        icon = { Icon(destination.icon, contentDescription = null) },
-                        label = { Text(text = stringResource(destination.titleRes)) },
-                        colors = destination.moduleColor()?.let {
-                            NavigationBarItemDefaults.colors(
-                                selectedIconColor = it,
-                                selectedTextColor = it,
-                                indicatorColor = it.copy(alpha = 0.2f),
-                            )
-                        } ?: NavigationBarItemDefaults.colors(),
-                    )
-                }
-            }
+        onProfile = {
+            onClearAuthFeedback()
+            navController.navigateToProfile()
         },
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        ) {
-            CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
-                content()
-            }
-        }
-    }
+        syncStatus = syncStatus,
+        content = content,
+    )
 }
 
 @Composable
@@ -857,6 +768,17 @@ private fun NavHostController.navigateToWorkspace(destination: BobitosDestinatio
         }
         launchSingleTop = true
         restoreState = true
+    }
+}
+
+private fun NavHostController.navigateToTab(tab: BobitosDestination) {
+    when (tab) {
+        // «Hoy» es el ancla de la pila: basta con volver a ella.
+        BobitosDestination.SpaceHome -> popBackStack(BobitosDestination.SpaceHome.route, inclusive = false)
+        // Estando en Comidas/Deporte, «Más» vuelve a su pantalla en vez de apilar otra.
+        BobitosDestination.SpaceMore ->
+            if (!popBackStack(BobitosDestination.SpaceMore.route, inclusive = false)) navigateToWorkspace(tab)
+        else -> navigateToWorkspace(tab)
     }
 }
 
