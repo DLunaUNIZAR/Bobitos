@@ -12,7 +12,7 @@ import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 
 /** «Más»: los módulos que no caben en la barra inferior (Comidas, Deporte y Notas). */
 @Composable
-internal fun SpaceMoreScreen(todayMeals: Int, onOpen: (BobitosDestination) -> Unit) {
+internal fun SpaceMoreScreen(onOpen: (BobitosDestination) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -22,7 +22,7 @@ internal fun SpaceMoreScreen(todayMeals: Int, onOpen: (BobitosDestination) -> Un
     ) {
         SpaceHomeCard(
             destination = BobitosDestination.Meals,
-            count = todayMeals,
+            count = 0,
             onClick = { onOpen(BobitosDestination.Meals) },
         )
         SpaceHomeCard(

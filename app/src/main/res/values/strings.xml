@@ -48,8 +48,6 @@
         <item quantity="one">Tienes %1$d cosa para hoy</item>
         <item quantity="other">Tienes %1$d cosas para hoy</item>
     </plurals>
-    <string name="space_home_title">Inicio del espacio</string>
-    <string name="space_home_subtitle">¿Qué quieres organizar?</string>
     <string name="space_home_catalog_section">Recetario e ingredientes</string>
     <string name="home_my_day_title">Mi día</string>
     <string name="home_my_day_empty">Nada tuyo para hoy 🎉</string>
