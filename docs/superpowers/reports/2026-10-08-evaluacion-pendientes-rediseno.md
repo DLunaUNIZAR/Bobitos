@@ -23,7 +23,7 @@ Se evalúan 13 puntos que quedaron sin aplicar: los 4 problemas reales de `/code
 | C | Recordatorio a medianoche por cada actividad | 2 | 1 | 2 | Hacer ya |
 | D | Nombre de cuenta borrada reescrito en el evento (y actividades nunca anonimizadas) | 2 | 1 | 2 | Hacer ya |
 | S1 | Borradores con `@Parcelize` | 3 | 3 | 2 | Hacer ya (refactor propio) |
-| S2 | ViewModels sin volver a «cargando» al reobservar | | | | |
+| S2 | ViewModels sin volver a «cargando» al reobservar | 2 | 3 | 2 | Más adelante |
 | S3 | Grafo anidado para «Más» | | | | |
 | S4 | Metadatos de ruta en el enum | | | | |
 | S5 | Deporte reutiliza el documento de evento del calendario | | | | |
@@ -98,7 +98,16 @@ _(se rellena al final)_
 - **Si se hace:** verificación con compilación y tests; en dispositivo, girar con cada editor abierto (el mismo recorrido de las fases 3a–3c).
 
 ## S2 — ViewModels sin volver a «cargando» al reobservar
-**Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
+- **Qué es:** las pantallas hacen `observe()` al entrar y `stopObserving()` al salir; al girar el móvil se repiten ambas. Varios ViewModels vuelven a emitir `UiState.Loading` aunque el espacio sea el mismo, y eso es lo que obligó a añadir `rememberEditorSlot` (mantener el elemento del editor durante la recarga). Arreglarlo en los ViewModels quita también el parpadeo de «cargando» que las propias **listas** muestran al girar.
+- **Medido:**
+  - 13 ViewModels tienen `stopObserving`/`stop`; todos borran su clave observada al parar. **8** vuelven a emitir `Loading` al reobservar (Calendario, Calendario personal, Comidas, Notas, Compra, Espacios, Deporte, Tareas); 5 no (Ejercicios, Detalle de ingrediente, Ingredientes, Recetas, Rutinas).
+  - La clave borrada en `stopObserving` cumple una función (bloquea escrituras sin espacio activo, comentario en `NotesScreen`): el arreglo no debe tocarla, sino recordar aparte el último espacio cargado.
+  - `rememberEditorSlot` (10 pantallas) **seguiría haciendo falta** para cerrar el editor si otra persona borra el elemento: S2 no lo elimina, solo lo deja como red de seguridad.
+- **Prototipo (`spike/eval-s2`, borrado) en `NotesViewModel`:** `lastLoadedSpaceId`; `observe` solo emite `Loading` si cambia de espacio. Test nuevo en `NotesViewModelTest` con un fake que retiene la segunda suscripción (como Firestore, que no emite al instante): sin el arreglo falla, con él pasa. **2 archivos, +32/−2.** Ojo: con el fake actual, que emite de forma síncrona, el test pasaba sin arreglo; hace falta retener la suscripción para que pruebe algo.
+- **Extrapolación:** 8 ViewModels × ~4 líneas + 8 tests con fake retenido ⇒ ~16 archivos. En Calendario el `Loading` al cambiar de rango es legítimo y debe conservarse.
+- **Puntuación:** Beneficio 2 (quita el parpadeo de «cargando» al girar en 8 pantallas y robustece los editores en la raíz) · Coste 3 (~16 archivos) · Riesgo 2 (comportamiento interno, cubierto por un test por ViewModel; el parpadeo visible queda sin verificar en dispositivo).
+- **Veredicto:** **Más adelante.** Si se hace, conviene antes que S1 (tocan pantallas vecinas) y por lotes de 2–3 ViewModels.
+- **Si se hace:** el patrón del prototipo en cada ViewModel con su test; verificación en dispositivo girando cada lista.
 
 ## S3 — Grafo anidado para «Más»
 **Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
