@@ -30,7 +30,7 @@ Se evalúan 13 puntos que quedaron sin aplicar: los 4 problemas reales de `/code
 | S6 | Fuente propia de espacios para el selector | 1 | 2 | 2 | No |
 | S7 | Validación por campo en los editores | 3 (Calendario) / 1 (resto) | 1 / 2 | 1 | Hacer ya (solo Calendario) |
 | S8 | detekt: ignorar `@Composable` en métodos largos | 1 | 1 | 1 | Decisión del usuario (recomendado: no) |
-| S9 | Renombres del borrador en el editor de Compra | | | | |
+| S9 | Renombres del borrador en el editor de Compra | 1 | 1 | 1 | No (solo de paso) |
 
 ## Orden recomendado
 
@@ -179,4 +179,8 @@ _(se rellena al final)_
 - **Veredicto:** la rúbrica no lo clasifica (Beneficio 1 sin coste ni riesgo), así que es una **decisión de estilo del usuario**. Recomendación: **dejarlo como está** y seguir absorbiendo en el baseline lo que no merezca extraerse. detekt no permite un umbral distinto solo para composables, y quitar la regla del todo pierde un aviso que en este proyecto ha sido útil.
 
 ## S9 — Renombres del borrador en el editor de Compra
-**Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
+- **Qué es:** `ShoppingItemEditor` (`ShoppingScreen.kt:622-625`) copia `draft.name/quantity/notes/brand` en cuatro `val` locales. La propuesta era usar `draft.*` directamente.
+- **Medido:** 10 usos de esas variables en el editor (validación, duplicados, `onSave`, los tres `value =` y las sugerencias). El cambio quitaría 4 líneas y tocaría 10. Sin efecto en el comportamiento: el borrador es inmutable y se relee en cada recomposición igual que los `val`.
+- **Prototipo:** no hace falta.
+- **Puntuación:** Beneficio 1 (cosmético; los alias incluso acortan las líneas largas) · Coste 1 · Riesgo 1.
+- **Veredicto:** **No** como cambio aislado. Solo si se toca ese editor por otro motivo.
