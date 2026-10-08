@@ -33,3 +33,13 @@ internal fun mealSlotTime(slot: MealSlot): LocalTime = when (slot) {
 
 internal fun mealReminderInstant(date: LocalDate, slot: MealSlot, zone: ZoneId): Instant =
     date.atTime(mealSlotTime(slot)).atZone(zone).toInstant()
+
+// Un evento de todo el día empieza a medianoche: avisar a esa hora (o la noche anterior con
+// antelación) no sirve, así que se recuerda a las 9:00 de su propio día. Es la hora del desayuno,
+// la misma referencia que usan las comidas.
+internal fun eventReminderInstant(allDay: Boolean, startAt: Instant, startDate: LocalDate?, zone: ZoneId): Instant =
+    if (allDay && startDate != null) {
+        startDate.atTime(mealSlotTime(MealSlot.DESAYUNO)).atZone(zone).toInstant()
+    } else {
+        startAt
+    }

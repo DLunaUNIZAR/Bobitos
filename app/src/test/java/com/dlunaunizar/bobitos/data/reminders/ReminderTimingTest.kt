@@ -31,6 +31,28 @@ class ReminderTimingTest {
     }
 
     @Test
+    fun `an all-day event is reminded at 9 on its own day, not at midnight`() {
+        val zone = ZoneId.of("Europe/Madrid")
+        val date = LocalDate.of(2026, 10, 9)
+        val midnight = date.atStartOfDay(zone).toInstant()
+        val reminder = eventReminderInstant(allDay = true, startAt = midnight, startDate = date, zone = zone)
+        assertEquals(date.atTime(9, 0).atZone(zone).toInstant(), reminder)
+        assertEquals(
+            date.atTime(8, 30).atZone(zone).toInstant(),
+            reminderFireAt(reminder, ReminderLeadTime.MIN_30),
+        )
+    }
+
+    @Test
+    fun `a timed event is reminded at its start`() {
+        val startAt = Instant.parse("2026-10-09T16:00:00Z")
+        assertEquals(
+            startAt,
+            eventReminderInstant(allDay = false, startAt = startAt, startDate = null, zone = ZoneId.of("UTC")),
+        )
+    }
+
+    @Test
     fun `lead time name round-trips with a safe default`() {
         assertEquals(ReminderLeadTime.MIN_60, ReminderLeadTime.fromName("MIN_60"))
         assertEquals(ReminderLeadTime.AT_TIME, ReminderLeadTime.fromName(null))

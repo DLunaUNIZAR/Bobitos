@@ -81,16 +81,18 @@ class ReminderScheduler @Inject constructor(
                     text = space.name,
                 )
             }
+        val zone = ZoneId.systemDefault()
         val events = calendarRepository.events(space.id, now, end).first()
-            .filter { it.startAt in now..end && userId in it.participantIds }
+            .filter { userId in it.participantIds }
             .map { event ->
                 Reminder(
                     key = "event-${event.id}",
-                    at = event.startAt,
+                    at = eventReminderInstant(event.allDay, event.startAt, event.startDate, zone),
                     title = context.getString(R.string.reminder_event, event.title),
                     text = space.name,
                 )
             }
+            .filter { it.at in now..end }
         return tasks + events + mealsForSpace(space, userId, now, end)
     }
 
