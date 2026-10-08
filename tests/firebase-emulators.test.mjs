@@ -2060,6 +2060,23 @@ test("un usuario puede anonimizar su nombre en sus actividades pero no en las aj
   );
 });
 
+test("al borrar su cuenta, un participante anonimiza su nombre en la actividad de otro", async () => {
+  await seedSpace("act-anon-part", "act-part-owner", ["act-part-member"]);
+  const owner = verifiedFirestore("act-part-owner");
+  const member = verifiedFirestore("act-part-member");
+  await assertSucceeds(setDoc(
+    doc(owner, "spaces", "act-anon-part", "activities", "owner-act"),
+    activityData("act-part-owner", {
+      participantIds: ["act-part-owner", "act-part-member"],
+      participantNames: ["Ana", "Luis"],
+    }),
+  ));
+  const reference = doc(member, "spaces", "act-anon-part", "activities", "owner-act");
+
+  await assertSucceeds(updateDoc(reference, { participantNames: ["Ana", "Usuario eliminado"] }));
+  await assertFails(updateDoc(reference, { createdByName: "Usuario eliminado" }));
+});
+
 function activityData(userId, overrides = {}) {
   return {
     date: "2026-07-20",
