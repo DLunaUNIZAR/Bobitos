@@ -28,7 +28,7 @@ Se evalúan 13 puntos que quedaron sin aplicar: los 4 problemas reales de `/code
 | S4 | Metadatos de ruta en el enum | 1 | 2 | 2 | No (como mucho, un test de coherencia) |
 | S5 | Deporte reutiliza el documento de evento del calendario | 1 | 2 | 2 | No |
 | S6 | Fuente propia de espacios para el selector | 1 | 2 | 2 | No |
-| S7 | Validación por campo en los editores | | | | |
+| S7 | Validación por campo en los editores | 3 (Calendario) / 1 (resto) | 1 / 2 | 1 | Hacer ya (solo Calendario) |
 | S8 | detekt: ignorar `@Composable` en métodos largos | | | | |
 | S9 | Renombres del borrador en el editor de Compra | | | | |
 
@@ -154,7 +154,21 @@ _(se rellena al final)_
 - **Veredicto:** **No.**
 
 ## S7 — Validación por campo en los editores
-**Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
+- **Qué es:** cada editor decide por su cuenta cuándo se activa «Guardar». Unos usan su `*Validation` (Notas, Compra, Tareas, Recetas, Comidas). Otros solo miran `isNotBlank()` (Rutinas, Ejercicios, Ingredientes ×2). Calendario y Deporte no comprueban nada.
+- **Medido (diferencias UI ↔ lo que se rechaza al guardar):** ninguna pantalla limita la longitud de los campos. Todos los editores cierran el sheet al pulsar «Guardar», antes de saber si se guardó, así que cualquier rechazo pierde lo escrito.
+
+  | Editor | La UI deja guardar… | …y luego se rechaza | Impacto |
+  |---|---|---|---|
+  | **Calendario** | con el **título vacío**, título > 120 o descripción > 1000 | el repositorio (`EventInput.validated`) | **Alto:** dejar el título vacío es un descuido habitual. El sheet se cierra, el borrador se pierde y el aviso es genérico («No se pudo completar la operación»), porque `CalendarViewModel` usa `error.message` y la pantalla lo borra en cuanto se pinta. |
+  | Rutinas | título > 120, descripción > 1000 | `RoutinesUiState.validate` | Bajo (textos muy largos) |
+  | Ejercicios, Ingredientes, Marcas | nombres/categorías/unidades largos | el repositorio (`*Failure.*TooLong`) | Bajo |
+  | Deporte | nombre > 120 | `SportValidation` | Bajo (vacío se sustituye por el tipo) |
+- **Prototipo** (`spike/eval-s7`, borrada): `CalendarValidation` (mismas reglas que el repositorio, con mensajes propios) usado en `EventEditor`. «Guardar» se desactiva y se muestra el motivo en el sheet. Test `CalendarValidationTest` (4 casos), visto en rojo antes de implementar. Verificación global en verde. **4 archivos, +59/−2** (incluye 3 textos nuevos). Que el botón se desactive y el aviso se vea está sin verificar en dispositivo.
+- **Puntuación:**
+  - **Calendario:** Beneficio 3 (fallo que verá un usuario normal) · Coste 1 · Riesgo 1 (desactivar el botón con un dato inválido; validación cubierta por test) ⇒ **Hacer ya**.
+  - **Resto de editores (unificar):** Beneficio 1 (casos de textos muy largos) · Coste 2 (6–7 archivos) · Riesgo 1 ⇒ **No**, salvo que se toquen esos editores por otro motivo.
+- **Veredicto:** **Hacer ya, solo Calendario.**
+- **Si se hace:** PR pequeño con el prototipo. Si se quiere rematar, el `CalendarViewModel` podría traducir `CalendarFailure` a textos en lugar de `error.message`, pero con la validación en el editor ese camino ya no se alcanza desde la UI. Verificar en dispositivo: nuevo evento sin título ⇒ «Guardar» desactivado con «Escribe un título».
 
 ## S8 — detekt: ignorar `@Composable` en métodos largos
 **Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
