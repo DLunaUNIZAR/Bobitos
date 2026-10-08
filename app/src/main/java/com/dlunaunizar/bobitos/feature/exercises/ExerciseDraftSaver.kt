@@ -1,7 +1,6 @@
 package com.dlunaunizar.bobitos.feature.exercises
 
 import androidx.compose.runtime.saveable.Saver
-import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.toMutableStateList
 import com.dlunaunizar.bobitos.core.model.ExerciseType
@@ -9,21 +8,15 @@ import com.dlunaunizar.bobitos.core.model.ExerciseType
 // Guardado de la lista de ejercicios del editor (rutina o sesión de gimnasio) para que sobreviva a una
 // rotación. Cada ejercicio se guarda como una lista de textos y números; las series, anidadas.
 // Orden: nombre, exerciseId, tipo (name), series [(reps, peso)…], duración, nivel, notas.
-// Se antepone una cabecera para que la lista guardada nunca esté vacía: `listSaver` devuelve null para
-// una lista vacía y `rememberSaveable` lo interpreta como «sin valor», con lo que borrar todos los
-// ejercicios y girar los devolvería a su estado inicial.
-internal val ExerciseDraftListSaver: Saver<SnapshotStateList<ExerciseDraft>, Any> =
-    listSaver<SnapshotStateList<ExerciseDraft>, Any>(
-        save = { drafts -> listOf<Any>(SAVED_LIST_HEADER) + drafts.map { it.toSaveable() } },
-        restore = { saved ->
-            saved.drop(1).map { item ->
-                @Suppress("UNCHECKED_CAST")
-                (item as List<Any?>).toExerciseDraft()
-            }.toMutableStateList()
-        },
-    )
-
-private const val SAVED_LIST_HEADER = 1
+// Es un Saver normal y no un listSaver: listSaver guarda null para una lista vacía y rememberSaveable lo
+// interpretaría como «sin valor», con lo que borrar todos los ejercicios y girar los devolvería.
+internal val ExerciseDraftListSaver: Saver<SnapshotStateList<ExerciseDraft>, Any> = Saver(
+    save = { drafts -> ArrayList(drafts.map { it.toSaveable() }) },
+    restore = { saved ->
+        @Suppress("UNCHECKED_CAST")
+        (saved as List<List<Any?>>).map { it.toExerciseDraft() }.toMutableStateList()
+    },
+)
 
 private fun ExerciseDraft.toSaveable(): ArrayList<Any?> = arrayListOf(
     name,
