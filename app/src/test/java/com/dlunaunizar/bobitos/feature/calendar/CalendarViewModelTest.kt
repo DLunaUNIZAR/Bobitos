@@ -5,11 +5,14 @@ import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.EventColor
 import com.dlunaunizar.bobitos.data.repository.CalendarRepository
 import com.dlunaunizar.bobitos.data.repository.EventInput
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import java.lang.reflect.Proxy
@@ -43,6 +46,36 @@ class CalendarViewModelTest {
         assertEquals(listOf(Triple("space-1", null, input)), repository.created)
     }
 
+    @Test
+    fun `undo is offered only once the delete has finished`() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = RecordingCalendarRepository()
+        val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
+        viewModel.observe("space-1")
+        var savingWhenOffered: Boolean? = null
+
+        viewModel.delete("event-1") { savingWhenOffered = viewModel.uiState.value.saving }
+        advanceUntilIdle()
+        assertNull(savingWhenOffered)
+
+        repository.pendingDelete.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(false, savingWhenOffered)
+    }
+
+    @Test
+    fun `undo is not offered when the delete fails`() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = RecordingCalendarRepository()
+        val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
+        viewModel.observe("space-1")
+        var offered = false
+
+        viewModel.delete("event-1") { offered = true }
+        repository.pendingDelete.completeExceptionally(IllegalStateException("ya borrado"))
+        advanceUntilIdle()
+
+        assertFalse(offered)
+    }
+
     private val input = EventInput(
         title = "Correr",
         description = null,
@@ -69,13 +102,21 @@ private class RecordingCalendarRepository : CalendarRepository {
 
     override suspend fun updateEvent(spaceId: String, eventId: String, input: EventInput) = Unit
 
-    override suspend fun deleteEvent(spaceId: String, eventId: String) = Unit
+    val pendingDelete = CompletableDeferred<Unit>()
+
+    override suspend fun deleteEvent(spaceId: String, eventId: String) = pendingDelete.await()
 }
 
 // Repositorios que el test no ejercita: cualquier flujo que se pida está vacío.
 private inline fun <reified T> emptyFlows(): T = Proxy.newProxyInstance(
     T::class.java.classLoader,
     arrayOf(T::class.java),
-) { _, method, _ ->
-    if (Flow::class.java.isAssignableFrom(method.returnType)) emptyFlow<Any>() else error("${method.name} no usado")
+) { proxy, method, args ->
+    when {
+        Flow::class.java.isAssignableFrom(method.returnType) -> emptyFlow<Any>()
+        method.name == "toString" -> T::class.java.simpleName
+        method.name == "hashCode" -> System.identityHashCode(proxy)
+        method.name == "equals" -> proxy === args?.firstOrNull()
+        else -> error("${method.name} no usado")
+    }
 } as T

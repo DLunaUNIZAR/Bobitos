@@ -255,11 +255,12 @@ fun CalendarScreen(
             event = event,
             enabled = canWrite && !state.saving,
             onConfirm = {
-                viewModel.delete(event.id)
-                eventToDelete = null
-                scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                    viewModel.restore(event.id, event.toInput())
+                viewModel.delete(event.id) {
+                    scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+                        viewModel.restore(event.id, event.toInput())
+                    }
                 }
+                eventToDelete = null
             },
             onDismiss = { eventToDelete = null },
         )

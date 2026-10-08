@@ -135,7 +135,9 @@ class CalendarViewModel @Inject constructor(
         repository.createEvent(spaceId ?: return@action, input, eventId)
     }
 
-    fun delete(eventId: String) = action {
+    // onDeleted se llama solo si el borrado termina bien (y ya sin «guardando»): así el deshacer no se
+    // ofrece para un borrado fallido ni se descarta por pulsarlo mientras el borrado sigue en curso.
+    fun delete(eventId: String, onDeleted: () -> Unit = {}) = action(onSuccess = onDeleted) {
         repository.deleteEvent(spaceId ?: return@action, eventId)
     }
 
@@ -179,13 +181,14 @@ class CalendarViewModel @Inject constructor(
         }
     }
 
-    private fun action(block: suspend () -> Unit) {
+    private fun action(onSuccess: () -> Unit = {}, block: suspend () -> Unit) {
         if (mutable.value.saving) return
         mutable.update { it.copy(saving = true, message = null) }
         viewModelScope.launch {
             try {
                 block()
                 mutable.update { it.copy(saving = false, message = "Cambios guardados") }
+                onSuccess()
             } catch (error: Throwable) {
                 mutable.update {
                     it.copy(

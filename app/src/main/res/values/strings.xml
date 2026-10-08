@@ -326,9 +326,9 @@
     <string name="calendar_delete_title">Eliminar evento</string>
     <string name="calendar_delete_body">¿Eliminar «%1$s»?</string>
     <string name="calendar_date_error">Revisa las fechas y el intervalo</string>
-    <string name="calendar_error_title_required">Escribe un título</string>
-    <string name="calendar_error_title_too_long">El título es demasiado largo</string>
-    <string name="calendar_error_description_too_long">La descripción es demasiado larga</string>
+    <string name="calendar_error_title_required">Introduce un título.</string>
+    <string name="calendar_error_title_too_long">El título es demasiado largo.</string>
+    <string name="calendar_error_description_too_long">La descripción es demasiado larga.</string>
     <string name="calendar_color_blue">Azul</string>
     <string name="calendar_color_green">Verde</string>
     <string name="calendar_color_orange">Naranja</string>
