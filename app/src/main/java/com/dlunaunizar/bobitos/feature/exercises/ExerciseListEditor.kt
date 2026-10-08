@@ -29,7 +29,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.toMutableStateList
@@ -51,7 +51,7 @@ import com.dlunaunizar.bobitos.core.model.RoutineExercise
 // La lista [drafts] la posee y recuerda el llamante; aquí solo se muta (añadir/quitar) y se pinta.
 @Composable
 internal fun ExerciseListEditor(drafts: SnapshotStateList<ExerciseDraft>, catalog: List<CatalogExercise>) {
-    var picking by remember { mutableStateOf(false) }
+    var picking by rememberSaveable { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         drafts.forEachIndexed { index, draft ->
             ExerciseDraftCard(draft = draft, onRemove = { drafts.removeAt(index) })
