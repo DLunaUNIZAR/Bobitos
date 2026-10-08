@@ -24,8 +24,8 @@ Se evalúan 13 puntos que quedaron sin aplicar: los 4 problemas reales de `/code
 | D | Nombre de cuenta borrada reescrito en el evento (y actividades nunca anonimizadas) | 2 | 1 | 2 | Hacer ya |
 | S1 | Borradores con `@Parcelize` | 3 | 3 | 2 | Hacer ya (refactor propio) |
 | S2 | ViewModels sin volver a «cargando» al reobservar | 2 | 3 | 2 | Más adelante |
-| S3 | Grafo anidado para «Más» | | | | |
-| S4 | Metadatos de ruta en el enum | | | | |
+| S3 | Grafo anidado para «Más» | 1 | 2 | 3 | No |
+| S4 | Metadatos de ruta en el enum | 1 | 2 | 2 | No (como mucho, un test de coherencia) |
 | S5 | Deporte reutiliza el documento de evento del calendario | | | | |
 | S6 | Fuente propia de espacios para el selector | | | | |
 | S7 | Validación por campo en los editores | | | | |
@@ -110,10 +110,26 @@ _(se rellena al final)_
 - **Si se hace:** el patrón del prototipo en cada ViewModel con su test; verificación en dispositivo girando cada lista.
 
 ## S3 — Grafo anidado para «Más»
-**Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
+- **Qué es:** la jerarquía «Más → Comidas / Deporte / Notas» se codifica apilando rutas sobre la pestaña. De ahí las ramas especiales de `navigateToTab` (para «Hoy» y «Más»), `openFromMore`, y la decisión en las fichas de «Hoy» entre las dos. Con un `navigation(route = "space-more-graph", startDestination = SpaceMore.route) { Meals; Sport; Notes }`, todas las pestañas usarían el patrón estándar (`popUpTo(SpaceHome) { saveState }` + `restoreState`).
+- **Medido:**
+  - Desaparecerían unas 20 líneas de ramas especiales en `BobitosNavHost` (`navigateToTab` para «Más», `openFromMore`, la rama de las fichas de «Hoy»).
+  - Arreglaría de paso el minor de la revisión: atrás desde Comidas abierta desde «Hoy» vuelve a «Hoy» aunque la barra resalta «Más».
+  - Cambiarían las rutas anidadas, `workspaceTabFor` y `WorkspaceTabsTest` (4 tests). Las rutas visibles (`meals`, `sport`, `notes`) y los deep links (invitación, receta compartida, evento) no dependen de «Más».
+  - **Riesgo clave:** con el patrón estándar, volver a «Más» restauraría la pila guardada (aterrizaría en Comidas): es exactamente lo que se corrigió en la revisión de la Fase 2, que pidió que «Más» abra siempre su pantalla. Habría que mantener una excepción, con lo que el ahorro es aún menor.
+- **Prototipo:** no se hace a propósito: el comportamiento de atrás y de las pestañas solo se puede validar en un dispositivo.
+- **Puntuación:** Beneficio 1 (~20 líneas y un minor de navegación) · Coste 2 · Riesgo 3 (cambia la navegación que ve el usuario, sin test automático).
+- **Veredicto:** **No.**
 
 ## S4 — Metadatos de ruta en el enum
-**Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
+- **Qué es:** cada pantalla de espacio aparece en varias listas sueltas: `protectedRoutes` (`BobitosNavHost`), `allSpacesRoutes`/`spacelessRoutes` (`RealtimeScopes`), `workspaceTabFor`, `workspaceDestinations`/`moreDestinations` y `moduleColor()` (`BobitosDestination`). La propuesta era moverlo a propiedades del enum (`parentTab`, `realtimeScope`, `requiresSpace`).
+- **Medido:**
+  - Al añadir una pantalla de espacio hoy hay que acordarse de **4–5 sitios**; olvidar uno falla en silencio (pestaña sin resaltar, alcance de tiempo real equivocado o sin redirección cuando no hay espacio).
+  - Dos de ellos ya están cubiertos por tests (`RealtimeScopeForTest`, `WorkspaceTabsTest`), que fallarían si una ruta de espacio nueva cae en la rama equivocada solo si alguien añade el caso al test.
+  - El enum tiene 20 entradas con constructor de 3 parámetros: añadir 3 más es largo y repetitivo para entradas que no son de espacio.
+  - Ritmo de cambio: la última pantalla de espacio nueva fue «Más» (Fase 2); no hay más previstas en el plan maestro.
+- **Prototipo:** no se hace: el veredicto no depende de él.
+- **Puntuación:** Beneficio 1 (previene un error futuro poco probable; ahorro de líneas casi nulo) · Coste 2 (enum, `RealtimeScopes`, `BobitosNavHost` y tests) · Riesgo 2.
+- **Veredicto:** **No.** Alternativa barata si se quiere protección: un test que recorra `BobitosDestination.entries` y compruebe que toda ruta de `workspaceDestinations`/`moreDestinations` tiene pestaña, alcance `ACTIVE_SPACE` y está en `protectedRoutes`.
 
 ## S5 — Deporte reutiliza el documento de evento del calendario
 **Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
