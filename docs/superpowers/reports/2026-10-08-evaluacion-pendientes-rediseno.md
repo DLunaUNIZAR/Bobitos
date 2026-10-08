@@ -21,7 +21,7 @@ Se evalúan 13 puntos que quedaron sin aplicar: los 4 problemas reales de `/code
 | A | `values-night` y parpadeo oscuro al arrancar | 2 | 1 | 2 | Hacer ya |
 | B | Evento huérfano tras deshacer su borrado | 2 | 2 | 2 | Hacer ya |
 | C | Recordatorio a medianoche por cada actividad | 2 | 1 | 2 | Hacer ya |
-| D | Nombre de cuenta borrada reescrito en el evento | | | | |
+| D | Nombre de cuenta borrada reescrito en el evento (y actividades nunca anonimizadas) | 2 | 1 | 2 | Hacer ya |
 | S1 | Borradores con `@Parcelize` | | | | |
 | S2 | ViewModels sin volver a «cargando» al reobservar | | | | |
 | S3 | Grafo anidado para «Más» | | | | |
@@ -73,7 +73,15 @@ _(se rellena al final)_
 - **Si se hace:** PR pequeño con el prototipo tal cual. Verificar en dispositivo con recordatorios activados: una actividad de mañana avisa a las 9:00 (menos la antelación), no a medianoche.
 
 ## D — Nombre de cuenta borrada reescrito en el evento
-**Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
+- **Qué es:** al editar una actividad, el repositorio de Deporte (PR #228) copia al evento enlazado el nombre del organizador desde `activity.createdByName`. Si esa persona borró su cuenta, el evento ya estaba anonimizado («Usuario eliminado») pero la actividad no, así que la edición vuelve a escribir su nombre real en el evento.
+- **Medido — la causa es más amplia de lo que parecía:**
+  - `FirebaseAccountRepository.anonymizeDisplayNames` recorre `shoppingItems`, `tasks`, `events` y `meals`, **pero nunca `activities`**. La regla `validActivityAnonymization` y su prueba de emulador («un usuario puede anonimizar su nombre en sus actividades…») existen desde Deporte F1 (`3e40346`), pero el cliente no las usa: **desde entonces, borrar la cuenta deja el nombre real en todas sus actividades**, no solo en el evento.
+  - El arreglo es añadir la colección a la lista; `anonymousNameUpdates` ya trata `createdBy`/`createdByName` y `participantIds`/`participantNames`, los campos que tienen las actividades.
+- **Prototipo (`spike/eval-d`, borrado):** constante `ACTIVITIES` y su inclusión en la lista. **1 archivo, +2/−1**; compila y pasan tests, ktlint y detekt. La regla no cambia (ya está cubierta por su prueba de emulador).
+- **Hallazgo extra (fuera del alcance, anterior al rediseño):** en las comidas, `cookName` (cocinero, PR #203) tampoco se anonimiza, y `validMealAnonymization` solo permite cambiar `createdByName` y `participantNames`, así que arreglarlo exige tocar regla y cliente.
+- **Puntuación:** Beneficio 2 (privacidad: afecta a toda cuenta borrada que tuviera actividades; borrar cuenta es poco frecuente) · Coste 1 · Riesgo 2 (modifica datos persistidos al borrar cuenta, con la regla ya probada en emulador; el flujo de cliente no tiene test).
+- **Veredicto:** **Hacer ya.** El hallazgo extra de `cookName`: **Más adelante** (Beneficio 2 · Coste 3 por la regla · Riesgo 2).
+- **Si se hace:** PR de 2 líneas. Verificación con el emulador: borrar una cuenta que creó y participa en actividades y comprobar que `createdByName` y su entrada de `participantNames` pasan a «Usuario eliminado».
 
 ## S1 — Borradores con `@Parcelize`
 **Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
