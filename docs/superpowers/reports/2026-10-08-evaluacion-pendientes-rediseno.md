@@ -20,7 +20,7 @@ Se evalúan 13 puntos que quedaron sin aplicar: los 4 problemas reales de `/code
 |---|---|---|---|---|---|
 | A | `values-night` y parpadeo oscuro al arrancar | | | | |
 | B | Evento huérfano tras deshacer su borrado | | | | |
-| C | Recordatorio a medianoche por cada actividad | | | | |
+| C | Recordatorio a medianoche por cada actividad | 2 | 1 | 2 | Hacer ya |
 | D | Nombre de cuenta borrada reescrito en el evento | | | | |
 | S1 | Borradores con `@Parcelize` | | | | |
 | S2 | ViewModels sin volver a «cargando» al reobservar | | | | |
@@ -45,7 +45,16 @@ _(se rellena al final)_
 **Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
 
 ## C — Recordatorio a medianoche por cada actividad
-**Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
+- **Qué es:** desde el PR #228 cada actividad crea un evento de todo el día que empieza a las 00:00 e incluye al organizador. `ReminderScheduler` recuerda cualquier evento a su `startAt`, sin tratar `allDay`, así que quien tenga los recordatorios activados recibe «Evento: …» a medianoche (o a las 23:30 de la víspera con 30 min de antelación) por cada actividad, también el organizador aunque no participe.
+- **Medido:**
+  - `data/reminders` no menciona `allDay` en ningún sitio: el problema afecta también a los eventos de todo el día creados a mano, no solo a Deporte.
+  - Ya existe el patrón a seguir: las comidas, que tampoco tienen hora, se recuerdan a una hora fija por franja (`mealReminderInstant`), cubierto por `ReminderTimingTest`.
+  - La antelación por defecto es `AT_TIME`; los recordatorios son opcionales (se activan en Perfil).
+- **Prototipo (`spike/eval-c`, borrado):** `allDayEventReminderInstant(date, zone)` = 9:00 del propio día, usado en `ReminderScheduler` para eventos `allDay` (el filtro del horizonte pasa a usar esa hora). Test nuevo en `ReminderTimingTest` (falla antes, pasa después): un evento de todo el día del día D con 30 min de antelación se programa a D 08:30. **3 archivos, +31/−2**; compila y pasan tests, ktlint y detekt.
+- **Alternativa no prototipada:** no meter al organizador en el evento cuando no participa. Es un cambio de producto (la actividad dejaría de verse en su calendario personal), no un arreglo.
+- **Puntuación:** Beneficio 2 (fallo visible para quien usa recordatorios, con cada actividad y cada evento de todo el día) · Coste 1 · Riesgo 2 (cambia la hora de un aviso, cubierto por test unitario; el aviso real queda sin verificar en dispositivo).
+- **Veredicto:** **Hacer ya.**
+- **Si se hace:** PR pequeño con el prototipo tal cual. Verificar en dispositivo con recordatorios activados: una actividad de mañana avisa a las 9:00 (menos la antelación), no a medianoche.
 
 ## D — Nombre de cuenta borrada reescrito en el evento
 **Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
