@@ -29,7 +29,7 @@ Se evalúan 13 puntos que quedaron sin aplicar: los 4 problemas reales de `/code
 | S5 | Deporte reutiliza el documento de evento del calendario | 1 | 2 | 2 | No |
 | S6 | Fuente propia de espacios para el selector | 1 | 2 | 2 | No |
 | S7 | Validación por campo en los editores | 3 (Calendario) / 1 (resto) | 1 / 2 | 1 | Hacer ya (solo Calendario) |
-| S8 | detekt: ignorar `@Composable` en métodos largos | | | | |
+| S8 | detekt: ignorar `@Composable` en métodos largos | 1 | 1 | 1 | Decisión del usuario (recomendado: no) |
 | S9 | Renombres del borrador en el editor de Compra | | | | |
 
 ## Orden recomendado
@@ -171,7 +171,12 @@ _(se rellena al final)_
 - **Si se hace:** PR pequeño con el prototipo. Si se quiere rematar, el `CalendarViewModel` podría traducir `CalendarFailure` a textos en lugar de `error.message`, pero con la validación en el editor ese camino ya no se alcanza desde la UI. Verificar en dispositivo: nuevo evento sin título ⇒ «Guardar» desactivado con «Escribe un título».
 
 ## S8 — detekt: ignorar `@Composable` en métodos largos
-**Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
+- **Qué es:** añadir `ignoreAnnotated: ['Composable']` a `LongMethod` y `CyclomaticComplexMethod`, como ya se hace en `FunctionNaming`. Las pantallas Compose son largas y ramificadas por naturaleza.
+- **Medido / prototipo** (`spike/eval-s8`, borrada): con las dos líneas y el baseline regenerado (`:app:detektBaseline`), **el baseline pasa de 109 a 79 entradas**. Desaparecen 30 de las 34 de esas dos reglas, todas composables. Las 4 que quedan no son composables (`EventInput.validated`, dos `stringRes()` y un `toUiMessage`). Verificación global en verde. 2 archivos, +4/−30.
+- **Lo que se gana:** el baseline deja de crecer con cada pantalla nueva. Se acaban las extracciones hechas solo para quedar por debajo del límite y los ajustes de firma del baseline al tocar un composable (en el rediseño: `@file:OptIn` en `ShoppingScreen`, entradas editadas a mano, varias extracciones por `LongMethod`).
+- **Lo que se pierde:** detekt deja de avisar de composables gigantes en **55 archivos** con `@Composable`. Algunas de las extracciones que forzó el límite (`EventPickers`, `CalendarEditorHost`, `MealParticipants`…) mejoraron de verdad la legibilidad, y sin la regla dependerían solo de la revisión.
+- **Puntuación:** Beneficio 1 (fricción de herramienta, sin efecto en el usuario) · Coste 1 · Riesgo 1.
+- **Veredicto:** por la rúbrica, **No** no aplica (Coste y Riesgo 1) y tampoco llega a «Hacer ya» (Beneficio 1). **Decisión de estilo del usuario.** Recomendación: **no hacerlo tal cual**; si la fricción molesta, subir el umbral de `LongMethod` para composables no es posible por anotación en detekt, así que la alternativa razonable es dejarlo como está y seguir absorbiendo en el baseline lo que no merezca extraerse.
 
 ## S9 — Renombres del borrador en el editor de Compra
 **Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
