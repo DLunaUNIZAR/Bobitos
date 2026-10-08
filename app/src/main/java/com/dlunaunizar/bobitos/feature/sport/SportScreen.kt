@@ -41,10 +41,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.toMutableStateList
@@ -64,6 +66,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
@@ -73,6 +76,7 @@ import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SportActivity
 import com.dlunaunizar.bobitos.core.model.SportType
 import com.dlunaunizar.bobitos.feature.exercises.ExerciseDraft
+import com.dlunaunizar.bobitos.feature.exercises.ExerciseDraftListSaver
 import com.dlunaunizar.bobitos.feature.exercises.ExerciseListEditor
 import com.dlunaunizar.bobitos.feature.exercises.toExerciseDrafts
 import com.dlunaunizar.bobitos.feature.exercises.toRoutineExercises
@@ -100,7 +104,9 @@ fun SportScreen(
     val scope = rememberCoroutineScope()
     val deletedMessage = stringResource(R.string.sport_undo_deleted)
     val undoLabel = stringResource(R.string.undo)
-    var editor by remember { mutableStateOf<ActivityEditorRequest?>(null) }
+    // El editor sobrevive a una rotación: se guarda el id de la actividad, no el objeto.
+    var editorOpen by rememberSaveable { mutableStateOf(false) }
+    var editorActivityId by rememberSaveable { mutableStateOf<String?>(null) }
     var activityToDelete by remember { mutableStateOf<SportActivity?>(null) }
 
     val deleteWithUndo: (SportActivity) -> Unit = { activity ->
@@ -165,7 +171,10 @@ fun SportScreen(
                                     activity = activity,
                                     enabled = actionsEnabled,
                                     canWrite = canWrite,
-                                    onEdit = { editor = ActivityEditorRequest(activity) },
+                                    onEdit = {
+                                        editorActivityId = activity.id
+                                        editorOpen = true
+                                    },
                                     onDelete = { activityToDelete = activity },
                                     onToggleDone = { viewModel.setDone(activity.id, !activity.done) },
                                 )
@@ -177,7 +186,10 @@ fun SportScreen(
         }
         if (canWrite) {
             ExtendedFloatingActionButton(
-                onClick = { editor = ActivityEditorRequest(null) },
+                onClick = {
+                    editorActivityId = null
+                    editorOpen = true
+                },
                 icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
                 text = { Text(stringResource(R.string.sport_add)) },
                 modifier = Modifier
@@ -187,23 +199,25 @@ fun SportScreen(
         }
     }
 
-    editor?.let { request ->
-        ActivityEditor(
-            request = request,
-            members = members,
-            routines = state.routines,
-            catalog = state.exercises,
-            saving = state.isSaving,
-            canWrite = canWrite,
-            onDismiss = { editor = null },
-            onSave = { type, name, participantIds, routineId, session ->
-                request.activity?.let {
-                    viewModel.updateActivity(it.id, it.date, type, name, participantIds, routineId, session)
-                } ?: viewModel.addActivity(state.focusedDate, type, name, participantIds, routineId, session)
-                editor = null
-            },
-        )
-    }
+    ActivityEditorHost(
+        open = editorOpen,
+        activityId = editorActivityId,
+        activities = state.activities,
+        members = members,
+        routines = state.routines,
+        catalog = state.exercises,
+        saving = state.isSaving,
+        canWrite = canWrite,
+        onClose = {
+            editorOpen = false
+            editorActivityId = null
+        },
+        onSave = { activity, type, name, participantIds, routineId, session ->
+            activity?.let {
+                viewModel.updateActivity(it.id, it.date, type, name, participantIds, routineId, session)
+            } ?: viewModel.addActivity(state.focusedDate, type, name, participantIds, routineId, session)
+        },
+    )
     activityToDelete?.let { activity ->
         BobitosDialog(
             title = stringResource(R.string.sport_delete_title),
@@ -406,9 +420,68 @@ private fun SportParticipants(
     }
 }
 
+// Muestra el editor de actividad (nueva o existente). Si la actividad que se editaba ya no existe, lo cierra
+// (mientras la lista carga, espera) y la mantiene durante una recarga para no perder el borrador.
+@Composable
+private fun ActivityEditorHost(
+    open: Boolean,
+    activityId: String?,
+    activities: UiState<List<SportActivity>>,
+    members: List<SpaceMember>,
+    routines: List<Routine>,
+    catalog: List<CatalogExercise>,
+    saving: Boolean,
+    canWrite: Boolean,
+    onClose: () -> Unit,
+    onSave: (SportActivity?, SportType, String, List<String>, String?, List<RoutineExercise>) -> Unit,
+) {
+    val content = activities as? UiState.Content
+    val activity = rememberEditorItem(
+        activityId,
+        activityId?.let { id -> content?.value?.firstOrNull { it.id == id } },
+        content != null,
+    )
+    val gone = activityId != null && activity == null
+    LaunchedEffect(open, gone, content != null) {
+        if (open && gone && content != null) onClose()
+    }
+    if (!open || gone) return
+    ActivityEditor(
+        activity = activity,
+        members = members,
+        routines = routines,
+        catalog = catalog,
+        saving = saving,
+        canWrite = canWrite,
+        onDismiss = onClose,
+        onSave = { type, name, participantIds, routineId, session ->
+            onSave(activity, type, name, participantIds, routineId, session)
+            onClose()
+        },
+    )
+}
+
+// Fila desplazable de tipos de deporte.
+@Composable
+private fun SportTypeChips(selected: SportType, onSelect: (SportType) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        SportType.entries.forEach { option ->
+            FilterChip(
+                selected = selected == option,
+                onClick = { onSelect(option) },
+                leadingIcon = { Icon(option.icon, contentDescription = null, tint = option.accent()) },
+                label = { Text(stringResource(option.labelRes)) },
+            )
+        }
+    }
+}
+
 @Composable
 private fun ActivityEditor(
-    request: ActivityEditorRequest,
+    activity: SportActivity?,
     members: List<SpaceMember>,
     routines: List<Routine>,
     catalog: List<CatalogExercise>,
@@ -417,65 +490,54 @@ private fun ActivityEditor(
     onDismiss: () -> Unit,
     onSave: (SportType, String, List<String>, String?, List<RoutineExercise>) -> Unit,
 ) {
-    val activity = request.activity
-    var type by remember(activity?.id) { mutableStateOf(activity?.type ?: SportType.PADEL) }
-    var name by remember(activity?.id) { mutableStateOf(activity?.name.orEmpty()) }
-    var selected by remember(activity?.id) { mutableStateOf(activity?.participantIds?.toSet().orEmpty()) }
-    var routineId by remember(activity?.id) { mutableStateOf(activity?.routineId) }
-    val session = remember(activity?.id) { activity?.session.orEmpty().toExerciseDrafts().toMutableStateList() }
-    var pickingRoutine by remember { mutableStateOf(false) }
+    val initial = ActivityDraft.of(activity)
+    val initialSession = remember(activity?.id) {
+        activity?.session.orEmpty().toExerciseDrafts().toRoutineExercises()
+    }
+    // Borrador guardable: campos simples y sesión de gimnasio (con sus series), para sobrevivir a una rotación.
+    var draft by rememberSaveable(activity?.id, stateSaver = ActivityDraftSaver) { mutableStateOf(initial) }
+    val session = rememberSaveable(activity?.id, saver = ExerciseDraftListSaver) {
+        activity?.session.orEmpty().toExerciseDrafts().toMutableStateList()
+    }
+    var pickingRoutine by rememberSaveable { mutableStateOf(false) }
+    val type = draft.type
     val typeLabel = stringResource(type.labelRes)
-
-    val initialSession = activity?.session.orEmpty().toExerciseDrafts().toRoutineExercises()
-    val dirty = type != (activity?.type ?: SportType.PADEL) ||
-        name != activity?.name.orEmpty() ||
-        selected != activity?.participantIds?.toSet().orEmpty() ||
-        routineId != activity?.routineId ||
-        session.toRoutineExercises() != initialSession
 
     BobitosFormSheet(
         title = stringResource(if (activity == null) R.string.sport_add_title else R.string.sport_edit_title),
         confirmLabel = stringResource(R.string.save),
         confirmEnabled = canWrite,
         saving = saving,
-        dirty = dirty,
+        dirty = draft != initial || session.toRoutineExercises() != initialSession,
         onDismiss = onDismiss,
         onConfirm = {
             val gym = type == SportType.GIMNASIO
             onSave(
                 type,
-                name.ifBlank { typeLabel },
-                selected.toList(),
-                routineId.takeIf { gym },
+                draft.name.ifBlank { typeLabel },
+                draft.selectedIds,
+                draft.routineId.takeIf { gym },
                 if (gym) session.toRoutineExercises() else emptyList(),
             )
         },
     ) {
-        Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            SportType.entries.forEach { option ->
-                FilterChip(
-                    selected = type == option,
-                    onClick = { type = option },
-                    leadingIcon = { Icon(option.icon, contentDescription = null, tint = option.accent()) },
-                    label = { Text(stringResource(option.labelRes)) },
-                )
-            }
-        }
+        SportTypeChips(selected = type, onSelect = { draft = draft.copy(typeName = it.name) })
         OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
+            value = draft.name,
+            onValueChange = { draft = draft.copy(name = it) },
             label = { Text(stringResource(R.string.sport_name_label)) },
             placeholder = { Text(typeLabel) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        SportParticipants(members = members, selected = selected, onSelectedChange = { selected = it })
+        SportParticipants(
+            members = members,
+            selected = draft.selectedIds.toSet(),
+            onSelectedChange = { draft = draft.copy(selectedIds = it.toList().sorted()) },
+        )
         if (type == SportType.GIMNASIO) {
             GymSessionSection(
-                routineTitle = routines.firstOrNull { it.id == routineId }?.title,
+                routineTitle = routines.firstOrNull { it.id == draft.routineId }?.title,
                 session = session,
                 catalog = catalog,
                 onPickRoutine = { pickingRoutine = true },
@@ -488,12 +550,12 @@ private fun ActivityEditor(
             routines = routines,
             onDismiss = { pickingRoutine = false },
             onClear = {
-                routineId = null
+                draft = draft.copy(routineId = null)
                 session.clear()
                 pickingRoutine = false
             },
             onPick = { routine ->
-                routineId = routine.id
+                draft = draft.copy(routineId = routine.id)
                 session.clear()
                 session.addAll(routine.exercises.orEmpty().toExerciseDrafts())
                 pickingRoutine = false
@@ -558,8 +620,6 @@ private fun RoutinePickerDialog(
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }
-
-private data class ActivityEditorRequest(val activity: SportActivity?)
 
 private fun LocalDate.formatHeader(): String {
     val formatter = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Locale("es", "ES"))
