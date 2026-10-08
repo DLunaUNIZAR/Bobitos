@@ -22,7 +22,7 @@ Se evalúan 13 puntos que quedaron sin aplicar: los 4 problemas reales de `/code
 | B | Evento huérfano tras deshacer su borrado | 2 | 2 | 2 | Hacer ya |
 | C | Recordatorio a medianoche por cada actividad | 2 | 1 | 2 | Hacer ya |
 | D | Nombre de cuenta borrada reescrito en el evento (y actividades nunca anonimizadas) | 2 | 1 | 2 | Hacer ya |
-| S1 | Borradores con `@Parcelize` | | | | |
+| S1 | Borradores con `@Parcelize` | 3 | 3 | 2 | Hacer ya (refactor propio) |
 | S2 | ViewModels sin volver a «cargando» al reobservar | | | | |
 | S3 | Grafo anidado para «Más» | | | | |
 | S4 | Metadatos de ruta en el enum | | | | |
@@ -84,7 +84,18 @@ _(se rellena al final)_
 - **Si se hace:** PR de 2 líneas. Verificación con el emulador: borrar una cuenta que creó y participa en actividades y comprobar que `createdByName` y su entrada de `participantNames` pasan a «Usuario eliminado».
 
 ## S1 — Borradores con `@Parcelize`
-**Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
+- **Qué es:** los 12 borradores de los editores (`*Draft`) se guardan con `listSaver` escritos a mano: índices posicionales y casts (`it[3] as String`), y los campos que no caben en un Bundle se guardan como texto (`priorityName`, `colorName`, `startDateIso`…) con getters y `with*` para convertirlos. Con `@Parcelize`, `rememberSaveable` los guardaría sin Saver y con sus tipos reales.
+- **Medido:**
+  - 12 archivos `*Draft*.kt` con **572 líneas** y **24 Savers**; 25 conversiones `valueOf`/`parse`/`with*` dentro de los borradores y 18 usos de esos campos-texto o `with*` en las pantallas.
+  - Tests de borradores: **678 líneas**; la mitad, aproximadamente, son de ida y vuelta del Saver.
+  - El plugin de Parcelize ya está en el classpath (viene con el plugin de Android/Kotlin del proyecto): basta `id("org.jetbrains.kotlin.plugin.parcelize")` en `app/build.gradle.kts`; **no** se puede declarar con versión en el catálogo (Gradle lo rechaza).
+  - `RecipeDraft` y `BrandDraft` dejarían además de necesitar `toSaved()`/`…FromSaved` en los anfitriones. `ExerciseDraft` (mutable, con `SnapshotStateList`) no se beneficia sin hacerlo inmutable antes.
+  - Los tests de ida y vuelta no se pueden mantener en JVM (no hay Robolectric para `Parcel`): se perderían, confiando en el código generado por Parcelize.
+- **Prototipo (`spike/eval-s1`, borrado):** plugin aplicado y `NoteDraft` convertido (`@Parcelize data class … : Parcelable`, `rememberSaveable(note?.id) { mutableStateOf(initial) }` sin `stateSaver`, test de ida y vuelta eliminado). **4 archivos, +7/−19**; compila y pasan tests, ktlint, detekt y `assembleDebug`.
+- **Extrapolación:** del orden de −200 líneas en `main` y −300 en tests, ~12 borradores + ~10 pantallas tocadas; los campos vuelven a tipos reales (`TaskPriority`, `EventColor`, `LocalDate`…).
+- **Puntuación:** Beneficio 3 (> 200 líneas y desaparece el código posicional frágil) · Coste 3 (> 10 archivos) · Riesgo 2 (no cambia lo que ve el usuario; cambia el formato del estado guardado, y un borrador guardado con la versión anterior no se restauraría tras actualizar, como mucho una vez; se pierden los tests de ida y vuelta).
+- **Veredicto:** **Hacer ya**, como refactor propio y mecánico, en dos lotes (borradores simples; borradores con enums/fechas). Mejor después de S2 si se decide hacerlo, porque toca los mismos editores.
+- **Si se hace:** verificación con compilación y tests; en dispositivo, girar con cada editor abierto (el mismo recorrido de las fases 3a–3c).
 
 ## S2 — ViewModels sin volver a «cargando» al reobservar
 **Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
