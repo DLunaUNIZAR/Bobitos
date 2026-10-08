@@ -48,6 +48,11 @@ Se evalúan 13 puntos que quedaron sin aplicar: los 4 problemas reales de `/code
 
 Las ramas `spike/…` se han borrado todas y `main` no se ha tocado.
 
+**Estado (2026-10-08):** los tres PRs propuestos están hechos y fusionados, y han salido en la beta 0.1.0-beta.16.
+- #236: B + S7.
+- #237: C + D + A. En D se añadió también Notas, que tenía el mismo hueco.
+- #238: S1.
+
 ---
 
 ## A — `values-night` y parpadeo oscuro al arrancar
