@@ -84,7 +84,6 @@ fun PersonalCalendarScreen(
     val dayEvents = events.eventsOn(state.focusedDate)
     val dayEventsById = dayEvents.associateBy { it.event.id }
 
-    val editorEvent = events.eventOf(editorSpaceId, editorEventId)
     val openEditor: (String, CalendarEvent?, LocalTime?) -> Unit = { spaceId, event, initialStart ->
         editorSpaceId = spaceId
         editorEventId = event?.id
@@ -195,20 +194,15 @@ fun PersonalCalendarScreen(
 
     CalendarEditorHost(
         editorEventId = editorEventId,
-        editor = editorEvent,
+        events = events.takeIf { state.events is UiState.Content }
+            ?.filter { it.spaceId == editorSpaceId }
+            ?.map(PersonalCalendarEvent::event),
         creating = editorOpen && editorEventId == null,
         creatingAt = editorStartText?.let(LocalTime::parse),
-        eventsLoaded = state.events is UiState.Content,
         day = state.focusedDate,
         members = state.editorMembers,
         saving = state.saving,
         canWrite = canWrite,
-        onDropUnresolved = {
-            editorOpen = false
-            editorEventId = null
-            editorStartText = null
-            viewModel.clearEditorMembers()
-        },
         onClose = {
             editorOpen = false
             editorEventId = null
@@ -338,9 +332,6 @@ private fun List<PersonalCalendarEvent>.eventsOn(date: LocalDate): List<Personal
     return filter { it.event.overlaps(interval.start, interval.endExclusive) }
         .sortedBy { it.event.startAt }
 }
-
-private fun List<PersonalCalendarEvent>.eventOf(spaceId: String?, eventId: String?): CalendarEvent? =
-    firstOrNull { it.spaceId == spaceId && it.event.id == eventId }?.event
 
 // Sin conexión o sin espacios no hay dónde crear el evento: no se muestra.
 @Composable

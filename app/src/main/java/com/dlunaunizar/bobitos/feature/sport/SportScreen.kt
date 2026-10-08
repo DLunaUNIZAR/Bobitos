@@ -41,7 +41,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,7 +65,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
-import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
@@ -435,17 +434,14 @@ private fun ActivityEditorHost(
     onClose: () -> Unit,
     onSave: (SportActivity?, SportType, String, List<String>, String?, List<RoutineExercise>) -> Unit,
 ) {
-    val content = activities as? UiState.Content
-    val activity = rememberEditorItem(
-        activityId,
-        activityId?.let { id -> content?.value?.firstOrNull { it.id == id } },
-        content != null,
-    )
-    val gone = activityId != null && activity == null
-    LaunchedEffect(open, gone, content != null) {
-        if (open && gone && content != null) onClose()
-    }
-    if (!open || gone) return
+    val slot = rememberEditorSlot(
+        open = open,
+        id = activityId,
+        items = (activities as? UiState.Content)?.value,
+        idOf = SportActivity::id,
+        onGone = onClose,
+    ) ?: return
+    val activity = slot.item
     ActivityEditor(
         activity = activity,
         members = members,

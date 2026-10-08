@@ -89,7 +89,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
-import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.EventColor
@@ -141,7 +141,6 @@ fun CalendarScreen(
     val events = (state.events as? UiState.Content)?.value.orEmpty()
     val filteredEvents = events.forSelectedMembers(state.selectedMemberIds)
     val members = (state.members as? UiState.Content)?.value.orEmpty()
-    val editor = editorEventId?.let { id -> events.firstOrNull { it.id == id } }
     val creatingAt = creatingAtText?.let(LocalTime::parse)
 
     LaunchedEffect(initialEventId, events) {
@@ -235,15 +234,13 @@ fun CalendarScreen(
 
     CalendarEditorHost(
         editorEventId = editorEventId,
-        editor = editor,
+        events = (state.events as? UiState.Content)?.value,
         creating = creating,
         creatingAt = creatingAt,
-        eventsLoaded = state.events is UiState.Content,
         day = state.focusedDate,
         members = members,
         saving = state.saving,
         canWrite = canWrite,
-        onDropUnresolved = { editorEventId = null },
         onClose = {
             creating = false
             editorEventId = null
@@ -877,27 +874,26 @@ private fun EventPickers(
 @Composable
 internal fun CalendarEditorHost(
     editorEventId: String?,
-    editor: CalendarEvent?,
+    events: List<CalendarEvent>?,
     creating: Boolean,
     creatingAt: LocalTime?,
-    eventsLoaded: Boolean,
     day: LocalDate,
     members: List<SpaceMember>,
     saving: Boolean,
     canWrite: Boolean,
-    onDropUnresolved: () -> Unit,
     onClose: () -> Unit,
     onSave: (String?, EventInput) -> Unit,
 ) {
-    // Se mantiene el evento mientras la lista recarga (p. ej. al girar), para no perder el borrador.
-    val shown = rememberEditorItem(editorEventId, editor, eventsLoaded)
-    val unresolved = editorEventId != null && shown == null
-    LaunchedEffect(unresolved, eventsLoaded) {
-        if (unresolved && eventsLoaded) onDropUnresolved()
-    }
-    if (creating || creatingAt != null || shown != null) {
+    val slot = rememberEditorSlot(
+        open = editorEventId != null,
+        id = editorEventId,
+        items = events,
+        idOf = CalendarEvent::id,
+        onGone = onClose,
+    )
+    if (creating || creatingAt != null || slot != null) {
         EventEditor(
-            event = shown,
+            event = slot?.item,
             day = day,
             initialStart = creatingAt,
             members = members,

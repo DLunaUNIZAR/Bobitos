@@ -52,7 +52,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
-import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Note
 
@@ -81,13 +81,6 @@ fun NotesScreen(
     // El editor sobrevive a una rotación: se guarda el id de la nota, no el objeto.
     var editorNoteId by rememberSaveable { mutableStateOf<String?>(null) }
     var editorVisible by rememberSaveable { mutableStateOf(false) }
-    val notesContent = state.notes as? UiState.Content
-    // Se mantiene la nota mientras la lista recarga (p. ej. al girar), para no perder el borrador.
-    val editorNote = rememberEditorItem(
-        editorNoteId,
-        editorNoteId?.let { id -> notesContent?.value?.firstOrNull { it.id == id } },
-        notesContent != null,
-    )
     var noteToDelete by remember { mutableStateOf<Note?>(null) }
     // Sin espacio activo no se puede escribir (las escrituras usan observedSpaceId): se desactivan
     // los controles para no perder cambios en silencio si el espacio deja de estar disponible.
@@ -148,18 +141,19 @@ fun NotesScreen(
         }
     }
 
-    // Si la nota que se editaba ya no existe, se cierra el editor (mientras carga, se espera).
-    val editorUnresolved = editorNoteId != null && editorNote == null
-    LaunchedEffect(editorVisible, editorUnresolved, notesContent != null) {
-        if (editorVisible && editorUnresolved && notesContent != null) editorVisible = false
-    }
-    if (editorVisible && !editorUnresolved) {
+    rememberEditorSlot(
+        open = editorVisible,
+        id = editorNoteId,
+        items = (state.notes as? UiState.Content)?.value,
+        idOf = Note::id,
+        onGone = { editorVisible = false },
+    )?.let { slot ->
         NoteEditor(
-            note = editorNote,
+            note = slot.item,
             saving = state.isSaving,
             onDismiss = { editorVisible = false },
             onSave = { title, body ->
-                editorNote?.let { viewModel.updateNote(it.id, title, body) }
+                slot.item?.let { viewModel.updateNote(it.id, title, body) }
                     ?: viewModel.addNote(title, body)
                 editorVisible = false
             },
