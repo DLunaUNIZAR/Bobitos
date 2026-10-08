@@ -8,6 +8,8 @@ plugins {
     alias(libs.plugins.detekt)
     alias(libs.plugins.ktlint)
     alias(libs.plugins.kover)
+    // Ya viene en el classpath con el plugin de Kotlin: no admite versión propia en el catálogo.
+    id("org.jetbrains.kotlin.plugin.parcelize")
 }
 
 val googleServicesFile = file("google-services.json")

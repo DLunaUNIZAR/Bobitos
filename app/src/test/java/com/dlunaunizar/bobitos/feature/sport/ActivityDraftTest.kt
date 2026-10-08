@@ -1,6 +1,5 @@
 package com.dlunaunizar.bobitos.feature.sport
 
-import androidx.compose.runtime.saveable.SaverScope
 import com.dlunaunizar.bobitos.core.model.SportActivity
 import com.dlunaunizar.bobitos.core.model.SportType
 import org.junit.Assert.assertEquals
@@ -9,8 +8,6 @@ import java.time.Instant
 import java.time.LocalDate
 
 class ActivityDraftTest {
-    private val allSaveable = SaverScope { true }
-
     private fun activity() = SportActivity(
         id = "a1",
         date = LocalDate.of(2026, 10, 8),
@@ -29,7 +26,7 @@ class ActivityDraftTest {
     @Test
     fun unaActividadNuevaEmpiezaDePadelSinNombreNiParticipantes() {
         val draft = ActivityDraft.of(null)
-        assertEquals(ActivityDraft(SportType.PADEL.name, "", emptyList(), null), draft)
+        assertEquals(ActivityDraft(SportType.PADEL, "", emptyList(), null), draft)
         assertEquals(SportType.PADEL, draft.type)
     }
 
@@ -47,12 +44,5 @@ class ActivityDraftTest {
         val initial = ActivityDraft.of(activity())
         val toggled = initial.withParticipant("u1", false).withParticipant("u1", true)
         assertEquals(initial, toggled)
-    }
-
-    @Test
-    fun elBorradorSobreviveAUnaRotacion() {
-        val draft = ActivityDraft.of(activity())
-        val restored = with(ActivityDraftSaver) { restore(allSaveable.save(draft)!!) }
-        assertEquals(draft, restored)
     }
 }

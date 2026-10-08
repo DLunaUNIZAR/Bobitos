@@ -234,7 +234,7 @@ private fun NoteCard(note: Note, enabled: Boolean, onTogglePin: () -> Unit, onEd
 @Composable
 private fun NoteEditor(note: Note?, saving: Boolean, onDismiss: () -> Unit, onSave: (String, String?) -> Unit) {
     val initial = NoteDraft.of(note)
-    var draft by rememberSaveable(note?.id, stateSaver = NoteDraftSaver) { mutableStateOf(initial) }
+    var draft by rememberSaveable(note?.id) { mutableStateOf(initial) }
     val validation = NoteValidation.validate(draft.title, draft.body)
     BobitosFormSheet(
         title = stringResource(if (note == null) R.string.notes_add_title else R.string.notes_edit_title),

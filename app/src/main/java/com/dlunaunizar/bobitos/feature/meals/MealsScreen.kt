@@ -570,7 +570,7 @@ private fun MealEditor(
     onSave: (MealSlot, String, List<String>, String?, String?) -> Unit,
 ) {
     val initial = MealDraft.of(meal, initialSlot)
-    var draft by rememberSaveable(meal?.id, stateSaver = MealDraftSaver) { mutableStateOf(initial) }
+    var draft by rememberSaveable(meal?.id) { mutableStateOf(initial) }
     var pickerOpen by remember { mutableStateOf(false) }
     val validation = MealsValidation.validate(draft.name)
 
@@ -595,7 +595,7 @@ private fun MealEditor(
             MealSlot.entries.forEach { option ->
                 FilterChip(
                     selected = draft.slot == option,
-                    onClick = { draft = draft.withSlot(option) },
+                    onClick = { draft = draft.copy(slot = option) },
                     label = { Text(stringResource(option.labelRes)) },
                 )
             }

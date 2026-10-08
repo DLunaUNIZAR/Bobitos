@@ -42,7 +42,7 @@ internal fun RoutineEditor(
         routine?.exercises.orEmpty().toExerciseDrafts().toRoutineExercises()
     }
     // Borrador guardable: campos simples y lista de ejercicios (con sus series), para sobrevivir a una rotación.
-    var draft by rememberSaveable(routine?.id, stateSaver = RoutineDraftSaver) { mutableStateOf(initial) }
+    var draft by rememberSaveable(routine?.id) { mutableStateOf(initial) }
     val exercises = rememberSaveable(routine?.id, saver = ExerciseDraftListSaver) {
         routine?.exercises.orEmpty().toExerciseDrafts().toMutableStateList()
     }
