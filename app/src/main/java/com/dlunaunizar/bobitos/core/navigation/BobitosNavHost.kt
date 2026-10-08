@@ -189,12 +189,7 @@ fun BobitosNavHost(
         composable(BobitosDestination.Home.route) {
             MainMenuScreen(
                 syncStatus = uiState.syncStatus,
-                onOpenSpaces = { navController.navigate(BobitosDestination.Spaces.route) },
-                onOpenRecipes = { navController.navigate(BobitosDestination.Recipes.route) },
-                onOpenIngredients = { navController.navigate(BobitosDestination.Ingredients.route) },
-                onOpenRoutines = { navController.navigate(BobitosDestination.Routines.route) },
-                onOpenExercises = { navController.navigate(BobitosDestination.Exercises.route) },
-                onOpenMyCalendar = { navController.navigate(BobitosDestination.MyCalendar.route) },
+                onOpen = { destination -> navController.navigate(destination.route) },
                 onProfile = {
                     onClearAuthFeedback()
                     navController.navigateToProfile()
@@ -523,27 +518,7 @@ fun BobitosNavHost(
 // ejercicios) + calendario personal. Los catálogos no dependen de ningún espacio.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MainMenuScreen(
-    syncStatus: SyncStatus,
-    onOpenSpaces: () -> Unit,
-    onOpenRecipes: () -> Unit,
-    onOpenIngredients: () -> Unit,
-    onOpenRoutines: () -> Unit,
-    onOpenExercises: () -> Unit,
-    onOpenMyCalendar: () -> Unit,
-    onProfile: () -> Unit,
-) {
-    val onCardClick: (BobitosDestination) -> Unit = { destination ->
-        when (destination) {
-            BobitosDestination.Spaces -> onOpenSpaces()
-            BobitosDestination.Recipes -> onOpenRecipes()
-            BobitosDestination.Ingredients -> onOpenIngredients()
-            BobitosDestination.Routines -> onOpenRoutines()
-            BobitosDestination.Exercises -> onOpenExercises()
-            BobitosDestination.MyCalendar -> onOpenMyCalendar()
-            else -> Unit
-        }
-    }
+private fun MainMenuScreen(syncStatus: SyncStatus, onOpen: (BobitosDestination) -> Unit, onProfile: () -> Unit) {
     Scaffold(
         topBar = {
             Column {
@@ -576,7 +551,7 @@ private fun MainMenuScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             BobitosDestination.mainMenuDestinations.forEach { destination ->
-                SpaceHomeCard(destination = destination, count = 0, onClick = { onCardClick(destination) })
+                ModuleCard(destination = destination, onClick = { onOpen(destination) })
             }
         }
     }

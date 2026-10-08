@@ -20,20 +20,8 @@ internal fun SpaceMoreScreen(onOpen: (BobitosDestination) -> Unit) {
             .padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        SpaceHomeCard(
-            destination = BobitosDestination.Meals,
-            count = 0,
-            onClick = { onOpen(BobitosDestination.Meals) },
-        )
-        SpaceHomeCard(
-            destination = BobitosDestination.Sport,
-            count = 0,
-            onClick = { onOpen(BobitosDestination.Sport) },
-        )
-        SpaceHomeCard(
-            destination = BobitosDestination.Notes,
-            count = 0,
-            onClick = { onOpen(BobitosDestination.Notes) },
-        )
+        BobitosDestination.moreDestinations.forEach { destination ->
+            ModuleCard(destination = destination, onClick = { onOpen(destination) })
+        }
     }
 }

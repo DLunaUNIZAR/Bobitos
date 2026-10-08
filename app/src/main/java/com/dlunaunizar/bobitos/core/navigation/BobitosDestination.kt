@@ -119,6 +119,9 @@ enum class BobitosDestination(val route: String, @param:StringRes val titleRes: 
 
         // Pestañas de la barra inferior dentro de un espacio. Comidas y Deporte cuelgan de «Más».
         val workspaceTabs = listOf(SpaceHome, Calendar, Tasks, Shopping, SpaceMore)
+
+        // Módulos agrupados bajo la pestaña «Más».
+        val moreDestinations = listOf(Meals, Sport, Notes)
     }
 }
 

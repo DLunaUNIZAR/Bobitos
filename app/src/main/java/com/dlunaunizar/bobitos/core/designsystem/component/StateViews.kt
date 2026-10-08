@@ -1,7 +1,9 @@
 package com.dlunaunizar.bobitos.core.designsystem.component
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -106,5 +108,16 @@ private fun StateColumn(modifier: Modifier, content: @Composable () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(Spacing.md, Alignment.CenterVertically),
     ) {
         content()
+    }
+}
+
+/** Indicador de carga centrado que ocupa toda la pantalla. */
+@Composable
+internal fun FullScreenLoading(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        CircularProgressIndicator()
     }
 }
