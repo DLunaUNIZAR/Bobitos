@@ -22,7 +22,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
@@ -30,8 +29,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
-import com.dlunaunizar.bobitos.core.model.SpaceRole
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
+import com.dlunaunizar.bobitos.feature.spaces.roleAndMembers
 
 /**
  * Selector de espacio en un bottom sheet: lista los espacios con el actual marcado y ofrece ir a la
@@ -78,10 +77,6 @@ internal fun SpacePickerSheet(switcher: SpaceSwitcher, onManageSpaces: () -> Uni
 
 @Composable
 private fun SpaceRow(space: SpaceSummary, selected: Boolean, onClick: () -> Unit) {
-    val roleText = stringResource(
-        if (space.role == SpaceRole.OWNER) R.string.space_role_owner else R.string.space_role_member,
-    )
-    val membersText = pluralStringResource(R.plurals.space_members, space.memberCount, space.memberCount)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -94,7 +89,7 @@ private fun SpaceRow(space: SpaceSummary, selected: Boolean, onClick: () -> Unit
         Column(modifier = Modifier.weight(1f)) {
             Text(text = space.name, style = MaterialTheme.typography.titleMedium)
             Text(
-                text = "$roleText · $membersText",
+                text = space.roleAndMembers(),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

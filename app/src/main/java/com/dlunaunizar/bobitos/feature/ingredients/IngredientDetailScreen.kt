@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.formatDecimal
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
@@ -324,12 +325,12 @@ private fun BrandCard(brand: IngredientBrand, canEdit: Boolean, onEdit: () -> Un
 @Composable
 private fun NutritionSummary(nutrition: Nutrition) {
     val parts = listOfNotNull(
-        nutrition.energyKcal?.let { stringResource(R.string.nutrition_energy, formatNumber(it)) },
-        nutrition.fat?.let { stringResource(R.string.nutrition_fat, formatNumber(it)) },
-        nutrition.carbohydrates?.let { stringResource(R.string.nutrition_carbs, formatNumber(it)) },
-        nutrition.sugars?.let { stringResource(R.string.nutrition_sugars, formatNumber(it)) },
-        nutrition.protein?.let { stringResource(R.string.nutrition_protein, formatNumber(it)) },
-        nutrition.salt?.let { stringResource(R.string.nutrition_salt, formatNumber(it)) },
+        nutrition.energyKcal?.let { stringResource(R.string.nutrition_energy, formatDecimal(it)) },
+        nutrition.fat?.let { stringResource(R.string.nutrition_fat, formatDecimal(it)) },
+        nutrition.carbohydrates?.let { stringResource(R.string.nutrition_carbs, formatDecimal(it)) },
+        nutrition.sugars?.let { stringResource(R.string.nutrition_sugars, formatDecimal(it)) },
+        nutrition.protein?.let { stringResource(R.string.nutrition_protein, formatDecimal(it)) },
+        nutrition.salt?.let { stringResource(R.string.nutrition_salt, formatDecimal(it)) },
     )
     if (parts.isEmpty()) return
     Text(

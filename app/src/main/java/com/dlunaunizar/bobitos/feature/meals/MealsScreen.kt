@@ -74,6 +74,7 @@ import com.dlunaunizar.bobitos.core.model.MealSlot
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewDialog
+import com.dlunaunizar.bobitos.feature.common.formatted
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
@@ -769,9 +770,6 @@ private fun MealsFeedback(state: MealsUiState, onDismiss: () -> Unit) {
 }
 
 private val HEADER_FORMAT = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Locale.forLanguageTag("es"))
-
-// «300 g Arroz» o «Sal» (omite cantidad/unidad ausentes).
-private fun Ingredient.formatted(): String = listOfNotNull(quantity, unit, name).joinToString(" ")
 
 // Coincidencia por texto (nombre de la comida) para el buscador; en blanco no filtra.
 private fun Meal.matchesQuery(query: String): Boolean =

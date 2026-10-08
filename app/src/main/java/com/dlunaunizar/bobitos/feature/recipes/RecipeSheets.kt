@@ -33,6 +33,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
+import com.dlunaunizar.bobitos.feature.common.formatted
 
 private const val MAX_INGREDIENT_ROWS = 50
 
@@ -309,6 +310,3 @@ private fun IngredientsEditor(rows: List<IngredientRow>, onRowsChange: (List<Ing
 
 private fun RecipeUiMessage?.isTitleError(): Boolean =
     this == RecipeUiMessage.TitleRequired || this == RecipeUiMessage.TitleTooLong
-
-// «300 g Arroz» o «Sal» (omite cantidad/unidad ausentes).
-private fun Ingredient.formatted(): String = listOfNotNull(quantity, unit, name).joinToString(" ")

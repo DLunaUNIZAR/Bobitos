@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.feature.ingredients
 
 import androidx.compose.runtime.saveable.listSaver
+import com.dlunaunizar.bobitos.core.common.formatDecimal
 import com.dlunaunizar.bobitos.core.model.Nutrition
 
 // Borrador del editor de marca: nombre, código de barras y los 6 valores nutricionales como texto
@@ -39,14 +40,10 @@ internal data class BrandDraft(val name: String, val barcode: String, val nutrit
                 nutrition?.sugars,
                 nutrition?.protein,
                 nutrition?.salt,
-            ).map { it?.let(::formatNumber).orEmpty() },
+            ).map { it?.let(::formatDecimal).orEmpty() },
         )
     }
 }
-
-// Formatea sin decimales innecesarios («120», «1.5»).
-internal fun formatNumber(value: Double): String =
-    if (value % 1.0 == 0.0) value.toLong().toString() else value.toString()
 
 /** Convierte el borrador en una lista guardable (cabe en un Bundle). */
 internal fun BrandDraft.toSaved(): ArrayList<Any?> = arrayListOf(name, barcode, ArrayList(nutrition))

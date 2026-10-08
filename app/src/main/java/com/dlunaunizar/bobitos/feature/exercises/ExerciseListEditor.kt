@@ -39,6 +39,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.formatDecimal
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseSet
@@ -248,7 +249,7 @@ internal fun List<RoutineExercise>.toExerciseDrafts(): List<ExerciseDraft> = map
         name = exercise.name,
         exerciseId = exercise.exerciseId,
         type = exercise.type,
-        sets = exercise.sets.map { SetDraft(it.reps?.toString().orEmpty(), it.weight?.let(::formatWeight).orEmpty()) },
+        sets = exercise.sets.map { SetDraft(it.reps?.toString().orEmpty(), it.weight?.let(::formatDecimal).orEmpty()) },
         duration = exercise.durationMinutes?.toString().orEmpty(),
         level = exercise.level.orEmpty(),
         notes = exercise.notes.orEmpty(),
@@ -274,6 +275,3 @@ internal fun List<ExerciseDraft>.toRoutineExercises(): List<RoutineExercise> =
             notes = draft.notes.trim().ifBlank { null },
         )
     }
-
-private fun formatWeight(weight: Double): String =
-    if (weight % 1.0 == 0.0) weight.toLong().toString() else weight.toString()
