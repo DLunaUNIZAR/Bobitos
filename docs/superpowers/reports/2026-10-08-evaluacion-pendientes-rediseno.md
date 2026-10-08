@@ -34,7 +34,19 @@ Se evalúan 13 puntos que quedaron sin aplicar: los 4 problemas reales de `/code
 
 ## Orden recomendado
 
-_(se rellena al final)_
+**6 «Hacer ya»** (A, B, C, D, S7-Calendario y S1), agrupados en 3 PRs por archivos compartidos. Los dos primeros son correcciones que ve el usuario; el tercero es solo refactor.
+
+1. **PR «Calendario: deshacer y título obligatorio»** (B + S7). Ambos tocan `CalendarScreen` y `CalendarViewModel`, así que se hacen juntos para no pisarse. Unos 9 archivos, +80. Tests: `CalendarValidationTest` y el test de emulador de restaurar con el mismo id. Primero porque S7 es el fallo más fácil de provocar (guardar un evento sin título pierde lo escrito).
+2. **PR «Recordatorios, anonimización y tema al arrancar»** (C + D + A). Tres arreglos independientes y pequeños: 2 archivos borrados, 3 archivos de recordatorios con test y 2 líneas en `FirebaseAccountRepository`. A es el único que solo se valida en dispositivo (arranque en frío con el móvil en oscuro).
+3. **PR «Borradores con `@Parcelize`»** (S1), en dos lotes: borradores simples, y luego los que tienen enums o fechas. Va después de los dos anteriores porque toca los mismos editores (Calendario incluido). Si algún día se hace S2, conviene antes que S1; como S2 queda en «Más adelante», no se espera por él.
+
+**Más adelante:** S2 (ViewModels sin «cargando» al reobservar, por lotes de 2–3) y la parte extra de D (anonimizar `cookName` de comidas, que necesita cambiar reglas).
+
+**No:** S3, S4, S5, S6, S9. S4 tiene una alternativa barata (test de coherencia de rutas) por si se añaden pantallas de espacio. S5 compensa solo si cambia el contrato de eventos. S9, solo de paso.
+
+**A decidir:** S8 (recomendado no tocar la configuración de detekt).
+
+Las ramas `spike/…` se han borrado todas y `main` no se ha tocado.
 
 ---
 
