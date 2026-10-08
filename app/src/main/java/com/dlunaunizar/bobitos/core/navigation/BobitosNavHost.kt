@@ -259,7 +259,7 @@ fun BobitosNavHost(
             LaunchedEffect(uiState.selectedSpace?.id) {
                 // «Hoy» vuelve a componerse cada vez que se regresa a la pestaña: se recarga para no
                 // mostrar contadores de antes de editar en otro módulo.
-                uiState.selectedSpace?.id?.let { summaryViewModel.load(it, authUser.id, force = true) }
+                uiState.selectedSpace?.id?.let { summaryViewModel.load(it, authUser.id) }
             }
             SpaceScaffold(
                 navController = navController,
