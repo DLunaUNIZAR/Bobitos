@@ -27,7 +27,7 @@ Se evalúan 13 puntos que quedaron sin aplicar: los 4 problemas reales de `/code
 | S3 | Grafo anidado para «Más» | 1 | 2 | 3 | No |
 | S4 | Metadatos de ruta en el enum | 1 | 2 | 2 | No (como mucho, un test de coherencia) |
 | S5 | Deporte reutiliza el documento de evento del calendario | 1 | 2 | 2 | No |
-| S6 | Fuente propia de espacios para el selector | | | | |
+| S6 | Fuente propia de espacios para el selector | 1 | 2 | 2 | No |
 | S7 | Validación por campo en los editores | | | | |
 | S8 | detekt: ignorar `@Composable` en métodos largos | | | | |
 | S9 | Renombres del borrador en el editor de Compra | | | | |
@@ -143,7 +143,15 @@ _(se rellena al final)_
 - **Veredicto:** **No.** Si alguna vez cambia el contrato de eventos (se añade una clave), entonces sí compensa extraer un `EventDocument` compartido junto con un test que compruebe que ambos repositorios escriben el mismo conjunto de claves.
 
 ## S6 — Fuente propia de espacios para el selector
-**Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
+- **Qué es:** para que el selector de espacio (sheet del chip) liste todos los espacios, `BobitosNavHost` guarda `spacePickerOpen` y lo pasa a `realtimeScopeFor`, que cambia el alcance de tiempo real global a `ALL_SPACES` mientras está abierto. La propuesta: un `allSpaces` aparte en `AppViewModel` (`stateIn(WhileSubscribed)`) que solo recoge el sheet, con lo que `realtimeScopeFor` vuelve a depender solo de la ruta.
+- **Medido (listeners de `FirestoreSpaceRepository`):**
+  - Hoy, dentro de un espacio hay 2 listeners (`space(id)`: membresía + documento del espacio). Al abrir el selector se cancelan y se crean 1 + N (`spaces()`: consulta de membresías + un documento por espacio). Al cerrarlo se vuelve a 2, que se releen.
+  - Con `allSpaces` aparte: al abrir se crean los mismos 1 + N, sin cancelar los 2 del espacio activo. Al cerrar se mantienen 5 s más (`WhileSubscribed`). **Diferencia: unas 2 lecturas menos por cada apertura del selector**; las N lecturas de la lista se pagan igual.
+  - Guard de expulsión (`selectedSpace == null` → «Espacios»): hoy **no** se dispara al cambiar de espacio. `flatMapLatest` no emite `Loading` al cambiar de alcance y la lista anterior (que ya contiene el espacio nuevo) sigue hasta que llega la nueva. No hay fallo que arreglar. Razonado leyendo el código, sin verificar en dispositivo.
+  - Archivos: `AppViewModel`, `RealtimeScopes`, `BobitosNavHost`, `SpaceSwitcher`, `WorkspaceScaffold` y `RealtimeScopeForTest` (6).
+- **Prototipo:** no se hace. El ahorro medido (2 lecturas por apertura, ~10 líneas) ya decide el veredicto.
+- **Puntuación:** Beneficio 1 (más limpio, ahorro de lecturas marginal) · Coste 2 (6 archivos) · Riesgo 2 (cambia el ciclo de vida de listeners sin test de integración).
+- **Veredicto:** **No.**
 
 ## S7 — Validación por campo en los editores
 **Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
