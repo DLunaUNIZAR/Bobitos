@@ -1,6 +1,5 @@
 package com.dlunaunizar.bobitos.feature.calendar
 
-import androidx.compose.runtime.saveable.SaverScope
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.EventColor
 import org.junit.Assert.assertEquals
@@ -13,12 +12,6 @@ import java.time.ZoneId
 class EventDraftTest {
     private val zone = ZoneId.of("Europe/Madrid")
     private val day = LocalDate.of(2026, 10, 7)
-    private val allSaveable = SaverScope { true }
-
-    private fun roundTrip(draft: EventDraft): EventDraft? = with(EventDraftSaver) {
-        restore(allSaveable.save(draft)!!)
-    }
-
     private fun event(allDay: Boolean) = CalendarEvent(
         id = "e1",
         title = "Cena",
@@ -76,13 +69,5 @@ class EventDraftTest {
         assertEquals(true, draft.allDay)
         assertEquals(LocalDate.of(2026, 10, 9), draft.startDate)
         assertEquals(LocalDate.of(2026, 10, 10), draft.endDate)
-    }
-
-    @Test
-    fun elBorradorSobreviveAUnaRotacion() {
-        val draft = EventDraft.of(event(allDay = false), day, null, zone)
-        assertEquals(draft, roundTrip(draft))
-        val empty = EventDraft.of(null, day, null, zone)
-        assertEquals(empty, roundTrip(empty))
     }
 }

@@ -89,7 +89,7 @@ fun RecipesScreen(
     var detailRecipeId by rememberSaveable { mutableStateOf<String?>(null) }
     var editorOpen by rememberSaveable { mutableStateOf(false) }
     var editorRecipeId by rememberSaveable { mutableStateOf<String?>(null) }
-    var importedSaved by rememberSaveable { mutableStateOf<ArrayList<Any?>?>(null) }
+    var imported by rememberSaveable { mutableStateOf<RecipeDraft?>(null) }
     var recipeToDelete by remember { mutableStateOf<Recipe?>(null) }
     var showImport by remember { mutableStateOf(false) }
     var selectedCategory by rememberSaveable { mutableStateOf<String?>(null) }
@@ -98,7 +98,7 @@ fun RecipesScreen(
     LaunchedEffect(state.importDraft) {
         state.importDraft?.let { draft ->
             editorRecipeId = null
-            importedSaved = RecipeDraft.of(null, draft).toSaved()
+            imported = RecipeDraft.of(null, draft)
             editorOpen = true
             showImport = false
             viewModel.consumeImportDraft()
@@ -137,7 +137,7 @@ fun RecipesScreen(
                 ExtendedFloatingActionButton(
                     onClick = {
                         editorRecipeId = null
-                        importedSaved = null
+                        imported = null
                         editorOpen = true
                     },
                     icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
@@ -190,21 +190,21 @@ fun RecipesScreen(
         detailRecipeId = detailRecipeId,
         editorOpen = editorOpen,
         editorRecipeId = editorRecipeId,
-        importedSaved = importedSaved,
+        imported = imported,
         actions = remember(viewModel, spaceId) {
             RecipeSheetActions(
                 onCloseDetail = { detailRecipeId = null },
                 onCloseEditor = {
                     editorOpen = false
                     editorRecipeId = null
-                    importedSaved = null
+                    imported = null
                 },
                 onAddToShopping = { recipe ->
                     spaceId?.let { viewModel.addToShopping(it, recipe) }
                     detailRecipeId = null
                 },
                 onEdit = { recipe ->
-                    importedSaved = null
+                    imported = null
                     editorRecipeId = recipe.id
                     editorOpen = true
                     detailRecipeId = null

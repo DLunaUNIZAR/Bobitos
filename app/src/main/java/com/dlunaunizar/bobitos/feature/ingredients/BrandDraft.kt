@@ -1,13 +1,15 @@
 package com.dlunaunizar.bobitos.feature.ingredients
 
-import androidx.compose.runtime.saveable.listSaver
+import android.os.Parcelable
 import com.dlunaunizar.bobitos.core.common.formatDecimal
 import com.dlunaunizar.bobitos.core.model.Nutrition
+import kotlinx.parcelize.Parcelize
 
 // Borrador del editor de marca: nombre, código de barras y los 6 valores nutricionales como texto
-// (el teclado decimal emite coma o punto), para que sobreviva a una rotación.
+// (el teclado decimal emite coma o punto). Parcelable para que sobreviva a una rotación.
 // Orden de `nutrition`: energía, grasas, carbohidratos, azúcares, proteínas, sal.
-internal data class BrandDraft(val name: String, val barcode: String, val nutrition: List<String>) {
+@Parcelize
+internal data class BrandDraft(val name: String, val barcode: String, val nutrition: List<String>) : Parcelable {
     fun withNutrition(index: Int, value: String) = copy(
         nutrition = nutrition.mapIndexed { i, current -> if (i == index) value else current },
     )
@@ -44,20 +46,3 @@ internal data class BrandDraft(val name: String, val barcode: String, val nutrit
         )
     }
 }
-
-/** Convierte el borrador en una lista guardable (cabe en un Bundle). */
-internal fun BrandDraft.toSaved(): ArrayList<Any?> = arrayListOf(name, barcode, ArrayList(nutrition))
-
-internal fun brandDraftFromSaved(saved: List<Any?>): BrandDraft {
-    @Suppress("UNCHECKED_CAST")
-    return BrandDraft(
-        name = saved[0] as String,
-        barcode = saved[1] as String,
-        nutrition = (saved[2] as List<String>).toList(),
-    )
-}
-
-internal val BrandDraftSaver = listSaver<BrandDraft, Any?>(
-    save = { it.toSaved() },
-    restore = { brandDraftFromSaved(it) },
-)

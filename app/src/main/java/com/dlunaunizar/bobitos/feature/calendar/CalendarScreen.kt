@@ -735,7 +735,7 @@ internal fun EventEditor(
 ) {
     val zone = ZoneId.systemDefault()
     val initial = EventDraft.of(event, day, initialStart, zone)
-    var draft by rememberSaveable(event?.id, initialStart?.toString(), stateSaver = EventDraftSaver) {
+    var draft by rememberSaveable(event?.id, initialStart?.toString()) {
         mutableStateOf(initial)
     }
     var activePicker by remember { mutableStateOf<EventPicker?>(null) }
@@ -804,7 +804,7 @@ internal fun EventEditor(
             onTimeClick = { activePicker = EventPicker.END_TIME },
         )
         Text(stringResource(R.string.calendar_color_label), style = MaterialTheme.typography.labelLarge)
-        ColorPicker(selected = draft.color, onSelect = { draft = draft.withColor(it) })
+        ColorPicker(selected = draft.color, onSelect = { draft = draft.copy(color = it) })
         MemberCheckboxes(
             label = stringResource(R.string.calendar_participants_label),
             members = members,
@@ -835,7 +835,7 @@ private fun EventPickers(
         EventPicker.START_DATE -> AppDatePickerDialog(
             initialDate = draft.startDate,
             onConfirm = {
-                onDraft(draft.withStartDate(it))
+                onDraft(draft.copy(startDate = it))
                 onClose()
             },
             onDismiss = onClose,
@@ -843,7 +843,7 @@ private fun EventPickers(
         EventPicker.END_DATE -> AppDatePickerDialog(
             initialDate = draft.endDate,
             onConfirm = {
-                onDraft(draft.withEndDate(it))
+                onDraft(draft.copy(endDate = it))
                 onClose()
             },
             onDismiss = onClose,
@@ -851,7 +851,7 @@ private fun EventPickers(
         EventPicker.START_TIME -> EventTimePickerDialog(
             initialTime = draft.startTime,
             onConfirm = {
-                onDraft(draft.withStartTime(it))
+                onDraft(draft.copy(startTime = it))
                 onClose()
             },
             onDismiss = onClose,
@@ -859,7 +859,7 @@ private fun EventPickers(
         EventPicker.END_TIME -> EventTimePickerDialog(
             initialTime = draft.endTime,
             onConfirm = {
-                onDraft(draft.withEndTime(it))
+                onDraft(draft.copy(endTime = it))
                 onClose()
             },
             onDismiss = onClose,
