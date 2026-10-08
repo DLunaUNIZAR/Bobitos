@@ -31,6 +31,7 @@ import {
   where,
   writeBatch,
   collection,
+  deleteDoc,
   increment,
   onSnapshot,
   runTransaction,
@@ -900,6 +901,18 @@ test("todos los miembros ven y editan eventos aunque no sean participantes", asy
   const memberReference = doc(member, "spaces", "calendar-shared", "events", "event-1");
   await assertSucceeds(getDoc(memberReference));
   await assertSucceeds(updateDoc(memberReference, { title: "Editado", updatedBy: "calendar-member", updatedAt: serverTimestamp() }));
+});
+
+test("deshacer el borrado de un evento lo restaura con su id original", async () => {
+  await seedSpace("calendar-restore", "restore-owner", ["restore-member"]);
+  const owner = verifiedFirestore("restore-owner");
+  const member = verifiedFirestore("restore-member");
+  const data = eventData("restore-owner", { participantIds: ["restore-owner"], participantNames: ["restore-owner"] });
+  await assertSucceeds(setDoc(doc(owner, "spaces", "calendar-restore", "events", "linked"), data));
+  const reference = doc(member, "spaces", "calendar-restore", "events", "linked");
+  await assertSucceeds(deleteDoc(reference));
+  await assertSucceeds(setDoc(reference, eventData("restore-member", { participantIds: ["restore-owner"], participantNames: ["restore-owner"] })));
+  assert.equal((await getDoc(reference)).exists(), true);
 });
 
 test("un usuario externo no puede leer eventos y los intervalos inválidos se rechazan", async () => {

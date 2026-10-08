@@ -131,6 +131,10 @@ class CalendarViewModel @Inject constructor(
         }
     }
 
+    fun restore(eventId: String, input: EventInput) = action {
+        repository.createEvent(spaceId ?: return@action, input, eventId)
+    }
+
     fun delete(eventId: String) = action {
         repository.deleteEvent(spaceId ?: return@action, eventId)
     }

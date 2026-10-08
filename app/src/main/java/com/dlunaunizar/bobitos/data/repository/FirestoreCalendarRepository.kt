@@ -61,11 +61,11 @@ class FirestoreCalendarRepository @Inject constructor(
             }
         }
 
-    override suspend fun createEvent(spaceId: String, input: EventInput) = operation {
+    override suspend fun createEvent(spaceId: String, input: EventInput, eventId: String?) = operation {
         val user = verifiedUser()
         val value = input.validated()
         val space = firestore.collection(SPACES).document(spaceId)
-        val event = collection(spaceId).document()
+        val event = eventId?.let(collection(spaceId)::document) ?: collection(spaceId).document()
         val memberRefs = value.participantIds.map { membership(spaceId, it) }
         firestore.runTransaction { tx ->
             if (!tx.get(space).exists()) throw CalendarRepositoryException(CalendarFailure.SpaceNotFound)

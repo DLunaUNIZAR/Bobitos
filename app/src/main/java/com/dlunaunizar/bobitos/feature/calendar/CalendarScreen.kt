@@ -258,7 +258,7 @@ fun CalendarScreen(
                 viewModel.delete(event.id)
                 eventToDelete = null
                 scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                    viewModel.save(null, event.toInput())
+                    viewModel.restore(event.id, event.toInput())
                 }
             },
             onDismiss = { eventToDelete = null },
@@ -742,11 +742,12 @@ internal fun EventEditor(
     val dateError = stringResource(R.string.calendar_date_error)
     val startLabelRes = if (draft.allDay) R.string.calendar_start_date_label else R.string.calendar_start_datetime_label
     val endLabelRes = if (draft.allDay) R.string.calendar_end_date_label else R.string.calendar_end_datetime_label
+    val validation = CalendarValidation.validate(draft.title, draft.description)
 
     BobitosFormSheet(
         title = stringResource(if (event == null) R.string.calendar_new_event else R.string.calendar_edit_event_title),
         confirmLabel = stringResource(R.string.calendar_save),
-        confirmEnabled = canWrite,
+        confirmEnabled = canWrite && validation == null,
         saving = saving,
         dirty = { draft != initial },
         onDismiss = dismiss,
@@ -809,7 +810,9 @@ internal fun EventEditor(
             selectedIds = draft.selectedIds,
             onToggle = { userId, selected -> draft = draft.withParticipant(userId, selected) },
         )
-        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        (validation?.let { stringResource(it.stringResourceId) } ?: error)?.let {
+            Text(it, color = MaterialTheme.colorScheme.error)
+        }
     }
 
     EventPickers(

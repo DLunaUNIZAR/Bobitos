@@ -21,7 +21,11 @@ data class EventInput(
 
 interface CalendarRepository {
     fun events(spaceId: String, rangeStart: Instant, rangeEndExclusive: Instant): Flow<List<CalendarEvent>>
-    suspend fun createEvent(spaceId: String, input: EventInput)
+
+    // Con eventId se recrea un evento borrado con su id (deshacer): así lo que lo enlaza, como una
+    // actividad de Deporte, sigue apuntando a él.
+    suspend fun createEvent(spaceId: String, input: EventInput, eventId: String? = null)
+
     suspend fun updateEvent(spaceId: String, eventId: String, input: EventInput)
     suspend fun deleteEvent(spaceId: String, eventId: String)
 }
