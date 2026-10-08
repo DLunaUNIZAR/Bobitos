@@ -1,25 +1,18 @@
 package com.dlunaunizar.bobitos.feature.exercises
 
-import androidx.compose.runtime.saveable.listSaver
+import android.os.Parcelable
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseType
+import kotlinx.parcelize.Parcelize
 
-// Borrador del editor de ejercicio del catálogo. `typeName` es el `name` del enum (cabe en un Bundle).
-internal data class CatalogExerciseDraft(val name: String, val typeName: String, val muscle: String) {
-    val type: ExerciseType get() = ExerciseType.valueOf(typeName)
-
+// Borrador del editor de ejercicio del catálogo. Parcelable para que sobreviva a una rotación.
+@Parcelize
+internal data class CatalogExerciseDraft(val name: String, val type: ExerciseType, val muscle: String) : Parcelable {
     companion object {
         fun of(exercise: CatalogExercise?) = CatalogExerciseDraft(
             name = exercise?.name.orEmpty(),
-            typeName = (exercise?.type ?: ExerciseType.MAQUINA).name,
+            type = exercise?.type ?: ExerciseType.MAQUINA,
             muscle = exercise?.muscleGroup.orEmpty(),
         )
     }
 }
-
-internal val CatalogExerciseDraftSaver = listSaver<CatalogExerciseDraft, Any?>(
-    save = { listOf(it.name, it.typeName, it.muscle) },
-    restore = {
-        CatalogExerciseDraft(name = it[0] as String, typeName = it[1] as String, muscle = it[2] as String)
-    },
-)

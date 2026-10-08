@@ -18,7 +18,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -49,7 +48,7 @@ internal fun RecipeSheetsHost(
     detailRecipeId: String?,
     editorOpen: Boolean,
     editorRecipeId: String?,
-    importedSaved: List<Any?>?,
+    imported: RecipeDraft?,
     actions: RecipeSheetActions,
 ) {
     val mine = state.mine as? UiState.Content
@@ -83,7 +82,7 @@ internal fun RecipeSheetsHost(
         val editing = slot.item
         RecipeEditor(
             recipe = editing,
-            imported = remember(importedSaved) { importedSaved?.let(::recipeDraftFromSaved) },
+            imported = imported,
             saving = state.isSaving,
             canWrite = canWrite,
             isAdmin = state.isAdmin,
@@ -156,7 +155,7 @@ private fun RecipeEditor(
 ) {
     // Al crear a mano `recipe` e `imported` son null; al importar, los valores iniciales vienen de la web.
     val initial = imported ?: RecipeDraft.of(recipe, null)
-    var draft by rememberSaveable(recipe?.id, imported?.sourceUrl, stateSaver = RecipeDraftSaver) {
+    var draft by rememberSaveable(recipe?.id, imported?.sourceUrl) {
         mutableStateOf(initial)
     }
     val validation = RecipesValidation.validate(draft.title, draft.description, draft.category)

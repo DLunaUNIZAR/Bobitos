@@ -256,7 +256,7 @@ internal fun IngredientEditorDialog(
     initialName: String = "",
 ) {
     val initial = CatalogIngredientDraft.of(ingredient, initialName)
-    var draft by rememberSaveable(ingredient?.id, initialName, stateSaver = CatalogIngredientDraftSaver) {
+    var draft by rememberSaveable(ingredient?.id, initialName) {
         mutableStateOf(initial)
     }
     BobitosFormSheet(

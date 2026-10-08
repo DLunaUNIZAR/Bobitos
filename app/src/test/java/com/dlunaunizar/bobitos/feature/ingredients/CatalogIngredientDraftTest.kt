@@ -1,14 +1,11 @@
 package com.dlunaunizar.bobitos.feature.ingredients
 
-import androidx.compose.runtime.saveable.SaverScope
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.Instant
 
 class CatalogIngredientDraftTest {
-    private val allSaveable = SaverScope { true }
-
     private fun ingredient(category: String?, unit: String?) = CatalogIngredient(
         id = "i1", name = "Arroz", category = category, defaultUnit = unit, ownerUid = "u",
         createdBy = "u", createdByName = "U", createdAt = Instant.EPOCH, updatedBy = "u", updatedAt = Instant.EPOCH,
@@ -29,12 +26,5 @@ class CatalogIngredientDraftTest {
         val full = CatalogIngredientDraft.of(ingredient("cereales", "g"), "")
         assertEquals(CatalogIngredientDraft("Arroz", "cereales", "g"), full)
         assertEquals(CatalogIngredientDraft("Arroz", "", ""), CatalogIngredientDraft.of(ingredient(null, null), "Otro"))
-    }
-
-    @Test
-    fun elBorradorSobreviveAUnaRotacion() {
-        val draft = CatalogIngredientDraft("Arroz", "cereales", "g")
-        val restored = with(CatalogIngredientDraftSaver) { restore(allSaveable.save(draft)!!) }
-        assertEquals(draft, restored)
     }
 }

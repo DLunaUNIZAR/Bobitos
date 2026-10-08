@@ -466,7 +466,7 @@ private fun ActivityEditor(
         activity?.session.orEmpty().toExerciseDrafts().toRoutineExercises()
     }
     // Borrador guardable: campos simples y sesión de gimnasio (con sus series), para sobrevivir a una rotación.
-    var draft by rememberSaveable(activity?.id, stateSaver = ActivityDraftSaver) { mutableStateOf(initial) }
+    var draft by rememberSaveable(activity?.id) { mutableStateOf(initial) }
     val session = rememberSaveable(activity?.id, saver = ExerciseDraftListSaver) {
         activity?.session.orEmpty().toExerciseDrafts().toMutableStateList()
     }
@@ -492,7 +492,7 @@ private fun ActivityEditor(
             )
         },
     ) {
-        SportTypeChips(selected = type, onSelect = { draft = draft.copy(typeName = it.name) })
+        SportTypeChips(selected = type, onSelect = { draft = draft.copy(type = it) })
         OutlinedTextField(
             value = draft.name,
             onValueChange = { draft = draft.copy(name = it) },

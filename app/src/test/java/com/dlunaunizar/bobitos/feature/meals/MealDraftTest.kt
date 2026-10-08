@@ -1,6 +1,5 @@
 package com.dlunaunizar.bobitos.feature.meals
 
-import androidx.compose.runtime.saveable.SaverScope
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
 import org.junit.Assert.assertEquals
@@ -10,12 +9,6 @@ import java.time.Instant
 import java.time.LocalDate
 
 class MealDraftTest {
-    private val allSaveable = SaverScope { true }
-
-    private fun roundTrip(draft: MealDraft): MealDraft? = with(MealDraftSaver) {
-        restore(allSaveable.save(draft)!!)
-    }
-
     private fun meal() = Meal(
         id = "m1",
         date = LocalDate.of(2026, 10, 7),
@@ -36,7 +29,7 @@ class MealDraftTest {
     @Test
     fun unaComidaNuevaEmpiezaVaciaEnLaFranjaIndicada() {
         val draft = MealDraft.of(null, MealSlot.DESAYUNO)
-        assertEquals(MealDraft("", null, emptyList(), null, MealSlot.DESAYUNO.name), draft)
+        assertEquals(MealDraft("", null, emptyList(), null, MealSlot.DESAYUNO), draft)
         assertEquals(MealSlot.DESAYUNO, draft.slot)
     }
 
@@ -61,14 +54,6 @@ class MealDraftTest {
     fun cambiarElNombreADescartaLaRecetaVinculada() {
         val draft = MealDraft.of(meal(), MealSlot.COMIDA).withName("Otra cosa")
         assertNull(draft.recipeId)
-    }
-
-    @Test
-    fun elBorradorSobreviveAUnaRotacion() {
-        val draft = MealDraft.of(meal(), MealSlot.COMIDA)
-        assertEquals(draft, roundTrip(draft))
-        val empty = MealDraft.of(null, MealSlot.COMIDA)
-        assertEquals(empty, roundTrip(empty))
     }
 
     @Test

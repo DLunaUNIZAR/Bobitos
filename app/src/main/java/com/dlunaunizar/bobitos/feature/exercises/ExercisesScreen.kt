@@ -272,7 +272,7 @@ private fun ExerciseEditorDialog(
     onSave: (String, ExerciseType, String?) -> Unit,
 ) {
     val initial = CatalogExerciseDraft.of(exercise)
-    var draft by rememberSaveable(exercise?.id, stateSaver = CatalogExerciseDraftSaver) { mutableStateOf(initial) }
+    var draft by rememberSaveable(exercise?.id) { mutableStateOf(initial) }
     BobitosFormSheet(
         title = stringResource(if (exercise == null) R.string.exercises_add_title else R.string.exercises_edit_title),
         confirmLabel = stringResource(R.string.save),
@@ -297,7 +297,7 @@ private fun ExerciseEditorDialog(
             ExerciseType.entries.forEach { option ->
                 FilterChip(
                     selected = draft.type == option,
-                    onClick = { draft = draft.copy(typeName = option.name) },
+                    onClick = { draft = draft.copy(type = option) },
                     label = { Text(stringResource(option.labelRes)) },
                 )
             }

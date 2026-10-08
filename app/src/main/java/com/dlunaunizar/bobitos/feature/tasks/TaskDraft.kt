@@ -1,29 +1,28 @@
 package com.dlunaunizar.bobitos.feature.tasks
 
-import androidx.compose.runtime.saveable.listSaver
+import android.os.Parcelable
 import com.dlunaunizar.bobitos.core.model.RecurrenceUnit
 import com.dlunaunizar.bobitos.core.model.TaskItem
 import com.dlunaunizar.bobitos.core.model.TaskPriority
 import com.dlunaunizar.bobitos.core.model.TaskRecurrence
 import com.dlunaunizar.bobitos.core.model.TaskType
+import kotlinx.parcelize.Parcelize
 
-// Borrador del editor de tarea: solo tipos que caben en un Bundle (texto, números y nombres de enum),
-// para que sobreviva a una rotación. `priorityName`/`typeName`/`recurrenceUnit` son `name` de los enums.
+// Borrador del editor de tarea. Parcelable para que sobreviva a una rotación. Las fechas son el texto
+// del campo (se validan al guardar).
+@Parcelize
 internal data class TaskDraft(
     val title: String,
     val description: String,
     val assigneeId: String?,
     val startDate: String,
     val dueDate: String,
-    val priorityName: String,
-    val typeName: String?,
-    val recurrenceUnit: String?,
+    val priority: TaskPriority,
+    val type: TaskType?,
+    val recurrenceUnit: RecurrenceUnit?,
     val recurrenceInterval: Int,
-) {
-    val priority: TaskPriority get() = TaskPriority.valueOf(priorityName)
-    val type: TaskType? get() = typeName?.let(TaskType::valueOf)
-    val recurrence: TaskRecurrence?
-        get() = recurrenceUnit?.let { TaskRecurrence(RecurrenceUnit.valueOf(it), recurrenceInterval) }
+) : Parcelable {
+    val recurrence: TaskRecurrence? get() = recurrenceUnit?.let { TaskRecurrence(it, recurrenceInterval) }
 
     companion object {
         // Por defecto «sin responsable» en tareas nuevas; al editar se conserva el actual.
@@ -35,33 +34,11 @@ internal data class TaskDraft(
                 assigneeId = task?.assigneeId,
                 startDate = task?.startAt?.formatIsoDate().orEmpty(),
                 dueDate = task?.dueAt?.formatIsoDate().orEmpty(),
-                priorityName = (task?.priority ?: TaskPriority.MEDIUM).name,
-                typeName = (task?.type ?: template?.type)?.name,
-                recurrenceUnit = recurrence?.unit?.name,
+                priority = task?.priority ?: TaskPriority.MEDIUM,
+                type = task?.type ?: template?.type,
+                recurrenceUnit = recurrence?.unit,
                 recurrenceInterval = recurrence?.interval ?: 1,
             )
         }
     }
 }
-
-internal val TaskDraftSaver = listSaver<TaskDraft, Any?>(
-    save = {
-        listOf(
-            it.title, it.description, it.assigneeId, it.startDate, it.dueDate,
-            it.priorityName, it.typeName, it.recurrenceUnit, it.recurrenceInterval,
-        )
-    },
-    restore = {
-        TaskDraft(
-            title = it[0] as String,
-            description = it[1] as String,
-            assigneeId = it[2] as String?,
-            startDate = it[3] as String,
-            dueDate = it[4] as String,
-            priorityName = it[5] as String,
-            typeName = it[6] as String?,
-            recurrenceUnit = it[7] as String?,
-            recurrenceInterval = it[8] as Int,
-        )
-    },
-)

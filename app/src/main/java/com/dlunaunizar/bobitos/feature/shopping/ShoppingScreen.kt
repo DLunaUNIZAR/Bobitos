@@ -618,7 +618,7 @@ private fun ShoppingItemEditor(
     onSave: (String, String?, String?, Supermarket?, String?) -> Unit,
 ) {
     val initial = ShoppingDraft.of(item)
-    var draft by rememberSaveable(item?.id, stateSaver = ShoppingDraftSaver) { mutableStateOf(initial) }
+    var draft by rememberSaveable(item?.id) { mutableStateOf(initial) }
     val name = draft.name
     val quantity = draft.quantity
     val notes = draft.notes
@@ -663,7 +663,7 @@ private fun ShoppingItemEditor(
                             val pref = prefFor(suggestion)
                             draft = draft.copy(
                                 name = suggestion,
-                                supermarketName = pref?.supermarket?.name ?: draft.supermarketName,
+                                supermarket = pref?.supermarket ?: draft.supermarket,
                                 brand = pref?.brand ?: draft.brand,
                             )
                         },
@@ -701,7 +701,7 @@ private fun ShoppingItemEditor(
         )
         SupermarketAndBrandFields(
             supermarket = draft.supermarket,
-            onSupermarket = { draft = draft.copy(supermarketName = it?.name) },
+            onSupermarket = { draft = draft.copy(supermarket = it) },
             brand = brand,
             onBrand = { draft = draft.copy(brand = it) },
         )

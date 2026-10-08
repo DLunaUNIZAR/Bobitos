@@ -713,7 +713,7 @@ private fun TaskEditor(
     // Al crear desde una plantilla, se prerrellena título/tipo/recurrencia (editable antes de guardar).
     val templateTitle = template?.titleRes?.let { stringResource(it) }.orEmpty()
     val initial = TaskDraft.of(task, template, templateTitle)
-    var draft by rememberSaveable(task?.id, template?.titleRes, stateSaver = TaskDraftSaver) {
+    var draft by rememberSaveable(task?.id, template?.titleRes) {
         mutableStateOf(initial)
     }
     var memberMenu by remember { mutableStateOf(false) }
@@ -793,7 +793,7 @@ private fun TaskEditor(
             TaskPriority.entries.forEachIndexed { index, value ->
                 SegmentedButton(
                     selected = draft.priority == value,
-                    onClick = { draft = draft.copy(priorityName = value.name) },
+                    onClick = { draft = draft.copy(priority = value) },
                     shape = SegmentedButtonDefaults.itemShape(index, TaskPriority.entries.size),
                     icon = {
                         Box(
@@ -808,11 +808,11 @@ private fun TaskEditor(
                 }
             }
         }
-        TaskTypePicker(selected = draft.type, onSelect = { draft = draft.copy(typeName = it?.name) })
+        TaskTypePicker(selected = draft.type, onSelect = { draft = draft.copy(type = it) })
         RecurrencePicker(
             selected = draft.recurrence,
             onSelect = {
-                draft = draft.copy(recurrenceUnit = it?.unit?.name, recurrenceInterval = it?.interval ?: 1)
+                draft = draft.copy(recurrenceUnit = it?.unit, recurrenceInterval = it?.interval ?: 1)
             },
         )
         validation?.let { Text(stringResource(it.stringRes()), color = MaterialTheme.colorScheme.error) }

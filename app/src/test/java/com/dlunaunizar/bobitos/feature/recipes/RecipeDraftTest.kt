@@ -1,6 +1,5 @@
 package com.dlunaunizar.bobitos.feature.recipes
 
-import androidx.compose.runtime.saveable.SaverScope
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
@@ -11,12 +10,6 @@ import org.junit.Test
 import java.time.Instant
 
 class RecipeDraftTest {
-    private val allSaveable = SaverScope { true }
-
-    private fun roundTrip(draft: RecipeDraft): RecipeDraft? = with(RecipeDraftSaver) {
-        restore(allSaveable.save(draft)!!)
-    }
-
     private fun recipe(visibility: RecipeVisibility = RecipeVisibility.PRIVATE) = Recipe(
         id = "r1", ownerUid = "u", visibility = visibility, title = "Lentejas", description = null,
         category = "Legumbres", sourceUrl = "https://origen.example/lentejas",
@@ -62,13 +55,5 @@ class RecipeDraftTest {
     fun alGuardarSeDescartanFilasSinNombreYSeNormalizaLoVacio() {
         val rows = listOf(IngredientRow("  Arroz ", " 200 ", ""), IngredientRow("   ", "5", "g"), IngredientRow("Sal"))
         assertEquals(listOf(Ingredient("Arroz", "200", null), Ingredient("Sal", null, null)), rows.toIngredients())
-    }
-
-    @Test
-    fun elBorradorSobreviveAUnaRotacion() {
-        val full = RecipeDraft.of(recipe(), null).copy(sourceUrl = "https://web.example/x")
-        assertEquals(full, roundTrip(full))
-        val empty = RecipeDraft.of(null, null)
-        assertEquals(empty, roundTrip(empty))
     }
 }

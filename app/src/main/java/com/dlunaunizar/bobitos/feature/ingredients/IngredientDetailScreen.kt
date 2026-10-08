@@ -69,12 +69,12 @@ fun IngredientDetailScreen(
     LaunchedEffect(state.finished) { if (state.finished) onBack() }
 
     var showFichaEditor by rememberSaveable { mutableStateOf(false) }
-    // El editor de marca sobrevive a una rotación: se guarda el id de la marca y los valores iniciales como texto.
+    // El editor de marca sobrevive a una rotación: se guarda el id de la marca y su borrador inicial.
     var brandEditorId by rememberSaveable { mutableStateOf<String?>(null) }
-    var brandInitialSaved by rememberSaveable { mutableStateOf<ArrayList<Any?>?>(null) }
+    var brandInitial by rememberSaveable { mutableStateOf<BrandDraft?>(null) }
     val openBrandEditor: (String?, BrandDraft) -> Unit = { id, initial ->
         brandEditorId = id
-        brandInitialSaved = initial.toSaved()
+        brandInitial = initial
     }
     var confirmDeleteIngredient by remember { mutableStateOf(false) }
     var brandToDelete by remember { mutableStateOf<IngredientBrand?>(null) }
@@ -155,9 +155,9 @@ fun IngredientDetailScreen(
 
     BrandEditorHost(
         brandId = brandEditorId,
-        initialSaved = brandInitialSaved,
+        initial = brandInitial,
         saving = state.isSaving,
-        onClose = { brandInitialSaved = null },
+        onClose = { brandInitial = null },
         onSave = { brandId, name, barcode, nutrition ->
             brandId?.let { viewModel.updateBrand(it, name, barcode, nutrition) }
                 ?: viewModel.addBrand(name, barcode, nutrition)
@@ -341,15 +341,15 @@ private fun NutritionSummary(nutrition: Nutrition) {
 @Composable
 private fun BrandEditorHost(
     brandId: String?,
-    initialSaved: List<Any?>?,
+    initial: BrandDraft?,
     saving: Boolean,
     onClose: () -> Unit,
     onSave: (String?, String, String?, Nutrition?) -> Unit,
 ) {
-    if (initialSaved == null) return
+    if (initial == null) return
     BrandEditorDialog(
         brandId = brandId,
-        initial = remember(initialSaved) { brandDraftFromSaved(initialSaved) },
+        initial = initial,
         saving = saving,
         onDismiss = onClose,
         onSave = { name, barcode, nutrition ->
@@ -367,7 +367,7 @@ private fun BrandEditorDialog(
     onDismiss: () -> Unit,
     onSave: (String, String?, Nutrition?) -> Unit,
 ) {
-    var draft by rememberSaveable(brandId, initial, stateSaver = BrandDraftSaver) { mutableStateOf(initial) }
+    var draft by rememberSaveable(brandId, initial) { mutableStateOf(initial) }
     BobitosFormSheet(
         title = stringResource(
             if (brandId == null) R.string.ingredients_brand_add_title else R.string.ingredients_brand_edit_title,
