@@ -14,13 +14,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -52,13 +49,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosInfoSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Routine
 import com.dlunaunizar.bobitos.core.model.RoutineExercise
+import com.dlunaunizar.bobitos.core.model.RoutineVisibility
 import com.dlunaunizar.bobitos.feature.exercises.isStrength
 import com.dlunaunizar.bobitos.feature.exercises.labelRes
 
@@ -75,8 +75,10 @@ fun RoutinesScreen(
         viewModel.observe()
         onDispose { viewModel.stopObserving() }
     }
-    var detail by remember { mutableStateOf<Routine?>(null) }
-    var editor by remember { mutableStateOf<RoutineEditorRequest?>(null) }
+    // Editor y detalle sobreviven a una rotación: se guarda el id de la rutina, no el objeto.
+    var detailRoutineId by rememberSaveable { mutableStateOf<String?>(null) }
+    var editorOpen by rememberSaveable { mutableStateOf(false) }
+    var editorRoutineId by rememberSaveable { mutableStateOf<String?>(null) }
     var deleteTarget by remember { mutableStateOf<Routine?>(null) }
     var query by rememberSaveable { mutableStateOf("") }
     LaunchedEffect(query) { viewModel.setQuery(query) }
@@ -89,7 +91,10 @@ fun RoutinesScreen(
         floatingActionButton = {
             if (canWrite) {
                 ExtendedFloatingActionButton(
-                    onClick = { editor = RoutineEditorRequest(null) },
+                    onClick = {
+                        editorRoutineId = null
+                        editorOpen = true
+                    },
                     icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
                     text = { Text(stringResource(R.string.routines_add)) },
                 )
@@ -109,29 +114,32 @@ fun RoutinesScreen(
             RoutinesCatalog(
                 state = state,
                 canWrite = canWrite,
-                onOpen = { detail = it },
-                onEdit = { editor = RoutineEditorRequest(it) },
+                onOpen = { detailRoutineId = it.id },
+                onEdit = {
+                    editorRoutineId = it.id
+                    editorOpen = true
+                },
                 onDelete = { deleteTarget = it },
             )
         }
     }
 
-    detail?.let { RoutineDetailDialog(routine = it, onDismiss = { detail = null }) }
-    editor?.let { request ->
-        RoutineEditor(
-            request = request,
-            catalog = state.exercises,
-            isAdmin = state.isAdmin,
-            saving = state.isSaving,
-            canWrite = canWrite,
-            onDismiss = { editor = null },
-            onSave = { visibility, title, description, exercises ->
-                request.routine?.let { viewModel.updateRoutine(it.id, title, description, exercises) }
-                    ?: viewModel.createRoutine(visibility, title, description, exercises)
-                editor = null
-            },
-        )
-    }
+    RoutineSheetsHost(
+        state = state,
+        canWrite = canWrite,
+        detailRoutineId = detailRoutineId,
+        editorOpen = editorOpen,
+        editorRoutineId = editorRoutineId,
+        onCloseDetail = { detailRoutineId = null },
+        onCloseEditor = {
+            editorOpen = false
+            editorRoutineId = null
+        },
+        onSave = { routine, visibility, title, description, exercises ->
+            routine?.let { viewModel.updateRoutine(it.id, title, description, exercises) }
+                ?: viewModel.createRoutine(visibility, title, description, exercises)
+        },
+    )
     deleteTarget?.let { routine ->
         BobitosDialog(
             title = stringResource(R.string.routines_delete_title),
@@ -295,44 +303,78 @@ private fun RoutineCard(
     }
 }
 
+// Muestra el detalle y el editor de rutina. Si la rutina abierta ya no existe, los cierra (mientras las
+// listas cargan, espera) y mantiene la rutina durante una recarga para no perder el borrador.
 @Composable
-private fun RoutineDetailDialog(routine: Routine, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(routine.title) },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-            ) {
-                routine.description?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-                val exercises = routine.exercises.orEmpty()
-                if (exercises.isEmpty()) {
+private fun RoutineSheetsHost(
+    state: RoutinesUiState,
+    canWrite: Boolean,
+    detailRoutineId: String?,
+    editorOpen: Boolean,
+    editorRoutineId: String?,
+    onCloseDetail: () -> Unit,
+    onCloseEditor: () -> Unit,
+    onSave: (Routine?, RoutineVisibility, String, String?, List<RoutineExercise>) -> Unit,
+) {
+    val global = state.global as? UiState.Content
+    val mine = state.mine as? UiState.Content
+    val loaded = global != null && mine != null
+    val all = global?.value.orEmpty() + mine?.value.orEmpty()
+    val detail =
+        rememberEditorItem(detailRoutineId, detailRoutineId?.let { id -> all.firstOrNull { it.id == id } }, loaded)
+    val editing =
+        rememberEditorItem(editorRoutineId, editorRoutineId?.let { id -> all.firstOrNull { it.id == id } }, loaded)
+    val detailGone = detailRoutineId != null && detail == null
+    val editorGone = editorRoutineId != null && editing == null
+    LaunchedEffect(detailGone, editorGone, loaded) {
+        if (loaded && detailGone) onCloseDetail()
+        if (loaded && editorGone) onCloseEditor()
+    }
+    detail?.let { RoutineDetailSheet(routine = it, onDismiss = onCloseDetail) }
+    if (editorOpen && !editorGone) {
+        RoutineEditor(
+            routine = editing,
+            catalog = state.exercises,
+            isAdmin = state.isAdmin,
+            saving = state.isSaving,
+            canWrite = canWrite,
+            onDismiss = onCloseEditor,
+            onSave = { visibility, title, description, exercises ->
+                onSave(editing, visibility, title, description, exercises)
+                onCloseEditor()
+            },
+        )
+    }
+}
+
+@Composable
+private fun RoutineDetailSheet(routine: Routine, onDismiss: () -> Unit) {
+    BobitosInfoSheet(title = routine.title, onDismiss = onDismiss) {
+        routine.description?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+        val exercises = routine.exercises.orEmpty()
+        if (exercises.isEmpty()) {
+            Text(
+                stringResource(R.string.routines_no_exercises),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            exercises.forEach { exercise ->
+                Text("• ${exercise.name}", style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    text = exercise.summary(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                exercise.notes?.let { notes ->
                     Text(
-                        stringResource(R.string.routines_no_exercises),
+                        text = notes,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                } else {
-                    exercises.forEach { exercise ->
-                        Text("• ${exercise.name}", style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            text = exercise.summary(),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        exercise.notes?.let { notes ->
-                            Text(
-                                text = notes,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
                 }
             }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) } },
-    )
+        }
+    }
 }
 
 @Composable
