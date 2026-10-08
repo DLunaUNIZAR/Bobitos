@@ -27,7 +27,6 @@ import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -41,7 +40,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,7 +64,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
-import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Meal
@@ -74,6 +72,8 @@ import com.dlunaunizar.bobitos.core.model.MealSlot
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewDialog
+import com.dlunaunizar.bobitos.feature.common.MemberCheckboxes
+import com.dlunaunizar.bobitos.feature.common.formatted
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
@@ -535,13 +535,14 @@ private fun MealEditorHost(
     onClose: () -> Unit,
     onSave: (Meal?, MealSlot, String, List<String>, String?, String?) -> Unit,
 ) {
-    // Se mantiene la comida mientras la lista recarga (p. ej. al girar), para no perder el borrador.
-    val meal = rememberEditorItem(mealId, mealId?.let { id -> meals.firstOrNull { it.id == id } }, mealsLoaded)
-    val unresolved = open && mealId != null && meal == null
-    LaunchedEffect(unresolved, mealsLoaded) {
-        if (unresolved && mealsLoaded) onClose()
-    }
-    if (!open || unresolved) return
+    val slot = rememberEditorSlot(
+        open = open,
+        id = mealId,
+        items = meals.takeIf { mealsLoaded },
+        idOf = Meal::id,
+        onGone = onClose,
+    ) ?: return
+    val meal = slot.item
     MealEditor(
         meal = meal,
         initialSlot = MealSlot.valueOf(slotName),
@@ -578,7 +579,7 @@ private fun MealEditor(
         confirmLabel = stringResource(R.string.save),
         confirmEnabled = validation == null && canWrite,
         saving = saving,
-        dirty = draft != initial,
+        dirty = { draft != initial },
         onDismiss = onDismiss,
         onConfirm = {
             onSave(
@@ -637,19 +638,12 @@ private fun MealEditor(
 private fun MealParticipants(members: List<SpaceMember>, draft: MealDraft, onDraft: (MealDraft) -> Unit) {
     if (members.isEmpty()) return
     var cookMenu by remember { mutableStateOf(false) }
-    Text(
-        text = stringResource(R.string.meals_participants_label),
-        style = MaterialTheme.typography.labelLarge,
+    MemberCheckboxes(
+        label = stringResource(R.string.meals_participants_label),
+        members = members,
+        selectedIds = draft.selectedIds,
+        onToggle = { userId, selected -> onDraft(draft.withParticipant(userId, selected)) },
     )
-    members.forEach { member ->
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(
-                checked = member.userId in draft.selectedIds,
-                onCheckedChange = { checked -> onDraft(draft.withParticipant(member.userId, checked)) },
-            )
-            Text(member.displayName)
-        }
-    }
     if (draft.selectedIds.isEmpty()) return
     Text(
         text = stringResource(R.string.meals_cook_label),
@@ -769,9 +763,6 @@ private fun MealsFeedback(state: MealsUiState, onDismiss: () -> Unit) {
 }
 
 private val HEADER_FORMAT = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Locale.forLanguageTag("es"))
-
-// «300 g Arroz» o «Sal» (omite cantidad/unidad ausentes).
-private fun Ingredient.formatted(): String = listOfNotNull(quantity, unit, name).joinToString(" ")
 
 // Coincidencia por texto (nombre de la comida) para el buscador; en blanco no filtra.
 private fun Meal.matchesQuery(query: String): Boolean =

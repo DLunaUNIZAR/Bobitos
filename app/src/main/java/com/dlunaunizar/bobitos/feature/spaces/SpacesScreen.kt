@@ -40,7 +40,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
@@ -49,7 +48,6 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.SyncStatusBanner
-import com.dlunaunizar.bobitos.core.model.SpaceRole
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.core.model.SyncStatus
 
@@ -298,10 +296,6 @@ private fun SpaceCard(space: SpaceSummary, onClick: () -> Unit) {
         scheme.tertiaryContainer to scheme.onTertiaryContainer,
     )
     val (container, content) = palette[space.id.hashCode().mod(palette.size)]
-    val roleText = stringResource(
-        if (space.role == SpaceRole.OWNER) R.string.space_role_owner else R.string.space_role_member,
-    )
-    val membersText = pluralStringResource(R.plurals.space_members, space.memberCount, space.memberCount)
     Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -319,7 +313,7 @@ private fun SpaceCard(space: SpaceSummary, onClick: () -> Unit) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = space.name, style = MaterialTheme.typography.titleLarge)
                 Text(
-                    text = "$roleText · $membersText",
+                    text = space.roleAndMembers(),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

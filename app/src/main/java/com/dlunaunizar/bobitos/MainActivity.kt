@@ -12,11 +12,14 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.app.AppViewModel
 import com.dlunaunizar.bobitos.app.BobitosApp
 import com.dlunaunizar.bobitos.core.designsystem.theme.BobitosTheme
 import com.dlunaunizar.bobitos.core.designsystem.theme.ThemeMode
+import com.dlunaunizar.bobitos.core.designsystem.theme.backgroundDark
+import com.dlunaunizar.bobitos.core.designsystem.theme.backgroundLight
 import com.dlunaunizar.bobitos.core.model.InvitationCode
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.navigation.RecipeShareUrl
@@ -55,7 +58,9 @@ class MainActivity : ComponentActivity() {
             DisposableEffect(darkTheme) {
                 // La ventana previa a Compose sigue al sistema; si la app fuerza otro tema, se alinea aquí
                 // para que rotaciones y reaperturas no dejen ver un fondo de otro tema.
-                window.setBackgroundDrawable(ColorDrawable(if (darkTheme) windowDark else windowLight))
+                window.setBackgroundDrawable(
+                    ColorDrawable((if (darkTheme) backgroundDark else backgroundLight).toArgb()),
+                )
                 enableEdgeToEdge(
                     statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { darkTheme },
                     navigationBarStyle = SystemBarStyle.auto(lightScrim, darkScrim) { darkTheme },
@@ -131,7 +136,3 @@ class MainActivity : ComponentActivity() {
 // Velos (scrims) de las barras del sistema en edge-to-edge, atados al tema de la app (no al móvil).
 private val lightScrim = Color.argb(0xe6, 0xFF, 0xFF, 0xFF)
 private val darkScrim = Color.argb(0x80, 0x1b, 0x1b, 0x1b)
-
-// Fondos del tema (Color.kt: backgroundLight / backgroundDark) para la ventana previa a Compose.
-private val windowLight = Color.rgb(0xFB, 0xFA, 0xF8)
-private val windowDark = Color.rgb(0x14, 0x15, 0x13)

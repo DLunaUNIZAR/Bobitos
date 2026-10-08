@@ -16,9 +16,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -29,10 +29,11 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosInfoSheet
-import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
+import com.dlunaunizar.bobitos.feature.common.formatted
 
 private const val MAX_INGREDIENT_ROWS = 50
 
@@ -53,18 +54,22 @@ internal fun RecipeSheetsHost(
 ) {
     val mine = state.mine as? UiState.Content
     val global = state.global as? UiState.Content
-    val loaded = mine != null && global != null
-    val all = mine?.value.orEmpty() + global?.value.orEmpty()
-    val detail =
-        rememberEditorItem(detailRecipeId, detailRecipeId?.let { id -> all.firstOrNull { it.id == id } }, loaded)
-    val editing =
-        rememberEditorItem(editorRecipeId, editorRecipeId?.let { id -> all.firstOrNull { it.id == id } }, loaded)
-    val detailGone = detailRecipeId != null && detail == null
-    val editorGone = editorRecipeId != null && editing == null
-    LaunchedEffect(detailGone, editorGone, loaded) {
-        if (loaded && detailGone) actions.onCloseDetail()
-        if (loaded && editorGone) actions.onCloseEditor()
-    }
+    // Las dos listas juntas; null mientras alguna carga.
+    val all = if (mine != null && global != null) mine.value + global.value else null
+    val detail = rememberEditorSlot(
+        open = detailRecipeId != null,
+        id = detailRecipeId,
+        items = all,
+        idOf = Recipe::id,
+        onGone = actions.onCloseDetail,
+    )?.item
+    val editor = rememberEditorSlot(
+        open = editorOpen,
+        id = editorRecipeId,
+        items = all,
+        idOf = Recipe::id,
+        onGone = actions.onCloseEditor,
+    )
     detail?.let { recipe ->
         RecipeDetailSheet(
             recipe = recipe,
@@ -74,10 +79,11 @@ internal fun RecipeSheetsHost(
             actions = actions,
         )
     }
-    if (editorOpen && !editorGone) {
+    editor?.let { slot ->
+        val editing = slot.item
         RecipeEditor(
             recipe = editing,
-            imported = importedSaved?.let(::recipeDraftFromSaved),
+            imported = remember(importedSaved) { importedSaved?.let(::recipeDraftFromSaved) },
             saving = state.isSaving,
             canWrite = canWrite,
             isAdmin = state.isAdmin,
@@ -163,7 +169,7 @@ private fun RecipeEditor(
         confirmLabel = stringResource(R.string.save),
         confirmEnabled = validation == null && canWrite,
         saving = saving,
-        dirty = draft != initial,
+        dirty = { draft != initial },
         onDismiss = onDismiss,
         onConfirm = {
             val visibility = if (draft.global) RecipeVisibility.GLOBAL else RecipeVisibility.PRIVATE
@@ -309,6 +315,3 @@ private fun IngredientsEditor(rows: List<IngredientRow>, onRowsChange: (List<Ing
 
 private fun RecipeUiMessage?.isTitleError(): Boolean =
     this == RecipeUiMessage.TitleRequired || this == RecipeUiMessage.TitleTooLong
-
-// «300 g Arroz» o «Sal» (omite cantidad/unidad ausentes).
-private fun Ingredient.formatted(): String = listOfNotNull(quantity, unit, name).joinToString(" ")

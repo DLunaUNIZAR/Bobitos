@@ -71,7 +71,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
-import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientPref
@@ -105,12 +105,6 @@ fun ShoppingScreen(
     var duplicatePrompt by remember { mutableStateOf<ShoppingDuplicate?>(null) }
     val content = state.items as? UiState.Content
     val allItems = content?.value.orEmpty()
-    // Se mantiene el último elemento mientras la lista recarga (p. ej. al girar), para no perder el borrador.
-    val editedItem = rememberEditorItem(
-        editedItemId,
-        editedItemId?.let { id -> allItems.firstOrNull { it.id == id } },
-        content != null,
-    )
     val findByName: (String) -> ShoppingItem? = { raw ->
         raw.trim().takeIf(String::isNotEmpty)?.let { name ->
             allItems.firstOrNull { it.name.trim().equals(name, ignoreCase = true) }
@@ -316,12 +310,14 @@ fun ShoppingScreen(
         }
     }
 
-    // Si el ítem que se editaba ya no existe, se cierra el editor (mientras carga, se espera).
-    val editorUnresolved = editedItemId != null && editedItem == null
-    LaunchedEffect(editorVisible, editorUnresolved, content != null) {
-        if (editorVisible && editorUnresolved && content != null) editorVisible = false
-    }
-    if (editorVisible && !editorUnresolved) {
+    rememberEditorSlot(
+        open = editorVisible,
+        id = editedItemId,
+        items = content?.value,
+        idOf = ShoppingItem::id,
+        onGone = { editorVisible = false },
+    )?.let { slot ->
+        val editedItem = slot.item
         ShoppingItemEditor(
             item = editedItem,
             saving = state.isSaving,
@@ -637,7 +633,7 @@ private fun ShoppingItemEditor(
         confirmLabel = stringResource(R.string.save),
         confirmEnabled = validation == null,
         saving = saving,
-        dirty = draft != initial,
+        dirty = { draft != initial },
         onDismiss = onDismiss,
         onConfirm = { onSave(name, quantity, notes, draft.supermarket, brand.trim().ifEmpty { null }) },
     ) {

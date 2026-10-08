@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.formatDecimal
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
@@ -69,13 +70,11 @@ fun IngredientDetailScreen(
 
     var showFichaEditor by rememberSaveable { mutableStateOf(false) }
     // El editor de marca sobrevive a una rotación: se guarda el id de la marca y los valores iniciales como texto.
-    var brandEditorOpen by rememberSaveable { mutableStateOf(false) }
     var brandEditorId by rememberSaveable { mutableStateOf<String?>(null) }
     var brandInitialSaved by rememberSaveable { mutableStateOf<ArrayList<Any?>?>(null) }
     val openBrandEditor: (String?, BrandDraft) -> Unit = { id, initial ->
         brandEditorId = id
         brandInitialSaved = initial.toSaved()
-        brandEditorOpen = true
     }
     var confirmDeleteIngredient by remember { mutableStateOf(false) }
     var brandToDelete by remember { mutableStateOf<IngredientBrand?>(null) }
@@ -155,11 +154,10 @@ fun IngredientDetailScreen(
     }
 
     BrandEditorHost(
-        open = brandEditorOpen,
         brandId = brandEditorId,
         initialSaved = brandInitialSaved,
         saving = state.isSaving,
-        onClose = { brandEditorOpen = false },
+        onClose = { brandInitialSaved = null },
         onSave = { brandId, name, barcode, nutrition ->
             brandId?.let { viewModel.updateBrand(it, name, barcode, nutrition) }
                 ?: viewModel.addBrand(name, barcode, nutrition)
@@ -324,12 +322,12 @@ private fun BrandCard(brand: IngredientBrand, canEdit: Boolean, onEdit: () -> Un
 @Composable
 private fun NutritionSummary(nutrition: Nutrition) {
     val parts = listOfNotNull(
-        nutrition.energyKcal?.let { stringResource(R.string.nutrition_energy, formatNumber(it)) },
-        nutrition.fat?.let { stringResource(R.string.nutrition_fat, formatNumber(it)) },
-        nutrition.carbohydrates?.let { stringResource(R.string.nutrition_carbs, formatNumber(it)) },
-        nutrition.sugars?.let { stringResource(R.string.nutrition_sugars, formatNumber(it)) },
-        nutrition.protein?.let { stringResource(R.string.nutrition_protein, formatNumber(it)) },
-        nutrition.salt?.let { stringResource(R.string.nutrition_salt, formatNumber(it)) },
+        nutrition.energyKcal?.let { stringResource(R.string.nutrition_energy, formatDecimal(it)) },
+        nutrition.fat?.let { stringResource(R.string.nutrition_fat, formatDecimal(it)) },
+        nutrition.carbohydrates?.let { stringResource(R.string.nutrition_carbs, formatDecimal(it)) },
+        nutrition.sugars?.let { stringResource(R.string.nutrition_sugars, formatDecimal(it)) },
+        nutrition.protein?.let { stringResource(R.string.nutrition_protein, formatDecimal(it)) },
+        nutrition.salt?.let { stringResource(R.string.nutrition_salt, formatDecimal(it)) },
     )
     if (parts.isEmpty()) return
     Text(
@@ -339,20 +337,19 @@ private fun NutritionSummary(nutrition: Nutrition) {
     )
 }
 
-// Muestra el editor de marca con los valores iniciales guardados (nueva, editar o recién escaneada).
+// Muestra el editor de marca mientras haya valores iniciales guardados (nueva, editar o recién escaneada).
 @Composable
 private fun BrandEditorHost(
-    open: Boolean,
     brandId: String?,
     initialSaved: List<Any?>?,
     saving: Boolean,
     onClose: () -> Unit,
     onSave: (String?, String, String?, Nutrition?) -> Unit,
 ) {
-    if (!open || initialSaved == null) return
+    if (initialSaved == null) return
     BrandEditorDialog(
         brandId = brandId,
-        initial = brandDraftFromSaved(initialSaved),
+        initial = remember(initialSaved) { brandDraftFromSaved(initialSaved) },
         saving = saving,
         onDismiss = onClose,
         onSave = { name, barcode, nutrition ->
@@ -378,7 +375,7 @@ private fun BrandEditorDialog(
         confirmLabel = stringResource(R.string.save),
         confirmEnabled = draft.name.isNotBlank(),
         saving = saving,
-        dirty = draft != initial,
+        dirty = { draft != initial },
         onDismiss = onDismiss,
         onConfirm = { onSave(draft.name, draft.barcode.trim().ifBlank { null }, draft.toNutrition()) },
     ) {

@@ -96,7 +96,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
-import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.RecurrenceUnit
@@ -160,12 +160,11 @@ fun TasksScreen(
     var editorTaskId by rememberSaveable { mutableStateOf<String?>(null) }
     var editorTemplateIndex by rememberSaveable { mutableStateOf(-1) }
     var editorVisible by rememberSaveable { mutableStateOf(false) }
-    // Se mantiene el último elemento mientras la lista recarga (p. ej. al girar), para no perder el borrador.
-    val editorTask = rememberEditorItem(
-        editorTaskId,
-        editorTaskId?.let { id -> allTasks.firstOrNull { it.id == id } },
-        state.tasks is UiState.Content,
-    )
+    val openEditor: (taskId: String?, templateIndex: Int) -> Unit = { taskId, templateIndex ->
+        editorTaskId = taskId
+        editorTemplateIndex = templateIndex
+        editorVisible = true
+    }
     val editorTemplate = homeTaskTemplates.getOrNull(editorTemplateIndex)
     var deleteTask by remember { mutableStateOf<TaskItem?>(null) }
     var templatesVisible by remember { mutableStateOf(false) }
@@ -233,9 +232,7 @@ fun TasksScreen(
                         actionLabel = if (firstRun && canWrite) stringResource(R.string.tasks_add) else null,
                         onAction = if (firstRun && canWrite) {
                             {
-                                editorTaskId = null
-                                editorTemplateIndex = -1
-                                editorVisible = true
+                                openEditor(null, -1)
                             }
                         } else {
                             null
@@ -273,9 +270,7 @@ fun TasksScreen(
                                 enabled,
                                 onSetCompleted = { viewModel.setCompleted(spaceId, task.id, it) },
                                 onEdit = {
-                                    editorTaskId = task.id
-                                    editorTemplateIndex = -1
-                                    editorVisible = true
+                                    openEditor(task.id, -1)
                                 },
                                 onDelete = { deleteTask = task },
                                 modifier = accessibilityModifier,
@@ -310,9 +305,7 @@ fun TasksScreen(
         if (canWrite) {
             ExtendedFloatingActionButton(
                 onClick = {
-                    editorTaskId = null
-                    editorTemplateIndex = -1
-                    editorVisible = true
+                    openEditor(null, -1)
                 },
                 icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
                 text = { Text(stringResource(R.string.tasks_add)) },
@@ -328,19 +321,18 @@ fun TasksScreen(
             onDismiss = { templatesVisible = false },
             onPick = { picked ->
                 templatesVisible = false
-                editorTaskId = null
-                editorTemplateIndex = homeTaskTemplates.indexOf(picked)
-                editorVisible = true
+                openEditor(null, homeTaskTemplates.indexOf(picked))
             },
         )
     }
-    // Si la tarea que se editaba ya no existe, se cierra el editor (mientras carga, se espera).
-    val editorUnresolved = editorTaskId != null && editorTask == null
-    val tasksLoaded = state.tasks is UiState.Content
-    LaunchedEffect(editorVisible, editorUnresolved, tasksLoaded) {
-        if (editorVisible && editorUnresolved && tasksLoaded) editorVisible = false
-    }
-    if (editorVisible && !editorUnresolved) {
+    rememberEditorSlot(
+        open = editorVisible,
+        id = editorTaskId,
+        items = (state.tasks as? UiState.Content)?.value,
+        idOf = TaskItem::id,
+        onGone = { editorVisible = false },
+    )?.let { slot ->
+        val editorTask = slot.item
         TaskEditor(
             task = editorTask,
             template = editorTemplate,
@@ -727,33 +719,24 @@ private fun TaskEditor(
     var memberMenu by remember { mutableStateOf(false) }
 
     val validation = TaskValidation.validate(draft.title, draft.description)
-    val title = draft.title
-    val description = draft.description
-    val assigneeId = draft.assigneeId
-    val startDate = draft.startDate
-    val dueDate = draft.dueDate
-    val priority = draft.priority
-    val type = draft.type
-    val recurrence = draft.recurrence
-
     BobitosFormSheet(
         title = stringResource(if (task == null) R.string.tasks_add_title else R.string.tasks_edit_title),
         confirmLabel = stringResource(R.string.save),
         confirmEnabled = validation == null,
         saving = saving,
-        dirty = draft != initial,
+        dirty = { draft != initial },
         onDismiss = onDismiss,
         onConfirm = {
             try {
                 onSave(
-                    title,
-                    description,
-                    assigneeId,
-                    TaskValidation.parseDueDate(dueDate),
-                    priority,
-                    type,
-                    recurrence,
-                    TaskValidation.parseDueDate(startDate),
+                    draft.title,
+                    draft.description,
+                    draft.assigneeId,
+                    TaskValidation.parseDueDate(draft.dueDate),
+                    draft.priority,
+                    draft.type,
+                    draft.recurrence,
+                    TaskValidation.parseDueDate(draft.startDate),
                 )
             } catch (_: InvalidTaskDateException) {
                 onInvalidDate()
@@ -761,14 +744,14 @@ private fun TaskEditor(
         },
     ) {
         OutlinedTextField(
-            title,
+            draft.title,
             { draft = draft.copy(title = it) },
             label = { Text(stringResource(R.string.tasks_title_label)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
-            description,
+            draft.description,
             { draft = draft.copy(description = it) },
             label = { Text(stringResource(R.string.tasks_description_label)) },
             minLines = 2,
@@ -777,7 +760,7 @@ private fun TaskEditor(
         Box {
             TextButton(onClick = { memberMenu = true }) {
                 Text(
-                    members.firstOrNull { it.userId == assigneeId }?.displayName
+                    members.firstOrNull { it.userId == draft.assigneeId }?.displayName
                         ?: stringResource(R.string.tasks_unassigned),
                 )
             }
@@ -801,15 +784,15 @@ private fun TaskEditor(
             }
         }
         TaskDateFields(
-            startDate,
+            draft.startDate,
             { draft = draft.copy(startDate = it) },
-            dueDate,
+            draft.dueDate,
             { draft = draft.copy(dueDate = it) },
         )
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             TaskPriority.entries.forEachIndexed { index, value ->
                 SegmentedButton(
-                    selected = priority == value,
+                    selected = draft.priority == value,
                     onClick = { draft = draft.copy(priorityName = value.name) },
                     shape = SegmentedButtonDefaults.itemShape(index, TaskPriority.entries.size),
                     icon = {
@@ -825,9 +808,9 @@ private fun TaskEditor(
                 }
             }
         }
-        TaskTypePicker(selected = type, onSelect = { draft = draft.copy(typeName = it?.name) })
+        TaskTypePicker(selected = draft.type, onSelect = { draft = draft.copy(typeName = it?.name) })
         RecurrencePicker(
-            selected = recurrence,
+            selected = draft.recurrence,
             onSelect = {
                 draft = draft.copy(recurrenceUnit = it?.unit?.name, recurrenceInterval = it?.interval ?: 1)
             },

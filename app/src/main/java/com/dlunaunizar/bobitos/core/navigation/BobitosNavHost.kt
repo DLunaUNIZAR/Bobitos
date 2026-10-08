@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -107,17 +108,22 @@ fun BobitosNavHost(
     // El selector de espacio vive aquí para poder pedir todos los espacios mientras está abierto.
     var spacePickerOpen by rememberSaveable { mutableStateOf(false) }
     // Cambiar de espacio desde la barra: se selecciona y se vuelve a «Hoy» (los datos son del nuevo espacio).
-    val spaceSwitcher = SpaceSwitcher(
-        spaces = (uiState.spaces as? UiState.Content)?.value.orEmpty(),
-        selectedSpaceId = uiState.selectedSpace?.id,
-        pickerOpen = spacePickerOpen,
-        onPickerOpenChange = { spacePickerOpen = it },
-        onSelect = { space ->
-            onClearSpaceFeedback()
-            onSpaceSelected(space.id)
-            navController.popBackStack(BobitosDestination.SpaceHome.route, inclusive = false)
-        },
-    )
+    // Se recuerda para no crear un objeto nuevo en cada recomposición (forzaría a reconstruir el grafo).
+    val spaces = (uiState.spaces as? UiState.Content)?.value.orEmpty()
+    val selectedSpaceId = uiState.selectedSpace?.id
+    val spaceSwitcher = remember(spaces, selectedSpaceId, spacePickerOpen) {
+        SpaceSwitcher(
+            spaces = spaces,
+            selectedSpaceId = selectedSpaceId,
+            pickerOpen = spacePickerOpen,
+            onPickerOpenChange = { spacePickerOpen = it },
+            onSelect = { space ->
+                onClearSpaceFeedback()
+                onSpaceSelected(space.id)
+                navController.popBackStack(BobitosDestination.SpaceHome.route, inclusive = false)
+            },
+        )
+    }
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
     val protectedRoutes = BobitosDestination.workspaceDestinations.map { it.route } +
@@ -189,12 +195,7 @@ fun BobitosNavHost(
         composable(BobitosDestination.Home.route) {
             MainMenuScreen(
                 syncStatus = uiState.syncStatus,
-                onOpenSpaces = { navController.navigate(BobitosDestination.Spaces.route) },
-                onOpenRecipes = { navController.navigate(BobitosDestination.Recipes.route) },
-                onOpenIngredients = { navController.navigate(BobitosDestination.Ingredients.route) },
-                onOpenRoutines = { navController.navigate(BobitosDestination.Routines.route) },
-                onOpenExercises = { navController.navigate(BobitosDestination.Exercises.route) },
-                onOpenMyCalendar = { navController.navigate(BobitosDestination.MyCalendar.route) },
+                onOpen = { destination -> navController.navigate(destination.route) },
                 onProfile = {
                     onClearAuthFeedback()
                     navController.navigateToProfile()
@@ -258,7 +259,7 @@ fun BobitosNavHost(
             LaunchedEffect(uiState.selectedSpace?.id) {
                 // «Hoy» vuelve a componerse cada vez que se regresa a la pestaña: se recarga para no
                 // mostrar contadores de antes de editar en otro módulo.
-                uiState.selectedSpace?.id?.let { summaryViewModel.load(it, authUser.id, force = true) }
+                uiState.selectedSpace?.id?.let { summaryViewModel.load(it, authUser.id) }
             }
             SpaceScaffold(
                 navController = navController,
@@ -523,27 +524,7 @@ fun BobitosNavHost(
 // ejercicios) + calendario personal. Los catálogos no dependen de ningún espacio.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MainMenuScreen(
-    syncStatus: SyncStatus,
-    onOpenSpaces: () -> Unit,
-    onOpenRecipes: () -> Unit,
-    onOpenIngredients: () -> Unit,
-    onOpenRoutines: () -> Unit,
-    onOpenExercises: () -> Unit,
-    onOpenMyCalendar: () -> Unit,
-    onProfile: () -> Unit,
-) {
-    val onCardClick: (BobitosDestination) -> Unit = { destination ->
-        when (destination) {
-            BobitosDestination.Spaces -> onOpenSpaces()
-            BobitosDestination.Recipes -> onOpenRecipes()
-            BobitosDestination.Ingredients -> onOpenIngredients()
-            BobitosDestination.Routines -> onOpenRoutines()
-            BobitosDestination.Exercises -> onOpenExercises()
-            BobitosDestination.MyCalendar -> onOpenMyCalendar()
-            else -> Unit
-        }
-    }
+private fun MainMenuScreen(syncStatus: SyncStatus, onOpen: (BobitosDestination) -> Unit, onProfile: () -> Unit) {
     Scaffold(
         topBar = {
             Column {
@@ -576,7 +557,7 @@ private fun MainMenuScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             BobitosDestination.mainMenuDestinations.forEach { destination ->
-                SpaceHomeCard(destination = destination, count = 0, onClick = { onCardClick(destination) })
+                ModuleCard(destination = destination, onClick = { onOpen(destination) })
             }
         }
     }

@@ -27,7 +27,6 @@ import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -41,7 +40,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,7 +64,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
-import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
@@ -75,6 +73,7 @@ import com.dlunaunizar.bobitos.core.model.RoutineExercise
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SportActivity
 import com.dlunaunizar.bobitos.core.model.SportType
+import com.dlunaunizar.bobitos.feature.common.MemberCheckboxes
 import com.dlunaunizar.bobitos.feature.exercises.ExerciseDraft
 import com.dlunaunizar.bobitos.feature.exercises.ExerciseDraftListSaver
 import com.dlunaunizar.bobitos.feature.exercises.ExerciseListEditor
@@ -395,31 +394,6 @@ private fun ActivityCard(
     }
 }
 
-// Participantes de la actividad (casillas por miembro).
-@Composable
-private fun SportParticipants(
-    members: List<SpaceMember>,
-    selected: Set<String>,
-    onSelectedChange: (Set<String>) -> Unit,
-) {
-    if (members.isEmpty()) return
-    Text(
-        text = stringResource(R.string.sport_participants_label),
-        style = MaterialTheme.typography.labelLarge,
-    )
-    members.forEach { member ->
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(
-                checked = member.userId in selected,
-                onCheckedChange = { checked ->
-                    onSelectedChange(if (checked) selected + member.userId else selected - member.userId)
-                },
-            )
-            Text(member.displayName)
-        }
-    }
-}
-
 // Muestra el editor de actividad (nueva o existente). Si la actividad que se editaba ya no existe, lo cierra
 // (mientras la lista carga, espera) y la mantiene durante una recarga para no perder el borrador.
 @Composable
@@ -435,17 +409,14 @@ private fun ActivityEditorHost(
     onClose: () -> Unit,
     onSave: (SportActivity?, SportType, String, List<String>, String?, List<RoutineExercise>) -> Unit,
 ) {
-    val content = activities as? UiState.Content
-    val activity = rememberEditorItem(
-        activityId,
-        activityId?.let { id -> content?.value?.firstOrNull { it.id == id } },
-        content != null,
-    )
-    val gone = activityId != null && activity == null
-    LaunchedEffect(open, gone, content != null) {
-        if (open && gone && content != null) onClose()
-    }
-    if (!open || gone) return
+    val slot = rememberEditorSlot(
+        open = open,
+        id = activityId,
+        items = (activities as? UiState.Content)?.value,
+        idOf = SportActivity::id,
+        onGone = onClose,
+    ) ?: return
+    val activity = slot.item
     ActivityEditor(
         activity = activity,
         members = members,
@@ -508,7 +479,7 @@ private fun ActivityEditor(
         confirmLabel = stringResource(R.string.save),
         confirmEnabled = canWrite,
         saving = saving,
-        dirty = draft != initial || session.toRoutineExercises() != initialSession,
+        dirty = { draft != initial || session.toRoutineExercises() != initialSession },
         onDismiss = onDismiss,
         onConfirm = {
             val gym = type == SportType.GIMNASIO
@@ -530,10 +501,11 @@ private fun ActivityEditor(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        SportParticipants(
+        MemberCheckboxes(
+            label = stringResource(R.string.sport_participants_label),
             members = members,
-            selected = draft.selectedIds.toSet(),
-            onSelectedChange = { draft = draft.copy(selectedIds = it.toList().sorted()) },
+            selectedIds = draft.selectedIds,
+            onToggle = { userId, selected -> draft = draft.withParticipant(userId, selected) },
         )
         if (type == SportType.GIMNASIO) {
             GymSessionSection(

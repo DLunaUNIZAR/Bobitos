@@ -55,7 +55,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
-import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseType
@@ -75,13 +75,6 @@ fun ExercisesScreen(
     // El editor sobrevive a una rotación: se guarda el id del ejercicio, no el objeto.
     var editorOpen by rememberSaveable { mutableStateOf(false) }
     var editorExerciseId by rememberSaveable { mutableStateOf<String?>(null) }
-    val catalogContent = state.catalog as? UiState.Content
-    // Se mantiene el ejercicio mientras la lista recarga (p. ej. al girar), para no perder el borrador.
-    val editorExercise = rememberEditorItem(
-        editorExerciseId,
-        editorExerciseId?.let { id -> catalogContent?.value?.firstOrNull { it.id == id } },
-        catalogContent != null,
-    )
     var deleteTarget by remember { mutableStateOf<CatalogExercise?>(null) }
     var query by rememberSaveable { mutableStateOf("") }
     LaunchedEffect(query) { viewModel.setQuery(query) }
@@ -123,12 +116,14 @@ fun ExercisesScreen(
         }
     }
 
-    // Si el ejercicio que se editaba ya no existe, se cierra el editor (mientras carga, se espera).
-    val editorUnresolved = editorExerciseId != null && editorExercise == null
-    LaunchedEffect(editorOpen, editorUnresolved, catalogContent != null) {
-        if (editorOpen && editorUnresolved && catalogContent != null) editorOpen = false
-    }
-    if (editorOpen && !editorUnresolved) {
+    rememberEditorSlot(
+        open = editorOpen,
+        id = editorExerciseId,
+        items = (state.catalog as? UiState.Content)?.value,
+        idOf = CatalogExercise::id,
+        onGone = { editorOpen = false },
+    )?.let { slot ->
+        val editorExercise = slot.item
         ExerciseEditorDialog(
             exercise = editorExercise,
             saving = state.isSaving,
@@ -283,7 +278,7 @@ private fun ExerciseEditorDialog(
         confirmLabel = stringResource(R.string.save),
         confirmEnabled = draft.name.isNotBlank(),
         saving = saving,
-        dirty = draft != initial,
+        dirty = { draft != initial },
         onDismiss = onDismiss,
         onConfirm = { onSave(draft.name, draft.type, draft.muscle.trim().ifBlank { null }) },
     ) {

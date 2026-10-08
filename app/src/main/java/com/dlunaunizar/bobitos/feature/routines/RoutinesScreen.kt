@@ -54,7 +54,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
-import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Routine
 import com.dlunaunizar.bobitos.core.model.RoutineExercise
@@ -318,20 +318,25 @@ private fun RoutineSheetsHost(
 ) {
     val global = state.global as? UiState.Content
     val mine = state.mine as? UiState.Content
-    val loaded = global != null && mine != null
-    val all = global?.value.orEmpty() + mine?.value.orEmpty()
-    val detail =
-        rememberEditorItem(detailRoutineId, detailRoutineId?.let { id -> all.firstOrNull { it.id == id } }, loaded)
-    val editing =
-        rememberEditorItem(editorRoutineId, editorRoutineId?.let { id -> all.firstOrNull { it.id == id } }, loaded)
-    val detailGone = detailRoutineId != null && detail == null
-    val editorGone = editorRoutineId != null && editing == null
-    LaunchedEffect(detailGone, editorGone, loaded) {
-        if (loaded && detailGone) onCloseDetail()
-        if (loaded && editorGone) onCloseEditor()
-    }
+    // Las dos listas juntas; null mientras alguna carga.
+    val all = if (global != null && mine != null) global.value + mine.value else null
+    val detail = rememberEditorSlot(
+        open = detailRoutineId != null,
+        id = detailRoutineId,
+        items = all,
+        idOf = Routine::id,
+        onGone = onCloseDetail,
+    )?.item
+    val editor = rememberEditorSlot(
+        open = editorOpen,
+        id = editorRoutineId,
+        items = all,
+        idOf = Routine::id,
+        onGone = onCloseEditor,
+    )
     detail?.let { RoutineDetailSheet(routine = it, onDismiss = onCloseDetail) }
-    if (editorOpen && !editorGone) {
+    editor?.let { slot ->
+        val editing = slot.item
         RoutineEditor(
             routine = editing,
             catalog = state.exercises,

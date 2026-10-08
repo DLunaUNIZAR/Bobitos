@@ -53,7 +53,7 @@ internal fun RoutineEditor(
         confirmLabel = stringResource(R.string.save),
         confirmEnabled = draft.title.isNotBlank() && canWrite,
         saving = saving,
-        dirty = draft != initial || exercises.toRoutineExercises() != initialExercises,
+        dirty = { draft != initial || exercises.toRoutineExercises() != initialExercises },
         onDismiss = onDismiss,
         onConfirm = {
             val visibility = if (draft.global) RoutineVisibility.GLOBAL else RoutineVisibility.PRIVATE
