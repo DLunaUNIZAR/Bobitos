@@ -9,11 +9,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.QrCodeScanner
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -42,6 +42,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
@@ -67,7 +68,15 @@ fun IngredientDetailScreen(
     LaunchedEffect(state.finished) { if (state.finished) onBack() }
 
     var showFichaEditor by rememberSaveable { mutableStateOf(false) }
-    var brandEditor by remember { mutableStateOf<BrandEditorRequest?>(null) }
+    // El editor de marca sobrevive a una rotación: se guarda el id de la marca y los valores iniciales como texto.
+    var brandEditorOpen by rememberSaveable { mutableStateOf(false) }
+    var brandEditorId by rememberSaveable { mutableStateOf<String?>(null) }
+    var brandInitialSaved by rememberSaveable { mutableStateOf<ArrayList<Any?>?>(null) }
+    val openBrandEditor: (String?, BrandDraft) -> Unit = { id, initial ->
+        brandEditorId = id
+        brandInitialSaved = initial.toSaved()
+        brandEditorOpen = true
+    }
     var confirmDeleteIngredient by remember { mutableStateOf(false) }
     var brandToDelete by remember { mutableStateOf<IngredientBrand?>(null) }
     val ingredient = state.ingredient
@@ -79,7 +88,7 @@ fun IngredientDetailScreen(
     // Un escaneo con éxito abre el editor de marca prerrellenado.
     LaunchedEffect(state.scannedBrand) {
         state.scannedBrand?.let { draft ->
-            brandEditor = BrandEditorRequest(null, draft.name, draft.barcode, draft.nutrition)
+            openBrandEditor(null, BrandDraft.of(draft.name, draft.barcode, draft.nutrition))
             viewModel.consumeScannedBrand()
         }
     }
@@ -124,9 +133,9 @@ fun IngredientDetailScreen(
                 )
                 BrandsSection(
                     state = state,
-                    onAdd = { brandEditor = BrandEditorRequest(null, "", "", null) },
+                    onAdd = { openBrandEditor(null, BrandDraft.of("", "", null)) },
                     onScan = { scope.launch { scanBarcode(context)?.let(viewModel::lookupBarcode) } },
-                    onEdit = { brandEditor = BrandEditorRequest(it.id, it.name, it.barcode.orEmpty(), it.nutrition) },
+                    onEdit = { openBrandEditor(it.id, BrandDraft.of(it.name, it.barcode.orEmpty(), it.nutrition)) },
                     onDelete = { brandToDelete = it },
                 )
             }
@@ -145,21 +154,17 @@ fun IngredientDetailScreen(
         )
     }
 
-    brandEditor?.let { request ->
-        BrandEditorDialog(
-            request = request,
-            saving = state.isSaving,
-            onDismiss = { brandEditor = null },
-            onSave = { name, barcode, nutrition ->
-                if (request.brandId == null) {
-                    viewModel.addBrand(name, barcode, nutrition)
-                } else {
-                    viewModel.updateBrand(request.brandId, name, barcode, nutrition)
-                }
-                brandEditor = null
-            },
-        )
-    }
+    BrandEditorHost(
+        open = brandEditorOpen,
+        brandId = brandEditorId,
+        initialSaved = brandInitialSaved,
+        saving = state.isSaving,
+        onClose = { brandEditorOpen = false },
+        onSave = { brandId, name, barcode, nutrition ->
+            brandId?.let { viewModel.updateBrand(it, name, barcode, nutrition) }
+                ?: viewModel.addBrand(name, barcode, nutrition)
+        },
+    )
 
     if (confirmDeleteIngredient && ingredient != null) {
         BobitosDialog(
@@ -334,112 +339,87 @@ private fun NutritionSummary(nutrition: Nutrition) {
     )
 }
 
+// Muestra el editor de marca con los valores iniciales guardados (nueva, editar o recién escaneada).
 @Composable
-private fun BrandEditorDialog(
-    request: BrandEditorRequest,
+private fun BrandEditorHost(
+    open: Boolean,
+    brandId: String?,
+    initialSaved: List<Any?>?,
     saving: Boolean,
-    onDismiss: () -> Unit,
-    onSave: (String, String?, Nutrition?) -> Unit,
+    onClose: () -> Unit,
+    onSave: (String?, String, String?, Nutrition?) -> Unit,
 ) {
-    var name by remember(request) { mutableStateOf(request.name) }
-    var barcode by remember(request) { mutableStateOf(request.barcode) }
-    val fields = remember(request) { NutritionDraft(request.nutrition) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                stringResource(
-                    if (request.brandId == null) {
-                        R.string.ingredients_brand_add_title
-                    } else {
-                        R.string.ingredients_brand_edit_title
-                    },
-                ),
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(stringResource(R.string.ingredients_brand_name_label)) },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = barcode,
-                    onValueChange = { barcode = it },
-                    label = { Text(stringResource(R.string.ingredients_brand_barcode_label)) },
-                    singleLine = true,
-                )
-                Text(
-                    stringResource(R.string.nutrition_section),
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-                fields.rows.forEach { row ->
-                    OutlinedTextField(
-                        value = row.value,
-                        onValueChange = { row.value = it },
-                        label = { Text(stringResource(row.labelRes)) },
-                        singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                            keyboardType = KeyboardType.Decimal,
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = name.isNotBlank() && !saving,
-                onClick = { onSave(name, barcode.trim().ifBlank { null }, fields.toNutrition()) },
-            ) { Text(stringResource(R.string.confirm)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+    if (!open || initialSaved == null) return
+    BrandEditorDialog(
+        brandId = brandId,
+        initial = brandDraftFromSaved(initialSaved),
+        saving = saving,
+        onDismiss = onClose,
+        onSave = { name, barcode, nutrition ->
+            onSave(brandId, name, barcode, nutrition)
+            onClose()
         },
     )
 }
 
-private data class BrandEditorRequest(
-    val brandId: String?,
-    val name: String,
-    val barcode: String,
-    val nutrition: Nutrition?,
-)
-
-// Estado editable de los 6 campos nutricionales (texto), con su etiqueta.
-private class NutritionRow(val labelRes: Int, initial: Double?) {
-    var value by mutableStateOf(initial?.let(::formatNumber).orEmpty())
-}
-
-private class NutritionDraft(nutrition: Nutrition?) {
-    val energy = NutritionRow(R.string.nutrition_energy_label, nutrition?.energyKcal)
-    val fat = NutritionRow(R.string.nutrition_fat_label, nutrition?.fat)
-    val carbs = NutritionRow(R.string.nutrition_carbs_label, nutrition?.carbohydrates)
-    val sugars = NutritionRow(R.string.nutrition_sugars_label, nutrition?.sugars)
-    val protein = NutritionRow(R.string.nutrition_protein_label, nutrition?.protein)
-    val salt = NutritionRow(R.string.nutrition_salt_label, nutrition?.salt)
-    val rows = listOf(energy, fat, carbs, sugars, protein, salt)
-
-    fun toNutrition(): Nutrition? {
-        val nutrition = Nutrition(
-            energyKcal = parseNutritionValue(energy.value),
-            fat = parseNutritionValue(fat.value),
-            carbohydrates = parseNutritionValue(carbs.value),
-            sugars = parseNutritionValue(sugars.value),
-            protein = parseNutritionValue(protein.value),
-            salt = parseNutritionValue(salt.value),
+@Composable
+private fun BrandEditorDialog(
+    brandId: String?,
+    initial: BrandDraft,
+    saving: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (String, String?, Nutrition?) -> Unit,
+) {
+    var draft by rememberSaveable(brandId, initial, stateSaver = BrandDraftSaver) { mutableStateOf(initial) }
+    BobitosFormSheet(
+        title = stringResource(
+            if (brandId == null) R.string.ingredients_brand_add_title else R.string.ingredients_brand_edit_title,
+        ),
+        confirmLabel = stringResource(R.string.save),
+        confirmEnabled = draft.name.isNotBlank(),
+        saving = saving,
+        dirty = draft != initial,
+        onDismiss = onDismiss,
+        onConfirm = { onSave(draft.name, draft.barcode.trim().ifBlank { null }, draft.toNutrition()) },
+    ) {
+        OutlinedTextField(
+            value = draft.name,
+            onValueChange = { draft = draft.copy(name = it) },
+            label = { Text(stringResource(R.string.ingredients_brand_name_label)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
         )
-        return nutrition.takeUnless(Nutrition::isEmpty)
+        OutlinedTextField(
+            value = draft.barcode,
+            onValueChange = { draft = draft.copy(barcode = it) },
+            label = { Text(stringResource(R.string.ingredients_brand_barcode_label)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            stringResource(R.string.nutrition_section),
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        NUTRITION_LABELS.forEachIndexed { index, labelRes ->
+            OutlinedTextField(
+                value = draft.nutrition[index],
+                onValueChange = { draft = draft.withNutrition(index, it) },
+                label = { Text(stringResource(labelRes)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 
-// Formatea sin decimales innecesarios («120», «1.5»).
-private fun formatNumber(value: Double): String =
-    if (value % 1.0 == 0.0) value.toLong().toString() else value.toString()
+// Etiquetas de los 6 campos nutricionales, en el orden de BrandDraft.nutrition.
+private val NUTRITION_LABELS = listOf(
+    R.string.nutrition_energy_label,
+    R.string.nutrition_fat_label,
+    R.string.nutrition_carbs_label,
+    R.string.nutrition_sugars_label,
+    R.string.nutrition_protein_label,
+    R.string.nutrition_salt_label,
+)
