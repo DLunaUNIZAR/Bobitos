@@ -247,7 +247,7 @@ private fun NoteEditor(note: Note?, saving: Boolean, onDismiss: () -> Unit, onSa
         confirmLabel = stringResource(R.string.save),
         confirmEnabled = validation == null,
         saving = saving,
-        dirty = draft != initial,
+        dirty = { draft != initial },
         onDismiss = onDismiss,
         onConfirm = { onSave(draft.title, draft.body) },
     ) {

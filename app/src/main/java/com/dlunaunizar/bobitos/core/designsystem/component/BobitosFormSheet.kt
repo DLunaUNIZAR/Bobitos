@@ -36,7 +36,8 @@ import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 
 /**
  * Formulario en un bottom sheet: título, contenido con scroll y botones fijos abajo (siempre
- * visibles con el teclado abierto). Si hay cambios sin guardar ([dirty]), deslizar, tocar fuera o
+ * visibles con el teclado abierto). Si hay cambios sin guardar ([dirty], que solo se evalúa al intentar
+ * cerrar para no recalcularlo en cada pulsación), deslizar, tocar fuera o
  * «Cancelar» pide confirmar el descarte; mientras se guarda ([saving]) no se puede cerrar.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,7 +47,7 @@ fun BobitosFormSheet(
     confirmLabel: String,
     confirmEnabled: Boolean,
     saving: Boolean,
-    dirty: Boolean,
+    dirty: () -> Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     content: @Composable ColumnScope.() -> Unit,
@@ -60,7 +61,7 @@ fun BobitosFormSheet(
             if (target != SheetValue.Hidden) {
                 true
             } else {
-                when (dismissActionFor(currentDirty, currentSaving)) {
+                when (dismissActionFor(currentDirty(), currentSaving)) {
                     DismissAction.CLOSE -> true
                     DismissAction.ASK_DISCARD -> {
                         askDiscard = true
@@ -72,7 +73,7 @@ fun BobitosFormSheet(
         },
     )
     val requestClose = {
-        when (dismissActionFor(dirty, saving)) {
+        when (dismissActionFor(dirty(), saving)) {
             DismissAction.CLOSE -> onDismiss()
             DismissAction.ASK_DISCARD -> askDiscard = true
             DismissAction.BLOCK -> Unit

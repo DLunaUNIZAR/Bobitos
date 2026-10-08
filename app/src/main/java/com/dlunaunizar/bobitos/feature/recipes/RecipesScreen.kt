@@ -191,39 +191,41 @@ fun RecipesScreen(
         editorOpen = editorOpen,
         editorRecipeId = editorRecipeId,
         importedSaved = importedSaved,
-        actions = RecipeSheetActions(
-            onCloseDetail = { detailRecipeId = null },
-            onCloseEditor = {
-                editorOpen = false
-                editorRecipeId = null
-                importedSaved = null
-            },
-            onAddToShopping = { recipe ->
-                spaceId?.let { viewModel.addToShopping(it, recipe) }
-                detailRecipeId = null
-            },
-            onEdit = { recipe ->
-                importedSaved = null
-                editorRecipeId = recipe.id
-                editorOpen = true
-                detailRecipeId = null
-            },
-            onDelete = { recipe ->
-                recipeToDelete = recipe
-                detailRecipeId = null
-            },
-            onFork = { recipe ->
-                viewModel.fork(recipe)
-                detailRecipeId = null
-            },
-            onSave = { recipe, visibility, title, description, category, ingredients, sourceUrl ->
-                if (recipe == null) {
-                    viewModel.createRecipe(visibility, title, description, category, ingredients, sourceUrl)
-                } else {
-                    viewModel.updateRecipe(recipe.id, title, description, category, ingredients)
-                }
-            },
-        ),
+        actions = remember(viewModel, spaceId) {
+            RecipeSheetActions(
+                onCloseDetail = { detailRecipeId = null },
+                onCloseEditor = {
+                    editorOpen = false
+                    editorRecipeId = null
+                    importedSaved = null
+                },
+                onAddToShopping = { recipe ->
+                    spaceId?.let { viewModel.addToShopping(it, recipe) }
+                    detailRecipeId = null
+                },
+                onEdit = { recipe ->
+                    importedSaved = null
+                    editorRecipeId = recipe.id
+                    editorOpen = true
+                    detailRecipeId = null
+                },
+                onDelete = { recipe ->
+                    recipeToDelete = recipe
+                    detailRecipeId = null
+                },
+                onFork = { recipe ->
+                    viewModel.fork(recipe)
+                    detailRecipeId = null
+                },
+                onSave = { recipe, visibility, title, description, category, ingredients, sourceUrl ->
+                    if (recipe == null) {
+                        viewModel.createRecipe(visibility, title, description, category, ingredients, sourceUrl)
+                    } else {
+                        viewModel.updateRecipe(recipe.id, title, description, category, ingredients)
+                    }
+                },
+            )
+        },
     )
 
     if (showImport) {

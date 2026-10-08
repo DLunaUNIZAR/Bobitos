@@ -579,7 +579,7 @@ private fun MealEditor(
         confirmLabel = stringResource(R.string.save),
         confirmEnabled = validation == null && canWrite,
         saving = saving,
-        dirty = draft != initial,
+        dirty = { draft != initial },
         onDismiss = onDismiss,
         onConfirm = {
             onSave(

@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -78,7 +79,7 @@ internal fun RecipeSheetsHost(
     if (editorOpen && !editorGone) {
         RecipeEditor(
             recipe = editing,
-            imported = importedSaved?.let(::recipeDraftFromSaved),
+            imported = remember(importedSaved) { importedSaved?.let(::recipeDraftFromSaved) },
             saving = state.isSaving,
             canWrite = canWrite,
             isAdmin = state.isAdmin,
@@ -164,7 +165,7 @@ private fun RecipeEditor(
         confirmLabel = stringResource(R.string.save),
         confirmEnabled = validation == null && canWrite,
         saving = saving,
-        dirty = draft != initial,
+        dirty = { draft != initial },
         onDismiss = onDismiss,
         onConfirm = {
             val visibility = if (draft.global) RecipeVisibility.GLOBAL else RecipeVisibility.PRIVATE

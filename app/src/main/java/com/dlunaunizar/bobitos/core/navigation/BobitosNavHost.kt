@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -107,17 +108,22 @@ fun BobitosNavHost(
     // El selector de espacio vive aquí para poder pedir todos los espacios mientras está abierto.
     var spacePickerOpen by rememberSaveable { mutableStateOf(false) }
     // Cambiar de espacio desde la barra: se selecciona y se vuelve a «Hoy» (los datos son del nuevo espacio).
-    val spaceSwitcher = SpaceSwitcher(
-        spaces = (uiState.spaces as? UiState.Content)?.value.orEmpty(),
-        selectedSpaceId = uiState.selectedSpace?.id,
-        pickerOpen = spacePickerOpen,
-        onPickerOpenChange = { spacePickerOpen = it },
-        onSelect = { space ->
-            onClearSpaceFeedback()
-            onSpaceSelected(space.id)
-            navController.popBackStack(BobitosDestination.SpaceHome.route, inclusive = false)
-        },
-    )
+    // Se recuerda para no crear un objeto nuevo en cada recomposición (forzaría a reconstruir el grafo).
+    val spaces = (uiState.spaces as? UiState.Content)?.value.orEmpty()
+    val selectedSpaceId = uiState.selectedSpace?.id
+    val spaceSwitcher = remember(spaces, selectedSpaceId, spacePickerOpen) {
+        SpaceSwitcher(
+            spaces = spaces,
+            selectedSpaceId = selectedSpaceId,
+            pickerOpen = spacePickerOpen,
+            onPickerOpenChange = { spacePickerOpen = it },
+            onSelect = { space ->
+                onClearSpaceFeedback()
+                onSpaceSelected(space.id)
+                navController.popBackStack(BobitosDestination.SpaceHome.route, inclusive = false)
+            },
+        )
+    }
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
     val protectedRoutes = BobitosDestination.workspaceDestinations.map { it.route } +

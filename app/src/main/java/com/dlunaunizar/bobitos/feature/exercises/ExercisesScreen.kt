@@ -283,7 +283,7 @@ private fun ExerciseEditorDialog(
         confirmLabel = stringResource(R.string.save),
         confirmEnabled = draft.name.isNotBlank(),
         saving = saving,
-        dirty = draft != initial,
+        dirty = { draft != initial },
         onDismiss = onDismiss,
         onConfirm = { onSave(draft.name, draft.type, draft.muscle.trim().ifBlank { null }) },
     ) {

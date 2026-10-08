@@ -508,7 +508,7 @@ private fun ActivityEditor(
         confirmLabel = stringResource(R.string.save),
         confirmEnabled = canWrite,
         saving = saving,
-        dirty = draft != initial || session.toRoutineExercises() != initialSession,
+        dirty = { draft != initial || session.toRoutineExercises() != initialSession },
         onDismiss = onDismiss,
         onConfirm = {
             val gym = type == SportType.GIMNASIO

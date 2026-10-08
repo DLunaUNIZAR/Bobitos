@@ -750,7 +750,7 @@ internal fun EventEditor(
         confirmLabel = stringResource(R.string.calendar_save),
         confirmEnabled = canWrite,
         saving = saving,
-        dirty = draft != initial,
+        dirty = { draft != initial },
         onDismiss = dismiss,
         onConfirm = {
             val input = buildEventInput(
