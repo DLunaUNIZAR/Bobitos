@@ -1,13 +1,28 @@
-Beta de Bobitos — navegación reorganizada: menú principal para tus catálogos y espacio centrado en el hogar.
+Beta de Bobitos — formularios en hojas inferiores, "Hoy" como pestaña, selector de espacio y varias correcciones.
 
 Novedades desde la beta anterior:
 
 Navegación
-- El menú principal (lo primero que ves al abrir la app) ahora reúne: Espacios, Recetario, Ingredientes, Rutinas, Ejercicios y Mi calendario. Los catálogos son tuyos/comunes y ya no cuelgan de un espacio concreto.
-- Al entrar en un espacio verás solo lo del hogar: resumen del día, Compra, Tareas, Calendario, Comidas, Deporte y Notas.
-- Desde Comidas sigues teniendo acceso rápido a Recetario e Ingredientes, y desde Deporte a Rutinas y Ejercicios.
-- Corregido un detalle al abrir un evento desde «Mi calendario»: al entrar te lleva al espacio de ese evento y la navegación ya no acumula pantallas.
+- Dentro de un espacio, la barra inferior es: Hoy, Calendario, Tareas, Compra y Más (Comidas, Deporte y Notas).
+- "Hoy" tiene un saludo, el resumen de tu día y contadores de cada módulo.
+- Toca el nombre del espacio, arriba, para cambiar de espacio sin salir de la pantalla. Los ajustes tienen su propio icono.
 
-Incluye: espacios privados con invitaciones, lista de la compra compartida, tareas asignables con plantillas, calendario compartido, planificador de comidas con recetario e importación de recetas desde la web, base de datos de ingredientes (catálogo común, tu supermercado/marca por defecto, marcas con nutrición y escaneo de código de barras), sección Deporte con rutinas y sesiones de gimnasio, notas, recordatorios locales, resumen del día, buscadores, gestos de deslizar, tema claro/oscuro y modo sin conexión de solo lectura.
+Formularios
+- Crear y editar tareas, compras, eventos, comidas, actividades, notas, recetas, rutinas, ejercicios, ingredientes y marcas ahora se hace en una hoja inferior con el botón Guardar siempre visible.
+- Lo que escribes se conserva al girar el móvil, y si cierras con cambios sin guardar te lo pregunta.
+- Las confirmaciones de borrar son iguales en toda la app.
+- Nuevos botones para añadir en Comidas y en Mi calendario.
+- Al tocar una tarea o un producto se abre su edición; las acciones de deslizar también funcionan con TalkBack.
+- Selector de color de eventos más grande y con marca de seleccionado.
+
+Deporte
+- Cada actividad que añades aparece también en el Calendario del espacio como evento de todo el día; al editarla o borrarla, el evento se actualiza.
+
+Correcciones
+- Calendario: un evento sin título ya no se puede guardar (antes se cerraba el formulario y se perdía lo escrito); el formulario indica qué falta.
+- Calendario: deshacer el borrado de un evento lo recupera tal cual, también el de una actividad de Deporte, que sigue enlazado a ella. "Deshacer" solo aparece si el borrado se completó.
+- Los recordatorios de eventos de todo el día, como los de las actividades de Deporte, avisan a las 9:00 de ese día en lugar de a medianoche.
+- Al eliminar una cuenta, su nombre se sustituye por "Usuario eliminado" también en notas y actividades.
+- Con el móvil en modo oscuro y la app en tema claro, la app ya no se ve oscura un instante al abrirse.
 
 Comunica cualquier error indicando el modelo del dispositivo, la versión de Android y los pasos para reproducirlo.
