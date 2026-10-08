@@ -18,7 +18,7 @@ Se evalúan 13 puntos que quedaron sin aplicar: los 4 problemas reales de `/code
 
 | Punto | Qué | Beneficio | Coste | Riesgo | Veredicto |
 |---|---|---|---|---|---|
-| A | `values-night` y parpadeo oscuro al arrancar | | | | |
+| A | `values-night` y parpadeo oscuro al arrancar | 2 | 1 | 2 | Hacer ya |
 | B | Evento huérfano tras deshacer su borrado | | | | |
 | C | Recordatorio a medianoche por cada actividad | 2 | 1 | 2 | Hacer ya |
 | D | Nombre de cuenta borrada reescrito en el evento | | | | |
@@ -39,7 +39,15 @@ _(se rellena al final)_
 ---
 
 ## A — `values-night` y parpadeo oscuro al arrancar
-**Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
+- **Qué es:** la Fase 1 (commit `7804ffb`, PR #229) volvió a añadir `res/values-night/{themes,colors}.xml` (tema padre oscuro, fondo de ventana `#141513`). El commit `3cd147e` (PR #57) los había borrado a propósito: «Al crear una cuenta con el móvil en oscuro, la app se veía oscura… Así el tema es claro por defecto y solo pasa a oscuro/sistema si el usuario lo elige».
+- **Medido:**
+  - El tema por defecto de la app es `LIGHT` (`DataStoreThemePreferenceRepository.kt:22`, `ThemeViewModel.kt:23`).
+  - Con `values-night`, la ventana previa a Compose y el splash siguen al **sistema**; `MainActivity` corrige el fondo con `setBackgroundDrawable` dentro de `DisposableEffect(darkTheme)`, es decir, después de `setContent`.
+  - Por tanto, hoy: móvil en oscuro + app en Claro (el caso por defecto) ⇒ destello oscuro en cada arranque en frío. Sin `values-night`: el destello pasa a ser claro y solo para quien elige Oscuro a mano.
+- **Prototipo (`spike/eval-a`, borrado):** borrar los dos archivos (2 archivos, −14 líneas) y dejar el `setBackgroundDrawable` de la Fase 1, que sigue cubriendo rotaciones y cambios de tema. Compila, pasan tests, ktlint, detekt y `assembleDebug` sin tocar nada más.
+- **Puntuación:** Beneficio 2 (destello visible en cada arranque para el caso por defecto con el móvil en oscuro) · Coste 1 · Riesgo 2 (vuelve al comportamiento ya validado en el PR #57; el destello en sí queda sin verificar en dispositivo).
+- **Veredicto:** **Hacer ya.**
+- **Si se hace:** PR de 2 archivos borrados. Verificar en dispositivo: móvil en oscuro con la app en Claro, arranque en frío sin destello oscuro; con la app en Oscuro, aceptar el destello claro breve que ya se aceptó en el PR #57.
 
 ## B — Evento huérfano tras deshacer su borrado
 **Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
