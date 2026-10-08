@@ -97,6 +97,7 @@ import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.TaskItem
 import com.dlunaunizar.bobitos.core.model.TaskStatus
 import com.dlunaunizar.bobitos.data.repository.EventInput
+import com.dlunaunizar.bobitos.feature.common.MemberCheckboxes
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -802,18 +803,12 @@ internal fun EventEditor(
         )
         Text(stringResource(R.string.calendar_color_label), style = MaterialTheme.typography.labelLarge)
         ColorPicker(selected = draft.color, onSelect = { draft = draft.withColor(it) })
-        if (members.isNotEmpty()) {
-            Text(stringResource(R.string.calendar_participants_label))
-        }
-        members.forEach { member ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(
-                    member.userId in draft.selectedIds,
-                    { checked -> draft = draft.withParticipant(member.userId, checked) },
-                )
-                Text(member.displayName)
-            }
-        }
+        MemberCheckboxes(
+            label = stringResource(R.string.calendar_participants_label),
+            members = members,
+            selectedIds = draft.selectedIds,
+            onToggle = { userId, selected -> draft = draft.withParticipant(userId, selected) },
+        )
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
 

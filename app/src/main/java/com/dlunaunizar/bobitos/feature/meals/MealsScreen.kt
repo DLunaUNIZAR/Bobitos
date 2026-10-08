@@ -27,7 +27,6 @@ import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -73,6 +72,7 @@ import com.dlunaunizar.bobitos.core.model.MealSlot
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewDialog
+import com.dlunaunizar.bobitos.feature.common.MemberCheckboxes
 import com.dlunaunizar.bobitos.feature.common.formatted
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -638,19 +638,12 @@ private fun MealEditor(
 private fun MealParticipants(members: List<SpaceMember>, draft: MealDraft, onDraft: (MealDraft) -> Unit) {
     if (members.isEmpty()) return
     var cookMenu by remember { mutableStateOf(false) }
-    Text(
-        text = stringResource(R.string.meals_participants_label),
-        style = MaterialTheme.typography.labelLarge,
+    MemberCheckboxes(
+        label = stringResource(R.string.meals_participants_label),
+        members = members,
+        selectedIds = draft.selectedIds,
+        onToggle = { userId, selected -> onDraft(draft.withParticipant(userId, selected)) },
     )
-    members.forEach { member ->
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(
-                checked = member.userId in draft.selectedIds,
-                onCheckedChange = { checked -> onDraft(draft.withParticipant(member.userId, checked)) },
-            )
-            Text(member.displayName)
-        }
-    }
     if (draft.selectedIds.isEmpty()) return
     Text(
         text = stringResource(R.string.meals_cook_label),
