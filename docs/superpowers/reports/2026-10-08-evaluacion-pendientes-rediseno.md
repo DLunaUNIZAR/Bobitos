@@ -19,7 +19,7 @@ Se evalúan 13 puntos que quedaron sin aplicar: los 4 problemas reales de `/code
 | Punto | Qué | Beneficio | Coste | Riesgo | Veredicto |
 |---|---|---|---|---|---|
 | A | `values-night` y parpadeo oscuro al arrancar | 2 | 1 | 2 | Hacer ya |
-| B | Evento huérfano tras deshacer su borrado | | | | |
+| B | Evento huérfano tras deshacer su borrado | 2 | 2 | 2 | Hacer ya |
 | C | Recordatorio a medianoche por cada actividad | 2 | 1 | 2 | Hacer ya |
 | D | Nombre de cuenta borrada reescrito en el evento | | | | |
 | S1 | Borradores con `@Parcelize` | | | | |
@@ -50,7 +50,15 @@ _(se rellena al final)_
 - **Si se hace:** PR de 2 archivos borrados. Verificar en dispositivo: móvil en oscuro con la app en Claro, arranque en frío sin destello oscuro; con la app en Oscuro, aceptar el destello claro breve que ya se aceptó en el PR #57.
 
 ## B — Evento huérfano tras deshacer su borrado
-**Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
+- **Qué es:** cada actividad guarda el id de su evento (PR #228). Si en Calendario se borra ese evento y se pulsa «Deshacer», el deshacer lo recrea con un **id nuevo** (`viewModel.save(null, event.toInput())`). La actividad sigue apuntando al id borrado: editarla ya no actualiza el evento restaurado y borrarla lo deja huérfano en el calendario del espacio y en los personales.
+- **Medido:**
+  - Salida (a), restaurar con el mismo id: las reglas de creación (`validNewEvent`) no restringen el id del documento, así que basta con que el cliente haga `set` sobre el id original. Solo hay un deshacer de eventos (`CalendarScreen`); el calendario personal no tiene.
+  - Salida (b), que Deporte recree el evento si no existe: contradice la decisión de la 3b de respetar un borrado hecho a propósito. Descartada.
+  - No hay ningún test ni fake de `CalendarRepository`/`CalendarViewModel`: un test de ViewModel del deshacer necesitaría fakes de tres repositorios (calendario, espacios y tareas).
+- **Prototipo (`spike/eval-b`, borrado):** `createEvent(spaceId, input, eventId: String? = null)` en `CalendarRepository`/`FirestoreCalendarRepository`, `CalendarViewModel.restore(eventId, input)` y el deshacer de `CalendarScreen` llamándolo. Test de emulador «deshacer el borrado de un evento lo restaura con su id original» (`setDoc` → `deleteDoc` → `setDoc` con el mismo id): pasa (95/95). **5 archivos, +21/−4**; compila y pasan tests, ktlint y detekt. (La prueba de reglas pasaría también antes del cambio: lo que se arregla es el cliente; el test documenta que las reglas lo permiten.)
+- **Puntuación:** Beneficio 2 (fallo raro: borrar desde Calendario el evento de una actividad y deshacer) · Coste 2 (toca el repositorio de calendario, fuera del rediseño) · Riesgo 2 (comportamiento interno: el evento restaurado conserva su id; sin test de cliente).
+- **Veredicto:** **Hacer ya.**
+- **Si se hace:** PR con el prototipo y, si se quiere test de cliente, un `FakeCalendarRepository` mínimo más los fakes de espacios y tareas que ya existen en `TasksViewModelTest` (moverlos a un archivo de test compartido). Verificar en dispositivo: borrar desde Calendario el evento de una actividad, deshacer, editar la actividad en Deporte y comprobar que el evento cambia; borrar la actividad y comprobar que el evento desaparece.
 
 ## C — Recordatorio a medianoche por cada actividad
 - **Qué es:** desde el PR #228 cada actividad crea un evento de todo el día que empieza a las 00:00 e incluye al organizador. `ReminderScheduler` recuerda cualquier evento a su `startAt`, sin tratar `allDay`, así que quien tenga los recordatorios activados recibe «Evento: …» a medianoche (o a las 23:30 de la víspera con 30 min de antelación) por cada actividad, también el organizador aunque no participe.
