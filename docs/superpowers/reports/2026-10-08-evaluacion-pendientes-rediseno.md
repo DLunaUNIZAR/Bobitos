@@ -176,7 +176,7 @@ _(se rellena al final)_
 - **Lo que se gana:** el baseline deja de crecer con cada pantalla nueva. Se acaban las extracciones hechas solo para quedar por debajo del límite y los ajustes de firma del baseline al tocar un composable (en el rediseño: `@file:OptIn` en `ShoppingScreen`, entradas editadas a mano, varias extracciones por `LongMethod`).
 - **Lo que se pierde:** detekt deja de avisar de composables gigantes en **55 archivos** con `@Composable`. Algunas de las extracciones que forzó el límite (`EventPickers`, `CalendarEditorHost`, `MealParticipants`…) mejoraron de verdad la legibilidad, y sin la regla dependerían solo de la revisión.
 - **Puntuación:** Beneficio 1 (fricción de herramienta, sin efecto en el usuario) · Coste 1 · Riesgo 1.
-- **Veredicto:** por la rúbrica, **No** no aplica (Coste y Riesgo 1) y tampoco llega a «Hacer ya» (Beneficio 1). **Decisión de estilo del usuario.** Recomendación: **no hacerlo tal cual**; si la fricción molesta, subir el umbral de `LongMethod` para composables no es posible por anotación en detekt, así que la alternativa razonable es dejarlo como está y seguir absorbiendo en el baseline lo que no merezca extraerse.
+- **Veredicto:** la rúbrica no lo clasifica (Beneficio 1 sin coste ni riesgo), así que es una **decisión de estilo del usuario**. Recomendación: **dejarlo como está** y seguir absorbiendo en el baseline lo que no merezca extraerse. detekt no permite un umbral distinto solo para composables, y quitar la regla del todo pierde un aviso que en este proyecto ha sido útil.
 
 ## S9 — Renombres del borrador en el editor de Compra
 **Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
