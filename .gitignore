@@ -28,3 +28,4 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 hs_err_pid*.log
+distribution/.last-distributed.json
