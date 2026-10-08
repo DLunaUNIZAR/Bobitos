@@ -1,14 +1,26 @@
-import { access, readFile } from "node:fs/promises";
+import { access, readFile, stat, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { constants } from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { releaseProblems } from "./beta-release-check.mjs";
 
 const root = process.cwd();
 const firebaseConfigPath = path.join(root, "app", "google-services.json");
 const apkPath = path.join(root, "app", "build", "outputs", "apk", "release", "app-release.apk");
 const releaseNotesPath = path.join(root, "distribution", "release-notes.txt");
+const metadataPath = path.join(path.dirname(apkPath), "output-metadata.json");
+// Última beta distribuida desde este equipo (ignorado por git).
+const lastDistributedPath = path.join(root, "distribution", ".last-distributed.json");
 const expectedPackage = "com.dlunaunizar.bobitos";
+
+async function readJson(filePath) {
+    try {
+        return JSON.parse(await readFile(filePath, "utf8"));
+    } catch {
+        return null;
+    }
+}
 
 async function assertReadable(filePath, message) {
     try {
@@ -27,6 +39,20 @@ await assertReadable(
     "Falta el APK release firmado. Ejecuta ./gradlew assembleRelease antes de distribuir.",
 );
 await assertReadable(releaseNotesPath, "Falta distribution/release-notes.txt.");
+
+const metadata = await readJson(metadataPath);
+const problems = releaseProblems({
+    metadata,
+    apkModifiedAt: (await stat(apkPath)).mtime,
+    notesModifiedAt: (await stat(releaseNotesPath)).mtime,
+    lastDistributed: (await readJson(lastDistributedPath)) ?? undefined,
+});
+if (problems.length > 0) {
+    console.error(`No se distribuye la beta:\n- ${problems.join("\n- ")}`);
+    process.exit(1);
+}
+const { versionCode, versionName } = metadata.elements[0];
+console.log(`Distribuyendo ${versionName} (${versionCode})…`);
 
 const firebaseConfig = JSON.parse(await readFile(firebaseConfigPath, "utf8"));
 const androidClient = firebaseConfig.client?.find(
@@ -58,5 +84,8 @@ const result = spawnSync(
 
 if (result.error) {
     throw result.error;
+}
+if (result.status === 0) {
+    await writeFile(lastDistributedPath, `${JSON.stringify({ versionCode, versionName }, null, 2)}\n`);
 }
 process.exitCode = result.status ?? 1;

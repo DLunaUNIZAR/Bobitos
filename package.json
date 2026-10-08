@@ -10,7 +10,8 @@
     "android:connect-emulators": "node scripts/connect-android-emulators.mjs",
     "seed:emulators": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 node scripts/seed-emulators.mjs",
     "test:emulators": "firebase emulators:exec --only auth,firestore --project demo-bobitos \"node --test tests/firebase-emulators.test.mjs\"",
-    "beta:distribute": "node scripts/distribute-beta.mjs"
+    "beta:distribute": "node scripts/distribute-beta.mjs",
+    "test:scripts": "node --test tests/beta-release-check.test.mjs"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "5.0.1",

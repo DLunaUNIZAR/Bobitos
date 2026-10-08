@@ -105,6 +105,20 @@ Para una actualización, modificar las notas de `distribution/release-notes.txt`
 npm run beta:distribute
 ```
 
+Si la terminal no encuentra Java, usar el de Android Studio:
+`export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"`.
+
+Antes de subir nada, `beta:distribute` lee la versión del APK (`output-metadata.json`) y se niega si:
+- el APK se construyó sin `-PVERSION_CODE`;
+- su versión no es mayor que la última distribuida desde este equipo (`distribution/.last-distributed.json`, que el script actualiza tras distribuir y git ignora);
+- el APK es más antiguo que `distribution/release-notes.txt` (normalmente porque `assembleRelease` falló y quedó el APK anterior).
+
+Si se cambian las reglas de Firestore, desplegarlas antes de distribuir (sin `--project`, la CLI usa `demo-bobitos`, el proyecto del emulador):
+
+```bash
+npx firebase deploy --only firestore:rules --project dev
+```
+
 Firebase enviará un correo a los miembros de `bobitos-beta`. Los testers aceptan la invitación, instalan el APK y permiten instalaciones procedentes del navegador o de App Tester cuando Android lo solicite.
 
 ## 6. Actualización y caducidad
