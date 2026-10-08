@@ -16,7 +16,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
@@ -50,10 +49,13 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseType
@@ -70,8 +72,16 @@ fun ExercisesScreen(
         viewModel.observe()
         onDispose { viewModel.stopObserving() }
     }
-    var showNew by remember { mutableStateOf(false) }
-    var editing by remember { mutableStateOf<CatalogExercise?>(null) }
+    // El editor sobrevive a una rotación: se guarda el id del ejercicio, no el objeto.
+    var editorOpen by rememberSaveable { mutableStateOf(false) }
+    var editorExerciseId by rememberSaveable { mutableStateOf<String?>(null) }
+    val catalogContent = state.catalog as? UiState.Content
+    // Se mantiene el ejercicio mientras la lista recarga (p. ej. al girar), para no perder el borrador.
+    val editorExercise = rememberEditorItem(
+        editorExerciseId,
+        editorExerciseId?.let { id -> catalogContent?.value?.firstOrNull { it.id == id } },
+        catalogContent != null,
+    )
     var deleteTarget by remember { mutableStateOf<CatalogExercise?>(null) }
     var query by rememberSaveable { mutableStateOf("") }
     LaunchedEffect(query) { viewModel.setQuery(query) }
@@ -83,7 +93,10 @@ fun ExercisesScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { showNew = true },
+                onClick = {
+                    editorExerciseId = null
+                    editorOpen = true
+                },
                 icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
                 text = { Text(stringResource(R.string.exercises_add)) },
             )
@@ -101,48 +114,44 @@ fun ExercisesScreen(
             )
             ExerciseCatalog(
                 state = state,
-                onEdit = { editing = it },
+                onEdit = {
+                    editorExerciseId = it.id
+                    editorOpen = true
+                },
                 onDelete = { deleteTarget = it },
             )
         }
     }
 
-    if (showNew) {
-        ExerciseEditorDialog(
-            exercise = null,
-            saving = state.isSaving,
-            onDismiss = { showNew = false },
-            onSave = { name, type, muscle ->
-                viewModel.createExercise(name, type, muscle)
-                showNew = false
-            },
-        )
+    // Si el ejercicio que se editaba ya no existe, se cierra el editor (mientras carga, se espera).
+    val editorUnresolved = editorExerciseId != null && editorExercise == null
+    LaunchedEffect(editorOpen, editorUnresolved, catalogContent != null) {
+        if (editorOpen && editorUnresolved && catalogContent != null) editorOpen = false
     }
-    editing?.let { exercise ->
+    if (editorOpen && !editorUnresolved) {
         ExerciseEditorDialog(
-            exercise = exercise,
+            exercise = editorExercise,
             saving = state.isSaving,
-            onDismiss = { editing = null },
+            onDismiss = { editorOpen = false },
             onSave = { name, type, muscle ->
-                viewModel.updateExercise(exercise.id, name, type, muscle)
-                editing = null
+                editorExercise?.let { viewModel.updateExercise(it.id, name, type, muscle) }
+                    ?: viewModel.createExercise(name, type, muscle)
+                editorOpen = false
             },
         )
     }
     deleteTarget?.let { exercise ->
-        AlertDialog(
-            onDismissRequest = { deleteTarget = null },
-            title = { Text(stringResource(R.string.exercises_delete_title)) },
-            text = { Text(stringResource(R.string.exercises_delete_body, exercise.name)) },
-            confirmButton = {
-                TextButton(enabled = !state.isSaving, onClick = {
-                    viewModel.deleteExercise(exercise.id)
-                    deleteTarget = null
-                }) { Text(stringResource(R.string.exercises_delete)) }
+        BobitosDialog(
+            title = stringResource(R.string.exercises_delete_title),
+            message = stringResource(R.string.exercises_delete_body, exercise.name),
+            confirmLabel = stringResource(R.string.exercises_delete),
+            destructive = true,
+            confirmEnabled = !state.isSaving,
+            onConfirm = {
+                viewModel.deleteExercise(exercise.id)
+                deleteTarget = null
             },
-            dismissButton = {
-                TextButton(onClick = { deleteTarget = null }) { Text(stringResource(R.string.cancel)) }
-            },
+            onDismiss = { deleteTarget = null },
         )
     }
 }
@@ -267,56 +276,45 @@ private fun ExerciseEditorDialog(
     onDismiss: () -> Unit,
     onSave: (String, ExerciseType, String?) -> Unit,
 ) {
-    var name by remember(exercise?.id) { mutableStateOf(exercise?.name.orEmpty()) }
-    var type by remember(exercise?.id) { mutableStateOf(exercise?.type ?: ExerciseType.MAQUINA) }
-    var muscle by remember(exercise?.id) { mutableStateOf(exercise?.muscleGroup.orEmpty()) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(stringResource(if (exercise == null) R.string.exercises_add_title else R.string.exercises_edit_title))
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(stringResource(R.string.exercises_name_label)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Text(stringResource(R.string.exercises_type_label), style = MaterialTheme.typography.labelLarge)
-                Row(
-                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    ExerciseType.entries.forEach { option ->
-                        FilterChip(
-                            selected = type == option,
-                            onClick = { type = option },
-                            label = { Text(stringResource(option.labelRes)) },
-                        )
-                    }
-                }
-                OutlinedTextField(
-                    value = muscle,
-                    onValueChange = { muscle = it },
-                    label = { Text(stringResource(R.string.exercises_muscle_label)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+    val initial = CatalogExerciseDraft.of(exercise)
+    var draft by rememberSaveable(exercise?.id, stateSaver = CatalogExerciseDraftSaver) { mutableStateOf(initial) }
+    BobitosFormSheet(
+        title = stringResource(if (exercise == null) R.string.exercises_add_title else R.string.exercises_edit_title),
+        confirmLabel = stringResource(R.string.save),
+        confirmEnabled = draft.name.isNotBlank(),
+        saving = saving,
+        dirty = draft != initial,
+        onDismiss = onDismiss,
+        onConfirm = { onSave(draft.name, draft.type, draft.muscle.trim().ifBlank { null }) },
+    ) {
+        OutlinedTextField(
+            value = draft.name,
+            onValueChange = { draft = draft.copy(name = it) },
+            label = { Text(stringResource(R.string.exercises_name_label)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(stringResource(R.string.exercises_type_label), style = MaterialTheme.typography.labelLarge)
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            ExerciseType.entries.forEach { option ->
+                FilterChip(
+                    selected = draft.type == option,
+                    onClick = { draft = draft.copy(typeName = option.name) },
+                    label = { Text(stringResource(option.labelRes)) },
                 )
             }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = name.isNotBlank() && !saving,
-                onClick = { onSave(name, type, muscle.trim().ifBlank { null }) },
-            ) { Text(stringResource(R.string.confirm)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
-        },
-    )
+        }
+        OutlinedTextField(
+            value = draft.muscle,
+            onValueChange = { draft = draft.copy(muscle = it) },
+            label = { Text(stringResource(R.string.exercises_muscle_label)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
 
 @Composable

@@ -11,6 +11,7 @@
     <string name="welcome_feature_meals">Planificador de comidas y recetario</string>
     <string name="welcome_start">Comenzar</string>
     <string name="spaces_title">Tus espacios</string>
+    <string name="space_picker_manage">Crear o unirse a un espacio</string>
     <string name="spaces_description">Elige el espacio que quieres organizar.</string>
     <plurals name="space_members">
         <item quantity="one">%1$d miembro</item>

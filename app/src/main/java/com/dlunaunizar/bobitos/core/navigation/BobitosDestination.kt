@@ -135,6 +135,7 @@ fun BobitosDestination.moduleColor(): Color? = when (this) {
 }
 
 internal const val CALENDAR_EVENT_ROUTE = "calendar-event/{eventId}/{date}"
+internal const val INGREDIENT_DETAIL_ROUTE = "ingredient-detail/{ingredientId}"
 
 /** Pestaña que se resalta para la ruta actual, o null si la ruta no es una pantalla del espacio. */
 fun workspaceTabFor(route: String?): BobitosDestination? = when (route) {

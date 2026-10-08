@@ -50,6 +50,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.InitialsAvatar
 import com.dlunaunizar.bobitos.core.designsystem.component.SyncStatusBanner
@@ -189,33 +190,27 @@ fun ProfileScreen(
         }
     }
     if (showDeleteAccount) {
-        AlertDialog(
-            onDismissRequest = { showDeleteAccount = false },
-            title = { Text(stringResource(R.string.account_delete_title)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(stringResource(R.string.account_delete_body))
-                    OutlinedTextField(
-                        deletionPassword,
-                        {
-                            deletionPassword = it
-                            onClearFeedback()
-                        },
-                        label = { Text(stringResource(R.string.auth_password_label)) },
-                        visualTransformation = PasswordVisualTransformation(),
-                        singleLine = true,
-                    )
-                }
-            },
-            confirmButton = {
-                Button(enabled = deletionPassword.isNotBlank() && !actionState.isLoading && canWrite, onClick = {
-                    onDeleteAccount(deletionPassword)
-                }) { Text(stringResource(R.string.account_delete_confirm)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteAccount = false }) { Text(stringResource(R.string.cancel)) }
-            },
-        )
+        // El diálogo no se cierra al confirmar: espera el resultado (contraseña incorrecta, sin conexión…).
+        BobitosDialog(
+            title = stringResource(R.string.account_delete_title),
+            message = stringResource(R.string.account_delete_body),
+            confirmLabel = stringResource(R.string.account_delete_confirm),
+            destructive = true,
+            confirmEnabled = deletionPassword.isNotBlank() && !actionState.isLoading && canWrite,
+            onConfirm = { onDeleteAccount(deletionPassword) },
+            onDismiss = { showDeleteAccount = false },
+        ) {
+            OutlinedTextField(
+                deletionPassword,
+                {
+                    deletionPassword = it
+                    onClearFeedback()
+                },
+                label = { Text(stringResource(R.string.auth_password_label)) },
+                visualTransformation = PasswordVisualTransformation(),
+                singleLine = true,
+            )
+        }
     }
     if (showPrivacy) {
         AlertDialog(

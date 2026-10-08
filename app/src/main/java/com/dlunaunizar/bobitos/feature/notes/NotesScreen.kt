@@ -15,7 +15,6 @@ import androidx.compose.material.icons.automirrored.rounded.StickyNote2
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.PushPin
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -37,6 +36,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,10 +46,13 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Note
 
@@ -75,8 +78,16 @@ fun NotesScreen(
         snackbarHostState.showSnackbar(text)
         viewModel.clearFeedback()
     }
-    var editorNote by remember { mutableStateOf<Note?>(null) }
-    var editorVisible by remember { mutableStateOf(false) }
+    // El editor sobrevive a una rotación: se guarda el id de la nota, no el objeto.
+    var editorNoteId by rememberSaveable { mutableStateOf<String?>(null) }
+    var editorVisible by rememberSaveable { mutableStateOf(false) }
+    val notesContent = state.notes as? UiState.Content
+    // Se mantiene la nota mientras la lista recarga (p. ej. al girar), para no perder el borrador.
+    val editorNote = rememberEditorItem(
+        editorNoteId,
+        editorNoteId?.let { id -> notesContent?.value?.firstOrNull { it.id == id } },
+        notesContent != null,
+    )
     var noteToDelete by remember { mutableStateOf<Note?>(null) }
     // Sin espacio activo no se puede escribir (las escrituras usan observedSpaceId): se desactivan
     // los controles para no perder cambios en silencio si el espacio deja de estar disponible.
@@ -92,7 +103,7 @@ fun NotesScreen(
             if (canWrite && spaceId != null) {
                 ExtendedFloatingActionButton(
                     onClick = {
-                        editorNote = null
+                        editorNoteId = null
                         editorVisible = true
                     },
                     icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
@@ -125,7 +136,7 @@ fun NotesScreen(
                                 enabled = enabled,
                                 onTogglePin = { viewModel.setPinned(note.id, !note.pinned) },
                                 onEdit = {
-                                    editorNote = note
+                                    editorNoteId = note.id
                                     editorVisible = true
                                 },
                                 onDelete = { noteToDelete = note },
@@ -137,7 +148,12 @@ fun NotesScreen(
         }
     }
 
-    if (editorVisible) {
+    // Si la nota que se editaba ya no existe, se cierra el editor (mientras carga, se espera).
+    val editorUnresolved = editorNoteId != null && editorNote == null
+    LaunchedEffect(editorVisible, editorUnresolved, notesContent != null) {
+        if (editorVisible && editorUnresolved && notesContent != null) editorVisible = false
+    }
+    if (editorVisible && !editorUnresolved) {
         NoteEditor(
             note = editorNote,
             saving = state.isSaving,
@@ -150,19 +166,17 @@ fun NotesScreen(
         )
     }
     noteToDelete?.let { note ->
-        AlertDialog(
-            onDismissRequest = { noteToDelete = null },
-            title = { Text(stringResource(R.string.notes_delete_title)) },
-            text = { Text(stringResource(R.string.notes_delete_body, note.title)) },
-            confirmButton = {
-                TextButton(enabled = enabled, onClick = {
-                    viewModel.deleteNote(note.id)
-                    noteToDelete = null
-                }) { Text(stringResource(R.string.notes_delete)) }
+        BobitosDialog(
+            title = stringResource(R.string.notes_delete_title),
+            message = stringResource(R.string.notes_delete_body, note.title),
+            confirmLabel = stringResource(R.string.notes_delete),
+            destructive = true,
+            confirmEnabled = enabled,
+            onConfirm = {
+                viewModel.deleteNote(note.id)
+                noteToDelete = null
             },
-            dismissButton = {
-                TextButton(onClick = { noteToDelete = null }) { Text(stringResource(R.string.cancel)) }
-            },
+            onDismiss = { noteToDelete = null },
         )
     }
 }
@@ -225,41 +239,36 @@ private fun NoteCard(note: Note, enabled: Boolean, onTogglePin: () -> Unit, onEd
 
 @Composable
 private fun NoteEditor(note: Note?, saving: Boolean, onDismiss: () -> Unit, onSave: (String, String?) -> Unit) {
-    var title by remember(note?.id) { mutableStateOf(note?.title.orEmpty()) }
-    var body by remember(note?.id) { mutableStateOf(note?.body.orEmpty()) }
-    val validation = NoteValidation.validate(title, body)
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(if (note == null) R.string.notes_add_title else R.string.notes_edit_title)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text(stringResource(R.string.notes_title_label)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = body,
-                    onValueChange = { body = it },
-                    label = { Text(stringResource(R.string.notes_body_label)) },
-                    minLines = 3,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                validation?.let {
-                    Text(stringResource(it.stringRes()), color = MaterialTheme.colorScheme.error)
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = validation == null && !saving,
-                onClick = { onSave(title, body) },
-            ) { Text(stringResource(R.string.confirm)) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
-    )
+    val initial = NoteDraft.of(note)
+    var draft by rememberSaveable(note?.id, stateSaver = NoteDraftSaver) { mutableStateOf(initial) }
+    val validation = NoteValidation.validate(draft.title, draft.body)
+    BobitosFormSheet(
+        title = stringResource(if (note == null) R.string.notes_add_title else R.string.notes_edit_title),
+        confirmLabel = stringResource(R.string.save),
+        confirmEnabled = validation == null,
+        saving = saving,
+        dirty = draft != initial,
+        onDismiss = onDismiss,
+        onConfirm = { onSave(draft.title, draft.body) },
+    ) {
+        OutlinedTextField(
+            value = draft.title,
+            onValueChange = { draft = draft.copy(title = it) },
+            label = { Text(stringResource(R.string.notes_title_label)) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        OutlinedTextField(
+            value = draft.body,
+            onValueChange = { draft = draft.copy(body = it) },
+            label = { Text(stringResource(R.string.notes_body_label)) },
+            minLines = 3,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        validation?.let {
+            Text(stringResource(it.stringRes()), color = MaterialTheme.colorScheme.error)
+        }
+    }
 }
 
 @Composable

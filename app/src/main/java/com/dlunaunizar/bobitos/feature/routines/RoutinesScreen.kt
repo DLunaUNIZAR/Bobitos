@@ -51,6 +51,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -132,19 +133,17 @@ fun RoutinesScreen(
         )
     }
     deleteTarget?.let { routine ->
-        AlertDialog(
-            onDismissRequest = { deleteTarget = null },
-            title = { Text(stringResource(R.string.routines_delete_title)) },
-            text = { Text(stringResource(R.string.routines_delete_body, routine.title)) },
-            confirmButton = {
-                TextButton(enabled = canWrite && !state.isSaving, onClick = {
-                    viewModel.deleteRoutine(routine.id)
-                    deleteTarget = null
-                }) { Text(stringResource(R.string.routines_delete)) }
+        BobitosDialog(
+            title = stringResource(R.string.routines_delete_title),
+            message = stringResource(R.string.routines_delete_body, routine.title),
+            confirmLabel = stringResource(R.string.routines_delete),
+            destructive = true,
+            confirmEnabled = canWrite && !state.isSaving,
+            onConfirm = {
+                viewModel.deleteRoutine(routine.id)
+                deleteTarget = null
             },
-            dismissButton = {
-                TextButton(onClick = { deleteTarget = null }) { Text(stringResource(R.string.cancel)) }
-            },
+            onDismiss = { deleteTarget = null },
         )
     }
 }
