@@ -58,7 +58,7 @@ class FirebaseAccountRepository @Inject constructor(
 
     private suspend fun anonymizeDisplayNames(spaceId: String, userId: String) {
         val space = firestore.collection(SPACES).document(spaceId)
-        val documents = listOf(SHOPPING_ITEMS, TASKS, EVENTS, MEALS).flatMap { name ->
+        val documents = ANONYMIZED_SPACE_COLLECTIONS.flatMap { name ->
             space.collection(name).get(Source.SERVER).await().documents
         }
         documents.chunked(400).forEach { chunk ->
@@ -94,10 +94,6 @@ class FirebaseAccountRepository @Inject constructor(
     private companion object {
         const val MEMBERSHIPS = "memberships"
         const val SPACES = "spaces"
-        const val SHOPPING_ITEMS = "shoppingItems"
-        const val TASKS = "tasks"
-        const val EVENTS = "events"
-        const val MEALS = "meals"
         const val RECIPES = "recipes"
         const val FIELD_USER_ID = "userId"
         const val FIELD_OWNER_UID = "ownerUid"
@@ -147,3 +143,7 @@ private fun Throwable.failure() = when (this) {
 }
 
 private const val ANONYMOUS_NAME = "Usuario eliminado"
+
+// Colecciones de cada espacio donde se anonimiza el nombre al borrar la cuenta. Deben coincidir con las
+// que tienen regla de anonimización en firestore.rules (lo comprueba AccountAnonymizationTest).
+internal val ANONYMIZED_SPACE_COLLECTIONS = listOf("shoppingItems", "tasks", "events", "meals", "notes", "activities")
