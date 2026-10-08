@@ -26,7 +26,7 @@ Se evalúan 13 puntos que quedaron sin aplicar: los 4 problemas reales de `/code
 | S2 | ViewModels sin volver a «cargando» al reobservar | 2 | 3 | 2 | Más adelante |
 | S3 | Grafo anidado para «Más» | 1 | 2 | 3 | No |
 | S4 | Metadatos de ruta en el enum | 1 | 2 | 2 | No (como mucho, un test de coherencia) |
-| S5 | Deporte reutiliza el documento de evento del calendario | | | | |
+| S5 | Deporte reutiliza el documento de evento del calendario | 1 | 2 | 2 | No |
 | S6 | Fuente propia de espacios para el selector | | | | |
 | S7 | Validación por campo en los editores | | | | |
 | S8 | detekt: ignorar `@Composable` en métodos largos | | | | |
@@ -132,7 +132,15 @@ _(se rellena al final)_
 - **Veredicto:** **No.** Alternativa barata si se quiere protección: un test que recorra `BobitosDestination.entries` y compruebe que toda ruta de `workspaceDestinations`/`moreDestinations` tiene pestaña, alcance `ACTIVE_SPACE` y está en `protectedRoutes`.
 
 ## S5 — Deporte reutiliza el documento de evento del calendario
-**Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
+- **Qué es:** `FirestoreSportActivityRepository` construye a mano el evento de calendario de cada actividad (`newSportEventData`, `sportEventUpdateData`, `dayFields` y 9 constantes `EV_*`), duplicando las 16 claves que `FirestoreCalendarRepository` escribe con `EventInput.common/data`.
+- **Medido:**
+  - Solo la **creación** es compartible: las 16 claves coinciden y podría construirse un `EventInput` de todo el día y reutilizar `data()`. La **actualización** de deporte es parcial a propósito (conserva descripción, color y horario puestos desde el calendario) y no encaja con `updateData()`, que reescribe todo.
+  - Ahorro realista: unas 15–20 líneas (el `mapOf` de creación y parte de las constantes); `dayFields` y la actualización parcial se quedan.
+  - Diferencia que habría que conservar: el nombre del creador (`sportDisplayName` frente a `displayName.ifBlank { email }.take(60)`).
+  - **Ningún test cubre estos mapas:** no hay tests unitarios de ninguno de los dos repositorios y los tests del emulador escriben sus propios mapas en JS (ninguno menciona deporte). Un error en las claves solo se vería en ejecución (las reglas con `hasOnly` rechazarían el guardado).
+- **Prototipo:** no se hace. Con los tests actuales, «compila y pasa» no demostraría nada sobre las claves escritas.
+- **Puntuación:** Beneficio 1 (< 50 líneas) · Coste 2 (dos repositorios y habría que añadir tests) · Riesgo 2 (cambia los datos que se escriben, sin test automático).
+- **Veredicto:** **No.** Si alguna vez cambia el contrato de eventos (se añade una clave), entonces sí compensa extraer un `EventDocument` compartido junto con un test que compruebe que ambos repositorios escriben el mismo conjunto de claves.
 
 ## S6 — Fuente propia de espacios para el selector
 **Qué es** ·  **Medido** ·  **Prototipo** ·  **Puntuación** ·  **Veredicto** ·  **Si se hace**
