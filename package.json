@@ -14,11 +14,14 @@
     "catalog:fetch": "node scripts/catalog/fetch-wger.mjs",
     "catalog:candidates": "node scripts/catalog/build-catalog.mjs --candidates",
     "catalog:build": "node scripts/catalog/build-catalog.mjs",
-    "test:scripts": "node --test tests/beta-release-check.test.mjs tests/catalog-normalize.test.mjs tests/catalog-selection.test.mjs"
+    "test:scripts": "node --test tests/beta-release-check.test.mjs tests/catalog-normalize.test.mjs tests/catalog-selection.test.mjs tests/catalog-import-plan.test.mjs",
+    "catalog:import": "node scripts/catalog/import-exercises.mjs",
+    "test:catalog-import": "firebase emulators:exec --only firestore --project demo-bobitos \"node --test tests/catalog-import.emulator.test.mjs\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "5.0.1",
     "firebase": "12.16.0",
+    "firebase-admin": "13.10.0",
     "firebase-tools": "15.23.0"
   }
 }

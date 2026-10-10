@@ -29,3 +29,7 @@ firestore-debug.log
 ui-debug.log
 hs_err_pid*.log
 distribution/.last-distributed.json
+
+# Cuentas de servicio (nunca versionar)
+*firebase-adminsdk*.json
+*service-account*.json
