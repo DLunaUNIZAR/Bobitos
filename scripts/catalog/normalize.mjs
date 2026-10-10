@@ -72,7 +72,25 @@ export const ACCENT_FIXES = {
   maquina: "máquina",
   hiperextension: "hiperextensión",
   traccion: "tracción",
+  maquinas: "máquinas",
+  bulgaras: "búlgaras",
+  bulgaro: "búlgaro",
+  bulgaros: "búlgaros",
+  pajaros: "pájaros",
+  musculo: "músculo",
+  musculos: "músculos",
+  isometrico: "isométrico",
+  isometrica: "isométrica",
+  isometricos: "isométricos",
+  isometricas: "isométricas",
+  estatico: "estático",
+  estatica: "estática",
+  eliptica: "elíptica",
+  eliptico: "elíptico",
+  tecnica: "técnica",
 };
+// Sufijo -cion/-sion/-xion sin tilde → -ción/-sión/-xión (las excepciones extranjeras van en KEEP_CASE).
+const ION_SUFFIX = /([csx])ion$/;
 
 const STOP_WORDS = new Set([
   "a", "al", "con", "de", "del", "e", "el", "en", "la", "las", "lo", "los", "o", "para", "por", "u", "un", "una", "y",
@@ -182,6 +200,9 @@ export function normalizeName(raw) {
     if (Object.hasOwn(ACCENT_FIXES, key) && lower.includes(letters.toLowerCase())) {
       return lower.replace(letters.toLowerCase(), ACCENT_FIXES[key]);
     }
+    if (ION_SUFFIX.test(letters.toLowerCase()) && lower.endsWith(letters.toLowerCase())) {
+      return lower.replace(ION_SUFFIX, "$1ión");
+    }
     return lower;
   });
   if (out.length > 0 && !/^[A-ZÁÉÍÓÚÑ]{2,3}$/.test(out[0])) {
@@ -201,6 +222,24 @@ export function nearDuplicateKey(name) {
     .map((t) => (t.length > 3 && t.endsWith("s") && !t.endsWith("ss") ? t.slice(0, -1) : t))
     .sort()
     .join(" ");
+}
+
+// Palabras de material (en la forma de `nearDuplicateKey`): añadirlas a un nombre no lo hace otro ejercicio.
+export const EQUIPMENT_WORDS = new Set([
+  "barra", "barraz", "mancuerna", "kettlebell", "disco", "polea", "maquina", "banco", "banca", "esterilla", "fitball",
+  "banda", "elastica", "goma", "pesa", "rusa", "smith", "multipower", "lastre",
+]);
+
+const keyWords = (name) => new Set(nearDuplicateKey(name).split(" ").filter(Boolean));
+
+/** Misma clave, o un conjunto de palabras contiene al otro y lo que sobra es solo material. */
+export function isNearDuplicate(a, b) {
+  const wa = keyWords(a);
+  const wb = keyWords(b);
+  if (wa.size === 0 || wb.size === 0) return false;
+  const [small, big] = wa.size <= wb.size ? [wa, wb] : [wb, wa];
+  if (![...small].every((w) => big.has(w))) return false;
+  return [...big].every((w) => small.has(w) || EQUIPMENT_WORDS.has(w));
 }
 
 const MACHINE_WORDS =

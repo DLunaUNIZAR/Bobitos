@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   htmlToText,
   inferType,
+  isNearDuplicate,
   nearDuplicateKey,
   normalizeName,
   slug,
@@ -136,4 +137,20 @@ test("toCandidate no deja correos en la autoría", () => {
   assert.equal(authorOf(["Ana", "x@y.com"], "x@y.com"), "Ana");
   assert.equal(authorOf(["Ana <ana@x.es>"], ""), "Ana");
   assert.equal(authorOf([], "z@y.com"), "colaboradores de wger");
+});
+
+test("normalizeName corrige plurales, derivados y -ción", () => {
+  assert.equal(normalizeName("Sentadillas bulgaras en maquinas"), "Sentadillas búlgaras en máquinas");
+  assert.equal(normalizeName("Rotacion de tronco"), "Rotación de tronco");
+  assert.equal(normalizeName("Elevaciones laterales"), "Elevaciones laterales");
+  assert.equal(normalizeName("Plancha isometrica"), "Plancha isométrica");
+  assert.equal(normalizeName("Bicicleta eliptica"), "Bicicleta elíptica");
+});
+
+test("isNearDuplicate detecta variantes que solo añaden material", () => {
+  assert.equal(isNearDuplicate("Press banca", "Press de banca con barra"), true);
+  assert.equal(isNearDuplicate("Press de banca con barra", "Press banca"), true);
+  assert.equal(isNearDuplicate("Press francés con mancuerna", "Press francés con mancuernas"), true);
+  assert.equal(isNearDuplicate("Plancha", "Plancha lateral"), false);
+  assert.equal(isNearDuplicate("Remo con barra", "Remo con barra con agarre supino"), false);
 });

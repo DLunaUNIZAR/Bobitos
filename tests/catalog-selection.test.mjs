@@ -69,3 +69,25 @@ test("validateEntry rechaza nombre >120, grupo >60, descripción >2000 y url que
   assert.ok(validateEntry({ ...ok, source: { ...ok.source, url: "https://evil.example/1" } }).length > 0);
   assert.ok(validateEntry({ ...ok, id: "otro" }).length > 0);
 });
+
+test("buildCatalog avisa de «Press banca» frente a «Press de banca con barra»", () => {
+  const r = run({ include: [{ wgerId: 257, name: "Press banca" }, { wgerId: 238, name: "Press de banca con barra" }], exclude: [] });
+  assert.deepEqual(r.problems, []);
+  assert.ok(r.warnings.some((w) => /duplicad/i.test(w) && w.includes("Press banca") && w.includes("Press de banca con barra")));
+});
+
+test("validateEntry exige source.id entero > 0", () => {
+  const ok = {
+    id: "press",
+    name: "Press",
+    type: "PESO_LIBRE",
+    muscleGroup: "Pecho",
+    description: "Descripción válida de más de veinte caracteres.",
+    equipment: ["BARRA"],
+    source: { provider: "wger", id: 1, author: "a", license: "CC-BY-SA-4.0", url: "https://wger.de/es/exercise/1/view/" },
+  };
+  assert.deepEqual(validateEntry(ok), []);
+  for (const bad of [0, -1, 1.5, "7", undefined]) {
+    assert.ok(validateEntry({ ...ok, source: { ...ok.source, id: bad } }).length > 0, `id ${bad}`);
+  }
+});

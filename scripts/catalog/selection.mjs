@@ -1,5 +1,5 @@
 // Selección, validación y render del catálogo de ejercicios. Funciones puras.
-import { EQUIPMENT, EXERCISE_TYPES, LICENSES, groupBy, nearDuplicateKey, foldText, slug, sortEquipment } from "./normalize.mjs";
+import { EQUIPMENT, EXERCISE_TYPES, LICENSES, groupBy, isNearDuplicate, foldText, slug, sortEquipment } from "./normalize.mjs";
 
 const ADMITTED_LICENSES = new Set(Object.values(LICENSES));
 
@@ -27,6 +27,7 @@ export function validateEntry(entry) {
     if (!str(s.author) || s.author === "") errs.push("source.author vacío");
     else if (s.author.length > 200) errs.push("source.author > 200");
     if (!ADMITTED_LICENSES.has(s.license)) errs.push(`source.license no admitida: ${s.license}`);
+    if (!Number.isInteger(s.id) || s.id <= 0) errs.push("source.id debe ser un entero > 0");
     if (!str(s.url) || !s.url.startsWith("https://wger.de/")) errs.push("source.url no es de wger");
     else if (s.url.length > 200) errs.push("source.url > 200");
   }
@@ -78,8 +79,12 @@ export function buildCatalog({ candidates, selection, fetchedAt }) {
 
   exercises.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 
-  for (const list of groupBy(exercises, (e) => nearDuplicateKey(e.name)).values()) {
-    if (list.length > 1) warnings.push(`casi duplicados: ${list.map((e) => `«${e.name}»`).join(", ")}`);
+  for (let i = 0; i < exercises.length; i++) {
+    for (let j = i + 1; j < exercises.length; j++) {
+      if (isNearDuplicate(exercises[i].name, exercises[j].name)) {
+        warnings.push(`casi duplicados: «${exercises[i].name}», «${exercises[j].name}»`);
+      }
+    }
   }
 
   return {

@@ -31,6 +31,17 @@
 - CC-BY-SA-4.0: 194
 - CC0-1.0: 3
 
+## Avisos
+
+- casi duplicados: «Elevación de gemelos sentado», «Elevación de gemelos sentado con mancuerna»
+- casi duplicados: «Extensión de tríceps con barra en polea», «Extensión de tríceps en polea»
+- casi duplicados: «Flexiones», «Flexiones con lastre»
+- casi duplicados: «Peso muerto sumo», «Peso muerto sumo con mancuerna»
+- casi duplicados: «Press de banca», «Press de banca con mancuernas»
+- casi duplicados: «Press de banca con agarre cerrado», «Press de banca con agarre cerrado con mancuernas»
+- casi duplicados: «Press de banca inclinado», «Press de banca inclinado con mancuernas»
+- casi duplicados: «Sentadilla frontal», «Sentadilla frontal con mancuernas»
+
 ## Notas
 
 - Imprescindibles que wger no ofrece en español y que no se han inventado: ergómetro de remo (cardio), dominadas con lastre, sentadilla trasera con ficha propia (se usa la ficha genérica «Sentadillas», id 615), extensión/elevación de gemelos de pie en máquina específica, curl femoral de pie, natación y caminata como cardio.

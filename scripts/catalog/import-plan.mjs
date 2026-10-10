@@ -1,6 +1,6 @@
 // Plan de importación del catálogo de ejercicios. Puro: no importa firebase-admin (lo usan los
 // tests de reglas). `now` llega ya construido (FieldValue.serverTimestamp() o un Timestamp).
-import { groupBy, nearDuplicateKey } from "./normalize.mjs";
+import { isNearDuplicate } from "./normalize.mjs";
 
 // Debe coincidir con firestore.rules (recipeAdmins()) y RecipeAdmins.kt; un test lo vigila.
 export const CATALOG_ADMIN_UID = "dWWH7eRhHEPopJf5BHPB3Dp6fry1";
@@ -72,18 +72,16 @@ export function planImport({ catalog, existing, adminUid }) {
   };
   const byId = new Map(existing.map((d) => [d.id, d]));
   const catalogIds = new Set(catalog.exercises.map((e) => e.id));
-  const existingByKey = groupBy(
-    existing.filter((d) => typeof d.fields?.name === "string"),
-    (d) => nearDuplicateKey(d.fields.name),
-  );
+  const named = existing.filter((d) => typeof d.fields?.name === "string");
 
   for (const entry of catalog.exercises) {
     const cur = byId.get(entry.id);
     if (!cur) {
       plan.create.push(entry);
-      const k = nearDuplicateKey(entry.name);
-      for (const { id: existingId } of existingByKey.get(k) ?? []) {
-        if (existingId !== entry.id) plan.nearDuplicates.push({ id: entry.id, existingId });
+      for (const { id: existingId, fields } of named) {
+        if (existingId !== entry.id && isNearDuplicate(entry.name, fields.name)) {
+          plan.nearDuplicates.push({ id: entry.id, existingId });
+        }
       }
     } else if (cur.ownerUid !== adminUid) {
       plan.skippedUserOwned.push({ id: cur.id, ownerUid: cur.ownerUid });

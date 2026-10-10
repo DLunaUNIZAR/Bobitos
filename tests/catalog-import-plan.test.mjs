@@ -132,3 +132,10 @@ test("CATALOG_ADMIN_UID coincide con firestore.rules y RecipeAdmins.kt", async (
   assert.ok(block.slice(0, 400).includes(`"${CATALOG_ADMIN_UID}"`), "firestore.rules");
   assert.ok(kt.includes(`"${CATALOG_ADMIN_UID}"`), "RecipeAdmins.kt");
 });
+
+test("planImport avisa de un alta casi igual a una existente con material extra", () => {
+  const old = entry({ id: "press-banca", name: "Press banca" });
+  const nuevo = entry({ id: "press-de-banca-con-barra", name: "Press de banca con barra" });
+  const p = plan(catalogOf(nuevo), [imported(old)]);
+  assert.deepEqual(p.nearDuplicates, [{ id: "press-de-banca-con-barra", existingId: "press-banca" }]);
+});
