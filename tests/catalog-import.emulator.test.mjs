@@ -248,3 +248,28 @@ test("las imágenes huérfanas se informan y no se borran", async () => {
   assert.ok((await db.doc("exerciseImages/vieja").get()).exists);
   assert.match(lines.join("\n"), /Imágenes huérfanas/);
 });
+
+test("una ficha editada en la app no recibe una imagen nueva del catálogo", async () => {
+  await runImport({ db, catalog: small, apply: true, log: quiet, imagesDir });
+  const [a] = withImages;
+  const before = (await db.doc(`exerciseImages/${a.id}`).get()).data();
+  const ref = db.doc(`exercises/${a.id}`);
+  const imp = (await ref.get()).data().source.importedAt.toMillis();
+  await ref.update({ description: "Editada a mano", updatedAt: Timestamp.fromMillis(imp + 60000) });
+  const dir = await mkdtemp(join(tmpdir(), "bobitos-img-"));
+  for (const e of withImages) await writeFile(join(dir, `${e.id}.webp`), await readFile(join(imagesDir, `${e.id}.webp`)));
+  const sharp = (await import("sharp")).default;
+  const nuevo = await sharp({ create: { width: 8, height: 6, channels: 3, background: "#336699" } }).webp().toBuffer();
+  await writeFile(join(dir, `${a.id}.webp`), nuevo);
+  const changed = {
+    ...small,
+    exercises: small.exercises.map((e) => (e.id === a.id ? { ...e, image: { ...e.image, hash: sha(nuevo), author: "Otro" } } : e)),
+  };
+  const p = await runImport({ db, catalog: changed, apply: true, log: quiet, imagesDir: dir });
+  assert.deepEqual(p.images.skipped, [a.id]);
+  assert.deepEqual(p.images.upload, []);
+  const after = (await db.doc(`exerciseImages/${a.id}`).get()).data();
+  assert.equal(after.hash, before.hash);
+  assert.equal(after.author, before.author);
+  assert.ok(before.data.equals(after.data));
+});

@@ -207,7 +207,7 @@ test("planImageImport sube las nuevas o con hash distinto, deja las iguales e in
   const catalog = catalogOf(withImage("nueva", "a"), withImage("cambiada", "b"), withImage("igual", "c"), entry({ id: "sin-foto" }));
   const existingImages = [
     { id: "cambiada", hash: hashOf("x") },
-    { id: "igual", hash: hashOf("c") },
+    { id: "igual", ...withImage("igual", "c").image },
     { id: "vieja", hash: hashOf("d") },
     { id: "sin-foto", hash: hashOf("e") },
   ];
@@ -215,12 +215,41 @@ test("planImageImport sube las nuevas o con hash distinto, deja las iguales e in
   assert.deepEqual(p.upload, ["nueva", "cambiada"]);
   assert.deepEqual(p.unchanged, ["igual"]);
   assert.deepEqual(p.orphaned, ["vieja", "sin-foto"]);
-  assert.deepEqual(planImageImport({ catalog: catalogOf(entry()), existingImages: [] }), { upload: [], unchanged: [], orphaned: [] });
+  assert.deepEqual(planImageImport({ catalog: catalogOf(entry()), existingImages: [] }), { upload: [], unchanged: [], skipped: [], orphaned: [] });
+});
+
+test("planImageImport no sube imágenes de fichas omitidas y las informa", () => {
+  const frozen = withImage("congelada", "b");
+  const user = withImage("de-usuario", "c");
+  const manual = withImage("manual", "d");
+  const ok = withImage("nueva", "a");
+  const catalog = catalogOf(frozen, user, manual, ok);
+  const existingImages = [{ id: "congelada", hash: hashOf("x") }];
+  const p = plan(catalog, [
+    imported(frozen, { updatedAtMillis: 9000, importedAtMillis: 1000 }),
+    imported(user, { ownerUid: "otro" }),
+    imported(manual, { hasSource: false }),
+  ]);
+  const out = planImageImport({ catalog, existingImages, plan: p });
+  assert.deepEqual(out.upload, ["nueva"]);
+  assert.deepEqual(out.skipped, ["congelada", "de-usuario", "manual"]);
+  assert.deepEqual(out.orphaned, []);
+  assert.match(formatPlan({ ...p, images: out }), /Imágenes omitidas \(ficha omitida\): 3/);
+});
+
+test("planImageImport sube cuando solo cambian autor, licencia o sourceUrl con el mismo hash", () => {
+  const e = withImage("igual", "c");
+  const same = { id: "igual", ...e.image };
+  const run = (over) => planImageImport({ catalog: catalogOf(e), existingImages: [{ ...same, ...over }], plan: plan(catalogOf(e), [imported(e)]) });
+  assert.deepEqual(run({}).unchanged, ["igual"]);
+  assert.deepEqual(run({ author: "Otro" }).upload, ["igual"]);
+  assert.deepEqual(run({ license: "CC0-1.0x" }).upload, ["igual"]);
+  assert.deepEqual(run({ sourceUrl: "https://wger.de/media/z.png" }).upload, ["igual"]);
 });
 
 test("formatPlan muestra las imágenes a subir", () => {
   const catalog = catalogOf(withImage("nueva", "a"), withImage("igual", "c"));
-  const imagePlan = planImageImport({ catalog, existingImages: [{ id: "igual", hash: hashOf("c") }, { id: "vieja", hash: hashOf("d") }] });
+  const imagePlan = planImageImport({ catalog, existingImages: [{ id: "igual", ...withImage("igual", "c").image }, { id: "vieja", hash: hashOf("d") }] });
   const out = formatPlan({ ...plan(catalog), images: imagePlan });
   assert.match(out, /Imágenes a subir: 1/);
   assert.match(out, /Imágenes sin cambios: 1/);

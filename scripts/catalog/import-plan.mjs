@@ -113,19 +113,32 @@ export function planImport({ catalog, existing, adminUid }) {
   return plan;
 }
 
+const IMAGE_META = ["hash", "author", "license", "sourceUrl"];
+const sameImageMeta = (a, b) => IMAGE_META.every((k) => (a[k] ?? null) === (b[k] ?? null));
+
 /**
- * Imágenes (exerciseImages/<id>) frente al catálogo, por hash. `existingImages`: [{id, hash}].
- * `upload`: ids sin imagen o con otro hash; `unchanged`: mismo hash; `orphaned`: imágenes que ya
- * no usa ninguna ficha del catálogo (se informan, no se borran).
+ * Imágenes (exerciseImages/<id>) frente al catálogo. `existingImages`: [{id, hash, author?, license?,
+ * sourceUrl?}]. Solo se tocan las de fichas que el importador escribe o deja igual (create ∪ update ∪
+ * unchanged de `plan`); las de fichas omitidas (usuario, manual del admin, editadas en la app) van en
+ * `skipped` para que ficha e imagen no se desfasen. `upload`: sin imagen o con otro hash/autor/licencia/
+ * sourceUrl; `unchanged`: todo igual; `orphaned`: imágenes que ya no usa ninguna ficha (se informan, no
+ * se borran). Sin `plan` se consideran todas las fichas. Si el lote de fichas fallase por precondición
+ * tras subir la imagen, esta se queda (la siguiente importación la deja como `unchanged`).
  */
-export function planImageImport({ catalog, existingImages }) {
-  const byId = new Map(existingImages.map((i) => [i.id, i.hash]));
-  const out = { upload: [], unchanged: [], orphaned: [] };
+export function planImageImport({ catalog, existingImages, plan }) {
+  const byId = new Map(existingImages.map((i) => [i.id, i]));
+  const allowed = plan ? new Set([...plan.create.map((e) => e.id), ...plan.update.map((e) => e.id), ...plan.unchanged]) : null;
+  const out = { upload: [], unchanged: [], skipped: [], orphaned: [] };
   const wanted = new Set();
   for (const e of catalog.exercises) {
     if (!e.image) continue;
     wanted.add(e.id);
-    (byId.get(e.id) === e.image.hash ? out.unchanged : out.upload).push(e.id);
+    if (allowed && !allowed.has(e.id)) {
+      out.skipped.push(e.id);
+      continue;
+    }
+    const cur = byId.get(e.id);
+    (cur && sameImageMeta(cur, e.image) ? out.unchanged : out.upload).push(e.id);
   }
   out.orphaned = existingImages.filter((i) => !wanted.has(i.id)).map((i) => i.id);
   return out;
@@ -152,6 +165,7 @@ export function formatPlan(plan) {
       ? [
           `Imágenes a subir: ${plan.images.upload.length}`,
           `Imágenes sin cambios: ${plan.images.unchanged.length}`,
+          ...section("Imágenes omitidas (ficha omitida)", plan.images.skipped ?? []),
           ...section("Imágenes huérfanas (no se borran)", plan.images.orphaned),
         ]
       : []),

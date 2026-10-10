@@ -70,12 +70,18 @@ export async function runImport({ db, catalog, apply, log = console.log, imagesD
     });
   });
 
-  // Solo el hash: select() evita traer los bytes de cada imagen.
-  const imageSnap = await db.collection("exerciseImages").select("hash").get();
-  const existingImages = imageSnap.docs.map((d) => ({ id: d.id, hash: d.get("hash") }));
+  // Solo los metadatos: select() evita traer los bytes de cada imagen.
+  const imageSnap = await db.collection("exerciseImages").select("hash", "author", "license", "sourceUrl").get();
+  const existingImages = imageSnap.docs.map((d) => ({
+    id: d.id,
+    hash: d.get("hash"),
+    author: d.get("author"),
+    license: d.get("license"),
+    sourceUrl: d.get("sourceUrl"),
+  }));
 
   const plan = { ...planImport({ catalog, existing, adminUid: CATALOG_ADMIN_UID }) };
-  plan.images = planImageImport({ catalog, existingImages });
+  plan.images = planImageImport({ catalog, existingImages, plan });
   // Antes de escribir nada: todos los ficheros existen y casan con el hash del catálogo.
   const toUpload = loadImagesToUpload(plan.images.upload, catalog, imagesDir);
   log(formatPlan(plan));
