@@ -51,13 +51,21 @@ internal fun LoadedImage.credit(fallbackLicense: String): ImageCredit {
 // Imagen de la ficha leída de Firestore, con su atribución. Fondo blanco fijo (los WebP pueden ser transparentes).
 // Si no hay bitmap (sin red, sin documento, bytes corruptos) no se pinta nada, crédito incluido: no se atribuye lo que no se muestra.
 @Composable
-internal fun ExerciseImageBlock(image: ExerciseImage, exerciseName: String, load: suspend () -> LoadedImage?) {
-    val loaded by produceState<Pair<ImageBitmap, ImageCredit>?>(initialValue = null, image.hash) {
-        value = load()?.let { img ->
-            withContext(Dispatchers.Default) {
-                BitmapFactory.decodeByteArray(img.bytes, 0, img.bytes.size)?.asImageBitmap()
-            }?.let { it to img.credit(image.license) }
-        }
+internal fun ExerciseImageBlock(
+    exerciseId: String,
+    image: ExerciseImage,
+    exerciseName: String,
+    load: suspend () -> LoadedImage?,
+) {
+    // Clave (ejercicio, hash); cada carga empieza en null para no mostrar la imagen ni el crédito anteriores.
+    val loaded by produceState<Pair<ImageBitmap, ImageCredit>?>(initialValue = null, exerciseId, image.hash) {
+        imageLoadFlow {
+            load()?.let { img ->
+                withContext(Dispatchers.Default) {
+                    BitmapFactory.decodeByteArray(img.bytes, 0, img.bytes.size)?.asImageBitmap()
+                }?.let { it to img.credit(image.license) }
+            }
+        }.collect { value = it }
     }
     val (shown, credit) = loaded ?: return
     val link = rememberSafeLinks()

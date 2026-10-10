@@ -58,7 +58,7 @@ internal fun ExerciseDetailSheet(
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
-        exercise.image?.let { ExerciseImageBlock(it, exercise.name, loadImage) }
+        exercise.image?.let { ExerciseImageBlock(exercise.id, it, exercise.name, loadImage) }
         Text(
             text = exercise.description ?: stringResource(R.string.exercises_detail_no_description),
             style = MaterialTheme.typography.bodyLarge,
