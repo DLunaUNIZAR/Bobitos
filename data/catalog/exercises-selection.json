@@ -631,7 +631,7 @@
     {
       "wgerId": 1408,
       "name": "Sentadilla en la pared",
-      "type": "PESO_CORPORAL"
+      "type": "OTROS"
     },
     {
       "wgerId": 981,
@@ -872,7 +872,7 @@
     {
       "wgerId": 1852,
       "name": "L-sit",
-      "type": "PESO_CORPORAL"
+      "type": "OTROS"
     },
     {
       "wgerId": 1743,
@@ -885,17 +885,17 @@
     {
       "wgerId": 1307,
       "name": "Plancha",
-      "type": "PESO_CORPORAL"
+      "type": "OTROS"
     },
     {
       "wgerId": 1019,
       "name": "Plancha lateral",
-      "type": "PESO_CORPORAL"
+      "type": "OTROS"
     },
     {
       "wgerId": 297,
       "name": "Hollow hold",
-      "type": "PESO_CORPORAL"
+      "type": "OTROS"
     },
     {
       "wgerId": 178,
