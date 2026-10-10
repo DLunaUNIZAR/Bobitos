@@ -406,7 +406,7 @@ Desde una comida enlazada a una receta (`Meal.recipeId`) se pueden **volcar sus 
 
 ### Ejercicios (colección `exercises`)
 
-Catálogo común de ejercicios, **top-level** y compartido (parecido a `ingredients`). La documentación de cómo se siembra y se importa está en [`EXERCISE_CATALOG.md`](EXERCISE_CATALOG.md).
+Catálogo común de ejercicios, **top-level** y compartido (parecido a `ingredients`). La documentación de cómo se siembra y se importa está en [`EXERCISE_CATALOG.md`](EXERCISE_CATALOG.md). El catálogo común de ingredientes está documentado en [`INGREDIENT_CATALOG.md`](INGREDIENT_CATALOG.md).
 
 ```text
 exercises/{exerciseId}                 # id = slug del nombre

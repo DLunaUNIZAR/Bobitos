@@ -1,6 +1,8 @@
-# Licencia del catálogo de ejercicios
+# Licencias del catálogo
 
-El contenido de este catálogo se publica bajo la licencia
+La licencia CC BY-SA 4.0 de esta sección se refiere al **catálogo de ejercicios**. Los ingredientes tienen su propia sección más abajo.
+
+El contenido del catálogo de ejercicios se publica bajo la licencia
 [Creative Commons Atribución-CompartirIgual 4.0 (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/deed.es).
 
 Es una obra derivada de [wger](https://wger.de) y de sus autores (datos de la API pública de ejercicios).
@@ -22,3 +24,7 @@ Seis fichas (ergómetro de remo, dominadas con lastre, elevación de gemelos de 
 ## Imágenes
 
 Las imágenes de las fichas de wger se redistribuyen como **adaptaciones** (redimensionadas a 400 px como máximo y convertidas a WebP) de obras con licencia CC BY-SA 3.0 o CC BY-SA 4.0. Cada una conserva su autor, su licencia y su procedencia (`sourceUrl`, la dirección original en wger) en el campo `image` de su ficha, y se publica bajo la misma licencia que la obra original. Las copias se versionan en `data/catalog/images/` y el importador las almacena en Firestore. Se excluyen las imágenes generadas por inteligencia artificial.
+
+## Ingredientes
+
+`ingredients.json` es una lista propia de Bobitos. No deriva de wger ni de ninguna otra base de datos, y la licencia CC BY-SA del principio de este fichero se refiere solo a los ejercicios.
