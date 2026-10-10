@@ -33,11 +33,10 @@ class RoutinesViewModelTest {
     private val viewModel = RoutinesViewModel(repository, exerciseRepository)
 
     @Test
-    fun `observes global and personal routines and the exercise catalog`() =
+    fun `observes global and personal routines without touching the exercise catalog`() =
         runTest(mainDispatcherRule.testDispatcher) {
             repository.globalState.value = listOf(routine("g1", RoutineVisibility.GLOBAL, "Full body"))
             repository.mineState.value = listOf(routine("m1", RoutineVisibility.PRIVATE, "Empuje"))
-            exerciseRepository.catalogState.value = listOf(exercise("press-banca", "Press banca"))
 
             viewModel.observe()
             advanceUntilIdle()
@@ -45,7 +44,39 @@ class RoutinesViewModelTest {
             val state = viewModel.uiState.value
             assertEquals(listOf("Full body"), (state.global as UiState.Content).value.map(Routine::title))
             assertEquals(listOf("Empuje"), (state.mine as UiState.Content).value.map(Routine::title))
-            assertEquals(listOf("Press banca"), state.exercises.map(CatalogExercise::name))
+            assertEquals(0, exerciseRepository.catalogCalls)
+        }
+
+    @Test
+    fun `does not subscribe to the exercise catalog until the editor needs it`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            exerciseRepository.catalogState.value = listOf(exercise("press-banca", "Press banca"))
+
+            viewModel.observe()
+            advanceUntilIdle()
+            assertEquals(0, exerciseRepository.catalogCalls)
+
+            viewModel.observeExerciseCatalog()
+            viewModel.observeExerciseCatalog()
+            advanceUntilIdle()
+
+            assertEquals(1, exerciseRepository.catalogCalls)
+            assertEquals(listOf("Press banca"), viewModel.uiState.value.exercises.map(CatalogExercise::name))
+        }
+
+    @Test
+    fun `observing the exercise catalog again after stopObserving resubscribes`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel.observe()
+            viewModel.observeExerciseCatalog()
+            advanceUntilIdle()
+            viewModel.stopObserving()
+
+            viewModel.observe()
+            viewModel.observeExerciseCatalog()
+            advanceUntilIdle()
+
+            assertEquals(2, exerciseRepository.catalogCalls)
         }
 
     @Test
@@ -130,7 +161,12 @@ class RoutinesViewModelTest {
 
 private class FakeExerciseRepository : ExerciseRepository {
     val catalogState = MutableStateFlow<List<CatalogExercise>>(emptyList())
-    override fun catalog(): Flow<List<CatalogExercise>> = catalogState
+    var catalogCalls = 0
+
+    override fun catalog(): Flow<List<CatalogExercise>> {
+        catalogCalls++
+        return catalogState
+    }
     override fun isCurrentUserCatalogAdmin(): Boolean = false
     override fun currentUserId(): String? = "u"
     override suspend fun exerciseById(id: String): CatalogExercise? = null

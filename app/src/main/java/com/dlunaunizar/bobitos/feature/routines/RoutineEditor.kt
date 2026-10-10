@@ -31,6 +31,7 @@ import com.dlunaunizar.bobitos.feature.exercises.toRoutineExercises
 internal fun RoutineEditor(
     routine: Routine?,
     catalog: List<CatalogExercise>,
+    onCatalogNeeded: () -> Unit,
     isAdmin: Boolean,
     saving: Boolean,
     canWrite: Boolean,
@@ -81,6 +82,6 @@ internal fun RoutineEditor(
             }
         }
         Text(stringResource(R.string.routines_exercises_label), style = MaterialTheme.typography.titleSmall)
-        ExerciseListEditor(drafts = exercises, catalog = catalog)
+        ExerciseListEditor(drafts = exercises, catalog = catalog, onCatalogNeeded = onCatalogNeeded)
     }
 }

@@ -46,6 +46,12 @@ class RoutinesViewModel @Inject constructor(
                 .catch { error -> mutableUiState.update { it.copy(mine = UiState.Error(error.message)) } }
                 .collect { list -> mutableUiState.update { it.copy(mine = UiState.Content(list)) } }
         }
+    }
+
+    // Catálogo de ejercicios para el editor de rutina. Diferido: lo pide el editor al aparecer. Idempotente;
+    // un fallo se ignora (el selector quedará vacío).
+    fun observeExerciseCatalog() {
+        if (exercisesJob?.isActive == true) return
         exercisesJob = viewModelScope.launch {
             exerciseRepository.catalog()
                 .catch { mutableUiState.update { it.copy(exercises = emptyList()) } }

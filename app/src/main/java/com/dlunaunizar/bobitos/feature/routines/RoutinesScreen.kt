@@ -127,6 +127,7 @@ fun RoutinesScreen(
     RoutineSheetsHost(
         state = state,
         canWrite = canWrite,
+        onCatalogNeeded = viewModel::observeExerciseCatalog,
         detailRoutineId = detailRoutineId,
         editorOpen = editorOpen,
         editorRoutineId = editorRoutineId,
@@ -309,6 +310,7 @@ private fun RoutineCard(
 private fun RoutineSheetsHost(
     state: RoutinesUiState,
     canWrite: Boolean,
+    onCatalogNeeded: () -> Unit,
     detailRoutineId: String?,
     editorOpen: Boolean,
     editorRoutineId: String?,
@@ -340,6 +342,7 @@ private fun RoutineSheetsHost(
         RoutineEditor(
             routine = editing,
             catalog = state.exercises,
+            onCatalogNeeded = onCatalogNeeded,
             isAdmin = state.isAdmin,
             saving = state.isSaving,
             canWrite = canWrite,

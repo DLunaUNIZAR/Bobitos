@@ -108,14 +108,36 @@ class SportViewModelTest {
     }
 
     @Test
-    fun `observes the exercise catalog for the session editor`() = runTest(mainDispatcherRule.testDispatcher) {
-        exerciseRepository.catalogState.value = listOf(catalogExercise("press-banca", "Press banca"))
+    fun `does not subscribe to the exercise catalog until the session editor needs it`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            exerciseRepository.catalogState.value = listOf(catalogExercise("press-banca", "Press banca"))
 
-        viewModel.observe("home")
-        advanceUntilIdle()
+            viewModel.observe("home")
+            advanceUntilIdle()
+            assertEquals(0, exerciseRepository.catalogCalls)
 
-        assertEquals(listOf("Press banca"), viewModel.uiState.value.exercises.map(CatalogExercise::name))
-    }
+            viewModel.observeExerciseCatalog()
+            viewModel.observeExerciseCatalog()
+            advanceUntilIdle()
+
+            assertEquals(1, exerciseRepository.catalogCalls)
+            assertEquals(listOf("Press banca"), viewModel.uiState.value.exercises.map(CatalogExercise::name))
+        }
+
+    @Test
+    fun `observing the exercise catalog again after stopObserving resubscribes`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel.observe("home")
+            viewModel.observeExerciseCatalog()
+            advanceUntilIdle()
+            viewModel.stopObserving()
+
+            viewModel.observe("home")
+            viewModel.observeExerciseCatalog()
+            advanceUntilIdle()
+
+            assertEquals(2, exerciseRepository.catalogCalls)
+        }
 
     @Test
     fun `marking an activity done delegates to the repository`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -250,7 +272,12 @@ private class FakeSportRoutineRepository : RoutineRepository {
 private class FakeSportExerciseRepository : ExerciseRepository {
     val catalogState = MutableStateFlow<List<CatalogExercise>>(emptyList())
 
-    override fun catalog(): Flow<List<CatalogExercise>> = catalogState
+    var catalogCalls = 0
+
+    override fun catalog(): Flow<List<CatalogExercise>> {
+        catalogCalls++
+        return catalogState
+    }
     override fun isCurrentUserCatalogAdmin(): Boolean = false
     override fun currentUserId(): String? = "u"
     override suspend fun exerciseById(id: String): CatalogExercise? = null

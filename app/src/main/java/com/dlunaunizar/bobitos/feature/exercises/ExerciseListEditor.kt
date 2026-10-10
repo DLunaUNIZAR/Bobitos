@@ -2,21 +2,17 @@ package com.dlunaunizar.bobitos.feature.exercises
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -27,6 +23,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -51,15 +48,21 @@ import com.dlunaunizar.bobitos.core.model.RoutineExercise
 // Los campos dependen del tipo: fuerza → filas de series (reps + peso); cardio → minutos + nivel.
 // La lista [drafts] la posee y recuerda el llamante; aquí solo se muta (añadir/quitar) y se pinta.
 @Composable
-internal fun ExerciseListEditor(drafts: SnapshotStateList<ExerciseDraft>, catalog: List<CatalogExercise>) {
+internal fun ExerciseListEditor(
+    drafts: SnapshotStateList<ExerciseDraft>,
+    catalog: List<CatalogExercise>,
+    onCatalogNeeded: () -> Unit,
+) {
+    // El catálogo se carga de forma diferida: el editor lo pide al aparecer y el selector se rellena solo.
+    LaunchedEffect(Unit) { onCatalogNeeded() }
     var picking by rememberSaveable { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         drafts.forEachIndexed { index, draft ->
             ExerciseDraftCard(draft = draft, onRemove = { drafts.removeAt(index) })
         }
-        // Sin catálogo, elegir carece de sentido: se añade directamente una fila en blanco.
+        // Siempre abre el selector: su primera fila, «Personalizado…», cubre el catálogo vacío o aún sin llegar.
         OutlinedButton(
-            onClick = { if (catalog.isEmpty()) drafts.add(ExerciseDraft()) else picking = true },
+            onClick = { picking = true },
             modifier = Modifier.fillMaxWidth(),
         ) {
             Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -187,37 +190,6 @@ private fun CardioFields(draft: ExerciseDraft) {
             modifier = Modifier.weight(1f),
         )
     }
-}
-
-@Composable
-private fun ExercisePickerDialog(
-    catalog: List<CatalogExercise>,
-    onDismiss: () -> Unit,
-    onPick: (CatalogExercise?) -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.routines_pick_exercise)) },
-        text = {
-            Column(
-                modifier = Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-            ) {
-                TextButton(onClick = { onPick(null) }, modifier = Modifier.fillMaxWidth()) {
-                    Box(Modifier.fillMaxWidth()) { Text(stringResource(R.string.routines_custom_exercise)) }
-                }
-                catalog.forEach { exercise ->
-                    TextButton(onClick = { onPick(exercise) }, modifier = Modifier.fillMaxWidth()) {
-                        Box(Modifier.fillMaxWidth()) {
-                            Text("${exercise.name} · ${stringResource(exercise.type.labelRes)}")
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
-    )
 }
 
 // --- Borradores observables ---

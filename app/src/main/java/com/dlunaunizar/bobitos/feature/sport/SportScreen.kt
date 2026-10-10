@@ -205,6 +205,7 @@ fun SportScreen(
         members = members,
         routines = state.routines,
         catalog = state.exercises,
+        onCatalogNeeded = viewModel::observeExerciseCatalog,
         saving = state.isSaving,
         canWrite = canWrite,
         onClose = {
@@ -404,6 +405,7 @@ private fun ActivityEditorHost(
     members: List<SpaceMember>,
     routines: List<Routine>,
     catalog: List<CatalogExercise>,
+    onCatalogNeeded: () -> Unit,
     saving: Boolean,
     canWrite: Boolean,
     onClose: () -> Unit,
@@ -422,6 +424,7 @@ private fun ActivityEditorHost(
         members = members,
         routines = routines,
         catalog = catalog,
+        onCatalogNeeded = onCatalogNeeded,
         saving = saving,
         canWrite = canWrite,
         onDismiss = onClose,
@@ -456,6 +459,7 @@ private fun ActivityEditor(
     members: List<SpaceMember>,
     routines: List<Routine>,
     catalog: List<CatalogExercise>,
+    onCatalogNeeded: () -> Unit,
     saving: Boolean,
     canWrite: Boolean,
     onDismiss: () -> Unit,
@@ -512,6 +516,7 @@ private fun ActivityEditor(
                 routineTitle = routines.firstOrNull { it.id == draft.routineId }?.title,
                 session = session,
                 catalog = catalog,
+                onCatalogNeeded = onCatalogNeeded,
                 onPickRoutine = { pickingRoutine = true },
             )
         }
@@ -541,6 +546,7 @@ private fun GymSessionSection(
     routineTitle: String?,
     session: SnapshotStateList<ExerciseDraft>,
     catalog: List<CatalogExercise>,
+    onCatalogNeeded: () -> Unit,
     onPickRoutine: () -> Unit,
 ) {
     Text(stringResource(R.string.sport_session_label), style = MaterialTheme.typography.titleSmall)
@@ -553,7 +559,7 @@ private fun GymSessionSection(
         )
         TextButton(onClick = onPickRoutine) { Text(stringResource(R.string.sport_routine_pick)) }
     }
-    ExerciseListEditor(drafts = session, catalog = catalog)
+    ExerciseListEditor(drafts = session, catalog = catalog, onCatalogNeeded = onCatalogNeeded)
 }
 
 @Composable

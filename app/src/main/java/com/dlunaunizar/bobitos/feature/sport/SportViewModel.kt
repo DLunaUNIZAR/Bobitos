@@ -53,7 +53,6 @@ class SportViewModel @Inject constructor(
                 .collect { members -> mutableUiState.update { it.copy(members = UiState.Content(members)) } }
         }
         observeRoutines()
-        observeExercises()
     }
 
     // Catálogo de rutinas (comunes + mías, deduplicado) para el picker de la sesión de gimnasio. Es
@@ -70,8 +69,9 @@ class SportViewModel @Inject constructor(
         }
     }
 
-    // Catálogo de ejercicios para elegir al añadir uno a la sesión. Global; un fallo se ignora.
-    private fun observeExercises() {
+    // Catálogo de ejercicios para elegir al añadir uno a la sesión. Diferido: lo pide el editor de la sesión
+    // al aparecer. Idempotente; global; un fallo se ignora.
+    fun observeExerciseCatalog() {
         if (exercisesJob?.isActive == true) return
         exercisesJob = viewModelScope.launch {
             exercises.catalog()
