@@ -12,7 +12,7 @@ No hay Cloud Functions (plan Spark, coste 0): la curación se hace **in-app** co
 
 ## Quién es admin (allowlist de UID)
 
-La lista de administradores se define por **UID de Firebase Auth** en **dos sitios que deben estar
+La lista de administradores se define por **UID de Firebase Auth** en **tres sitios que deben estar
 sincronizados**:
 
 1. **`firestore.rules`** → función `recipeAdmins()`. Es la **frontera de seguridad real**: aunque
@@ -21,6 +21,10 @@ sincronizados**:
 2. **`app/.../data/repository/RecipeAdmins.kt`** → `RecipeAdmins.uids`. Es solo un *gate* de
    interfaz: decide si el editor de recetas enseña el interruptor «Publicar en el catálogo común».
    No aporta seguridad; si se olvidara, las reglas seguirían protegiendo el catálogo.
+3. **`scripts/catalog/import-plan.mjs`** → `CATALOG_ADMIN_UID`. Es el dueño con el que el importador
+   del catálogo de ejercicios ([`EXERCISE_CATALOG.md`](EXERCISE_CATALOG.md)) crea y reconoce las
+   fichas. Un test (`tests/catalog-import-plan.test.mjs`) comprueba que coincide con `firestore.rules`
+   y con `RecipeAdmins.kt`.
 
 Un UID de Firebase **no es un secreto** (ya aparece en campos como `createdBy`), por eso puede vivir
 en las reglas y en el repositorio.
@@ -35,8 +39,9 @@ en las reglas y en el repositorio.
 
 1. Obtén el UID en **Firebase Console → proyecto → Authentication → pestaña Users → columna
    «User UID»** de la cuenta.
-2. Añádelo (o quítalo) en **los dos** sitios: `recipeAdmins()` de `firestore.rules` y
-   `RecipeAdmins.uids` de `RecipeAdmins.kt`.
+2. Añádelo (o quítalo) en **los tres** sitios: `recipeAdmins()` de `firestore.rules`,
+   `RecipeAdmins.uids` de `RecipeAdmins.kt` y `CATALOG_ADMIN_UID` de `scripts/catalog/import-plan.mjs`
+   (esta constante es un único uid: el de la cuenta dueña de las fichas importadas).
 3. Despliega las reglas:
    ```bash
    npx firebase deploy --only firestore:rules --project dev

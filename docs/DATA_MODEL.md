@@ -5,8 +5,8 @@
 | Campo | Valor |
 | --- | --- |
 | Estado | Modelo multiusuario y módulos compartidos implementados (incluye el planificador de comidas, Fase 1) |
-| Versión | 0.5.0 |
-| Fecha | 20 de julio de 2026 |
+| Versión | 0.6.0 |
+| Fecha | 10 de octubre de 2026 |
 
 ## 1. Objetivos
 
@@ -29,10 +29,14 @@ spaces/{spaceId}/tasks/{taskId}
 spaces/{spaceId}/events/{eventId}
 spaces/{spaceId}/meals/{mealId}
 recipes/{recipeId}
+routines/{routineId}
+ingredients/{ingredientId}
+exercises/{exerciseId}
+ingredientPrefs/{userId}
 invitations/{inviteToken}
 ```
 
-`recipes` es la única colección **top-level global** (no cuelga de un espacio): agrupa el catálogo común y las recetas personales de todos los usuarios (ver sección 11 · Recetario).
+Las colecciones **top-level globales** (no cuelgan de un espacio) son `recipes`, `routines`, `ingredients`, `exercises` e `ingredientPrefs`. `recipes` agrupa el catálogo común y las recetas personales de todos los usuarios (ver sección 11 · Recetario); `exercises` es el catálogo común de ejercicios (ver la sección «Ejercicios» tras el Recetario).
 
 ## 3. Convenciones
 
@@ -398,6 +402,45 @@ Desde una comida enlazada a una receta (`Meal.recipeId`) se pueden **volcar sus 
 - Catálogo común: `where visibility == "GLOBAL"` (acotada con `.limit`).
 - Mis recetas: `where ownerUid == me`.
 - Ambas son igualdades sobre un único campo → índice de campo único automático; **no requieren índice compuesto**. Las reglas de `recipes` no usan `get()`/`exists()` (coste 0).
+
+### Ejercicios (colección `exercises`)
+
+Catálogo común de ejercicios, **top-level** y compartido (parecido a `ingredients`). La documentación de cómo se siembra y se importa está en [`EXERCISE_CATALOG.md`](EXERCISE_CATALOG.md).
+
+```text
+exercises/{exerciseId}                 # id = slug del nombre
+```
+
+```text
+name: string                           # 1-120
+nameLower: string                      # ≤120, para búsqueda
+type: "MAQUINA" | "PESO_LIBRE" | "PESO_CORPORAL" | "CARDIO" | "OTROS"
+muscleGroup: string?                   # ≤60
+description: string?                   # ≤2000, texto plano
+equipment: array<string>?              # ≤13, sin repetidos, valores del enum de material
+source: map?                           # atribución; solo la escribe el importador
+  provider: "wger"
+  id: int                              # >0, id de la ficha en wger
+  license: "CC-BY-SA-3.0" | "CC-BY-SA-4.0" | "CC-BY-4.0" | "CC0-1.0"
+  author: string?                      # ≤200
+  url: string?                         # ≤200, empieza por https://wger.de/
+  importedAt: timestamp?
+ownerUid: string
+createdBy: string
+createdByName: string                  # 1-60
+createdAt: timestamp
+updatedBy: string
+updatedAt: timestamp
+```
+
+Valores de `equipment`: `BARRA`, `BARRA_Z`, `MANCUERNAS`, `KETTLEBELL`, `DISCO`, `POLEA`, `MAQUINA`, `BANCO`, `BANCO_INCLINADO`, `BARRA_DOMINADAS`, `ESTERILLA`, `FITBALL`, `BANDA_ELASTICA`.
+
+- **Lectura:** cualquier usuario verificado.
+- **Creación:** el propio usuario (`ownerUid == uid`, marcas de tiempo = `request.time`). Los clientes **no pueden crear `source`**: lo escribe solo el importador con el Admin SDK, que se salta las reglas.
+- **Edición:** el dueño o un admin. Solo cambian `name`, `nameLower`, `type`, `muscleGroup`, `description`, `equipment`, `updatedBy` y `updatedAt`; `source` y la autoría son inmutables para los clientes.
+- **Borrado:** el dueño o un admin.
+- Los campos `description`, `equipment` y `source` son opcionales y retrocompatibles; la app antigua los ignora, pero descarta las fichas `PESO_CORPORAL` (ver `EXERCISE_CATALOG.md`).
+- Sin `get()`/`exists()` en las reglas y sin índices compuestos.
 
 ## 12. Acceso desde Security Rules
 
