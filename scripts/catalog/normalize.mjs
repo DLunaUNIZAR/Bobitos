@@ -108,6 +108,7 @@ function decodeEntities(s) {
 export function htmlToText(html) {
   if (!html) return "";
   let s = String(html)
+    .replace(/\s+/g, " ")
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/p\s*>/gi, "\n\n")
     .replace(/<\/?(ul|ol)\b[^>]*>/gi, "\n")
@@ -119,6 +120,7 @@ export function htmlToText(html) {
     .split("\n")
     .map((l) => l.trim())
     .join("\n")
+    .replace(/(?<=^|\n)(• [^\n]*)\n+(?=• )/g, "$1\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
   return s;

@@ -25,6 +25,24 @@ test("htmlToText convierte párrafos, listas y entidades", () => {
   assert.equal(htmlToText("<p>Uno<br>dos</p><p></p><p></p><p>tres</p>"), "Uno\ndos\n\ntres");
 });
 
+test("htmlToText ignora los saltos de línea del HTML de origen y deja cada viñeta en una línea", () => {
+  assert.equal(
+    htmlToText(
+      "<ul>\n<li>\n<p><strong>Posición inicial:</strong></p>\n</li>\n<li>Uno.</li>\n<li>Dos.</li>\n</ul>",
+    ),
+    "• Posición inicial:\n• Uno.\n• Dos.",
+  );
+  assert.equal(htmlToText("<p>es un\nejercicio fundamental</p>"), "es un ejercicio fundamental");
+  assert.equal(
+    htmlToText("<ul><li><p>A</p></li><li><p>B</p></li><li><p>C</p></li></ul>"),
+    "• A\n• B\n• C",
+  );
+  assert.equal(
+    htmlToText("<p>Intro</p>\n<ul>\n<li><p>A</p></li>\n<li><p>B</p></li>\n</ul>\n<p>Fin</p>"),
+    "Intro\n\n• A\n• B\n\nFin",
+  );
+});
+
 test("truncateText respeta el máximo y corta en frase o palabra", () => {
   assert.equal(truncateText("Corto."), "Corto.");
   const t = truncateText("Primera frase. Segunda frase larga que no cabe.", 30);

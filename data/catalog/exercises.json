@@ -26,7 +26,7 @@
       "name": "Aducción de cadera en máquina",
       "type": "MAQUINA",
       "muscleGroup": "Glúteos",
-      "description": "Este es un ejercicio de aislamiento que se realiza en una máquina específica para fortalecer los músculos aductores, es decir, la musculatura de la parte interna de los muslos. Ayuda a mejorar la estabilidad de la cadera y a equilibrar la fuerza de las piernas.\n\nCómo realizarlo:\n\n• Preparación: Siéntate en la máquina con la espalda y la cadera completamente apoyadas en el respaldo. Coloca la parte interna de tus muslos o rodillas contra las almohadillas acolchadas. Ajusta la palanca de la máquina para establecer un rango de movimiento inicial que te resulte cómodo pero que genere un ligero estiramiento.\n\n• Ejecución: Usando la fuerza de la parte interna de tus muslos, junta las piernas de manera lenta y controlada. Haz una breve pausa en el punto de máxima contracción (cuando las almohadillas casi se tocan), apretando fuertemente los aductores.\n\n• Regreso: Vuelve a la posición inicial de forma igualmente controlada, resistiendo el peso a medida que tus piernas se separan. Evita que las placas de peso choquen bruscamente.",
+      "description": "Este es un ejercicio de aislamiento que se realiza en una máquina específica para fortalecer los músculos aductores, es decir, la musculatura de la parte interna de los muslos. Ayuda a mejorar la estabilidad de la cadera y a equilibrar la fuerza de las piernas.\n\nCómo realizarlo:\n\n• Preparación: Siéntate en la máquina con la espalda y la cadera completamente apoyadas en el respaldo. Coloca la parte interna de tus muslos o rodillas contra las almohadillas acolchadas. Ajusta la palanca de la máquina para establecer un rango de movimiento inicial que te resulte cómodo pero que genere un ligero estiramiento.\n• Ejecución: Usando la fuerza de la parte interna de tus muslos, junta las piernas de manera lenta y controlada. Haz una breve pausa en el punto de máxima contracción (cuando las almohadillas casi se tocan), apretando fuertemente los aductores.\n• Regreso: Vuelve a la posición inicial de forma igualmente controlada, resistiendo el peso a medida que tus piernas se separan. Evita que las placas de peso choquen bruscamente.",
       "equipment": [
         "MAQUINA"
       ],
@@ -58,7 +58,7 @@
       "name": "Aperturas con mancuernas",
       "type": "PESO_LIBRE",
       "muscleGroup": "Pecho",
-      "description": "Este es un ejercicio de aislamiento clásico, excelente para estirar las fibras musculares del pecho y lograr una fuerte contracción, ideal para trabajar la amplitud pectoral.\n\nInstrucciones\n\n• Posición: Acuéstate en un banco plano con los pies firmes en el suelo y la espalda bien apoyada. Sostén las mancuernas directamente sobre tu pecho con las palmas de las manos enfrentadas.\n\n• Apertura: Manteniendo una ligera y constante flexión en los codos, baja las mancuernas hacia los lados en un arco amplio y controlado, hasta que sientas un buen estiramiento en el pecho.\n\n• Cierre: Regresa a la posición inicial siguiendo el mismo arco y apretando los pectorales, como si estuvieras dando un gran abrazo. El movimiento debe ser fluido y controlado.",
+      "description": "Este es un ejercicio de aislamiento clásico, excelente para estirar las fibras musculares del pecho y lograr una fuerte contracción, ideal para trabajar la amplitud pectoral.\n\nInstrucciones\n\n• Posición: Acuéstate en un banco plano con los pies firmes en el suelo y la espalda bien apoyada. Sostén las mancuernas directamente sobre tu pecho con las palmas de las manos enfrentadas.\n• Apertura: Manteniendo una ligera y constante flexión en los codos, baja las mancuernas hacia los lados en un arco amplio y controlado, hasta que sientas un buen estiramiento en el pecho.\n• Cierre: Regresa a la posición inicial siguiendo el mismo arco y apretando los pectorales, como si estuvieras dando un gran abrazo. El movimiento debe ser fluido y controlado.",
       "equipment": [
         "MANCUERNAS"
       ],
@@ -75,7 +75,7 @@
       "name": "Aperturas con mancuernas declinadas",
       "type": "PESO_LIBRE",
       "muscleGroup": "Pecho",
-      "description": "Esta variante de las aperturas enfoca el trabajo de estiramiento y contracción en la porción inferior de los músculos pectorales debido al ángulo del banco.\n\nInstrucciones\n\n• Posición: Siéntate en un banco declinado con un par de mancuernas sobre tus muslos. Asegura tus piernas en los soportes y acuéstate. Sostén las mancuernas sobre tu pecho con los brazos casi extendidos y las palmas de las manos enfrentadas.\n\n• Apertura: Con una ligera flexión constante en los codos, baja las mancuernas hacia los lados en un arco amplio y controlado, hasta que sientas un buen estiramiento en el pecho.\n\n• Cierre: Regresa las mancuernas a la posición inicial siguiendo el mismo arco, como si estuvieras dando un gran abrazo. Concéntrate en apretar los músculos del pecho para realizar el movimiento.",
+      "description": "Esta variante de las aperturas enfoca el trabajo de estiramiento y contracción en la porción inferior de los músculos pectorales debido al ángulo del banco.\n\nInstrucciones\n\n• Posición: Siéntate en un banco declinado con un par de mancuernas sobre tus muslos. Asegura tus piernas en los soportes y acuéstate. Sostén las mancuernas sobre tu pecho con los brazos casi extendidos y las palmas de las manos enfrentadas.\n• Apertura: Con una ligera flexión constante en los codos, baja las mancuernas hacia los lados en un arco amplio y controlado, hasta que sientas un buen estiramiento en el pecho.\n• Cierre: Regresa las mancuernas a la posición inicial siguiendo el mismo arco, como si estuvieras dando un gran abrazo. Concéntrate en apretar los músculos del pecho para realizar el movimiento.",
       "equipment": [
         "MANCUERNAS",
         "BANCO"
@@ -111,7 +111,7 @@
       "name": "Aperturas de pecho en polea sentado",
       "type": "MAQUINA",
       "muscleGroup": "Pecho",
-      "description": "• Coloca un banco entre dos poleas y ajústalas para que queden a la altura del pecho/hombros cuando estés sentado.\n\n• Agarra las empuñaduras con un agarre neutro y apóyate contra el respaldo vertical.\n\n• Junta los brazos delante del pecho con un movimiento controlado, concentrándote en apretar los músculos del pecho. Mantén los codos ligeramente flexionados durante todo el movimiento.\n\n• Haz una breve pausa en la posición final.\n\n• Baja lentamente los brazos de vuelta a la posición inicial manteniendo el control del movimiento.\n\n• Repite las repeticiones.",
+      "description": "• Coloca un banco entre dos poleas y ajústalas para que queden a la altura del pecho/hombros cuando estés sentado.\n• Agarra las empuñaduras con un agarre neutro y apóyate contra el respaldo vertical.\n• Junta los brazos delante del pecho con un movimiento controlado, concentrándote en apretar los músculos del pecho. Mantén los codos ligeramente flexionados durante todo el movimiento.\n• Haz una breve pausa en la posición final.\n• Baja lentamente los brazos de vuelta a la posición inicial manteniendo el control del movimiento.\n• Repite las repeticiones.",
       "equipment": [
         "POLEA"
       ],
@@ -128,7 +128,7 @@
       "name": "Aperturas en máquina (pec deck)",
       "type": "MAQUINA",
       "muscleGroup": "Pecho",
-      "description": "Este es un ejercicio de aislamiento excelente para enfocar el trabajo en la contracción de los músculos pectorales, especialmente en la parte interna del pecho.\n\nInstrucciones\n\n• Posición: Siéntate en la máquina con la espalda firmemente apoyada en el respaldo. Ajusta la altura del asiento para que tus hombros, codos y manos queden al mismo nivel (los brazos paralelos al suelo).\n\n• Movimiento: Con una ligera flexión constante en los codos, junta los agarres al frente en un movimiento de arco, como si dieras un gran abrazo.\n\n• Contracción: Aprieta con fuerza los músculos del pecho en el punto de máxima contracción. Regresa a la posición inicial de forma lenta y controlada, sin dejar que las placas de peso choquen.",
+      "description": "Este es un ejercicio de aislamiento excelente para enfocar el trabajo en la contracción de los músculos pectorales, especialmente en la parte interna del pecho.\n\nInstrucciones\n\n• Posición: Siéntate en la máquina con la espalda firmemente apoyada en el respaldo. Ajusta la altura del asiento para que tus hombros, codos y manos queden al mismo nivel (los brazos paralelos al suelo).\n• Movimiento: Con una ligera flexión constante en los codos, junta los agarres al frente en un movimiento de arco, como si dieras un gran abrazo.\n• Contracción: Aprieta con fuerza los músculos del pecho en el punto de máxima contracción. Regresa a la posición inicial de forma lenta y controlada, sin dejar que las placas de peso choquen.",
       "equipment": [
         "MAQUINA"
       ],
@@ -145,7 +145,7 @@
       "name": "Aperturas en polea baja",
       "type": "MAQUINA",
       "muscleGroup": "Pecho",
-      "description": "Ajusta la máquina de poleas: Coloca la polea en la posición más baja posible.\nElige tus agarres: Puedes usar agarres de agarre neutro (palmas enfrentadas) o agarres rectos según tu preferencia. El agarre neutro puede ser más cómodo para tus muñecas.\nColócate con buena postura: Ponte de pie con los pies separados al ancho de los hombros, las rodillas ligeramente flexionadas y el core activado. Mantén una ligera curvatura en la zona lumbar durante todo el ejercicio.\nAgarra los asas: Sujeta los asas con el agarre elegido y da uno o dos pasos pequeños hacia atrás hasta que haya algo de tensión en los cables.\nInicia el movimiento: Mantén los codos ligeramente flexionados durante todo el ejercicio. Imagina que le das a alguien un gran abrazo. Aprieta los músculos del pecho mientras juntas las manos frente al pecho.\nControla el movimiento: Concéntrate en apretar los músculos del pecho en lugar de usar los brazos para tirar de los asas.\nContracción máxima: Mantén brevemente la contracción en la parte alta del movimiento, con las manos juntas a la altura del pecho.\nVuelve lentamente: Libera lentamente la tensión y devuelve los asas hacia abajo a la posición inicial, con los brazos ligeramente extendidos pero sin bloquearlos.",
+      "description": "Ajusta la máquina de poleas: Coloca la polea en la posición más baja posible. Elige tus agarres: Puedes usar agarres de agarre neutro (palmas enfrentadas) o agarres rectos según tu preferencia. El agarre neutro puede ser más cómodo para tus muñecas. Colócate con buena postura: Ponte de pie con los pies separados al ancho de los hombros, las rodillas ligeramente flexionadas y el core activado. Mantén una ligera curvatura en la zona lumbar durante todo el ejercicio. Agarra los asas: Sujeta los asas con el agarre elegido y da uno o dos pasos pequeños hacia atrás hasta que haya algo de tensión en los cables. Inicia el movimiento: Mantén los codos ligeramente flexionados durante todo el ejercicio. Imagina que le das a alguien un gran abrazo. Aprieta los músculos del pecho mientras juntas las manos frente al pecho. Controla el movimiento: Concéntrate en apretar los músculos del pecho en lugar de usar los brazos para tirar de los asas. Contracción máxima: Mantén brevemente la contracción en la parte alta del movimiento, con las manos juntas a la altura del pecho. Vuelve lentamente: Libera lentamente la tensión y devuelve los asas hacia abajo a la posición inicial, con los brazos ligeramente extendidos pero sin bloquearlos.",
       "equipment": [
         "POLEA"
       ],
@@ -162,7 +162,7 @@
       "name": "Aperturas en polea para el pecho inferior",
       "type": "MAQUINA",
       "muscleGroup": "Pecho",
-      "description": "Ejecución\n\n•\nPosición inicial:\n\n• Los brazos extendidos hacia los lados formando una „Y\".\n\n• Siente un estiramiento en el pecho (ligera flexión en los codos — no los bloquees).\n\n•\nMovimiento:\n\n• Lleva las manos hacia abajo y hacia el centro delante de tu pecho inferior o abdomen superior, con un movimiento de arco suave.\n\n• Contrae el pecho con fuerza abajo durante 1–2 segundos.\n\n•\nVuelta:\n\n• Sube lentamente los brazos de nuevo por la misma trayectoria hasta que sientas un buen estiramiento en el pecho.\n\n• Mantén el control — no dejes que los pesos te tiren hacia atrás demasiado rápido.",
+      "description": "Ejecución\n\n• Posición inicial:\n• Los brazos extendidos hacia los lados formando una „Y\".\n• Siente un estiramiento en el pecho (ligera flexión en los codos — no los bloquees).\n• Movimiento:\n• Lleva las manos hacia abajo y hacia el centro delante de tu pecho inferior o abdomen superior, con un movimiento de arco suave.\n• Contrae el pecho con fuerza abajo durante 1–2 segundos.\n• Vuelta:\n• Sube lentamente los brazos de nuevo por la misma trayectoria hasta que sientas un buen estiramiento en el pecho.\n• Mantén el control — no dejes que los pesos te tiren hacia atrás demasiado rápido.",
       "equipment": [
         "POLEA"
       ],
@@ -179,7 +179,7 @@
       "name": "Aperturas en polea para el pecho superior",
       "type": "MAQUINA",
       "muscleGroup": "Pecho",
-      "description": "Ejecución\n\n•\nPosición inicial:\n\n• Los brazos abajo y ligeramente detrás del cuerpo, los codos ligeramente flexionados.\n\n• Siente un ligero estiramiento en el pecho.\n\n•\nMovimiento:\n\n• Lleva las manos hacia arriba y hacia el centro delante del pecho superior — aproximadamente a la altura del mentón a la clavícula.\n\n• Usa un movimiento suave y controlado (evita los tirones).\n\n• Contrae el pecho arriba durante 1–2 segundos.\n\n•\nVuelta:\n\n• Deja que los brazos bajen lentamente de nuevo hacia los lados, manteniendo el control y la tensión.",
+      "description": "Ejecución\n\n• Posición inicial:\n• Los brazos abajo y ligeramente detrás del cuerpo, los codos ligeramente flexionados.\n• Siente un ligero estiramiento en el pecho.\n• Movimiento:\n• Lleva las manos hacia arriba y hacia el centro delante del pecho superior — aproximadamente a la altura del mentón a la clavícula.\n• Usa un movimiento suave y controlado (evita los tirones).\n• Contrae el pecho arriba durante 1–2 segundos.\n• Vuelta:\n• Deja que los brazos bajen lentamente de nuevo hacia los lados, manteniendo el control y la tensión.",
       "equipment": [
         "POLEA"
       ],
@@ -211,7 +211,7 @@
       "name": "Bicicleta estática",
       "type": "CARDIO",
       "muscleGroup": "Cardio",
-      "description": "Beneficios del Cardio en Bicicleta Estática\nEl cardio en bicicleta estática es una excelente forma de ejercicio que ofrece múltiples beneficios para la salud y el bienestar. Aquí te detallo algunos de los más destacados:\nMejora de la Salud Cardiovascular\nFortalece el corazón: El ejercicio regular ayuda a mejorar la eficiencia del corazón y a reducir el riesgo de enfermedades cardiovasculares.\nAumenta la circulación: Mejora el flujo sanguíneo, lo que puede ayudar a reducir la presión arterial.\nQuema de Calorías y Pérdida de Peso\nEficiente para quemar calorías: Dependiendo de la intensidad, puedes quemar entre 400 y 600 calorías por hora.\nAyuda en la pérdida de peso: Combinado con una dieta equilibrada, el cardio en bicicleta estática puede ser efectivo para perder peso.\nFortalecimiento Muscular\nTonifica las piernas: Trabaja principalmente los músculos de las piernas, incluyendo cuádriceps, isquiotibiales y pantorrillas.\nMejora la resistencia muscular: Con el tiempo, puedes aumentar la resistencia y la fuerza en las piernas.\nBeneficios para la Salud Mental\nReduce el estrés: El ejercicio libera endorfinas, que pueden mejorar tu estado de ánimo y reducir el estrés.\nAumenta la energía: La actividad física regular puede aumentar tus niveles de energía y mejorar la calidad del sueño.",
+      "description": "Beneficios del Cardio en Bicicleta Estática El cardio en bicicleta estática es una excelente forma de ejercicio que ofrece múltiples beneficios para la salud y el bienestar. Aquí te detallo algunos de los más destacados: Mejora de la Salud Cardiovascular Fortalece el corazón: El ejercicio regular ayuda a mejorar la eficiencia del corazón y a reducir el riesgo de enfermedades cardiovasculares. Aumenta la circulación: Mejora el flujo sanguíneo, lo que puede ayudar a reducir la presión arterial. Quema de Calorías y Pérdida de Peso Eficiente para quemar calorías: Dependiendo de la intensidad, puedes quemar entre 400 y 600 calorías por hora. Ayuda en la pérdida de peso: Combinado con una dieta equilibrada, el cardio en bicicleta estática puede ser efectivo para perder peso. Fortalecimiento Muscular Tonifica las piernas: Trabaja principalmente los músculos de las piernas, incluyendo cuádriceps, isquiotibiales y pantorrillas. Mejora la resistencia muscular: Con el tiempo, puedes aumentar la resistencia y la fuerza en las piernas. Beneficios para la Salud Mental Reduce el estrés: El ejercicio libera endorfinas, que pueden mejorar tu estado de ánimo y reducir el estrés. Aumenta la energía: La actividad física regular puede aumentar tus niveles de energía y mejorar la calidad del sueño.",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -226,7 +226,7 @@
       "name": "Bird dog",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Abdomen",
-      "description": "El Bird Dog es un ejercicio de estabilidad del core que mejora el equilibrio, la coordinación y la alineación de la columna. Es un movimiento de bajo impacto, ideal para fortalecer la cadena posterior y mejorar el control funcional general.\n\n• Colócate a cuatro patas con las manos bajo los hombros y las rodillas bajo las caderas, manteniendo la columna neutra.\n\n• Extiende el brazo derecho hacia delante y la pierna izquierda hacia atrás a la vez, manteniendo las caderas niveladas.\n\n• Haz una breve pausa en la extensión completa mientras activas el core y los glúteos.\n\n• Vuelve a la posición inicial y repite por el lado contrario",
+      "description": "El Bird Dog es un ejercicio de estabilidad del core que mejora el equilibrio, la coordinación y la alineación de la columna. Es un movimiento de bajo impacto, ideal para fortalecer la cadena posterior y mejorar el control funcional general.\n\n• Colócate a cuatro patas con las manos bajo los hombros y las rodillas bajo las caderas, manteniendo la columna neutra.\n• Extiende el brazo derecho hacia delante y la pierna izquierda hacia atrás a la vez, manteniendo las caderas niveladas.\n• Haz una breve pausa en la extensión completa mientras activas el core y los glúteos.\n• Vuelve a la posición inicial y repite por el lado contrario",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -241,7 +241,7 @@
       "name": "Burpees",
       "type": "CARDIO",
       "muscleGroup": "Cardio",
-      "description": "El burpee es uno de los ejercicios de acondicionamiento metabólico más completos, combinando fuerza de empuje, potencia de piernas y alta exigencia cardiovascular.\n\nLa secuencia del movimiento completo es:\n\n• Agáchate y apoya las manos en el suelo.\n\n• Salta hacia atrás a una posición de plancha y realiza una flexión de pecho (el pecho toca el suelo).\n\n• Salta hacia adelante para volver a la posición de cuclillas.\n\n• Termina con un salto vertical explosivo, usualmente con un aplauso sobre la cabeza.\n\nEsa es una repetición. El ejercicio se realiza de forma continua y fluida.",
+      "description": "El burpee es uno de los ejercicios de acondicionamiento metabólico más completos, combinando fuerza de empuje, potencia de piernas y alta exigencia cardiovascular.\n\nLa secuencia del movimiento completo es:\n\n• Agáchate y apoya las manos en el suelo.\n• Salta hacia atrás a una posición de plancha y realiza una flexión de pecho (el pecho toca el suelo).\n• Salta hacia adelante para volver a la posición de cuclillas.\n• Termina con un salto vertical explosivo, usualmente con un aplauso sobre la cabeza.\nEsa es una repetición. El ejercicio se realiza de forma continua y fluida.",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -271,7 +271,7 @@
       "name": "Cinta de correr",
       "type": "CARDIO",
       "muscleGroup": "Cardio",
-      "description": "Es un entrenamiento cardiovascular que se realiza en una cinta de correr para mejorar la resistencia, quemar calorías y promover la salud del corazón. Ofrece múltiples beneficios, como la capacidad de ajustar fácilmente la velocidad e inclinación, lo que permite realizar diversos entrenamientos, desde caminatas en pendiente hasta carreras a intervalos de alta intensidad (HIIT) y carreras de tempo. Para optimizar los resultados, es importante variar los entrenamientos.\nBeneficios del cardio en cinta:\n\n• Mejora de la salud cardiovascular:\nEl ejercicio aeróbico regular en la cinta fortalece el corazón y los pulmones, lo que puede ayudar a prevenir enfermedades cardíacas.\n\n• Pérdida de peso:\nAl quemar calorías, el entrenamiento en cinta puede ser una herramienta eficaz para la pérdida de peso y el mantenimiento de un peso saludable.\n\n• Fortalecimiento muscular:\nFortalece los músculos de las piernas y glúteos, ayudando a prevenir la pérdida de masa muscular, especialmente importante con la edad.\n\n• Flexibilidad en el entrenamiento:\nPermite variar la velocidad, la inclinación y los intervalos, lo que hace que el entrenamiento sea más dinámico y adaptable a diferentes niveles de condición física.",
+      "description": "Es un entrenamiento cardiovascular que se realiza en una cinta de correr para mejorar la resistencia, quemar calorías y promover la salud del corazón. Ofrece múltiples beneficios, como la capacidad de ajustar fácilmente la velocidad e inclinación, lo que permite realizar diversos entrenamientos, desde caminatas en pendiente hasta carreras a intervalos de alta intensidad (HIIT) y carreras de tempo. Para optimizar los resultados, es importante variar los entrenamientos. Beneficios del cardio en cinta:\n\n• Mejora de la salud cardiovascular: El ejercicio aeróbico regular en la cinta fortalece el corazón y los pulmones, lo que puede ayudar a prevenir enfermedades cardíacas.\n• Pérdida de peso: Al quemar calorías, el entrenamiento en cinta puede ser una herramienta eficaz para la pérdida de peso y el mantenimiento de un peso saludable.\n• Fortalecimiento muscular: Fortalece los músculos de las piernas y glúteos, ayudando a prevenir la pérdida de masa muscular, especialmente importante con la edad.\n• Flexibilidad en el entrenamiento: Permite variar la velocidad, la inclinación y los intervalos, lo que hace que el entrenamiento sea más dinámico y adaptable a diferentes niveles de condición física.",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -286,7 +286,7 @@
       "name": "Cruce de poleas",
       "type": "MAQUINA",
       "muscleGroup": "Pecho",
-      "description": "Este ejercicio de aislamiento es excelente para lograr una fuerte contracción y estiramiento en los músculos pectorales, enfocándose en la parte interna del pecho.\n\nInstrucciones\n\n• Posición: En una estación de poleas, ajusta ambas poleas a una posición alta. Toma un agarre en cada mano, da un paso al frente para generar tensión y mantén el torso ligeramente inclinado hacia adelante.\n\n• Movimiento: Con una ligera pero constante flexión en los codos, junta las manos al frente y abajo de tu cuerpo en un movimiento de arco amplio, como si estuvieras abrazando un árbol.\n\n• Contracción: Aprieta el pecho con fuerza en el punto de máxima contracción. Regresa de forma lenta y controlada a la posición inicial, sintiendo cómo se estira el pectoral.",
+      "description": "Este ejercicio de aislamiento es excelente para lograr una fuerte contracción y estiramiento en los músculos pectorales, enfocándose en la parte interna del pecho.\n\nInstrucciones\n\n• Posición: En una estación de poleas, ajusta ambas poleas a una posición alta. Toma un agarre en cada mano, da un paso al frente para generar tensión y mantén el torso ligeramente inclinado hacia adelante.\n• Movimiento: Con una ligera pero constante flexión en los codos, junta las manos al frente y abajo de tu cuerpo en un movimiento de arco amplio, como si estuvieras abrazando un árbol.\n• Contracción: Aprieta el pecho con fuerza en el punto de máxima contracción. Regresa de forma lenta y controlada a la posición inicial, sintiendo cómo se estira el pectoral.",
       "equipment": [
         "POLEA"
       ],
@@ -335,7 +335,7 @@
       "name": "Crunch con peso",
       "type": "PESO_LIBRE",
       "muscleGroup": "Abdomen",
-      "description": "El crunch con peso es una variante del crunch clásico que consiste en añadir resistencia (un peso) para aumentar la intensidad del trabajo abdominal.\n\n• Túmbate\n\n• (Opcional) Flexiona las rodillas para añadir dificultad\n\n• (Opcional) Flexiona las rodillas y apoya los pies sobre un banco, una caja o algo similar (ángulo de 90 grados en las rodillas)\n\n• Eleva la cabeza y el torso mientras curvas la espalda hacia delante (si no lo haces es un sit-up e implica también algunos músculos de la espalda). Cuanto más alto subas, más deberías sentir la contracción de los abdominales.\n\n• Vuelve a la posición inicial y repite",
+      "description": "El crunch con peso es una variante del crunch clásico que consiste en añadir resistencia (un peso) para aumentar la intensidad del trabajo abdominal.\n\n• Túmbate\n• (Opcional) Flexiona las rodillas para añadir dificultad\n• (Opcional) Flexiona las rodillas y apoya los pies sobre un banco, una caja o algo similar (ángulo de 90 grados en las rodillas)\n• Eleva la cabeza y el torso mientras curvas la espalda hacia delante (si no lo haces es un sit-up e implica también algunos músculos de la espalda). Cuanto más alto subas, más deberías sentir la contracción de los abdominales.\n• Vuelve a la posición inicial y repite",
       "equipment": [
         "MANCUERNAS"
       ],
@@ -435,7 +435,7 @@
       "name": "Crunch inverso",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Abdomen",
-      "description": "• Túmbate\n\n• Coloca las manos cerca de los glúteos (a menudo ligeramente delante o debajo, o ambos)\n\n• Eleva las piernas, pero alrededor del 70 % del recorrido deberías poder elevar también la pelvis\n\n• (opcional/variable) Mantén 1/2 segundos en la parte superior\n\n• Vuelve a la posición inicial",
+      "description": "• Túmbate\n• Coloca las manos cerca de los glúteos (a menudo ligeramente delante o debajo, o ambos)\n• Eleva las piernas, pero alrededor del 70 % del recorrido deberías poder elevar también la pelvis\n• (opcional/variable) Mantén 1/2 segundos en la parte superior\n• Vuelve a la posición inicial",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -450,7 +450,7 @@
       "name": "Cuerdas de batalla",
       "type": "CARDIO",
       "muscleGroup": "Cardio",
-      "description": "• Sujeta los extremos de la cuerda con los brazos extendidos delante de las caderas, con las manos a la anchura de los hombros.\n\n• Activa el core y empieza a subir y bajar cada brazo de forma alterna y explosiva.\n\n• Sigue alternando los brazos durante tres o cuatro series de 1 a 2 minutos.",
+      "description": "• Sujeta los extremos de la cuerda con los brazos extendidos delante de las caderas, con las manos a la anchura de los hombros.\n• Activa el core y empieza a subir y bajar cada brazo de forma alterna y explosiva.\n• Sigue alternando los brazos durante tres o cuatro series de 1 a 2 minutos.",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -465,7 +465,7 @@
       "name": "Curl alterno con mancuernas",
       "type": "PESO_LIBRE",
       "muscleGroup": "Bíceps",
-      "description": "Posición inicial: Comience de pie con pesas en cada mano, la espalda recta y los pies separados al ancho de las caderas. Tus brazos deben estar relajados, apuntando hacia abajo. Tus rodillas deben estar ligeramente flexionadas, tus abdominales contraídos y tus hombros hacia abajo. Pasos:\n\n• Dobla un brazo por el codo, llevando la mancuerna hasta tu hombro. La parte superior del brazo debe permanecer inmóvil durante este movimiento. 2. Lleva la mancuerna hacia abajo hasta que tu brazo esté en su posición original relajada.\n\n• Repita, cambiando de brazo.",
+      "description": "Posición inicial: Comience de pie con pesas en cada mano, la espalda recta y los pies separados al ancho de las caderas. Tus brazos deben estar relajados, apuntando hacia abajo. Tus rodillas deben estar ligeramente flexionadas, tus abdominales contraídos y tus hombros hacia abajo. Pasos:\n\n• Dobla un brazo por el codo, llevando la mancuerna hasta tu hombro. La parte superior del brazo debe permanecer inmóvil durante este movimiento. 2. Lleva la mancuerna hacia abajo hasta que tu brazo esté en su posición original relajada.\n• Repita, cambiando de brazo.",
       "equipment": [
         "MANCUERNAS"
       ],
@@ -499,7 +499,7 @@
       "name": "Curl con barra",
       "type": "PESO_LIBRE",
       "muscleGroup": "Bíceps",
-      "description": "Sostén la barra a la anchura de los hombros, con la espalda recta, los hombros ligeramente hacia atrás y los brazos estirados. Flexiona los brazos y levanta la pesa con un movimiento rápido. Sin pausa, baja la barra con un movimiento lento y controlado.\nNo balancees el cuerpo durante el ejercicio; todo el trabajo lo realizan los bíceps, que son los únicos músculos que deben moverse (presta atención a los codos).",
+      "description": "Sostén la barra a la anchura de los hombros, con la espalda recta, los hombros ligeramente hacia atrás y los brazos estirados. Flexiona los brazos y levanta la pesa con un movimiento rápido. Sin pausa, baja la barra con un movimiento lento y controlado. No balancees el cuerpo durante el ejercicio; todo el trabajo lo realizan los bíceps, que son los únicos músculos que deben moverse (presta atención a los codos).",
       "equipment": [
         "BARRA"
       ],
@@ -516,7 +516,7 @@
       "name": "Curl con barra Z",
       "type": "PESO_LIBRE",
       "muscleGroup": "Bíceps",
-      "description": "Sostenga la barra SZ a la altura de los hombros, la espalda recta, los hombros ligeramente hacia atrás, los brazos estirados. Dobla los brazos, elevando el peso, con un movimiento rápido. Sin pausa, baja la barra con un movimiento lento y controlado.\nNo dejes que tu cuerpo se balancee durante el ejercicio, todo el trabajo lo hacen los bíceps, que son los únicos músculos que deben moverse (presta atención a los codos).",
+      "description": "Sostenga la barra SZ a la altura de los hombros, la espalda recta, los hombros ligeramente hacia atrás, los brazos estirados. Dobla los brazos, elevando el peso, con un movimiento rápido. Sin pausa, baja la barra con un movimiento lento y controlado. No dejes que tu cuerpo se balancee durante el ejercicio, todo el trabajo lo hacen los bíceps, que son los únicos músculos que deben moverse (presta atención a los codos).",
       "equipment": [
         "BARRA_Z"
       ],
@@ -567,7 +567,7 @@
       "name": "Curl de muñeca con barra",
       "type": "PESO_LIBRE",
       "muscleGroup": "Antebrazos",
-      "description": "Es un ejercicio de aislamiento diseñado específicamente para desarrollar la masa muscular y la fuerza en la cara interna (anterior) del antebrazo. Es un movimiento clave no solo para la estética del brazo, sino también para mejorar la fuerza de agarre (grip strength), lo que se traduce en un mejor rendimiento en ejercicios pesados como el peso muerto o las dominadas.\n\n•\nPosición Inicial: Toma una barra con un agarre supino (las palmas de las manos mirando hacia arriba) a una anchura similar a la de tus hombros.\n\n•\nApoyo en el Banco: Arrodíllate frente a un banco plano y apoya la parte posterior de tus antebrazos sobre él. Tus muñecas y manos deben sobresalir ligeramente por el borde del banco para permitir un rango completo de movimiento.\n\n3- Fase Excéntrica (Bajada): Baja la barra de forma controlada extendiendo las muñecas hacia el suelo. Al final del recorrido, abre ligeramente los dedos de las manos para dejar que la barra ruede un poco hacia abajo, maximizando el rango de estiramiento.\n\n•\nFase Concéntrica (Subida): Cierra primero los dedos para asegurar la barra y luego flexiona las muñecas hacia arriba de forma explosiva pero controlada, llevando la barra lo más alto posible. Contrae con fuerza los antebrazos en la posición máxima durante un segundo.\n\n•\nPostura: Mantén los antebrazos firmemente pegados al banco durante todo el ejercicio; solo deben moverse las muñecas y los dedos.",
+      "description": "Es un ejercicio de aislamiento diseñado específicamente para desarrollar la masa muscular y la fuerza en la cara interna (anterior) del antebrazo. Es un movimiento clave no solo para la estética del brazo, sino también para mejorar la fuerza de agarre (grip strength), lo que se traduce en un mejor rendimiento en ejercicios pesados como el peso muerto o las dominadas.\n\n• Posición Inicial: Toma una barra con un agarre supino (las palmas de las manos mirando hacia arriba) a una anchura similar a la de tus hombros.\n• Apoyo en el Banco: Arrodíllate frente a un banco plano y apoya la parte posterior de tus antebrazos sobre él. Tus muñecas y manos deben sobresalir ligeramente por el borde del banco para permitir un rango completo de movimiento.\n\n3- Fase Excéntrica (Bajada): Baja la barra de forma controlada extendiendo las muñecas hacia el suelo. Al final del recorrido, abre ligeramente los dedos de las manos para dejar que la barra ruede un poco hacia abajo, maximizando el rango de estiramiento.\n\n• Fase Concéntrica (Subida): Cierra primero los dedos para asegurar la barra y luego flexiona las muñecas hacia arriba de forma explosiva pero controlada, llevando la barra lo más alto posible. Contrae con fuerza los antebrazos en la posición máxima durante un segundo.\n• Postura: Mantén los antebrazos firmemente pegados al banco durante todo el ejercicio; solo deben moverse las muñecas y los dedos.",
       "equipment": [
         "BARRA",
         "BANCO"
@@ -585,7 +585,7 @@
       "name": "Curl de muñeca con mancuernas",
       "type": "PESO_LIBRE",
       "muscleGroup": "Antebrazos",
-      "description": "• Sentado en un banco, agarra la mancuerna con las palmas hacia arriba\ny las manos a la anchura de los hombros. Apoya los antebrazos en los muslos\ny deja que las muñecas sobresalgan por encima de las rodillas.\n\n• Realiza el movimiento\nenrollando las palmas y las muñecas hacia tu cara.\n\n• (opcional/variable) Haz una pausa arriba.\n\n• Vuelve lentamente a la posición inicial.",
+      "description": "• Sentado en un banco, agarra la mancuerna con las palmas hacia arriba y las manos a la anchura de los hombros. Apoya los antebrazos en los muslos y deja que las muñecas sobresalgan por encima de las rodillas.\n• Realiza el movimiento enrollando las palmas y las muñecas hacia tu cara.\n• (opcional/variable) Haz una pausa arriba.\n• Vuelve lentamente a la posición inicial.",
       "equipment": [
         "MANCUERNAS"
       ],
@@ -602,7 +602,7 @@
       "name": "Curl de muñeca inverso con barra",
       "type": "PESO_LIBRE",
       "muscleGroup": "Antebrazos",
-      "description": "Este ejercicio se enfoca en fortalecer los músculos extensores del antebrazo, ubicados en la parte superior del mismo. Es clave para mejorar la fuerza de agarre y la estabilidad de la muñeca.\n\nCómo realizarlo:\n\n• Preparación: Siéntate en un banco y agarra una barra con las palmas mirando hacia abajo (agarre prono), con las manos separadas al ancho de los hombros. Apoya tus antebrazos firmemente sobre los muslos, de manera que tus muñecas queden libres justo por delante de las rodillas.\n\n• Ejecución: Desde esa posición, extiende las muñecas para levantar la barra tan alto como puedas, llevando los nudillos hacia el techo. Haz una pausa en el punto de máxima contracción y luego baja la barra de forma lenta y controlada, permitiendo que tus muñecas se flexionen completamente hacia abajo en la parte inferior del movimiento para un estiramiento completo.",
+      "description": "Este ejercicio se enfoca en fortalecer los músculos extensores del antebrazo, ubicados en la parte superior del mismo. Es clave para mejorar la fuerza de agarre y la estabilidad de la muñeca.\n\nCómo realizarlo:\n\n• Preparación: Siéntate en un banco y agarra una barra con las palmas mirando hacia abajo (agarre prono), con las manos separadas al ancho de los hombros. Apoya tus antebrazos firmemente sobre los muslos, de manera que tus muñecas queden libres justo por delante de las rodillas.\n• Ejecución: Desde esa posición, extiende las muñecas para levantar la barra tan alto como puedas, llevando los nudillos hacia el techo. Haz una pausa en el punto de máxima contracción y luego baja la barra de forma lenta y controlada, permitiendo que tus muñecas se flexionen completamente hacia abajo en la parte inferior del movimiento para un estiramiento completo.",
       "equipment": [
         "BARRA",
         "BANCO"
@@ -722,7 +722,7 @@
       "name": "Curl inclinado con mancuernas",
       "type": "PESO_LIBRE",
       "muscleGroup": "Bíceps",
-      "description": "Este ejercicio es excelente para un estiramiento profundo y una contracción máxima del bíceps, gracias al ángulo del banco y la posición de los brazos.\n\nInstrucciones\n\n• Posición: Siéntate en un banco inclinado (a unos 45-60 grados) con una mancuerna en cada mano. Deja que los brazos cuelguen rectos a los costados, con las palmas de las manos mirándose entre sí (agarre neutro).\n\n• Movimiento: Manteniendo la parte superior del brazo inmóvil, flexiona un codo para levantar la mancuerna. A medida que subes, rota la muñeca para que la palma de la mano termine mirando hacia tu hombro.\n\n• Contracción: Aprieta el bíceps en la cima del movimiento. Baja la mancuerna de forma lenta y controlada, invirtiendo la rotación, y luego repite con el otro brazo. Continúa alternando.",
+      "description": "Este ejercicio es excelente para un estiramiento profundo y una contracción máxima del bíceps, gracias al ángulo del banco y la posición de los brazos.\n\nInstrucciones\n\n• Posición: Siéntate en un banco inclinado (a unos 45-60 grados) con una mancuerna en cada mano. Deja que los brazos cuelguen rectos a los costados, con las palmas de las manos mirándose entre sí (agarre neutro).\n• Movimiento: Manteniendo la parte superior del brazo inmóvil, flexiona un codo para levantar la mancuerna. A medida que subes, rota la muñeca para que la palma de la mano termine mirando hacia tu hombro.\n• Contracción: Aprieta el bíceps en la cima del movimiento. Baja la mancuerna de forma lenta y controlada, invirtiendo la rotación, y luego repite con el otro brazo. Continúa alternando.",
       "equipment": [
         "MANCUERNAS"
       ],
@@ -739,7 +739,7 @@
       "name": "Curl inverso con barra",
       "type": "PESO_LIBRE",
       "muscleGroup": "Bíceps",
-      "description": "Sujeta la barra con un agarre prono (palmas hacia abajo) aproximadamente al ancho de los hombros. Asegúrate de mantener la espalda recta, los hombros ligeramente hacia atrás y los brazos completamente extendidos.\nFlexiona la barra hacia arriba en dirección al pecho con un movimiento controlado, manteniendo los codos cerca del cuerpo. El movimiento debe ser fluido, sin balanceos ni uso de impulso.\nUna vez que la barra esté a la altura del pecho, haz una breve pausa para maximizar la contracción en los bíceps y los antebrazos.\nBaja lentamente la barra de nuevo a la posición inicial con un movimiento controlado, extendiendo por completo los brazos.",
+      "description": "Sujeta la barra con un agarre prono (palmas hacia abajo) aproximadamente al ancho de los hombros. Asegúrate de mantener la espalda recta, los hombros ligeramente hacia atrás y los brazos completamente extendidos. Flexiona la barra hacia arriba en dirección al pecho con un movimiento controlado, manteniendo los codos cerca del cuerpo. El movimiento debe ser fluido, sin balanceos ni uso de impulso. Una vez que la barra esté a la altura del pecho, haz una breve pausa para maximizar la contracción en los bíceps y los antebrazos. Baja lentamente la barra de nuevo a la posición inicial con un movimiento controlado, extendiendo por completo los brazos.",
       "equipment": [
         "BARRA"
       ],
@@ -756,7 +756,7 @@
       "name": "Curl martillo con mancuernas",
       "type": "PESO_LIBRE",
       "muscleGroup": "Bíceps",
-      "description": "Esta variante del curl utiliza un agarre neutro (como si sostuvieras un martillo) para enfocar el trabajo en el músculo braquial (ubicado debajo del bíceps) y el antebrazo (braquiorradial), lo que ayuda a dar más grosor y densidad al brazo.\n\nInstrucciones\n\n• Posición: De pie o sentado, sostén un par de mancuernas a los costados de tu cuerpo con las palmas de las manos mirándose entre sí (agarre neutro).\n\n• Movimiento: Manteniendo los codos fijos a los costados de tu torso, levanta las mancuernas hasta la altura de los hombros. La clave es no rotar las muñecas en ningún momento; la orientación de las palmas no cambia.\n\n• Tempo: Sube el peso de forma potente y bájalo de manera lenta y controlada para maximizar la tensión muscular. Evita balancear el cuerpo.",
+      "description": "Esta variante del curl utiliza un agarre neutro (como si sostuvieras un martillo) para enfocar el trabajo en el músculo braquial (ubicado debajo del bíceps) y el antebrazo (braquiorradial), lo que ayuda a dar más grosor y densidad al brazo.\n\nInstrucciones\n\n• Posición: De pie o sentado, sostén un par de mancuernas a los costados de tu cuerpo con las palmas de las manos mirándose entre sí (agarre neutro).\n• Movimiento: Manteniendo los codos fijos a los costados de tu torso, levanta las mancuernas hasta la altura de los hombros. La clave es no rotar las muñecas en ningún momento; la orientación de las palmas no cambia.\n• Tempo: Sube el peso de forma potente y bájalo de manera lenta y controlada para maximizar la tensión muscular. Evita balancear el cuerpo.",
       "equipment": [
         "MANCUERNAS"
       ],
@@ -840,7 +840,7 @@
       "name": "Dominadas (agarre ancho)",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Espalda",
-      "description": "Ejecución\n\n•\nFase de tracción (concéntrica):\n\n• Lleva tus codos hacia abajo y ligeramente hacia atrás, tirando del pecho hacia la barra.\n\n• Concéntrate en liderar el movimiento con el pecho, no con el mentón.\n\n• Mantén los hombros deprimidos (evita encogerlos).\n\n•\nPosición superior:\n\n• El mentón debe superar la barra (o al menos alcanzar su nivel).\n\n• Haz una breve pausa para contraer los dorsales.",
+      "description": "Ejecución\n\n• Fase de tracción (concéntrica):\n• Lleva tus codos hacia abajo y ligeramente hacia atrás, tirando del pecho hacia la barra.\n• Concéntrate en liderar el movimiento con el pecho, no con el mentón.\n• Mantén los hombros deprimidos (evita encogerlos).\n• Posición superior:\n• El mentón debe superar la barra (o al menos alcanzar su nivel).\n• Haz una breve pausa para contraer los dorsales.",
       "equipment": [
         "BARRA_DOMINADAS"
       ],
@@ -857,7 +857,7 @@
       "name": "Dominadas (agarre neutro)",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Espalda",
-      "description": "Ejecución\n\n•\nFase de tracción (concéntrica):\n\n• Lleva los codos hacia abajo y atrás, tirando del pecho hacia las manos.\n\n• Mantén los hombros deprimidos y retraídos (evita encogerlos).\n\n• Concéntrate en apretar los dorsales y la parte alta de la espalda en la posición superior.\n\n•\nPosición superior:\n\n• La barbilla debe superar o alcanzar la altura de las manos.\n\n• Haz una breve pausa y contrae los dorsales con fuerza.",
+      "description": "Ejecución\n\n• Fase de tracción (concéntrica):\n• Lleva los codos hacia abajo y atrás, tirando del pecho hacia las manos.\n• Mantén los hombros deprimidos y retraídos (evita encogerlos).\n• Concéntrate en apretar los dorsales y la parte alta de la espalda en la posición superior.\n• Posición superior:\n• La barbilla debe superar o alcanzar la altura de las manos.\n• Haz una breve pausa y contrae los dorsales con fuerza.",
       "equipment": [
         "BARRA_DOMINADAS"
       ],
@@ -891,7 +891,7 @@
       "name": "Dragon flag",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Abdomen",
-      "description": "Mantén el cuerpo completamente rígido durante todo el movimiento, evitando que la zona lumbar se hunda.\nUtiliza un agarre firme para estabilizar la parte superior del cuerpo.\nComienza con versiones más sencillas (como con las rodillas flexionadas) para desarrollar fuerza y control.",
+      "description": "Mantén el cuerpo completamente rígido durante todo el movimiento, evitando que la zona lumbar se hunda. Utiliza un agarre firme para estabilizar la parte superior del cuerpo. Comienza con versiones más sencillas (como con las rodillas flexionadas) para desarrollar fuerza y control.",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -921,7 +921,7 @@
       "name": "Elevación de gemelos a una pierna",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Gemelos",
-      "description": "• Ponte de pie en el suelo o en el borde de un escalón para aumentar el rango de movimiento.\n\n• Levanta un pie.\n\n• Eleva el talón hasta quedar de puntillas.\n\n• (variable) Permanece en esta posición durante tres segundos.\n\n• Baja lentamente el pie hasta casi tocar el suelo con el talón - ¡no dejes caer el pie de golpe!",
+      "description": "• Ponte de pie en el suelo o en el borde de un escalón para aumentar el rango de movimiento.\n• Levanta un pie.\n• Eleva el talón hasta quedar de puntillas.\n• (variable) Permanece en esta posición durante tres segundos.\n• Baja lentamente el pie hasta casi tocar el suelo con el talón - ¡no dejes caer el pie de golpe!",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -936,7 +936,7 @@
       "name": "Elevación de gemelos de pie",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Gemelos",
-      "description": "• Mire hacia la máquina y coloque las puntas de los pies en el borde más cercano del escalón con los pies paralelos entre sí.\n\n• Sumerja su cuerpo debajo de las hombreras y póngase de pie con el cuerpo completamente erguido.\n\n• Permita que sus talones caigan más abajo que el escalón hasta que sienta un estiramiento.\n\n• No permita que le bloqueen las rodillas. Movimiento hacia arriba\n\n• Ponga los dedos de los pies en punta para levantar los talones arriba.\n\n• Mantenga su cuerpo erguido y no mire hacia abajo ni se incline hacia adelante o hacia atrás. Movimiento descendente\n\n• Permita que sus talones vuelvan a caer a la posición inicial.\n\n• Mantenga su cuerpo completamente erguido y no rebote desde la posición más baja para comenzar el movimiento ascendente.",
+      "description": "• Mire hacia la máquina y coloque las puntas de los pies en el borde más cercano del escalón con los pies paralelos entre sí.\n• Sumerja su cuerpo debajo de las hombreras y póngase de pie con el cuerpo completamente erguido.\n• Permita que sus talones caigan más abajo que el escalón hasta que sienta un estiramiento.\n• No permita que le bloqueen las rodillas. Movimiento hacia arriba\n• Ponga los dedos de los pies en punta para levantar los talones arriba.\n• Mantenga su cuerpo erguido y no mire hacia abajo ni se incline hacia adelante o hacia atrás. Movimiento descendente\n• Permita que sus talones vuelvan a caer a la posición inicial.\n• Mantenga su cuerpo completamente erguido y no rebote desde la posición más baja para comenzar el movimiento ascendente.",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -985,7 +985,7 @@
       "name": "Elevación de gemelos sentado",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Gemelos",
-      "description": "• Siéntese en la máquina y coloque las rodillas y los muslos debajo de las almohadillas.\n\n• Coloque las puntas de los pies en el borde más cercano del escalón con los pies paralelos entre sí.\n\n• Apunte ligeramente con los dedos de los pies para levantar las almohadillas de los muslos y quitar la barra de apoyo.\n\n• Permita que sus talones bajen más abajo que el escalón hasta que sienta un Movimiento hacia arriba\n\n• Ponga los dedos de los pies en punta para levantar los talones.\n\n• No tire de las asas ni incline el torso hacia atrás. Elevación de talón sentado Movimiento descendente estirar. Posición inicial\n\n• Permita que sus talones vuelvan a caer a la posición inicial.\n\n• Cuando complete el conjunto, mueva la barra de apoyo a su lugar.",
+      "description": "• Siéntese en la máquina y coloque las rodillas y los muslos debajo de las almohadillas.\n• Coloque las puntas de los pies en el borde más cercano del escalón con los pies paralelos entre sí.\n• Apunte ligeramente con los dedos de los pies para levantar las almohadillas de los muslos y quitar la barra de apoyo.\n• Permita que sus talones bajen más abajo que el escalón hasta que sienta un Movimiento hacia arriba\n• Ponga los dedos de los pies en punta para levantar los talones.\n• No tire de las asas ni incline el torso hacia atrás. Elevación de talón sentado Movimiento descendente estirar. Posición inicial\n• Permita que sus talones vuelvan a caer a la posición inicial.\n• Cuando complete el conjunto, mueva la barra de apoyo a su lugar.",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -1017,7 +1017,7 @@
       "name": "Elevación frontal con disco",
       "type": "PESO_LIBRE",
       "muscleGroup": "Hombros",
-      "description": "La elevación frontal con disco es una variante de la elevación frontal con mancuerna en la que sujetas un disco entre las dos manos, en lugar de usar una mancuerna, una barra u otro peso. Puede aportar variedad en un entrenamiento de hipertrofia centrado en los hombros, o como parte de un circuito de tren superior o de cuerpo completo.\n\n• De pie y erguido, sujeta un disco con ambas manos en las posiciones de las 3 y las 9 del reloj. Las palmas deben mirarse entre sí y los brazos deben estar extendidos y bloqueados con una ligera flexión en los codos, y el disco debe quedar abajo, cerca de tu cintura y por delante de ti, tan lejos como puedas. Consejo: Los brazos permanecerán en esta posición durante todo el ejercicio. Esta será tu posición inicial.\n\n• Eleva lentamente el disco mientras exhalas hasta que quede un poco por encima de la altura de los hombros. Mantén la contracción durante un segundo. Mientras inhalas, baja lentamente el disco de nuevo hasta la posición inicial.\n\n• Repite el número de repeticiones recomendado.",
+      "description": "La elevación frontal con disco es una variante de la elevación frontal con mancuerna en la que sujetas un disco entre las dos manos, en lugar de usar una mancuerna, una barra u otro peso. Puede aportar variedad en un entrenamiento de hipertrofia centrado en los hombros, o como parte de un circuito de tren superior o de cuerpo completo.\n\n• De pie y erguido, sujeta un disco con ambas manos en las posiciones de las 3 y las 9 del reloj. Las palmas deben mirarse entre sí y los brazos deben estar extendidos y bloqueados con una ligera flexión en los codos, y el disco debe quedar abajo, cerca de tu cintura y por delante de ti, tan lejos como puedas. Consejo: Los brazos permanecerán en esta posición durante todo el ejercicio. Esta será tu posición inicial.\n• Eleva lentamente el disco mientras exhalas hasta que quede un poco por encima de la altura de los hombros. Mantén la contracción durante un segundo. Mientras inhalas, baja lentamente el disco de nuevo hasta la posición inicial.\n• Repite el número de repeticiones recomendado.",
       "equipment": [
         "DISCO"
       ],
@@ -1102,7 +1102,7 @@
       "name": "Elevaciones de piernas colgado",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Abdomen",
-      "description": "Este es uno de los ejercicios más efectivos y desafiantes para la parte baja del abdomen y los flexores de cadera. La dificultad varía según si las piernas se mantienen rectas o flexionadas.\n\nInstrucciones\n\nCuélgate de una barra con los brazos completamente extendidos y el cuerpo estable.\n\n• Versión con Rodillas Flexionadas (más fácil): Contrae el abdomen y eleva las rodillas hacia tu pecho, manteniendo las piernas dobladas.\n\n• Versión con Piernas Rectas (más difícil): Manteniendo las piernas estiradas, elévalas hasta que queden paralelas al suelo (formando una \"L\") o tan alto como puedas.\n\nEn ambas versiones, la clave es minimizar el balanceo y bajar las piernas de forma lenta y controlada.",
+      "description": "Este es uno de los ejercicios más efectivos y desafiantes para la parte baja del abdomen y los flexores de cadera. La dificultad varía según si las piernas se mantienen rectas o flexionadas.\n\nInstrucciones\n\nCuélgate de una barra con los brazos completamente extendidos y el cuerpo estable.\n\n• Versión con Rodillas Flexionadas (más fácil): Contrae el abdomen y eleva las rodillas hacia tu pecho, manteniendo las piernas dobladas.\n• Versión con Piernas Rectas (más difícil): Manteniendo las piernas estiradas, elévalas hasta que queden paralelas al suelo (formando una \"L\") o tan alto como puedas.\nEn ambas versiones, la clave es minimizar el balanceo y bajar las piernas de forma lenta y controlada.",
       "equipment": [
         "BARRA_DOMINADAS"
       ],
@@ -1153,7 +1153,7 @@
       "name": "Elevaciones frontales con barra o mancuernas",
       "type": "PESO_LIBRE",
       "muscleGroup": "Hombros",
-      "description": "Para ejecutar el ejercicio, el levantador se para con los pies separados al ancho de los hombros y las pesas o los mangos de resistencia se sostienen a los lados con un agarre en pronación (por encima de la cabeza).\nEl movimiento consiste en llevar los brazos por delante del cuerpo a la altura de los ojos y con sólo una ligera flexión del codo. Esto aísla el músculo deltoides anterior (frente al hombro) y utiliza el deltoides anterior para levantar el peso.\nAl levantar es importante mantener el cuerpo inmóvil para que el deltoides anterior se utilice por completo; si el peso no se puede levantar estando quieto, entonces es demasiado pesado y se necesita un peso menor. Es importante mantener una ligera flexión en el codo al levantar, ya que mantener el codo trabado agregará tensión a la articulación del codo y podría causar lesiones.\nTambién se puede usar un agarre neutral, similar al que se usa en el curl de martillo. Con esta variación, el peso se eleva nuevamente al nivel de los ojos, pero en un ángulo de 45 grados desde la parte frontal del cuerpo. Esto puede ser beneficioso para las personas con lesiones en el hombro, en particular las relacionadas con el manguito de los rotadores.",
+      "description": "Para ejecutar el ejercicio, el levantador se para con los pies separados al ancho de los hombros y las pesas o los mangos de resistencia se sostienen a los lados con un agarre en pronación (por encima de la cabeza). El movimiento consiste en llevar los brazos por delante del cuerpo a la altura de los ojos y con sólo una ligera flexión del codo. Esto aísla el músculo deltoides anterior (frente al hombro) y utiliza el deltoides anterior para levantar el peso. Al levantar es importante mantener el cuerpo inmóvil para que el deltoides anterior se utilice por completo; si el peso no se puede levantar estando quieto, entonces es demasiado pesado y se necesita un peso menor. Es importante mantener una ligera flexión en el codo al levantar, ya que mantener el codo trabado agregará tensión a la articulación del codo y podría causar lesiones. También se puede usar un agarre neutral, similar al que se usa en el curl de martillo. Con esta variación, el peso se eleva nuevamente al nivel de los ojos, pero en un ángulo de 45 grados desde la parte frontal del cuerpo. Esto puede ser beneficioso para las personas con lesiones en el hombro, en particular las relacionadas con el manguito de los rotadores.",
       "equipment": [
         "BARRA",
         "MANCUERNAS"
@@ -1186,7 +1186,7 @@
       "name": "Empuje de trineo",
       "type": "CARDIO",
       "muscleGroup": "Cardio",
-      "description": "• Carga el trineo con el 25 % de tu carga máxima. Si no la conoces, elige un peso que puedas empujar durante 10 minutos con pausas cortas. Los principiantes pueden empujar el trineo sin peso.\n\n• Colócate detrás del trineo y agarra las barras con una posición de manos alta.\n\n• Activa los músculos del core y empieza a empujar el trineo hacia delante lo más rápido posible, generando fuerza con toda la pierna. Extiende las caderas y las rodillas mientras desplazas el trineo hacia delante. Tu postura de pies debe parecerse a tu posición natural de carrera.",
+      "description": "• Carga el trineo con el 25 % de tu carga máxima. Si no la conoces, elige un peso que puedas empujar durante 10 minutos con pausas cortas. Los principiantes pueden empujar el trineo sin peso.\n• Colócate detrás del trineo y agarra las barras con una posición de manos alta.\n• Activa los músculos del core y empieza a empujar el trineo hacia delante lo más rápido posible, generando fuerza con toda la pierna. Extiende las caderas y las rodillas mientras desplazas el trineo hacia delante. Tu postura de pies debe parecerse a tu posición natural de carrera.",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -1301,7 +1301,7 @@
       "name": "Extensión de tríceps a un brazo en polea",
       "type": "MAQUINA",
       "muscleGroup": "Tríceps",
-      "description": "La extensión de tríceps en polea a un brazo es un ejercicio de aislamiento unilateral que trabaja el tríceps braquial. Al trabajar un brazo a la vez, ayuda a corregir los desequilibrios de fuerza entre ambos lados y, al mismo tiempo, activa el core para mantener la estabilidad.\nPosición inicial:\nColócate de pie frente a la máquina de poleas con los pies a la anchura de los hombros. Engancha un asa individual a la polea alta. Agarra el asa con una mano en agarre prono (pronado), con el codo flexionado a unos 90° y pegado al cuerpo. Mantén el core firme y la espalda recta.\nEjecución:\nEmpuja el asa hacia abajo con un movimiento controlado extendiendo el codo hasta que el brazo quede completamente extendido. Mantén la contracción durante 1 segundo abajo y luego vuelve lentamente a la posición inicial.",
+      "description": "La extensión de tríceps en polea a un brazo es un ejercicio de aislamiento unilateral que trabaja el tríceps braquial. Al trabajar un brazo a la vez, ayuda a corregir los desequilibrios de fuerza entre ambos lados y, al mismo tiempo, activa el core para mantener la estabilidad. Posición inicial: Colócate de pie frente a la máquina de poleas con los pies a la anchura de los hombros. Engancha un asa individual a la polea alta. Agarra el asa con una mano en agarre prono (pronado), con el codo flexionado a unos 90° y pegado al cuerpo. Mantén el core firme y la espalda recta. Ejecución: Empuja el asa hacia abajo con un movimiento controlado extendiendo el codo hasta que el brazo quede completamente extendido. Mantén la contracción durante 1 segundo abajo y luego vuelve lentamente a la posición inicial.",
       "equipment": [
         "POLEA"
       ],
@@ -1335,7 +1335,7 @@
       "name": "Extensión de tríceps con cuerda",
       "type": "MAQUINA",
       "muscleGroup": "Tríceps",
-      "description": "La extensión de tríceps en polea con cuerda es un ejercicio efectivo para trabajar los músculos del tríceps, específicamente el músculo braquial y el tríceps braquial. Este ejercicio se realiza utilizando una polea alta y una cuerda como accesorio.\nBeneficios del ejercicio\nAislamiento del tríceps: Permite un enfoque específico en los músculos del tríceps, ayudando a desarrollar fuerza y masa muscular.\nVariedad de ángulos: La cuerda permite un rango de movimiento más natural, lo que puede ayudar a activar más fibras musculares.\nControl del peso: Puedes ajustar fácilmente la carga en la polea, lo que permite un entrenamiento progresivo.\nCómo realizar la extensión de tríceps en polea con cuerda\nPosición inicial: Colócate de pie frente a la polea alta. Ajusta la polea a la altura adecuada y coloca la cuerda en el gancho.\nAgarre: Toma la cuerda con ambas manos, asegurándote de que las palmas estén enfrentadas entre sí.\nPostura: Da un paso atrás para que haya tensión en la cuerda. Mantén los pies a la altura de los hombros y la espalda recta.\nMovimiento: Tira de la cuerda hacia abajo, separando las manos y extendiendo los codos. Asegúrate de mantener los codos cerca del cuerpo durante todo el movimiento.\nContracción: Al llegar a la parte inferior, aprieta los tríceps y mantén la posición durante un segundo.\nRegreso: Regresa lentamente a la posición inicial, controlando el movimiento.",
+      "description": "La extensión de tríceps en polea con cuerda es un ejercicio efectivo para trabajar los músculos del tríceps, específicamente el músculo braquial y el tríceps braquial. Este ejercicio se realiza utilizando una polea alta y una cuerda como accesorio. Beneficios del ejercicio Aislamiento del tríceps: Permite un enfoque específico en los músculos del tríceps, ayudando a desarrollar fuerza y masa muscular. Variedad de ángulos: La cuerda permite un rango de movimiento más natural, lo que puede ayudar a activar más fibras musculares. Control del peso: Puedes ajustar fácilmente la carga en la polea, lo que permite un entrenamiento progresivo. Cómo realizar la extensión de tríceps en polea con cuerda Posición inicial: Colócate de pie frente a la polea alta. Ajusta la polea a la altura adecuada y coloca la cuerda en el gancho. Agarre: Toma la cuerda con ambas manos, asegurándote de que las palmas estén enfrentadas entre sí. Postura: Da un paso atrás para que haya tensión en la cuerda. Mantén los pies a la altura de los hombros y la espalda recta. Movimiento: Tira de la cuerda hacia abajo, separando las manos y extendiendo los codos. Asegúrate de mantener los codos cerca del cuerpo durante todo el movimiento. Contracción: Al llegar a la parte inferior, aprieta los tríceps y mantén la posición durante un segundo. Regreso: Regresa lentamente a la posición inicial, controlando el movimiento.",
       "equipment": [
         "POLEA"
       ],
@@ -1386,7 +1386,7 @@
       "name": "Extensión de tríceps por encima de la cabeza con barra Z",
       "type": "PESO_LIBRE",
       "muscleGroup": "Tríceps",
-      "description": "Extensión de tríceps por encima de la cabeza con barra Z – Guía rápida\n\nLa posición por encima de la cabeza enfatiza la cabeza larga del tríceps (porque se estira bajo carga), aunque el ejercicio sí involucra las tres cabezas del tríceps (larga, lateral y medial) en cierta medida durante la extensión.\n\n• Preparación:\nSiéntate en un banco (o de pie) y sujeta una barra Z con un agarre estrecho por encima. Levanta la barra por encima de la cabeza, con los brazos completamente extendidos. Mantén el core firme y los codos cerca de la cabeza.\n\n• Ejecución:\nBaja lentamente la barra por detrás de la cabeza flexionando los codos hasta que alcancen unos 90°. Mantén los codos apuntando hacia delante (sin abrirlos hacia fuera).\n\n• Final: Extiende los brazos de nuevo hacia arriba hasta la posición inicial, contrayendo el tríceps arriba.\n\nConsejos:\n\n• Controla el movimiento para no forzar los hombros.\n\n• Usa un peso moderado para un rango de movimiento completo.\n\n• Mantén la espalda recta y evita arquearla.",
+      "description": "Extensión de tríceps por encima de la cabeza con barra Z – Guía rápida\n\nLa posición por encima de la cabeza enfatiza la cabeza larga del tríceps (porque se estira bajo carga), aunque el ejercicio sí involucra las tres cabezas del tríceps (larga, lateral y medial) en cierta medida durante la extensión.\n\n• Preparación: Siéntate en un banco (o de pie) y sujeta una barra Z con un agarre estrecho por encima. Levanta la barra por encima de la cabeza, con los brazos completamente extendidos. Mantén el core firme y los codos cerca de la cabeza.\n• Ejecución: Baja lentamente la barra por detrás de la cabeza flexionando los codos hasta que alcancen unos 90°. Mantén los codos apuntando hacia delante (sin abrirlos hacia fuera).\n• Final: Extiende los brazos de nuevo hacia arriba hasta la posición inicial, contrayendo el tríceps arriba.\nConsejos:\n\n• Controla el movimiento para no forzar los hombros.\n• Usa un peso moderado para un rango de movimiento completo.\n• Mantén la espalda recta y evita arquearla.",
       "equipment": [
         "BARRA_Z"
       ],
@@ -1403,7 +1403,7 @@
       "name": "Extensión de tríceps por encima de la cabeza con mancuerna",
       "type": "PESO_LIBRE",
       "muscleGroup": "Tríceps",
-      "description": "• Fija los codos\n\n• Activa la musculatura\n\n• No uses impulso\n\n• Movimiento controlado\n\n• Movimiento lento\n\n• No sobreextiendas",
+      "description": "• Fija los codos\n• Activa la musculatura\n• No uses impulso\n• Movimiento controlado\n• Movimiento lento\n• No sobreextiendas",
       "equipment": [
         "MANCUERNAS"
       ],
@@ -1437,7 +1437,7 @@
       "name": "Extensión de tríceps tumbado",
       "type": "PESO_LIBRE",
       "muscleGroup": "Tríceps",
-      "description": "• La posición inicial de este\npráctico ejercicio de tríceps es tumbado en un banco estándar sujetando una barra o dos mancuernas con ambas manos en agarre prono, las manos separadas al ancho de los hombros.\n\n• Empieza con los brazos sobre la parte alta del\npecho y los codos flexionados hacia atrás en un ángulo de unos 45 grados.\n\n• Primero flexiona los codos y\nluego deja caer el brazo hacia atrás, llevando la barra/mancuernas detrás de la\ncabeza y hacia abajo en dirección al suelo. En cuanto a la posición del brazo, la barra/las mancuernas nunca deben quedar completamente por encima de la cabeza, sino detrás de ella, para\nasegurarte de que trabajas el tríceps.\n\n• Mantén los omóplatos\nrecogidos hacia abajo, los codos pegados a la cabeza y el core activo durante\ntodo el movimiento.",
+      "description": "• La posición inicial de este práctico ejercicio de tríceps es tumbado en un banco estándar sujetando una barra o dos mancuernas con ambas manos en agarre prono, las manos separadas al ancho de los hombros.\n• Empieza con los brazos sobre la parte alta del pecho y los codos flexionados hacia atrás en un ángulo de unos 45 grados.\n• Primero flexiona los codos y luego deja caer el brazo hacia atrás, llevando la barra/mancuernas detrás de la cabeza y hacia abajo en dirección al suelo. En cuanto a la posición del brazo, la barra/las mancuernas nunca deben quedar completamente por encima de la cabeza, sino detrás de ella, para asegurarte de que trabajas el tríceps.\n• Mantén los omóplatos recogidos hacia abajo, los codos pegados a la cabeza y el core activo durante todo el movimiento.",
       "equipment": [
         "BARRA",
         "MANCUERNAS"
@@ -1489,7 +1489,7 @@
       "name": "Flexiones",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Pecho",
-      "description": "La flexión es un ejercicio fundamental con peso corporal que trabaja el pecho, los brazos y los hombros, a la vez que trabaja el core para lograr estabilidad. No requiere equipo y es excelente para fortalecer la parte superior del cuerpo.\nInstrucciones:\n\n• Comience en posición de plancha con las manos colocadas ligeramente más anchas que el ancho de los hombros, los pies juntos y el cuerpo en línea recta desde la cabeza hasta los talones.\n\n• Contraiga el torso y baje el cuerpo flexionando los codos, manteniéndolos cerca del cuerpo o ligeramente separados.\n\n• Baje hasta que el pecho casi toque el suelo, manteniendo la columna neutra.\n\n• Empuje con las palmas de las manos para volver a la posición inicial, extendiendo completamente los brazos.",
+      "description": "La flexión es un ejercicio fundamental con peso corporal que trabaja el pecho, los brazos y los hombros, a la vez que trabaja el core para lograr estabilidad. No requiere equipo y es excelente para fortalecer la parte superior del cuerpo. Instrucciones:\n\n• Comience en posición de plancha con las manos colocadas ligeramente más anchas que el ancho de los hombros, los pies juntos y el cuerpo en línea recta desde la cabeza hasta los talones.\n• Contraiga el torso y baje el cuerpo flexionando los codos, manteniéndolos cerca del cuerpo o ligeramente separados.\n• Baje hasta que el pecho casi toque el suelo, manteniendo la columna neutra.\n• Empuje con las palmas de las manos para volver a la posición inicial, extendiendo completamente los brazos.",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -1504,7 +1504,7 @@
       "name": "Flexiones con lastre",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Pecho",
-      "description": "• Preparación: Comienza en una posición de plancha estándar con un disco de peso equilibrado de forma segura sobre la parte alta de la espalda.\n\n• Alineación: Mantén una línea recta desde la cabeza hasta los talones, activando el core para evitar que la espalda se hunda.\n\n• Ejecución: Baja el cuerpo hasta que el pecho casi toque el suelo, manteniendo los codos a cuarenta y cinco grados.\n\n• Ascenso: Empuja a través de las palmas para volver a la posición inicial, estirando completamente los brazos.",
+      "description": "• Preparación: Comienza en una posición de plancha estándar con un disco de peso equilibrado de forma segura sobre la parte alta de la espalda.\n• Alineación: Mantén una línea recta desde la cabeza hasta los talones, activando el core para evitar que la espalda se hunda.\n• Ejecución: Baja el cuerpo hasta que el pecho casi toque el suelo, manteniendo los codos a cuarenta y cinco grados.\n• Ascenso: Empuja a través de las palmas para volver a la posición inicial, estirando completamente los brazos.",
       "equipment": [
         "DISCO"
       ],
@@ -1521,7 +1521,7 @@
       "name": "Flexiones declinadas",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Pecho",
-      "description": "Las flexiones declinadas son otra versión modificada de la flexión tradicional que trabaja los músculos del tren superior de una forma diferente. Para realizar una flexión declinada, eleva los pies sobre una superficie elevada, como un banco, una silla o un escalón, mientras colocas las manos en el suelo en posición de flexión. Baja el cuerpo hacia el suelo manteniendo una línea recta desde los hombros hasta los tobillos y luego empuja de nuevo hasta la posición inicial.\nA diferencia de la flexión inclinada, la flexión declinada pone más énfasis en los hombros y los tríceps, sin dejar de implicar los músculos del pecho en menor medida. Al elevar los pies aumentas la dificultad del ejercicio, ya que cargas más peso sobre el tren superior y obligas a los hombros y los tríceps a trabajar más para volver a empujar el cuerpo hacia arriba. La flexión declinada puede ser una excelente manera de desafiar la fuerza de tu tren superior y mejorar tu capacidad para realizar otras variantes de flexiones. Como con cualquier ejercicio, asegúrate de usar una técnica correcta y empieza con una altura adecuada a tu fuerza y nivel de forma física.",
+      "description": "Las flexiones declinadas son otra versión modificada de la flexión tradicional que trabaja los músculos del tren superior de una forma diferente. Para realizar una flexión declinada, eleva los pies sobre una superficie elevada, como un banco, una silla o un escalón, mientras colocas las manos en el suelo en posición de flexión. Baja el cuerpo hacia el suelo manteniendo una línea recta desde los hombros hasta los tobillos y luego empuja de nuevo hasta la posición inicial. A diferencia de la flexión inclinada, la flexión declinada pone más énfasis en los hombros y los tríceps, sin dejar de implicar los músculos del pecho en menor medida. Al elevar los pies aumentas la dificultad del ejercicio, ya que cargas más peso sobre el tren superior y obligas a los hombros y los tríceps a trabajar más para volver a empujar el cuerpo hacia arriba. La flexión declinada puede ser una excelente manera de desafiar la fuerza de tu tren superior y mejorar tu capacidad para realizar otras variantes de flexiones. Como con cualquier ejercicio, asegúrate de usar una técnica correcta y empieza con una altura adecuada a tu fuerza y nivel de forma física.",
       "equipment": [
         "BANCO"
       ],
@@ -1570,7 +1570,7 @@
       "name": "Fondos en banco",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Tríceps",
-      "description": "Esta es una excelente variante de los fondos para aislar y trabajar los tríceps utilizando únicamente bancos y tu peso corporal.\n\nInstrucciones\n\n• Posición: Coloca dos bancos paralelos entre sí. Siéntate en uno y apoya las palmas de tus manos en el borde, junto a tu cadera. Extiende las piernas y apoya los talones sobre el otro banco. Levanta la cadera del banco, sosteniendo tu peso con los brazos.\n\n• Descenso: Manteniendo los codos apuntando hacia atrás, flexiónalos para bajar tu cuerpo de forma controlada hasta que sientas un buen estiramiento en los tríceps (aproximadamente a un ángulo de 90 grados en el codo).\n\n• Ascenso: Empuja con fuerza a través de las palmas de tus manos para volver a la posición inicial, contrayendo los tríceps. Evita extender por completo los codos en la parte alta para mantener la tensión.\n\n(Para hacerlo más difícil, pide a un compañero que coloque un disco sobre tus muslos. Para hacerlo más fácil, apoya los pies en el suelo con las rodillas flexionadas).",
+      "description": "Esta es una excelente variante de los fondos para aislar y trabajar los tríceps utilizando únicamente bancos y tu peso corporal.\n\nInstrucciones\n\n• Posición: Coloca dos bancos paralelos entre sí. Siéntate en uno y apoya las palmas de tus manos en el borde, junto a tu cadera. Extiende las piernas y apoya los talones sobre el otro banco. Levanta la cadera del banco, sosteniendo tu peso con los brazos.\n• Descenso: Manteniendo los codos apuntando hacia atrás, flexiónalos para bajar tu cuerpo de forma controlada hasta que sientas un buen estiramiento en los tríceps (aproximadamente a un ángulo de 90 grados en el codo).\n• Ascenso: Empuja con fuerza a través de las palmas de tus manos para volver a la posición inicial, contrayendo los tríceps. Evita extender por completo los codos en la parte alta para mantener la tensión.\n(Para hacerlo más difícil, pide a un compañero que coloque un disco sobre tus muslos. Para hacerlo más fácil, apoya los pies en el suelo con las rodillas flexionadas).",
       "equipment": [
         "BANCO"
       ],
@@ -1587,7 +1587,7 @@
       "name": "Fondos en paralelas",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Pecho",
-      "description": "Los fondos son un ejercicio fundamental con peso corporal para desarrollar fuerza de empuje, enfocándose en el pecho, los tríceps y los hombros. La forma en que se realiza determina qué músculo se lleva el mayor énfasis.\n\nInstrucciones\n\n• Posición: Sostén tu cuerpo sobre las barras paralelas con los brazos completamente extendidos.\n\n• Descenso: Flexiona los codos y baja tu cuerpo de forma controlada hasta que tus hombros queden ligeramente por debajo de tus codos, sintiendo un estiramiento en el pecho.\n\n• Ascenso: Empuja con fuerza para volver a la posición inicial hasta extender los brazos.\n\nPara enfocar en el pecho: Usa un agarre más ancho, inclina el torso hacia adelante durante el movimiento y permite que los codos se abran un poco.\nPara enfocar en los tríceps: Usa un agarre al ancho de los hombros, mantén el torso lo más vertical posible y los codos pegados al cuerpo.",
+      "description": "Los fondos son un ejercicio fundamental con peso corporal para desarrollar fuerza de empuje, enfocándose en el pecho, los tríceps y los hombros. La forma en que se realiza determina qué músculo se lleva el mayor énfasis.\n\nInstrucciones\n\n• Posición: Sostén tu cuerpo sobre las barras paralelas con los brazos completamente extendidos.\n• Descenso: Flexiona los codos y baja tu cuerpo de forma controlada hasta que tus hombros queden ligeramente por debajo de tus codos, sintiendo un estiramiento en el pecho.\n• Ascenso: Empuja con fuerza para volver a la posición inicial hasta extender los brazos.\nPara enfocar en el pecho: Usa un agarre más ancho, inclina el torso hacia adelante durante el movimiento y permite que los codos se abran un poco. Para enfocar en los tríceps: Usa un agarre al ancho de los hombros, mantén el torso lo más vertical posible y los codos pegados al cuerpo.",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -1619,7 +1619,7 @@
       "name": "Hip thrust con barra",
       "type": "PESO_LIBRE",
       "muscleGroup": "Glúteos",
-      "description": "Este es considerado uno de los ejercicios más efectivos para desarrollar la fuerza y el tamaño de los músculos glúteos.\n\nInstrucciones\n\n• Posición: Siéntate en el suelo con la parte superior de tu espalda apoyada en el costado de un banco. Rueda una barra sobre tus piernas hasta que quede en el pliegue de tu cadera. Se recomienda usar una almohadilla (pad) para que el ejercicio sea más cómodo.\n\n• Inicio: Apoya los pies firmemente en el suelo, con las rodillas flexionadas. La parte alta de tu espalda debe funcionar como un pivote sobre el banco.\n\n• Empuje: Empujando a través de tus talones, eleva la cadera hacia el techo hasta que tu cuerpo forme una línea recta desde los hombros hasta las rodillas. Contrae los glúteos con fuerza en la posición final.\n\n• Descenso: Baja la cadera de forma controlada y repite el movimiento.",
+      "description": "Este es considerado uno de los ejercicios más efectivos para desarrollar la fuerza y el tamaño de los músculos glúteos.\n\nInstrucciones\n\n• Posición: Siéntate en el suelo con la parte superior de tu espalda apoyada en el costado de un banco. Rueda una barra sobre tus piernas hasta que quede en el pliegue de tu cadera. Se recomienda usar una almohadilla (pad) para que el ejercicio sea más cómodo.\n• Inicio: Apoya los pies firmemente en el suelo, con las rodillas flexionadas. La parte alta de tu espalda debe funcionar como un pivote sobre el banco.\n• Empuje: Empujando a través de tus talones, eleva la cadera hacia el techo hasta que tu cuerpo forme una línea recta desde los hombros hasta las rodillas. Contrae los glúteos con fuerza en la posición final.\n• Descenso: Baja la cadera de forma controlada y repite el movimiento.",
       "equipment": [
         "BARRA",
         "BANCO"
@@ -1654,7 +1654,7 @@
       "name": "Hiperextensión inversa",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Isquiotibiales",
-      "description": "Túmbate boca abajo sobre un banco con las piernas colgando por el borde.\n\n• Flexiona las caderas de modo que los muslos queden verticales, flexionando al mismo tiempo las rodillas para que las espinillas permanezcan horizontales.\n\n• Estira las piernas hasta que queden rectas y las puntas de los pies apunten hacia atrás en horizontal.\n\n• Vuelve a la posición inicial y repite.",
+      "description": "Túmbate boca abajo sobre un banco con las piernas colgando por el borde.\n\n• Flexiona las caderas de modo que los muslos queden verticales, flexionando al mismo tiempo las rodillas para que las espinillas permanezcan horizontales.\n• Estira las piernas hasta que queden rectas y las puntas de los pies apunten hacia atrás en horizontal.\n• Vuelve a la posición inicial y repite.",
       "equipment": [
         "BANCO"
       ],
@@ -1737,7 +1737,7 @@
       "name": "Jalón al pecho con agarre ancho",
       "type": "MAQUINA",
       "muscleGroup": "Espalda",
-      "description": "Posición inicial\nSentado, los muslos bajo las partes acolchadas, la barra agarrada en pronación, las manos más separadas que el ancho de los hombros. Mantén los codos apuntados hacia afuera y la espalda recta.\nEjecución\nTira de la barra hasta llegar a la barbilla. Mantén la contracción por un momento antes de volver lentamente a la posición inicial. Durante el movimiento, no dejes que tus codos se adelanten.",
+      "description": "Posición inicial Sentado, los muslos bajo las partes acolchadas, la barra agarrada en pronación, las manos más separadas que el ancho de los hombros. Mantén los codos apuntados hacia afuera y la espalda recta. Ejecución Tira de la barra hasta llegar a la barbilla. Mantén la contracción por un momento antes de volver lentamente a la posición inicial. Durante el movimiento, no dejes que tus codos se adelanten.",
       "equipment": [
         "POLEA"
       ],
@@ -1771,7 +1771,7 @@
       "name": "Jalón al pecho con agarre neutro",
       "type": "MAQUINA",
       "muscleGroup": "Espalda",
-      "description": "El jalón al pecho es un ejercicio importante para fortalecer la espalda y mejorar la postura, lo que puede contribuir a una vida más saludable. Para realizar este ejercicio correctamente y evitar lesiones, es importante seguir algunos pasos clave:\n\n•\nColócate frente a la máquina de poleas con las rodillas ligeramente dobladas y los pies en el suelo.\n\n•\nAgarra el mango de la polea con las palmas enfrentadas y las manos separadas a la anchura de los hombros.\n\n•\nTira hacia abajo del mango hasta que toque o se acerque al pecho, manteniendo la posición durante uno o dos segundos.\n\n•\nVuelve a subir el mango lentamente a la posición inicial, asegurándote de mantener los brazos y las manos rectos y la espalda recta durante todo el movimiento.",
+      "description": "El jalón al pecho es un ejercicio importante para fortalecer la espalda y mejorar la postura, lo que puede contribuir a una vida más saludable. Para realizar este ejercicio correctamente y evitar lesiones, es importante seguir algunos pasos clave:\n\n• Colócate frente a la máquina de poleas con las rodillas ligeramente dobladas y los pies en el suelo.\n• Agarra el mango de la polea con las palmas enfrentadas y las manos separadas a la anchura de los hombros.\n• Tira hacia abajo del mango hasta que toque o se acerque al pecho, manteniendo la posición durante uno o dos segundos.\n• Vuelve a subir el mango lentamente a la posición inicial, asegurándote de mantener los brazos y las manos rectos y la espalda recta durante todo el movimiento.",
       "equipment": [
         "POLEA"
       ],
@@ -1822,7 +1822,7 @@
       "name": "Jumping jacks",
       "type": "CARDIO",
       "muscleGroup": "Cardio",
-      "description": "Los saltos de tijera son un ejercicio pliométrico. Los pliométricos son movimientos aeróbicos explosivos que aumentan la velocidad, la rapidez y la potencia y trabajan todo el cuerpo.\nEl salto de tijera se enfoca en el brazo, el hombro, los músculos abdominales, los músculos de la cadera y los flexores de la cadera y también trabaja en los muslos, los tendones de la rodilla y los cuádriceps.\nLos saltos son beneficiosos para la salud porque combinan el acondicionamiento cardiovascular con el trabajo de fuerza.\nDado que los saltos elevan el ritmo cardíaco, también pueden mejorar la condición cardiovascular.",
+      "description": "Los saltos de tijera son un ejercicio pliométrico. Los pliométricos son movimientos aeróbicos explosivos que aumentan la velocidad, la rapidez y la potencia y trabajan todo el cuerpo. El salto de tijera se enfoca en el brazo, el hombro, los músculos abdominales, los músculos de la cadera y los flexores de la cadera y también trabaja en los muslos, los tendones de la rodilla y los cuádriceps. Los saltos son beneficiosos para la salud porque combinan el acondicionamiento cardiovascular con el trabajo de fuerza. Dado que los saltos elevan el ritmo cardíaco, también pueden mejorar la condición cardiovascular.",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -1886,7 +1886,7 @@
       "name": "Máquina de esquí",
       "type": "CARDIO",
       "muscleGroup": "Cardio",
-      "description": "• Comienza de pie sobre la plataforma con los pies a la anchura de las caderas.\n\n• Alcanza por encima de la cabeza para agarrar las empuñaduras con las palmas hacia dentro.\n\n• Flexiona ligeramente las rodillas, luego empuja simultáneamente el trasero hacia atrás como si cerraras una puerta detrás de ti mientras tiras de los brazos recto hacia abajo más allá de las caderas hasta que las manos pasen por el lateral de las rodillas.\n\n• A continuación, lleva los brazos de nuevo por encima de la cabeza mientras impulsas las caderas hacia delante hasta quedar de pie con los brazos completamente extendidos.\n\n• Repite por repeticiones, por tiempo o por distancia.",
+      "description": "• Comienza de pie sobre la plataforma con los pies a la anchura de las caderas.\n• Alcanza por encima de la cabeza para agarrar las empuñaduras con las palmas hacia dentro.\n• Flexiona ligeramente las rodillas, luego empuja simultáneamente el trasero hacia atrás como si cerraras una puerta detrás de ti mientras tiras de los brazos recto hacia abajo más allá de las caderas hasta que las manos pasen por el lateral de las rodillas.\n• A continuación, lleva los brazos de nuevo por encima de la cabeza mientras impulsas las caderas hacia delante hasta quedar de pie con los brazos completamente extendidos.\n• Repite por repeticiones, por tiempo o por distancia.",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -1901,7 +1901,7 @@
       "name": "Montañeros",
       "type": "CARDIO",
       "muscleGroup": "Cardio",
-      "description": "Posición inicial:\n\nComienza en la posición de flexión vertical o plancha alta.Las manos deben estar directamente debajo de los hombros.Mantenga la cabeza alineada con la espalda, mirando al suelo.Los pies deben estar separados a la anchura de las caderas.\n\nPasos:\n\n• Mueve una rodilla hacia el centro del cuerpo, hacia los codos, manteniendo la otra pierna extendida.\n\n• Con un movimiento rápido de salto, estira la pierna doblada y tira de la otra rodilla hacia tu cuerpo.\n\n• Sigue repitiendo el paso 2, alternando las piernas.\n\nNotas:\n\nDurante todo el ejercicio, la espalda debe permanecer lo más recta posible, evitando una joroba o una espalda flácida.",
+      "description": "Posición inicial:\n\nComienza en la posición de flexión vertical o plancha alta.Las manos deben estar directamente debajo de los hombros.Mantenga la cabeza alineada con la espalda, mirando al suelo.Los pies deben estar separados a la anchura de las caderas.\n\nPasos:\n\n• Mueve una rodilla hacia el centro del cuerpo, hacia los codos, manteniendo la otra pierna extendida.\n• Con un movimiento rápido de salto, estira la pierna doblada y tira de la otra rodilla hacia tu cuerpo.\n• Sigue repitiendo el paso 2, alternando las piernas.\nNotas:\n\nDurante todo el ejercicio, la espalda debe permanecer lo más recta posible, evitando una joroba o una espalda flácida.",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -1969,7 +1969,7 @@
       "name": "Pájaro en polea",
       "type": "MAQUINA",
       "muscleGroup": "Hombros",
-      "description": "• Ponte de pie con una buena postura sujetando un cable en cada mano, de cara a la máquina\n\n• Empezando con las manos delante del pecho, lleva los brazos hacia\nlos lados formando una T, con los codos casi estirados\n\n• Lleva los brazos lentamente de nuevo hacia delante hasta la posición inicial\n\n• Repite moviendo los brazos hasta formar una Y\n\n• Repite con los brazos formando una W\n\n• Repite con los brazos formando una L pegados al cuerpo",
+      "description": "• Ponte de pie con una buena postura sujetando un cable en cada mano, de cara a la máquina\n• Empezando con las manos delante del pecho, lleva los brazos hacia los lados formando una T, con los codos casi estirados\n• Lleva los brazos lentamente de nuevo hacia delante hasta la posición inicial\n• Repite moviendo los brazos hasta formar una Y\n• Repite con los brazos formando una W\n• Repite con los brazos formando una L pegados al cuerpo",
       "equipment": [
         "POLEA"
       ],
@@ -1986,7 +1986,7 @@
       "name": "Pallof press",
       "type": "MAQUINA",
       "muscleGroup": "Abdomen",
-      "description": "El Pallof press es un ejercicio antirrotación que entrena los músculos grandes y pequeños alrededor de la columna para resistir la rotación.\n\n• Colócate en paralelo a la máquina de poleas o al punto de anclaje de la\nbanda de resistencia y agarra el asa o la banda con ambas manos.\n\n• Asegúrate de que tu torso quede de frente, lleva las manos al centro del pecho y empuja lentamente hacia fuera.\n\n• Vuelve lentamente las manos al pecho y repite.",
+      "description": "El Pallof press es un ejercicio antirrotación que entrena los músculos grandes y pequeños alrededor de la columna para resistir la rotación.\n\n• Colócate en paralelo a la máquina de poleas o al punto de anclaje de la banda de resistencia y agarra el asa o la banda con ambas manos.\n• Asegúrate de que tu torso quede de frente, lleva las manos al centro del pecho y empuja lentamente hacia fuera.\n• Vuelve lentamente las manos al pecho y repite.",
       "equipment": [
         "POLEA"
       ],
@@ -2020,7 +2020,7 @@
       "name": "Patada de glúteo con mancuerna",
       "type": "PESO_LIBRE",
       "muscleGroup": "Isquiotibiales",
-      "description": "La patada de burro con mancuerna es un ejercicio efectivo para trabajar los músculos de los glúteos y los isquiotibiales. Este ejercicio se realiza generalmente en una posición de cuatro patas, utilizando una mancuerna para aumentar la resistencia. A continuación, se describen los pasos para realizarlo correctamente.\nPosición Inicial: Colócate en una posición de cuatro patas sobre una colchoneta, con las manos alineadas con los hombros y las rodillas alineadas con las caderas.\nColocación de la Mancuerna: Toma una mancuerna y colócala detrás de la rodilla de la pierna que vas a levantar. Asegúrate de que esté bien sujeta para evitar que se caiga durante el ejercicio.\nEjercicio:\nInhala y, al exhalar, levanta la pierna con la mancuerna hacia arriba, manteniendo la rodilla flexionada en un ángulo de 90 grados.\nEleva la pierna hasta que esté paralela al suelo, sintiendo la contracción en los glúteos.\nMantén la posición durante un segundo en la parte superior y luego baja lentamente la pierna a la posición inicial.\nRepeticiones: Realiza de 10 a 15 repeticiones por cada pierna, asegurándote de mantener una buena forma durante todo el ejercicio.\nSeries: Completa de 2 a 3 series, dependiendo de tu nivel de condición física.",
+      "description": "La patada de burro con mancuerna es un ejercicio efectivo para trabajar los músculos de los glúteos y los isquiotibiales. Este ejercicio se realiza generalmente en una posición de cuatro patas, utilizando una mancuerna para aumentar la resistencia. A continuación, se describen los pasos para realizarlo correctamente. Posición Inicial: Colócate en una posición de cuatro patas sobre una colchoneta, con las manos alineadas con los hombros y las rodillas alineadas con las caderas. Colocación de la Mancuerna: Toma una mancuerna y colócala detrás de la rodilla de la pierna que vas a levantar. Asegúrate de que esté bien sujeta para evitar que se caiga durante el ejercicio. Ejercicio: Inhala y, al exhalar, levanta la pierna con la mancuerna hacia arriba, manteniendo la rodilla flexionada en un ángulo de 90 grados. Eleva la pierna hasta que esté paralela al suelo, sintiendo la contracción en los glúteos. Mantén la posición durante un segundo en la parte superior y luego baja lentamente la pierna a la posición inicial. Repeticiones: Realiza de 10 a 15 repeticiones por cada pierna, asegurándote de mantener una buena forma durante todo el ejercicio. Series: Completa de 2 a 3 series, dependiendo de tu nivel de condición física.",
       "equipment": [
         "MANCUERNAS"
       ],
@@ -2037,7 +2037,7 @@
       "name": "Patada de glúteo en polea",
       "type": "MAQUINA",
       "muscleGroup": "Glúteos",
-      "description": "Esta actividad te permitirá ejercitar la zona del glúteo superior o mayor. Por ello, nunca puede faltar en tu rutina de ejercicios aislados para trabajar los glúteos.\nColócate frente a una máquina de poleas y localiza el gancho inferior. Luego, sujétalo en las tobilleras para trabajar en polea baja. En relación con la postura, debes estar recto en todo momento. Presta especial atención a tu espalda para mantenerla recta y no lastimarte.\nEs recomendable que te sujetes a la máquina para tener más equilibrio. Con la pierna con la que estás sosteniendo el peso de la polea, realiza una extensión lenta hacia atrás sin flexionar la rodilla.",
+      "description": "Esta actividad te permitirá ejercitar la zona del glúteo superior o mayor. Por ello, nunca puede faltar en tu rutina de ejercicios aislados para trabajar los glúteos. Colócate frente a una máquina de poleas y localiza el gancho inferior. Luego, sujétalo en las tobilleras para trabajar en polea baja. En relación con la postura, debes estar recto en todo momento. Presta especial atención a tu espalda para mantenerla recta y no lastimarte. Es recomendable que te sujetes a la máquina para tener más equilibrio. Con la pierna con la que estás sosteniendo el peso de la polea, realiza una extensión lenta hacia atrás sin flexionar la rodilla.",
       "equipment": [
         "POLEA"
       ],
@@ -2173,7 +2173,7 @@
       "name": "Peso muerto sumo",
       "type": "PESO_LIBRE",
       "muscleGroup": "Isquiotibiales",
-      "description": "• Comienza con una barra cargada en el suelo. Acércate a la barra de modo que esta cruce la mitad de los pies. Los pies deben colocarse muy separados, cerca de los discos. Flexiona las caderas para agarrar la barra. Los brazos deben quedar directamente debajo de los hombros, por dentro de las piernas, y puedes usar un agarre prono, un agarre mixto o un agarre de gancho. Relaja los hombros, lo que en efecto alarga los brazos.\n\n• Toma aire y luego baja las caderas, mirando al frente con la cabeza y el pecho hacia arriba. Empuja contra el suelo, separando los pies, con el peso en la mitad trasera de los pies. Extiende las caderas y las rodillas.\n\n• Cuando la barra pase las rodillas, échate hacia atrás y lleva las caderas hacia la barra, juntando los omóplatos.\n\n• Devuelve el peso al suelo flexionando las caderas y controlando el peso durante la bajada.",
+      "description": "• Comienza con una barra cargada en el suelo. Acércate a la barra de modo que esta cruce la mitad de los pies. Los pies deben colocarse muy separados, cerca de los discos. Flexiona las caderas para agarrar la barra. Los brazos deben quedar directamente debajo de los hombros, por dentro de las piernas, y puedes usar un agarre prono, un agarre mixto o un agarre de gancho. Relaja los hombros, lo que en efecto alarga los brazos.\n• Toma aire y luego baja las caderas, mirando al frente con la cabeza y el pecho hacia arriba. Empuja contra el suelo, separando los pies, con el peso en la mitad trasera de los pies. Extiende las caderas y las rodillas.\n• Cuando la barra pase las rodillas, échate hacia atrás y lleva las caderas hacia la barra, juntando los omóplatos.\n• Devuelve el peso al suelo flexionando las caderas y controlando el peso durante la bajada.",
       "equipment": [
         "BARRA"
       ],
@@ -2207,7 +2207,7 @@
       "name": "Plancha",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Abdomen",
-      "description": "La plancha es un ejercicio con el peso corporal. Como movimiento multifuncional, la plancha no solo trabaja tus abdominales, sino también la columna y la cadera. La plancha fortalece y tonifica todo tu cuerpo, mejora tu postura y tu equilibrio, reduce la grasa corporal y puede ayudar a acelerar tu metabolismo.\nEjercicios como la «posición de plancha» ayudan a fortalecer la resistencia de los músculos abdominales estabilizadores. También puede ayudar a aliviar el dolor de espalda asociado a un debilitamiento de la función de los músculos estabilizadores del cuerpo.\nLas planchas son un ejercicio versátil que trabaja muchos de los grupos musculares más importantes del cuerpo, por lo que cualquier persona puede aplicarlas para mejorar la resistencia y la fuerza corporal general.",
+      "description": "La plancha es un ejercicio con el peso corporal. Como movimiento multifuncional, la plancha no solo trabaja tus abdominales, sino también la columna y la cadera. La plancha fortalece y tonifica todo tu cuerpo, mejora tu postura y tu equilibrio, reduce la grasa corporal y puede ayudar a acelerar tu metabolismo. Ejercicios como la «posición de plancha» ayudan a fortalecer la resistencia de los músculos abdominales estabilizadores. También puede ayudar a aliviar el dolor de espalda asociado a un debilitamiento de la función de los músculos estabilizadores del cuerpo. Las planchas son un ejercicio versátil que trabaja muchos de los grupos musculares más importantes del cuerpo, por lo que cualquier persona puede aplicarlas para mejorar la resistencia y la fuerza corporal general.",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -2222,7 +2222,7 @@
       "name": "Plancha lateral",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Abdomen",
-      "description": "• Acuéstese sobre su lado correspondiente, con el codo en ángulo recto y el brazo hacia afuera\n\n• Levante la pelvis del suelo levantando el hombro hacia arriba, manteniendo el antebrazo en el suelo; la cabeza, la pelvis y los pies deben estar en línea recta\n\n• Mantenga esta posición",
+      "description": "• Acuéstese sobre su lado correspondiente, con el codo en ángulo recto y el brazo hacia afuera\n• Levante la pelvis del suelo levantando el hombro hacia arriba, manteniendo el antebrazo en el suelo; la cabeza, la pelvis y los pies deben estar en línea recta\n• Mantenga esta posición",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -2254,7 +2254,7 @@
       "name": "Prensa de piernas con pies juntos",
       "type": "MAQUINA",
       "muscleGroup": "Cuádriceps",
-      "description": "El ejercicio es muy similar a la prensa de pierna ancha:\nSiéntese en la máquina y coloque los pies en la plataforma tan separados que podría poner otro pie entre ellos. Los pies son paralelos y apuntan hacia arriba.\nBaje tanto el peso, que las rodillas formen un ángulo recto. Vuelva a empujar inmediatamente la plataforma hacia arriba, sin ninguna pausa. Cuando está en la posición más baja, las rodillas apuntan un poco hacia afuera y el movimiento debe ser siempre fluido.",
+      "description": "El ejercicio es muy similar a la prensa de pierna ancha: Siéntese en la máquina y coloque los pies en la plataforma tan separados que podría poner otro pie entre ellos. Los pies son paralelos y apuntan hacia arriba. Baje tanto el peso, que las rodillas formen un ángulo recto. Vuelva a empujar inmediatamente la plataforma hacia arriba, sin ninguna pausa. Cuando está en la posición más baja, las rodillas apuntan un poco hacia afuera y el movimiento debe ser siempre fluido.",
       "equipment": [
         "MAQUINA"
       ],
@@ -2288,7 +2288,7 @@
       "name": "Press de banca",
       "type": "PESO_LIBRE",
       "muscleGroup": "Pecho",
-      "description": "Acuéstate en un banco plano. La barra debe estar directamente sobre tus ojos, las rodillas deben estar ligeramente flexionadas y los pies firmemente apoyados en el suelo. Concéntrate, respira profundamente y agarra la barra con una apertura mayor a la anchura de tus hombros. Bájala lentamente hasta que toque brevemente tu pecho a la altura de los pezones. Empuja la barra hacia arriba.\n\nSi entrenas con un peso elevado, es aconsejable tener un ayudante (spotter) que pueda asistirte si no puedes levantar el peso por ti mismo.\n\nCon la anchura del agarre también puedes controlar qué parte del pecho se trabaja más:\n\n• Agarre ancho: musculatura externa del pecho.\n\n• Agarre cerrado: musculatura interna del pecho y tríceps.",
+      "description": "Acuéstate en un banco plano. La barra debe estar directamente sobre tus ojos, las rodillas deben estar ligeramente flexionadas y los pies firmemente apoyados en el suelo. Concéntrate, respira profundamente y agarra la barra con una apertura mayor a la anchura de tus hombros. Bájala lentamente hasta que toque brevemente tu pecho a la altura de los pezones. Empuja la barra hacia arriba.\n\nSi entrenas con un peso elevado, es aconsejable tener un ayudante (spotter) que pueda asistirte si no puedes levantar el peso por ti mismo.\n\nCon la anchura del agarre también puedes controlar qué parte del pecho se trabaja más:\n\n• Agarre ancho: musculatura externa del pecho.\n• Agarre cerrado: musculatura interna del pecho y tríceps.",
       "equipment": [
         "BARRA",
         "BANCO"
@@ -2306,7 +2306,7 @@
       "name": "Press de banca con agarre cerrado",
       "type": "PESO_LIBRE",
       "muscleGroup": "Tríceps",
-      "description": "Esta variante del press de banca pone un mayor énfasis en los tríceps y la parte interna del pecho. La posición inicial en el banco es la misma que en un press normal, pero con estas diferencias clave:\n\n• Agarre: Sujeta la barra con un agarre cerrado, aproximadamente al ancho de los hombros (unos 20-30 cm de separación entre las manos).\n\n• Movimiento: Baja la barra de forma controlada hacia la parte baja de tu pecho o el esternón (más abajo que en el press convencional), manteniendo los codos cerca de tu cuerpo. Desde ahí, empuja con fuerza hacia arriba hasta extender los brazos, enfocándote en la contracción de los tríceps.",
+      "description": "Esta variante del press de banca pone un mayor énfasis en los tríceps y la parte interna del pecho. La posición inicial en el banco es la misma que en un press normal, pero con estas diferencias clave:\n\n• Agarre: Sujeta la barra con un agarre cerrado, aproximadamente al ancho de los hombros (unos 20-30 cm de separación entre las manos).\n• Movimiento: Baja la barra de forma controlada hacia la parte baja de tu pecho o el esternón (más abajo que en el press convencional), manteniendo los codos cerca de tu cuerpo. Desde ahí, empuja con fuerza hacia arriba hasta extender los brazos, enfocándote en la contracción de los tríceps.",
       "equipment": [
         "BARRA",
         "BANCO"
@@ -2324,7 +2324,7 @@
       "name": "Press de banca con agarre cerrado con mancuernas",
       "type": "PESO_LIBRE",
       "muscleGroup": "Tríceps",
-      "description": "Túmbate de espaldas sobre un banco plano. Sujeta una mancuerna en cada mano. Eleva los brazos hacia el techo con las palmas mirándose entre sí y las mancuernas juntas, presionándolas una contra otra.\nBaja lentamente las mancuernas hacia el pecho y luego empújalas de nuevo hacia arriba lentamente. Repite el ejercicio.",
+      "description": "Túmbate de espaldas sobre un banco plano. Sujeta una mancuerna en cada mano. Eleva los brazos hacia el techo con las palmas mirándose entre sí y las mancuernas juntas, presionándolas una contra otra. Baja lentamente las mancuernas hacia el pecho y luego empújalas de nuevo hacia arriba lentamente. Repite el ejercicio.",
       "equipment": [
         "MANCUERNAS"
       ],
@@ -2341,7 +2341,7 @@
       "name": "Press de banca con mancuernas",
       "type": "PESO_LIBRE",
       "muscleGroup": "Pecho",
-      "description": "Es un ejercicio multiarticular de fuerza y de hipertrofia destinado al desarrollo del tren superior, específicamente el pecho. Al usar mancuernas en lugar de barra, se corrige el desequilibrio de fuerza entre ambos lados del cuerpo y se permite un movimiento más natural y amigable para las articulaciones del hombro.\n\n•\nPreparación y Posición Inicial: Siéntate en el extremo de un banco plano con una mancuerna apoyada verticalmente en cada muslo. Túmbate hacia atrás con cuidado mientras impulsas las mancuernas con las rodillas hacia tu pecho.\n\n•\nEl \"Leg Drive\" y Postura: Apoya los pies firmemente en el suelo. Retrae las escápulas (junta los omóplatos contra el banco) y mantén un ligero arco lumbar natural.\n\n•\nPosición de Salida: Empuja las mancuernas hacia el techo. Tus muñecas deben estar alineadas con los codos. Gira ligeramente las mancuernas hacia adentro (unos 45 grados) para que los codos no se abran en exceso hacia los lados, protegiendo así tus hombros.\n\n•\nFase Excéntrica (Bajada): Baja las mancuernas de forma controlada hacia los lados de tu pecho. Los codos deben bajar formando un ángulo de unos 45-60 grados respecto a tu cuerpo. Siente el estiramiento en el pectoral en la parte baja.\n\n•\nFase Concéntrica (Subida): Empuja el peso hacia arriba siguiendo una ligera trayectoria en arco (hacia el centro), sin llegar a chocar las mancuernas arriba ni bloquear los codos por completo para mantener la tensión muscular. Expulsa el aire al subir.",
+      "description": "Es un ejercicio multiarticular de fuerza y de hipertrofia destinado al desarrollo del tren superior, específicamente el pecho. Al usar mancuernas en lugar de barra, se corrige el desequilibrio de fuerza entre ambos lados del cuerpo y se permite un movimiento más natural y amigable para las articulaciones del hombro.\n\n• Preparación y Posición Inicial: Siéntate en el extremo de un banco plano con una mancuerna apoyada verticalmente en cada muslo. Túmbate hacia atrás con cuidado mientras impulsas las mancuernas con las rodillas hacia tu pecho.\n• El \"Leg Drive\" y Postura: Apoya los pies firmemente en el suelo. Retrae las escápulas (junta los omóplatos contra el banco) y mantén un ligero arco lumbar natural.\n• Posición de Salida: Empuja las mancuernas hacia el techo. Tus muñecas deben estar alineadas con los codos. Gira ligeramente las mancuernas hacia adentro (unos 45 grados) para que los codos no se abran en exceso hacia los lados, protegiendo así tus hombros.\n• Fase Excéntrica (Bajada): Baja las mancuernas de forma controlada hacia los lados de tu pecho. Los codos deben bajar formando un ángulo de unos 45-60 grados respecto a tu cuerpo. Siente el estiramiento en el pectoral en la parte baja.\n• Fase Concéntrica (Subida): Empuja el peso hacia arriba siguiendo una ligera trayectoria en arco (hacia el centro), sin llegar a chocar las mancuernas arriba ni bloquear los codos por completo para mantener la tensión muscular. Expulsa el aire al subir.",
       "equipment": [
         "MANCUERNAS",
         "BANCO"
@@ -2377,7 +2377,7 @@
       "name": "Press de banca declinado con barra",
       "type": "PESO_LIBRE",
       "muscleGroup": "Pecho",
-      "description": "Esta variante del press de banca pone un mayor énfasis en la porción inferior de los músculos pectorales.\n\nInstrucciones\n\n• Posición: Acuéstate en un banco declinado y asegura tus piernas firmemente en los soportes. Sujeta la barra con un agarre un poco más ancho que tus hombros.\n\n• Descenso: Baja la barra de forma controlada hasta que toque la parte baja de tu pecho o el esternón.\n\n• Ascenso: Empuja la barra con fuerza hacia arriba hasta extender los brazos (sin bloquear los codos), concentrándote en apretar la parte baja del pectoral.",
+      "description": "Esta variante del press de banca pone un mayor énfasis en la porción inferior de los músculos pectorales.\n\nInstrucciones\n\n• Posición: Acuéstate en un banco declinado y asegura tus piernas firmemente en los soportes. Sujeta la barra con un agarre un poco más ancho que tus hombros.\n• Descenso: Baja la barra de forma controlada hasta que toque la parte baja de tu pecho o el esternón.\n• Ascenso: Empuja la barra con fuerza hacia arriba hasta extender los brazos (sin bloquear los codos), concentrándote en apretar la parte baja del pectoral.",
       "equipment": [
         "BARRA",
         "BANCO"
@@ -2395,7 +2395,7 @@
       "name": "Press de banca declinado con mancuernas",
       "type": "PESO_LIBRE",
       "muscleGroup": "Pecho",
-      "description": "Al usar mancuernas, esta variante del press declinado permite un rango de movimiento más natural y ayuda a desarrollar la estabilidad, enfocándose en la porción inferior de los pectorales.\n\nInstrucciones\n\n• Posición: Siéntate en un banco declinado sosteniendo un par de mancuernas sobre tus muslos. Asegura tus piernas en los soportes y luego acuéstate.\n\n• Inicio: Lleva las mancuernas a los costados de tu pecho con los brazos flexionados.\n\n• Ascenso: Empuja las mancuernas hacia arriba en un movimiento de arco, juntándolas en el centro sobre la parte baja de tu pecho. Contrae los pectorales en la cima del movimiento.\n\n• Descenso: Baja las mancuernas de forma lenta y controlada por el mismo camino hasta sentir un estiramiento en el pecho.",
+      "description": "Al usar mancuernas, esta variante del press declinado permite un rango de movimiento más natural y ayuda a desarrollar la estabilidad, enfocándose en la porción inferior de los pectorales.\n\nInstrucciones\n\n• Posición: Siéntate en un banco declinado sosteniendo un par de mancuernas sobre tus muslos. Asegura tus piernas en los soportes y luego acuéstate.\n• Inicio: Lleva las mancuernas a los costados de tu pecho con los brazos flexionados.\n• Ascenso: Empuja las mancuernas hacia arriba en un movimiento de arco, juntándolas en el centro sobre la parte baja de tu pecho. Contrae los pectorales en la cima del movimiento.\n• Descenso: Baja las mancuernas de forma lenta y controlada por el mismo camino hasta sentir un estiramiento en el pecho.",
       "equipment": [
         "MANCUERNAS",
         "BANCO"
@@ -2431,7 +2431,7 @@
       "name": "Press de banca inclinado con mancuernas",
       "type": "PESO_LIBRE",
       "muscleGroup": "Pecho",
-      "description": "Es una variante del press plano orientada a enfatizar el trabajo en el haz clavicular del pectoral (la sección superior). Al inclinar el torso, el ángulo de empuje cambia, transfiriendo más tensión hacia la parte alta del pecho y los hombros, lo que ayuda a conseguir un desarrollo más estético, equilibrado y tridimensional del torso.\n\n•\nAjuste del banco y preparación: Coloca el banco a una inclinación de entre 30 y 45 grados (una inclinación mayor a 45° pasará demasiado esfuerzo al hombro y restará estímulo al pecho). Siéntate con una mancuerna sobre cada muslo.\n\n•\nPosición de inicio: Túmbate hacia atrás apoyando la espalda en el respaldo, mientras usas las rodillas secuencialmente para impulsar las mancuernas hacia arriba, a la altura de tus hombros.\n\n•\nEstabilización anatómica: Planta los pies firmemente en el suelo. Retrae las escápulas (junta los omóplatos y húndelos en el banco) para proteger los hombros y estabilizar la carga.\n\n•\nFase Excéntrica (Bajada): Baja las mancuernas de forma lenta y controlada hacia la parte superior de tu pecho. Los codos no deben abrirse en cruz (90°); mantén un ángulo seguro de unos 45 a 60 grados respecto a tu torso.\n\n•\nFase Concéntrica (Subida): Empuja las mancuernas verticalmente hacia arriba expulsando el aire. Sigue una trayectoria ligeramente convergente (sin que lleguen a tocarse arriba). Detén el movimiento justo antes de bloquear los codos para mantener la tensión muscular en el pectoral alto.",
+      "description": "Es una variante del press plano orientada a enfatizar el trabajo en el haz clavicular del pectoral (la sección superior). Al inclinar el torso, el ángulo de empuje cambia, transfiriendo más tensión hacia la parte alta del pecho y los hombros, lo que ayuda a conseguir un desarrollo más estético, equilibrado y tridimensional del torso.\n\n• Ajuste del banco y preparación: Coloca el banco a una inclinación de entre 30 y 45 grados (una inclinación mayor a 45° pasará demasiado esfuerzo al hombro y restará estímulo al pecho). Siéntate con una mancuerna sobre cada muslo.\n• Posición de inicio: Túmbate hacia atrás apoyando la espalda en el respaldo, mientras usas las rodillas secuencialmente para impulsar las mancuernas hacia arriba, a la altura de tus hombros.\n• Estabilización anatómica: Planta los pies firmemente en el suelo. Retrae las escápulas (junta los omóplatos y húndelos en el banco) para proteger los hombros y estabilizar la carga.\n• Fase Excéntrica (Bajada): Baja las mancuernas de forma lenta y controlada hacia la parte superior de tu pecho. Los codos no deben abrirse en cruz (90°); mantén un ángulo seguro de unos 45 a 60 grados respecto a tu torso.\n• Fase Concéntrica (Subida): Empuja las mancuernas verticalmente hacia arriba expulsando el aire. Sigue una trayectoria ligeramente convergente (sin que lleguen a tocarse arriba). Detén el movimiento justo antes de bloquear los codos para mantener la tensión muscular en el pectoral alto.",
       "equipment": [
         "MANCUERNAS",
         "BANCO_INCLINADO"
@@ -2466,7 +2466,7 @@
       "name": "Press de hombros con mancuernas",
       "type": "PESO_LIBRE",
       "muscleGroup": "Hombros",
-      "description": "El press de hombro con mancuernas es un\nejercicio fundamental para fortalecer los deltoides, tríceps y músculos estabilizadores, que se puede realizar sentado o de pie, implicando empujar mancuernas desde la altura de los hombros hasta la extensión casi completa de los brazos, manteniendo la espalda recta y los codos ligeramente hacia adelante para proteger el manguito rotador, y bajando de forma controlada",
+      "description": "El press de hombro con mancuernas es un ejercicio fundamental para fortalecer los deltoides, tríceps y músculos estabilizadores, que se puede realizar sentado o de pie, implicando empujar mancuernas desde la altura de los hombros hasta la extensión casi completa de los brazos, manteniendo la espalda recta y los codos ligeramente hacia adelante para proteger el manguito rotador, y bajando de forma controlada",
       "equipment": [
         "MANCUERNAS"
       ],
@@ -2483,7 +2483,7 @@
       "name": "Press de hombros en máquina",
       "type": "MAQUINA",
       "muscleGroup": "Hombros",
-      "description": "Sentarse en la máquina con las piernas separadas a la anchura de los hombros.\nMantener la espalda erguida y también los brazos flexionados para tomar la barra a la altura de los hombro, alzar la barra lo mas alto que se pueda con los brazos extendidos.\nBajar lentamente y repetir.",
+      "description": "Sentarse en la máquina con las piernas separadas a la anchura de los hombros. Mantener la espalda erguida y también los brazos flexionados para tomar la barra a la altura de los hombro, alzar la barra lo mas alto que se pueda con los brazos extendidos. Bajar lentamente y repetir.",
       "equipment": [
         "MAQUINA"
       ],
@@ -2551,7 +2551,7 @@
       "name": "Press francés con barra SZ",
       "type": "PESO_LIBRE",
       "muscleGroup": "Tríceps",
-      "description": "Este ejercicio, popularmente conocido como \"rompecráneos\" (skullcrusher), es uno de los más efectivos para añadir masa y fuerza a los tríceps. El uso de la barra SZ (o EZ) reduce la tensión sobre las muñecas en comparación con una barra recta.\n\nInstrucciones\n\n• Posición: Acuéstate en un banco plano. Sujeta una barra SZ sobre tu pecho con un agarre cerrado (manos en las curvas interiores de la barra) y los brazos extendidos.\n\n• Descenso: Manteniendo la parte superior de los brazos inmóvil y perpendicular al suelo, flexiona únicamente los codos para bajar la barra de forma controlada en dirección a tu frente.\n\n• Ascenso: Justo antes de que la barra toque tu frente, empújala de vuelta a la posición inicial extendiendo los codos. Concéntrate en apretar los tríceps al final del movimiento.",
+      "description": "Este ejercicio, popularmente conocido como \"rompecráneos\" (skullcrusher), es uno de los más efectivos para añadir masa y fuerza a los tríceps. El uso de la barra SZ (o EZ) reduce la tensión sobre las muñecas en comparación con una barra recta.\n\nInstrucciones\n\n• Posición: Acuéstate en un banco plano. Sujeta una barra SZ sobre tu pecho con un agarre cerrado (manos en las curvas interiores de la barra) y los brazos extendidos.\n• Descenso: Manteniendo la parte superior de los brazos inmóvil y perpendicular al suelo, flexiona únicamente los codos para bajar la barra de forma controlada en dirección a tu frente.\n• Ascenso: Justo antes de que la barra toque tu frente, empújala de vuelta a la posición inicial extendiendo los codos. Concéntrate en apretar los tríceps al final del movimiento.",
       "equipment": [
         "BARRA_Z",
         "BANCO"
@@ -2569,7 +2569,7 @@
       "name": "Press francés con mancuernas",
       "type": "PESO_LIBRE",
       "muscleGroup": "Tríceps",
-      "description": "Este ejercicio, también conocido como \"rompecráneos\" (skullcrushers), es uno de los más efectivos para aislar y añadir masa a los tríceps, con un gran enfoque en la cabeza larga del músculo.\n\nInstrucciones\n\n• Posición: Acuéstate en un banco plano. Sostén un par de mancuernas sobre tu pecho con un agarre neutro (palmas enfrentadas) y luego inclina los brazos ligeramente hacia atrás de la vertical. Esta inclinación es clave para mantener una tensión constante sobre el tríceps.\n\n• Descenso: Manteniendo la parte superior de los brazos completamente inmóvil en ese ángulo, flexiona únicamente los codos para bajar las mancuernas a los costados de tu cabeza hasta sentir un buen estiramiento.\n\n• Ascenso: Extiende los codos para volver a la posición inicial, enfocándote en contraer con fuerza los tríceps. El único movimiento debe provenir de la articulación del codo.",
+      "description": "Este ejercicio, también conocido como \"rompecráneos\" (skullcrushers), es uno de los más efectivos para aislar y añadir masa a los tríceps, con un gran enfoque en la cabeza larga del músculo.\n\nInstrucciones\n\n• Posición: Acuéstate en un banco plano. Sostén un par de mancuernas sobre tu pecho con un agarre neutro (palmas enfrentadas) y luego inclina los brazos ligeramente hacia atrás de la vertical. Esta inclinación es clave para mantener una tensión constante sobre el tríceps.\n• Descenso: Manteniendo la parte superior de los brazos completamente inmóvil en ese ángulo, flexiona únicamente los codos para bajar las mancuernas a los costados de tu cabeza hasta sentir un buen estiramiento.\n• Ascenso: Extiende los codos para volver a la posición inicial, enfocándote en contraer con fuerza los tríceps. El único movimiento debe provenir de la articulación del codo.",
       "equipment": [
         "MANCUERNAS",
         "BANCO"
@@ -2587,7 +2587,7 @@
       "name": "Press hex con mancuernas",
       "type": "PESO_LIBRE",
       "muscleGroup": "Pecho",
-      "description": "• Activa la musculatura\n\n• Coloca los pies en posición amplia\n\n• Movimiento controlado\n\n• Movimiento lento\n\n• Lleva los pesos hacia la parte baja del pecho/el abdomen",
+      "description": "• Activa la musculatura\n• Coloca los pies en posición amplia\n• Movimiento controlado\n• Movimiento lento\n• Lleva los pesos hacia la parte baja del pecho/el abdomen",
       "equipment": [
         "MANCUERNAS"
       ],
@@ -2621,7 +2621,7 @@
       "name": "Press militar en banco inclinado con mancuernas",
       "type": "PESO_LIBRE",
       "muscleGroup": "Hombros",
-      "description": "• Siéntate en un banco con una inclinación de 45°\n\n• Codos a 45° hacia afuera\n\n• Baja las mancuernas hasta que los brazos queden paralelos a los hombros\n\n• Sube las mancuernas hasta que se junten por encima de la cabeza",
+      "description": "• Siéntate en un banco con una inclinación de 45°\n• Codos a 45° hacia afuera\n• Baja las mancuernas hasta que los brazos queden paralelos a los hombros\n• Sube las mancuernas hasta que se junten por encima de la cabeza",
       "equipment": [
         "MANCUERNAS"
       ],
@@ -2687,7 +2687,7 @@
       "name": "Push press",
       "type": "PESO_LIBRE",
       "muscleGroup": "Hombros",
-      "description": "• Apoya la barra al frente sobre los hombros\n\n• Flexiona las rodillas manteniendo el torso recto\n\n• Estira las piernas empujando la barra por encima de la cabeza con impulso",
+      "description": "• Apoya la barra al frente sobre los hombros\n• Flexiona las rodillas manteniendo el torso recto\n• Estira las piernas empujando la barra por encima de la cabeza con impulso",
       "equipment": [
         "BARRA"
       ],
@@ -2790,7 +2790,7 @@
       "name": "Remo con mancuernas en banco inclinado",
       "type": "PESO_LIBRE",
       "muscleGroup": "Espalda",
-      "description": "• Con un agarre neutro, apóyate sobre un banco inclinado.\n\n• Toma una mancuerna en cada mano con agarre neutro, empezando con los brazos estirados. Esta será tu posición inicial.\n\n• Retrae las escápulas y flexiona los codos para remar las mancuernas hacia tus costados.\n\n• Haz una pausa en la parte superior del movimiento y luego vuelve a la posición inicial.",
+      "description": "• Con un agarre neutro, apóyate sobre un banco inclinado.\n• Toma una mancuerna en cada mano con agarre neutro, empezando con los brazos estirados. Esta será tu posición inicial.\n• Retrae las escápulas y flexiona los codos para remar las mancuernas hacia tus costados.\n• Haz una pausa en la parte superior del movimiento y luego vuelve a la posición inicial.",
       "equipment": [
         "MANCUERNAS",
         "BANCO_INCLINADO"
@@ -2859,7 +2859,7 @@
       "name": "Remo invertido",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Espalda",
-      "description": "Mantén el cuerpo recto, retrae las escápulas y lleva el\npecho hacia la barra para un entrenamiento eficaz de la espalda y el tren superior.",
+      "description": "Mantén el cuerpo recto, retrae las escápulas y lleva el pecho hacia la barra para un entrenamiento eficaz de la espalda y el tren superior.",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -2958,7 +2958,7 @@
       "name": "Rollout con barra",
       "type": "PESO_LIBRE",
       "muscleGroup": "Abdomen",
-      "description": "Cómo realizarlo:\n\n• Preparación: Carga una barra con discos redondos (de 5 o 10 kg es suficiente para que ruede bien). Arrodíllate en el suelo, preferiblemente sobre una colchoneta. Agarra la barra con las palmas hacia abajo (agarre prono) y las manos separadas al ancho de los hombros.\n\n• El Despliegue (Rollout): Manteniendo el abdomen y los glúteos fuertemente contraídos, rueda la barra hacia adelante de manera lenta y controlada. Extiende tu cuerpo en una línea lo más recta posible, llegando tan lejos como puedas sin que tu espalda baja se arquee.\n\n• El Regreso: Haz una breve pausa en el punto de máxima extensión. Luego, usa la fuerza de tus abdominales para jalar la barra hacia ti, revirtiendo el movimiento hasta volver a la posición inicial de forma controlada.",
+      "description": "Cómo realizarlo:\n\n• Preparación: Carga una barra con discos redondos (de 5 o 10 kg es suficiente para que ruede bien). Arrodíllate en el suelo, preferiblemente sobre una colchoneta. Agarra la barra con las palmas hacia abajo (agarre prono) y las manos separadas al ancho de los hombros.\n• El Despliegue (Rollout): Manteniendo el abdomen y los glúteos fuertemente contraídos, rueda la barra hacia adelante de manera lenta y controlada. Extiende tu cuerpo en una línea lo más recta posible, llegando tan lejos como puedas sin que tu espalda baja se arquee.\n• El Regreso: Haz una breve pausa en el punto de máxima extensión. Luego, usa la fuerza de tus abdominales para jalar la barra hacia ti, revirtiendo el movimiento hasta volver a la posición inicial de forma controlada.",
       "equipment": [
         "BARRA"
       ],
@@ -2975,7 +2975,7 @@
       "name": "Rotación externa de hombro con mancuerna",
       "type": "PESO_LIBRE",
       "muscleGroup": "Hombros",
-      "description": "• Túmbate de lado sujetando una mancuerna con la mano de arriba.\n\n• Pega el codo al costado y apoya la mano frente a ti.\n\n• Rota el hombro de modo que la mano se eleve.\n\n• Baja la mano.",
+      "description": "• Túmbate de lado sujetando una mancuerna con la mano de arriba.\n• Pega el codo al costado y apoya la mano frente a ti.\n• Rota el hombro de modo que la mano se eleve.\n• Baja la mano.",
       "equipment": [
         "MANCUERNAS"
       ],
@@ -2992,7 +2992,7 @@
       "name": "Rueda abdominal",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Abdomen",
-      "description": "• Posición inicial: Arrodíllate en el suelo con la rueda abdominal frente a ti.\n\n• Agarra la rueda: Sujeta los mangos con firmeza.\n\n• Despliega: Rueda lentamente hacia delante, extendiendo el cuerpo mientras mantienes el core apretado.\n\n• Regresa: Tira de la rueda de vuelta hacia las rodillas, manteniendo la tensión en el core.",
+      "description": "• Posición inicial: Arrodíllate en el suelo con la rueda abdominal frente a ti.\n• Agarra la rueda: Sujeta los mangos con firmeza.\n• Despliega: Rueda lentamente hacia delante, extendiendo el cuerpo mientras mantienes el core apretado.\n• Regresa: Tira de la rueda de vuelta hacia las rodillas, manteniendo la tensión en el core.",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -3022,7 +3022,7 @@
       "name": "Sentadilla al cajón",
       "type": "PESO_LIBRE",
       "muscleGroup": "Glúteos",
-      "description": "Este ejercicio es una variante de la sentadilla tradicional que ayuda a mejorar la técnica, desarrollar potencia y asegurar que se alcanza la profundidad correcta en el movimiento.\n\nInstrucciones:\n\n• Prepara el cajón: Colócalo detrás de ti. Si vas a usar una barra, posiciona el cajón dentro de la jaula de sentadillas. Elige una altura que te permita bajar hasta que tus glúteos toquen suavemente el cajón, manteniendo la espalda recta (generalmente, con los muslos paralelos al suelo).\n\n• Adopta la postura correcta: Párate frente al cajón con los pies separados al ancho de los hombros y las puntas ligeramente hacia afuera. Activa el core y mantén la espalda en una posición neutral. Si usas barra, apóyala firmemente sobre la parte alta de tu espalda.\n\n• Baja de forma controlada: Inicia el movimiento empujando la cadera hacia atrás, como si te fueras a sentar en una silla. Baja lentamente hasta que tus glúteos hagan un contacto suave con el cajón. Es crucial que no te dejes caer; el descenso debe ser controlado.\n\n• Pausa y sube: Una vez sentado en el cajón, haz una breve pausa manteniendo la tensión en el core y la espalda recta. Desde esa posición, empuja firmemente a través de tus talones para volver a ponerte de pie de forma explosiva hasta la posición inicial.",
+      "description": "Este ejercicio es una variante de la sentadilla tradicional que ayuda a mejorar la técnica, desarrollar potencia y asegurar que se alcanza la profundidad correcta en el movimiento.\n\nInstrucciones:\n\n• Prepara el cajón: Colócalo detrás de ti. Si vas a usar una barra, posiciona el cajón dentro de la jaula de sentadillas. Elige una altura que te permita bajar hasta que tus glúteos toquen suavemente el cajón, manteniendo la espalda recta (generalmente, con los muslos paralelos al suelo).\n• Adopta la postura correcta: Párate frente al cajón con los pies separados al ancho de los hombros y las puntas ligeramente hacia afuera. Activa el core y mantén la espalda en una posición neutral. Si usas barra, apóyala firmemente sobre la parte alta de tu espalda.\n• Baja de forma controlada: Inicia el movimiento empujando la cadera hacia atrás, como si te fueras a sentar en una silla. Baja lentamente hasta que tus glúteos hagan un contacto suave con el cajón. Es crucial que no te dejes caer; el descenso debe ser controlado.\n• Pausa y sube: Una vez sentado en el cajón, haz una breve pausa manteniendo la tensión en el core y la espalda recta. Desde esa posición, empuja firmemente a través de tus talones para volver a ponerte de pie de forma explosiva hasta la posición inicial.",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -3054,7 +3054,7 @@
       "name": "Sentadilla con peso corporal",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Cuádriceps",
-      "description": "La sentadilla es un tipo de ejercicio de peso corporal. Es uno de los ejercicios más populares para la fuerza y el crecimiento muscular. La sentadilla es particularmente efectiva para enfocarse en los músculos de la pierna y las caderas.\nLas sentadillas son un ejercicio fácil de hacer para los principiantes. Puede ayudar a fortalecer los músculos de las piernas, tensar los músculos de la cadera y quemar calorías para perder peso.\nAprieta los glúteos y las piernas. Las sentadillas son muy efectivas para reafirmar y fortalecer las piernas al actuar sobre los glúteos, los flexores de la cadera, los cuádriceps, los isquiotibiales y los músculos internos del muslo. Además, las sentadillas con peso corporal pueden ayudar a dar forma a los glúteos.",
+      "description": "La sentadilla es un tipo de ejercicio de peso corporal. Es uno de los ejercicios más populares para la fuerza y el crecimiento muscular. La sentadilla es particularmente efectiva para enfocarse en los músculos de la pierna y las caderas. Las sentadillas son un ejercicio fácil de hacer para los principiantes. Puede ayudar a fortalecer los músculos de las piernas, tensar los músculos de la cadera y quemar calorías para perder peso. Aprieta los glúteos y las piernas. Las sentadillas son muy efectivas para reafirmar y fortalecer las piernas al actuar sobre los glúteos, los flexores de la cadera, los cuádriceps, los isquiotibiales y los músculos internos del muslo. Además, las sentadillas con peso corporal pueden ayudar a dar forma a los glúteos.",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -3116,7 +3116,7 @@
       "name": "Sentadilla frontal",
       "type": "PESO_LIBRE",
       "muscleGroup": "Cuádriceps",
-      "description": "Contrario a la creencia popular, esta variante de la sentadilla pone un énfasis mucho mayor en los cuádriceps y en la fuerza del core (abdominales y espalda alta), ya que la posición de la barra obliga a mantener el torso extremadamente erguido.\n\nInstrucciones\n\n• Posición: Sostén la barra sobre la parte frontal de tus hombros (deltoides). Puedes usar un agarre de levantamiento olímpico (\"clean grip\", con los codos apuntando al frente) o cruzando los brazos para estabilizar la barra.\n\n• Descenso: Manteniendo el pecho y los codos elevados en todo momento, baja a una sentadilla profunda. El torso debe permanecer lo más vertical posible durante todo el recorrido.\n\n• Ascenso: Empuja con fuerza a través de tus piernas (enfocándote en los cuádriceps) para volver a la posición inicial.",
+      "description": "Contrario a la creencia popular, esta variante de la sentadilla pone un énfasis mucho mayor en los cuádriceps y en la fuerza del core (abdominales y espalda alta), ya que la posición de la barra obliga a mantener el torso extremadamente erguido.\n\nInstrucciones\n\n• Posición: Sostén la barra sobre la parte frontal de tus hombros (deltoides). Puedes usar un agarre de levantamiento olímpico (\"clean grip\", con los codos apuntando al frente) o cruzando los brazos para estabilizar la barra.\n• Descenso: Manteniendo el pecho y los codos elevados en todo momento, baja a una sentadilla profunda. El torso debe permanecer lo más vertical posible durante todo el recorrido.\n• Ascenso: Empuja con fuerza a través de tus piernas (enfocándote en los cuádriceps) para volver a la posición inicial.",
       "equipment": [
         "BARRA"
       ],
@@ -3150,7 +3150,7 @@
       "name": "Sentadilla goblet",
       "type": "PESO_LIBRE",
       "muscleGroup": "Cuádriceps",
-      "description": "Tipos de sentadillas con disco\nGoblet Squat:\nEs la sentadilla con disco más común, donde el disco se sostiene a la altura del pecho, ayudando a mantener una buena postura y mejorando la estabilidad del tobillo.\nOverhead Plate Squat:\nEn esta variación, el disco se mantiene por encima de la cabeza durante todo el movimiento de la sentadilla, lo que aumenta la demanda de movilidad y estabilidad del hombro.",
+      "description": "Tipos de sentadillas con disco Goblet Squat: Es la sentadilla con disco más común, donde el disco se sostiene a la altura del pecho, ayudando a mantener una buena postura y mejorando la estabilidad del tobillo. Overhead Plate Squat: En esta variación, el disco se mantiene por encima de la cabeza durante todo el movimiento de la sentadilla, lo que aumenta la demanda de movilidad y estabilidad del hombro.",
       "equipment": [
         "DISCO"
       ],
@@ -3184,7 +3184,7 @@
       "name": "Sentadilla pistol",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Cuádriceps",
-      "description": "• Párese en una pierna, con la otra pierna estirada y ligeramente hacia adelante.\n\n• Doble una rodilla lentamente, bajando en sentadilla y manteniendo la espalda y la otra pierna estirada.\n\n• Levántese lentamente de la sentadilla, enderezando la rodilla doblada y manteniendo la otra pierna recta.\n\n• Repita",
+      "description": "• Párese en una pierna, con la otra pierna estirada y ligeramente hacia adelante.\n• Doble una rodilla lentamente, bajando en sentadilla y manteniendo la espalda y la otra pierna estirada.\n• Levántese lentamente de la sentadilla, enderezando la rodilla doblada y manteniendo la otra pierna recta.\n• Repita",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -3199,7 +3199,7 @@
       "name": "Sentadilla split en máquina Smith",
       "type": "MAQUINA",
       "muscleGroup": "Cuádriceps",
-      "description": "La \"Sentadilla split en máquina Smith\" es un ejercicio de fuerza\nrealizado en la máquina Smith, ideal para trabajar las piernas y los glúteos.\nConsiste en colocar un pie adelante y el otro atrás, bajando el\ncuerpo hasta que el muslo delantero quede paralelo al suelo mientras la barra\nse desliza verticalmente a lo largo de la máquina. Este ejercicio ayuda a mejorar\nla estabilidad, corregir desequilibrios musculares y reduce la tensión en la espalda,\nproporcionando un entorno seguro para el entrenamiento de fuerza.",
+      "description": "La \"Sentadilla split en máquina Smith\" es un ejercicio de fuerza realizado en la máquina Smith, ideal para trabajar las piernas y los glúteos. Consiste en colocar un pie adelante y el otro atrás, bajando el cuerpo hasta que el muslo delantero quede paralelo al suelo mientras la barra se desliza verticalmente a lo largo de la máquina. Este ejercicio ayuda a mejorar la estabilidad, corregir desequilibrios musculares y reduce la tensión en la espalda, proporcionando un entorno seguro para el entrenamiento de fuerza.",
       "equipment": [
         "MAQUINA"
       ],
@@ -3233,7 +3233,7 @@
       "name": "Sentadilla trasera con barra",
       "type": "PESO_LIBRE",
       "muscleGroup": "Cuádriceps",
-      "description": "• Levántese con los pies separados al ancho de hombros\n\n• Mueva las caderas hacia atrás y doble las rodillas y caderas para bajar el torso\n\n• Repita",
+      "description": "• Levántese con los pies separados al ancho de hombros\n• Mueva las caderas hacia atrás y doble las rodillas y caderas para bajar el torso\n• Repita",
       "equipment": [
         "BARRA"
       ],
@@ -3265,7 +3265,7 @@
       "name": "Subida al banco",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Glúteos",
-      "description": "• Párese frente a una silla\n\n• Súbase a la silla\n\n• Bájese de la silla\n\n• Repita",
+      "description": "• Párese frente a una silla\n• Súbase a la silla\n• Bájese de la silla\n• Repita",
       "equipment": [
         "BANCO"
       ],
@@ -3348,7 +3348,7 @@
       "name": "Toques de talón",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Abdomen",
-      "description": "•\nPosición inicial:\n\n• Acuéstate de espaldas sobre una esterilla de ejercicio.\n\n• Flexiona las rodillas, manteniendo los pies planos en el suelo y separados al ancho de las caderas.\n\n• Coloca los brazos a lo largo de los costados, con las palmas hacia adentro, apenas despegados del suelo.\n\n•\nActiva el core:\n\n• Eleva ligeramente la cabeza, los hombros y la parte superior de la espalda del suelo.\n\n• Mantén el cuello en una posición neutral y la barbilla ligeramente hacia adentro.\n\n•\nRealiza el movimiento:\n\n• Inclínate hacia la derecha, llevando tu mano derecha hacia tu talón derecho.\n\n• Vuelve al centro y luego inclínate hacia la izquierda, llevando tu mano izquierda hacia tu talón izquierdo.\n\n• Continúa alternando lados de manera controlada.\n\n•\nRespiración:\n\n• Exhala al alcanzar el talón e inhala al regresar al centro.",
+      "description": "• Posición inicial:\n• Acuéstate de espaldas sobre una esterilla de ejercicio.\n• Flexiona las rodillas, manteniendo los pies planos en el suelo y separados al ancho de las caderas.\n• Coloca los brazos a lo largo de los costados, con las palmas hacia adentro, apenas despegados del suelo.\n• Activa el core:\n• Eleva ligeramente la cabeza, los hombros y la parte superior de la espalda del suelo.\n• Mantén el cuello en una posición neutral y la barbilla ligeramente hacia adentro.\n• Realiza el movimiento:\n• Inclínate hacia la derecha, llevando tu mano derecha hacia tu talón derecho.\n• Vuelve al centro y luego inclínate hacia la izquierda, llevando tu mano izquierda hacia tu talón izquierdo.\n• Continúa alternando lados de manera controlada.\n• Respiración:\n• Exhala al alcanzar el talón e inhala al regresar al centro.",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -3363,7 +3363,7 @@
       "name": "Zancada con peso corporal",
       "type": "PESO_CORPORAL",
       "muscleGroup": "Cuádriceps",
-      "description": "Las zancadas con el peso corporal son un ejercicio de calistenia eficaz para\nfortalecer el tren inferior, mejorar el equilibrio y la estabilidad, y\ndesarrollar fuerza funcional. Son una opción popular para los entrenamientos con el peso corporal, los entrenamientos en casa, y también pueden incluirse como parte de una rutina de entrenamiento de fuerza más amplia.",
+      "description": "Las zancadas con el peso corporal son un ejercicio de calistenia eficaz para fortalecer el tren inferior, mejorar el equilibrio y la estabilidad, y desarrollar fuerza funcional. Son una opción popular para los entrenamientos con el peso corporal, los entrenamientos en casa, y también pueden incluirse como parte de una rutina de entrenamiento de fuerza más amplia.",
       "equipment": [],
       "source": {
         "provider": "wger",
@@ -3378,7 +3378,7 @@
       "name": "Zancada hacia atrás con barra",
       "type": "PESO_LIBRE",
       "muscleGroup": "Cuádriceps",
-      "description": "Paso 1: Ponte de pie con los pies separados al ancho de las caderas, sujetando una barra sobre la parte alta de la espalda.\nPaso 2: Mantén la espalda recta, el pecho arriba y el core activado.\nPaso 3: Da un paso hacia atrás con una pierna y baja el cuerpo flexionando ambas rodillas. Asegúrate de que la rodilla trasera casi toque el suelo.\nPaso 4: Empuja con el pie trasero para volver a la posición inicial.\nPaso 5: Repite el movimiento con la otra pierna.\nContinúa alternando entre las piernas durante las repeticiones deseadas.",
+      "description": "Paso 1: Ponte de pie con los pies separados al ancho de las caderas, sujetando una barra sobre la parte alta de la espalda. Paso 2: Mantén la espalda recta, el pecho arriba y el core activado. Paso 3: Da un paso hacia atrás con una pierna y baja el cuerpo flexionando ambas rodillas. Asegúrate de que la rodilla trasera casi toque el suelo. Paso 4: Empuja con el pie trasero para volver a la posición inicial. Paso 5: Repite el movimiento con la otra pierna. Continúa alternando entre las piernas durante las repeticiones deseadas.",
       "equipment": [
         "BARRA"
       ],
@@ -3412,7 +3412,7 @@
       "name": "Zancadas caminando con barra",
       "type": "PESO_LIBRE",
       "muscleGroup": "Glúteos",
-      "description": "Cómo realizarlo:\n\n• Preparación: Coloca una barra sobre la parte alta de tu espalda (trapecios), igual que lo harías para una sentadilla. Párate derecho con los pies al ancho de las caderas, asegurándote de tener un pasillo o espacio libre por delante.\n\n• Ejecución: Da un paso largo hacia adelante con una pierna. Baja la cadera de forma controlada hasta que la rodilla de la pierna de atrás quede muy cerca del suelo. La pierna delantera debe formar un ángulo de 90 grados.\n\n• El Avance: En lugar de empujar hacia atrás para volver al inicio, impúlsate hacia adelante. Presiona con el talón de la pierna delantera y lleva la pierna de atrás hacia el frente para iniciar inmediatamente la siguiente zancada con esa pierna.\n\n• Continuación: Sigue alternando las piernas, \"caminando\" hacia adelante con cada zancada de manera fluida pero controlada. Mantén siempre el torso erguido y el abdomen contraído para no perder el equilibrio.",
+      "description": "Cómo realizarlo:\n\n• Preparación: Coloca una barra sobre la parte alta de tu espalda (trapecios), igual que lo harías para una sentadilla. Párate derecho con los pies al ancho de las caderas, asegurándote de tener un pasillo o espacio libre por delante.\n• Ejecución: Da un paso largo hacia adelante con una pierna. Baja la cadera de forma controlada hasta que la rodilla de la pierna de atrás quede muy cerca del suelo. La pierna delantera debe formar un ángulo de 90 grados.\n• El Avance: En lugar de empujar hacia atrás para volver al inicio, impúlsate hacia adelante. Presiona con el talón de la pierna delantera y lleva la pierna de atrás hacia el frente para iniciar inmediatamente la siguiente zancada con esa pierna.\n• Continuación: Sigue alternando las piernas, \"caminando\" hacia adelante con cada zancada de manera fluida pero controlada. Mantén siempre el torso erguido y el abdomen contraído para no perder el equilibrio.",
       "equipment": [
         "BARRA"
       ],
@@ -3429,7 +3429,7 @@
       "name": "Zancadas caminando con mancuernas",
       "type": "PESO_LIBRE",
       "muscleGroup": "Cuádriceps",
-      "description": "Esta es la variante dinámica de las zancadas. Al avanzar con cada paso en lugar de permanecer en el mismo sitio, se incrementa el trabajo de estabilización, equilibrio y coordinación.\n\nInstrucciones\n\n• Posición: De pie, con la espalda recta, sostén una mancuerna en cada mano a los costados de tu cuerpo.\n\n• Zancada: Da un paso largo hacia adelante. Baja la cadera de forma controlada hasta que ambas rodillas se flexionen en un ángulo de aproximadamente 90 grados. La rodilla de atrás debe quedar cerca del suelo, sin tocarlo.\n\n• Avance: Manteniendo el torso erguido, impúlsate hacia adelante: presiona con el talón del pie delantero para ponerte de pie y dar inmediatamente el siguiente paso con la otra pierna. Continúa \"caminando\" con zancadas de forma fluida.",
+      "description": "Esta es la variante dinámica de las zancadas. Al avanzar con cada paso en lugar de permanecer en el mismo sitio, se incrementa el trabajo de estabilización, equilibrio y coordinación.\n\nInstrucciones\n\n• Posición: De pie, con la espalda recta, sostén una mancuerna en cada mano a los costados de tu cuerpo.\n• Zancada: Da un paso largo hacia adelante. Baja la cadera de forma controlada hasta que ambas rodillas se flexionen en un ángulo de aproximadamente 90 grados. La rodilla de atrás debe quedar cerca del suelo, sin tocarlo.\n• Avance: Manteniendo el torso erguido, impúlsate hacia adelante: presiona con el talón del pie delantero para ponerte de pie y dar inmediatamente el siguiente paso con la otra pierna. Continúa \"caminando\" con zancadas de forma fluida.",
       "equipment": [
         "MANCUERNAS"
       ],
@@ -3463,7 +3463,7 @@
       "name": "Zancadas con mancuernas",
       "type": "PESO_LIBRE",
       "muscleGroup": "Cuádriceps",
-      "description": "Esta es la versión clásica de las zancadas, ideal para fortalecer piernas y glúteos (cuádriceps, femorales y glúteos). El uso de mancuernas facilita el equilibrio y reduce la carga directa sobre la columna en comparación con la barra.\n\nInstrucciones\n\n• Posición: De pie, con la espalda recta, sostén una mancuerna en cada mano a los costados de tu cuerpo con los brazos extendidos.\n\n• Movimiento: Da un paso largo hacia adelante con una pierna. Baja tu cadera de forma controlada hasta que ambas rodillas estén cerca de formar un ángulo de 90 grados, sin que la rodilla de atrás toque el suelo.\n\n• Regreso: Manteniendo el torso erguido, empuja con fuerza a través del talón del pie delantero para volver a la posición inicial. Alterna las piernas en cada repetición.",
+      "description": "Esta es la versión clásica de las zancadas, ideal para fortalecer piernas y glúteos (cuádriceps, femorales y glúteos). El uso de mancuernas facilita el equilibrio y reduce la carga directa sobre la columna en comparación con la barra.\n\nInstrucciones\n\n• Posición: De pie, con la espalda recta, sostén una mancuerna en cada mano a los costados de tu cuerpo con los brazos extendidos.\n• Movimiento: Da un paso largo hacia adelante con una pierna. Baja tu cadera de forma controlada hasta que ambas rodillas estén cerca de formar un ángulo de 90 grados, sin que la rodilla de atrás toque el suelo.\n• Regreso: Manteniendo el torso erguido, empuja con fuerza a través del talón del pie delantero para volver a la posición inicial. Alterna las piernas en cada repetición.",
       "equipment": [
         "MANCUERNAS"
       ],
