@@ -2,7 +2,14 @@ package com.dlunaunizar.bobitos.feature.tasks
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.failed
+import com.dlunaunizar.bobitos.core.common.started
+import com.dlunaunizar.bobitos.core.common.succeeded
+import com.dlunaunizar.bobitos.core.common.withSaveTimeout
+import com.dlunaunizar.bobitos.core.model.TaskItem
 import com.dlunaunizar.bobitos.core.model.TaskPriority
 import com.dlunaunizar.bobitos.core.model.TaskRecurrence
 import com.dlunaunizar.bobitos.core.model.TaskType
@@ -11,6 +18,7 @@ import com.dlunaunizar.bobitos.data.repository.TaskFailure
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
 import com.dlunaunizar.bobitos.data.repository.TaskRepositoryException
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -71,7 +79,7 @@ class TasksViewModel @Inject constructor(
         startAt: Instant?,
     ) {
         if (!validate(title, description)) return
-        runAction(TaskUiMessage.TaskCreated) {
+        runAction(TaskUiMessage.TaskCreated, editor = true) {
             taskRepository.createTask(
                 spaceId,
                 title.trim(),
@@ -99,7 +107,7 @@ class TasksViewModel @Inject constructor(
         startAt: Instant?,
     ) {
         if (!validate(title, description)) return
-        runAction(TaskUiMessage.TaskUpdated) {
+        runAction(TaskUiMessage.TaskUpdated, editor = true) {
             taskRepository.updateTask(
                 spaceId,
                 taskId,
@@ -124,37 +132,67 @@ class TasksViewModel @Inject constructor(
         taskRepository.deleteTask(spaceId, taskId)
     }
 
-    fun showInvalidDate() = showError(TaskUiMessage.InvalidDate)
+    // Recrea una tarea borrada («Deshacer»): no es un guardado del editor, no mueve su estado.
+    fun restoreTask(spaceId: String, task: TaskItem) = runAction(TaskUiMessage.TaskCreated) {
+        taskRepository.createTask(
+            spaceId,
+            task.title,
+            task.description,
+            task.assigneeId,
+            task.dueAt,
+            task.priority,
+            task.type,
+            task.recurrence,
+            task.startAt,
+        )
+    }
+
+    fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
+
+    // Solo se llama desde el editor.
+    fun showInvalidDate() = showError(TaskUiMessage.InvalidDate, editor = true)
 
     fun clearFeedback() = mutableUiState.update { it.copy(error = null, notice = null) }
 
     private fun validate(title: String, description: String?): Boolean {
         val error = TaskValidation.validate(title, description) ?: return true
-        showError(error)
+        showError(error, editor = true)
         return false
     }
 
-    private fun showError(message: TaskUiMessage) = mutableUiState.update {
-        it.copy(isSaving = false, error = message, notice = null)
+    private fun showError(message: TaskUiMessage, editor: Boolean = false) = mutableUiState.update {
+        it.copy(isSaving = false, error = message, notice = null, editorSave = it.editorSave.failed(editor))
     }
 
-    private fun runAction(notice: TaskUiMessage?, action: suspend () -> Unit) {
+    private fun runAction(notice: TaskUiMessage?, editor: Boolean = false, action: suspend () -> Unit) {
         if (mutableUiState.value.isSaving) return
-        mutableUiState.update { it.copy(isSaving = true, error = null, notice = null) }
+        mutableUiState.update {
+            it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
+        }
         viewModelScope.launch {
-            try {
-                action()
-                mutableUiState.update { it.copy(isSaving = false, notice = notice) }
-            } catch (error: Throwable) {
-                showError(error.toUiMessage())
-            }
+            runCatching { withSaveTimeout { action() } }
+                .onSuccess {
+                    mutableUiState.update {
+                        it.copy(isSaving = false, notice = notice, editorSave = it.editorSave.succeeded(editor))
+                    }
+                }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    showError(error.toUiMessage(), editor)
+                }
         }
     }
 }
 
 private fun String?.normalized() = this?.trim()?.takeIf(String::isNotEmpty)
 
-private fun Throwable.toUiMessage() = when ((this as? TaskRepositoryException)?.failure) {
+private fun Throwable.toUiMessage() = if (this is SaveTimeoutException) {
+    TaskUiMessage.SaveTimeout
+} else {
+    toRepositoryUiMessage()
+}
+
+private fun Throwable.toRepositoryUiMessage() = when ((this as? TaskRepositoryException)?.failure) {
     TaskFailure.TitleRequired -> TaskUiMessage.TitleRequired
     TaskFailure.TitleTooLong -> TaskUiMessage.TitleTooLong
     TaskFailure.DescriptionTooLong -> TaskUiMessage.DescriptionTooLong

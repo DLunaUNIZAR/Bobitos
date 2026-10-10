@@ -161,6 +161,7 @@
     <string name="sync_offline">Sin conexión · datos desactualizados · solo lectura</string>
     <string name="sync_refreshing">Actualizando datos antes de permitir cambios…</string>
     <string name="write_saving">Guardando…</string>
+    <string name="write_timeout">No hay respuesta del servidor. Puede que se guarde al recuperar la conexión: compruébalo antes de repetir</string>
     <string name="shopping_title">Compra</string>
     <string name="shopping_list_title">Lista compartida</string>
     <plurals name="shopping_pending_count">

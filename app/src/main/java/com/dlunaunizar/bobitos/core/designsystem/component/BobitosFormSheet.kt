@@ -29,7 +29,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
@@ -38,7 +40,8 @@ import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
  * Formulario en un bottom sheet: título, contenido con scroll y botones fijos abajo (siempre
  * visibles con el teclado abierto). Si hay cambios sin guardar ([dirty], que solo se evalúa al intentar
  * cerrar para no recalcularlo en cada pulsación), deslizar, tocar fuera o
- * «Cancelar» pide confirmar el descarte; mientras se guarda ([saving]) no se puede cerrar.
+ * «Cancelar» pide confirmar el descarte; mientras se guarda ([saving]) no se puede cerrar y el botón dice «Guardando…».
+ * [errorMessage] se pinta dentro del formulario, encima de los botones.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,6 +53,7 @@ fun BobitosFormSheet(
     dirty: () -> Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
+    errorMessage: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var askDiscard by rememberSaveable { mutableStateOf(false) }
@@ -106,17 +110,14 @@ fun BobitosFormSheet(
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 content = content,
             )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.End),
-            ) {
-                TextButton(onClick = requestClose, enabled = !saving) {
-                    Text(stringResource(R.string.cancel))
-                }
-                Button(onClick = onConfirm, enabled = confirmEnabled && !saving) {
-                    Text(confirmLabel)
-                }
-            }
+            FormSheetActions(
+                errorMessage = errorMessage,
+                confirmLabel = confirmLabel,
+                confirmEnabled = confirmEnabled,
+                saving = saving,
+                onCancel = requestClose,
+                onConfirm = onConfirm,
+            )
         }
     }
     if (askDiscard) {
@@ -141,4 +142,36 @@ private fun DiscardChangesDialog(onDiscard: () -> Unit, onKeepEditing: () -> Uni
         onConfirm = onDiscard,
         onDismiss = onKeepEditing,
     )
+}
+
+@Composable
+private fun FormSheetActions(
+    errorMessage: String?,
+    confirmLabel: String,
+    confirmEnabled: Boolean,
+    saving: Boolean,
+    onCancel: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        errorMessage?.let {
+            Text(
+                text = it,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.End),
+        ) {
+            TextButton(onClick = onCancel, enabled = !saving) {
+                Text(stringResource(R.string.cancel))
+            }
+            Button(onClick = onConfirm, enabled = confirmEnabled && !saving) {
+                Text(if (saving) stringResource(R.string.write_saving) else confirmLabel)
+            }
+        }
+    }
 }

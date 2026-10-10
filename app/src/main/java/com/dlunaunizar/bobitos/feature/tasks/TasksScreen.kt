@@ -82,10 +82,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
+import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
@@ -141,17 +143,7 @@ fun TasksScreen(
     val deleteTaskWithUndo: (TaskItem) -> Unit = { task ->
         viewModel.deleteTask(spaceId, task.id)
         scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-            viewModel.createTask(
-                spaceId,
-                task.title,
-                task.description,
-                task.assigneeId,
-                task.dueAt,
-                task.priority,
-                task.type,
-                task.recurrence,
-                task.startAt,
-            )
+            viewModel.restoreTask(spaceId, task)
         }
     }
     // El editor sobrevive a una rotación: se guarda el id de la tarea (no el objeto) y el índice de la plantilla.
@@ -311,6 +303,12 @@ fun TasksScreen(
             },
         )
     }
+    EditorSaveEffect(
+        status = state.editorSave,
+        editorOpen = editorVisible,
+        onClose = { editorVisible = false },
+        onConsume = viewModel::consumeEditorSave,
+    )
     rememberEditorSlot(
         open = editorVisible,
         id = editorTaskId,
@@ -324,6 +322,8 @@ fun TasksScreen(
             template = editorTemplate,
             members = members,
             saving = state.isSaving,
+            errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
+                ?.let { stringResource(it.stringRes()) },
             onDismiss = { editorVisible = false },
             onInvalidDate = viewModel::showInvalidDate,
             onSave = { title, description, assignee, due, priority, type, recurrence, start ->
@@ -336,7 +336,6 @@ fun TasksScreen(
                         spaceId, title, description, assignee, due, priority, type, recurrence, start,
                     )
                 }
-                editorVisible = false
             },
         )
     }
@@ -666,6 +665,7 @@ private fun TaskEditor(
     template: TaskTemplate?,
     members: List<SpaceMember>,
     saving: Boolean,
+    errorMessage: String?,
     onDismiss: () -> Unit,
     onInvalidDate: () -> Unit,
     onSave: (String, String?, String?, Instant?, TaskPriority, TaskType?, TaskRecurrence?, Instant?) -> Unit,
@@ -676,8 +676,6 @@ private fun TaskEditor(
     var draft by rememberSaveable(task?.id, template?.titleRes) {
         mutableStateOf(initial)
     }
-    var memberMenu by remember { mutableStateOf(false) }
-
     val validation = TaskValidation.validate(draft.title, draft.description)
     BobitosFormSheet(
         title = stringResource(if (task == null) R.string.tasks_add_title else R.string.tasks_edit_title),
@@ -685,6 +683,7 @@ private fun TaskEditor(
         confirmEnabled = validation == null,
         saving = saving,
         dirty = { draft != initial },
+        errorMessage = errorMessage,
         onDismiss = onDismiss,
         onConfirm = {
             try {
@@ -717,57 +716,14 @@ private fun TaskEditor(
             minLines = 2,
             modifier = Modifier.fillMaxWidth(),
         )
-        Box {
-            TextButton(onClick = { memberMenu = true }) {
-                Text(
-                    members.firstOrNull { it.userId == draft.assigneeId }?.displayName
-                        ?: stringResource(R.string.tasks_unassigned),
-                )
-            }
-            DropdownMenu(memberMenu, { memberMenu = false }) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.tasks_unassigned)) },
-                    onClick = {
-                        draft = draft.copy(assigneeId = null)
-                        memberMenu = false
-                    },
-                )
-                members.forEach { member ->
-                    DropdownMenuItem(
-                        text = { Text(member.displayName) },
-                        onClick = {
-                            draft = draft.copy(assigneeId = member.userId)
-                            memberMenu = false
-                        },
-                    )
-                }
-            }
-        }
+        AssigneePicker(draft.assigneeId, members) { draft = draft.copy(assigneeId = it) }
         TaskDateFields(
             draft.startDate,
             { draft = draft.copy(startDate = it) },
             draft.dueDate,
             { draft = draft.copy(dueDate = it) },
         )
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            TaskPriority.entries.forEachIndexed { index, value ->
-                SegmentedButton(
-                    selected = draft.priority == value,
-                    onClick = { draft = draft.copy(priority = value) },
-                    shape = SegmentedButtonDefaults.itemShape(index, TaskPriority.entries.size),
-                    icon = {
-                        Box(
-                            Modifier
-                                .size(10.dp)
-                                .clip(CircleShape)
-                                .background(value.accent()),
-                        )
-                    },
-                ) {
-                    Text(value.label())
-                }
-            }
-        }
+        PriorityPicker(draft.priority) { draft = draft.copy(priority = it) }
         TaskTypePicker(selected = draft.type, onSelect = { draft = draft.copy(type = it) })
         RecurrencePicker(
             selected = draft.recurrence,
@@ -776,6 +732,60 @@ private fun TaskEditor(
             },
         )
         validation?.let { Text(stringResource(it.stringRes()), color = MaterialTheme.colorScheme.error) }
+    }
+}
+
+@Composable
+private fun AssigneePicker(selectedId: String?, members: List<SpaceMember>, onSelect: (String?) -> Unit) {
+    var menu by remember { mutableStateOf(false) }
+    Box {
+        TextButton(onClick = { menu = true }) {
+            Text(
+                members.firstOrNull { it.userId == selectedId }?.displayName
+                    ?: stringResource(R.string.tasks_unassigned),
+            )
+        }
+        DropdownMenu(menu, { menu = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.tasks_unassigned)) },
+                onClick = {
+                    onSelect(null)
+                    menu = false
+                },
+            )
+            members.forEach { member ->
+                DropdownMenuItem(
+                    text = { Text(member.displayName) },
+                    onClick = {
+                        onSelect(member.userId)
+                        menu = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PriorityPicker(selected: TaskPriority, onSelect: (TaskPriority) -> Unit) {
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+        TaskPriority.entries.forEachIndexed { index, value ->
+            SegmentedButton(
+                selected = selected == value,
+                onClick = { onSelect(value) },
+                shape = SegmentedButtonDefaults.itemShape(index, TaskPriority.entries.size),
+                icon = {
+                    Box(
+                        Modifier
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(value.accent()),
+                    )
+                },
+            ) {
+                Text(value.label())
+            }
+        }
     }
 }
 
@@ -1069,6 +1079,7 @@ private fun TaskUiMessage.stringRes() = when (this) {
     TaskUiMessage.PermissionDenied -> R.string.space_error_permission_denied
     TaskUiMessage.NetworkError -> R.string.space_error_network
     TaskUiMessage.UnexpectedError -> R.string.space_error_unexpected
+    TaskUiMessage.SaveTimeout -> R.string.write_timeout
     TaskUiMessage.TaskCreated -> R.string.tasks_notice_created
     TaskUiMessage.TaskUpdated -> R.string.tasks_notice_updated
     TaskUiMessage.TaskCompleted -> R.string.tasks_notice_completed

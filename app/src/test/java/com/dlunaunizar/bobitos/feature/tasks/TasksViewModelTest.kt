@@ -1,6 +1,8 @@
 package com.dlunaunizar.bobitos.feature.tasks
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SpaceMember
@@ -15,10 +17,15 @@ import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.TaskFailure
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
 import com.dlunaunizar.bobitos.data.repository.TaskRepositoryException
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -134,6 +141,85 @@ class TasksViewModelTest {
 
         assertEquals(listOf("Fregar"), filtered.map(TaskItem::title))
     }
+
+    @Test
+    fun `editor create stays SAVING until the repository answers, then SAVED`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val gate = CompletableDeferred<Unit>()
+            taskRepository.createGate = gate
+
+            editorCreate("Fregar")
+            assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+            assertTrue(viewModel.uiState.value.isSaving)
+
+            gate.complete(Unit)
+            advanceUntilIdle()
+
+            assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+            assertFalse(viewModel.uiState.value.isSaving)
+        }
+
+    @Test
+    fun `editor save failure leaves FAILED with the error and isSaving false`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            taskRepository.nextFailure = TaskRepositoryException(TaskFailure.Network)
+
+            editorCreate("Fregar")
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertEquals(EditorSaveStatus.FAILED, state.editorSave)
+            assertEquals(TaskUiMessage.NetworkError, state.error)
+            assertFalse(state.isSaving)
+        }
+
+    @Test
+    fun `editor save without answer times out into FAILED with SaveTimeout`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            taskRepository.hang = true
+
+            editorCreate("Fregar")
+            assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+            advanceTimeBy(EDITOR_SAVE_TIMEOUT_MILLIS + 1)
+            runCurrent()
+
+            val state = viewModel.uiState.value
+            assertEquals(EditorSaveStatus.FAILED, state.editorSave)
+            assertEquals(TaskUiMessage.SaveTimeout, state.error)
+            assertFalse(state.isSaving)
+        }
+
+    @Test
+    fun `a validation error from the editor leaves FAILED`() {
+        editorCreate("   ")
+
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        assertEquals(TaskUiMessage.TitleRequired, viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `restoreTask does not touch the editor status`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.restoreTask("home", task("t1", "Fregar", TaskType.LIMPIEZA))
+        advanceUntilIdle()
+
+        assertEquals("Fregar", taskRepository.createdTitle)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(TaskUiMessage.TaskCreated, viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun `consumeEditorSave returns to IDLE`() = runTest(mainDispatcherRule.testDispatcher) {
+        editorCreate("Fregar")
+        advanceUntilIdle()
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+
+        viewModel.consumeEditorSave()
+
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+    }
+
+    private fun editorCreate(title: String) =
+        viewModel.createTask("home", title, null, "ana", null, TaskPriority.MEDIUM, null, null, null)
 }
 
 private class FakeTaskRepository : TaskRepository {
@@ -144,6 +230,10 @@ private class FakeTaskRepository : TaskRepository {
     var createdAssigneeSet = false
     var completedChange: Triple<String, String, Boolean>? = null
     var nextFailure: TaskRepositoryException? = null
+    var createGate: CompletableDeferred<Unit>? = null
+
+    // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
+    var hang = false
     val tasksState = MutableStateFlow<List<TaskItem>>(emptyList())
 
     override fun tasks(spaceId: String): Flow<List<TaskItem>> {
@@ -163,6 +253,14 @@ private class FakeTaskRepository : TaskRepository {
         startAt: Instant?,
     ) {
         throwNextFailure()
+        if (hang) {
+            try {
+                awaitCancellation()
+            } catch (_: CancellationException) {
+                throw TaskRepositoryException(TaskFailure.Unknown)
+            }
+        }
+        createGate?.await()
         createdTitle = title
         createdType = type
         createdAssignee = assigneeId

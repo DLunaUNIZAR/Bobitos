@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.tasks
 
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.TaskItem
@@ -14,6 +15,7 @@ data class TasksUiState(
     val members: UiState<List<SpaceMember>> = UiState.Loading,
     val filters: TaskFilters = TaskFilters(),
     val isSaving: Boolean = false,
+    val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
     val error: TaskUiMessage? = null,
     val notice: TaskUiMessage? = null,
 )
@@ -93,6 +95,7 @@ enum class TaskUiMessage {
     PermissionDenied,
     NetworkError,
     UnexpectedError,
+    SaveTimeout,
     TaskCreated,
     TaskUpdated,
     TaskCompleted,
