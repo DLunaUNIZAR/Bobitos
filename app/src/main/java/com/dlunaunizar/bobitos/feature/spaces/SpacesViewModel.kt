@@ -2,12 +2,19 @@ package com.dlunaunizar.bobitos.feature.spaces
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.failed
+import com.dlunaunizar.bobitos.core.common.started
+import com.dlunaunizar.bobitos.core.common.succeeded
+import com.dlunaunizar.bobitos.core.common.withSaveTimeout
 import com.dlunaunizar.bobitos.core.model.InvitationCode
 import com.dlunaunizar.bobitos.data.repository.SpaceFailure
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepositoryException
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -71,10 +78,10 @@ class SpacesViewModel @Inject constructor(private val spaceRepository: SpaceRepo
     fun createSpace(name: String) {
         val error = SpaceValidation.validateName(name)
         if (error != null) {
-            showValidationError(error)
+            showValidationError(error, editor = true)
             return
         }
-        runAction(SpaceUiMessage.SpaceCreated) {
+        runAction(SpaceUiMessage.SpaceCreated, editor = true) {
             spaceRepository.createSpace(name.trim())
         }
     }
@@ -82,10 +89,10 @@ class SpacesViewModel @Inject constructor(private val spaceRepository: SpaceRepo
     fun renameSpace(spaceId: String, name: String) {
         val error = SpaceValidation.validateName(name)
         if (error != null) {
-            showValidationError(error)
+            showValidationError(error, editor = true)
             return
         }
-        runAction(SpaceUiMessage.SpaceRenamed) {
+        runAction(SpaceUiMessage.SpaceRenamed, editor = true) {
             spaceRepository.renameSpace(spaceId, name.trim())
         }
     }
@@ -126,13 +133,16 @@ class SpacesViewModel @Inject constructor(private val spaceRepository: SpaceRepo
 
     fun acceptInvitation(code: String) {
         if (InvitationCode.normalize(code) == null) {
-            showValidationError(SpaceUiMessage.InvalidInvitationCode)
+            showValidationError(SpaceUiMessage.InvalidInvitationCode, editor = true)
             return
         }
-        runAction(SpaceUiMessage.InvitationAccepted) {
-            val spaceId = spaceRepository.acceptInvitation(code)
-            mutableUiState.update { state -> state.copy(acceptedSpaceId = spaceId) }
-        }
+        // El id y SAVED se publican a la vez, al confirmar.
+        runAction(
+            SpaceUiMessage.InvitationAccepted,
+            editor = true,
+            action = { spaceRepository.acceptInvitation(code) },
+            onResult = { spaceId -> copy(acceptedSpaceId = spaceId) },
+        )
     }
 
     fun consumeAcceptedSpace() {
@@ -149,71 +159,93 @@ class SpacesViewModel @Inject constructor(private val spaceRepository: SpaceRepo
         }
     }
 
-    private fun showValidationError(message: SpaceUiMessage) {
+    fun consumeEditorSave() {
+        mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
+    }
+
+    private fun showValidationError(message: SpaceUiMessage, editor: Boolean = false) {
         mutableUiState.update {
             it.copy(
                 isLoading = false,
                 writeStatus = WriteStatus.ERROR,
+                editorSave = it.editorSave.failed(editor),
                 error = message,
                 notice = null,
             )
         }
     }
 
-    private fun runAction(successNotice: SpaceUiMessage, action: suspend () -> Unit) {
+    private fun runAction(successNotice: SpaceUiMessage, editor: Boolean = false, action: suspend () -> Unit) =
+        runAction(successNotice, editor, onResult = { this }, action = action)
+
+    // [onResult] completa el estado final con el resultado de [action], a la vez que SAVED.
+    private fun <T> runAction(
+        successNotice: SpaceUiMessage,
+        editor: Boolean = false,
+        onResult: SpaceManagementUiState.(T) -> SpaceManagementUiState,
+        action: suspend () -> T,
+    ) {
         if (mutableUiState.value.isLoading) return
         mutableUiState.update {
             it.copy(
                 isLoading = true,
                 writeStatus = WriteStatus.SAVING,
+                editorSave = it.editorSave.started(editor),
                 error = null,
                 notice = null,
             )
         }
         viewModelScope.launch {
-            try {
-                action()
-                mutableUiState.update {
-                    it.copy(
-                        isLoading = false,
-                        writeStatus = WriteStatus.SAVED,
-                        notice = successNotice,
-                    )
+            runCatching { withSaveTimeout { action() } }
+                .onSuccess { result ->
+                    mutableUiState.update {
+                        it.onResult(result).copy(
+                            isLoading = false,
+                            writeStatus = WriteStatus.SAVED,
+                            editorSave = it.editorSave.succeeded(editor),
+                            notice = successNotice,
+                        )
+                    }
                 }
-            } catch (error: Throwable) {
-                mutableUiState.update {
-                    it.copy(
-                        isLoading = false,
-                        writeStatus = WriteStatus.ERROR,
-                        error = error.toUiMessage(),
-                        notice = null,
-                    )
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    mutableUiState.update {
+                        it.copy(
+                            isLoading = false,
+                            writeStatus = WriteStatus.ERROR,
+                            editorSave = it.editorSave.failed(editor),
+                            error = error.toUiMessage(),
+                            notice = null,
+                        )
+                    }
                 }
-            }
         }
     }
 }
 
-private fun Throwable.toUiMessage(): SpaceUiMessage = when ((this as? SpaceRepositoryException)?.failure) {
-    SpaceFailure.NameRequired -> SpaceUiMessage.NameRequired
-    SpaceFailure.NameTooLong -> SpaceUiMessage.NameTooLong
-    SpaceFailure.NotAuthenticated -> SpaceUiMessage.NotAuthenticated
-    SpaceFailure.EmailNotVerified -> SpaceUiMessage.EmailNotVerified
-    SpaceFailure.SpaceNotFound -> SpaceUiMessage.SpaceNotFound
-    SpaceFailure.MembershipNotFound -> SpaceUiMessage.MembershipNotFound
-    SpaceFailure.OwnerMustTransfer -> SpaceUiMessage.OwnerMustTransfer
-    SpaceFailure.CannotRemoveOwner -> SpaceUiMessage.CannotRemoveOwner
-    SpaceFailure.InvalidNewOwner -> SpaceUiMessage.InvalidNewOwner
-    SpaceFailure.OnlyOwnerCanDelete -> SpaceUiMessage.OnlyOwnerCanDelete
-    SpaceFailure.InvalidInvitationCode -> SpaceUiMessage.InvalidInvitationCode
-    SpaceFailure.InvitationNotFound -> SpaceUiMessage.InvitationNotFound
-    SpaceFailure.InvitationAlreadyUsed -> SpaceUiMessage.InvitationAlreadyUsed
-    SpaceFailure.InvitationRevoked -> SpaceUiMessage.InvitationRevoked
-    SpaceFailure.InvitationExpired -> SpaceUiMessage.InvitationExpired
-    SpaceFailure.SpaceFull -> SpaceUiMessage.SpaceFull
-    SpaceFailure.PermissionDenied -> SpaceUiMessage.PermissionDenied
-    SpaceFailure.Network -> SpaceUiMessage.NetworkError
-    SpaceFailure.Unknown,
-    null,
-    -> SpaceUiMessage.UnexpectedError
+private fun Throwable.toUiMessage(): SpaceUiMessage {
+    if (this is SaveTimeoutException) return SpaceUiMessage.SaveTimeout
+    return when ((this as? SpaceRepositoryException)?.failure) {
+        SpaceFailure.NameRequired -> SpaceUiMessage.NameRequired
+        SpaceFailure.NameTooLong -> SpaceUiMessage.NameTooLong
+        SpaceFailure.NotAuthenticated -> SpaceUiMessage.NotAuthenticated
+        SpaceFailure.EmailNotVerified -> SpaceUiMessage.EmailNotVerified
+        SpaceFailure.SpaceNotFound -> SpaceUiMessage.SpaceNotFound
+        SpaceFailure.MembershipNotFound -> SpaceUiMessage.MembershipNotFound
+        SpaceFailure.OwnerMustTransfer -> SpaceUiMessage.OwnerMustTransfer
+        SpaceFailure.CannotRemoveOwner -> SpaceUiMessage.CannotRemoveOwner
+        SpaceFailure.InvalidNewOwner -> SpaceUiMessage.InvalidNewOwner
+        SpaceFailure.OnlyOwnerCanDelete -> SpaceUiMessage.OnlyOwnerCanDelete
+        SpaceFailure.InvalidInvitationCode -> SpaceUiMessage.InvalidInvitationCode
+        SpaceFailure.InvitationNotFound -> SpaceUiMessage.InvitationNotFound
+        SpaceFailure.InvitationAlreadyUsed -> SpaceUiMessage.InvitationAlreadyUsed
+        SpaceFailure.InvitationRevoked -> SpaceUiMessage.InvitationRevoked
+        SpaceFailure.InvitationExpired -> SpaceUiMessage.InvitationExpired
+        SpaceFailure.SpaceFull -> SpaceUiMessage.SpaceFull
+        SpaceFailure.PermissionDenied -> SpaceUiMessage.PermissionDenied
+        SpaceFailure.Network -> SpaceUiMessage.NetworkError
+        SpaceFailure.Unknown,
+        null,
+        -> SpaceUiMessage.UnexpectedError
+    }
 }

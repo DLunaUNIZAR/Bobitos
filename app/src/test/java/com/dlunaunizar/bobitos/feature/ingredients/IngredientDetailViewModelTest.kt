@@ -1,6 +1,8 @@
 package com.dlunaunizar.bobitos.feature.ingredients
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
@@ -13,12 +15,18 @@ import com.dlunaunizar.bobitos.data.openfoodfacts.OpenFoodFactsClient
 import com.dlunaunizar.bobitos.data.repository.IngredientBrandRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientRepository
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -146,6 +154,82 @@ class IngredientDetailViewModelTest {
         assertNull(parseNutritionValue("  "))
         assertNull(parseNutritionValue("abc"))
     }
+
+    @Test
+    fun `ficha save is SAVED only after the repository answers`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("tomate")
+        advanceUntilIdle()
+        val gate = CompletableDeferred<Unit>()
+        repository.updateGate = gate
+
+        viewModel.updateIngredient("Tomate", null, null)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+        viewModel.consumeEditorSave()
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+    }
+
+    @Test
+    fun `brand save is SAVED only after the repository answers`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("tomate")
+        advanceUntilIdle()
+        val gate = CompletableDeferred<Unit>()
+        brandRepository.addGate = gate
+
+        viewModel.addBrand("Hacendado", null, null)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+        viewModel.consumeEditorSave()
+
+        val updateGate = CompletableDeferred<Unit>()
+        brandRepository.updateGate = updateGate
+        viewModel.updateBrand("b1", "Otra", null, null)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        updateGate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+    }
+
+    @Test
+    fun `ficha and brand saves with timeout or validation leave FAILED`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("tomate")
+        advanceUntilIdle()
+        viewModel.addBrand("  ", null, null)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        viewModel.consumeEditorSave()
+
+        repository.hang = true
+        viewModel.updateIngredient("Tomate", null, null)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        advanceTimeBy(EDITOR_SAVE_TIMEOUT_MILLIS + 1)
+        runCurrent()
+
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        assertEquals(IngredientUiMessage.SaveTimeout, viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.isSaving)
+    }
+
+    @Test
+    fun `delete and prefs never touch editorSave`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("tomate")
+        advanceUntilIdle()
+
+        viewModel.setPref(Supermarket.DIA, null)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        advanceUntilIdle()
+        viewModel.deleteBrand("b1")
+        advanceUntilIdle()
+        viewModel.deleteIngredient()
+        advanceUntilIdle()
+
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertTrue(viewModel.uiState.value.finished)
+    }
 }
 
 private fun detailIngredient(id: String, name: String, ownerUid: String = "owner") = CatalogIngredient(
@@ -175,13 +259,27 @@ private class DetailFakeIngredientRepo : IngredientRepository {
     val catalogState = MutableStateFlow<List<CatalogIngredient>>(emptyList())
     var admin = false
     var uid: String? = null
+    var updateGate: CompletableDeferred<Unit>? = null
+
+    // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
+    var hang = false
 
     override fun catalog(): Flow<List<CatalogIngredient>> = catalogState
     override fun isCurrentUserCatalogAdmin(): Boolean = admin
     override fun currentUserId(): String? = uid
     override suspend fun ingredientById(id: String): CatalogIngredient? = catalogState.value.firstOrNull { it.id == id }
     override suspend fun createIngredient(name: String, category: String?, defaultUnit: String?) = Unit
-    override suspend fun updateIngredient(id: String, name: String, category: String?, defaultUnit: String?) = Unit
+    override suspend fun updateIngredient(id: String, name: String, category: String?, defaultUnit: String?) {
+        if (hang) {
+            try {
+                awaitCancellation()
+            } catch (_: CancellationException) {
+                error("cancelled")
+            }
+        }
+        updateGate?.await()
+    }
+
     override suspend fun deleteIngredient(id: String) = Unit
 }
 
@@ -195,12 +293,15 @@ private class DetailFakePrefsRepo : IngredientPrefsRepository {
 private class DetailFakeBrandRepo : IngredientBrandRepository {
     val brandsState = MutableStateFlow<List<IngredientBrand>>(emptyList())
     var addCount = 0
+    var addGate: CompletableDeferred<Unit>? = null
+    var updateGate: CompletableDeferred<Unit>? = null
     var lastIngredientId: String? = null
     var lastName: String? = null
     var lastNutrition: Nutrition? = null
 
     override fun brands(ingredientId: String): Flow<List<IngredientBrand>> = brandsState
     override suspend fun addBrand(ingredientId: String, name: String, barcode: String?, nutrition: Nutrition?) {
+        addGate?.await()
         addCount++
         lastIngredientId = ingredientId
         lastName = name
@@ -213,7 +314,9 @@ private class DetailFakeBrandRepo : IngredientBrandRepository {
         name: String,
         barcode: String?,
         nutrition: Nutrition?,
-    ) = Unit
+    ) {
+        updateGate?.await()
+    }
 
     override suspend fun deleteBrand(ingredientId: String, brandId: String) = Unit
 }

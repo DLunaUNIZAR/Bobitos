@@ -98,6 +98,7 @@ fun BobitosNavHost(
     pendingRecipeImportUrl: String?,
     onRecipeImportUrlConsumed: () -> Unit,
     onClearSpaceFeedback: () -> Unit,
+    onEditorSaveConsumed: () -> Unit,
     onUpdateDisplayName: (String) -> Unit,
     onSignOut: () -> Unit,
     onDeleteAccount: (String) -> Unit,
@@ -228,6 +229,7 @@ fun BobitosNavHost(
                 pendingInvitationCode = pendingInvitationCode,
                 onInvitationCodeConsumed = onInvitationCodeConsumed,
                 onClearFeedback = onClearSpaceFeedback,
+                onEditorSaveConsumed = onEditorSaveConsumed,
             )
         }
 
@@ -513,6 +515,7 @@ fun BobitosNavHost(
                     onRevokeInvitation = onRevokeInvitation,
                     onShareInvitation = onShareInvitation,
                     onClearFeedback = onClearSpaceFeedback,
+                    onEditorSaveConsumed = onEditorSaveConsumed,
                     onBack = { navController.popBackStack() },
                 )
             }

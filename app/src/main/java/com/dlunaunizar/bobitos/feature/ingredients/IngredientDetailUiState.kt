@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.ingredients
 
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
@@ -18,6 +19,7 @@ data class IngredientDetailUiState(
     val isAdmin: Boolean = false,
     val currentUid: String? = null,
     val isSaving: Boolean = false,
+    val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
     // Consulta a Open Food Facts en curso tras escanear.
     val isLookingUp: Boolean = false,
     // Borrador pendiente de abrir en el editor de marca tras un escaneo.

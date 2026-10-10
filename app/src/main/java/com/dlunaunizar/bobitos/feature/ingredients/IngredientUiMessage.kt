@@ -20,6 +20,7 @@ enum class IngredientUiMessage {
     PermissionDenied,
     NetworkError,
     UnexpectedError,
+    SaveTimeout,
     Saved,
     Deleted,
     PrefSaved,
@@ -48,6 +49,7 @@ internal val IngredientUiMessage.stringResourceId: Int
         IngredientUiMessage.PermissionDenied -> R.string.space_error_permission_denied
         IngredientUiMessage.NetworkError -> R.string.space_error_network
         IngredientUiMessage.UnexpectedError -> R.string.space_error_unexpected
+        IngredientUiMessage.SaveTimeout -> R.string.write_timeout
         IngredientUiMessage.Saved -> R.string.ingredients_notice_saved
         IngredientUiMessage.Deleted -> R.string.ingredients_notice_deleted
         IngredientUiMessage.PrefSaved -> R.string.ingredients_notice_pref_saved

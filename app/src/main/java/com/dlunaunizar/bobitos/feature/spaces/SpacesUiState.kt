@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.spaces
 
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SpaceMember
@@ -7,6 +8,7 @@ import com.dlunaunizar.bobitos.core.model.SpaceMember
 data class SpaceManagementUiState(
     val isLoading: Boolean = false,
     val writeStatus: WriteStatus = WriteStatus.IDLE,
+    val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
     val members: UiState<List<SpaceMember>> = UiState.Loading,
     val invitations: UiState<List<SpaceInvitation>> = UiState.Loading,
     val acceptedSpaceId: String? = null,
@@ -41,6 +43,7 @@ enum class SpaceUiMessage {
     PermissionDenied,
     NetworkError,
     UnexpectedError,
+    SaveTimeout,
     SpaceCreated,
     SpaceRenamed,
     SpaceDeleted,

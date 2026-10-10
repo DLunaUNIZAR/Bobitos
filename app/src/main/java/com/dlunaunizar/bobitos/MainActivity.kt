@@ -93,6 +93,7 @@ class MainActivity : ComponentActivity() {
                     pendingRecipeImportUrl = recipeImportUrl,
                     onRecipeImportUrlConsumed = { pendingRecipeImportUrl.value = null },
                     onClearSpaceFeedback = spacesViewModel::clearFeedback,
+                    onEditorSaveConsumed = spacesViewModel::consumeEditorSave,
                     onSignIn = authViewModel::signIn,
                     onRegister = authViewModel::register,
                     onPasswordReset = authViewModel::sendPasswordReset,

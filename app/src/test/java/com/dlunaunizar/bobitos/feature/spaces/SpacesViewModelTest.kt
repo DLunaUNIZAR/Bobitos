@@ -1,6 +1,8 @@
 package com.dlunaunizar.bobitos.feature.spaces
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.InvitationStatus
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
@@ -10,15 +12,20 @@ import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.data.repository.SpaceFailure
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepositoryException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
@@ -113,6 +120,90 @@ class SpacesViewModelTest {
         assertEquals("home", repository.deletedSpaceId)
         assertEquals(SpaceUiMessage.SpaceDeleted, viewModel.uiState.value.notice)
     }
+
+    @Test
+    fun `create, accept and rename are SAVED only after confirm`() = runTest(mainDispatcherRule.testDispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        repository.createGate = gate
+        viewModel.createSpace("Casa")
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+        viewModel.consumeEditorSave()
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+
+        val renameGate = CompletableDeferred<Unit>()
+        repository.renameGate = renameGate
+        viewModel.renameSpace("home", "Nueva")
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        renameGate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+        viewModel.consumeEditorSave()
+
+        val acceptGate = CompletableDeferred<Unit>()
+        repository.acceptGate = acceptGate
+        viewModel.acceptInvitation("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567")
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        acceptGate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+    }
+
+    @Test
+    fun `acceptInvitation sets acceptedSpaceId and SAVED together`() = runTest(mainDispatcherRule.testDispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        repository.acceptGate = gate
+        viewModel.acceptInvitation("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567")
+        assertNull(viewModel.uiState.value.acceptedSpaceId)
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals("home", state.acceptedSpaceId)
+        assertEquals(EditorSaveStatus.SAVED, state.editorSave)
+    }
+
+    @Test
+    fun `validation errors and timeouts leave FAILED`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.createSpace("  ")
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        viewModel.consumeEditorSave()
+        viewModel.acceptInvitation("invalid")
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        viewModel.consumeEditorSave()
+
+        repository.hang = true
+        viewModel.createSpace("Casa")
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        advanceTimeBy(EDITOR_SAVE_TIMEOUT_MILLIS + 1)
+        runCurrent()
+
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        assertEquals(SpaceUiMessage.SaveTimeout, viewModel.uiState.value.error)
+        assertEquals(WriteStatus.ERROR, viewModel.uiState.value.writeStatus)
+        assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `leave, remove and delete never touch editorSave`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.leaveSpace("home")
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        advanceUntilIdle()
+        viewModel.removeMember("home", "u")
+        advanceUntilIdle()
+        viewModel.deleteSpace("home")
+        advanceUntilIdle()
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+
+        repository.nextFailure = SpaceRepositoryException(SpaceFailure.Network)
+        viewModel.leaveSpace("home")
+        advanceUntilIdle()
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertTrue(viewModel.uiState.value.error != null)
+    }
 }
 
 private class FakeSpaceRepository : SpaceRepository {
@@ -123,6 +214,11 @@ private class FakeSpaceRepository : SpaceRepository {
     var deletedSpaceId: String? = null
     var nextFailure: SpaceRepositoryException? = null
     var createGate: CompletableDeferred<Unit>? = null
+    var renameGate: CompletableDeferred<Unit>? = null
+    var acceptGate: CompletableDeferred<Unit>? = null
+
+    // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
+    var hang = false
 
     override fun members(spaceId: String): Flow<List<SpaceMember>> = flowOf(
         listOf(SpaceMember("owner", "David", SpaceRole.OWNER)),
@@ -131,6 +227,13 @@ private class FakeSpaceRepository : SpaceRepository {
     override fun invitations(spaceId: String): Flow<List<SpaceInvitation>> = flowOf(emptyList())
 
     override suspend fun createSpace(name: String): String {
+        if (hang) {
+            try {
+                awaitCancellation()
+            } catch (_: CancellationException) {
+                throw SpaceRepositoryException(SpaceFailure.Unknown)
+            }
+        }
         createGate?.await()
         throwNextFailure()
         createdName = name
@@ -138,6 +241,7 @@ private class FakeSpaceRepository : SpaceRepository {
     }
 
     override suspend fun renameSpace(spaceId: String, name: String) {
+        renameGate?.await()
         throwNextFailure()
     }
 
@@ -173,6 +277,7 @@ private class FakeSpaceRepository : SpaceRepository {
     }
 
     override suspend fun acceptInvitation(code: String): String {
+        acceptGate?.await()
         throwNextFailure()
         acceptedCode = code
         return "home"

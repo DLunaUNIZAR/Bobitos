@@ -51,6 +51,7 @@ fun BobitosApp(
     pendingRecipeImportUrl: String?,
     onRecipeImportUrlConsumed: () -> Unit,
     onClearSpaceFeedback: () -> Unit,
+    onEditorSaveConsumed: () -> Unit,
     onSignIn: (email: String, password: String) -> Unit,
     onRegister: (
         displayName: String,
@@ -134,6 +135,7 @@ fun BobitosApp(
                                 pendingRecipeImportUrl = pendingRecipeImportUrl,
                                 onRecipeImportUrlConsumed = onRecipeImportUrlConsumed,
                                 onClearSpaceFeedback = onClearSpaceFeedback,
+                                onEditorSaveConsumed = onEditorSaveConsumed,
                                 onUpdateDisplayName = onUpdateDisplayName,
                                 onSignOut = onSignOut,
                                 onDeleteAccount = onDeleteAccount,

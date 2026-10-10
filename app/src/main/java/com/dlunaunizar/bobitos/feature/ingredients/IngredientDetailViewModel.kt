@@ -2,6 +2,12 @@ package com.dlunaunizar.bobitos.feature.ingredients
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
+import com.dlunaunizar.bobitos.core.common.failed
+import com.dlunaunizar.bobitos.core.common.started
+import com.dlunaunizar.bobitos.core.common.succeeded
+import com.dlunaunizar.bobitos.core.common.withSaveTimeout
 import com.dlunaunizar.bobitos.core.model.Nutrition
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffException
@@ -17,6 +23,7 @@ import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientRepositoryException
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -85,10 +92,10 @@ class IngredientDetailViewModel @Inject constructor(
 
     fun updateIngredient(name: String, category: String?, defaultUnit: String?) {
         if (name.trim().isEmpty()) {
-            showError(IngredientUiMessage.NameRequired)
+            showError(IngredientUiMessage.NameRequired, editor = true)
             return
         }
-        runAction(IngredientUiMessage.Saved) {
+        runAction(IngredientUiMessage.Saved, editor = true) {
             repository.updateIngredient(ingredientId, name.trim(), category, defaultUnit)
         }
     }
@@ -107,20 +114,20 @@ class IngredientDetailViewModel @Inject constructor(
 
     fun addBrand(name: String, barcode: String?, nutrition: Nutrition?) {
         if (name.trim().isEmpty()) {
-            showError(IngredientUiMessage.BrandNameRequired)
+            showError(IngredientUiMessage.BrandNameRequired, editor = true)
             return
         }
-        runAction(IngredientUiMessage.BrandSaved) {
+        runAction(IngredientUiMessage.BrandSaved, editor = true) {
             brandRepository.addBrand(ingredientId, name.trim(), barcode, nutrition)
         }
     }
 
     fun updateBrand(brandId: String, name: String, barcode: String?, nutrition: Nutrition?) {
         if (name.trim().isEmpty()) {
-            showError(IngredientUiMessage.BrandNameRequired)
+            showError(IngredientUiMessage.BrandNameRequired, editor = true)
             return
         }
-        runAction(IngredientUiMessage.BrandSaved) {
+        runAction(IngredientUiMessage.BrandSaved, editor = true) {
             brandRepository.updateBrand(ingredientId, brandId, name.trim(), barcode, nutrition)
         }
     }
@@ -160,31 +167,44 @@ class IngredientDetailViewModel @Inject constructor(
         mutableUiState.update { it.copy(scannedBrand = null) }
     }
 
+    fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
+
     fun clearFeedback() {
         mutableUiState.update { it.copy(error = null, notice = null) }
     }
 
-    private fun showError(message: IngredientUiMessage) {
-        mutableUiState.update { it.copy(isSaving = false, error = message, notice = null) }
+    private fun showError(message: IngredientUiMessage, editor: Boolean = false) {
+        mutableUiState.update {
+            it.copy(isSaving = false, error = message, notice = null, editorSave = it.editorSave.failed(editor))
+        }
     }
 
-    private fun runAction(notice: IngredientUiMessage, finishOnSuccess: Boolean = false, action: suspend () -> Unit) {
+    private fun runAction(
+        notice: IngredientUiMessage,
+        finishOnSuccess: Boolean = false,
+        editor: Boolean = false,
+        action: suspend () -> Unit,
+    ) {
         if (mutableUiState.value.isSaving) return
-        mutableUiState.update { it.copy(isSaving = true, error = null, notice = null) }
+        mutableUiState.update {
+            it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
+        }
         viewModelScope.launch {
-            try {
-                action()
-                mutableUiState.update {
-                    it.copy(
-                        isSaving = false,
-                        notice = notice,
-                        finished =
-                        it.finished || finishOnSuccess,
-                    )
+            runCatching { withSaveTimeout { action() } }
+                .onSuccess {
+                    mutableUiState.update {
+                        it.copy(
+                            isSaving = false,
+                            notice = notice,
+                            finished = it.finished || finishOnSuccess,
+                            editorSave = it.editorSave.succeeded(editor),
+                        )
+                    }
                 }
-            } catch (error: Throwable) {
-                showError(error.toUiMessage())
-            }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    showError(error.toUiMessage(), editor)
+                }
         }
     }
 }
@@ -196,6 +216,7 @@ private fun Throwable.toUiMessage(): IngredientUiMessage = when (this) {
     is IngredientRepositoryException -> failure.toUiMessage()
     is IngredientPrefsException -> failure.toUiMessage()
     is BrandRepositoryException -> failure.toUiMessage()
+    is SaveTimeoutException -> IngredientUiMessage.SaveTimeout
     else -> IngredientUiMessage.UnexpectedError
 }
 

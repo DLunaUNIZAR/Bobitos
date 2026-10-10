@@ -43,9 +43,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
+import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
@@ -131,15 +133,24 @@ fun IngredientsScreen(
         }
     }
 
+    EditorSaveEffect(
+        status = state.editorSave,
+        editorOpen = showEditor || scanCreate != null,
+        onClose = {
+            showEditor = false
+            scanCreate = null
+        },
+        onConsume = viewModel::consumeEditorSave,
+    )
+    val editorError = editorErrorMessage(state.error, state.editorSave)
+
     if (showEditor) {
         IngredientEditorDialog(
             ingredient = null,
             saving = state.isSaving,
+            errorMessage = editorError,
             onDismiss = { showEditor = false },
-            onSave = { name, category, unit ->
-                viewModel.createIngredient(name, category, unit)
-                showEditor = false
-            },
+            onSave = viewModel::createIngredient,
         )
     }
 
@@ -148,6 +159,7 @@ fun IngredientsScreen(
             ingredient = null,
             initialName = product.suggestedName,
             saving = state.isSaving,
+            errorMessage = editorError,
             onDismiss = { scanCreate = null },
             onSave = { name, category, unit ->
                 viewModel.createIngredientFromScan(
@@ -158,7 +170,6 @@ fun IngredientsScreen(
                     product.barcode,
                     product.nutrition,
                 )
-                scanCreate = null
             },
         )
     }
@@ -254,6 +265,7 @@ internal fun IngredientEditorDialog(
     onDismiss: () -> Unit,
     onSave: (String, String?, String?) -> Unit,
     initialName: String = "",
+    errorMessage: String? = null,
 ) {
     val initial = CatalogIngredientDraft.of(ingredient, initialName)
     var draft by rememberSaveable(ingredient?.id, initialName) {
@@ -267,6 +279,7 @@ internal fun IngredientEditorDialog(
         confirmEnabled = draft.name.isNotBlank(),
         saving = saving,
         dirty = { draft != initial },
+        errorMessage = errorMessage,
         onDismiss = onDismiss,
         onConfirm = {
             onSave(draft.name, draft.category.trim().ifBlank { null }, draft.unit.trim().ifBlank { null })
@@ -338,3 +351,8 @@ private fun CatalogIngredient.matches(query: String): Boolean {
     val trimmed = query.trim()
     return name.contains(trimmed, ignoreCase = true) || category?.contains(trimmed, ignoreCase = true) == true
 }
+
+/** El error del guardado del editor abierto (solo con FAILED); los demás se ven en el banner. */
+@Composable
+internal fun editorErrorMessage(error: IngredientUiMessage?, editorSave: EditorSaveStatus): String? =
+    error?.takeIf { editorSave == EditorSaveStatus.FAILED }?.let { stringResource(it.stringResourceId) }

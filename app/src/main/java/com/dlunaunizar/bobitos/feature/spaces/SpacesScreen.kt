@@ -41,11 +41,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.SyncStatusBanner
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
@@ -64,6 +69,7 @@ fun SpacesScreen(
     onInvitationCodeConsumed: () -> Unit,
     onProfileClick: () -> Unit,
     onClearFeedback: () -> Unit,
+    onEditorSaveConsumed: () -> Unit,
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
 ) {
@@ -82,6 +88,7 @@ fun SpacesScreen(
             onInvitationCodeConsumed = onInvitationCodeConsumed,
             onProfileClick = onProfileClick,
             onClearFeedback = onClearFeedback,
+            onEditorSaveConsumed = onEditorSaveConsumed,
             onBack = onBack,
             modifier = modifier,
         )
@@ -101,6 +108,7 @@ private fun SpacesContent(
     onInvitationCodeConsumed: () -> Unit,
     onProfileClick: () -> Unit,
     onClearFeedback: () -> Unit,
+    onEditorSaveConsumed: () -> Unit,
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
@@ -199,17 +207,30 @@ private fun SpacesContent(
         }
     }
 
+    EditorSaveEffect(
+        status = managementState.editorSave,
+        editorOpen = showCreateDialog || showJoinDialog,
+        onClose = {
+            showCreateDialog = false
+            showJoinDialog = false
+        },
+        onConsume = onEditorSaveConsumed,
+    )
+    val saving = managementState.editorSave == EditorSaveStatus.SAVING
+    val editorError = managementState.error
+        ?.takeIf { managementState.editorSave == EditorSaveStatus.FAILED }
+        ?.let { stringResource(it.stringResourceId) }
+
     if (showCreateDialog) {
         SpaceNameDialog(
             title = stringResource(R.string.space_create_title),
             confirmLabel = stringResource(R.string.space_create),
             initialName = "",
             enabled = canWrite,
+            saving = saving,
+            errorMessage = editorError,
             onDismiss = { showCreateDialog = false },
-            onConfirm = { name ->
-                onCreateSpace(name)
-                showCreateDialog = false
-            },
+            onConfirm = onCreateSpace,
         )
     }
 
@@ -217,11 +238,10 @@ private fun SpacesContent(
         InvitationCodeDialog(
             initialCode = invitationCode,
             enabled = canWrite,
+            saving = saving,
+            errorMessage = editorError,
             onDismiss = { showJoinDialog = false },
-            onConfirm = { code ->
-                onAcceptInvitation(code)
-                showJoinDialog = false
-            },
+            onConfirm = onAcceptInvitation,
         )
     }
 }
@@ -255,12 +275,15 @@ private fun SpacesEmptyState(
 private fun InvitationCodeDialog(
     initialCode: String,
     enabled: Boolean,
+    saving: Boolean,
+    errorMessage: String?,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
 ) {
     var code by rememberSaveable(initialCode) { mutableStateOf(initialCode) }
     AlertDialog(
-        onDismissRequest = onDismiss,
+        // Mientras guarda no se puede cerrar: el resultado llega al diálogo.
+        onDismissRequest = { if (!saving) onDismiss() },
         title = { Text(text = stringResource(R.string.invitation_join_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -272,15 +295,22 @@ private fun InvitationCodeDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                DialogError(errorMessage)
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(code) }, enabled = enabled) {
-                Text(text = stringResource(R.string.invitation_join_confirm))
+            TextButton(onClick = { onConfirm(code) }, enabled = enabled && !saving) {
+                Text(
+                    text = if (saving) {
+                        stringResource(R.string.write_saving)
+                    } else {
+                        stringResource(R.string.invitation_join_confirm)
+                    },
+                )
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, enabled = !saving) {
                 Text(text = stringResource(R.string.cancel))
             }
         },
@@ -357,34 +387,52 @@ internal fun SpaceNameDialog(
     title: String,
     confirmLabel: String,
     initialName: String,
-    enabled: Boolean = true,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
+    enabled: Boolean = true,
+    saving: Boolean = false,
+    errorMessage: String? = null,
 ) {
     var name by rememberSaveable(initialName) { mutableStateOf(initialName) }
     AlertDialog(
-        onDismissRequest = onDismiss,
+        // Mientras guarda no se puede cerrar: el resultado llega al diálogo.
+        onDismissRequest = { if (!saving) onDismiss() },
         title = { Text(text = title) },
         text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text(text = stringResource(R.string.space_name_label)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(text = stringResource(R.string.space_name_label)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                DialogError(errorMessage)
+            }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(name) }, enabled = enabled) {
-                Text(text = confirmLabel)
+            TextButton(onClick = { onConfirm(name) }, enabled = enabled && !saving) {
+                Text(text = if (saving) stringResource(R.string.write_saving) else confirmLabel)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, enabled = !saving) {
                 Text(text = stringResource(R.string.cancel))
             }
         },
     )
+}
+
+@Composable
+private fun DialogError(message: String?) {
+    message?.let {
+        Text(
+            text = it,
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        )
+    }
 }
 
 @Composable

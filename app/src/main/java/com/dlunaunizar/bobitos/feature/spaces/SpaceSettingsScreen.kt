@@ -35,8 +35,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
+import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.QrCodeImage
 import com.dlunaunizar.bobitos.core.designsystem.component.SyncStatusBanner
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
@@ -66,6 +68,7 @@ fun SpaceSettingsScreen(
     onRevokeInvitation: (String) -> Unit,
     onShareInvitation: (SpaceInvitation) -> Unit,
     onClearFeedback: () -> Unit,
+    onEditorSaveConsumed: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -200,17 +203,24 @@ fun SpaceSettingsScreen(
         }
     }
 
+    EditorSaveEffect(
+        status = state.editorSave,
+        editorOpen = showRenameDialog,
+        onClose = { showRenameDialog = false },
+        onConsume = onEditorSaveConsumed,
+    )
     if (showRenameDialog) {
         SpaceNameDialog(
             title = stringResource(R.string.space_rename_title),
             confirmLabel = stringResource(R.string.space_rename),
             initialName = space.name,
             enabled = canWrite,
+            saving = state.editorSave == EditorSaveStatus.SAVING,
+            errorMessage = state.error
+                ?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
+                ?.let { stringResource(it.stringResourceId) },
             onDismiss = { showRenameDialog = false },
-            onConfirm = { name ->
-                onRenameSpace(space.id, name)
-                showRenameDialog = false
-            },
+            onConfirm = { name -> onRenameSpace(space.id, name) },
         )
     }
 

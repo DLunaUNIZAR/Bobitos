@@ -41,7 +41,7 @@ internal fun SpaceFeedback(state: SpaceManagementUiState, onDismiss: () -> Unit)
     }
 }
 
-private val SpaceUiMessage.stringResourceId: Int
+internal val SpaceUiMessage.stringResourceId: Int
     get() = when (this) {
         SpaceUiMessage.NameRequired -> R.string.space_error_name_required
         SpaceUiMessage.NameTooLong -> R.string.space_error_name_too_long
@@ -62,6 +62,7 @@ private val SpaceUiMessage.stringResourceId: Int
         SpaceUiMessage.PermissionDenied -> R.string.space_error_permission_denied
         SpaceUiMessage.NetworkError -> R.string.space_error_network
         SpaceUiMessage.UnexpectedError -> R.string.space_error_unexpected
+        SpaceUiMessage.SaveTimeout -> R.string.write_timeout
         SpaceUiMessage.SpaceCreated -> R.string.space_notice_created
         SpaceUiMessage.SpaceRenamed -> R.string.space_notice_renamed
         SpaceUiMessage.SpaceDeleted -> R.string.space_notice_deleted

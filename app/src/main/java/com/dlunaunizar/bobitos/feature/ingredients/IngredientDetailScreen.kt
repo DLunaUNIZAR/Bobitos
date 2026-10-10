@@ -45,6 +45,7 @@ import com.dlunaunizar.bobitos.core.common.formatDecimal
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
+import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
@@ -141,15 +142,25 @@ fun IngredientDetailScreen(
         }
     }
 
-    if (showFichaEditor && editorIngredient != null) {
+    val fichaOpen = showFichaEditor && editorIngredient != null
+    EditorSaveEffect(
+        status = state.editorSave,
+        editorOpen = fichaOpen || brandInitial != null,
+        onClose = {
+            showFichaEditor = false
+            brandInitial = null
+        },
+        onConsume = viewModel::consumeEditorSave,
+    )
+    val editorError = editorErrorMessage(state.error, state.editorSave)
+
+    if (fichaOpen) {
         IngredientEditorDialog(
             ingredient = editorIngredient,
             saving = state.isSaving,
+            errorMessage = editorError,
             onDismiss = { showFichaEditor = false },
-            onSave = { name, category, unit ->
-                viewModel.updateIngredient(name, category, unit)
-                showFichaEditor = false
-            },
+            onSave = viewModel::updateIngredient,
         )
     }
 
@@ -157,6 +168,7 @@ fun IngredientDetailScreen(
         brandId = brandEditorId,
         initial = brandInitial,
         saving = state.isSaving,
+        errorMessage = editorError,
         onClose = { brandInitial = null },
         onSave = { brandId, name, barcode, nutrition ->
             brandId?.let { viewModel.updateBrand(it, name, barcode, nutrition) }
@@ -343,6 +355,7 @@ private fun BrandEditorHost(
     brandId: String?,
     initial: BrandDraft?,
     saving: Boolean,
+    errorMessage: String?,
     onClose: () -> Unit,
     onSave: (String?, String, String?, Nutrition?) -> Unit,
 ) {
@@ -351,11 +364,9 @@ private fun BrandEditorHost(
         brandId = brandId,
         initial = initial,
         saving = saving,
+        errorMessage = errorMessage,
         onDismiss = onClose,
-        onSave = { name, barcode, nutrition ->
-            onSave(brandId, name, barcode, nutrition)
-            onClose()
-        },
+        onSave = { name, barcode, nutrition -> onSave(brandId, name, barcode, nutrition) },
     )
 }
 
@@ -364,6 +375,7 @@ private fun BrandEditorDialog(
     brandId: String?,
     initial: BrandDraft,
     saving: Boolean,
+    errorMessage: String?,
     onDismiss: () -> Unit,
     onSave: (String, String?, Nutrition?) -> Unit,
 ) {
@@ -376,6 +388,7 @@ private fun BrandEditorDialog(
         confirmEnabled = draft.name.isNotBlank(),
         saving = saving,
         dirty = { draft != initial },
+        errorMessage = errorMessage,
         onDismiss = onDismiss,
         onConfirm = { onSave(draft.name, draft.barcode.trim().ifBlank { null }, draft.toNutrition()) },
     ) {
