@@ -1,0 +1,1132 @@
+{
+  "notes": [
+    "Imprescindibles que wger no ofrece en español y que no se han inventado: ergómetro de remo (cardio), dominadas con lastre, sentadilla trasera con ficha propia (se usa la ficha genérica «Sentadillas», id 615), extensión/elevación de gemelos de pie en máquina específica, curl femoral de pie, natación y caminata como cardio.",
+    "Revisión humana pendiente: «Sentadilla trasera con barra» (id 615) usa una descripción genérica que no menciona la barra; «Press de banca inclinado» (id 538) tiene una descripción muy breve.",
+    "Los ejercicios del grupo «Antebrazos» proceden de la categoría Brazos de wger; «Sentadilla goblet» usa la ficha «Sentadilla con disco» (id 203)."
+  ],
+  "include": [
+    {
+      "wgerId": 73
+    },
+    {
+      "wgerId": 75
+    },
+    {
+      "wgerId": 538
+    },
+    {
+      "wgerId": 537,
+      "name": "Press de banca inclinado con mancuernas"
+    },
+    {
+      "wgerId": 185,
+      "name": "Press de banca declinado con barra"
+    },
+    {
+      "wgerId": 186
+    },
+    {
+      "wgerId": 445
+    },
+    {
+      "wgerId": 238
+    },
+    {
+      "wgerId": 239
+    },
+    {
+      "wgerId": 308
+    },
+    {
+      "wgerId": 926,
+      "name": "Aperturas en máquina (pec deck)",
+      "type": "MAQUINA",
+      "equipment": [
+        "MAQUINA"
+      ]
+    },
+    {
+      "wgerId": 1270
+    },
+    {
+      "wgerId": 1690
+    },
+    {
+      "wgerId": 1691
+    },
+    {
+      "wgerId": 237,
+      "name": "Cruce de poleas"
+    },
+    {
+      "wgerId": 1922
+    },
+    {
+      "wgerId": 1551,
+      "name": "Flexiones",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 1111,
+      "name": "Flexiones inclinadas",
+      "type": "PESO_CORPORAL",
+      "equipment": [
+        "BANCO"
+      ]
+    },
+    {
+      "wgerId": 1112,
+      "name": "Flexiones declinadas",
+      "type": "PESO_CORPORAL",
+      "equipment": [
+        "BANCO"
+      ]
+    },
+    {
+      "wgerId": 386,
+      "name": "Flexiones diamante",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 1902,
+      "name": "Flexiones con lastre",
+      "type": "PESO_CORPORAL",
+      "equipment": [
+        "DISCO"
+      ]
+    },
+    {
+      "wgerId": 194,
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 161
+    },
+    {
+      "wgerId": 1084
+    },
+    {
+      "wgerId": 129,
+      "type": "MAQUINA",
+      "equipment": [
+        "MAQUINA"
+      ]
+    },
+    {
+      "wgerId": 1660
+    },
+    {
+      "wgerId": 1353
+    },
+    {
+      "wgerId": 475
+    },
+    {
+      "wgerId": 1695,
+      "type": "PESO_CORPORAL",
+      "equipment": [
+        "BARRA_DOMINADAS"
+      ]
+    },
+    {
+      "wgerId": 1696,
+      "type": "PESO_CORPORAL",
+      "equipment": [
+        "BARRA_DOMINADAS"
+      ]
+    },
+    {
+      "wgerId": 152,
+      "name": "Dominadas supinas"
+    },
+    {
+      "wgerId": 1929,
+      "name": "Dominada asistida con banda",
+      "type": "PESO_CORPORAL",
+      "equipment": [
+        "BARRA_DOMINADAS",
+        "BANDA_ELASTICA"
+      ]
+    },
+    {
+      "wgerId": 355,
+      "type": "MAQUINA",
+      "equipment": [
+        "POLEA"
+      ]
+    },
+    {
+      "wgerId": 1702
+    },
+    {
+      "wgerId": 158,
+      "type": "MAQUINA",
+      "equipment": [
+        "POLEA"
+      ]
+    },
+    {
+      "wgerId": 1136
+    },
+    {
+      "wgerId": 684,
+      "type": "MAQUINA",
+      "equipment": [
+        "POLEA"
+      ]
+    },
+    {
+      "wgerId": 1972
+    },
+    {
+      "wgerId": 628,
+      "name": "Jalón con brazos rectos"
+    },
+    {
+      "wgerId": 83,
+      "name": "Remo con barra"
+    },
+    {
+      "wgerId": 84,
+      "name": "Remo con barra con agarre supino"
+    },
+    {
+      "wgerId": 448,
+      "name": "Remo Pendlay"
+    },
+    {
+      "wgerId": 81,
+      "name": "Remo con mancuerna a una mano"
+    },
+    {
+      "wgerId": 310
+    },
+    {
+      "wgerId": 395,
+      "name": "Remo en polea baja con agarre estrecho"
+    },
+    {
+      "wgerId": 394,
+      "name": "Remo en polea baja"
+    },
+    {
+      "wgerId": 1725,
+      "name": "Remo en máquina",
+      "type": "MAQUINA",
+      "equipment": [
+        "MAQUINA"
+      ]
+    },
+    {
+      "wgerId": 1621
+    },
+    {
+      "wgerId": 1304,
+      "name": "Remo Meadows"
+    },
+    {
+      "wgerId": 1198,
+      "name": "Remo invertido",
+      "type": "PESO_CORPORAL",
+      "muscleGroup": "Espalda"
+    },
+    {
+      "wgerId": 184,
+      "name": "Peso muerto convencional"
+    },
+    {
+      "wgerId": 189
+    },
+    {
+      "wgerId": 630,
+      "name": "Peso muerto sumo",
+      "type": "PESO_LIBRE",
+      "equipment": [
+        "BARRA"
+      ]
+    },
+    {
+      "wgerId": 301,
+      "name": "Hiperextensiones lumbares",
+      "type": "PESO_CORPORAL",
+      "equipment": [],
+      "muscleGroup": "Espalda"
+    },
+    {
+      "wgerId": 636,
+      "name": "Superman",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 418,
+      "name": "Press militar con barra",
+      "equipment": [
+        "BARRA"
+      ]
+    },
+    {
+      "wgerId": 478,
+      "name": "Press de hombros con mancuernas",
+      "type": "PESO_LIBRE",
+      "equipment": [
+        "MANCUERNAS"
+      ]
+    },
+    {
+      "wgerId": 1441
+    },
+    {
+      "wgerId": 20
+    },
+    {
+      "wgerId": 543,
+      "name": "Press de hombros en máquina",
+      "type": "MAQUINA",
+      "equipment": [
+        "MAQUINA"
+      ]
+    },
+    {
+      "wgerId": 1440
+    },
+    {
+      "wgerId": 1968
+    },
+    {
+      "wgerId": 348
+    },
+    {
+      "wgerId": 1882,
+      "name": "Elevación lateral en polea"
+    },
+    {
+      "wgerId": 1744,
+      "name": "Elevación lateral en máquina",
+      "type": "MAQUINA",
+      "equipment": [
+        "MAQUINA"
+      ]
+    },
+    {
+      "wgerId": 256,
+      "name": "Elevaciones frontales con barra o mancuernas"
+    },
+    {
+      "wgerId": 254,
+      "name": "Elevación frontal con disco",
+      "type": "PESO_LIBRE",
+      "equipment": [
+        "DISCO"
+      ]
+    },
+    {
+      "wgerId": 1745
+    },
+    {
+      "wgerId": 82,
+      "name": "Pájaro con mancuernas"
+    },
+    {
+      "wgerId": 828,
+      "name": "Pájaro con mancuernas en banco inclinado"
+    },
+    {
+      "wgerId": 1775,
+      "name": "Pájaro en máquina",
+      "type": "MAQUINA",
+      "equipment": [
+        "MAQUINA"
+      ]
+    },
+    {
+      "wgerId": 1709,
+      "name": "Pájaro en polea",
+      "type": "MAQUINA"
+    },
+    {
+      "wgerId": 222,
+      "name": "Face pull"
+    },
+    {
+      "wgerId": 693,
+      "name": "Remo al mentón con barra Z"
+    },
+    {
+      "wgerId": 694
+    },
+    {
+      "wgerId": 571,
+      "name": "Encogimientos de hombros con barra"
+    },
+    {
+      "wgerId": 572
+    },
+    {
+      "wgerId": 91,
+      "name": "Curl con barra"
+    },
+    {
+      "wgerId": 94,
+      "name": "Curl con barra Z"
+    },
+    {
+      "wgerId": 92,
+      "name": "Curl con mancuernas"
+    },
+    {
+      "wgerId": 1012,
+      "name": "Curl alterno con mancuernas"
+    },
+    {
+      "wgerId": 272,
+      "name": "Curl martillo con mancuernas"
+    },
+    {
+      "wgerId": 1567
+    },
+    {
+      "wgerId": 202,
+      "name": "Curl concentrado con mancuerna"
+    },
+    {
+      "wgerId": 465,
+      "name": "Curl en banco Scott con barra Z"
+    },
+    {
+      "wgerId": 584
+    },
+    {
+      "wgerId": 204,
+      "name": "Curl inclinado con mancuernas"
+    },
+    {
+      "wgerId": 95,
+      "name": "Curl en polea",
+      "type": "MAQUINA",
+      "equipment": [
+        "POLEA"
+      ]
+    },
+    {
+      "wgerId": 912,
+      "name": "Curl en polea con barra recta"
+    },
+    {
+      "wgerId": 1683,
+      "name": "Curl Zottman"
+    },
+    {
+      "wgerId": 1290,
+      "name": "Curl inverso con barra"
+    },
+    {
+      "wgerId": 2452,
+      "muscleGroup": "Antebrazos"
+    },
+    {
+      "wgerId": 1205,
+      "muscleGroup": "Antebrazos"
+    },
+    {
+      "wgerId": 48,
+      "muscleGroup": "Antebrazos"
+    },
+    {
+      "wgerId": 1881,
+      "muscleGroup": "Antebrazos"
+    },
+    {
+      "wgerId": 659,
+      "name": "Extensión de tríceps en polea"
+    },
+    {
+      "wgerId": 1185,
+      "name": "Extensión de tríceps con cuerda"
+    },
+    {
+      "wgerId": 660,
+      "name": "Extensión de tríceps con barra en polea"
+    },
+    {
+      "wgerId": 1969,
+      "name": "Extensión de tríceps a un brazo en polea"
+    },
+    {
+      "wgerId": 1513,
+      "name": "Extensión de tríceps por encima de la cabeza en polea"
+    },
+    {
+      "wgerId": 1336,
+      "name": "Extensión de tríceps por encima de la cabeza con mancuerna"
+    },
+    {
+      "wgerId": 1519,
+      "name": "Extensión de tríceps por encima de la cabeza con barra Z",
+      "muscleGroup": "Tríceps"
+    },
+    {
+      "wgerId": 246
+    },
+    {
+      "wgerId": 245
+    },
+    {
+      "wgerId": 76,
+      "name": "Press de banca con agarre cerrado"
+    },
+    {
+      "wgerId": 1228
+    },
+    {
+      "wgerId": 655,
+      "name": "Patada de tríceps con mancuerna"
+    },
+    {
+      "wgerId": 1509
+    },
+    {
+      "wgerId": 197,
+      "name": "Fondos en banco",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 1480,
+      "name": "Extensión de tríceps tumbado"
+    },
+    {
+      "wgerId": 661,
+      "name": "Extensión de tríceps en máquina",
+      "type": "MAQUINA",
+      "equipment": [
+        "MAQUINA"
+      ]
+    },
+    {
+      "wgerId": 615,
+      "name": "Sentadilla trasera con barra",
+      "type": "PESO_LIBRE",
+      "equipment": [
+        "BARRA"
+      ],
+      "muscleGroup": "Cuádriceps"
+    },
+    {
+      "wgerId": 257,
+      "muscleGroup": "Cuádriceps"
+    },
+    {
+      "wgerId": 1640,
+      "muscleGroup": "Cuádriceps"
+    },
+    {
+      "wgerId": 203,
+      "name": "Sentadilla goblet",
+      "type": "PESO_LIBRE",
+      "equipment": [
+        "DISCO"
+      ],
+      "muscleGroup": "Cuádriceps"
+    },
+    {
+      "wgerId": 1706,
+      "muscleGroup": "Cuádriceps"
+    },
+    {
+      "wgerId": 632,
+      "name": "Sentadilla sumo con barra",
+      "type": "PESO_LIBRE",
+      "equipment": [
+        "BARRA"
+      ],
+      "muscleGroup": "Cuádriceps"
+    },
+    {
+      "wgerId": 1593,
+      "name": "Sentadilla split en máquina Smith",
+      "type": "MAQUINA",
+      "equipment": [
+        "MAQUINA"
+      ],
+      "muscleGroup": "Cuádriceps"
+    },
+    {
+      "wgerId": 1747,
+      "name": "Sentadilla en multipower",
+      "type": "MAQUINA",
+      "equipment": [
+        "MAQUINA"
+      ],
+      "muscleGroup": "Cuádriceps"
+    },
+    {
+      "wgerId": 1414,
+      "name": "Sentadilla hack",
+      "type": "MAQUINA",
+      "equipment": [
+        "MAQUINA"
+      ]
+    },
+    {
+      "wgerId": 371,
+      "name": "Prensa de piernas",
+      "type": "MAQUINA",
+      "equipment": [
+        "MAQUINA"
+      ],
+      "muscleGroup": "Cuádriceps"
+    },
+    {
+      "wgerId": 373,
+      "name": "Prensa de piernas con pies juntos",
+      "type": "MAQUINA",
+      "equipment": [
+        "MAQUINA"
+      ]
+    },
+    {
+      "wgerId": 369,
+      "name": "Extensión de cuádriceps en máquina",
+      "type": "MAQUINA",
+      "equipment": [
+        "MAQUINA"
+      ]
+    },
+    {
+      "wgerId": 71,
+      "name": "Extensión de cuádriceps a una pierna",
+      "type": "MAQUINA",
+      "equipment": [
+        "MAQUINA"
+      ]
+    },
+    {
+      "wgerId": 1312,
+      "name": "Sentadilla con peso corporal",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 1324,
+      "name": "Zancada con peso corporal",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 46,
+      "name": "Zancadas con barra"
+    },
+    {
+      "wgerId": 205
+    },
+    {
+      "wgerId": 206
+    },
+    {
+      "wgerId": 1830
+    },
+    {
+      "wgerId": 1651
+    },
+    {
+      "wgerId": 802
+    },
+    {
+      "wgerId": 1408,
+      "name": "Sentadilla en la pared",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 981,
+      "name": "Subida al banco",
+      "type": "PESO_CORPORAL",
+      "equipment": [
+        "BANCO"
+      ]
+    },
+    {
+      "wgerId": 977,
+      "name": "Sentadilla al cajón",
+      "type": "PESO_LIBRE"
+    },
+    {
+      "wgerId": 1407,
+      "name": "Sentadilla cosaca",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 364,
+      "name": "Curl femoral tumbado",
+      "type": "MAQUINA",
+      "equipment": [
+        "MAQUINA"
+      ]
+    },
+    {
+      "wgerId": 366,
+      "name": "Curl femoral sentado",
+      "type": "MAQUINA",
+      "equipment": [
+        "MAQUINA"
+      ]
+    },
+    {
+      "wgerId": 910,
+      "name": "Curl nórdico",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 507,
+      "name": "Peso muerto rumano con barra",
+      "muscleGroup": "Isquiotibiales"
+    },
+    {
+      "wgerId": 1652,
+      "muscleGroup": "Isquiotibiales"
+    },
+    {
+      "wgerId": 1736,
+      "muscleGroup": "Isquiotibiales"
+    },
+    {
+      "wgerId": 1088,
+      "name": "Peso muerto sumo con mancuerna",
+      "muscleGroup": "Isquiotibiales"
+    },
+    {
+      "wgerId": 1809,
+      "type": "PESO_CORPORAL",
+      "equipment": [
+        "BANCO"
+      ],
+      "muscleGroup": "Isquiotibiales"
+    },
+    {
+      "wgerId": 294,
+      "name": "Hip thrust con barra"
+    },
+    {
+      "wgerId": 1642,
+      "name": "Hip thrust con mancuerna"
+    },
+    {
+      "wgerId": 265,
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 1131,
+      "name": "Patada de glúteo en polea",
+      "type": "MAQUINA"
+    },
+    {
+      "wgerId": 1616,
+      "name": "Patada de glúteo con mancuerna"
+    },
+    {
+      "wgerId": 1751,
+      "name": "Pull through en polea",
+      "type": "MAQUINA"
+    },
+    {
+      "wgerId": 331,
+      "name": "Swing con kettlebell"
+    },
+    {
+      "wgerId": 1748,
+      "name": "Abducción de cadera en máquina",
+      "type": "MAQUINA",
+      "equipment": [
+        "MAQUINA"
+      ]
+    },
+    {
+      "wgerId": 12,
+      "name": "Aducción de cadera en máquina",
+      "type": "MAQUINA",
+      "equipment": [
+        "MAQUINA"
+      ],
+      "muscleGroup": "Glúteos"
+    },
+    {
+      "wgerId": 1613,
+      "name": "Patada de glúteo con banda elástica"
+    },
+    {
+      "wgerId": 148,
+      "name": "Elevación de gemelos en máquina hack",
+      "type": "MAQUINA",
+      "equipment": [
+        "MAQUINA"
+      ]
+    },
+    {
+      "wgerId": 1620,
+      "name": "Elevación de gemelos sentado con mancuerna"
+    },
+    {
+      "wgerId": 622,
+      "name": "Elevación de gemelos de pie",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 590,
+      "name": "Elevación de gemelos sentado",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 146,
+      "name": "Elevación de gemelos en prensa",
+      "type": "MAQUINA",
+      "equipment": [
+        "MAQUINA"
+      ]
+    },
+    {
+      "wgerId": 1243,
+      "name": "Elevación de gemelos a dos piernas",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 1203,
+      "name": "Elevación de gemelos a una pierna",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 1933,
+      "name": "Crunch abdominal",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 1412,
+      "name": "Crunch bicicleta",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 1772,
+      "name": "Crunch inverso",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 505,
+      "name": "Crunch en silla romana",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 171,
+      "name": "Crunch en banco declinado",
+      "type": "PESO_CORPORAL",
+      "equipment": [
+        "BANCO"
+      ]
+    },
+    {
+      "wgerId": 172,
+      "name": "Crunch en máquina",
+      "type": "MAQUINA",
+      "equipment": [
+        "MAQUINA"
+      ]
+    },
+    {
+      "wgerId": 173,
+      "name": "Crunch en polea",
+      "type": "MAQUINA"
+    },
+    {
+      "wgerId": 1648,
+      "name": "Crunch con peso",
+      "type": "PESO_LIBRE"
+    },
+    {
+      "wgerId": 165,
+      "name": "Crunch en fitball",
+      "type": "PESO_CORPORAL",
+      "equipment": [
+        "FITBALL"
+      ]
+    },
+    {
+      "wgerId": 283,
+      "name": "Elevaciones de piernas colgado"
+    },
+    {
+      "wgerId": 978,
+      "name": "Elevaciones de rodillas colgado"
+    },
+    {
+      "wgerId": 377,
+      "name": "Elevaciones de piernas tumbado",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 1573,
+      "name": "Rueda abdominal",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 41,
+      "name": "Rollout con barra"
+    },
+    {
+      "wgerId": 1409,
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 1852,
+      "name": "L-sit",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 1743,
+      "name": "Limpiaparabrisas colgado"
+    },
+    {
+      "wgerId": 1529,
+      "name": "Toes to bar"
+    },
+    {
+      "wgerId": 1307,
+      "name": "Plancha",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 1019,
+      "name": "Plancha lateral",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 297,
+      "name": "Hollow hold",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 178,
+      "name": "Bicho muerto",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 1572,
+      "name": "Bird dog",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 1193,
+      "name": "Giro ruso con pesa rusa",
+      "type": "PESO_LIBRE",
+      "equipment": [
+        "KETTLEBELL"
+      ]
+    },
+    {
+      "wgerId": 1194,
+      "name": "Pallof press",
+      "type": "MAQUINA"
+    },
+    {
+      "wgerId": 145,
+      "name": "Leñador en polea",
+      "type": "MAQUINA"
+    },
+    {
+      "wgerId": 577,
+      "name": "Flexión lateral del tronco con mancuerna"
+    },
+    {
+      "wgerId": 1411,
+      "name": "Toques de talón",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 545,
+      "name": "Tijeras abdominales",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 235,
+      "name": "Aleteo de piernas",
+      "type": "PESO_CORPORAL"
+    },
+    {
+      "wgerId": 1227,
+      "name": "Remo para deltoides posterior con mancuernas"
+    },
+    {
+      "wgerId": 1715,
+      "name": "Rotación externa de hombro con mancuerna"
+    },
+    {
+      "wgerId": 1020,
+      "name": "Sentadilla pistol",
+      "type": "PESO_CORPORAL",
+      "muscleGroup": "Cuádriceps"
+    },
+    {
+      "wgerId": 1615,
+      "name": "Cinta de correr"
+    },
+    {
+      "wgerId": 1618,
+      "name": "Bicicleta estática"
+    },
+    {
+      "wgerId": 177,
+      "name": "Ciclismo"
+    },
+    {
+      "wgerId": 962,
+      "name": "Elíptica"
+    },
+    {
+      "wgerId": 1449,
+      "name": "Escaladora"
+    },
+    {
+      "wgerId": 1548,
+      "name": "Stairmaster"
+    },
+    {
+      "wgerId": 595,
+      "name": "Saltar a la comba"
+    },
+    {
+      "wgerId": 132,
+      "name": "Burpees",
+      "type": "CARDIO",
+      "muscleGroup": "Cardio"
+    },
+    {
+      "wgerId": 996,
+      "name": "Montañeros",
+      "type": "CARDIO",
+      "muscleGroup": "Cardio"
+    },
+    {
+      "wgerId": 1314,
+      "name": "Jumping jacks"
+    },
+    {
+      "wgerId": 1524,
+      "name": "Cuerdas de batalla"
+    },
+    {
+      "wgerId": 1523,
+      "name": "Empuje de trineo"
+    },
+    {
+      "wgerId": 1526,
+      "name": "Máquina de esquí"
+    },
+    {
+      "wgerId": 983,
+      "name": "Rodillas elevadas"
+    }
+  ],
+  "exclude": [
+    {
+      "wgerId": 566,
+      "reason": "Duplicado de «Press militar con barra»"
+    },
+    {
+      "wgerId": 1893,
+      "reason": "Duplicado de «Press militar con barra»"
+    },
+    {
+      "wgerId": 567,
+      "reason": "Duplicado de «Press de hombros con mancuernas»"
+    },
+    {
+      "wgerId": 487,
+      "reason": "Duplicado de «Pájaro con mancuernas»"
+    },
+    {
+      "wgerId": 139,
+      "reason": "Duplicado de «Pájaro en máquina»"
+    },
+    {
+      "wgerId": 1698,
+      "reason": "Duplicado de «Remo con barra»"
+    },
+    {
+      "wgerId": 1699,
+      "reason": "Duplicado de «Remo con barra con agarre supino»"
+    },
+    {
+      "wgerId": 1283,
+      "reason": "Duplicado de «Remo con mancuernas en banco inclinado»"
+    },
+    {
+      "wgerId": 1700,
+      "reason": "Duplicado de «Peso muerto rumano con barra»"
+    },
+    {
+      "wgerId": 1927,
+      "reason": "Duplicado de «Jalón al pecho con agarre supino»"
+    },
+    {
+      "wgerId": 135,
+      "reason": "Duplicado de «Aperturas en máquina (pec deck)»"
+    },
+    {
+      "wgerId": 1296,
+      "reason": "Duplicado de «Cruce de poleas»"
+    },
+    {
+      "wgerId": 365,
+      "reason": "Duplicado de «Curl femoral tumbado»"
+    },
+    {
+      "wgerId": 960,
+      "reason": "Duplicado de «Swing con kettlebell»"
+    },
+    {
+      "wgerId": 1900,
+      "reason": "Duplicado de «Extensión de tríceps con cuerda»"
+    },
+    {
+      "wgerId": 1192,
+      "reason": "Duplicado de «Curl alterno con mancuernas»"
+    },
+    {
+      "wgerId": 1689,
+      "reason": "Variante de aperturas en polea ya cubiertas"
+    },
+    {
+      "wgerId": 1001,
+      "reason": "Plancha alta: duplicado de flexiones/plancha"
+    },
+    {
+      "wgerId": 275,
+      "reason": "Descripción poco clara"
+    },
+    {
+      "wgerId": 1860,
+      "reason": "Foam roller: no es un ejercicio de entrenamiento"
+    },
+    {
+      "wgerId": 1239,
+      "reason": "Estiramiento"
+    },
+    {
+      "wgerId": 530,
+      "reason": "Duplicado de «Cinta de correr»"
+    },
+    {
+      "wgerId": 993,
+      "reason": "Duplicado de «Saltar a la comba»"
+    },
+    {
+      "wgerId": 1592,
+      "reason": "Meditación: no es cardio"
+    },
+    {
+      "wgerId": 961,
+      "reason": "Natación: no encaja en gimnasio"
+    },
+    {
+      "wgerId": 1630,
+      "reason": "Marca/rutina no estándar"
+    },
+    {
+      "wgerId": 1579,
+      "reason": "Rutina no estándar"
+    }
+  ]
+}

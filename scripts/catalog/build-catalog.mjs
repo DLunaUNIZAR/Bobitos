@@ -6,7 +6,7 @@ import { buildCatalog, renderCandidates, renderReview, scoreCandidate } from "./
 
 const ROOT = new URL("../../", import.meta.url);
 const RAW = new URL("build/catalog/wger-exerciseinfo.json", ROOT);
-const SELECTION = new URL("data/catalog/selection.json", ROOT);
+const SELECTION = new URL("data/catalog/exercises-selection.json", ROOT);
 
 let raw;
 try {
@@ -43,7 +43,7 @@ let selection;
 try {
   selection = JSON.parse(await readFile(SELECTION, "utf8"));
 } catch {
-  console.error("Falta data/catalog/selection.json.");
+  console.error("Falta data/catalog/exercises-selection.json.");
   process.exit(1);
 }
 const { catalog, problems, warnings } = buildCatalog({ candidates, selection, fetchedAt: raw.fetchedAt });
