@@ -1,6 +1,6 @@
 # Catálogo común de ingredientes
 
-El catálogo común de ingredientes (`ingredients/{slug}`, colección top-level global) se siembra con unos 340 ingredientes genéricos de una cocina española, de una lista propia de Bobitos. Este documento explica cómo se edita, se revisa, se importa y se borra para empezar de cero.
+El catálogo común de ingredientes (`ingredients/{slug}`, colección top-level global) se siembra con unos 356 ingredientes genéricos de una cocina española, de una lista propia de Bobitos. Este documento explica cómo se edita, se revisa, se importa y se borra para empezar de cero.
 
 ## Qué es
 
@@ -157,7 +157,7 @@ Cada acción contra `bobitos-dev` la confirma el usuario una a una, y solo se de
 
 1. **Reglas:** `npx firebase deploy --only firestore:rules --project dev`.
 2. **Borrado:** `catalog:reset-ingredients`, primero la simulación y después `--apply`. Con el catálogo ya importado y `--repetir`, el borrado sube además la versión de `catalogMeta/ingredients` para invalidar las cachés; si no existía, no la crea.
-3. **Importación:** `catalog:import-ingredients`, primero la simulación y después `--apply`. Se espera la versión 1 con unos 340 ingredientes.
+3. **Importación:** `catalog:import-ingredients`, primero la simulación y después `--apply`. Se espera la versión 1 con unos 356 ingredientes.
 4. **Beta 19**, justo después: la beta 18 deja de poder crear ingredientes comunes, marcas y preferencias con las reglas nuevas.
 
 ## Versión del catálogo y caché
@@ -167,9 +167,9 @@ Cada acción contra `bobitos-dev` la confirma el usuario una a una, y solo se de
 
 ## Coste en Firestore (plan Spark)
 
-- Primera importación: unas 340 escrituras de ingredientes más 1 de la versión, y una lectura de la colección (vacía tras el borrado).
+- Primera importación: unas 356 escrituras de ingredientes más 1 de la versión, y una lectura de la colección (vacía tras el borrado).
 - Reimportar sin cambios: 0 escrituras.
-- Cada dispositivo: una lectura de unos 340 documentos cuando cambia la versión; sin cambios, solo la lectura de `catalogMeta/ingredients`.
+- Cada dispositivo: una lectura de unos 356 documentos cuando cambia la versión; sin cambios, solo la lectura de `catalogMeta/ingredients`.
 - El borrado cuesta una lectura por documento más una escritura (borrado) por documento, una sola vez.
 
 ## Resolución de problemas

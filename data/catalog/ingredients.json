@@ -26,8 +26,8 @@
       "defaultUnit": "ud"
     },
     {
-      "id": "cereza",
-      "name": "Cereza",
+      "id": "cerezas",
+      "name": "Cerezas",
       "category": "Frutas",
       "defaultUnit": "g"
     },
@@ -122,16 +122,16 @@
       "defaultUnit": "ud"
     },
     {
-      "id": "membrillo",
-      "name": "Membrillo",
-      "category": "Frutas",
-      "defaultUnit": "ud"
-    },
-    {
       "id": "naranja",
       "name": "Naranja",
       "category": "Frutas",
       "defaultUnit": "ud"
+    },
+    {
+      "id": "pasas",
+      "name": "Pasas",
+      "category": "Frutas",
+      "defaultUnit": "g"
     },
     {
       "id": "pera",
@@ -160,12 +160,6 @@
     {
       "id": "sandia",
       "name": "Sandía",
-      "category": "Frutas",
-      "defaultUnit": "g"
-    },
-    {
-      "id": "uva-pasa",
-      "name": "Uva pasa",
       "category": "Frutas",
       "defaultUnit": "g"
     },
@@ -410,12 +404,6 @@
       "defaultUnit": "g"
     },
     {
-      "id": "repollo",
-      "name": "Repollo",
-      "category": "Verduras y hortalizas",
-      "defaultUnit": "ud"
-    },
-    {
       "id": "rucula",
       "name": "Rúcula",
       "category": "Verduras y hortalizas",
@@ -432,6 +420,12 @@
       "name": "Tomate",
       "category": "Verduras y hortalizas",
       "defaultUnit": "ud"
+    },
+    {
+      "id": "tomate-cherry",
+      "name": "Tomate cherry",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
     },
     {
       "id": "tomate-triturado",
@@ -528,6 +522,12 @@
       "name": "Hamburguesas",
       "category": "Carnes",
       "defaultUnit": "ud"
+    },
+    {
+      "id": "jamon",
+      "name": "Jamón",
+      "category": "Carnes",
+      "defaultUnit": "g"
     },
     {
       "id": "jamon-cocido",
@@ -642,6 +642,12 @@
       "name": "Anchoas",
       "category": "Pescados y mariscos",
       "defaultUnit": "ud"
+    },
+    {
+      "id": "atun",
+      "name": "Atún",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
     },
     {
       "id": "atun-en-lata",
@@ -812,12 +818,6 @@
       "defaultUnit": "g"
     },
     {
-      "id": "bebida-de-soja",
-      "name": "Bebida de soja",
-      "category": "Lácteos y huevos",
-      "defaultUnit": "ml"
-    },
-    {
       "id": "flan",
       "name": "Flan",
       "category": "Lácteos y huevos",
@@ -830,6 +830,12 @@
       "defaultUnit": "ud"
     },
     {
+      "id": "leche",
+      "name": "Leche",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "ml"
+    },
+    {
       "id": "leche-condensada",
       "name": "Leche condensada",
       "category": "Lácteos y huevos",
@@ -838,6 +844,12 @@
     {
       "id": "leche-de-avena",
       "name": "Leche de avena",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "leche-de-soja",
+      "name": "Leche de soja",
       "category": "Lácteos y huevos",
       "defaultUnit": "ml"
     },
@@ -860,6 +872,12 @@
       "defaultUnit": "ml"
     },
     {
+      "id": "leche-sin-lactosa",
+      "name": "Leche sin lactosa",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "ml"
+    },
+    {
       "id": "mantequilla",
       "name": "Mantequilla",
       "category": "Lácteos y huevos",
@@ -878,6 +896,12 @@
       "defaultUnit": "g"
     },
     {
+      "id": "nata",
+      "name": "Nata",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "ml"
+    },
+    {
       "id": "nata-para-cocinar",
       "name": "Nata para cocinar",
       "category": "Lácteos y huevos",
@@ -894,6 +918,12 @@
       "name": "Natillas",
       "category": "Lácteos y huevos",
       "defaultUnit": "ud"
+    },
+    {
+      "id": "queso",
+      "name": "Queso",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "g"
     },
     {
       "id": "queso-curado",
@@ -954,6 +984,12 @@
       "name": "Requesón",
       "category": "Lácteos y huevos",
       "defaultUnit": "g"
+    },
+    {
+      "id": "yogur",
+      "name": "Yogur",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "ud"
     },
     {
       "id": "yogur-desnatado",
@@ -1082,12 +1118,6 @@
       "defaultUnit": "g"
     },
     {
-      "id": "copos-de-avena",
-      "name": "Copos de avena",
-      "category": "Cereales, pasta y arroz",
-      "defaultUnit": "g"
-    },
-    {
       "id": "cuscus",
       "name": "Cuscús",
       "category": "Cereales, pasta y arroz",
@@ -1102,6 +1132,12 @@
     {
       "id": "fideos",
       "name": "Fideos",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "harina",
+      "name": "Harina",
       "category": "Cereales, pasta y arroz",
       "defaultUnit": "g"
     },
@@ -1138,6 +1174,12 @@
     {
       "id": "lasana",
       "name": "Lasaña",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "levadura",
+      "name": "Levadura",
       "category": "Cereales, pasta y arroz",
       "defaultUnit": "g"
     },
@@ -1186,6 +1228,12 @@
     {
       "id": "pan-rallado",
       "name": "Pan rallado",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pasta",
+      "name": "Pasta",
       "category": "Cereales, pasta y arroz",
       "defaultUnit": "g"
     },
@@ -1250,8 +1298,8 @@
       "defaultUnit": "g"
     },
     {
-      "id": "cruasan",
-      "name": "Cruasán",
+      "id": "croissant",
+      "name": "Croissant",
       "category": "Panadería",
       "defaultUnit": "ud"
     },
@@ -1264,6 +1312,12 @@
     {
       "id": "magdalenas",
       "name": "Magdalenas",
+      "category": "Panadería",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "pan",
+      "name": "Pan",
       "category": "Panadería",
       "defaultUnit": "ud"
     },
@@ -1322,6 +1376,12 @@
       "defaultUnit": "ml"
     },
     {
+      "id": "aceite-de-oliva",
+      "name": "Aceite de oliva",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "ml"
+    },
+    {
       "id": "aceite-de-oliva-suave",
       "name": "Aceite de oliva suave",
       "category": "Aceites, salsas y condimentos",
@@ -1336,6 +1396,18 @@
     {
       "id": "aceite-de-sesamo",
       "name": "Aceite de sésamo",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "caldo",
+      "name": "Caldo",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "caldo-de-pescado",
+      "name": "Caldo de pescado",
       "category": "Aceites, salsas y condimentos",
       "defaultUnit": "ml"
     },
@@ -1436,6 +1508,12 @@
       "defaultUnit": "g"
     },
     {
+      "id": "vinagre",
+      "name": "Vinagre",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "ml"
+    },
+    {
       "id": "vinagre-balsamico",
       "name": "Vinagre balsámico",
       "category": "Aceites, salsas y condimentos",
@@ -1454,12 +1532,6 @@
       "defaultUnit": "ml"
     },
     {
-      "id": "zumo-de-limon",
-      "name": "Zumo de limón",
-      "category": "Aceites, salsas y condimentos",
-      "defaultUnit": "ml"
-    },
-    {
       "id": "ajo-en-polvo",
       "name": "Ajo en polvo",
       "category": "Especias y hierbas",
@@ -1474,6 +1546,12 @@
     {
       "id": "azafran",
       "name": "Azafrán",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "canela",
+      "name": "Canela",
       "category": "Especias y hierbas",
       "defaultUnit": "g"
     },
@@ -1580,6 +1658,12 @@
       "defaultUnit": "g"
     },
     {
+      "id": "pimenton",
+      "name": "Pimentón",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
       "id": "pimenton-ahumado",
       "name": "Pimentón ahumado",
       "category": "Especias y hierbas",
@@ -1594,6 +1678,12 @@
     {
       "id": "pimenton-picante",
       "name": "Pimentón picante",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pimienta",
+      "name": "Pimienta",
       "category": "Especias y hierbas",
       "defaultUnit": "g"
     },
@@ -1778,6 +1868,12 @@
       "defaultUnit": "g"
     },
     {
+      "id": "dulce-de-membrillo",
+      "name": "Dulce de membrillo",
+      "category": "Dulces y chocolate",
+      "defaultUnit": "g"
+    },
+    {
       "id": "edulcorante",
       "name": "Edulcorante",
       "category": "Dulces y chocolate",
@@ -1786,12 +1882,6 @@
     {
       "id": "gelatina-en-polvo",
       "name": "Gelatina en polvo",
-      "category": "Dulces y chocolate",
-      "defaultUnit": "g"
-    },
-    {
-      "id": "membrillo-en-dulce",
-      "name": "Membrillo en dulce",
       "category": "Dulces y chocolate",
       "defaultUnit": "g"
     },
@@ -1889,7 +1979,7 @@
       "id": "infusion-de-manzanilla",
       "name": "Infusión de manzanilla",
       "category": "Bebidas",
-      "defaultUnit": "g"
+      "defaultUnit": "ud"
     },
     {
       "id": "infusion-de-poleo-menta",
@@ -1936,6 +2026,12 @@
     {
       "id": "vino-tinto",
       "name": "Vino tinto",
+      "category": "Bebidas",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "zumo-de-limon",
+      "name": "Zumo de limón",
       "category": "Bebidas",
       "defaultUnit": "ml"
     },

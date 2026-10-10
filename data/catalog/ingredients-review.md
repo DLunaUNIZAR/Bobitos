@@ -2,23 +2,23 @@
 
 Generado con `npm run catalog:ingredients` a partir de `data/catalog/ingredients.json`; no se edita a mano.
 
-Total: 340
+Total: 356
 
 | Categoría | Ingredientes |
 |---|---|
-| Frutas | 29 |
+| Frutas | 28 |
 | Verduras y hortalizas | 45 |
-| Carnes | 31 |
-| Pescados y mariscos | 30 |
-| Lácteos y huevos | 27 |
+| Carnes | 32 |
+| Pescados y mariscos | 31 |
+| Lácteos y huevos | 32 |
 | Legumbres | 10 |
-| Cereales, pasta y arroz | 31 |
-| Panadería | 16 |
-| Aceites, salsas y condimentos | 24 |
-| Especias y hierbas | 28 |
+| Cereales, pasta y arroz | 33 |
+| Panadería | 17 |
+| Aceites, salsas y condimentos | 27 |
+| Especias y hierbas | 31 |
 | Frutos secos | 16 |
 | Dulces y chocolate | 17 |
-| Bebidas | 22 |
+| Bebidas | 23 |
 | Congelados y otros | 14 |
 
 ## Frutas
@@ -29,7 +29,7 @@ Total: 340
 | Albaricoque | ud | albaricoque |
 | Arándanos | g | arandanos |
 | Caqui | ud | caqui |
-| Cereza | g | cereza |
+| Cerezas | g | cerezas |
 | Ciruela | ud | ciruela |
 | Coco | ud | coco |
 | Dátiles | g | datiles |
@@ -45,14 +45,13 @@ Total: 340
 | Manzana | ud | manzana |
 | Melocotón | ud | melocoton |
 | Melón | ud | melon |
-| Membrillo | ud | membrillo |
 | Naranja | ud | naranja |
+| Pasas | g | pasas |
 | Pera | ud | pera |
 | Piña | ud | pina |
 | Plátano | ud | platano |
 | Pomelo | ud | pomelo |
 | Sandía | g | sandia |
-| Uva pasa | g | uva-pasa |
 | Uvas | g | uvas |
 
 ## Verduras y hortalizas
@@ -98,10 +97,10 @@ Total: 340
 | Puerro | ud | puerro |
 | Remolacha | ud | remolacha |
 | Remolacha cocida | g | remolacha-cocida |
-| Repollo | ud | repollo |
 | Rúcula | g | rucula |
 | Setas | g | setas |
 | Tomate | ud | tomate |
+| Tomate cherry | g | tomate-cherry |
 | Tomate triturado | g | tomate-triturado |
 | Zanahoria | ud | zanahoria |
 
@@ -123,6 +122,7 @@ Total: 340
 | Filete de ternera | g | filete-de-ternera |
 | Fuet | g | fuet |
 | Hamburguesas | ud | hamburguesas |
+| Jamón | g | jamon |
 | Jamón cocido | g | jamon-cocido |
 | Jamón ibérico | g | jamon-iberico |
 | Jamón serrano | g | jamon-serrano |
@@ -147,6 +147,7 @@ Total: 340
 |---|---|---|
 | Almejas | g | almejas |
 | Anchoas | ud | anchoas |
+| Atún | g | atun |
 | Atún en lata | ud | atun-en-lata |
 | Atún fresco | g | atun-fresco |
 | Bacalao | g | bacalao |
@@ -180,20 +181,24 @@ Total: 340
 
 | Nombre | Unidad | id |
 |---|---|---|
-| Bebida de soja | ml | bebida-de-soja |
 | Flan | ud | flan |
 | Huevos | ud | huevos |
+| Leche | ml | leche |
 | Leche condensada | g | leche-condensada |
 | Leche de avena | ml | leche-de-avena |
+| Leche de soja | ml | leche-de-soja |
 | Leche desnatada | ml | leche-desnatada |
 | Leche entera | ml | leche-entera |
 | Leche semidesnatada | ml | leche-semidesnatada |
+| Leche sin lactosa | ml | leche-sin-lactosa |
 | Mantequilla | g | mantequilla |
 | Margarina | g | margarina |
 | Mascarpone | g | mascarpone |
+| Nata | ml | nata |
 | Nata para cocinar | ml | nata-para-cocinar |
 | Nata para montar | ml | nata-para-montar |
 | Natillas | ud | natillas |
+| Queso | g | queso |
 | Queso curado | g | queso-curado |
 | Queso de cabra | g | queso-de-cabra |
 | Queso en lonchas | g | queso-en-lonchas |
@@ -204,6 +209,7 @@ Total: 340
 | Queso rallado | g | queso-rallado |
 | Queso semicurado | g | queso-semicurado |
 | Requesón | g | requeson |
+| Yogur | ud | yogur |
 | Yogur desnatado | ud | yogur-desnatado |
 | Yogur griego | ud | yogur-griego |
 | Yogur natural | ud | yogur-natural |
@@ -235,16 +241,17 @@ Total: 340
 | Bulgur | g | bulgur |
 | Canelones | g | canelones |
 | Cereales de desayuno | g | cereales-de-desayuno |
-| Copos de avena | g | copos-de-avena |
 | Cuscús | g | cuscus |
 | Espaguetis | g | espaguetis |
 | Fideos | g | fideos |
+| Harina | g | harina |
 | Harina de garbanzo | g | harina-de-garbanzo |
 | Harina de maíz | g | harina-de-maiz |
 | Harina de repostería | g | harina-de-reposteria |
 | Harina de trigo | g | harina-de-trigo |
 | Harina integral | g | harina-integral |
 | Lasaña | g | lasana |
+| Levadura | g | levadura |
 | Levadura de panadería | g | levadura-de-panaderia |
 | Levadura química | g | levadura-quimica |
 | Macarrones | g | macarrones |
@@ -253,6 +260,7 @@ Total: 340
 | Masa de pizza | ud | masa-de-pizza |
 | Masa quebrada | ud | masa-quebrada |
 | Pan rallado | g | pan-rallado |
+| Pasta | g | pasta |
 | Pasta fresca | g | pasta-fresca |
 | Pasta integral | g | pasta-integral |
 | Quinoa | g | quinoa |
@@ -268,9 +276,10 @@ Total: 340
 | Biscotes | g | biscotes |
 | Bizcocho | g | bizcocho |
 | Colines | g | colines |
-| Cruasán | ud | cruasan |
+| Croissant | ud | croissant |
 | Galletas María | g | galletas-maria |
 | Magdalenas | ud | magdalenas |
+| Pan | ud | pan |
 | Pan de hamburguesa | ud | pan-de-hamburguesa |
 | Pan de hogaza | g | pan-de-hogaza |
 | Pan de molde | g | pan-de-molde |
@@ -285,9 +294,12 @@ Total: 340
 | Nombre | Unidad | id |
 |---|---|---|
 | Aceite de girasol | ml | aceite-de-girasol |
+| Aceite de oliva | ml | aceite-de-oliva |
 | Aceite de oliva suave | ml | aceite-de-oliva-suave |
 | Aceite de oliva virgen extra | ml | aceite-de-oliva-virgen-extra |
 | Aceite de sésamo | ml | aceite-de-sesamo |
+| Caldo | ml | caldo |
+| Caldo de pescado | ml | caldo-de-pescado |
 | Caldo de pollo | ml | caldo-de-pollo |
 | Caldo de verduras | ml | caldo-de-verduras |
 | Concentrado de tomate | g | concentrado-de-tomate |
@@ -304,10 +316,10 @@ Total: 340
 | Salsa de tomate | g | salsa-de-tomate |
 | Salsa picante | ml | salsa-picante |
 | Tomate frito | g | tomate-frito |
+| Vinagre | ml | vinagre |
 | Vinagre balsámico | ml | vinagre-balsamico |
 | Vinagre de manzana | ml | vinagre-de-manzana |
 | Vinagre de vino | ml | vinagre-de-vino |
-| Zumo de limón | ml | zumo-de-limon |
 
 ## Especias y hierbas
 
@@ -316,6 +328,7 @@ Total: 340
 | Ajo en polvo | g | ajo-en-polvo |
 | Albahaca | g | albahaca |
 | Azafrán | g | azafran |
+| Canela | g | canela |
 | Canela en polvo | g | canela-en-polvo |
 | Canela en rama | g | canela-en-rama |
 | Cebollino | g | cebollino |
@@ -333,9 +346,11 @@ Total: 340
 | Nuez moscada | g | nuez-moscada |
 | Orégano | g | oregano |
 | Perejil | g | perejil |
+| Pimentón | g | pimenton |
 | Pimentón ahumado | g | pimenton-ahumado |
 | Pimentón dulce | g | pimenton-dulce |
 | Pimentón picante | g | pimenton-picante |
+| Pimienta | g | pimienta |
 | Pimienta blanca | g | pimienta-blanca |
 | Pimienta negra | g | pimienta-negra |
 | Romero | g | romero |
@@ -376,9 +391,9 @@ Total: 340
 | Chocolate con leche | g | chocolate-con-leche |
 | Chocolate negro | g | chocolate-negro |
 | Crema de cacao | g | crema-de-cacao |
+| Dulce de membrillo | g | dulce-de-membrillo |
 | Edulcorante | g | edulcorante |
 | Gelatina en polvo | g | gelatina-en-polvo |
-| Membrillo en dulce | g | membrillo-en-dulce |
 | Mermelada de fresa | g | mermelada-de-fresa |
 | Miel | g | miel |
 | Pepitas de chocolate | g | pepitas-de-chocolate |
@@ -399,7 +414,7 @@ Total: 340
 | Cerveza | ml | cerveza |
 | Ginebra | ml | ginebra |
 | Horchata | ml | horchata |
-| Infusión de manzanilla | g | infusion-de-manzanilla |
+| Infusión de manzanilla | ud | infusion-de-manzanilla |
 | Infusión de poleo menta | g | infusion-de-poleo-menta |
 | Refresco de cola | ml | refresco-de-cola |
 | Té negro | g | te-negro |
@@ -408,6 +423,7 @@ Total: 340
 | Vino blanco | ml | vino-blanco |
 | Vino rosado | ml | vino-rosado |
 | Vino tinto | ml | vino-tinto |
+| Zumo de limón | ml | zumo-de-limon |
 | Zumo de manzana | ml | zumo-de-manzana |
 | Zumo de naranja | ml | zumo-de-naranja |
 | Zumo de piña | ml | zumo-de-pina |
