@@ -19,7 +19,8 @@
     "test:scripts": "node --test tests/beta-release-check.test.mjs tests/catalog-normalize.test.mjs tests/catalog-selection.test.mjs tests/catalog-import-plan.test.mjs tests/catalog-import-core.test.mjs tests/catalog-fetch.test.mjs tests/catalog-images.test.mjs tests/catalog-ingredients.test.mjs tests/catalog-ingredient-import-plan.test.mjs",
     "catalog:import": "node scripts/catalog/import-exercises.mjs",
     "catalog:import-ingredients": "node scripts/catalog/import-ingredients.mjs",
-    "test:catalog-import": "firebase emulators:exec --only firestore --project demo-bobitos \"node --test --test-concurrency=1 tests/catalog-import.emulator.test.mjs tests/ingredient-import.emulator.test.mjs\""
+    "catalog:reset-ingredients": "node scripts/catalog/reset-ingredients.mjs",
+    "test:catalog-import": "firebase emulators:exec --only firestore --project demo-bobitos \"node --test --test-concurrency=1 tests/catalog-import.emulator.test.mjs tests/ingredient-import.emulator.test.mjs tests/ingredient-reset.emulator.test.mjs\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "5.0.1",
