@@ -1,6 +1,8 @@
 package com.dlunaunizar.bobitos.feature.routines
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseInput
@@ -13,12 +15,19 @@ import com.dlunaunizar.bobitos.data.repository.ExerciseRepository
 import com.dlunaunizar.bobitos.data.repository.RoutineFailure
 import com.dlunaunizar.bobitos.data.repository.RoutineRepository
 import com.dlunaunizar.bobitos.data.repository.RoutineRepositoryException
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
@@ -157,6 +166,54 @@ class RoutinesViewModelTest {
         assertEquals(RoutineUiMessage.NotFound, viewModel.uiState.value.error)
         assertEquals(false, viewModel.uiState.value.isSaving)
     }
+
+    @Test
+    fun `editor save is SAVED only after the repository answers`() = runTest(mainDispatcherRule.testDispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        repository.addGate = gate
+
+        viewModel.createRoutine(RoutineVisibility.PRIVATE, "Empuje", null, emptyList())
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertTrue(viewModel.uiState.value.isSaving)
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+        assertFalse(viewModel.uiState.value.isSaving)
+        viewModel.consumeEditorSave()
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+    }
+
+    @Test
+    fun `editor save failure or timeout leaves FAILED`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.failure = RoutineFailure.Network
+        viewModel.createRoutine(RoutineVisibility.PRIVATE, "Empuje", null, emptyList())
+        advanceUntilIdle()
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        assertEquals(RoutineUiMessage.NetworkError, viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.isSaving)
+
+        repository.failure = null
+        viewModel.consumeEditorSave()
+        repository.hang = true
+        viewModel.updateRoutine("r1", "Empuje", null, emptyList())
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        advanceTimeBy(EDITOR_SAVE_TIMEOUT_MILLIS + 1)
+        runCurrent()
+
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        assertEquals(RoutineUiMessage.SaveTimeout, viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.isSaving)
+    }
+
+    @Test
+    fun `deleting does not touch the editor status`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.deleteRoutine("r1")
+        advanceUntilIdle()
+
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+    }
 }
 
 private class FakeExerciseRepository : ExerciseRepository {
@@ -176,6 +233,11 @@ private class FakeExerciseRepository : ExerciseRepository {
 }
 
 private class FakeRoutineRepository : RoutineRepository {
+    var addGate: CompletableDeferred<Unit>? = null
+
+    // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
+    var hang = false
+
     val globalState = MutableStateFlow<List<Routine>>(emptyList())
     val mineState = MutableStateFlow<List<Routine>>(emptyList())
     var createCount = 0
@@ -199,6 +261,14 @@ private class FakeRoutineRepository : RoutineRepository {
         exercises: List<RoutineExercise>,
     ) {
         failure?.let { throw RoutineRepositoryException(it) }
+        if (hang) {
+            try {
+                awaitCancellation()
+            } catch (_: CancellationException) {
+                throw RoutineRepositoryException(RoutineFailure.Unknown)
+            }
+        }
+        addGate?.await()
         createCount++
         lastVisibility = visibility
         lastTitle = title
@@ -213,6 +283,14 @@ private class FakeRoutineRepository : RoutineRepository {
         exercises: List<RoutineExercise>,
     ) {
         failure?.let { throw RoutineRepositoryException(it) }
+        if (hang) {
+            try {
+                awaitCancellation()
+            } catch (_: CancellationException) {
+                throw RoutineRepositoryException(RoutineFailure.Unknown)
+            }
+        }
+        addGate?.await()
         lastUpdatedId = routineId
         lastTitle = title
         lastDescription = description

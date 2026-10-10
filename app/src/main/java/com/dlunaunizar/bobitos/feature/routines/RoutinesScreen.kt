@@ -47,10 +47,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosInfoSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
+import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
@@ -124,6 +126,15 @@ fun RoutinesScreen(
         }
     }
 
+    EditorSaveEffect(
+        status = state.editorSave,
+        editorOpen = editorOpen,
+        onClose = {
+            editorOpen = false
+            editorRoutineId = null
+        },
+        onConsume = viewModel::consumeEditorSave,
+    )
     RoutineSheetsHost(
         state = state,
         canWrite = canWrite,
@@ -345,11 +356,12 @@ private fun RoutineSheetsHost(
             onCatalogNeeded = onCatalogNeeded,
             isAdmin = state.isAdmin,
             saving = state.isSaving,
+            errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
+                ?.let { stringResource(it.stringResourceId) },
             canWrite = canWrite,
             onDismiss = onCloseEditor,
             onSave = { visibility, title, description, exercises ->
                 onSave(editing, visibility, title, description, exercises)
-                onCloseEditor()
             },
         )
     }
@@ -430,6 +442,7 @@ private val RoutineUiMessage.stringResourceId: Int
         RoutineUiMessage.PermissionDenied -> R.string.space_error_permission_denied
         RoutineUiMessage.NetworkError -> R.string.space_error_network
         RoutineUiMessage.UnexpectedError -> R.string.space_error_unexpected
+        RoutineUiMessage.SaveTimeout -> R.string.write_timeout
         RoutineUiMessage.Saved -> R.string.routines_notice_saved
         RoutineUiMessage.Deleted -> R.string.routines_notice_deleted
     }

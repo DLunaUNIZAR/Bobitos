@@ -83,10 +83,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
+import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
@@ -215,10 +217,7 @@ fun CalendarScreen(
                 )
             }
 
-            state.message?.let { message ->
-                Text(message, color = MaterialTheme.colorScheme.error)
-                LaunchedEffect(message) { viewModel.clearMessage() }
-            }
+            CalendarMessage(state.message, state.editorSave, viewModel::clearMessage)
         }
 
         if (canWrite) {
@@ -233,6 +232,17 @@ fun CalendarScreen(
         }
     }
 
+    val closeEditor = {
+        creating = false
+        editorEventId = null
+        creatingAtText = null
+    }
+    EditorSaveEffect(
+        status = state.editorSave,
+        editorOpen = creating || editorEventId != null || creatingAtText != null,
+        onClose = closeEditor,
+        onConsume = viewModel::consumeEditorSave,
+    )
     CalendarEditorHost(
         editorEventId = editorEventId,
         events = (state.events as? UiState.Content)?.value,
@@ -241,12 +251,9 @@ fun CalendarScreen(
         day = state.focusedDate,
         members = members,
         saving = state.saving,
+        errorMessage = state.message.takeIf { state.editorSave == EditorSaveStatus.FAILED },
         canWrite = canWrite,
-        onClose = {
-            creating = false
-            editorEventId = null
-            creatingAtText = null
-        },
+        onClose = closeEditor,
         onSave = { id, input -> viewModel.save(id, input) },
     )
 
@@ -265,6 +272,14 @@ fun CalendarScreen(
             onDismiss = { eventToDelete = null },
         )
     }
+}
+
+// Si el editor abierto falló, el mensaje se ve dentro del formulario (no se descarta antes de tiempo).
+@Composable
+internal fun CalendarMessage(message: String?, editorSave: EditorSaveStatus, onShown: () -> Unit) {
+    if (message == null || editorSave == EditorSaveStatus.FAILED) return
+    Text(message, color = MaterialTheme.colorScheme.error)
+    LaunchedEffect(message) { onShown() }
 }
 
 @Composable
@@ -729,6 +744,7 @@ internal fun EventEditor(
     initialStart: LocalTime?,
     members: List<SpaceMember>,
     saving: Boolean,
+    errorMessage: String?,
     canWrite: Boolean,
     dismiss: () -> Unit,
     save: (String?, EventInput) -> Unit,
@@ -751,20 +767,10 @@ internal fun EventEditor(
         confirmEnabled = canWrite && validation == null,
         saving = saving,
         dirty = { draft != initial },
+        errorMessage = errorMessage,
         onDismiss = dismiss,
         onConfirm = {
-            val input = buildEventInput(
-                title = draft.title,
-                description = draft.description,
-                allDay = draft.allDay,
-                startDate = draft.startDate,
-                endDate = draft.endDate,
-                startTime = draft.startTime,
-                endTime = draft.endTime,
-                zone = zone,
-                color = draft.color,
-                participants = draft.selectedIds,
-            )
+            val input = draft.toEventInput(zone)
             if (input == null) {
                 error = dateError
             } else {
@@ -880,6 +886,7 @@ internal fun CalendarEditorHost(
     members: List<SpaceMember>,
     saving: Boolean,
     canWrite: Boolean,
+    errorMessage: String?,
     onClose: () -> Unit,
     onSave: (String?, EventInput) -> Unit,
 ) {
@@ -897,11 +904,11 @@ internal fun CalendarEditorHost(
             initialStart = creatingAt,
             members = members,
             saving = saving,
+            errorMessage = errorMessage,
             canWrite = canWrite,
             dismiss = onClose,
         ) { id, input ->
             onSave(id, input)
-            onClose()
         }
     }
 }
@@ -1035,6 +1042,19 @@ private fun CalendarEvent.toInput(): EventInput = EventInput(
     timeZone = timeZone,
     color = color,
     participantIds = participantIds,
+)
+
+private fun EventDraft.toEventInput(zone: ZoneId): EventInput? = buildEventInput(
+    title = title,
+    description = description,
+    allDay = allDay,
+    startDate = startDate,
+    endDate = endDate,
+    startTime = startTime,
+    endTime = endTime,
+    zone = zone,
+    color = color,
+    participants = selectedIds,
 )
 
 private fun buildEventInput(

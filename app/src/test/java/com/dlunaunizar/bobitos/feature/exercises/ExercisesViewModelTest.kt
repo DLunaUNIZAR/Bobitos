@@ -1,6 +1,8 @@
 package com.dlunaunizar.bobitos.feature.exercises
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseEquipment
@@ -10,13 +12,20 @@ import com.dlunaunizar.bobitos.core.model.slug
 import com.dlunaunizar.bobitos.data.repository.ExerciseFailure
 import com.dlunaunizar.bobitos.data.repository.ExerciseRepository
 import com.dlunaunizar.bobitos.data.repository.ExerciseRepositoryException
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
@@ -109,9 +118,75 @@ class ExercisesViewModelTest {
         assertEquals("press-banca", repository.deletedId)
         assertEquals(ExerciseUiMessage.Deleted, viewModel.uiState.value.notice)
     }
+
+    @Test
+    fun `editor save is SAVED only after the repository answers`() = runTest(mainDispatcherRule.testDispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        repository.addGate = gate
+
+        viewModel.createExercise(input("Remo", ExerciseType.MAQUINA))
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertTrue(viewModel.uiState.value.isSaving)
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+        assertFalse(viewModel.uiState.value.isSaving)
+        viewModel.consumeEditorSave()
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+    }
+
+    @Test
+    fun `editor save failure or timeout leaves FAILED`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.createFailure = ExerciseRepositoryException(ExerciseFailure.Network)
+        viewModel.createExercise(input("Remo", ExerciseType.MAQUINA))
+        advanceUntilIdle()
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        assertEquals(ExerciseUiMessage.NetworkError, viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.isSaving)
+
+        repository.createFailure = null
+        viewModel.consumeEditorSave()
+        repository.hang = true
+        viewModel.createExercise(input("Remo", ExerciseType.MAQUINA))
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        advanceTimeBy(EDITOR_SAVE_TIMEOUT_MILLIS + 1)
+        runCurrent()
+
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        assertEquals(ExerciseUiMessage.SaveTimeout, viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.isSaving)
+    }
+
+    @Test
+    fun `AlreadyExists from the editor leaves FAILED`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.catalogState.value = listOf(exercise(slug("Press banca"), "Press banca", ExerciseType.MAQUINA))
+        viewModel.observe()
+        advanceUntilIdle()
+
+        viewModel.createExercise(input("Press banca", ExerciseType.MAQUINA))
+
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        assertEquals(ExerciseUiMessage.AlreadyExists, viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.isSaving)
+    }
+
+    @Test
+    fun `deleting does not touch the editor status`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.deleteExercise("press-banca")
+        advanceUntilIdle()
+
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+    }
 }
 
 private class FakeExerciseRepository : ExerciseRepository {
+    var addGate: CompletableDeferred<Unit>? = null
+
+    // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
+    var hang = false
+
     val catalogState = MutableStateFlow<List<CatalogExercise>>(emptyList())
     var createdInput: ExerciseInput? = null
     var createFailure: Throwable? = null
@@ -126,6 +201,14 @@ private class FakeExerciseRepository : ExerciseRepository {
 
     override suspend fun createExercise(input: ExerciseInput) {
         createFailure?.let { throw it }
+        if (hang) {
+            try {
+                awaitCancellation()
+            } catch (_: CancellationException) {
+                throw ExerciseRepositoryException(ExerciseFailure.Unknown)
+            }
+        }
+        addGate?.await()
         createdInput = input
     }
 

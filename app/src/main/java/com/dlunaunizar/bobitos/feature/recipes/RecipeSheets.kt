@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosInfoSheet
@@ -84,12 +85,13 @@ internal fun RecipeSheetsHost(
             recipe = editing,
             imported = imported,
             saving = state.isSaving,
+            errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
+                ?.let { stringResource(it.stringResourceId) },
             canWrite = canWrite,
             isAdmin = state.isAdmin,
             onDismiss = actions.onCloseEditor,
             onSave = { visibility, title, description, category, ingredients, sourceUrl ->
                 actions.onSave(editing, visibility, title, description, category, ingredients, sourceUrl)
-                actions.onCloseEditor()
             },
         )
     }
@@ -148,6 +150,7 @@ private fun RecipeEditor(
     recipe: Recipe?,
     imported: RecipeDraft?,
     saving: Boolean,
+    errorMessage: String?,
     canWrite: Boolean,
     isAdmin: Boolean,
     onDismiss: () -> Unit,
@@ -169,6 +172,7 @@ private fun RecipeEditor(
         confirmEnabled = validation == null && canWrite,
         saving = saving,
         dirty = { draft != initial },
+        errorMessage = errorMessage,
         onDismiss = onDismiss,
         onConfirm = {
             val visibility = if (draft.global) RecipeVisibility.GLOBAL else RecipeVisibility.PRIVATE

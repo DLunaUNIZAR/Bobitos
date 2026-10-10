@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.exercises
 
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 
@@ -10,6 +11,7 @@ data class ExercisesUiState(
     val isAdmin: Boolean = false,
     val currentUid: String? = null,
     val isSaving: Boolean = false,
+    val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
     val error: ExerciseUiMessage? = null,
     val notice: ExerciseUiMessage? = null,
 ) {
@@ -28,6 +30,7 @@ enum class ExerciseUiMessage {
     PermissionDenied,
     NetworkError,
     UnexpectedError,
+    SaveTimeout,
     Saved,
     Deleted,
 }

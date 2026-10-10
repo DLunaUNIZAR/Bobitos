@@ -2,7 +2,12 @@ package com.dlunaunizar.bobitos.feature.calendar
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.failed
+import com.dlunaunizar.bobitos.core.common.started
+import com.dlunaunizar.bobitos.core.common.succeeded
+import com.dlunaunizar.bobitos.core.common.withSaveTimeout
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.TaskItem
@@ -11,6 +16,7 @@ import com.dlunaunizar.bobitos.data.repository.EventInput
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,6 +37,7 @@ data class CalendarUiState(
     val selectedMemberIds: Set<String> = emptySet(),
     val knownMemberIds: Set<String> = emptySet(),
     val saving: Boolean = false,
+    val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
     val message: String? = null,
 )
 
@@ -122,7 +129,7 @@ class CalendarViewModel @Inject constructor(
         mutable.update { it.copy(selectedMemberIds = emptySet()) }
     }
 
-    fun save(eventId: String?, input: EventInput) = action {
+    fun save(eventId: String?, input: EventInput) = action(editor = true) {
         val id = spaceId ?: return@action
         if (eventId == null) {
             repository.createEvent(id, input)
@@ -140,6 +147,8 @@ class CalendarViewModel @Inject constructor(
     fun delete(eventId: String, onDeleted: () -> Unit = {}) = action(onSuccess = onDeleted) {
         repository.deleteEvent(spaceId ?: return@action, eventId)
     }
+
+    fun consumeEditorSave() = mutable.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
 
     fun clearMessage() {
         mutable.update { it.copy(message = null) }
@@ -181,22 +190,31 @@ class CalendarViewModel @Inject constructor(
         }
     }
 
-    private fun action(onSuccess: () -> Unit = {}, block: suspend () -> Unit) {
+    private fun action(editor: Boolean = false, onSuccess: () -> Unit = {}, block: suspend () -> Unit) {
         if (mutable.value.saving) return
-        mutable.update { it.copy(saving = true, message = null) }
+        mutable.update { it.copy(saving = true, message = null, editorSave = it.editorSave.started(editor)) }
         viewModelScope.launch {
-            try {
-                block()
-                mutable.update { it.copy(saving = false, message = "Cambios guardados") }
-                onSuccess()
-            } catch (error: Throwable) {
-                mutable.update {
-                    it.copy(
-                        saving = false,
-                        message = error.message ?: "No se pudo completar la operación",
-                    )
+            runCatching { withSaveTimeout { block() } }
+                .onSuccess {
+                    mutable.update {
+                        it.copy(
+                            saving = false,
+                            message = "Cambios guardados",
+                            editorSave = it.editorSave.succeeded(editor),
+                        )
+                    }
+                    onSuccess()
                 }
-            }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    mutable.update {
+                        it.copy(
+                            saving = false,
+                            message = error.message ?: "No se pudo completar la operación",
+                            editorSave = it.editorSave.failed(editor),
+                        )
+                    }
+                }
         }
     }
 }

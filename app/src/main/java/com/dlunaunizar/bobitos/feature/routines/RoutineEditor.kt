@@ -34,6 +34,7 @@ internal fun RoutineEditor(
     onCatalogNeeded: () -> Unit,
     isAdmin: Boolean,
     saving: Boolean,
+    errorMessage: String?,
     canWrite: Boolean,
     onDismiss: () -> Unit,
     onSave: (RoutineVisibility, String, String?, List<RoutineExercise>) -> Unit,
@@ -55,6 +56,7 @@ internal fun RoutineEditor(
         confirmEnabled = draft.title.isNotBlank() && canWrite,
         saving = saving,
         dirty = { draft != initial || exercises.toRoutineExercises() != initialExercises },
+        errorMessage = errorMessage,
         onDismiss = onDismiss,
         onConfirm = {
             val visibility = if (draft.global) RoutineVisibility.GLOBAL else RoutineVisibility.PRIVATE

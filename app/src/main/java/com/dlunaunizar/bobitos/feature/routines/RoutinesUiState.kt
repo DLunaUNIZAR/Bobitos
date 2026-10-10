@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.routines
 
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.Routine
@@ -12,6 +13,7 @@ data class RoutinesUiState(
     val exercises: List<CatalogExercise> = emptyList(),
     val isAdmin: Boolean = false,
     val isSaving: Boolean = false,
+    val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
     val error: RoutineUiMessage? = null,
     val notice: RoutineUiMessage? = null,
 )
@@ -26,6 +28,7 @@ enum class RoutineUiMessage {
     PermissionDenied,
     NetworkError,
     UnexpectedError,
+    SaveTimeout,
     Saved,
     Deleted,
 }

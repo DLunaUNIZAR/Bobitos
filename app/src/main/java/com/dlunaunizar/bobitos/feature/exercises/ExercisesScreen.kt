@@ -45,10 +45,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.prepareQuery
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
+import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
@@ -140,6 +142,12 @@ fun ExercisesScreen(
             onDismiss = { detailOpen = false },
         )
     }
+    EditorSaveEffect(
+        status = state.editorSave,
+        editorOpen = editorOpen,
+        onClose = { editorOpen = false },
+        onConsume = viewModel::consumeEditorSave,
+    )
     rememberEditorSlot(
         open = editorOpen,
         id = editorExerciseId,
@@ -153,11 +161,12 @@ fun ExercisesScreen(
             otherIds = (state.catalog as? UiState.Content)?.value.orEmpty()
                 .mapNotNull { it.id.takeIf { id -> id != editorExercise?.id } }.toSet(),
             saving = state.isSaving,
+            errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
+                ?.let { stringResource(it.stringResourceId) },
             onDismiss = { editorOpen = false },
             onSave = { input ->
                 editorExercise?.let { viewModel.updateExercise(it.id, input) }
                     ?: viewModel.createExercise(input)
-                editorOpen = false
             },
         )
     }
@@ -321,6 +330,7 @@ private val ExerciseUiMessage.stringResourceId: Int
         ExerciseUiMessage.PermissionDenied -> R.string.space_error_permission_denied
         ExerciseUiMessage.NetworkError -> R.string.space_error_network
         ExerciseUiMessage.UnexpectedError -> R.string.space_error_unexpected
+        ExerciseUiMessage.SaveTimeout -> R.string.write_timeout
         ExerciseUiMessage.Saved -> R.string.exercises_notice_saved
         ExerciseUiMessage.Deleted -> R.string.exercises_notice_deleted
     }

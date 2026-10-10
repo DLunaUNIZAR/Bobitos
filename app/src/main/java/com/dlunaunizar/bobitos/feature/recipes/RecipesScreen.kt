@@ -54,6 +54,7 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
+import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
@@ -183,6 +184,16 @@ fun RecipesScreen(
         }
     }
 
+    EditorSaveEffect(
+        status = state.editorSave,
+        editorOpen = editorOpen,
+        onClose = {
+            editorOpen = false
+            editorRecipeId = null
+            imported = null
+        },
+        onConsume = viewModel::consumeEditorSave,
+    )
     RecipeSheetsHost(
         state = state,
         canWrite = canWrite,
@@ -251,13 +262,7 @@ fun RecipesScreen(
                 viewModel.deleteRecipe(recipe.id)
                 recipeToDelete = null
                 scope.launchUndo(snackbarHostState, deletedMessage, undoLabel) {
-                    viewModel.createRecipe(
-                        recipe.visibility,
-                        recipe.title,
-                        recipe.description,
-                        recipe.category,
-                        recipe.ingredients.orEmpty(),
-                    )
+                    viewModel.restoreRecipe(recipe)
                 }
             },
             onDismiss = { recipeToDelete = null },
@@ -483,6 +488,7 @@ internal val RecipeUiMessage.stringResourceId: Int
         RecipeUiMessage.PermissionDenied -> R.string.space_error_permission_denied
         RecipeUiMessage.NetworkError -> R.string.space_error_network
         RecipeUiMessage.UnexpectedError -> R.string.space_error_unexpected
+        RecipeUiMessage.SaveTimeout -> R.string.write_timeout
         RecipeUiMessage.RecipeSaved -> R.string.recipes_notice_saved
         RecipeUiMessage.RecipeDeleted -> R.string.recipes_notice_deleted
         RecipeUiMessage.RecipeForked -> R.string.recipes_notice_forked

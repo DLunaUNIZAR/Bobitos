@@ -42,7 +42,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.SyncStatusBanner
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
@@ -173,10 +175,7 @@ fun PersonalCalendarScreen(
                 )
             }
 
-            state.message?.let { message ->
-                Text(message, color = MaterialTheme.colorScheme.error)
-                LaunchedEffect(message) { viewModel.clearMessage() }
-            }
+            CalendarMessage(state.message, state.editorSave, viewModel::clearMessage)
         }
         NewEventFab(canWrite = canWrite, spaceCount = spaces.size, onClick = { onCreateAt(null) })
     }
@@ -192,6 +191,18 @@ fun PersonalCalendarScreen(
         )
     }
 
+    val closeEditor = {
+        editorOpen = false
+        editorEventId = null
+        editorStartText = null
+        viewModel.clearEditorMembers()
+    }
+    EditorSaveEffect(
+        status = state.editorSave,
+        editorOpen = editorOpen,
+        onClose = closeEditor,
+        onConsume = viewModel::consumeEditorSave,
+    )
     CalendarEditorHost(
         editorEventId = editorEventId,
         events = events.takeIf { state.events is UiState.Content }
@@ -202,13 +213,9 @@ fun PersonalCalendarScreen(
         day = state.focusedDate,
         members = state.editorMembers,
         saving = state.saving,
+        errorMessage = state.message.takeIf { state.editorSave == EditorSaveStatus.FAILED },
         canWrite = canWrite,
-        onClose = {
-            editorOpen = false
-            editorEventId = null
-            editorStartText = null
-            viewModel.clearEditorMembers()
-        },
+        onClose = closeEditor,
         onSave = { id, input -> editorSpaceId?.let { viewModel.saveEvent(it, id, input) } },
     )
 

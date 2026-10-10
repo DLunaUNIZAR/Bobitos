@@ -2,7 +2,13 @@ package com.dlunaunizar.bobitos.feature.recipes
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.failed
+import com.dlunaunizar.bobitos.core.common.started
+import com.dlunaunizar.bobitos.core.common.succeeded
+import com.dlunaunizar.bobitos.core.common.withSaveTimeout
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Recipe
@@ -20,6 +26,7 @@ import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
 import com.dlunaunizar.bobitos.feature.common.applyIngredientReview
 import com.dlunaunizar.bobitos.feature.common.buildIngredientReviewRows
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -117,15 +124,9 @@ class RecipesViewModel @Inject constructor(
         sourceUrl: String? = null,
     ) {
         if (!validate(title, description, category)) return
-        // GLOBAL solo para admins; el resto siempre PRIVATE aunque llegue otra cosa (las reglas también lo exigen).
-        val safeVisibility = if (visibility == RecipeVisibility.GLOBAL && !mutableUiState.value.isAdmin) {
-            RecipeVisibility.PRIVATE
-        } else {
-            visibility
-        }
-        runAction(RecipeUiMessage.RecipeSaved) {
+        runAction(RecipeUiMessage.RecipeSaved, editor = true) {
             repository.createRecipe(
-                visibility = safeVisibility,
+                visibility = safeVisibility(visibility),
                 title = title.trim(),
                 description = description.normalized(),
                 category = category.normalized(),
@@ -163,7 +164,7 @@ class RecipesViewModel @Inject constructor(
         ingredients: List<Ingredient> = emptyList(),
     ) {
         if (!validate(title, description, category)) return
-        runAction(RecipeUiMessage.RecipeSaved) {
+        runAction(RecipeUiMessage.RecipeSaved, editor = true) {
             repository.updateRecipe(
                 recipeId,
                 title.trim(),
@@ -172,6 +173,19 @@ class RecipesViewModel @Inject constructor(
                 ingredients,
             )
         }
+    }
+
+    // Recrea una receta borrada («Deshacer»): no es un guardado del editor, no mueve su estado.
+    fun restoreRecipe(recipe: Recipe) = runAction(RecipeUiMessage.RecipeSaved) {
+        repository.createRecipe(
+            visibility = safeVisibility(recipe.visibility),
+            title = recipe.title,
+            description = recipe.description,
+            category = recipe.category,
+            sourceRecipeId = null,
+            ingredients = recipe.ingredients.orEmpty(),
+            sourceUrl = null,
+        )
     }
 
     fun deleteRecipe(recipeId: String) {
@@ -192,30 +206,50 @@ class RecipesViewModel @Inject constructor(
         }
     }
 
+    fun consumeEditorSave() {
+        mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
+    }
+
     fun clearFeedback() {
         mutableUiState.update { it.copy(error = null, notice = null) }
     }
 
+    // GLOBAL solo para admins; el resto siempre PRIVATE aunque llegue otra cosa (las reglas también lo exigen).
+    private fun safeVisibility(visibility: RecipeVisibility) =
+        if (visibility == RecipeVisibility.GLOBAL && !mutableUiState.value.isAdmin) {
+            RecipeVisibility.PRIVATE
+        } else {
+            visibility
+        }
+
     private fun validate(title: String, description: String?, category: String?): Boolean {
         val error = RecipesValidation.validate(title, description, category) ?: return true
-        showError(error)
+        showError(error, editor = true)
         return false
     }
 
-    private fun showError(message: RecipeUiMessage) {
-        mutableUiState.update { it.copy(isSaving = false, error = message, notice = null) }
+    private fun showError(message: RecipeUiMessage, editor: Boolean = false) {
+        mutableUiState.update {
+            it.copy(isSaving = false, error = message, notice = null, editorSave = it.editorSave.failed(editor))
+        }
     }
 
-    private fun runAction(successNotice: RecipeUiMessage?, action: suspend () -> Unit) {
+    private fun runAction(successNotice: RecipeUiMessage?, editor: Boolean = false, action: suspend () -> Unit) {
         if (mutableUiState.value.isSaving) return
-        mutableUiState.update { it.copy(isSaving = true, error = null, notice = null) }
+        mutableUiState.update {
+            it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
+        }
         viewModelScope.launch {
-            try {
-                action()
-                mutableUiState.update { it.copy(isSaving = false, notice = successNotice) }
-            } catch (error: Throwable) {
-                showError(error.toUiMessage())
-            }
+            runCatching { withSaveTimeout { action() } }
+                .onSuccess {
+                    mutableUiState.update {
+                        it.copy(isSaving = false, notice = successNotice, editorSave = it.editorSave.succeeded(editor))
+                    }
+                }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    showError(error.toUiMessage(), editor)
+                }
         }
     }
 }
@@ -233,6 +267,7 @@ private fun ImportFailure.toUiMessage(): RecipeUiMessage = when (this) {
 private fun Throwable.toUiMessage(): RecipeUiMessage = when (this) {
     is RecipeRepositoryException -> failure.toUiMessage()
     is ShoppingRepositoryException -> failure.toUiMessage()
+    is SaveTimeoutException -> RecipeUiMessage.SaveTimeout
     else -> RecipeUiMessage.UnexpectedError
 }
 

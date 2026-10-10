@@ -1,6 +1,8 @@
 package com.dlunaunizar.bobitos.feature.recipes
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.IngredientPref
@@ -13,14 +15,23 @@ import com.dlunaunizar.bobitos.data.recipeimport.ImportedRecipe
 import com.dlunaunizar.bobitos.data.recipeimport.RecipeImportException
 import com.dlunaunizar.bobitos.data.recipeimport.RecipeImporter
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
+import com.dlunaunizar.bobitos.data.repository.RecipeFailure
 import com.dlunaunizar.bobitos.data.repository.RecipeRepository
+import com.dlunaunizar.bobitos.data.repository.RecipeRepositoryException
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
@@ -225,6 +236,56 @@ class RecipesViewModelTest {
         assertEquals(null, viewModel.uiState.value.ingredientReview)
         assertEquals(RecipeUiMessage.NoIngredients, viewModel.uiState.value.error)
     }
+
+    @Test
+    fun `editor save is SAVED only after the repository answers`() = runTest(mainDispatcherRule.testDispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        repository.addGate = gate
+
+        viewModel.createRecipe(RecipeVisibility.PRIVATE, "Tortilla", null, null)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertTrue(viewModel.uiState.value.isSaving)
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+        assertFalse(viewModel.uiState.value.isSaving)
+        viewModel.consumeEditorSave()
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+    }
+
+    @Test
+    fun `editor save failure or timeout leaves FAILED`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.nextFailure = RecipeRepositoryException(RecipeFailure.Network)
+        viewModel.createRecipe(RecipeVisibility.PRIVATE, "Tortilla", null, null)
+        advanceUntilIdle()
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        assertEquals(RecipeUiMessage.NetworkError, viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.isSaving)
+
+        repository.nextFailure = null
+        viewModel.consumeEditorSave()
+        repository.hang = true
+        viewModel.updateRecipe("r1", "Tortilla", null, null)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        advanceTimeBy(EDITOR_SAVE_TIMEOUT_MILLIS + 1)
+        runCurrent()
+
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        assertEquals(RecipeUiMessage.SaveTimeout, viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.isSaving)
+    }
+
+    @Test
+    fun `restoreRecipe does not touch the editor status`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.restoreRecipe(recipe("r1", RecipeVisibility.PRIVATE, "Tortilla"))
+        advanceUntilIdle()
+
+        assertEquals("Tortilla", repository.lastTitle)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(RecipeUiMessage.RecipeSaved, viewModel.uiState.value.notice)
+    }
 }
 
 private class RecipesFakeShoppingRepository : ShoppingRepository {
@@ -267,6 +328,12 @@ private class RecipesFakePrefsRepository : IngredientPrefsRepository {
 }
 
 private class FakeRecipeRepository : RecipeRepository {
+    var addGate: CompletableDeferred<Unit>? = null
+    var nextFailure: Throwable? = null
+
+    // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
+    var hang = false
+
     val globalState = MutableStateFlow<List<Recipe>>(emptyList())
     val mineState = MutableStateFlow<List<Recipe>>(emptyList())
     var createCount = 0
@@ -289,6 +356,15 @@ private class FakeRecipeRepository : RecipeRepository {
         ingredients: List<Ingredient>,
         sourceUrl: String?,
     ) {
+        nextFailure?.let { throw it }
+        if (hang) {
+            try {
+                awaitCancellation()
+            } catch (_: CancellationException) {
+                throw RecipeRepositoryException(RecipeFailure.Unknown)
+            }
+        }
+        addGate?.await()
         createCount++
         lastVisibility = visibility
         lastTitle = title
@@ -303,7 +379,17 @@ private class FakeRecipeRepository : RecipeRepository {
         description: String?,
         category: String?,
         ingredients: List<Ingredient>,
-    ) = Unit
+    ) {
+        nextFailure?.let { throw it }
+        if (hang) {
+            try {
+                awaitCancellation()
+            } catch (_: CancellationException) {
+                throw RecipeRepositoryException(RecipeFailure.Unknown)
+            }
+        }
+        addGate?.await()
+    }
 
     override suspend fun deleteRecipe(recipeId: String) = Unit
 }

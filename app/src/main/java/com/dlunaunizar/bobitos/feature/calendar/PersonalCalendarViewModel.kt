@@ -2,7 +2,12 @@ package com.dlunaunizar.bobitos.feature.calendar
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.failed
+import com.dlunaunizar.bobitos.core.common.started
+import com.dlunaunizar.bobitos.core.common.succeeded
+import com.dlunaunizar.bobitos.core.common.withSaveTimeout
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
@@ -10,6 +15,7 @@ import com.dlunaunizar.bobitos.data.repository.CalendarRepository
 import com.dlunaunizar.bobitos.data.repository.EventInput
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,6 +39,7 @@ data class PersonalCalendarUiState(
     // Miembros del espacio para el que está abierto el editor (para elegir participantes).
     val editorMembers: List<SpaceMember> = emptyList(),
     val saving: Boolean = false,
+    val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
     val message: String? = null,
 )
 
@@ -122,21 +129,34 @@ class PersonalCalendarViewModel @Inject constructor(
         mutable.update { it.copy(editorMembers = emptyList()) }
     }
 
-    fun saveEvent(spaceId: String, eventId: String?, input: EventInput) = action {
+    fun saveEvent(spaceId: String, eventId: String?, input: EventInput) = action(editor = true) {
         if (eventId == null) repository.createEvent(spaceId, input) else repository.updateEvent(spaceId, eventId, input)
     }
 
     fun deleteEvent(spaceId: String, eventId: String) = action { repository.deleteEvent(spaceId, eventId) }
 
+    fun consumeEditorSave() = mutable.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
+
     fun clearMessage() = mutable.update { it.copy(message = null) }
 
-    private fun action(block: suspend () -> Unit) {
+    private fun action(editor: Boolean = false, block: suspend () -> Unit) {
         if (mutable.value.saving) return
-        mutable.update { it.copy(saving = true, message = null) }
+        mutable.update { it.copy(saving = true, message = null, editorSave = it.editorSave.started(editor)) }
         viewModelScope.launch {
-            runCatching { block() }
-                .onSuccess { mutable.update { it.copy(saving = false) } }
-                .onFailure { error -> mutable.update { it.copy(saving = false, message = error.message ?: "error") } }
+            runCatching { withSaveTimeout { block() } }
+                .onSuccess {
+                    mutable.update { it.copy(saving = false, editorSave = it.editorSave.succeeded(editor)) }
+                }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    mutable.update {
+                        it.copy(
+                            saving = false,
+                            message = error.message ?: "error",
+                            editorSave = it.editorSave.failed(editor),
+                        )
+                    }
+                }
         }
     }
 
