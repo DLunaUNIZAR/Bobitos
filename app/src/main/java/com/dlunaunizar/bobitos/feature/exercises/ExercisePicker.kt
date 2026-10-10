@@ -15,47 +15,55 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
-import com.dlunaunizar.bobitos.core.common.prepareQuery
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
+import com.dlunaunizar.bobitos.core.model.ExerciseType
 
-// Filtra el catálogo del selector por nombre o grupo muscular (sin tildes ni mayúsculas), conservando el
-// orden. Una consulta en blanco devuelve todo el catálogo.
-internal fun filterExercisePicker(catalog: List<CatalogExercise>, query: String): List<CatalogExercise> {
-    val prepared = prepareQuery(query)
-    return catalog.filter { prepared.matches(it.name, it.muscleGroup) }
-}
-
-// Selector de ejercicio con búsqueda. La primera fila, «Personalizado…», siempre está: con el catálogo aún
-// vacío (carga diferida) o sin coincidencias se puede seguir creando un ejercicio libre. La consulta
-// sobrevive a la rotación y la lista se actualiza sola cuando el catálogo llega.
+// Selector de ejercicio con búsqueda y filtros de tipo y grupo. La primera fila, «Personalizado…», siempre
+// está: con el catálogo aún vacío (carga diferida) o sin coincidencias se puede seguir creando un ejercicio
+// libre, y su nombre es lo que se buscó. La búsqueda y los filtros sobreviven a la rotación y la lista se
+// actualiza sola cuando el catálogo llega.
 @Composable
 internal fun ExercisePickerDialog(
     catalog: List<CatalogExercise>,
     onDismiss: () -> Unit,
-    onPick: (CatalogExercise?) -> Unit,
+    onPick: (CatalogExercise) -> Unit,
+    onPickCustom: (String) -> Unit,
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    val results = filterExercisePicker(catalog, query)
+    var type by rememberSaveable { mutableStateOf<ExerciseType?>(null) }
+    var group by rememberSaveable { mutableStateOf<String?>(null) }
+    val filter = ExerciseFilter(query, type, group)
+    val groups = remember(catalog) { catalog.muscleGroups() }
+    val results = remember(catalog, filter) { catalog.filterExercises(filter) }
+    val customName = customExerciseName(query)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.routines_pick_exercise)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 SearchField(query = query, onQueryChange = { query = it }, visible = true)
-                LazyColumn(Modifier.heightIn(max = 420.dp)) {
+                ExerciseFilterChips(
+                    groups = groups,
+                    filter = filter,
+                    onTypeChange = { type = it },
+                    onGroupChange = { group = it },
+                )
+                LazyColumn(Modifier.weight(1f, fill = false).heightIn(max = 420.dp)) {
                     item(key = CUSTOM_ROW_KEY) {
                         PickerRow(
                             title = stringResource(R.string.routines_custom_exercise),
-                            subtitle = null,
-                            onClick = { onPick(null) },
+                            subtitle = customName.ifEmpty { null },
+                            onClick = { onPickCustom(customName) },
                         )
                     }
                     if (results.isEmpty() && catalog.isNotEmpty()) {
@@ -69,10 +77,10 @@ internal fun ExercisePickerDialog(
                         }
                     }
                     items(results, key = CatalogExercise::id) { exercise ->
-                        val type = stringResource(exercise.type.labelRes)
+                        val typeLabel = stringResource(exercise.type.labelRes)
                         PickerRow(
                             title = exercise.name,
-                            subtitle = listOfNotNull(exercise.muscleGroup, type).joinToString(" · "),
+                            subtitle = listOfNotNull(exercise.muscleGroup, typeLabel).joinToString(" · "),
                             onClick = { onPick(exercise) },
                         )
                     }
@@ -93,7 +101,7 @@ private fun PickerRow(title: String, subtitle: String?, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(vertical = Spacing.sm),
     ) {
         Text(title, style = MaterialTheme.typography.bodyLarge)

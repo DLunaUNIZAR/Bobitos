@@ -48,6 +48,7 @@ class SportViewModel @Inject constructor(
     private var membersJob: Job? = null
     private var routinesJob: Job? = null
     private var exercisesJob: Job? = null
+    private var catalogRequested = false
 
     fun observe(spaceId: String) {
         if (spaceId == observedSpaceId && activitiesJob?.isActive == true) return
@@ -61,6 +62,7 @@ class SportViewModel @Inject constructor(
                 .collect { members -> mutableUiState.update { it.copy(members = UiState.Content(members)) } }
         }
         observeRoutines()
+        if (catalogRequested) observeExerciseCatalog()
     }
 
     // Catálogo de rutinas (comunes + mías, deduplicado) para el picker de la sesión de gimnasio. Es
@@ -78,8 +80,10 @@ class SportViewModel @Inject constructor(
     }
 
     // Catálogo de ejercicios para elegir al añadir uno a la sesión. Diferido: lo pide el editor de la sesión
-    // al aparecer. Idempotente; global; un fallo se ignora.
+    // al aparecer. Idempotente; global; un fallo se ignora. Al cambiar de espacio la pantalla para y vuelve a
+    // observar con el editor aún abierto: la marca se conserva para que observe() lo retome.
     fun observeExerciseCatalog() {
+        catalogRequested = true
         if (exercisesJob?.isActive == true) return
         exercisesJob = viewModelScope.launch {
             exercises.catalog()

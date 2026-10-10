@@ -591,6 +591,8 @@
     <string name="credits_font_body">La tipografía Nunito se usa bajo la SIL Open Font License 1.1.</string>
     <string name="exercises_search_label">Buscar ejercicio</string>
     <string name="exercises_empty">Aún no hay ejercicios. Añade el primero.</string>
+    <string name="exercises_filter_all">Todos los tipos</string>
+    <string name="exercises_filter_all_groups">Todos los grupos</string>
     <string name="exercises_no_results">Ningún ejercicio coincide.</string>
     <string name="exercise_type_machine">Máquina</string>
     <string name="exercise_type_free_weight">Peso libre</string>

@@ -133,6 +133,24 @@ class SportViewModelTest {
         }
 
     @Test
+    fun `catalog resumes after switching space with the session editor open`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel.observe("home")
+            viewModel.observeExerciseCatalog()
+            advanceUntilIdle()
+
+            // Cambio de espacio: la pantalla para y vuelve a observar, sin que el editor pida el catálogo otra vez.
+            viewModel.stopObserving()
+            viewModel.observe("work")
+            advanceUntilIdle()
+            exerciseRepository.catalogState.value = listOf(catalogExercise("press-banca", "Press banca"))
+            advanceUntilIdle()
+
+            assertEquals(2, exerciseRepository.catalogCalls)
+            assertEquals(listOf("Press banca"), viewModel.uiState.value.exercises.map(CatalogExercise::name))
+        }
+
+    @Test
     fun `observing the exercise catalog again after stopObserving resubscribes`() =
         runTest(mainDispatcherRule.testDispatcher) {
             viewModel.observe("home")

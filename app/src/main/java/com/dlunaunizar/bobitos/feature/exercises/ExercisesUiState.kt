@@ -5,7 +5,6 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 
 data class ExercisesUiState(
-    val query: String = "",
     val catalog: UiState<List<CatalogExercise>> = UiState.Loading,
     // Cuenta activa: puede curar (editar/borrar) fichas ajenas del catálogo común.
     val isAdmin: Boolean = false,

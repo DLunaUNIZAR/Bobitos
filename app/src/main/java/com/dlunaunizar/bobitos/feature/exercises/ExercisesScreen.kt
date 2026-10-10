@@ -29,7 +29,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,7 +44,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
-import com.dlunaunizar.bobitos.core.common.prepareQuery
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
@@ -56,6 +54,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
+import com.dlunaunizar.bobitos.core.model.ExerciseType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,7 +75,9 @@ fun ExercisesScreen(
     var detailExerciseId by rememberSaveable { mutableStateOf<String?>(null) }
     var deleteTarget by remember { mutableStateOf<CatalogExercise?>(null) }
     var query by rememberSaveable { mutableStateOf("") }
-    LaunchedEffect(query) { viewModel.setQuery(query) }
+    var typeFilter by rememberSaveable { mutableStateOf<ExerciseType?>(null) }
+    var groupFilter by rememberSaveable { mutableStateOf<String?>(null) }
+    val filter = ExerciseFilter(query, typeFilter, groupFilter)
 
     Scaffold(
         modifier = modifier,
@@ -106,6 +107,9 @@ fun ExercisesScreen(
             )
             ExerciseCatalog(
                 state = state,
+                filter = filter,
+                onTypeChange = { typeFilter = it },
+                onGroupChange = { groupFilter = it },
                 onOpen = {
                     detailExerciseId = it.id
                     detailOpen = true
@@ -188,6 +192,9 @@ fun ExercisesScreen(
 @Composable
 private fun ExerciseCatalog(
     state: ExercisesUiState,
+    filter: ExerciseFilter,
+    onTypeChange: (ExerciseType?) -> Unit,
+    onGroupChange: (String?) -> Unit,
     onOpen: (CatalogExercise) -> Unit,
     onEdit: (CatalogExercise) -> Unit,
     onDelete: (CatalogExercise) -> Unit,
@@ -196,14 +203,23 @@ private fun ExerciseCatalog(
         UiState.Loading -> LoadingState(Modifier.fillMaxWidth())
         is UiState.Error -> ErrorState(Modifier.fillMaxWidth(), message = catalog.message)
         is UiState.Content -> {
-            val prepared = prepareQuery(state.query)
-            val filtered = catalog.value.filter { prepared.matches(it.name, it.muscleGroup) }
+            val groups = remember(catalog.value) { catalog.value.muscleGroups() }
+            val filtered = remember(catalog.value, filter) { catalog.value.filterExercises(filter) }
+            if (catalog.value.isNotEmpty()) {
+                ExerciseFilterChips(
+                    groups = groups,
+                    filter = filter,
+                    onTypeChange = onTypeChange,
+                    onGroupChange = onGroupChange,
+                    modifier = Modifier.padding(bottom = Spacing.sm),
+                )
+            }
             if (filtered.isEmpty()) {
                 EmptyState(
                     modifier = Modifier.fillMaxWidth(),
                     icon = Icons.Rounded.FitnessCenter,
                     title = stringResource(
-                        if (state.query.isNotBlank() && catalog.value.isNotEmpty()) {
+                        if (filter.isActive && catalog.value.isNotEmpty()) {
                             R.string.exercises_no_results
                         } else {
                             R.string.exercises_empty

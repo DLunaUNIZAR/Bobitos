@@ -79,9 +79,11 @@ internal fun ExerciseListEditor(
             catalog = catalog,
             onDismiss = { picking = false },
             onPick = { catalogExercise ->
-                drafts.add(
-                    catalogExercise?.toExerciseDraft() ?: ExerciseDraft(),
-                )
+                drafts.add(catalogExercise.toExerciseDraft())
+                picking = false
+            },
+            onPickCustom = { name ->
+                drafts.add(ExerciseDraft(name = name))
                 picking = false
             },
         )

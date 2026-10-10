@@ -52,8 +52,6 @@ class ExercisesViewModel @Inject constructor(private val repository: ExerciseRep
         observing = false
     }
 
-    fun setQuery(query: String) = mutableUiState.update { it.copy(query = query) }
-
     fun createExercise(input: ExerciseInput) {
         val trimmed = input.name.trim()
         if (trimmed.isEmpty()) {

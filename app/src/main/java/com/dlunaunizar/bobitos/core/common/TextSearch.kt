@@ -2,9 +2,10 @@ package com.dlunaunizar.bobitos.core.common
 
 import java.text.Normalizer
 
-private val DIACRITICS = Regex("\\p{Mn}+")
+private val WORD_SEPARATORS = Regex("[\\s\\u00A0\\u2007\\u202F]+")
+private val DIACRITICS = Regex("\\p{M}+")
 
-// Minúsculas y sin tildes (ni diéresis), para buscar «jalon» y encontrar «Jalón».
+// Minúsculas y sin marcas diacríticas (tildes, diéresis, marcas envolventes; igual que slug), para buscar «jalon» y encontrar «Jalón».
 fun String.foldForSearch(): String = Normalizer.normalize(this, Normalizer.Form.NFD)
     .replace(DIACRITICS, "")
     .lowercase()
@@ -23,4 +24,4 @@ class SearchQuery internal constructor(private val words: List<String>) {
 }
 
 fun prepareQuery(query: String): SearchQuery =
-    SearchQuery(query.foldForSearch().split(' ', '\t', '\n').filter { it.isNotEmpty() })
+    SearchQuery(query.foldForSearch().split(WORD_SEPARATORS).filter { it.isNotEmpty() })
