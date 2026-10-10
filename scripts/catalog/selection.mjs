@@ -8,8 +8,11 @@ import {
   SET_MEASURES,
   STRENGTH_TYPES,
   WGER_MEDIA_PREFIX,
-  groupBy,   isNearDuplicate,
+  groupBy,
+  isNearDuplicate,
   foldText,
+  nearDuplicateKey,
+  pickImage,
   slug,
   sortEquipment,
 } from "./normalize.mjs";
@@ -72,7 +75,11 @@ export function validateEntry(entry) {
 }
 
 /**
- * selection = {include: [{wgerId, name?, type?, muscleGroup?, equipment?, description?}], exclude: [{wgerId, reason?}]}
+ * selection = {
+ *   include: [{wgerId, name?, type?, muscleGroup?, equipment?, description?, measure?, image?: false | id}],
+ *   exclude: [{wgerId, reason?}],
+ *   custom?: [{bobitosId, name, type, muscleGroup, equipment, description, measure?}],
+ * }
  */
 export function buildCatalog({ candidates, selection, fetchedAt }) {
   const problems = [];
@@ -82,6 +89,7 @@ export function buildCatalog({ candidates, selection, fetchedAt }) {
   const excludedIds = new Set(exclude.map((e) => e.wgerId));
   const exercises = [];
   const seen = new Map();
+  const imageIds = {};
 
   for (const item of include) {
     const id = item.wgerId;
@@ -102,15 +110,45 @@ export function buildCatalog({ candidates, selection, fetchedAt }) {
       muscleGroup: item.muscleGroup ?? c.muscleGroup,
       description: item.description ?? c.description,
       equipment: sortEquipment(item.equipment ?? c.equipment),
+      measure: item.measure ?? "REPS",
       source: { ...c.source },
     };
+    const picked = pickImage(c.images ?? [], item.image);
+    if (picked.problem) problems.push(`wger ${id} (${name}): ${picked.problem}`);
+    entry.image = picked.image;
+    if (picked.imageId !== undefined) imageIds[entry.id] = picked.imageId;
     const errs = validateEntry(entry);
     if (errs.length) problems.push(`wger ${id} (${entry.name}): ${errs.join("; ")}`);
-    if (seen.has(entry.id)) problems.push(`slug repetido «${entry.id}» (wger ${seen.get(entry.id)} y ${id})`);
-    else seen.set(entry.id, id);
+    if (seen.has(entry.id)) problems.push(`slug repetido «${entry.id}» (${seen.get(entry.id)} y wger ${id})`);
+    else seen.set(entry.id, `wger ${id}`);
     if (item.type === undefined && (c.typeReason === "nombre" || c.typeReason === "defecto")) {
       warnings.push(`wger ${id} «${entry.name}»: tipo ${entry.type} inferido por «${c.typeReason}»`);
     }
+    exercises.push(entry);
+  }
+
+  const bobitosIds = new Set();
+  for (const item of selection.custom ?? []) {
+    const label = `ficha propia ${item.bobitosId} (${item.name})`;
+    if (!Number.isInteger(item.bobitosId) || item.bobitosId <= 0) {
+      problems.push(`${label}: bobitosId debe ser un entero > 0`);
+    } else if (bobitosIds.has(item.bobitosId)) problems.push(`${label}: bobitosId repetido`);
+    else bobitosIds.add(item.bobitosId);
+    const entry = {
+      id: slug(item.name ?? ""),
+      name: item.name,
+      type: item.type,
+      muscleGroup: item.muscleGroup,
+      description: item.description,
+      equipment: sortEquipment(item.equipment ?? []),
+      measure: item.measure ?? "REPS",
+      source: { provider: "bobitos", id: item.bobitosId, author: BOBITOS_AUTHOR, license: "CC-BY-SA-4.0" },
+      image: null,
+    };
+    const errs = validateEntry(entry);
+    if (errs.length) problems.push(`${label}: ${errs.join("; ")}`);
+    if (seen.has(entry.id)) problems.push(`slug repetido «${entry.id}» (${seen.get(entry.id)} y ${label})`);
+    else seen.set(entry.id, label);
     exercises.push(entry);
   }
 
@@ -128,6 +166,7 @@ export function buildCatalog({ candidates, selection, fetchedAt }) {
     catalog: { schemaVersion: 1, license: "CC-BY-SA-4.0", source: "https://wger.de", fetchedAt, exercises },
     problems,
     warnings,
+    imageIds,
   };
 }
 
@@ -147,6 +186,8 @@ export function scoreCandidate(c) {
   return score;
 }
 
+// Nombre del fichero de la miniatura, p. ej. «uuid.webp»: sirve de referencia corta.
+const imageName = (url) => url.split("/").pop().split(".")[0];
 const esc = (s) => String(s ?? "").replace(/\|/g, "\\|").replace(/\s*\n\s*/g, " ");
 const clip = (s, n) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
@@ -185,7 +226,8 @@ export function tally(items, key) {
   return [...countBy(items, key)].sort((a, b) => String(a[0]).localeCompare(String(b[0]), "es"));
 }
 
-export function renderReview(catalog, warnings = [], notes = [], excluded = []) {
+/** `imageIds`: id de wger de cada imagen elegida por entrada (solo para la revisión). */
+export function renderReview(catalog, warnings = [], notes = [], excluded = [], imageIds = {}) {
   const ex = catalog.exercises;
   const lines = ["# Revisión del catálogo de ejercicios", "", `${ex.length} ejercicios, obtenidos de wger el ${catalog.fetchedAt}.`, ""];
   for (const [title, key] of [
@@ -197,18 +239,33 @@ export function renderReview(catalog, warnings = [], notes = [], excluded = []) 
     for (const [k, n] of tally(ex, key)) lines.push(`- ${k}: ${n}`);
     lines.push("");
   }
+  const withImage = ex.filter((e) => e.image).length;
+  lines.push("## Imágenes", "", `${withImage} de ${ex.length} ejercicios con imagen.`, "");
+  lines.push(`- Medida en segundos: ${ex.filter((e) => e.measure === "SECONDS").length}`, "");
   if (warnings.length) lines.push("## Avisos", "", ...warnings.map((w) => `- ${w}`), "");
   if (notes.length) lines.push("## Notas", "", ...notes.map((n) => `- ${n}`), "");
   const byGroup = groupBy(ex, (e) => e.muscleGroup);
   const groups = [...byGroup.keys()].sort((a, b) => a.localeCompare(b, "es"));
   for (const g of groups) {
-    lines.push(`## ${g}`, "", "| Nombre | Tipo | Material | wger | Licencia · autor | Descripción |", "|---|---|---|---|---|---|");
+    lines.push(
+      `## ${g}`,
+      "",
+      "| Nombre | Tipo | Medida | Material | wger | Imagen | Licencia · autor | Descripción |",
+      "|---|---|---|---|---|---|---|---|",
+    );
     for (const e of byGroup.get(g)) {
+      const origin = e.source.url ? `[${e.source.id}](${e.source.url})` : "propia";
+      const image = e.image ? `[${imageIds[e.id] ?? imageName(e.image.url)}](${e.image.url}) · ${esc(e.image.author)} · ${e.image.license}` : "—";
       lines.push(
-        `| ${esc(e.name)} | ${e.type} | ${e.equipment.join(", ")} | [${e.source.id}](${e.source.url}) | ${e.source.license} · ${esc(e.source.author)} | ${esc(clip(e.description, 160))} |`,
+        `| ${esc(e.name)} | ${e.type} | ${e.measure ?? "REPS"} | ${e.equipment.join(", ")} | ${origin} | ${image} | ${e.source.license} · ${esc(e.source.author)} | ${esc(clip(e.description, 160))} |`,
       );
     }
     lines.push("");
+  }
+  const own = ex.filter((e) => e.source.provider === "bobitos");
+  if (own.length) {
+    lines.push("## Fichas propias (Catálogo Bobitos)", "");
+    for (const e of own) lines.push(`### ${e.name}`, "", `${e.type} · ${e.muscleGroup} · ${e.measure ?? "REPS"}`, "", e.description, "");
   }
   if (excluded.length) {
     lines.push("## Anexo: excluidos", "");

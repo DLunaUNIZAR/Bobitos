@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { toCandidate } from "../scripts/catalog/normalize.mjs";
-import { buildCatalog, validateEntry } from "../scripts/catalog/selection.mjs";
+import { buildCatalog, renderReview, validateEntry } from "../scripts/catalog/selection.mjs";
 
 const sample = JSON.parse(
   readFileSync(new URL("./fixtures/wger-exerciseinfo.sample.json", import.meta.url), "utf8"),
@@ -144,4 +144,75 @@ test("validateEntry acepta bobitos sin url con CC-BY-SA-4.0 y rechaza bobitos co
   const img = { url: "https://wger.de/media/a.png", license: "CC-BY-SA-4.0" };
   assert.ok(validateEntry({ ...own, image: img }).length > 0);
   assert.deepEqual(validateEntry({ ...own, image: null }), []);
+});
+
+const own = (over = {}) => ({
+  bobitosId: 1,
+  name: "Natación",
+  type: "CARDIO",
+  muscleGroup: "Cardio",
+  equipment: [],
+  description: "Nada a un ritmo cómodo y constante.\n\n• Respira con calma.",
+  ...over,
+});
+
+test("buildCatalog copia measure SECONDS y rechaza SECONDS en CARDIO", () => {
+  const r = run({ include: [{ wgerId: 257, measure: "SECONDS" }, { wgerId: 238 }], exclude: [] });
+  assert.deepEqual(r.problems, []);
+  const by = Object.fromEntries(r.catalog.exercises.map((e) => [e.source.id, e]));
+  assert.equal(by[257].measure, "SECONDS");
+  assert.equal(by[238].measure, "REPS");
+  assert.ok(run({ include: [{ wgerId: 257, type: "CARDIO", measure: "SECONDS" }], exclude: [] }).problems.length > 0);
+  assert.ok(run({ include: [{ wgerId: 257, measure: "MINUTES" }], exclude: [] }).problems.length > 0);
+});
+
+test("buildCatalog elige imagen: la primera, ninguna con false o la indicada; un id inexistente es problema", () => {
+  const img = (sel) => run({ include: [{ wgerId: 245, ...sel }], exclude: [] });
+  const first = img({}).catalog.exercises[0].image;
+  assert.equal(first.url, "https://wger.de/media/exercise-images/245/img30.png.400x400_q85.png");
+  assert.deepEqual(Object.keys(first), ["url", "author", "license"]);
+  assert.equal(img({ image: false }).catalog.exercises[0].image, null);
+  assert.ok(img({ image: 33 }).catalog.exercises[0].image.url.includes("img33"));
+  assert.ok(img({ image: 999 }).problems.length > 0);
+  assert.equal(run({ include: [{ wgerId: 254 }], exclude: [] }).catalog.exercises[0].image, null);
+});
+
+test("buildCatalog crea fichas propias con source bobitos sin url, measure explícita e image null", () => {
+  const r = run({ include: [{ wgerId: 257 }], exclude: [], custom: [own(), own({ bobitosId: 2, name: "Caminata" })] });
+  assert.deepEqual(r.problems, []);
+  const e = r.catalog.exercises.find((x) => x.id === "natacion");
+  assert.deepEqual(e.source, { provider: "bobitos", id: 1, author: "Catálogo Bobitos", license: "CC-BY-SA-4.0" });
+  assert.equal(e.measure, "REPS");
+  assert.equal(e.image, null);
+  assert.equal(e.type, "CARDIO");
+  assert.deepEqual(e.equipment, []);
+  assert.equal(r.catalog.exercises.length, 3);
+  const ids = r.catalog.exercises.map((x) => x.id);
+  assert.deepEqual(ids, [...ids].sort());
+  const t = run({ include: [], exclude: [], custom: [own({ type: "PESO_CORPORAL", measure: "SECONDS" })] });
+  assert.equal(t.catalog.exercises[0].measure, "SECONDS");
+});
+
+test("buildCatalog falla con bobitosId repetido o no entero, o con slug repetido entre wger y propias", () => {
+  const bad = (custom, include = []) => run({ include, exclude: [], custom }).problems;
+  assert.ok(bad([own(), own({ name: "Caminata" })]).length > 0);
+  for (const id of [0, -1, 1.5, "1", undefined]) assert.ok(bad([own({ bobitosId: id })]).length > 0, String(id));
+  assert.ok(bad([own({ name: "Sentadilla frontal" })], [{ wgerId: 257, name: "Sentadilla frontal" }]).length > 0);
+  assert.ok(bad([own({ name: "Natación" }), own({ bobitosId: 2, name: "Natacion" })]).length > 0);
+  assert.ok(bad([own({ type: "NOPE" })]).length > 0);
+});
+
+test("renderReview muestra medida, imagen con autor y licencia, y el texto completo de las fichas propias", () => {
+  const r = run({
+    include: [{ wgerId: 245, measure: "SECONDS" }, { wgerId: 254 }],
+    exclude: [],
+    custom: [own()],
+  });
+  const md = renderReview(r.catalog, r.warnings, [], [], r.imageIds);
+  assert.match(md, /\| Tipo \| Medida \| .*\| Imagen \|/);
+  assert.match(md, /\[30\]\(https:\/\/wger\.de\/media\/exercise-images\/245\/img30\.png\.400x400_q85\.png\) · Eva · CC-BY-SA-4\.0/);
+  assert.match(md, /SECONDS/);
+  assert.match(md, /## Imágenes\n\n1 de 3 ejercicios con imagen/);
+  assert.match(md, /## Fichas propias \(Catálogo Bobitos\)/);
+  assert.ok(md.includes("Nada a un ritmo cómodo y constante.\n\n• Respira con calma."));
 });

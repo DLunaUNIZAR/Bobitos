@@ -13,12 +13,18 @@
       "equipment": [
         "MAQUINA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1748,
         "author": "Tierrasverdes",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1748/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1748/923a3ff7-c269-49bd-9f03-697151a40f06.jpg.400x400_q85.jpg",
+        "author": "colaboradores de wger",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -30,12 +36,18 @@
       "equipment": [
         "MAQUINA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 12,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/12/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/12/4a42cc6f-648d-40cc-a72a-c49dd47e1667.webp.400x400_q85.png",
+        "author": "colaboradores de wger",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -45,13 +57,15 @@
       "muscleGroup": "Abdomen",
       "description": "Este ejercicio se enfoca en la resistencia de los abdominales inferiores y los flexores de la cadera. Aunque a veces se confunde con las \"tijeras\" (que son movimientos más amplios), el aleteo consiste en patadas cortas y rápidas.\n\nInstrucciones:\n\nAcuéstate boca arriba, con las piernas estiradas. Puedes colocar las manos debajo de los glúteos para dar soporte a la espalda baja.\n\nLevanta las piernas rectas del suelo unos 15 cm. Desde esa posición, realiza patadas verticales, cortas y rápidas de forma alterna, como el aleteo de un nadador. Es fundamental mantener la espalda baja presionada contra el suelo en todo momento.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 235,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/235/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "aperturas-con-mancuernas",
@@ -62,12 +76,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 238,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/238/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/238/2fc242d3-5bdd-4f97-99bd-678adb8c96fc.png.400x400_q85.jpg",
+        "author": "cshep442",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -80,13 +100,15 @@
         "MANCUERNAS",
         "BANCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 239,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/239/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "aperturas-con-mancuernas-en-banco-inclinado",
@@ -98,13 +120,15 @@
         "MANCUERNAS",
         "BANCO_INCLINADO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 308,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/308/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "aperturas-de-pecho-en-polea-sentado",
@@ -115,12 +139,18 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1922,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1922/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1922/eb750ee5-3220-4128-aef1-5e2f1ccff40a.webp.400x400_q85.jpg",
+        "author": "shushu",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -132,13 +162,15 @@
       "equipment": [
         "MAQUINA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 926,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/926/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "aperturas-en-polea-baja",
@@ -149,13 +181,15 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1270,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1270/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "aperturas-en-polea-para-el-pecho-inferior",
@@ -166,13 +200,15 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1691,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1691/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "aperturas-en-polea-para-el-pecho-superior",
@@ -183,13 +219,15 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1690,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1690/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "bicho-muerto",
@@ -198,13 +236,15 @@
       "muscleGroup": "Abdomen",
       "description": "Este es un ejercicio fundamental para el control y la estabilidad del core, enfocado en mantener la espalda baja segura mientras se mueven las extremidades.\n\nInstrucciones:\n\nAcuéstate boca arriba con las caderas y rodillas flexionadas a 90° (posición de \"mesa\") y los brazos extendidos rectos hacia el techo.\n\nLa regla de oro: Presiona tu espalda baja contra el suelo para eliminar cualquier espacio. Esta conexión debe mantenerse durante todo el ejercicio.\n\nDe forma lenta y controlada, baja tu brazo derecho y tu pierna izquierda simultáneamente, casi hasta tocar el suelo. Regresa a la posición inicial y alterna con el otro lado. Exhala profundamente a medida que extiendes las extremidades.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 178,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/178/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "bicicleta-estatica",
@@ -213,12 +253,18 @@
       "muscleGroup": "Cardio",
       "description": "Beneficios del Cardio en Bicicleta Estática El cardio en bicicleta estática es una excelente forma de ejercicio que ofrece múltiples beneficios para la salud y el bienestar. Aquí te detallo algunos de los más destacados: Mejora de la Salud Cardiovascular Fortalece el corazón: El ejercicio regular ayuda a mejorar la eficiencia del corazón y a reducir el riesgo de enfermedades cardiovasculares. Aumenta la circulación: Mejora el flujo sanguíneo, lo que puede ayudar a reducir la presión arterial. Quema de Calorías y Pérdida de Peso Eficiente para quemar calorías: Dependiendo de la intensidad, puedes quemar entre 400 y 600 calorías por hora. Ayuda en la pérdida de peso: Combinado con una dieta equilibrada, el cardio en bicicleta estática puede ser efectivo para perder peso. Fortalecimiento Muscular Tonifica las piernas: Trabaja principalmente los músculos de las piernas, incluyendo cuádriceps, isquiotibiales y pantorrillas. Mejora la resistencia muscular: Con el tiempo, puedes aumentar la resistencia y la fuerza en las piernas. Beneficios para la Salud Mental Reduce el estrés: El ejercicio libera endorfinas, que pueden mejorar tu estado de ánimo y reducir el estrés. Aumenta la energía: La actividad física regular puede aumentar tus niveles de energía y mejorar la calidad del sueño.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1618,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1618/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1618/c18baedc-ff98-4fb2-b4f5-38a05c12f637.png.400x400_q85.png",
+        "author": "colaboradores de wger",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -228,12 +274,18 @@
       "muscleGroup": "Abdomen",
       "description": "El Bird Dog es un ejercicio de estabilidad del core que mejora el equilibrio, la coordinación y la alineación de la columna. Es un movimiento de bajo impacto, ideal para fortalecer la cadena posterior y mejorar el control funcional general.\n\n• Colócate a cuatro patas con las manos bajo los hombros y las rodillas bajo las caderas, manteniendo la columna neutra.\n• Extiende el brazo derecho hacia delante y la pierna izquierda hacia atrás a la vez, manteniendo las caderas niveladas.\n• Haz una breve pausa en la extensión completa mientras activas el core y los glúteos.\n• Vuelve a la posición inicial y repite por el lado contrario",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1572,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1572/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1572/3d14e761-a73d-49da-8804-f3016a7573ff.png.400x400_q85.jpg",
+        "author": "Settebello",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -243,13 +295,31 @@
       "muscleGroup": "Cardio",
       "description": "El burpee es uno de los ejercicios de acondicionamiento metabólico más completos, combinando fuerza de empuje, potencia de piernas y alta exigencia cardiovascular.\n\nLa secuencia del movimiento completo es:\n\n• Agáchate y apoya las manos en el suelo.\n• Salta hacia atrás a una posición de plancha y realiza una flexión de pecho (el pecho toca el suelo).\n• Salta hacia adelante para volver a la posición de cuclillas.\n• Termina con un salto vertical explosivo, usualmente con un aplauso sobre la cabeza.\nEsa es una repetición. El ejercicio se realiza de forma continua y fluida.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 132,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/132/view/"
-      }
+      },
+      "image": null
+    },
+    {
+      "id": "caminata",
+      "name": "Caminata",
+      "type": "CARDIO",
+      "muscleGroup": "Cardio",
+      "description": "Caminar a paso ligero es una forma sencilla de hacer cardio y se adapta a casi cualquier nivel. Basta con unas zapatillas cómodas y un trayecto que puedas mantener durante todo el tiempo previsto.\n\nEmpieza andando despacio unos minutos y sube poco a poco hasta un ritmo en el que puedas hablar, pero no cantar. Mantén la mirada al frente, los hombros relajados y el pecho abierto. Los brazos se doblan en ángulo recto y se mueven de forma natural, acompañando el paso.\n\n• Apoya primero el talón y rueda el pie hasta empujar con la punta.\n• Respira de forma profunda y regular.\n• Termina con unos minutos a paso más lento.\n\nErrores comunes: dar zancadas demasiado largas, encorvarse mirando al suelo o llevar un calzado que no sujeta bien el pie.",
+      "equipment": [],
+      "measure": "REPS",
+      "source": {
+        "provider": "bobitos",
+        "id": 6,
+        "author": "Catálogo Bobitos",
+        "license": "CC-BY-SA-4.0"
+      },
+      "image": null
     },
     {
       "id": "ciclismo",
@@ -258,13 +328,15 @@
       "muscleGroup": "Cardio",
       "description": "El ciclismo es el uso de la bicicleta como ejercicio, transporte o deporte. Es una de las actividades cardiovasculares más completas y populares.\n\nDescripción:\n\nComo ejercicio, el ciclismo es una actividad de bajo impacto, ideal para la salud del corazón y para proteger las articulaciones (rodillas, tobillos). Fortalece principalmente el tren inferior del cuerpo: cuádriceps, isquiotibiales, glúteos y pantorrillas. Se puede practicar al aire libre (ciclismo de ruta o de montaña) o en interiores, utilizando una bicicleta estacionaria o en clases de spinning.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 177,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/177/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "cinta-de-correr",
@@ -273,12 +345,18 @@
       "muscleGroup": "Cardio",
       "description": "Es un entrenamiento cardiovascular que se realiza en una cinta de correr para mejorar la resistencia, quemar calorías y promover la salud del corazón. Ofrece múltiples beneficios, como la capacidad de ajustar fácilmente la velocidad e inclinación, lo que permite realizar diversos entrenamientos, desde caminatas en pendiente hasta carreras a intervalos de alta intensidad (HIIT) y carreras de tempo. Para optimizar los resultados, es importante variar los entrenamientos. Beneficios del cardio en cinta:\n\n• Mejora de la salud cardiovascular: El ejercicio aeróbico regular en la cinta fortalece el corazón y los pulmones, lo que puede ayudar a prevenir enfermedades cardíacas.\n• Pérdida de peso: Al quemar calorías, el entrenamiento en cinta puede ser una herramienta eficaz para la pérdida de peso y el mantenimiento de un peso saludable.\n• Fortalecimiento muscular: Fortalece los músculos de las piernas y glúteos, ayudando a prevenir la pérdida de masa muscular, especialmente importante con la edad.\n• Flexibilidad en el entrenamiento: Permite variar la velocidad, la inclinación y los intervalos, lo que hace que el entrenamiento sea más dinámico y adaptable a diferentes niveles de condición física.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1615,
         "author": "Tierrasverdes",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1615/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1615/7792295c-83b6-4ea8-9353-ce02f0ad2559.jpg.400x400_q85.jpg",
+        "author": "colaboradores de wger",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -290,12 +368,18 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 237,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/237/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/122/Incline-cable-flyes-1.png.400x400_q85.jpg",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -307,13 +391,15 @@
       "equipment": [
         "ESTERILLA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1933,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1933/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "crunch-bicicleta",
@@ -322,13 +408,15 @@
       "muscleGroup": "Abdomen",
       "description": "Los abdominales en bicicleta son un ejercicio para el core que se realiza en el suelo. Acuéstate de espaldas con las manos detrás de la cabeza y las piernas extendidas. Eleva los hombros del suelo, lleva una rodilla hacia el pecho y gira el torso para que el codo opuesto toque la rodilla. Alterna los lados en un movimiento de pedaleo, asegurándote de mantener el core comprometido durante todo el ejercicio.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1412,
         "author": "colaboradores de wger",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1412/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "crunch-con-peso",
@@ -339,12 +427,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1648,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1648/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1648/63ae02d6-6dd9-4e9e-84da-d4905e78a33c.jpg.400x400_q85.jpg",
+        "author": "AlucardEvil40",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -356,12 +450,18 @@
       "equipment": [
         "BANCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 171,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/171/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/56/Decline-crunch-1.png.400x400_q85.png",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -373,13 +473,15 @@
       "equipment": [
         "FITBALL"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 165,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/165/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "crunch-en-maquina",
@@ -390,13 +492,15 @@
       "equipment": [
         "MAQUINA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 172,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/172/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "crunch-en-polea",
@@ -407,13 +511,15 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 173,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/173/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "crunch-en-silla-romana",
@@ -422,13 +528,15 @@
       "muscleGroup": "Abdomen",
       "description": "Crunches en la silla romana. Mantén el torso recto y los abdominales contraídos, y no subas del todo hasta la vertical ni te tumbes completamente, para mantener una tensión constante en los abdominales.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 505,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/505/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "crunch-inverso",
@@ -437,13 +545,15 @@
       "muscleGroup": "Abdomen",
       "description": "• Túmbate\n• Coloca las manos cerca de los glúteos (a menudo ligeramente delante o debajo, o ambos)\n• Eleva las piernas, pero alrededor del 70 % del recorrido deberías poder elevar también la pelvis\n• (opcional/variable) Mantén 1/2 segundos en la parte superior\n• Vuelve a la posición inicial",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1772,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1772/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "cuerdas-de-batalla",
@@ -452,13 +562,15 @@
       "muscleGroup": "Cardio",
       "description": "• Sujeta los extremos de la cuerda con los brazos extendidos delante de las caderas, con las manos a la anchura de los hombros.\n• Activa el core y empieza a subir y bajar cada brazo de forma alterna y explosiva.\n• Sigue alternando los brazos durante tres o cuatro series de 1 a 2 minutos.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1524,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1524/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "curl-alterno-con-mancuernas",
@@ -469,12 +581,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1012,
         "author": "Franpol",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1012/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1012/8270fdb8-28f1-4eff-b410-af8642085b3f.png.400x400_q85.jpg",
+        "author": "Franpol",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -486,12 +604,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1567,
         "author": "admin",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1567/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1567/0a8c155c-a48e-47e8-9df3-e39f025c6cad.png.400x400_q85.png",
+        "author": "Mariano_O",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -503,12 +627,18 @@
       "equipment": [
         "BARRA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 91,
         "author": "admin",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/91/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/74/Bicep-curls-1.png.400x400_q85.png",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -520,12 +650,18 @@
       "equipment": [
         "BARRA_Z"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 94,
         "author": "wger.de, Franpol",
         "license": "CC-BY-SA-3.0",
         "url": "https://wger.de/es/exercise/94/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/94/6dee2f60-aea2-4f2d-9bf6-aef50c4f9483.png.400x400_q85.jpg",
+        "author": "Franpol",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -537,12 +673,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 92,
         "author": "wger.de, colundrum",
         "license": "CC-BY-SA-3.0",
         "url": "https://wger.de/es/exercise/92/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/81/Biceps-curl-1.png.400x400_q85.png",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -554,13 +696,15 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 202,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/202/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "curl-de-muneca-con-barra",
@@ -572,13 +716,15 @@
         "BARRA",
         "BANCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 2452,
         "author": "xWan",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/2452/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "curl-de-muneca-con-mancuernas",
@@ -589,13 +735,15 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1205,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1205/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "curl-de-muneca-inverso-con-barra",
@@ -607,13 +755,15 @@
         "BARRA",
         "BANCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 48,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/48/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "curl-en-banco-scott-a-un-brazo",
@@ -624,13 +774,15 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 584,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/584/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "curl-en-banco-scott-con-barra-z",
@@ -641,12 +793,18 @@
       "equipment": [
         "BARRA_Z"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 465,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/465/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/193/Preacher-curl-3-1.png.400x400_q85.png",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -658,12 +816,18 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 95,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/95/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/129/Standing-biceps-curl-1.png.400x400_q85.png",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -675,13 +839,33 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 912,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/912/view/"
-      }
+      },
+      "image": null
+    },
+    {
+      "id": "curl-femoral-de-pie",
+      "name": "Curl femoral de pie",
+      "type": "MAQUINA",
+      "muscleGroup": "Isquiotibiales",
+      "description": "Colócate de pie frente a la máquina, apoya el torso y las manos en las zonas indicadas y ajusta el rodillo de modo que quede sobre la parte baja de la pierna que vas a trabajar, justo por encima del tobillo. La otra pierna sostiene el peso del cuerpo.\n\nCon las caderas estables y la espalda neutra, flexiona la rodilla llevando el talón hacia el glúteo, sin mover el muslo. Aguanta un instante arriba y vuelve despacio a la posición inicial, sin dejar caer la carga.\n\n• Exhala al flexionar la rodilla e inhala al volver.\n• Trabaja una pierna cada vez y repite con la otra.\n• Elige un peso que permita controlar la bajada.\n\nErrores comunes: separar la cadera del apoyo, balancear el cuerpo para ganar impulso o hacer un recorrido muy corto.",
+      "equipment": [
+        "MAQUINA"
+      ],
+      "measure": "REPS",
+      "source": {
+        "provider": "bobitos",
+        "id": 4,
+        "author": "Catálogo Bobitos",
+        "license": "CC-BY-SA-4.0"
+      },
+      "image": null
     },
     {
       "id": "curl-femoral-sentado",
@@ -692,12 +876,18 @@
       "equipment": [
         "MAQUINA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 366,
         "author": "admin",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/366/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/117/seated-leg-curl-large-1.png.400x400_q85.jpg",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -709,12 +899,18 @@
       "equipment": [
         "MAQUINA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 364,
         "author": "BFad07, Franpol",
         "license": "CC0-1.0",
         "url": "https://wger.de/es/exercise/364/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/364/b318dde9-f5f2-489f-940a-cd864affb9e3.png.400x400_q85.png",
+        "author": "Franpol",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -726,13 +922,15 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 204,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/204/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "curl-inverso-con-barra",
@@ -743,12 +941,18 @@
       "equipment": [
         "BARRA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1290,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1290/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1290/c05818bf-1c81-46df-9f24-42e354265388.png.400x400_q85.jpg",
+        "author": "Franpol",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -760,12 +964,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 272,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/272/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/86/Bicep-hammer-curl-1.png.400x400_q85.png",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -775,13 +985,15 @@
       "muscleGroup": "Isquiotibiales",
       "description": "Este es uno de los mejores ejercicios para construir fuerza en los isquiotibiales (la parte posterior del muslo), mejorar la salud de las rodillas y prevenir lesiones, especialmente desgarros.\n\nInstrucciones:\n\nArrodíllate sobre una superficie cómoda y pide a un compañero que sujete firmemente tus tobillos, o asegúralos debajo de un objeto pesado y estable.\n\nManteniendo una línea recta desde las rodillas hasta la cabeza, inclínate hacia adelante, bajando tu torso de la forma más lenta y controlada posible. La fuerza para frenar la caída debe venir exclusivamente de tus isquiotibiales. Cuando ya no puedas resistir más, usa las manos para amortiguar la llegada al suelo.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 910,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/910/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "curl-zottman",
@@ -792,13 +1004,15 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1683,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1683/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "dominada-asistida-con-banda",
@@ -810,13 +1024,15 @@
         "BARRA_DOMINADAS",
         "BANDA_ELASTICA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1929,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1929/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "dominadas",
@@ -827,12 +1043,18 @@
       "equipment": [
         "BARRA_DOMINADAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 475,
         "author": "wger.de, Imobard",
         "license": "CC-BY-SA-3.0",
         "url": "https://wger.de/es/exercise/475/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/475/b0554016-16fd-4dbe-be47-a2a17d16ae0e.jpg.400x400_q85.jpg",
+        "author": "Imobard",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -844,13 +1066,15 @@
       "equipment": [
         "BARRA_DOMINADAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1695,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1695/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "dominadas-agarre-neutro",
@@ -861,13 +1085,33 @@
       "equipment": [
         "BARRA_DOMINADAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1696,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1696/view/"
-      }
+      },
+      "image": null
+    },
+    {
+      "id": "dominadas-con-lastre",
+      "name": "Dominadas con lastre",
+      "type": "PESO_CORPORAL",
+      "muscleGroup": "Espalda",
+      "description": "Es una variante exigente de la dominada: conviene dominar antes las dominadas con el propio peso corporal. Sujeta el lastre a un cinturón de dominadas, colgado a la altura de la cadera, o bien sujeto con una mancuerna entre los muslos.\n\nCuélgate de la barra con las manos algo más separadas que los hombros, los brazos estirados y los omóplatos activos. Tira del cuerpo hacia arriba llevando los codos hacia las costillas hasta que la barbilla supere la barra. Baja de forma controlada hasta estirar los brazos por completo.\n\n• Expulsa el aire al subir y tómalo al bajar.\n• Mantén el tronco firme y evita balancearte.\n• Sube el peso de forma gradual, sin perder la técnica.\n\nErrores comunes: usar impulso con las piernas, recorrer solo la mitad del movimiento o encoger los hombros hacia las orejas.",
+      "equipment": [
+        "BARRA_DOMINADAS"
+      ],
+      "measure": "REPS",
+      "source": {
+        "provider": "bobitos",
+        "id": 2,
+        "author": "Catálogo Bobitos",
+        "license": "CC-BY-SA-4.0"
+      },
+      "image": null
     },
     {
       "id": "dominadas-supinas",
@@ -878,12 +1122,18 @@
       "equipment": [
         "BARRA_DOMINADAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 152,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/152/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/152/6c1a7459-266d-491a-bd50-7cbaea2bc771.png.400x400_q85.png",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -893,13 +1143,15 @@
       "muscleGroup": "Abdomen",
       "description": "Mantén el cuerpo completamente rígido durante todo el movimiento, evitando que la zona lumbar se hunda. Utiliza un agarre firme para estabilizar la parte superior del cuerpo. Comienza con versiones más sencillas (como con las rodillas flexionadas) para desarrollar fuerza y control.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1409,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1409/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "elevacion-de-gemelos-a-dos-piernas",
@@ -908,12 +1160,18 @@
       "muscleGroup": "Gemelos",
       "description": "La elevación de talones a dos piernas es importante para fortalecer y crear control y estabilidad alrededor del tobillo y la rodilla, y para aportar equilibrio y control a la cadera y la pelvis.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1243,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1243/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1243/53d4fabe-c994-4907-873f-8d82813a9832.png.400x400_q85.jpg",
+        "author": "erikocobra",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -923,13 +1181,15 @@
       "muscleGroup": "Gemelos",
       "description": "• Ponte de pie en el suelo o en el borde de un escalón para aumentar el rango de movimiento.\n• Levanta un pie.\n• Eleva el talón hasta quedar de puntillas.\n• (variable) Permanece en esta posición durante tres segundos.\n• Baja lentamente el pie hasta casi tocar el suelo con el talón - ¡no dejes caer el pie de golpe!",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1203,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1203/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "elevacion-de-gemelos-de-pie",
@@ -938,13 +1198,37 @@
       "muscleGroup": "Gemelos",
       "description": "• Mire hacia la máquina y coloque las puntas de los pies en el borde más cercano del escalón con los pies paralelos entre sí.\n• Sumerja su cuerpo debajo de las hombreras y póngase de pie con el cuerpo completamente erguido.\n• Permita que sus talones caigan más abajo que el escalón hasta que sienta un estiramiento.\n• No permita que le bloqueen las rodillas. Movimiento hacia arriba\n• Ponga los dedos de los pies en punta para levantar los talones arriba.\n• Mantenga su cuerpo erguido y no mire hacia abajo ni se incline hacia adelante o hacia atrás. Movimiento descendente\n• Permita que sus talones vuelvan a caer a la posición inicial.\n• Mantenga su cuerpo completamente erguido y no rebote desde la posición más baja para comenzar el movimiento ascendente.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 622,
         "author": "admin",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/622/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/622/9a429bd0-afd3-4ad0-8043-e9beec901c81.jpeg.400x400_q85.jpg",
+        "author": "clafal",
+        "license": "CC-BY-SA-4.0"
       }
+    },
+    {
+      "id": "elevacion-de-gemelos-de-pie-en-maquina",
+      "name": "Elevación de gemelos de pie en máquina",
+      "type": "MAQUINA",
+      "muscleGroup": "Gemelos",
+      "description": "Ajusta la altura de los almohadillados para que descansen sobre los hombros con el cuerpo erguido. Coloca la parte delantera de los pies en el borde de la plataforma, con los talones libres y las rodillas casi estiradas, sin bloquearlas.\n\nDesde abajo, con los talones por debajo de la plataforma y los gemelos estirados, empuja con las puntas de los pies para subir tanto como puedas. Mantén un segundo arriba y baja despacio hasta notar de nuevo el estiramiento.\n\n• Haz el recorrido completo en cada repetición.\n• Mantén las rodillas en la misma posición todo el rato.\n• Respira de forma regular y no rebotes abajo.\n\nErrores comunes: usar demasiado peso y acortar el movimiento, doblar las rodillas para ayudarse o inclinar el tronco hacia delante.",
+      "equipment": [
+        "MAQUINA"
+      ],
+      "measure": "REPS",
+      "source": {
+        "provider": "bobitos",
+        "id": 3,
+        "author": "Catálogo Bobitos",
+        "license": "CC-BY-SA-4.0"
+      },
+      "image": null
     },
     {
       "id": "elevacion-de-gemelos-en-maquina-hack",
@@ -955,13 +1239,15 @@
       "equipment": [
         "MAQUINA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 148,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/148/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "elevacion-de-gemelos-en-prensa",
@@ -972,12 +1258,18 @@
       "equipment": [
         "MAQUINA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 146,
         "author": "admin",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/146/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/146/8b284904-d072-4381-a256-4c81d8fd9c1f.png.400x400_q85.jpg",
+        "author": "colaboradores de wger",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -987,13 +1279,15 @@
       "muscleGroup": "Gemelos",
       "description": "• Siéntese en la máquina y coloque las rodillas y los muslos debajo de las almohadillas.\n• Coloque las puntas de los pies en el borde más cercano del escalón con los pies paralelos entre sí.\n• Apunte ligeramente con los dedos de los pies para levantar las almohadillas de los muslos y quitar la barra de apoyo.\n• Permita que sus talones bajen más abajo que el escalón hasta que sienta un Movimiento hacia arriba\n• Ponga los dedos de los pies en punta para levantar los talones.\n• No tire de las asas ni incline el torso hacia atrás. Elevación de talón sentado Movimiento descendente estirar. Posición inicial\n• Permita que sus talones vuelvan a caer a la posición inicial.\n• Cuando complete el conjunto, mueva la barra de apoyo a su lugar.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 590,
         "author": "admin",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/590/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "elevacion-de-gemelos-sentado-con-mancuerna",
@@ -1004,12 +1298,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1620,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1620/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1620/edd40e39-e337-4460-a8dd-6127d40ddd16.jpeg.400x400_q85.jpg",
+        "author": "AlucardEvil40",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -1021,13 +1321,15 @@
       "equipment": [
         "DISCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 254,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/254/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "elevacion-frontal-en-polea-con-barra",
@@ -1038,12 +1340,18 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1745,
         "author": "Tierrasverdes",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1745/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1745/9c92843a-6b90-428b-a868-9af4b11bad38.jpg.400x400_q85.jpg",
+        "author": "colaboradores de wger",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -1055,12 +1363,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 348,
         "author": "admin",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/348/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/148/lateral-dumbbell-raises-large-2.png.400x400_q85.jpg",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -1072,12 +1386,18 @@
       "equipment": [
         "MAQUINA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1744,
         "author": "Tierrasverdes",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1744/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1744/cb9263c4-39fc-4261-8d30-a5d6d57841c1.jpg.400x400_q85.jpg",
+        "author": "colaboradores de wger",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -1089,13 +1409,15 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1882,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1882/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "elevaciones-de-piernas-colgado",
@@ -1106,13 +1428,15 @@
       "equipment": [
         "BARRA_DOMINADAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 283,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/283/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "elevaciones-de-piernas-tumbado",
@@ -1123,12 +1447,18 @@
       "equipment": [
         "ESTERILLA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 377,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/377/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/125/Leg-raises-2.png.400x400_q85.png",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -1140,13 +1470,15 @@
       "equipment": [
         "BARRA_DOMINADAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 978,
         "author": "clafal, colundrum",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/978/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "elevaciones-frontales-con-barra-o-mancuernas",
@@ -1158,12 +1490,18 @@
         "BARRA",
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 256,
         "author": "Manu, wikipedia, Franpol",
         "license": "CC-BY-SA-3.0",
         "url": "https://wger.de/es/exercise/256/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/256/b7def5bc-2352-499b-b9e5-fff741003831.png.400x400_q85.jpg",
+        "author": "philip",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -1173,13 +1511,15 @@
       "muscleGroup": "Cardio",
       "description": "La elíptica es una máquina de ejercicio cardiovascular estática que ofrece un entrenamiento de bajo impacto, ideal para proteger las articulaciones. Su movimiento simula una mezcla entre correr, caminar y subir escaleras, manteniendo los pies siempre apoyados en los pedales.\n\nSu uso mejora la tonificación muscular, fortalece las piernas (cuádriceps, glúteos, pantorrillas), favorece la vascularización y aumenta la resistencia cardiovascular. Además, la elíptica es una herramienta muy útil si tu objetivo es perder peso.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 962,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/962/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "empuje-de-trineo",
@@ -1188,13 +1528,15 @@
       "muscleGroup": "Cardio",
       "description": "• Carga el trineo con el 25 % de tu carga máxima. Si no la conoces, elige un peso que puedas empujar durante 10 minutos con pausas cortas. Los principiantes pueden empujar el trineo sin peso.\n• Colócate detrás del trineo y agarra las barras con una posición de manos alta.\n• Activa los músculos del core y empieza a empujar el trineo hacia delante lo más rápido posible, generando fuerza con toda la pierna. Extiende las caderas y las rodillas mientras desplazas el trineo hacia delante. Tu postura de pies debe parecerse a tu posición natural de carrera.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1523,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1523/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "encogimientos-de-hombros-con-barra",
@@ -1205,12 +1547,18 @@
       "equipment": [
         "BARRA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 571,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/571/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/150/Barbell-shrugs-1.png.400x400_q85.png",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -1222,12 +1570,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 572,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/572/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/151/Dumbbell-shrugs-2.png.400x400_q85.jpg",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -1237,13 +1591,15 @@
       "muscleGroup": "Cardio",
       "description": "La ClimbMill, también conocida como escaladora o máquina de subir escaleras, es una máquina de cardio que simula la acción de subir escaleras. Es una excelente forma de mejorar la resistencia y fortalecer la parte inferior del cuerpo. Para usarla, sube a los escalones en movimiento, mantén una postura erguida y usa las barras de apoyo solo si es necesario. Ajusta la velocidad e intensidad según tu nivel de condición física. Este ejercicio mejora la salud cardiovascular, quema calorías y aumenta la resistencia muscular.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1449,
         "author": "colaboradores de wger",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1449/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "extension-de-cuadriceps-a-una-pierna",
@@ -1254,13 +1610,15 @@
       "equipment": [
         "MAQUINA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 71,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/71/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "extension-de-cuadriceps-en-maquina",
@@ -1271,12 +1629,18 @@
       "equipment": [
         "MAQUINA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 369,
         "author": "BFad07, Franpol",
         "license": "CC0-1.0",
         "url": "https://wger.de/es/exercise/369/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/369/78c915d1-e46d-4d30-8124-65d68664c3ef.png.400x400_q85.jpg",
+        "author": "Franpol",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -1288,13 +1652,15 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1881,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1881/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "extension-de-triceps-a-un-brazo-en-polea",
@@ -1305,13 +1671,15 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1969,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1969/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "extension-de-triceps-con-barra-en-polea",
@@ -1322,13 +1690,15 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 660,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/660/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "extension-de-triceps-con-cuerda",
@@ -1339,12 +1709,18 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1185,
         "author": "Tierrasverdes",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1185/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1185/c5ca283d-8958-4fd8-9d59-a3f52a3ac66b.jpg.400x400_q85.jpg",
+        "author": "anto.kreegyr",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -1356,13 +1732,15 @@
       "equipment": [
         "MAQUINA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 661,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/661/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "extension-de-triceps-en-polea",
@@ -1373,12 +1751,18 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 659,
         "author": "wger.de, Franpol",
         "license": "CC-BY-SA-3.0",
         "url": "https://wger.de/es/exercise/659/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/659/a60452f1-e2ea-43fe-baa6-c1a2208d060c.png.400x400_q85.jpg",
+        "author": "Franpol",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -1390,13 +1774,15 @@
       "equipment": [
         "BARRA_Z"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1519,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1519/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "extension-de-triceps-por-encima-de-la-cabeza-con-mancuerna",
@@ -1407,12 +1793,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1336,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1336/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1336/ebf88217-df26-4ef7-94cb-f0c2220c6abe.webp.400x400_q85.png",
+        "author": "colaboradores de wger",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -1424,13 +1816,15 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1513,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1513/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "extension-de-triceps-tumbado",
@@ -1442,13 +1836,15 @@
         "BARRA",
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1480,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1480/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "face-pull",
@@ -1459,13 +1855,15 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 222,
         "author": "abeworld, Franpol",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/222/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "flexion-lateral-del-tronco-con-mancuerna",
@@ -1476,13 +1874,15 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 577,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/577/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "flexiones",
@@ -1491,12 +1891,18 @@
       "muscleGroup": "Pecho",
       "description": "La flexión es un ejercicio fundamental con peso corporal que trabaja el pecho, los brazos y los hombros, a la vez que trabaja el core para lograr estabilidad. No requiere equipo y es excelente para fortalecer la parte superior del cuerpo. Instrucciones:\n\n• Comience en posición de plancha con las manos colocadas ligeramente más anchas que el ancho de los hombros, los pies juntos y el cuerpo en línea recta desde la cabeza hasta los talones.\n• Contraiga el torso y baje el cuerpo flexionando los codos, manteniéndolos cerca del cuerpo o ligeramente separados.\n• Baje hasta que el pecho casi toque el suelo, manteniendo la columna neutra.\n• Empuje con las palmas de las manos para volver a la posición inicial, extendiendo completamente los brazos.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1551,
         "author": "Settebello",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1551/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1551/a6a9e561-3965-45c6-9f2b-ee671e1a3a45.png.400x400_q85.jpg",
+        "author": "Settebello",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -1508,12 +1914,18 @@
       "equipment": [
         "DISCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1902,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1902/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1902/d0c3f170-543c-4be4-bc70-5c6dc606406c.png.400x400_q85.jpg",
+        "author": "nishant0712",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -1525,12 +1937,18 @@
       "equipment": [
         "BANCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1112,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1112/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1112/81f40bee-4adf-4317-8476-1a87706e3031.png.400x400_q85.png",
+        "author": "anon1337",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -1540,13 +1958,15 @@
       "muscleGroup": "Pecho",
       "description": "Inicio: Colócate en posición de plancha. Coloca las manos juntas debajo del pecho de modo que los pulgares y los índices formen la figura de un diamante.\n\nBajada: Flexiona los codos para bajar el pecho hacia las manos. Mantén el cuerpo recto.\n\nEmpuje: Empuja hacia arriba hasta que los brazos queden completamente extendidos.\n\nNota: Mantén los codos cerca del cuerpo y el core activado.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 386,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/386/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "flexiones-inclinadas",
@@ -1557,13 +1977,15 @@
       "equipment": [
         "BANCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1111,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1111/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "fondos-en-banco",
@@ -1574,12 +1996,18 @@
       "equipment": [
         "BANCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 197,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/197/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/83/Bench-dips-1.png.400x400_q85.png",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -1589,12 +2017,18 @@
       "muscleGroup": "Pecho",
       "description": "Los fondos son un ejercicio fundamental con peso corporal para desarrollar fuerza de empuje, enfocándose en el pecho, los tríceps y los hombros. La forma en que se realiza determina qué músculo se lleva el mayor énfasis.\n\nInstrucciones\n\n• Posición: Sostén tu cuerpo sobre las barras paralelas con los brazos completamente extendidos.\n• Descenso: Flexiona los codos y baja tu cuerpo de forma controlada hasta que tus hombros queden ligeramente por debajo de tus codos, sintiendo un estiramiento en el pecho.\n• Ascenso: Empuja con fuerza para volver a la posición inicial hasta extender los brazos.\nPara enfocar en el pecho: Usa un agarre más ancho, inclina el torso hacia adelante durante el movimiento y permite que los codos se abran un poco. Para enfocar en los tríceps: Usa un agarre al ancho de los hombros, mantén el torso lo más vertical posible y los codos pegados al cuerpo.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 194,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/194/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/194/34600351-8b0b-4cb0-8daa-583537be15b0.png.400x400_q85.png",
+        "author": "cshep442",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -1606,12 +2040,18 @@
       "equipment": [
         "KETTLEBELL"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1193,
         "author": "admin",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1193/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1193/70ca5d80-3847-4a8c-8882-c6e9e485e29e.png.400x400_q85.png",
+        "author": "lion",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -1624,13 +2064,15 @@
         "BARRA",
         "BANCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 294,
         "author": "enros7500, Bret Contreras",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/294/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "hip-thrust-con-mancuerna",
@@ -1641,12 +2083,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1642,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1642/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1642/a81ad922-caf5-47f8-99b4-640cb0717436.webp.400x400_q85.jpg",
+        "author": "AlucardEvil40",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -1658,13 +2106,15 @@
       "equipment": [
         "BANCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1809,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1809/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "hiperextensiones-lumbares",
@@ -1673,12 +2123,18 @@
       "muscleGroup": "Espalda",
       "description": "Túmbate sobre el cojín de hiperextensiones con el ombligo en el borde delantero, dejando que la parte superior del cuerpo cuelgue libremente. Tensa todos los músculos de la espalda y eleva el torso hasta quedar en horizontal, pero no más alto. Desciende lentamente, manteniendo un flujo constante de los músculos.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 301,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/301/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/128/Hyperextensions-1.png.400x400_q85.png",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -1690,13 +2146,15 @@
       "equipment": [
         "ESTERILLA"
       ],
+      "measure": "SECONDS",
       "source": {
         "provider": "wger",
         "id": 297,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/297/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "jalon-al-pecho",
@@ -1707,13 +2165,15 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 355,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/355/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "jalon-al-pecho-a-un-brazo",
@@ -1724,13 +2184,15 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1972,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1972/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "jalon-al-pecho-con-agarre-ancho",
@@ -1741,13 +2203,15 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1702,
         "author": "Mariano_O",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1702/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "jalon-al-pecho-con-agarre-cerrado",
@@ -1758,12 +2222,18 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 158,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/158/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/158/0d51a0f2-622f-434b-beb8-1a003c54712a.png.400x400_q85.jpg",
+        "author": "Franpol",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -1775,12 +2245,18 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1136,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1136/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1136/5778a8e9-c606-4843-89c8-9d9469eeb6e4.PNG.400x400_q85.jpg",
+        "author": "Franpol",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -1792,13 +2268,15 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 684,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/684/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "jalon-con-brazos-rectos",
@@ -1809,13 +2287,15 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 628,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/628/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "jumping-jacks",
@@ -1824,13 +2304,15 @@
       "muscleGroup": "Cardio",
       "description": "Los saltos de tijera son un ejercicio pliométrico. Los pliométricos son movimientos aeróbicos explosivos que aumentan la velocidad, la rapidez y la potencia y trabajan todo el cuerpo. El salto de tijera se enfoca en el brazo, el hombro, los músculos abdominales, los músculos de la cadera y los flexores de la cadera y también trabaja en los muslos, los tendones de la rodilla y los cuádriceps. Los saltos son beneficiosos para la salud porque combinan el acondicionamiento cardiovascular con el trabajo de fuerza. Dado que los saltos elevan el ritmo cardíaco, también pueden mejorar la condición cardiovascular.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1314,
         "author": "hektkaso",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1314/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "l-sit",
@@ -1839,13 +2321,15 @@
       "muscleGroup": "Abdomen",
       "description": "Siéntate en el suelo con las piernas juntas y los brazos a los lados. Empuja tu cuerpo hacia arriba separándolo del suelo con las manos, manteniendo la misma posición de sentado para que las piernas queden rectas y los pies no toquen el suelo.\n\nMantén la posición el tiempo que necesites.",
       "equipment": [],
+      "measure": "SECONDS",
       "source": {
         "provider": "wger",
         "id": 1852,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1852/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "lenador-en-polea",
@@ -1856,13 +2340,15 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 145,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/145/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "limpiaparabrisas-colgado",
@@ -1873,13 +2359,15 @@
       "equipment": [
         "BARRA_DOMINADAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1743,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1743/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "maquina-de-esqui",
@@ -1888,13 +2376,15 @@
       "muscleGroup": "Cardio",
       "description": "• Comienza de pie sobre la plataforma con los pies a la anchura de las caderas.\n• Alcanza por encima de la cabeza para agarrar las empuñaduras con las palmas hacia dentro.\n• Flexiona ligeramente las rodillas, luego empuja simultáneamente el trasero hacia atrás como si cerraras una puerta detrás de ti mientras tiras de los brazos recto hacia abajo más allá de las caderas hasta que las manos pasen por el lateral de las rodillas.\n• A continuación, lleva los brazos de nuevo por encima de la cabeza mientras impulsas las caderas hacia delante hasta quedar de pie con los brazos completamente extendidos.\n• Repite por repeticiones, por tiempo o por distancia.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1526,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1526/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "montaneros",
@@ -1903,13 +2393,31 @@
       "muscleGroup": "Cardio",
       "description": "Posición inicial:\n\nComienza en la posición de flexión vertical o plancha alta.Las manos deben estar directamente debajo de los hombros.Mantenga la cabeza alineada con la espalda, mirando al suelo.Los pies deben estar separados a la anchura de las caderas.\n\nPasos:\n\n• Mueve una rodilla hacia el centro del cuerpo, hacia los codos, manteniendo la otra pierna extendida.\n• Con un movimiento rápido de salto, estira la pierna doblada y tira de la otra rodilla hacia tu cuerpo.\n• Sigue repitiendo el paso 2, alternando las piernas.\nNotas:\n\nDurante todo el ejercicio, la espalda debe permanecer lo más recta posible, evitando una joroba o una espalda flácida.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 996,
         "author": "Gabriel Tandil (imported from Feeel), Luis Alfredo Figueroa Bracamontes (imported from Feeel), Diego Sanguinetti (imported from Feeel), mondstern (imported from Feeel)",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/996/view/"
-      }
+      },
+      "image": null
+    },
+    {
+      "id": "natacion",
+      "name": "Natación",
+      "type": "CARDIO",
+      "muscleGroup": "Cardio",
+      "description": "Es un ejercicio cardiovascular de cuerpo completo y de bajo impacto para las articulaciones. Puedes alternar estilos, como crol, espalda o braza, según lo cómodo que te resulte cada uno.\n\nEmpieza con unos minutos de nado suave para entrar en calor. Después mantén un ritmo constante que te permita seguir respirando sin ahogo; si lo prefieres, alterna tramos más rápidos con otros de descanso. Termina con nado suave para recuperar.\n\n• Coordina la respiración con las brazadas y exhala dentro del agua.\n• Mantén el cuerpo alineado y las piernas cerca de la superficie.\n• Nada en una piscina vigilada y no lo hagas en solitario si no te sientes seguro.\n\nErrores comunes: salir demasiado fuerte y quedarse sin aire a los pocos minutos, aguantar la respiración o levantar mucho la cabeza al nadar.",
+      "equipment": [],
+      "measure": "REPS",
+      "source": {
+        "provider": "bobitos",
+        "id": 5,
+        "author": "Catálogo Bobitos",
+        "license": "CC-BY-SA-4.0"
+      },
+      "image": null
     },
     {
       "id": "pajaro-con-mancuernas",
@@ -1921,13 +2429,15 @@
         "MANCUERNAS",
         "BANCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 82,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/82/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "pajaro-con-mancuernas-en-banco-inclinado",
@@ -1939,12 +2449,18 @@
         "MANCUERNAS",
         "BANCO_INCLINADO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 828,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/828/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/828/2e959dab-f39b-4c7c-9063-eb43064ab5eb.png.400x400_q85.jpg",
+        "author": "cshep442",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -1956,13 +2472,15 @@
       "equipment": [
         "MAQUINA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1775,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1775/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "pajaro-en-polea",
@@ -1973,13 +2491,15 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1709,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1709/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "pallof-press",
@@ -1990,12 +2510,18 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1194,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1194/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1194/074e1766-4208-4a67-a211-9721772d99b0.png.400x400_q85.png",
+        "author": "prevail90",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2007,12 +2533,18 @@
       "equipment": [
         "BANDA_ELASTICA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1613,
         "author": "Tierrasverdes",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1613/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1613/a851fe9d-771f-44da-82f0-799e02ae3fd1.jpg.400x400_q85.jpg",
+        "author": "colaboradores de wger",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2024,12 +2556,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1616,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1616/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1616/97e6fd98-2ca6-486f-b9b2-f0499fe38044.jpg.400x400_q85.jpg",
+        "author": "colaboradores de wger",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2041,12 +2579,18 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1131,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1131/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1131/3bcf3024-2dcc-4995-9694-55aa2c2e4a9a.png.400x400_q85.jpg",
+        "author": "Franpol",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2058,13 +2602,15 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 655,
         "author": "Franpol, http://www.bodybuilding.com/",
         "license": "CC-BY-SA-3.0",
         "url": "https://wger.de/es/exercise/655/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "patada-de-triceps-en-polea",
@@ -2075,13 +2621,15 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1509,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1509/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "peso-muerto-a-una-pierna-con-mancuerna",
@@ -2092,12 +2640,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1736,
         "author": "Tierrasverdes",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1736/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1736/aa724cc5-c485-4f3e-9d2a-0c6ae4baefbe.png.400x400_q85.jpg",
+        "author": "Tierrasverdes",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2109,13 +2663,15 @@
       "equipment": [
         "BARRA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 189,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/189/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "peso-muerto-convencional",
@@ -2126,12 +2682,18 @@
       "equipment": [
         "BARRA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 184,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/184/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/184/1709c405-620a-4d07-9658-fade2b66a2df.jpeg.400x400_q85.jpg",
+        "author": "philip",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2143,13 +2705,15 @@
       "equipment": [
         "BARRA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 507,
         "author": "admin",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/507/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "peso-muerto-rumano-con-mancuernas",
@@ -2160,12 +2724,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1652,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1652/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1652/0306c8c0-70cc-45d4-92de-6fa72ceaa834.webp.400x400_q85.jpg",
+        "author": "AlucardEvil40",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2177,12 +2747,18 @@
       "equipment": [
         "BARRA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 630,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/630/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/630/b0f0c7d8-5878-4d9e-b820-21acc013741d.webp.400x400_q85.png",
+        "author": "colaboradores de wger",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2194,12 +2770,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1088,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1088/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1088/9f66b288-ce8f-4154-ba80-78fee267263c.jpg.400x400_q85.jpg",
+        "author": "philip",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2209,13 +2791,15 @@
       "muscleGroup": "Abdomen",
       "description": "La plancha es un ejercicio con el peso corporal. Como movimiento multifuncional, la plancha no solo trabaja tus abdominales, sino también la columna y la cadera. La plancha fortalece y tonifica todo tu cuerpo, mejora tu postura y tu equilibrio, reduce la grasa corporal y puede ayudar a acelerar tu metabolismo. Ejercicios como la «posición de plancha» ayudan a fortalecer la resistencia de los músculos abdominales estabilizadores. También puede ayudar a aliviar el dolor de espalda asociado a un debilitamiento de la función de los músculos estabilizadores del cuerpo. Las planchas son un ejercicio versátil que trabaja muchos de los grupos musculares más importantes del cuerpo, por lo que cualquier persona puede aplicarlas para mejorar la resistencia y la fuerza corporal general.",
       "equipment": [],
+      "measure": "SECONDS",
       "source": {
         "provider": "wger",
         "id": 1307,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1307/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "plancha-lateral",
@@ -2224,13 +2808,15 @@
       "muscleGroup": "Abdomen",
       "description": "• Acuéstese sobre su lado correspondiente, con el codo en ángulo recto y el brazo hacia afuera\n• Levante la pelvis del suelo levantando el hombro hacia arriba, manteniendo el antebrazo en el suelo; la cabeza, la pelvis y los pies deben estar en línea recta\n• Mantenga esta posición",
       "equipment": [],
+      "measure": "SECONDS",
       "source": {
         "provider": "wger",
         "id": 1019,
         "author": "Gabriel Tandil (imported from Feeel), Luis Alfredo Figueroa Bracamontes (imported from Feeel), Diego Sanguinetti (imported from Feeel), mondstern (imported from Feeel)",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1019/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "prensa-de-piernas",
@@ -2241,12 +2827,18 @@
       "equipment": [
         "MAQUINA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 371,
         "author": "BFad07, colundrum",
         "license": "CC0-1.0",
         "url": "https://wger.de/es/exercise/371/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/371/d2136f96-3a43-4d4c-9944-1919c4ca1ce1.webp.400x400_q85.png",
+        "author": "colaboradores de wger",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2258,12 +2850,18 @@
       "equipment": [
         "MAQUINA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 373,
         "author": "wger.de, Franpol",
         "license": "CC-BY-SA-3.0",
         "url": "https://wger.de/es/exercise/373/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/373/60e2aa21-1910-40d3-9fed-babfee06dd48.png.400x400_q85.jpg",
+        "author": "Franpol",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2275,13 +2873,15 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 20,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/20/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "press-de-banca",
@@ -2293,12 +2893,18 @@
         "BARRA",
         "BANCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 73,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/73/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/192/Bench-press-1.png.400x400_q85.png",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -2311,12 +2917,18 @@
         "BARRA",
         "BANCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 76,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/76/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/88/Narrow-grip-bench-press-1.png.400x400_q85.png",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -2328,13 +2940,15 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1228,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1228/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "press-de-banca-con-mancuernas",
@@ -2346,12 +2960,18 @@
         "MANCUERNAS",
         "BANCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 75,
         "author": "admin",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/75/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/97/Dumbbell-bench-press-1.png.400x400_q85.jpg",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -2364,13 +2984,15 @@
         "BARRA",
         "BANCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 445,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/445/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "press-de-banca-declinado-con-barra",
@@ -2382,12 +3004,18 @@
         "BARRA",
         "BANCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 185,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/185/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/100/Decline-bench-press-1.png.400x400_q85.jpg",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -2400,13 +3028,15 @@
         "MANCUERNAS",
         "BANCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 186,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/186/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "press-de-banca-inclinado",
@@ -2418,12 +3048,18 @@
         "BARRA",
         "BANCO_INCLINADO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 538,
         "author": "wger.de, Franpol",
         "license": "CC-BY-SA-3.0",
         "url": "https://wger.de/es/exercise/538/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/41/Incline-bench-press-1.png.400x400_q85.jpg",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -2436,12 +3072,18 @@
         "MANCUERNAS",
         "BANCO_INCLINADO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 537,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/537/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/16/Incline-press-1.png.400x400_q85.png",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -2453,13 +3095,15 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1968,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1968/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "press-de-hombros-con-mancuernas",
@@ -2470,12 +3114,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 478,
         "author": "Tierrasverdes",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/478/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/478/70a2d72c-a822-45f3-8de2-54ea85951b84.jpg.400x400_q85.jpg",
+        "author": "philip",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2487,12 +3137,18 @@
       "equipment": [
         "MAQUINA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 543,
         "author": "Tierrasverdes",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/543/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/53/Shoulder-press-machine-2.png.400x400_q85.png",
+        "author": "wger.de",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -2504,12 +3160,18 @@
       "equipment": [
         "MAQUINA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 129,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/129/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/129/b263c968-e067-4750-916a-d8758a7df23e.webp.400x400_q85.jpg",
+        "author": "roneydya",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2521,13 +3183,15 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1660,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1660/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "press-de-suelo-con-mancuernas",
@@ -2538,12 +3202,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1084,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1084/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1084/91dd5a95-1c45-46f2-a074-de41b6ad599b.jpg.400x400_q85.jpg",
+        "author": "colaboradores de wger",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2556,12 +3226,18 @@
         "BARRA_Z",
         "BANCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 246,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/246/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/84/Lying-close-grip-triceps-press-to-chin-1.png.400x400_q85.png",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -2574,13 +3250,15 @@
         "MANCUERNAS",
         "BANCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 245,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/245/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "press-hex-con-mancuernas",
@@ -2591,12 +3269,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1353,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1353/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1353/138cb483-7d4d-4519-b029-63e4269810a6.webp.400x400_q85.png",
+        "author": "colaboradores de wger",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2608,12 +3292,18 @@
       "equipment": [
         "BARRA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 418,
         "author": "mbozi1, Franpol",
         "license": "CC-BY-SA-3.0",
         "url": "https://wger.de/es/exercise/418/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/418/fa2a2207-43cb-4dc0-bc2a-039e32544790.png.400x400_q85.jpg",
+        "author": "Franpol",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2625,13 +3315,15 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1441,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1441/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "puente-de-gluteos",
@@ -2640,12 +3332,18 @@
       "muscleGroup": "Glúteos",
       "description": "Túmbate boca arriba con las caderas y las rodillas flexionadas y los pies en el suelo. Desde esta posición, eleva los glúteos del suelo hasta una altura en la que tu cuerpo forme una línea recta desde las rodillas hasta los hombros. Para hacer el ejercicio más intenso, puedes añadir peso dejando que una barra repose sobre tus caderas mientras realizas el movimiento, o puedes apoyar los pies sobre una superficie algo más elevada, como un escalón o un banco.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 265,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/265/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/265/7528acb4-b2cc-4b75-b6ae-d514cbd4f78b.png.400x400_q85.png",
+        "author": "colaboradores de wger",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2657,13 +3355,15 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1751,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1751/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "pullover-con-mancuerna",
@@ -2674,13 +3374,15 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 161,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/161/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "push-press",
@@ -2691,13 +3393,15 @@
       "equipment": [
         "BARRA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1440,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1440/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "remo-al-menton-con-barra-z",
@@ -2708,12 +3412,18 @@
       "equipment": [
         "BARRA_Z"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 693,
         "author": "admin",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/693/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/693/05c91bd2-7814-40b6-b2d1-51ae942b8321.png.400x400_q85.jpg",
+        "author": "colaboradores de wger",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2725,12 +3435,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 694,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/694/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/694/119e6823-6960-4341-a9e1-aaf78d7fb57c.png.400x400_q85.jpg",
+        "author": "cshep442",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2742,12 +3458,18 @@
       "equipment": [
         "BARRA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 83,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/83/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/109/Barbell-rear-delt-row-1.png.400x400_q85.jpg",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -2759,12 +3481,18 @@
       "equipment": [
         "BARRA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 84,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/84/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/110/Reverse-grip-bent-over-rows-1.png.400x400_q85.jpg",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -2777,12 +3505,18 @@
         "MANCUERNAS",
         "BANCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 81,
         "author": "sebk, colundrum",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/81/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/81/a751a438-ae2d-4751-8d61-cef0e9292174.png.400x400_q85.jpg",
+        "author": "Franpol",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2795,13 +3529,15 @@
         "MANCUERNAS",
         "BANCO_INCLINADO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 310,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/310/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "remo-en-maquina",
@@ -2812,12 +3548,18 @@
       "equipment": [
         "MAQUINA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1725,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1725/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1725/f0ebd44e-b8e1-400c-b598-ca371f3a07af.png.400x400_q85.jpg",
+        "author": "barry",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2829,12 +3571,18 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 394,
         "author": "wger.de, colundrum",
         "license": "CC-BY-SA-3.0",
         "url": "https://wger.de/es/exercise/394/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/143/Cable-seated-rows-2.png.400x400_q85.jpg",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -2846,13 +3594,33 @@
       "equipment": [
         "POLEA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 395,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/395/view/"
-      }
+      },
+      "image": null
+    },
+    {
+      "id": "remo-ergometro",
+      "name": "Remo ergómetro",
+      "type": "CARDIO",
+      "muscleGroup": "Cardio",
+      "description": "Siéntate en el ergómetro con los pies bien sujetos a los reposapiés y las correas ajustadas sobre el empeine. Agarra la barra con las manos separadas a la anchura de los hombros, la espalda recta y los brazos estirados.\n\nCada remada tiene cuatro fases: empuja primero con las piernas, inclina después el tronco hacia atrás y, solo al final, tira de la barra hasta la parte baja de las costillas. Para volver, estira los brazos, inclina el tronco hacia delante y deja que las piernas se doblen de forma gradual.\n\n• Haz que las piernas aporten la mayor parte del esfuerzo.\n• Mantén un ritmo regular y respira de forma continua.\n• Empieza con intensidad suave y sube poco a poco.\n\nErrores comunes: tirar solo con los brazos, encorvar la espalda o echar los hombros hacia delante al final de la remada.",
+      "equipment": [
+        "MAQUINA"
+      ],
+      "measure": "REPS",
+      "source": {
+        "provider": "bobitos",
+        "id": 1,
+        "author": "Catálogo Bobitos",
+        "license": "CC-BY-SA-4.0"
+      },
+      "image": null
     },
     {
       "id": "remo-invertido",
@@ -2861,12 +3629,18 @@
       "muscleGroup": "Espalda",
       "description": "Mantén el cuerpo recto, retrae las escápulas y lleva el pecho hacia la barra para un entrenamiento eficaz de la espalda y el tren superior.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1198,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1198/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1198/864906ac-4ac7-4e52-a886-c6bb97950a9f.jpg.400x400_q85.jpg",
+        "author": "Gavru",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2878,13 +3652,15 @@
       "equipment": [
         "BARRA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1304,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1304/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "remo-para-deltoides-posterior-con-mancuernas",
@@ -2895,13 +3671,15 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1227,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1227/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "remo-pendlay",
@@ -2912,13 +3690,15 @@
       "equipment": [
         "BARRA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 448,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/448/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "remo-unilateral-en-polea",
@@ -2930,12 +3710,18 @@
         "POLEA",
         "BANCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1621,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1621/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1621/ca1bc68d-9c36-4dd3-8ec4-496c57b5c564.jpg.400x400_q85.jpg",
+        "author": "technofer",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2945,12 +3731,18 @@
       "muscleGroup": "Cardio",
       "description": "• Trote en el lugar, con las rodillas tan altas como pueda y cambie de pierna a un ritmo rápido",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 983,
         "author": "Gabriel Tandil (imported from Feeel), Luis Alfredo Figueroa Bracamontes (imported from Feeel), Diego Sanguinetti (imported from Feeel), mondstern (imported from Feeel)",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/983/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/983/16245344-9957-4a24-8d61-f9939ed5f964.png.400x400_q85.png",
+        "author": "colaboradores de wger",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -2962,13 +3754,15 @@
       "equipment": [
         "BARRA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 41,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/41/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "rotacion-externa-de-hombro-con-mancuerna",
@@ -2979,13 +3773,15 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1715,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1715/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "rueda-abdominal",
@@ -2994,12 +3790,18 @@
       "muscleGroup": "Abdomen",
       "description": "• Posición inicial: Arrodíllate en el suelo con la rueda abdominal frente a ti.\n• Agarra la rueda: Sujeta los mangos con firmeza.\n• Despliega: Rueda lentamente hacia delante, extendiendo el cuerpo mientras mantienes el core apretado.\n• Regresa: Tira de la rueda de vuelta hacia las rodillas, manteniendo la tensión en el core.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1573,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1573/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1573/a9ab402b-61ef-4d60-b91a-df52bf7f41a9.jpg.400x400_q85.png",
+        "author": "colaboradores de wger",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -3009,13 +3811,15 @@
       "muscleGroup": "Cardio",
       "description": "Haz un único salto con ambos pies por cada giro de la cuerda.\n\nTrabaja un movimiento fluido y rítmico, rebotando ligeramente sobre las puntas de los pies.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 595,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/595/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "sentadilla-al-cajon",
@@ -3024,13 +3828,15 @@
       "muscleGroup": "Glúteos",
       "description": "Este ejercicio es una variante de la sentadilla tradicional que ayuda a mejorar la técnica, desarrollar potencia y asegurar que se alcanza la profundidad correcta en el movimiento.\n\nInstrucciones:\n\n• Prepara el cajón: Colócalo detrás de ti. Si vas a usar una barra, posiciona el cajón dentro de la jaula de sentadillas. Elige una altura que te permita bajar hasta que tus glúteos toquen suavemente el cajón, manteniendo la espalda recta (generalmente, con los muslos paralelos al suelo).\n• Adopta la postura correcta: Párate frente al cajón con los pies separados al ancho de los hombros y las puntas ligeramente hacia afuera. Activa el core y mantén la espalda en una posición neutral. Si usas barra, apóyala firmemente sobre la parte alta de tu espalda.\n• Baja de forma controlada: Inicia el movimiento empujando la cadera hacia atrás, como si te fueras a sentar en una silla. Baja lentamente hasta que tus glúteos hagan un contacto suave con el cajón. Es crucial que no te dejes caer; el descenso debe ser controlado.\n• Pausa y sube: Una vez sentado en el cajón, haz una breve pausa manteniendo la tensión en el core y la espalda recta. Desde esa posición, empuja firmemente a través de tus talones para volver a ponerte de pie de forma explosiva hasta la posición inicial.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 977,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/977/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "sentadilla-bulgara-con-mancuernas",
@@ -3041,12 +3847,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1706,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1706/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1706/0c5243cc-2539-4005-aee0-d3a8c5d3a32c.jfif.400x400_q85.jpg",
+        "author": "AlucardEvil40",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -3058,12 +3870,18 @@
       "equipment": [
         "DISCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 203,
         "author": "Tierrasverdes",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/203/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/203/1c052351-2af0-4227-aeb0-244008e4b0a8.jpeg.400x400_q85.jpg",
+        "author": "philip",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -3073,13 +3891,15 @@
       "muscleGroup": "Cuádriceps",
       "description": "La sentadilla es un tipo de ejercicio de peso corporal. Es uno de los ejercicios más populares para la fuerza y el crecimiento muscular. La sentadilla es particularmente efectiva para enfocarse en los músculos de la pierna y las caderas. Las sentadillas son un ejercicio fácil de hacer para los principiantes. Puede ayudar a fortalecer los músculos de las piernas, tensar los músculos de la cadera y quemar calorías para perder peso. Aprieta los glúteos y las piernas. Las sentadillas son muy efectivas para reafirmar y fortalecer las piernas al actuar sobre los glúteos, los flexores de la cadera, los cuádriceps, los isquiotibiales y los músculos internos del muslo. Además, las sentadillas con peso corporal pueden ayudar a dar forma a los glúteos.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1312,
         "author": "hektkaso",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1312/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "sentadilla-cosaca",
@@ -3088,13 +3908,15 @@
       "muscleGroup": "Glúteos",
       "description": "La sentadilla cosaca es un ejercicio multiarticular que trabaja principalmente las piernas y los glúteos, pero también involucra los músculos estabilizadores. Es un ejercicio excelente para mejorar la fuerza, la movilidad y la estabilidad de forma funcional.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1407,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1407/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "sentadilla-en-la-pared",
@@ -3103,13 +3925,15 @@
       "muscleGroup": "Glúteos",
       "description": "La sentadilla en pared (o silla en la pared) es un ejercicio isométrico que involucra principalmente los músculos de las piernas, mejorando la resistencia muscular y la estabilidad. Estos son los músculos principales y secundarios que se activan durante el ejercicio.",
       "equipment": [],
+      "measure": "SECONDS",
       "source": {
         "provider": "wger",
         "id": 1408,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1408/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "sentadilla-en-multipower",
@@ -3120,12 +3944,18 @@
       "equipment": [
         "MAQUINA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1747,
         "author": "Tierrasverdes",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1747/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1747/af9647dd-04ec-4adf-9c07-4e33edb77277.jpg.400x400_q85.jpg",
+        "author": "colaboradores de wger",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -3137,12 +3967,18 @@
       "equipment": [
         "BARRA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 257,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/257/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/191/Front-squat-1-857x1024.png.400x400_q85.png",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -3154,12 +3990,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1640,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1640/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1640/bdea82f1-15ef-4649-8b5a-1303cfc178e7.webp.400x400_q85.jpg",
+        "author": "AlucardEvil40",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -3171,13 +4013,15 @@
       "equipment": [
         "MAQUINA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1414,
         "author": "colaboradores de wger",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1414/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "sentadilla-pistol",
@@ -3186,13 +4030,15 @@
       "muscleGroup": "Cuádriceps",
       "description": "• Párese en una pierna, con la otra pierna estirada y ligeramente hacia adelante.\n• Doble una rodilla lentamente, bajando en sentadilla y manteniendo la espalda y la otra pierna estirada.\n• Levántese lentamente de la sentadilla, enderezando la rodilla doblada y manteniendo la otra pierna recta.\n• Repita",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1020,
         "author": "Gabriel Tandil (imported from Feeel), Luis Alfredo Figueroa Bracamontes (imported from Feeel), Diego Sanguinetti (imported from Feeel), mondstern (imported from Feeel)",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1020/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "sentadilla-split-en-maquina-smith",
@@ -3203,13 +4049,15 @@
       "equipment": [
         "MAQUINA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1593,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1593/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "sentadilla-sumo-con-barra",
@@ -3220,13 +4068,15 @@
       "equipment": [
         "BARRA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 632,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/632/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "sentadilla-trasera-con-barra",
@@ -3237,13 +4087,15 @@
       "equipment": [
         "BARRA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 615,
         "author": "Diego Sanguinetti (imported from Feeel), Luis Alfredo Figueroa Bracamontes (imported from Feeel), wger.de, Gabriel Tandil (imported from Feeel), mondstern (imported from Feeel)",
         "license": "CC-BY-SA-3.0",
         "url": "https://wger.de/es/exercise/615/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "stairmaster",
@@ -3252,13 +4104,15 @@
       "muscleGroup": "Cardio",
       "description": "Una máquina de cardio y fuerza para el tren inferior diseñada para simular la subida de escaleras. Ofrece un entrenamiento de bajo impacto y alta intensidad que trabaja las piernas, los glúteos y el core, a la vez que mejora la resistencia cardiovascular.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1548,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1548/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "subida-al-banco",
@@ -3269,13 +4123,15 @@
       "equipment": [
         "BANCO"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 981,
         "author": "Gabriel Tandil (imported from Feeel), Luis Alfredo Figueroa Bracamontes (imported from Feeel), Diego Sanguinetti (imported from Feeel), mondstern (imported from Feeel)",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/981/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "superman",
@@ -3286,13 +4142,15 @@
       "equipment": [
         "ESTERILLA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 636,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/636/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "swing-con-kettlebell",
@@ -3303,13 +4161,15 @@
       "equipment": [
         "KETTLEBELL"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 331,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/331/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "tijeras-abdominales",
@@ -3318,13 +4178,15 @@
       "muscleGroup": "Abdomen",
       "description": "Las tijeras son un ejercicio abdominal que fortalece el transverso abdominal, ayudando a aplanar el vientre y a fortalecer todo el core. Las tijeras no solo son un movimiento de fuerza para el core, sino que también son un gran estiramiento para los isquiotibiales y la zona lumbar. Todo el mundo busca nuevas formas de trabajar el core, aplanar el vientre y mejorar la flexibilidad. Si aprendes a hacer las tijeras, lo tendrás todo reunido en un solo movimiento.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 545,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/545/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "toes-to-bar",
@@ -3335,13 +4197,15 @@
       "equipment": [
         "BARRA_DOMINADAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1529,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1529/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "toques-de-talon",
@@ -3350,13 +4214,15 @@
       "muscleGroup": "Abdomen",
       "description": "• Posición inicial:\n• Acuéstate de espaldas sobre una esterilla de ejercicio.\n• Flexiona las rodillas, manteniendo los pies planos en el suelo y separados al ancho de las caderas.\n• Coloca los brazos a lo largo de los costados, con las palmas hacia adentro, apenas despegados del suelo.\n• Activa el core:\n• Eleva ligeramente la cabeza, los hombros y la parte superior de la espalda del suelo.\n• Mantén el cuello en una posición neutral y la barbilla ligeramente hacia adentro.\n• Realiza el movimiento:\n• Inclínate hacia la derecha, llevando tu mano derecha hacia tu talón derecho.\n• Vuelve al centro y luego inclínate hacia la izquierda, llevando tu mano izquierda hacia tu talón izquierdo.\n• Continúa alternando lados de manera controlada.\n• Respiración:\n• Exhala al alcanzar el talón e inhala al regresar al centro.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1411,
         "author": "colaboradores de wger",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1411/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "zancada-con-peso-corporal",
@@ -3365,13 +4231,15 @@
       "muscleGroup": "Cuádriceps",
       "description": "Las zancadas con el peso corporal son un ejercicio de calistenia eficaz para fortalecer el tren inferior, mejorar el equilibrio y la estabilidad, y desarrollar fuerza funcional. Son una opción popular para los entrenamientos con el peso corporal, los entrenamientos en casa, y también pueden incluirse como parte de una rutina de entrenamiento de fuerza más amplia.",
       "equipment": [],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1324,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1324/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "zancada-hacia-atras-con-barra",
@@ -3382,12 +4250,18 @@
       "equipment": [
         "BARRA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1830,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1830/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1830/3b6c547c-ab3d-4472-93cf-561710279eab.jpg.400x400_q85.jpg",
+        "author": "hans",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -3399,12 +4273,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 1651,
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1651/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/1651/04ab2679-a04d-4d05-9c85-0d36e898328c.webp.400x400_q85.jpg",
+        "author": "AlucardEvil40",
+        "license": "CC-BY-SA-4.0"
       }
     },
     {
@@ -3416,13 +4296,15 @@
       "equipment": [
         "BARRA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 802,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/802/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "zancadas-caminando-con-mancuernas",
@@ -3433,12 +4315,18 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 206,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/206/view/"
+      },
+      "image": {
+        "url": "https://wger.de/media/exercise-images/113/Walking-lunges-1.png.400x400_q85.jpg",
+        "author": "Everkinetic",
+        "license": "CC-BY-SA-3.0"
       }
     },
     {
@@ -3450,13 +4338,15 @@
       "equipment": [
         "BARRA"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 46,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/46/view/"
-      }
+      },
+      "image": null
     },
     {
       "id": "zancadas-con-mancuernas",
@@ -3467,13 +4357,15 @@
       "equipment": [
         "MANCUERNAS"
       ],
+      "measure": "REPS",
       "source": {
         "provider": "wger",
         "id": 205,
         "author": "wgerjhn",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/205/view/"
-      }
+      },
+      "image": null
     }
   ]
 }

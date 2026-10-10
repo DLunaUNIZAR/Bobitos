@@ -284,6 +284,45 @@ function stripEmail(value) {
     .trim();
 }
 
+function wgerAuthor(history, licenseAuthor) {
+  const names = [...new Set((history ?? []).map(stripEmail).filter(Boolean))];
+  return names.length > 0 ? names.join(", ") : stripEmail(licenseAuthor) || "colaboradores de wger";
+}
+
+/**
+ * Imágenes enlazables de un ejercicio de wger: no generadas por IA, con miniatura medium en wger.de/media
+ * y licencia admitida. Primero las principales y después por id.
+ */
+export function imageCandidates(info) {
+  const out = [];
+  for (const im of info.images ?? []) {
+    const url = im.thumbnails?.medium;
+    const license = LICENSES[im.license];
+    if (im.is_ai_generated !== false || typeof url !== "string" || !url.startsWith(WGER_MEDIA_PREFIX) || !license) {
+      continue;
+    }
+    out.push({
+      id: im.id,
+      url,
+      author: wgerAuthor(im.author_history, im.license_author).slice(0, 200),
+      license,
+      isMain: im.is_main === true,
+    });
+  }
+  return out.sort((a, b) => Number(b.isMain) - Number(a.isMain) || a.id - b.id);
+}
+
+/** Devuelve `{image, imageId?, problem?}`. `override`: undefined = la primera, false = ninguna, número = esa imagen. */
+export function pickImage(images, override) {
+  if (override === false) return { image: null };
+  if (override === undefined) return images.length > 0 ? toImage(images[0]) : { image: null };
+  const found = images.find((c) => c.id === override);
+  if (!found) return { image: null, problem: `imagen ${override} no existe entre las candidatas` };
+  return toImage(found);
+}
+
+const toImage = ({ id, url, author, license }) => ({ image: { url, author, license }, imageId: id });
+
 export function toCandidate(info) {
   const wgerId = info.id;
   const spanish = (info.translations ?? []).filter((t) => t.language === SPANISH);
@@ -323,6 +362,7 @@ export function toCandidate(info) {
       description: truncateText(text, 1500),
       equipment,
       source: { provider: "wger", id: wgerId, author, license, url: wgerExerciseUrl(wgerId) },
+      images: imageCandidates(info),
       flags,
     },
   };

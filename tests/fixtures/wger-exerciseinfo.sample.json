@@ -74,6 +74,38 @@
           "wgerjhn"
         ]
       }
+    ],
+    "images": [
+      {
+        "id": 10,
+        "exercise": 257,
+        "image": "https://wger.de/media/exercise-images/257/img10.png",
+        "thumbnails": {
+          "small": "https://wger.de/media/exercise-images/257/img10.png.200x200_q85.png",
+          "medium": "https://wger.de/media/exercise-images/257/img10.png.400x400_q85.png"
+        },
+        "is_main": true,
+        "license": 2,
+        "license_author": "",
+        "author_history": [],
+        "is_ai_generated": true
+      },
+      {
+        "id": 11,
+        "exercise": 257,
+        "image": "https://wger.de/media/exercise-images/257/img11.png",
+        "thumbnails": {
+          "small": "https://wger.de/media/exercise-images/257/img11.png.200x200_q85.png",
+          "medium": "https://wger.de/media/exercise-images/257/img11.png.400x400_q85.png"
+        },
+        "is_main": false,
+        "license": 2,
+        "license_author": "Ana <ana@x.com>",
+        "author_history": [
+          "Ana <ana@x.com>"
+        ],
+        "is_ai_generated": false
+      }
     ]
   },
   {
@@ -143,6 +175,47 @@
         "author_history": [
           "wger.de"
         ]
+      }
+    ],
+    "images": [
+      {
+        "id": 20,
+        "exercise": 238,
+        "image": "https://wger.de/media/exercise-images/238/img20.png",
+        "thumbnails": {},
+        "is_main": true,
+        "license": 2,
+        "license_author": "",
+        "author_history": [],
+        "is_ai_generated": false
+      },
+      {
+        "id": 21,
+        "exercise": 238,
+        "image": "https://wger.de/media/exercise-images/238/img21.png",
+        "thumbnails": {
+          "small": "https://wger.de/media/exercise-images/238/img21.png.200x200_q85.png",
+          "medium": "https://wger.de/media/exercise-images/238/img21.png.400x400_q85.png"
+        },
+        "is_main": false,
+        "license": 5,
+        "license_author": "Luis",
+        "author_history": [],
+        "is_ai_generated": false
+      },
+      {
+        "id": 22,
+        "exercise": 238,
+        "image": "https://wger.de/media/exercise-images/238/img22.png",
+        "thumbnails": {
+          "small": "https://wger.de/media/exercise-images/238/img22.png.200x200_q85.png",
+          "medium": "https://wger.de/media/exercise-images/238/img22.png.400x400_q85.png"
+        },
+        "is_main": false,
+        "license": 2,
+        "license_author": "Luis",
+        "author_history": [],
+        "is_ai_generated": false
       }
     ]
   },
@@ -217,6 +290,50 @@
         "author_history": [
           "wger.de"
         ]
+      }
+    ],
+    "images": [
+      {
+        "id": 33,
+        "exercise": 245,
+        "image": "https://wger.de/media/exercise-images/245/img33.png",
+        "thumbnails": {
+          "small": "https://wger.de/media/exercise-images/245/img33.png.200x200_q85.png",
+          "medium": "https://wger.de/media/exercise-images/245/img33.png.400x400_q85.png"
+        },
+        "is_main": false,
+        "license": 2,
+        "license_author": "",
+        "author_history": [],
+        "is_ai_generated": false
+      },
+      {
+        "id": 31,
+        "exercise": 245,
+        "image": "https://wger.de/media/exercise-images/245/img31.png",
+        "thumbnails": {
+          "small": "https://wger.de/media/exercise-images/245/img31.png.200x200_q85.png",
+          "medium": "https://wger.de/media/exercise-images/245/img31.png.400x400_q85.png"
+        },
+        "is_main": true,
+        "license": 2,
+        "license_author": "Eva",
+        "author_history": [],
+        "is_ai_generated": false
+      },
+      {
+        "id": 30,
+        "exercise": 245,
+        "image": "https://wger.de/media/exercise-images/245/img30.png",
+        "thumbnails": {
+          "small": "https://wger.de/media/exercise-images/245/img30.png.200x200_q85.png",
+          "medium": "https://wger.de/media/exercise-images/245/img30.png.400x400_q85.png"
+        },
+        "is_main": true,
+        "license": 2,
+        "license_author": "Eva",
+        "author_history": [],
+        "is_ai_generated": false
       }
     ]
   },
@@ -298,6 +415,22 @@
         "author_history": [
           "wger.de"
         ]
+      }
+    ],
+    "images": [
+      {
+        "id": 40,
+        "exercise": 211,
+        "image": "https://wger.de/media/exercise-images/211/img40.png",
+        "thumbnails": {
+          "small": "https://wger.de/media/exercise-images/211/img40.png.200x200_q85.png",
+          "medium": "https://wger.de/media/exercise-images/211/img40.png.400x400_q85.png"
+        },
+        "is_main": true,
+        "license": 1,
+        "license_author": "",
+        "author_history": [],
+        "is_ai_generated": false
       }
     ]
   },

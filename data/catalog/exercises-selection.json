@@ -1,8 +1,9 @@
 {
   "notes": [
-    "Imprescindibles que wger no ofrece en español y que no se han inventado: ergómetro de remo (cardio), dominadas con lastre, sentadilla trasera con ficha propia (se usa la ficha genérica «Sentadillas», id 615), extensión/elevación de gemelos de pie en máquina específica, curl femoral de pie, natación y caminata como cardio.",
+    "Imprescindibles que wger no ofrece en español y que no se han inventado: se redactan como fichas propias (Catálogo Bobitos, CC BY-SA 4.0): ergómetro de remo, dominadas con lastre, elevación de gemelos de pie en máquina, curl femoral de pie, natación y caminata. La sentadilla trasera usa la ficha genérica «Sentadillas» (id 615).",
     "Revisión humana pendiente: «Sentadilla trasera con barra» (id 615) usa una descripción genérica que no menciona la barra; «Press de banca inclinado» (id 538) tiene una descripción muy breve.",
-    "Los ejercicios del grupo «Antebrazos» proceden de la categoría Brazos de wger; «Sentadilla con disco» usa la ficha de wger con ese mismo nombre (id 203)."
+    "Los ejercicios del grupo «Antebrazos» proceden de la categoría Brazos de wger; «Sentadilla con disco» usa la ficha de wger con ese mismo nombre (id 203).",
+    "Imágenes: por defecto la primera no generada por IA (principales primero, luego por id); se quita con «image»: false o se cambia con «image»: <id de imagen>. «measure»: «SECONDS» marca los isométricos que se miden por tiempo; el resto son REPS."
   ],
   "include": [
     {
@@ -631,7 +632,8 @@
     {
       "wgerId": 1408,
       "name": "Sentadilla en la pared",
-      "type": "PESO_CORPORAL"
+      "type": "PESO_CORPORAL",
+      "measure": "SECONDS"
     },
     {
       "wgerId": 981,
@@ -872,7 +874,8 @@
     {
       "wgerId": 1852,
       "name": "L-sit",
-      "type": "PESO_CORPORAL"
+      "type": "PESO_CORPORAL",
+      "measure": "SECONDS"
     },
     {
       "wgerId": 1743,
@@ -885,17 +888,20 @@
     {
       "wgerId": 1307,
       "name": "Plancha",
-      "type": "PESO_CORPORAL"
+      "type": "PESO_CORPORAL",
+      "measure": "SECONDS"
     },
     {
       "wgerId": 1019,
       "name": "Plancha lateral",
-      "type": "PESO_CORPORAL"
+      "type": "PESO_CORPORAL",
+      "measure": "SECONDS"
     },
     {
       "wgerId": 297,
       "name": "Hollow hold",
-      "type": "PESO_CORPORAL"
+      "type": "PESO_CORPORAL",
+      "measure": "SECONDS"
     },
     {
       "wgerId": 178,
@@ -1127,6 +1133,70 @@
     {
       "wgerId": 1579,
       "reason": "Rutina no estándar"
+    }
+  ],
+  "custom": [
+    {
+      "bobitosId": 1,
+      "name": "Remo ergómetro",
+      "type": "CARDIO",
+      "muscleGroup": "Cardio",
+      "equipment": [
+        "MAQUINA"
+      ],
+      "description": "Siéntate en el ergómetro con los pies bien sujetos a los reposapiés y las correas ajustadas sobre el empeine. Agarra la barra con las manos separadas a la anchura de los hombros, la espalda recta y los brazos estirados.\n\nCada remada tiene cuatro fases: empuja primero con las piernas, inclina después el tronco hacia atrás y, solo al final, tira de la barra hasta la parte baja de las costillas. Para volver, estira los brazos, inclina el tronco hacia delante y deja que las piernas se doblen de forma gradual.\n\n• Haz que las piernas aporten la mayor parte del esfuerzo.\n• Mantén un ritmo regular y respira de forma continua.\n• Empieza con intensidad suave y sube poco a poco.\n\nErrores comunes: tirar solo con los brazos, encorvar la espalda o echar los hombros hacia delante al final de la remada.",
+      "measure": "REPS"
+    },
+    {
+      "bobitosId": 2,
+      "name": "Dominadas con lastre",
+      "type": "PESO_CORPORAL",
+      "muscleGroup": "Espalda",
+      "equipment": [
+        "BARRA_DOMINADAS"
+      ],
+      "description": "Es una variante exigente de la dominada: conviene dominar antes las dominadas con el propio peso corporal. Sujeta el lastre a un cinturón de dominadas, colgado a la altura de la cadera, o bien sujeto con una mancuerna entre los muslos.\n\nCuélgate de la barra con las manos algo más separadas que los hombros, los brazos estirados y los omóplatos activos. Tira del cuerpo hacia arriba llevando los codos hacia las costillas hasta que la barbilla supere la barra. Baja de forma controlada hasta estirar los brazos por completo.\n\n• Expulsa el aire al subir y tómalo al bajar.\n• Mantén el tronco firme y evita balancearte.\n• Sube el peso de forma gradual, sin perder la técnica.\n\nErrores comunes: usar impulso con las piernas, recorrer solo la mitad del movimiento o encoger los hombros hacia las orejas.",
+      "measure": "REPS"
+    },
+    {
+      "bobitosId": 3,
+      "name": "Elevación de gemelos de pie en máquina",
+      "type": "MAQUINA",
+      "muscleGroup": "Gemelos",
+      "equipment": [
+        "MAQUINA"
+      ],
+      "description": "Ajusta la altura de los almohadillados para que descansen sobre los hombros con el cuerpo erguido. Coloca la parte delantera de los pies en el borde de la plataforma, con los talones libres y las rodillas casi estiradas, sin bloquearlas.\n\nDesde abajo, con los talones por debajo de la plataforma y los gemelos estirados, empuja con las puntas de los pies para subir tanto como puedas. Mantén un segundo arriba y baja despacio hasta notar de nuevo el estiramiento.\n\n• Haz el recorrido completo en cada repetición.\n• Mantén las rodillas en la misma posición todo el rato.\n• Respira de forma regular y no rebotes abajo.\n\nErrores comunes: usar demasiado peso y acortar el movimiento, doblar las rodillas para ayudarse o inclinar el tronco hacia delante.",
+      "measure": "REPS"
+    },
+    {
+      "bobitosId": 4,
+      "name": "Curl femoral de pie",
+      "type": "MAQUINA",
+      "muscleGroup": "Isquiotibiales",
+      "equipment": [
+        "MAQUINA"
+      ],
+      "description": "Colócate de pie frente a la máquina, apoya el torso y las manos en las zonas indicadas y ajusta el rodillo de modo que quede sobre la parte baja de la pierna que vas a trabajar, justo por encima del tobillo. La otra pierna sostiene el peso del cuerpo.\n\nCon las caderas estables y la espalda neutra, flexiona la rodilla llevando el talón hacia el glúteo, sin mover el muslo. Aguanta un instante arriba y vuelve despacio a la posición inicial, sin dejar caer la carga.\n\n• Exhala al flexionar la rodilla e inhala al volver.\n• Trabaja una pierna cada vez y repite con la otra.\n• Elige un peso que permita controlar la bajada.\n\nErrores comunes: separar la cadera del apoyo, balancear el cuerpo para ganar impulso o hacer un recorrido muy corto.",
+      "measure": "REPS"
+    },
+    {
+      "bobitosId": 5,
+      "name": "Natación",
+      "type": "CARDIO",
+      "muscleGroup": "Cardio",
+      "equipment": [],
+      "description": "Es un ejercicio cardiovascular de cuerpo completo y de bajo impacto para las articulaciones. Puedes alternar estilos, como crol, espalda o braza, según lo cómodo que te resulte cada uno.\n\nEmpieza con unos minutos de nado suave para entrar en calor. Después mantén un ritmo constante que te permita seguir respirando sin ahogo; si lo prefieres, alterna tramos más rápidos con otros de descanso. Termina con nado suave para recuperar.\n\n• Coordina la respiración con las brazadas y exhala dentro del agua.\n• Mantén el cuerpo alineado y las piernas cerca de la superficie.\n• Nada en una piscina vigilada y no lo hagas en solitario si no te sientes seguro.\n\nErrores comunes: salir demasiado fuerte y quedarse sin aire a los pocos minutos, aguantar la respiración o levantar mucho la cabeza al nadar.",
+      "measure": "REPS"
+    },
+    {
+      "bobitosId": 6,
+      "name": "Caminata",
+      "type": "CARDIO",
+      "muscleGroup": "Cardio",
+      "equipment": [],
+      "description": "Caminar a paso ligero es una forma sencilla de hacer cardio y se adapta a casi cualquier nivel. Basta con unas zapatillas cómodas y un trayecto que puedas mantener durante todo el tiempo previsto.\n\nEmpieza andando despacio unos minutos y sube poco a poco hasta un ritmo en el que puedas hablar, pero no cantar. Mantén la mirada al frente, los hombros relajados y el pecho abierto. Los brazos se doblan en ángulo recto y se mueven de forma natural, acompañando el paso.\n\n• Apoya primero el talón y rueda el pie hasta empujar con la punta.\n• Respira de forma profunda y regular.\n• Termina con unos minutos a paso más lento.\n\nErrores comunes: dar zancadas demasiado largas, encorvarse mirando al suelo o llevar un calzado que no sujeta bien el pie.",
+      "measure": "REPS"
     }
   ]
 }
