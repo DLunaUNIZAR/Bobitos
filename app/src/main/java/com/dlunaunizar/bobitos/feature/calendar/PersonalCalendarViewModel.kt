@@ -7,7 +7,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
-import com.dlunaunizar.bobitos.core.common.withSaveTimeout
+import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
@@ -143,7 +143,7 @@ class PersonalCalendarViewModel @Inject constructor(
         if (mutable.value.saving) return
         mutable.update { it.copy(saving = true, message = null, editorSave = it.editorSave.started(editor)) }
         viewModelScope.launch {
-            runCatching { withSaveTimeout { block() } }
+            runCatching { withEditorSaveTimeout(editor) { block() } }
                 .onSuccess {
                     mutable.update { it.copy(saving = false, editorSave = it.editorSave.succeeded(editor)) }
                 }

@@ -8,7 +8,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
-import com.dlunaunizar.bobitos.core.common.withSaveTimeout
+import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.InvitationCode
 import com.dlunaunizar.bobitos.data.repository.SpaceFailure
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
@@ -196,7 +196,7 @@ class SpacesViewModel @Inject constructor(private val spaceRepository: SpaceRepo
             )
         }
         viewModelScope.launch {
-            runCatching { withSaveTimeout { action() } }
+            runCatching { withEditorSaveTimeout(editor) { action() } }
                 .onSuccess { result ->
                     mutableUiState.update {
                         it.onResult(result).copy(

@@ -8,7 +8,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
-import com.dlunaunizar.bobitos.core.common.withSaveTimeout
+import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.Routine
 import com.dlunaunizar.bobitos.core.model.RoutineExercise
 import com.dlunaunizar.bobitos.core.model.SportActivity
@@ -209,7 +209,7 @@ class SportViewModel @Inject constructor(
             it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
         }
         viewModelScope.launch {
-            runCatching { withSaveTimeout { action() } }
+            runCatching { withEditorSaveTimeout(editor) { action() } }
                 .onSuccess {
                     mutableUiState.update {
                         it.copy(isSaving = false, notice = notice, editorSave = it.editorSave.succeeded(editor))

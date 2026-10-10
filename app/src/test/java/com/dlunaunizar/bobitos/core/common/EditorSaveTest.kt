@@ -72,6 +72,25 @@ class EditorSaveTest {
     }
 
     @Test
+    fun `non-editor saves have no time limit`() = runTest {
+        val result = runCatching {
+            withEditorSaveTimeout(editor = false) {
+                delay(EDITOR_SAVE_TIMEOUT_MILLIS * 3)
+                9
+            }
+        }
+
+        assertEquals(9, result.getOrNull())
+    }
+
+    @Test
+    fun `editor saves keep the time limit`() = runTest {
+        val result = runCatching { withEditorSaveTimeout(editor = true) { delay(EDITOR_SAVE_TIMEOUT_MILLIS * 3) } }
+
+        assertTrue(result.exceptionOrNull() is SaveTimeoutException)
+    }
+
+    @Test
     fun `status only moves for editor saves`() {
         assertEquals(EditorSaveStatus.SAVING, EditorSaveStatus.IDLE.started(true))
         assertEquals(EditorSaveStatus.IDLE, EditorSaveStatus.IDLE.started(false))

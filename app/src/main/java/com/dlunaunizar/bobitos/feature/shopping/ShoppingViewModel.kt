@@ -8,7 +8,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
-import com.dlunaunizar.bobitos.core.common.withSaveTimeout
+import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.core.model.slug
@@ -279,7 +279,7 @@ class ShoppingViewModel @Inject constructor(
             )
         }
         viewModelScope.launch {
-            runCatching { withSaveTimeout { action() } }
+            runCatching { withEditorSaveTimeout(editor) { action() } }
                 .onSuccess {
                     mutableUiState.update {
                         it.copy(

@@ -8,7 +8,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
-import com.dlunaunizar.bobitos.core.common.withSaveTimeout
+import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.data.repository.NoteFailure
 import com.dlunaunizar.bobitos.data.repository.NoteRepository
 import com.dlunaunizar.bobitos.data.repository.NoteRepositoryException
@@ -97,7 +97,7 @@ class NotesViewModel @Inject constructor(private val repository: NoteRepository)
             it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
         }
         viewModelScope.launch {
-            runCatching { withSaveTimeout { action() } }
+            runCatching { withEditorSaveTimeout(editor) { action() } }
                 .onSuccess {
                     mutableUiState.update {
                         it.copy(isSaving = false, notice = notice, editorSave = it.editorSave.succeeded(editor))

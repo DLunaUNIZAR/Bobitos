@@ -28,6 +28,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceTimeBy
@@ -349,6 +350,27 @@ class MealsViewModelTest {
     }
 
     @Test
+    fun `duplicating the week completes every copy even when the repository is slow`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val today = LocalDate.now()
+            mealRepository.mealsState.value = listOf(
+                meal("m1", today, MealSlot.COMIDA, "Lentejas"),
+                meal("m2", today, MealSlot.CENA, "Sopa"),
+                meal("m3", today, MealSlot.DESAYUNO, "Tostadas"),
+            )
+            mealRepository.addDelayMillis = 10_000
+            viewModel.observe("home")
+            advanceUntilIdle()
+
+            viewModel.duplicateWeekToNext()
+            advanceUntilIdle()
+
+            assertEquals(3, mealRepository.addCount)
+            assertEquals(MealUiMessage.MealsDuplicated, viewModel.uiState.value.notice)
+            assertEquals(null, viewModel.uiState.value.error)
+        }
+
+    @Test
     fun `restoreMeal does not touch the editor status`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("home")
         advanceUntilIdle()
@@ -367,6 +389,9 @@ private class FakeMealRepository : MealRepository {
 
     // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
     var hang = false
+
+    // Cada alta tarda esto en tiempo virtual (repositorio lento).
+    var addDelayMillis = 0L
 
     var observedSpaceId: String? = null
     var lastWeekStart: LocalDate? = null
@@ -402,6 +427,7 @@ private class FakeMealRepository : MealRepository {
             }
         }
         addGate?.await()
+        if (addDelayMillis > 0) delay(addDelayMillis)
         addedName = name
         addedRecipeId = recipeId
         addedCookId = cookId

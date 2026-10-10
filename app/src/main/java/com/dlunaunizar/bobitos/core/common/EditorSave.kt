@@ -28,3 +28,10 @@ suspend fun <T> withSaveTimeout(timeoutMillis: Long = EDITOR_SAVE_TIMEOUT_MILLIS
     val result = withTimeoutOrNull(timeoutMillis) { runCatching { block() } } ?: throw SaveTimeoutException()
     return result.getOrThrow()
 }
+
+/**
+ * El tiempo máximo solo se aplica a los guardados del editor: las acciones masivas (bucles de
+ * escrituras, borrados, restauraciones) no deben cortarse a medias.
+ */
+suspend fun <T> withEditorSaveTimeout(editor: Boolean, block: suspend () -> T): T =
+    if (editor) withSaveTimeout(block = block) else block()
