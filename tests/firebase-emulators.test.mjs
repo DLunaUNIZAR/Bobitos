@@ -7,6 +7,7 @@ import {
   initializeTestEnvironment,
 } from "@firebase/rules-unit-testing";
 import { deleteApp, initializeApp } from "firebase/app";
+import { toFirestoreDoc } from "../scripts/catalog/import-plan.mjs";
 import {
   applyActionCode,
   confirmPasswordReset,
@@ -1356,6 +1357,133 @@ test("solo el autor o un admin editan/borran un ejercicio del catálogo", async 
   );
   await assertFails(writeBatch(other).delete(doc(other, "exercises", "curl")).commit());
   await assertSucceeds(writeBatch(admin).delete(doc(admin, "exercises", "curl")).commit());
+});
+
+const importedEntry = {
+  id: "sentadilla-trasera",
+  name: "Sentadilla trasera",
+  type: "PESO_LIBRE",
+  muscleGroup: "Cuádriceps",
+  description: "Texto del catálogo",
+  equipment: ["BARRA"],
+  source: {
+    provider: "wger",
+    id: 111,
+    author: "Autor",
+    license: "CC-BY-SA-4.0",
+    url: "https://wger.de/es/exercise/111/view/",
+  },
+};
+
+async function seedImportedExercise(id, entry = importedEntry) {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(
+      doc(context.firestore(), "exercises", id),
+      toFirestoreDoc(entry, { now: Timestamp.now(), create: true }),
+    );
+  });
+}
+
+function editFields(uid, fields) {
+  return { ...fields, updatedBy: uid, updatedAt: serverTimestamp() };
+}
+
+test("un ejercicio acepta PESO_CORPORAL, descripción y material válidos", async () => {
+  const user = verifiedFirestore("ex-new-fields");
+  await assertSucceeds(
+    setDoc(
+      doc(user, "exercises", "dominadas"),
+      exerciseData("ex-new-fields", {
+        type: "PESO_CORPORAL",
+        description: "Colgado de la barra.",
+        equipment: ["BARRA_DOMINADAS", "BANDA_ELASTICA"],
+      }),
+    ),
+  );
+  await assertSucceeds(
+    setDoc(doc(user, "exercises", "flexiones"), exerciseData("ex-new-fields", { description: null, equipment: [] })),
+  );
+});
+
+test("un ejercicio rechaza descripción >2000, material desconocido, repetido o que no es lista", async () => {
+  const user = verifiedFirestore("ex-bad-fields");
+  const bad = (id, overrides) =>
+    assertFails(setDoc(doc(user, "exercises", id), exerciseData("ex-bad-fields", overrides)));
+  await bad("larga", { description: "x".repeat(2001) });
+  await bad("no-texto", { description: 5 });
+  await bad("desconocido", { equipment: ["TRX"] });
+  await bad("repetido", { equipment: ["BARRA", "BARRA"] });
+  await bad("no-lista", { equipment: "BARRA" });
+  await bad("mapa", { equipment: { BARRA: true } });
+  await assertSucceeds(
+    setDoc(doc(user, "exercises", "limite"), exerciseData("ex-bad-fields", { description: "x".repeat(2000) })),
+  );
+});
+
+test("nadie crea un ejercicio con source desde el cliente, ni siquiera el admin", async () => {
+  const user = verifiedFirestore("ex-src-user");
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  await assertFails(
+    setDoc(doc(user, "exercises", "con-fuente"), exerciseData("ex-src-user", { source: importedEntry.source })),
+  );
+  await assertFails(
+    setDoc(doc(admin, "exercises", "con-fuente-admin"), exerciseData(RECIPE_ADMIN_UID, { source: importedEntry.source })),
+  );
+});
+
+test("un documento del importador cumple la forma: el admin edita su descripción, nadie toca su source y otro usuario no lo edita", async () => {
+  await seedImportedExercise("sentadilla-trasera");
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  const other = verifiedFirestore("ex-imp-other");
+  const ref = (db) => doc(db, "exercises", "sentadilla-trasera");
+
+  await assertSucceeds(
+    updateDoc(ref(admin), editFields(RECIPE_ADMIN_UID, { description: "Editada", equipment: ["BARRA", "BANCO"] })),
+  );
+  await assertFails(updateDoc(ref(other), editFields("ex-imp-other", { description: "Ajena" })));
+  await assertFails(
+    updateDoc(ref(admin), editFields(RECIPE_ADMIN_UID, { source: { ...importedEntry.source, id: 999 } })),
+  );
+  await assertFails(updateDoc(ref(admin), editFields(RECIPE_ADMIN_UID, { "source.author": "Otro" })));
+  await assertFails(updateDoc(ref(admin), editFields(RECIPE_ADMIN_UID, { source: null })));
+});
+
+test("un source con proveedor o licencia no admitidos invalida cualquier edición", async () => {
+  await seedImportedExercise("fuente-mala-proveedor", {
+    ...importedEntry,
+    source: { ...importedEntry.source, provider: "otro" },
+  });
+  await seedImportedExercise("fuente-mala-licencia", {
+    ...importedEntry,
+    source: { ...importedEntry.source, license: "ODbL" },
+  });
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  for (const id of ["fuente-mala-proveedor", "fuente-mala-licencia"]) {
+    await assertFails(updateDoc(doc(admin, "exercises", id), editFields(RECIPE_ADMIN_UID, { description: "x" })));
+  }
+});
+
+test("el dueño añade descripción y material a un ejercicio antiguo", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const timestamp = Timestamp.now();
+    await setDoc(doc(context.firestore(), "exercises", "antiguo"), {
+      ...exerciseData("ex-old-owner"),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+  });
+  const owner = verifiedFirestore("ex-old-owner");
+  const other = verifiedFirestore("ex-old-other");
+  await assertSucceeds(
+    updateDoc(
+      doc(owner, "exercises", "antiguo"),
+      editFields("ex-old-owner", { description: "Nueva", equipment: ["BARRA"], type: "PESO_CORPORAL" }),
+    ),
+  );
+  await assertFails(updateDoc(doc(other, "exercises", "antiguo"), editFields("ex-old-other", { description: "x" })));
+  await assertFails(
+    updateDoc(doc(owner, "exercises", "antiguo"), editFields("ex-old-owner", { source: importedEntry.source })),
+  );
 });
 
 test("cualquier usuario verificado crea y lee sus rutinas personales, no las ajenas", async () => {
