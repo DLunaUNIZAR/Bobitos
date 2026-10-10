@@ -34,14 +34,14 @@ internal fun ExerciseFilterChips(
     }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            item(key = ALL_KEY) {
+            item(key = ALL_TYPES_KEY) {
                 FilterChip(
                     selected = filter.type == null,
                     onClick = { onTypeChange(null) },
                     label = { Text(stringResource(R.string.exercises_filter_all)) },
                 )
             }
-            items(ExerciseType.entries, key = { it.name }) { type ->
+            items(ExerciseType.entries, key = ::typeKey) { type ->
                 FilterChip(
                     selected = filter.type == type,
                     onClick = { onTypeChange(if (filter.type == type) null else type) },
@@ -51,14 +51,14 @@ internal fun ExerciseFilterChips(
         }
         if (shownGroups.isNotEmpty()) {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                item(key = ALL_KEY) {
+                item(key = ALL_GROUPS_KEY) {
                     FilterChip(
                         selected = selectedGroup == null,
                         onClick = { onGroupChange(null) },
                         label = { Text(stringResource(R.string.exercises_filter_all_groups)) },
                     )
                 }
-                items(shownGroups, key = { it.foldForSearch() }) { group ->
+                items(shownGroups.distinctBy { it.foldForSearch() }, key = ::groupKey) { group ->
                     val selected = selectedGroup != null && selectedGroup.foldForSearch() == group.foldForSearch()
                     FilterChip(
                         selected = selected,
@@ -71,4 +71,16 @@ internal fun ExerciseFilterChips(
     }
 }
 
-private const val ALL_KEY = ":all"
+// Cada clase de chip tiene su propio espacio de claves: el grupo muscular es texto libre y podría llamarse
+// como cualquier otra clave.
+private const val ALL_TYPES_KEY = "all-types"
+private const val ALL_GROUPS_KEY = "all-groups"
+
+private fun typeKey(type: ExerciseType) = "type:${type.name}"
+
+private fun groupKey(group: String) = "group:${group.foldForSearch()}"
+
+internal fun typeChipKeys(types: List<ExerciseType>): List<String> = listOf(ALL_TYPES_KEY) + types.map(::typeKey)
+
+internal fun groupChipKeys(groups: List<String>): List<String> =
+    listOf(ALL_GROUPS_KEY) + groups.distinctBy { it.foldForSearch() }.map(::groupKey)
