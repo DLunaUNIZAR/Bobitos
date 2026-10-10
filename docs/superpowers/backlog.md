@@ -4,6 +4,19 @@ Menores que las revisiones de cada rama dejaron sin arreglar. Cada línea dice s
 
 Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalogo-ejercicios-wger`) se cerraron en la rama `agent/menores-aplazados` (plan `docs/superpowers/plans/2026-10-10-menores-aplazados.md`).
 
+## 2026-10-11 — `agent/catalogo-ingredientes`
+
+- **Interno:** el borrado inicial reutiliza el texto del importador: dice «no se importa a bobitos-dev» (`admin-cli.mjs` y la tabla de problemas de `INGREDIENT_CATALOG.md`).
+- **Interno:** `INGREDIENT_CATALOG.md` dice que la beta 18 dejará de poder crear preferencias (sí podrá) y no avisa de que verá Ingredientes vacío tras importar, porque descarta los documentos sin `ownerUid` ni `createdBy`.
+- **Interno:** el test del borrado no siembra `recipes` ni `exerciseImages` para comprobar que no se tocan.
+- **Interno:** `validateIngredient` admite tabuladores y «|» en el nombre; una «|» rompería la tabla de `ingredients-review.md`.
+- **Interno:** `commitCatalogOps` no pone tope a `batchSize`: con más de 499, la escritura de la versión supera el límite de 500 por lote.
+- **Interno:** `updatedBy` usa siempre `CATALOG_ADMIN_UID`, aunque se pase otro `adminUid` al plan.
+- **Interno:** el plan de importación recalcula `ingredientKey` por cada pareja nuevo-existente (O(n·m); despreciable con unos 350).
+- **Interno:** `countIngredientData` lanza un `count()` por ingrediente sin límite de concurrencia.
+- **Interno:** si falla el segundo `recursiveDelete` (preferencias), el borrado queda a medias; hay que repetir el script.
+- **Interno:** la CI solo ejecuta `test:emulators`; ni `test:scripts` ni `test:catalog-import` corren en CI.
+
 ## 2026-10-10 — `agent/menores-aplazados`
 
 - **Efecto visible:** los diálogos de Espacios sacan «guardando» de un `editorSave` que comparten varias pantallas. Si hay en curso una acción que no es del editor, el botón no hace nada (`SpacesScreen.kt`, `SpaceSettingsScreen.kt`).
