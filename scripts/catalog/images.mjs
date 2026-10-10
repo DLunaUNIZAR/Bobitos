@@ -20,18 +20,23 @@ export async function toWebp(buf, { sharpImpl } = {}) {
 }
 
 /**
- * Descarga y convierte las imágenes que aún no están en disco.
+ * Descarga y convierte las imágenes que no están en disco o cuya procedencia cambió.
+ * `manifest`: { <id>: <sourceUrl> } de lo que hay en disco (data/catalog/images/sources.json); si el
+ * sourceUrl del catálogo difiere o no hay entrada, se vuelve a descargar aunque exista el fichero (así
+ * los bytes nunca se quedan con la atribución de otra imagen). `result.manifest` es el manifiesto
+ * actualizado, con las claves ordenadas; una descarga fallida no lo toca.
  * `readExisting()` → Set de nombres de fichero (`<id>.webp`); `writeImage(nombre, bytes)` escribe.
  * Los ficheros que ya no usa ninguna ficha se informan en `unused` y no se borran.
  */
-export async function buildImages({ entries, fetchBinary, sharpImpl, readExisting, writeImage }) {
+export async function buildImages({ entries, manifest = {}, fetchBinary, sharpImpl, readExisting, writeImage }) {
   const existing = await readExisting();
   const result = { written: [], skipped: [], problems: [], unused: [] };
   const used = new Set();
+  const next = { ...manifest };
   for (const { id, image } of entries) {
     if (!image?.sourceUrl) continue;
     used.add(`${id}.webp`);
-    if (existing.has(`${id}.webp`)) {
+    if (existing.has(`${id}.webp`) && manifest[id] === image.sourceUrl) {
       result.skipped.push(id);
       continue;
     }
@@ -42,11 +47,13 @@ export async function buildImages({ entries, fetchBinary, sharpImpl, readExistin
         continue;
       }
       await writeImage(`${id}.webp`, data);
+      next[id] = image.sourceUrl;
       result.written.push(id);
     } catch (e) {
       result.problems.push(`${id}: ${e.message}`);
     }
   }
+  result.manifest = Object.fromEntries(Object.keys(next).sort().map((k) => [k, next[k]]));
   result.unused = [...existing].filter((n) => n.endsWith(".webp") && !used.has(n)).map((n) => n.slice(0, -5)).sort();
   return result;
 }

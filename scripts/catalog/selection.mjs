@@ -87,10 +87,12 @@ export function validateEntry(entry, { hashOptional = false } = {}) {
  * }
  */
 /**
+ * `imageSources`: manifiesto { <id>: <sourceUrl> } (data/catalog/images/sources.json); si se pasa, cada ficha con
+ * imagen debe casar con su entrada (los bytes de disco son de esa imagen). Sin él no se comprueba.
  * `imageBytes(id)`: bytes de data/catalog/images/<id>.webp (o undefined si falta). Con él, `image.hash` se
  * completa y su ausencia es un problema; sin él (preparación de las descargas) la imagen queda sin hash.
  */
-export function buildCatalog({ candidates, selection, fetchedAt, imageBytes }) {
+export function buildCatalog({ candidates, selection, fetchedAt, imageBytes, imageSources }) {
   const problems = [];
   const warnings = [];
   const include = selection.include ?? [];
@@ -128,6 +130,12 @@ export function buildCatalog({ candidates, selection, fetchedAt, imageBytes }) {
       const bytes = imageBytes(entry.id);
       if (bytes === undefined || bytes === null) problems.push(`wger ${id} (${name}): falta data/catalog/images/${entry.id}.webp`);
       else entry.image = { hash: sha256Hex(bytes), ...entry.image };
+      if (imageSources !== undefined && imageSources[entry.id] !== entry.image.sourceUrl) {
+        problems.push(
+          `wger ${id} (${name}): data/catalog/images/sources.json ${imageSources[entry.id] === undefined ? "no tiene entrada" : "tiene otro sourceUrl"} para ${entry.id}; ` +
+            `el fichero ${entry.id}.webp puede no ser de la imagen elegida (ejecuta catalog:images)`,
+        );
+      }
     }
     const errs = validateEntry(entry, { hashOptional: !imageBytes });
     if (errs.length) problems.push(`wger ${id} (${entry.name}): ${errs.join("; ")}`);

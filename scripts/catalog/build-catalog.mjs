@@ -46,10 +46,17 @@ try {
   console.error("Falta data/catalog/exercises-selection.json.");
   process.exit(1);
 }
+let imageSources = {};
+try {
+  imageSources = JSON.parse(readFileSync(new URL("data/catalog/images/sources.json", ROOT), "utf8"));
+} catch {
+  // Sin manifiesto, cada ficha con imagen da un problema claro.
+}
 const { catalog, problems, warnings } = buildCatalog({
   candidates,
   selection,
   fetchedAt: raw.fetchedAt,
+  imageSources,
   imageBytes: (id) => {
     try {
       return readFileSync(new URL(`data/catalog/images/${id}.webp`, ROOT));

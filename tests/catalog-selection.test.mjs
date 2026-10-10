@@ -252,3 +252,15 @@ test("renderReview muestra medida, imagen con autor y licencia, y el texto compl
   assert.match(md, /## Fichas propias \(Catálogo Bobitos\)/);
   assert.ok(md.includes("Nada a un ritmo cómodo y constante.\n\n• Respira con calma."));
 });
+
+test("buildCatalog falla si el manifiesto de procedencia no casa con el sourceUrl de la imagen o falta", () => {
+  const sel = { include: [{ wgerId: 245 }], exclude: [] };
+  const url = "https://wger.de/media/exercise-images/245/img30.png.400x400_q85.png";
+  const id = buildCatalog({ candidates, selection: sel, fetchedAt: "x" }).catalog.exercises[0].id;
+  const go = (imageSources) => buildCatalog({ candidates, selection: sel, fetchedAt: "x", imageBytes: bytesOf, imageSources });
+  assert.deepEqual(go({ [id]: url }).problems, []);
+  const bad = go({ [id]: "https://wger.de/media/otra.png" });
+  assert.ok(bad.problems.some((p) => p.includes("sources.json") && p.includes(id)), bad.problems.join("|"));
+  const missing = go({});
+  assert.ok(missing.problems.some((p) => p.includes("sources.json") && p.includes(id)), missing.problems.join("|"));
+});

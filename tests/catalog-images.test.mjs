@@ -64,10 +64,11 @@ test("toWebp convierte tiny.png a WebP de ≤400 px", async () => {
 
 test("buildImages no descarga si el fichero ya existe", async () => {
   const h = harness({ existing: ["a.webp"] });
-  const r = await buildImages({ entries: [entry("a")], ...h.deps });
+  const manifest = { a: entry("a").image.sourceUrl };
+  const r = await buildImages({ entries: [entry("a")], manifest, ...h.deps });
   assert.deepEqual(h.fetched, []);
   assert.equal(h.written.size, 0);
-  assert.deepEqual(r, { written: [], skipped: ["a"], problems: [], unused: [] });
+  assert.deepEqual(r, { written: [], skipped: ["a"], problems: [], unused: [], manifest });
 });
 
 test("buildImages descarga, convierte y escribe con un fetch falso; ignora las fichas sin imagen", async () => {
@@ -107,4 +108,38 @@ test("buildImages exactamente 200 KB es válido", async () => {
   const r = await buildImages({ entries: [entry("a")], ...h.deps });
   assert.deepEqual(r.problems, []);
   assert.deepEqual(r.written, ["a"]);
+});
+
+test("buildImages vuelve a descargar si el sourceUrl del manifiesto difiere o falta, y actualiza el manifiesto", async () => {
+  const h = harness({ existing: ["a.webp", "b.webp", "c.webp"] });
+  const a = entry("a", "https://wger.de/media/nueva-a.png");
+  const b = entry("b");
+  const c = entry("c");
+  const manifest = { a: "https://wger.de/media/vieja-a.png", b: b.image.sourceUrl, z: "https://wger.de/media/z.png" };
+  const r = await buildImages({ entries: [a, b, c], manifest, ...h.deps });
+  assert.deepEqual(h.fetched, [a.image.sourceUrl, c.image.sourceUrl]);
+  assert.deepEqual([...h.written.keys()], ["a.webp", "c.webp"]);
+  assert.deepEqual(r.written, ["a", "c"]);
+  assert.deepEqual(r.skipped, ["b"]);
+  assert.deepEqual(r.manifest, {
+    a: a.image.sourceUrl,
+    b: b.image.sourceUrl,
+    c: c.image.sourceUrl,
+    z: "https://wger.de/media/z.png",
+  });
+  assert.deepEqual(Object.keys(r.manifest), ["a", "b", "c", "z"]);
+});
+
+test("buildImages no descarga si el manifiesto casa y no actualiza el manifiesto de una descarga fallida", async () => {
+  const same = harness({ existing: ["a.webp"] });
+  const r = await buildImages({ entries: [entry("a")], manifest: { a: entry("a").image.sourceUrl }, ...same.deps });
+  assert.deepEqual(same.fetched, []);
+  assert.deepEqual(r.manifest, { a: entry("a").image.sourceUrl });
+
+  const bad = harness({ existing: ["a.webp"] });
+  bad.deps.fetchBinary = async () => { throw new Error("HTTP 500"); };
+  const old = { a: "https://wger.de/media/vieja-a.png" };
+  const r2 = await buildImages({ entries: [entry("a")], manifest: old, ...bad.deps });
+  assert.equal(r2.problems.length, 1);
+  assert.deepEqual(r2.manifest, old);
 });
