@@ -45,10 +45,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
+import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
@@ -141,6 +143,12 @@ fun NotesScreen(
         }
     }
 
+    EditorSaveEffect(
+        status = state.editorSave,
+        editorOpen = editorVisible,
+        onClose = { editorVisible = false },
+        onConsume = viewModel::consumeEditorSave,
+    )
     rememberEditorSlot(
         open = editorVisible,
         id = editorNoteId,
@@ -151,11 +159,12 @@ fun NotesScreen(
         NoteEditor(
             note = slot.item,
             saving = state.isSaving,
+            errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
+                ?.let { stringResource(it.stringRes()) },
             onDismiss = { editorVisible = false },
             onSave = { title, body ->
                 slot.item?.let { viewModel.updateNote(it.id, title, body) }
                     ?: viewModel.addNote(title, body)
-                editorVisible = false
             },
         )
     }
@@ -232,7 +241,13 @@ private fun NoteCard(note: Note, enabled: Boolean, onTogglePin: () -> Unit, onEd
 }
 
 @Composable
-private fun NoteEditor(note: Note?, saving: Boolean, onDismiss: () -> Unit, onSave: (String, String?) -> Unit) {
+private fun NoteEditor(
+    note: Note?,
+    saving: Boolean,
+    errorMessage: String?,
+    onDismiss: () -> Unit,
+    onSave: (String, String?) -> Unit,
+) {
     val initial = NoteDraft.of(note)
     var draft by rememberSaveable(note?.id) { mutableStateOf(initial) }
     val validation = NoteValidation.validate(draft.title, draft.body)
@@ -242,6 +257,7 @@ private fun NoteEditor(note: Note?, saving: Boolean, onDismiss: () -> Unit, onSa
         confirmEnabled = validation == null,
         saving = saving,
         dirty = { draft != initial },
+        errorMessage = errorMessage,
         onDismiss = onDismiss,
         onConfirm = { onSave(draft.title, draft.body) },
     ) {
@@ -289,6 +305,7 @@ private fun NoteUiMessage.stringRes() = when (this) {
     NoteUiMessage.PermissionDenied -> R.string.space_error_permission_denied
     NoteUiMessage.NetworkError -> R.string.space_error_network
     NoteUiMessage.UnexpectedError -> R.string.space_error_unexpected
+    NoteUiMessage.SaveTimeout -> R.string.write_timeout
     NoteUiMessage.NoteAdded -> R.string.notes_notice_added
     NoteUiMessage.NoteUpdated -> R.string.notes_notice_updated
     NoteUiMessage.NoteDeleted -> R.string.notes_notice_deleted

@@ -2,7 +2,13 @@ package com.dlunaunizar.bobitos.feature.meals
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.failed
+import com.dlunaunizar.bobitos.core.common.started
+import com.dlunaunizar.bobitos.core.common.succeeded
+import com.dlunaunizar.bobitos.core.common.withSaveTimeout
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
@@ -19,6 +25,7 @@ import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.feature.common.applyIngredientReview
 import com.dlunaunizar.bobitos.feature.common.buildIngredientReviewRows
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -112,10 +119,28 @@ class MealsViewModel @Inject constructor(
     ) {
         val spaceId = observedSpaceId ?: return
         if (!validate(name)) return
-        runAction(MealUiMessage.MealAdded) {
+        runAction(MealUiMessage.MealAdded, editor = true) {
             repository.addMeal(spaceId, date, slot, name.trim(), participantIds, recipeId, cookId)
         }
     }
+
+    // Recrea una comida borrada («Deshacer»): no es un guardado del editor, no mueve su estado.
+    fun restoreMeal(meal: Meal) {
+        val spaceId = observedSpaceId ?: return
+        runAction(MealUiMessage.MealAdded) {
+            repository.addMeal(
+                spaceId,
+                meal.date,
+                meal.slot,
+                meal.name,
+                meal.participantIds,
+                meal.recipeId,
+                meal.cookId,
+            )
+        }
+    }
+
+    fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
 
     fun updateMeal(
         mealId: String,
@@ -128,7 +153,7 @@ class MealsViewModel @Inject constructor(
     ) {
         val spaceId = observedSpaceId ?: return
         if (!validate(name)) return
-        runAction(MealUiMessage.MealUpdated) {
+        runAction(MealUiMessage.MealUpdated, editor = true) {
             repository.updateMeal(spaceId, mealId, date, slot, name.trim(), participantIds, recipeId, cookId)
         }
     }
@@ -283,24 +308,32 @@ class MealsViewModel @Inject constructor(
 
     private fun validate(name: String): Boolean {
         val error = MealsValidation.validate(name) ?: return true
-        showError(error)
+        showError(error, editor = true)
         return false
     }
 
-    private fun showError(message: MealUiMessage) {
-        mutableUiState.update { it.copy(isSaving = false, error = message, notice = null) }
+    private fun showError(message: MealUiMessage, editor: Boolean = false) {
+        mutableUiState.update {
+            it.copy(isSaving = false, error = message, notice = null, editorSave = it.editorSave.failed(editor))
+        }
     }
 
-    private fun runAction(successNotice: MealUiMessage?, action: suspend () -> Unit) {
+    private fun runAction(successNotice: MealUiMessage?, editor: Boolean = false, action: suspend () -> Unit) {
         if (mutableUiState.value.isSaving) return
-        mutableUiState.update { it.copy(isSaving = true, error = null, notice = null) }
+        mutableUiState.update {
+            it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
+        }
         viewModelScope.launch {
-            try {
-                action()
-                mutableUiState.update { it.copy(isSaving = false, notice = successNotice) }
-            } catch (error: Throwable) {
-                showError(error.toUiMessage())
-            }
+            runCatching { withSaveTimeout { action() } }
+                .onSuccess {
+                    mutableUiState.update {
+                        it.copy(isSaving = false, notice = successNotice, editorSave = it.editorSave.succeeded(editor))
+                    }
+                }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    showError(error.toUiMessage(), editor)
+                }
         }
     }
 }
@@ -308,6 +341,7 @@ class MealsViewModel @Inject constructor(
 private fun Throwable.toUiMessage(): MealUiMessage = when (this) {
     is MealRepositoryException -> failure.toUiMessage()
     is ShoppingRepositoryException -> failure.toUiMessage()
+    is SaveTimeoutException -> MealUiMessage.SaveTimeout
     else -> MealUiMessage.UnexpectedError
 }
 

@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.shopping
 
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientPref
@@ -9,6 +10,7 @@ data class ShoppingUiState(
     val items: UiState<List<ShoppingItem>> = UiState.Loading,
     val isSaving: Boolean = false,
     val writeStatus: ShoppingWriteStatus = ShoppingWriteStatus.IDLE,
+    val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
     val error: ShoppingUiMessage? = null,
     val notice: ShoppingUiMessage? = null,
     val lastClearedCount: Int = 0,
@@ -37,6 +39,7 @@ enum class ShoppingUiMessage {
     PermissionDenied,
     NetworkError,
     UnexpectedError,
+    SaveTimeout,
     ItemAdded,
     ItemUpdated,
     ItemMarked,

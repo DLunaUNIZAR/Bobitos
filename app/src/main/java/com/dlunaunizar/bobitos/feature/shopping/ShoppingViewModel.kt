@@ -2,7 +2,13 @@ package com.dlunaunizar.bobitos.feature.shopping
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.failed
+import com.dlunaunizar.bobitos.core.common.started
+import com.dlunaunizar.bobitos.core.common.succeeded
+import com.dlunaunizar.bobitos.core.common.withSaveTimeout
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.core.model.slug
@@ -12,6 +18,7 @@ import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -144,7 +151,7 @@ class ShoppingViewModel @Inject constructor(
         } else {
             null
         }
-        runAction(ShoppingUiMessage.ItemAdded) {
+        runAction(ShoppingUiMessage.ItemAdded, editor = true) {
             repository.addItem(
                 spaceId,
                 name.trim(),
@@ -156,6 +163,13 @@ class ShoppingViewModel @Inject constructor(
         }
     }
 
+    // Recrea un ítem borrado («Deshacer»): no es un guardado del editor, no mueve su estado.
+    fun restoreItem(spaceId: String, item: ShoppingItem) = runAction(ShoppingUiMessage.ItemAdded) {
+        repository.addItem(spaceId, item.name, item.quantity, item.notes, item.supermarket, item.brand)
+    }
+
+    fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
+
     fun updateItem(
         spaceId: String,
         itemId: String,
@@ -166,7 +180,7 @@ class ShoppingViewModel @Inject constructor(
         brand: String?,
     ) {
         if (!validate(name, quantity, notes)) return
-        runAction(ShoppingUiMessage.ItemUpdated) {
+        runAction(ShoppingUiMessage.ItemUpdated, editor = true) {
             repository.updateItem(
                 spaceId,
                 itemId,
@@ -237,14 +251,15 @@ class ShoppingViewModel @Inject constructor(
 
     private fun validate(name: String, quantity: String?, notes: String?): Boolean {
         val error = ShoppingValidation.validate(name, quantity, notes) ?: return true
-        showError(error)
+        showError(error, editor = true)
         return false
     }
 
-    private fun showError(message: ShoppingUiMessage) {
+    private fun showError(message: ShoppingUiMessage, editor: Boolean = false) {
         mutableUiState.update {
             it.copy(
                 isSaving = false,
+                editorSave = it.editorSave.failed(editor),
                 writeStatus = ShoppingWriteStatus.ERROR,
                 error = message,
                 notice = null,
@@ -252,36 +267,46 @@ class ShoppingViewModel @Inject constructor(
         }
     }
 
-    private fun runAction(successNotice: ShoppingUiMessage?, action: suspend () -> Unit) {
+    private fun runAction(successNotice: ShoppingUiMessage?, editor: Boolean = false, action: suspend () -> Unit) {
         if (mutableUiState.value.isSaving) return
         mutableUiState.update {
             it.copy(
                 isSaving = true,
                 writeStatus = ShoppingWriteStatus.SAVING,
+                editorSave = it.editorSave.started(editor),
                 error = null,
                 notice = null,
             )
         }
         viewModelScope.launch {
-            try {
-                action()
-                mutableUiState.update {
-                    it.copy(
-                        isSaving = false,
-                        writeStatus = ShoppingWriteStatus.SAVED,
-                        notice = successNotice,
-                    )
+            runCatching { withSaveTimeout { action() } }
+                .onSuccess {
+                    mutableUiState.update {
+                        it.copy(
+                            isSaving = false,
+                            writeStatus = ShoppingWriteStatus.SAVED,
+                            editorSave = it.editorSave.succeeded(editor),
+                            notice = successNotice,
+                        )
+                    }
                 }
-            } catch (error: Throwable) {
-                showError(error.toUiMessage())
-            }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    showError(error.toUiMessage(), editor)
+                }
         }
     }
 }
 
 private fun String?.normalized(): String? = this?.trim()?.takeIf(String::isNotEmpty)
 
-private fun Throwable.toUiMessage(): ShoppingUiMessage = when ((this as? ShoppingRepositoryException)?.failure) {
+private fun Throwable.toUiMessage(): ShoppingUiMessage = if (this is SaveTimeoutException) {
+    ShoppingUiMessage.SaveTimeout
+} else {
+    toRepositoryUiMessage()
+}
+
+private fun Throwable.toRepositoryUiMessage() = when ((this as? ShoppingRepositoryException)?.failure) {
     ShoppingFailure.NameRequired -> ShoppingUiMessage.NameRequired
     ShoppingFailure.NameTooLong -> ShoppingUiMessage.NameTooLong
     ShoppingFailure.QuantityTooLong -> ShoppingUiMessage.QuantityTooLong

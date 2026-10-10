@@ -1,6 +1,8 @@
 package com.dlunaunizar.bobitos.feature.shopping
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientPref
@@ -11,14 +13,20 @@ import com.dlunaunizar.bobitos.data.repository.IngredientRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
@@ -171,9 +179,72 @@ class ShoppingViewModelTest {
         assertEquals(ShoppingUiMessage.NetworkError, viewModel.uiState.value.error)
         assertFalse(viewModel.uiState.value.isSaving)
     }
+
+    @Test
+    fun `editor save is SAVED only after the repository answers`() = runTest(mainDispatcherRule.testDispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        repository.addGate = gate
+
+        viewModel.addItem("home", "Leche", null, null, null, null)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertTrue(viewModel.uiState.value.isSaving)
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+        assertFalse(viewModel.uiState.value.isSaving)
+        viewModel.consumeEditorSave()
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+    }
+
+    @Test
+    fun `editor save failure or timeout leaves FAILED`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.nextFailure = ShoppingRepositoryException(ShoppingFailure.Network)
+        viewModel.addItem("home", "Leche", null, null, null, null)
+        advanceUntilIdle()
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        assertEquals(ShoppingUiMessage.NetworkError, viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.isSaving)
+
+        repository.nextFailure = null
+        viewModel.consumeEditorSave()
+        repository.hang = true
+        viewModel.addItem("home", "Leche", null, null, null, null)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        advanceTimeBy(EDITOR_SAVE_TIMEOUT_MILLIS + 1)
+        runCurrent()
+
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        assertEquals(ShoppingUiMessage.SaveTimeout, viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.isSaving)
+    }
+
+    @Test
+    fun `editor update also moves the editor status`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.updateItem("home", "milk", "Leche", "2", null, null, null)
+        advanceUntilIdle()
+
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+    }
+
+    @Test
+    fun `restoreItem does not touch the editor status`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.restoreItem("home", shoppingItem())
+        advanceUntilIdle()
+
+        assertEquals("Leche", repository.addedName)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(ShoppingUiMessage.ItemAdded, viewModel.uiState.value.notice)
+    }
 }
 
 private class FakeShoppingRepository : ShoppingRepository {
+    var addGate: CompletableDeferred<Unit>? = null
+
+    // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
+    var hang = false
+
     var observedSpaceId: String? = null
     var addedName: String? = null
     var addedQuantity: String? = null
@@ -201,6 +272,14 @@ private class FakeShoppingRepository : ShoppingRepository {
         brand: String?,
     ) {
         throwNextFailure()
+        if (hang) {
+            try {
+                awaitCancellation()
+            } catch (_: CancellationException) {
+                throw ShoppingRepositoryException(ShoppingFailure.Unknown)
+            }
+        }
+        addGate?.await()
         addedName = name
         addedQuantity = quantity
         addedNotes = notes

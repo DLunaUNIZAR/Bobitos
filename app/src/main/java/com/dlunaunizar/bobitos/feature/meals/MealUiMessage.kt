@@ -13,6 +13,7 @@ enum class MealUiMessage {
     PermissionDenied,
     NetworkError,
     UnexpectedError,
+    SaveTimeout,
     MealAdded,
     MealUpdated,
     MealDeleted,

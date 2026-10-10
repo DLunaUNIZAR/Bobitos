@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.meals
 
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.Recipe
@@ -14,6 +15,7 @@ data class MealsUiState(
     val meals: UiState<List<Meal>> = UiState.Loading,
     val members: UiState<List<SpaceMember>> = UiState.Loading,
     val isSaving: Boolean = false,
+    val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
     val error: MealUiMessage? = null,
     val notice: MealUiMessage? = null,
     val recipes: List<Recipe> = emptyList(),

@@ -2,9 +2,16 @@ package com.dlunaunizar.bobitos.feature.sport
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.failed
+import com.dlunaunizar.bobitos.core.common.started
+import com.dlunaunizar.bobitos.core.common.succeeded
+import com.dlunaunizar.bobitos.core.common.withSaveTimeout
 import com.dlunaunizar.bobitos.core.model.Routine
 import com.dlunaunizar.bobitos.core.model.RoutineExercise
+import com.dlunaunizar.bobitos.core.model.SportActivity
 import com.dlunaunizar.bobitos.core.model.SportType
 import com.dlunaunizar.bobitos.data.repository.ExerciseRepository
 import com.dlunaunizar.bobitos.data.repository.RoutineRepository
@@ -13,6 +20,7 @@ import com.dlunaunizar.bobitos.data.repository.SportActivityRepository
 import com.dlunaunizar.bobitos.data.repository.SportFailure
 import com.dlunaunizar.bobitos.data.repository.SportRepositoryException
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -127,10 +135,28 @@ class SportViewModel @Inject constructor(
     ) {
         val spaceId = observedSpaceId ?: return
         if (!validate(name)) return
-        runAction(SportUiMessage.ActivityAdded) {
+        runAction(SportUiMessage.ActivityAdded, editor = true) {
             repository.addActivity(spaceId, date, type, name.trim(), participantIds, routineId, session)
         }
     }
+
+    // Recrea una actividad borrada («Deshacer»): no es un guardado del editor, no mueve su estado.
+    fun restoreActivity(activity: SportActivity) {
+        val spaceId = observedSpaceId ?: return
+        runAction(SportUiMessage.ActivityAdded) {
+            repository.addActivity(
+                spaceId,
+                activity.date,
+                activity.type,
+                activity.name,
+                activity.participantIds,
+                activity.routineId,
+                activity.session,
+            )
+        }
+    }
+
+    fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
 
     fun updateActivity(
         activityId: String,
@@ -143,7 +169,7 @@ class SportViewModel @Inject constructor(
     ) {
         val spaceId = observedSpaceId ?: return
         if (!validate(name)) return
-        runAction(SportUiMessage.ActivityUpdated) {
+        runAction(SportUiMessage.ActivityUpdated, editor = true) {
             repository.updateActivity(spaceId, activityId, date, type, name.trim(), participantIds, routineId, session)
         }
     }
@@ -165,29 +191,41 @@ class SportViewModel @Inject constructor(
 
     private fun validate(name: String): Boolean {
         val error = SportValidation.validate(name) ?: return true
-        showError(error)
+        showError(error, editor = true)
         return false
     }
 
-    private fun showError(message: SportUiMessage) = mutableUiState.update {
-        it.copy(isSaving = false, error = message, notice = null)
+    private fun showError(message: SportUiMessage, editor: Boolean = false) = mutableUiState.update {
+        it.copy(isSaving = false, error = message, notice = null, editorSave = it.editorSave.failed(editor))
     }
 
-    private fun runAction(notice: SportUiMessage?, action: suspend () -> Unit) {
+    private fun runAction(notice: SportUiMessage?, editor: Boolean = false, action: suspend () -> Unit) {
         if (mutableUiState.value.isSaving) return
-        mutableUiState.update { it.copy(isSaving = true, error = null, notice = null) }
+        mutableUiState.update {
+            it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
+        }
         viewModelScope.launch {
-            try {
-                action()
-                mutableUiState.update { it.copy(isSaving = false, notice = notice) }
-            } catch (error: Throwable) {
-                showError(error.toUiMessage())
-            }
+            runCatching { withSaveTimeout { action() } }
+                .onSuccess {
+                    mutableUiState.update {
+                        it.copy(isSaving = false, notice = notice, editorSave = it.editorSave.succeeded(editor))
+                    }
+                }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    showError(error.toUiMessage(), editor)
+                }
         }
     }
 }
 
-private fun Throwable.toUiMessage() = when ((this as? SportRepositoryException)?.failure) {
+private fun Throwable.toUiMessage() = if (this is SaveTimeoutException) {
+    SportUiMessage.SaveTimeout
+} else {
+    toRepositoryUiMessage()
+}
+
+private fun Throwable.toRepositoryUiMessage() = when ((this as? SportRepositoryException)?.failure) {
     SportFailure.NameRequired -> SportUiMessage.NameRequired
     SportFailure.NameTooLong -> SportUiMessage.NameTooLong
     SportFailure.InvalidParticipants -> SportUiMessage.InvalidParticipants

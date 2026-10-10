@@ -63,9 +63,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
+import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
@@ -127,7 +129,7 @@ fun ShoppingScreen(
     val deleteItemWithUndo: (ShoppingItem) -> Unit = { item ->
         viewModel.deleteItem(spaceId, item.id)
         scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-            viewModel.addItem(spaceId, item.name, item.quantity, item.notes, item.supermarket, item.brand)
+            viewModel.restoreItem(spaceId, item)
         }
     }
 
@@ -310,6 +312,12 @@ fun ShoppingScreen(
         }
     }
 
+    EditorSaveEffect(
+        status = state.editorSave,
+        editorOpen = editorVisible,
+        onClose = { editorVisible = false },
+        onConsume = viewModel::consumeEditorSave,
+    )
     rememberEditorSlot(
         open = editorVisible,
         id = editedItemId,
@@ -321,6 +329,8 @@ fun ShoppingScreen(
         ShoppingItemEditor(
             item = editedItem,
             saving = state.isSaving,
+            errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
+                ?.let { stringResource(it.stringResourceId) },
             resolveDuplicate = findByName,
             suggestions = { queryText -> catalogSuggestions(state.catalog, queryText) },
             prefFor = { name -> state.ingredientPrefs[slug(name)] },
@@ -335,7 +345,6 @@ fun ShoppingScreen(
                             ShoppingDuplicate(existing, name, quantity, notes, supermarket, brand)
                     else -> viewModel.addItem(spaceId, name, quantity, notes, supermarket, brand)
                 }
-                editorVisible = false
             },
         )
     }
@@ -611,6 +620,7 @@ private fun ShoppingItemCard(
 private fun ShoppingItemEditor(
     item: ShoppingItem?,
     saving: Boolean,
+    errorMessage: String?,
     resolveDuplicate: (String) -> ShoppingItem?,
     suggestions: (String) -> List<String>,
     prefFor: (String) -> IngredientPref?,
@@ -634,6 +644,7 @@ private fun ShoppingItemEditor(
         confirmEnabled = validation == null,
         saving = saving,
         dirty = { draft != initial },
+        errorMessage = errorMessage,
         onDismiss = onDismiss,
         onConfirm = { onSave(name, quantity, notes, draft.supermarket, brand.trim().ifEmpty { null }) },
     ) {
@@ -654,50 +665,20 @@ private fun ShoppingItemEditor(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        val nameSuggestions = if (item == null) suggestions(name) else emptyList()
-        if (nameSuggestions.isNotEmpty()) {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(nameSuggestions, key = { it }) { suggestion ->
-                    AssistChip(
-                        onClick = {
-                            val pref = prefFor(suggestion)
-                            draft = draft.copy(
-                                name = suggestion,
-                                supermarket = pref?.supermarket ?: draft.supermarket,
-                                brand = pref?.brand ?: draft.brand,
-                            )
-                        },
-                        label = { Text(suggestion) },
-                    )
-                }
-            }
+        NameSuggestionChips(if (item == null) suggestions(name) else emptyList()) { suggestion ->
+            val pref = prefFor(suggestion)
+            draft = draft.copy(
+                name = suggestion,
+                supermarket = pref?.supermarket ?: draft.supermarket,
+                brand = pref?.brand ?: draft.brand,
+            )
         }
-        OutlinedTextField(
-            value = quantity,
-            onValueChange = { draft = draft.copy(quantity = it) },
-            label = { Text(stringResource(R.string.shopping_quantity_label)) },
-            supportingText = {
-                if (validation == ShoppingUiMessage.QuantityTooLong) {
-                    Text(stringResource(validation.stringResourceId))
-                }
-            },
-            isError = validation == ShoppingUiMessage.QuantityTooLong,
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = notes,
-            onValueChange = { draft = draft.copy(notes = it) },
-            label = { Text(stringResource(R.string.shopping_notes_label)) },
-            supportingText = {
-                if (validation == ShoppingUiMessage.NotesTooLong) {
-                    Text(stringResource(validation.stringResourceId))
-                }
-            },
-            isError = validation == ShoppingUiMessage.NotesTooLong,
-            minLines = 2,
-            maxLines = 4,
-            modifier = Modifier.fillMaxWidth(),
+        QuantityAndNotesFields(
+            quantity = quantity,
+            onQuantity = { draft = draft.copy(quantity = it) },
+            notes = notes,
+            onNotes = { draft = draft.copy(notes = it) },
+            validation = validation,
         )
         SupermarketAndBrandFields(
             supermarket = draft.supermarket,
@@ -706,6 +687,53 @@ private fun ShoppingItemEditor(
             onBrand = { draft = draft.copy(brand = it) },
         )
     }
+}
+
+@Composable
+private fun NameSuggestionChips(suggestions: List<String>, onPick: (String) -> Unit) {
+    if (suggestions.isEmpty()) return
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(suggestions, key = { it }) { suggestion ->
+            AssistChip(onClick = { onPick(suggestion) }, label = { Text(suggestion) })
+        }
+    }
+}
+
+@Composable
+private fun QuantityAndNotesFields(
+    quantity: String,
+    onQuantity: (String) -> Unit,
+    notes: String,
+    onNotes: (String) -> Unit,
+    validation: ShoppingUiMessage?,
+) {
+    OutlinedTextField(
+        value = quantity,
+        onValueChange = onQuantity,
+        label = { Text(stringResource(R.string.shopping_quantity_label)) },
+        supportingText = {
+            if (validation == ShoppingUiMessage.QuantityTooLong) {
+                Text(stringResource(validation.stringResourceId))
+            }
+        },
+        isError = validation == ShoppingUiMessage.QuantityTooLong,
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    OutlinedTextField(
+        value = notes,
+        onValueChange = onNotes,
+        label = { Text(stringResource(R.string.shopping_notes_label)) },
+        supportingText = {
+            if (validation == ShoppingUiMessage.NotesTooLong) {
+                Text(stringResource(validation.stringResourceId))
+            }
+        },
+        isError = validation == ShoppingUiMessage.NotesTooLong,
+        minLines = 2,
+        maxLines = 4,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 @Composable
@@ -877,6 +905,7 @@ private val ShoppingUiMessage.stringResourceId: Int
         ShoppingUiMessage.PermissionDenied -> R.string.space_error_permission_denied
         ShoppingUiMessage.NetworkError -> R.string.space_error_network
         ShoppingUiMessage.UnexpectedError -> R.string.space_error_unexpected
+        ShoppingUiMessage.SaveTimeout -> R.string.write_timeout
         ShoppingUiMessage.ItemAdded -> R.string.shopping_notice_added
         ShoppingUiMessage.ItemUpdated -> R.string.shopping_notice_updated
         ShoppingUiMessage.ItemMarked -> R.string.shopping_notice_marked

@@ -55,10 +55,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
+import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
@@ -229,6 +231,16 @@ fun MealsScreen(
         )
     }
 
+    val closeEditor = {
+        editorOpen = false
+        editorMealId = null
+    }
+    EditorSaveEffect(
+        status = state.editorSave,
+        editorOpen = editorOpen,
+        onClose = closeEditor,
+        onConsume = viewModel::consumeEditorSave,
+    )
     MealEditorHost(
         open = editorOpen,
         mealId = editorMealId,
@@ -238,11 +250,10 @@ fun MealsScreen(
         members = members,
         recipes = state.recipes,
         saving = state.isSaving,
+        errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
+            ?.let { stringResource(it.stringResourceId) },
         canWrite = canWrite,
-        onClose = {
-            editorOpen = false
-            editorMealId = null
-        },
+        onClose = closeEditor,
         onSave = { meal, slot, name, participantIds, recipeId, cookId ->
             if (meal == null) {
                 viewModel.addMeal(state.focusedDate, slot, name, participantIds, recipeId, cookId)
@@ -260,14 +271,7 @@ fun MealsScreen(
                 viewModel.deleteMeal(meal.id)
                 mealToDelete = null
                 scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                    viewModel.addMeal(
-                        meal.date,
-                        meal.slot,
-                        meal.name,
-                        meal.participantIds,
-                        meal.recipeId,
-                        meal.cookId,
-                    )
+                    viewModel.restoreMeal(meal)
                 }
             },
             onDismiss = { mealToDelete = null },
@@ -531,6 +535,7 @@ private fun MealEditorHost(
     members: List<SpaceMember>,
     recipes: List<Recipe>,
     saving: Boolean,
+    errorMessage: String?,
     canWrite: Boolean,
     onClose: () -> Unit,
     onSave: (Meal?, MealSlot, String, List<String>, String?, String?) -> Unit,
@@ -549,11 +554,11 @@ private fun MealEditorHost(
         members = members,
         recipes = recipes,
         saving = saving,
+        errorMessage = errorMessage,
         canWrite = canWrite,
         onDismiss = onClose,
         onSave = { slot, name, participantIds, recipeId, cookId ->
             onSave(meal, slot, name, participantIds, recipeId, cookId)
-            onClose()
         },
     )
 }
@@ -565,6 +570,7 @@ private fun MealEditor(
     members: List<SpaceMember>,
     recipes: List<Recipe>,
     saving: Boolean,
+    errorMessage: String?,
     canWrite: Boolean,
     onDismiss: () -> Unit,
     onSave: (MealSlot, String, List<String>, String?, String?) -> Unit,
@@ -580,6 +586,7 @@ private fun MealEditor(
         confirmEnabled = validation == null && canWrite,
         saving = saving,
         dirty = { draft != initial },
+        errorMessage = errorMessage,
         onDismiss = onDismiss,
         onConfirm = {
             onSave(
@@ -793,6 +800,7 @@ private val MealUiMessage.stringResourceId: Int
         MealUiMessage.PermissionDenied -> R.string.space_error_permission_denied
         MealUiMessage.NetworkError -> R.string.space_error_network
         MealUiMessage.UnexpectedError -> R.string.space_error_unexpected
+        MealUiMessage.SaveTimeout -> R.string.write_timeout
         MealUiMessage.MealAdded -> R.string.meals_notice_added
         MealUiMessage.MealUpdated -> R.string.meals_notice_updated
         MealUiMessage.MealDeleted -> R.string.meals_notice_deleted

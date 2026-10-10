@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.sport
 
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.Routine
@@ -17,6 +18,7 @@ data class SportUiState(
     // Catálogo de ejercicios para elegir al añadir uno a la sesión de gimnasio.
     val exercises: List<CatalogExercise> = emptyList(),
     val isSaving: Boolean = false,
+    val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
     val error: SportUiMessage? = null,
     val notice: SportUiMessage? = null,
 ) {
@@ -43,6 +45,7 @@ enum class SportUiMessage {
     PermissionDenied,
     NetworkError,
     UnexpectedError,
+    SaveTimeout,
     ActivityAdded,
     ActivityUpdated,
     ActivityDeleted,

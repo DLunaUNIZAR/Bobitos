@@ -56,9 +56,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
+import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
@@ -111,14 +113,7 @@ fun SportScreen(
     val deleteWithUndo: (SportActivity) -> Unit = { activity ->
         viewModel.deleteActivity(activity.id)
         scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-            viewModel.addActivity(
-                activity.date,
-                activity.type,
-                activity.name,
-                activity.participantIds,
-                activity.routineId,
-                activity.session,
-            )
+            viewModel.restoreActivity(activity)
         }
     }
 
@@ -198,6 +193,16 @@ fun SportScreen(
         }
     }
 
+    val closeEditor = {
+        editorOpen = false
+        editorActivityId = null
+    }
+    EditorSaveEffect(
+        status = state.editorSave,
+        editorOpen = editorOpen,
+        onClose = closeEditor,
+        onConsume = viewModel::consumeEditorSave,
+    )
     ActivityEditorHost(
         open = editorOpen,
         activityId = editorActivityId,
@@ -207,11 +212,10 @@ fun SportScreen(
         catalog = state.exercises,
         onCatalogNeeded = viewModel::observeExerciseCatalog,
         saving = state.isSaving,
+        errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
+            ?.let { stringResource(it.stringResourceId) },
         canWrite = canWrite,
-        onClose = {
-            editorOpen = false
-            editorActivityId = null
-        },
+        onClose = closeEditor,
         onSave = { activity, type, name, participantIds, routineId, session ->
             activity?.let {
                 viewModel.updateActivity(it.id, it.date, type, name, participantIds, routineId, session)
@@ -407,6 +411,7 @@ private fun ActivityEditorHost(
     catalog: List<CatalogExercise>,
     onCatalogNeeded: () -> Unit,
     saving: Boolean,
+    errorMessage: String?,
     canWrite: Boolean,
     onClose: () -> Unit,
     onSave: (SportActivity?, SportType, String, List<String>, String?, List<RoutineExercise>) -> Unit,
@@ -426,11 +431,11 @@ private fun ActivityEditorHost(
         catalog = catalog,
         onCatalogNeeded = onCatalogNeeded,
         saving = saving,
+        errorMessage = errorMessage,
         canWrite = canWrite,
         onDismiss = onClose,
         onSave = { type, name, participantIds, routineId, session ->
             onSave(activity, type, name, participantIds, routineId, session)
-            onClose()
         },
     )
 }
@@ -461,6 +466,7 @@ private fun ActivityEditor(
     catalog: List<CatalogExercise>,
     onCatalogNeeded: () -> Unit,
     saving: Boolean,
+    errorMessage: String?,
     canWrite: Boolean,
     onDismiss: () -> Unit,
     onSave: (SportType, String, List<String>, String?, List<RoutineExercise>) -> Unit,
@@ -484,6 +490,7 @@ private fun ActivityEditor(
         confirmEnabled = canWrite,
         saving = saving,
         dirty = { draft != initial || session.toRoutineExercises() != initialSession },
+        errorMessage = errorMessage,
         onDismiss = onDismiss,
         onConfirm = {
             val gym = type == SportType.GIMNASIO
@@ -621,6 +628,7 @@ private val SportUiMessage.stringResourceId: Int
         SportUiMessage.PermissionDenied -> R.string.space_error_permission_denied
         SportUiMessage.NetworkError -> R.string.space_error_network
         SportUiMessage.UnexpectedError -> R.string.space_error_unexpected
+        SportUiMessage.SaveTimeout -> R.string.write_timeout
         SportUiMessage.ActivityAdded -> R.string.sport_notice_added
         SportUiMessage.ActivityUpdated -> R.string.sport_notice_updated
         SportUiMessage.ActivityDeleted -> R.string.sport_notice_deleted

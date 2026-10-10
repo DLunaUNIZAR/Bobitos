@@ -1,6 +1,8 @@
 package com.dlunaunizar.bobitos.feature.meals
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.IngredientPref
@@ -22,13 +24,19 @@ import com.dlunaunizar.bobitos.data.repository.RecipeRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewRow
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
@@ -295,9 +303,71 @@ class MealsViewModelTest {
         assertEquals(initialWeek.plusWeeks(1), viewModel.uiState.value.weekStart)
         assertEquals(initialWeek.plusWeeks(1), mealRepository.lastWeekStart)
     }
+
+    @Test
+    fun `editor save is SAVED only after the repository answers`() = runTest(mainDispatcherRule.testDispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        mealRepository.addGate = gate
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.addMeal(LocalDate.now(), MealSlot.CENA, "Cena", emptyList(), recipeId = null, cookId = null)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertTrue(viewModel.uiState.value.isSaving)
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+        assertFalse(viewModel.uiState.value.isSaving)
+        viewModel.consumeEditorSave()
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+    }
+
+    @Test
+    fun `editor save failure or timeout leaves FAILED`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        advanceUntilIdle()
+        mealRepository.nextFailure = MealRepositoryException(MealFailure.Network)
+        viewModel.addMeal(LocalDate.now(), MealSlot.CENA, "Cena", emptyList(), recipeId = null, cookId = null)
+        advanceUntilIdle()
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        assertEquals(MealUiMessage.NetworkError, viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.isSaving)
+
+        mealRepository.nextFailure = null
+        viewModel.consumeEditorSave()
+        mealRepository.hang = true
+        viewModel.addMeal(LocalDate.now(), MealSlot.CENA, "Cena", emptyList(), recipeId = null, cookId = null)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        advanceTimeBy(EDITOR_SAVE_TIMEOUT_MILLIS + 1)
+        runCurrent()
+
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        assertEquals(MealUiMessage.SaveTimeout, viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.isSaving)
+    }
+
+    @Test
+    fun `restoreMeal does not touch the editor status`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.restoreMeal(meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas"))
+        advanceUntilIdle()
+
+        assertEquals("Lentejas", mealRepository.addedName)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(MealUiMessage.MealAdded, viewModel.uiState.value.notice)
+    }
 }
 
 private class FakeMealRepository : MealRepository {
+    var addGate: CompletableDeferred<Unit>? = null
+
+    // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
+    var hang = false
+
     var observedSpaceId: String? = null
     var lastWeekStart: LocalDate? = null
     var addedName: String? = null
@@ -324,6 +394,14 @@ private class FakeMealRepository : MealRepository {
         cookId: String?,
     ) {
         throwNextFailure()
+        if (hang) {
+            try {
+                awaitCancellation()
+            } catch (_: CancellationException) {
+                throw MealRepositoryException(MealFailure.Unknown)
+            }
+        }
+        addGate?.await()
         addedName = name
         addedRecipeId = recipeId
         addedCookId = cookId

@@ -1,11 +1,13 @@
 package com.dlunaunizar.bobitos.feature.notes
 
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.Note
 
 data class NotesUiState(
     val notes: UiState<List<Note>> = UiState.Loading,
     val isSaving: Boolean = false,
+    val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
     val error: NoteUiMessage? = null,
     val notice: NoteUiMessage? = null,
 )
@@ -23,6 +25,7 @@ enum class NoteUiMessage {
     PermissionDenied,
     NetworkError,
     UnexpectedError,
+    SaveTimeout,
     NoteAdded,
     NoteUpdated,
     NoteDeleted,

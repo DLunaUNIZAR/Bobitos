@@ -2,11 +2,18 @@ package com.dlunaunizar.bobitos.feature.notes
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.failed
+import com.dlunaunizar.bobitos.core.common.started
+import com.dlunaunizar.bobitos.core.common.succeeded
+import com.dlunaunizar.bobitos.core.common.withSaveTimeout
 import com.dlunaunizar.bobitos.data.repository.NoteFailure
 import com.dlunaunizar.bobitos.data.repository.NoteRepository
 import com.dlunaunizar.bobitos.data.repository.NoteRepositoryException
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,13 +51,17 @@ class NotesViewModel @Inject constructor(private val repository: NoteRepository)
     fun addNote(title: String, body: String?) {
         val spaceId = observedSpaceId ?: return
         if (!validate(title, body)) return
-        runAction(NoteUiMessage.NoteAdded) { repository.addNote(spaceId, title.trim(), body.normalized()) }
+        runAction(NoteUiMessage.NoteAdded, editor = true) {
+            repository.addNote(spaceId, title.trim(), body.normalized())
+        }
     }
 
     fun updateNote(noteId: String, title: String, body: String?) {
         val spaceId = observedSpaceId ?: return
         if (!validate(title, body)) return
-        runAction(NoteUiMessage.NoteUpdated) { repository.updateNote(spaceId, noteId, title.trim(), body.normalized()) }
+        runAction(NoteUiMessage.NoteUpdated, editor = true) {
+            repository.updateNote(spaceId, noteId, title.trim(), body.normalized())
+        }
     }
 
     fun setPinned(noteId: String, pinned: Boolean) {
@@ -66,35 +77,49 @@ class NotesViewModel @Inject constructor(private val repository: NoteRepository)
         runAction(NoteUiMessage.NoteDeleted) { repository.deleteNote(spaceId, noteId) }
     }
 
+    fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
+
     fun clearFeedback() = mutableUiState.update { it.copy(error = null, notice = null) }
 
     private fun validate(title: String, body: String?): Boolean {
         val error = NoteValidation.validate(title, body) ?: return true
-        showError(error)
+        showError(error, editor = true)
         return false
     }
 
-    private fun showError(message: NoteUiMessage) = mutableUiState.update {
-        it.copy(isSaving = false, error = message, notice = null)
+    private fun showError(message: NoteUiMessage, editor: Boolean = false) = mutableUiState.update {
+        it.copy(isSaving = false, error = message, notice = null, editorSave = it.editorSave.failed(editor))
     }
 
-    private fun runAction(notice: NoteUiMessage?, action: suspend () -> Unit) {
+    private fun runAction(notice: NoteUiMessage?, editor: Boolean = false, action: suspend () -> Unit) {
         if (mutableUiState.value.isSaving) return
-        mutableUiState.update { it.copy(isSaving = true, error = null, notice = null) }
+        mutableUiState.update {
+            it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
+        }
         viewModelScope.launch {
-            try {
-                action()
-                mutableUiState.update { it.copy(isSaving = false, notice = notice) }
-            } catch (error: Throwable) {
-                showError(error.toUiMessage())
-            }
+            runCatching { withSaveTimeout { action() } }
+                .onSuccess {
+                    mutableUiState.update {
+                        it.copy(isSaving = false, notice = notice, editorSave = it.editorSave.succeeded(editor))
+                    }
+                }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    showError(error.toUiMessage(), editor)
+                }
         }
     }
 }
 
 private fun String?.normalized() = this?.trim()?.takeIf(String::isNotEmpty)
 
-private fun Throwable.toUiMessage() = when ((this as? NoteRepositoryException)?.failure) {
+private fun Throwable.toUiMessage() = if (this is SaveTimeoutException) {
+    NoteUiMessage.SaveTimeout
+} else {
+    toRepositoryUiMessage()
+}
+
+private fun Throwable.toRepositoryUiMessage() = when ((this as? NoteRepositoryException)?.failure) {
     NoteFailure.TitleRequired -> NoteUiMessage.TitleRequired
     NoteFailure.TitleTooLong -> NoteUiMessage.TitleTooLong
     NoteFailure.BodyTooLong -> NoteUiMessage.BodyTooLong

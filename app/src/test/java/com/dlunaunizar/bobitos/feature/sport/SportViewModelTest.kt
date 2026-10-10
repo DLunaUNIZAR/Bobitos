@@ -1,6 +1,8 @@
 package com.dlunaunizar.bobitos.feature.sport
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseInput
@@ -20,14 +22,20 @@ import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.SportActivityRepository
 import com.dlunaunizar.bobitos.data.repository.SportFailure
 import com.dlunaunizar.bobitos.data.repository.SportRepositoryException
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
@@ -163,9 +171,71 @@ class SportViewModelTest {
         assertEquals(SportUiMessage.NetworkError, viewModel.uiState.value.error)
         assertFalse(viewModel.uiState.value.isSaving)
     }
+
+    @Test
+    fun `editor save is SAVED only after the repository answers`() = runTest(mainDispatcherRule.testDispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        repository.addGate = gate
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.addActivity(LocalDate.now(), SportType.PADEL, "Pádel", emptyList())
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertTrue(viewModel.uiState.value.isSaving)
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+        assertFalse(viewModel.uiState.value.isSaving)
+        viewModel.consumeEditorSave()
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+    }
+
+    @Test
+    fun `editor save failure or timeout leaves FAILED`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        advanceUntilIdle()
+        repository.nextFailure = SportRepositoryException(SportFailure.Network)
+        viewModel.addActivity(LocalDate.now(), SportType.PADEL, "Pádel", emptyList())
+        advanceUntilIdle()
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        assertEquals(SportUiMessage.NetworkError, viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.isSaving)
+
+        repository.nextFailure = null
+        viewModel.consumeEditorSave()
+        repository.hang = true
+        viewModel.addActivity(LocalDate.now(), SportType.PADEL, "Pádel", emptyList())
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        advanceTimeBy(EDITOR_SAVE_TIMEOUT_MILLIS + 1)
+        runCurrent()
+
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        assertEquals(SportUiMessage.SaveTimeout, viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.isSaving)
+    }
+
+    @Test
+    fun `restoreActivity does not touch the editor status`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.restoreActivity(activity("a1", LocalDate.now(), SportType.PADEL, "Pádel"))
+        advanceUntilIdle()
+
+        assertEquals("Pádel", repository.addedName)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(SportUiMessage.ActivityAdded, viewModel.uiState.value.notice)
+    }
 }
 
 private class FakeSportActivityRepository : SportActivityRepository {
+    var addGate: CompletableDeferred<Unit>? = null
+
+    // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
+    var hang = false
+
     val activitiesState = MutableStateFlow<List<SportActivity>>(emptyList())
     var observedSpaceId: String? = null
     var addedName: String? = null
@@ -194,6 +264,14 @@ private class FakeSportActivityRepository : SportActivityRepository {
         session: List<RoutineExercise>,
     ) {
         throwNextFailure()
+        if (hang) {
+            try {
+                awaitCancellation()
+            } catch (_: CancellationException) {
+                throw SportRepositoryException(SportFailure.Unknown)
+            }
+        }
+        addGate?.await()
         addedName = name
         addedType = type
         addedRoutineId = routineId
