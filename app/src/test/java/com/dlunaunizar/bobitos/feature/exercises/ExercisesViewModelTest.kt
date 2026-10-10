@@ -6,10 +6,12 @@ import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseEquipment
+import com.dlunaunizar.bobitos.core.model.ExerciseImage
 import com.dlunaunizar.bobitos.core.model.ExerciseInput
 import com.dlunaunizar.bobitos.core.model.ExerciseType
 import com.dlunaunizar.bobitos.core.model.slug
 import com.dlunaunizar.bobitos.data.repository.ExerciseFailure
+import com.dlunaunizar.bobitos.data.repository.ExerciseImageRepository
 import com.dlunaunizar.bobitos.data.repository.ExerciseRepository
 import com.dlunaunizar.bobitos.data.repository.ExerciseRepositoryException
 import kotlinx.coroutines.CancellationException
@@ -36,7 +38,20 @@ class ExercisesViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val repository = FakeExerciseRepository()
-    private val viewModel = ExercisesViewModel(repository)
+    private val imageRepository = FakeImageRepository()
+    private val viewModel = ExercisesViewModel(repository, imageRepository)
+
+    @Test
+    fun `loadImage delegates to the repository`() = runTest(mainDispatcherRule.testDispatcher) {
+        val withImage = exercise("press-banca", "Press banca", ExerciseType.PESO_LIBRE)
+            .copy(image = ExerciseImage("a".repeat(64), null, "CC-BY-SA-4.0", null))
+        assertEquals(listOf<Byte>(7), viewModel.loadImage(withImage)!!.toList())
+        assertEquals(listOf("press-banca" to "a".repeat(64)), imageRepository.requests)
+
+        val without = exercise("sentadilla", "Sentadilla", ExerciseType.PESO_LIBRE)
+        assertNull(viewModel.loadImage(without))
+        assertEquals(1, imageRepository.requests.size)
+    }
 
     @Test
     fun `observes the catalog`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -254,6 +269,16 @@ private class FakeExerciseRepository : ExerciseRepository {
 }
 
 private fun input(name: String, type: ExerciseType) = ExerciseInput(name, type, null, null, emptyList())
+
+private class FakeImageRepository : ExerciseImageRepository {
+    val requests = mutableListOf<Pair<String, String>>()
+    var bytes: ByteArray? = byteArrayOf(7)
+
+    override suspend fun imageBytes(exerciseId: String, hash: String): ByteArray? {
+        requests += exerciseId to hash
+        return bytes
+    }
+}
 
 private fun exercise(id: String, name: String, type: ExerciseType) = CatalogExercise(
     id = id,

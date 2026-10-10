@@ -39,8 +39,9 @@ enum class SetMeasure {
 val ExerciseType.recordsSets: Boolean
     get() = this == ExerciseType.MAQUINA || this == ExerciseType.PESO_LIBRE || this == ExerciseType.PESO_CORPORAL
 
-// Imagen de la ficha, enlazada desde wger.de con su autoría y licencia (no se copia ni se sube).
-data class ExerciseImage(val url: String, val author: String?, val license: String)
+// Imagen de la ficha: WebP adaptado de wger.de y almacenado en Firestore (exerciseImages/{id}), identificado
+// por el hash de sus bytes; lleva su autoría y licencia. sourceUrl es la página de origen en wger.de.
+data class ExerciseImage(val hash: String, val author: String?, val license: String, val sourceUrl: String?)
 
 // Procedencia de una ficha importada (p. ej. wger) para atribuir autor y licencia.
 data class ExerciseSource(

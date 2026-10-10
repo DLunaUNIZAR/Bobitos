@@ -9,9 +9,11 @@ import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
+import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseInput
 import com.dlunaunizar.bobitos.core.model.slug
 import com.dlunaunizar.bobitos.data.repository.ExerciseFailure
+import com.dlunaunizar.bobitos.data.repository.ExerciseImageRepository
 import com.dlunaunizar.bobitos.data.repository.ExerciseRepository
 import com.dlunaunizar.bobitos.data.repository.ExerciseRepositoryException
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,12 +28,19 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class ExercisesViewModel @Inject constructor(private val repository: ExerciseRepository) : ViewModel() {
+class ExercisesViewModel @Inject constructor(
+    private val repository: ExerciseRepository,
+    private val imageRepository: ExerciseImageRepository,
+) : ViewModel() {
     private val mutableUiState = MutableStateFlow(ExercisesUiState())
     val uiState: StateFlow<ExercisesUiState> = mutableUiState.asStateFlow()
 
     private var catalogJob: Job? = null
     private var observing = false
+
+    // Bytes de la imagen de la ficha (caché local si el hash coincide); null si no hay o no se puede leer.
+    suspend fun loadImage(exercise: CatalogExercise): ByteArray? =
+        exercise.image?.let { imageRepository.imageBytes(exercise.id, it.hash) }
 
     fun observe() {
         if (observing) return

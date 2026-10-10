@@ -24,10 +24,12 @@ import com.dlunaunizar.bobitos.data.repository.DataStoreCatalogSyncStore
 import com.dlunaunizar.bobitos.data.repository.DataStoreOnboardingPreferenceRepository
 import com.dlunaunizar.bobitos.data.repository.DataStoreReminderPreferenceRepository
 import com.dlunaunizar.bobitos.data.repository.DataStoreThemePreferenceRepository
+import com.dlunaunizar.bobitos.data.repository.ExerciseImageRepository
 import com.dlunaunizar.bobitos.data.repository.ExerciseRepository
 import com.dlunaunizar.bobitos.data.repository.FirebaseAccountRepository
 import com.dlunaunizar.bobitos.data.repository.FirebaseAuthRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreCalendarRepository
+import com.dlunaunizar.bobitos.data.repository.FirestoreExerciseImageRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreExerciseRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreIngredientBrandRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreIngredientPrefsRepository
@@ -102,6 +104,9 @@ abstract class DataModule {
 
     @Binds @Singleton
     abstract fun bindExerciseRepository(repository: FirestoreExerciseRepository): ExerciseRepository
+
+    @Binds @Singleton
+    abstract fun bindExerciseImageRepository(repository: FirestoreExerciseImageRepository): ExerciseImageRepository
 
     @Binds @Singleton
     abstract fun bindCatalogSyncStore(store: DataStoreCatalogSyncStore): CatalogSyncStore

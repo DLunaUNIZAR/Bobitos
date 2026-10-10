@@ -57,15 +57,15 @@ internal fun parseExerciseType(raw: Any?): ExerciseType =
 internal fun parseSetMeasure(raw: Any?): SetMeasure =
     (raw as? String)?.let { value -> runCatching { SetMeasure.valueOf(value) }.getOrNull() } ?: SetMeasure.REPS
 
-private const val WGER_MEDIA_PREFIX = "https://wger.de/media/"
+private val SHA256_HEX = Regex("[0-9a-f]{64}")
 
-// Solo se acepta una imagen alojada en wger.de/media y con licencia; si no, la ficha sigue sin imagen.
+// Exige hash (sha256 hexadecimal en minúscula) y licencia; una imagen antigua solo con url se ignora y la ficha sigue sin imagen.
 internal fun parseExerciseImage(raw: Any?): ExerciseImage? {
     val map = raw as? Map<*, *> ?: return null
-    val url = map["url"] as? String
+    val hash = map["hash"] as? String
     val license = map["license"] as? String
-    if (url == null || license == null || !url.startsWith(WGER_MEDIA_PREFIX)) return null
-    return ExerciseImage(url, map["author"] as? String, license)
+    if (hash == null || license == null || !SHA256_HEX.matches(hash)) return null
+    return ExerciseImage(hash, map["author"] as? String, license, map["sourceUrl"] as? String)
 }
 
 // Ignora desconocidos y duplicados; devuelve en el orden canónico del enum.

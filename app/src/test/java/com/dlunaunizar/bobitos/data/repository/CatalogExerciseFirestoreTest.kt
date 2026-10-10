@@ -152,7 +152,7 @@ class CatalogExerciseFirestoreTest {
     }
 
     private fun wgerImage(extra: Map<String, Any?> = emptyMap()): Map<String, Any?> =
-        mapOf("url" to "https://wger.de/media/exercise-images/1/a.png", "license" to "CC-BY-SA-4.0") + extra
+        mapOf("hash" to "a".repeat(64), "license" to "CC-BY-SA-4.0") + extra
 
     @Test
     fun `measure SECONDS is parsed, missing or unknown is REPS`() {
@@ -164,21 +164,26 @@ class CatalogExerciseFirestoreTest {
     }
 
     @Test
-    fun `wger media image is parsed, foreign url, missing licence or non-map is ignored`() {
-        val image = parse(legacy() + ("image" to wgerImage(mapOf("author" to "Ana"))))!!.image!!
-        assertEquals("https://wger.de/media/exercise-images/1/a.png", image.url)
+    fun `image with hash and licence is parsed, bad hash and url-only legacy image are ignored`() {
+        val extra = mapOf("author" to "Ana", "sourceUrl" to "https://wger.de/x")
+        val image = parse(legacy() + ("image" to wgerImage(extra)))!!.image!!
+        assertEquals("a".repeat(64), image.hash)
         assertEquals("Ana", image.author)
         assertEquals("CC-BY-SA-4.0", image.license)
+        assertEquals("https://wger.de/x", image.sourceUrl)
         assertNull(parse(legacy() + ("image" to wgerImage()))!!.image!!.author)
-        assertNull(parseExerciseImage(wgerImage(mapOf("url" to "https://evil.example/media/a.png"))))
-        assertNull(parseExerciseImage(wgerImage(mapOf("url" to "http://wger.de/media/a.png"))))
-        assertNull(parseExerciseImage(wgerImage(mapOf("url" to "https://wger.de/other/a.png"))))
+        assertNull(parse(legacy() + ("image" to wgerImage()))!!.image!!.sourceUrl)
+        assertNull(parseExerciseImage(wgerImage(mapOf("hash" to "A".repeat(64)))))
+        assertNull(parseExerciseImage(wgerImage(mapOf("hash" to "a".repeat(63)))))
+        assertNull(parseExerciseImage(wgerImage(mapOf("hash" to "g".repeat(64)))))
+        assertNull(parseExerciseImage(wgerImage() - "hash"))
         assertNull(parseExerciseImage(wgerImage() - "license"))
-        assertNull(parseExerciseImage(wgerImage() - "url"))
-        assertNull(parseExerciseImage("https://wger.de/media/a.png"))
+        val urlOnly = mapOf("url" to "https://wger.de/media/a.png", "license" to "CC-BY-SA-4.0")
+        assertNull(parseExerciseImage(urlOnly))
+        assertNull(parseExerciseImage("x"))
         assertNull(parseExerciseImage(null))
         // La ficha se conserva aunque la imagen no valga.
-        val kept = parse(legacy() + ("image" to "x"))
+        val kept = parse(legacy() + ("image" to urlOnly))
         assertEquals("Press banca", kept!!.name)
         assertNull(kept.image)
     }

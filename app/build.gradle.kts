@@ -128,8 +128,6 @@ dependencies {
     implementation(libs.androidx.work.runtime)
     implementation(libs.jsoup)
     implementation(libs.play.services.code.scanner)
-    implementation(libs.coil.compose)
-    implementation(libs.coil.network.okhttp)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)
 

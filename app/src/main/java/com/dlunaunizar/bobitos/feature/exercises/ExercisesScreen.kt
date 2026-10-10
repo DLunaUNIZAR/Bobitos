@@ -133,6 +133,7 @@ fun ExercisesScreen(
     )?.item?.let { exercise ->
         ExerciseDetailSheet(
             exercise = exercise,
+            loadImage = { viewModel.loadImage(exercise) },
             canEdit = state.canEdit(exercise),
             onEdit = {
                 detailOpen = false

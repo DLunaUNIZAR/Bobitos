@@ -565,6 +565,7 @@
     <string name="exercises_measure_seconds">Segundos</string>
     <string name="exercises_image_description">Ilustración de %1$s</string>
     <string name="exercises_image_credit">"Imagen: %1$s · "</string>
+    <string name="exercises_image_credit_suffix">" · adaptada de wger.de"</string>
     <string name="exercises_detail_by_time">Por tiempo</string>
     <string name="exercises_muscle_label">Grupo muscular (opcional)</string>
     <string name="exercises_description_label">Descripción (opcional)</string>
@@ -582,7 +583,7 @@
     <string name="credits_title">Créditos y licencias</string>
     <string name="credits_wger_title">Ejercicios</string>
     <string name="credits_wger_body">Los textos de los ejercicios proceden de wger.de y sus colaboradores, con licencias CC BY-SA 3.0 o 4.0 (algunos CC BY 4.0 o CC0). Se han adaptado (texto plano, recortes, nombres normalizados, tipo, grupo y material asignados) y se comparten bajo CC BY-SA 4.0. Cada ficha indica su autoría y su licencia.</string>
-    <string name="credits_images_body">Las imágenes de los ejercicios no se copian: se enlazan desde wger.de y se muestran con su autoría y su licencia.</string>
+    <string name="credits_images_body">Las imágenes de los ejercicios están copiadas de wger.de, adaptadas (redimensionadas y en WebP) y almacenadas en Bobitos, con su autoría y su licencia.</string>
     <string name="credits_bobitos_title">Catálogo Bobitos</string>
     <string name="credits_bobitos_body">Las fichas marcadas como Catálogo Bobitos son textos propios del proyecto y se comparten bajo CC BY-SA 4.0.</string>
     <string name="credits_off_title">Alimentos</string>
