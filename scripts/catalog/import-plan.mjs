@@ -4,6 +4,8 @@ import { isNearDuplicate } from "./normalize.mjs";
 
 // Debe coincidir con firestore.rules (recipeAdmins()) y RecipeAdmins.kt; un test lo vigila.
 export const CATALOG_ADMIN_UID = "dWWH7eRhHEPopJf5BHPB3Dp6fry1";
+// Documento con la versión del catálogo (la caché del cliente caduca al cambiar).
+export const CATALOG_META_PATH = "catalogMeta/exercises";
 export const CATALOG_AUTHOR_NAME = "Catálogo Bobitos";
 
 // Solo las claves presentes: Firestore rechaza `undefined` y las fichas propias no llevan `url`.
@@ -120,6 +122,9 @@ export function formatPlan(plan) {
     `Crear: ${plan.create.length}`,
     `Actualizar: ${plan.update.length}`,
     `Sin cambios: ${plan.unchanged.length}`,
+    plan.create.length + plan.update.length > 0
+      ? "La versión del catálogo subirá (catalogMeta/exercises)."
+      : "La versión del catálogo no cambia.",
     ...section("Omitidas (ficha de usuario con el mismo id)", plan.skippedUserOwned, (x) => `${x.id} (dueño ${x.ownerUid})`),
     ...section("Omitidas (ficha manual del admin, sin fuente)", plan.skippedAdminManual),
     ...section("Omitidas (editadas en la app tras importarse)", plan.skippedEditedInApp),

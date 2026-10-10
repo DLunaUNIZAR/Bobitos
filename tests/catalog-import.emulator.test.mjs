@@ -20,6 +20,7 @@ after(() => deleteApp(app));
 beforeEach(async () => {
   const snap = await db.collection("exercises").get();
   await Promise.all(snap.docs.map((d) => d.ref.delete()));
+  await db.doc("catalogMeta/exercises").delete();
 });
 
 const quiet = () => {};
@@ -100,4 +101,33 @@ test("importa una ficha propia sin url ni claves undefined", async () => {
   assert.deepEqual((await db.doc(`exercises/${withImage.id}`).get()).data().image, withImage.image);
   const again = await runImport({ db, catalog: cat, apply: true, log: quiet });
   assert.equal(again.create.length + again.update.length, 0);
+});
+
+test("la primera importación deja la versión en 1 y una segunda sin cambios no la toca", async () => {
+  const first = await runImport({ db, catalog: small, apply: true, log: quiet });
+  assert.equal(first.versionBumped, true);
+  const meta = (await db.doc("catalogMeta/exercises").get()).data();
+  assert.equal(meta.version, 1);
+  assert.equal(meta.updatedBy, CATALOG_ADMIN_UID);
+  const stamp = meta.updatedAt.toMillis();
+  const second = await runImport({ db, catalog: small, apply: true, log: quiet });
+  assert.equal(second.versionBumped, false);
+  const again = (await db.doc("catalogMeta/exercises").get()).data();
+  assert.equal(again.version, 1);
+  assert.equal(again.updatedAt.toMillis(), stamp);
+});
+
+test("actualizar una ficha sube la versión en 1", async () => {
+  await runImport({ db, catalog: small, apply: true, log: quiet });
+  const e = small.exercises[0];
+  const changed = { ...small, exercises: [{ ...e, description: "Cambio del JSON" }, ...small.exercises.slice(1)] };
+  const p = await runImport({ db, catalog: changed, apply: true, log: quiet });
+  assert.equal(p.versionBumped, true);
+  assert.equal((await db.doc("catalogMeta/exercises").get()).data().version, 2);
+});
+
+test("la simulación no crea catalogMeta", async () => {
+  const p = await runImport({ db, catalog: small, apply: false, log: quiet });
+  assert.equal(p.versionBumped, false);
+  assert.equal((await db.doc("catalogMeta/exercises").get()).exists, false);
 });

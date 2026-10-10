@@ -1322,6 +1322,26 @@ service cloud.firestore {
       allow delete: if ownsOrCuratesExercise();
     }
 
+    // Versión del catálogo de ejercicios (caché del cliente). La sube el importador (Admin SDK) en cada lote
+    // con cambios y el cliente en la misma transacción que escribe un ejercicio. Solo `exercises`, de uno en
+    // uno. Sin list ni delete. Las reglas de `exercises` NO exigen subirla (compatibilidad con la beta 17).
+    function validCatalogMeta() {
+      return verifiedUser()
+        && request.resource.data.keys().hasOnly(["version", "updatedAt", "updatedBy"])
+        && request.resource.data.keys().hasAll(["version", "updatedAt", "updatedBy"])
+        && request.resource.data.version is int
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedBy == request.auth.uid;
+    }
+
+    match /catalogMeta/{catalogId} {
+      allow get: if catalogId == "exercises" && verifiedUser();
+      allow create: if catalogId == "exercises" && validCatalogMeta()
+        && request.resource.data.version == 1;
+      allow update: if catalogId == "exercises" && validCatalogMeta()
+        && request.resource.data.version == resource.data.version + 1;
+    }
+
     // Preferencias de ingredientes por usuario (supermercado/marca por defecto): documento privado del
     // propio usuario, con un único campo `entries` (mapa ingredienteId → {supermarket?, brand?}). Solo
     // el dueño lee/escribe. Sin get()/exists().

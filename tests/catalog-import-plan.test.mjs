@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   CATALOG_ADMIN_UID,
   CATALOG_AUTHOR_NAME,
+  CATALOG_META_PATH,
   formatPlan,
   docToExisting,
   managedFields,
@@ -122,6 +123,16 @@ test("toFirestoreDoc incluye todo lo que exige el parser de la app", () => {
 test("formatPlan resume el plan en español", () => {
   const out = formatPlan(plan(catalogOf(entry())));
   assert.match(out, /Crear: 1/);
+});
+
+test("formatPlan avisa de si la versión del catálogo sube", () => {
+  assert.equal(CATALOG_META_PATH, "catalogMeta/exercises");
+  const sube = formatPlan(plan(catalogOf(entry())));
+  assert.match(sube, /La versión del catálogo subirá/);
+  const e = entry();
+  const igual = formatPlan(plan(catalogOf(e), [imported(e)]));
+  assert.match(igual, /La versión del catálogo no cambia/);
+  assert.doesNotMatch(igual, /subirá/);
 });
 
 test("CATALOG_ADMIN_UID coincide con firestore.rules y RecipeAdmins.kt", async () => {

@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { applicationDefault, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
-import { CATALOG_ADMIN_UID, docToExisting, formatPlan, planImport, toFirestoreDoc } from "./import-plan.mjs";
+import { CATALOG_ADMIN_UID, CATALOG_META_PATH, docToExisting, formatPlan, planImport, toFirestoreDoc } from "./import-plan.mjs";
 import { validateEntry } from "./selection.mjs";
 
 const BATCH_SIZE = 400;
@@ -30,7 +30,7 @@ export async function runImport({ db, catalog, apply, log = console.log }) {
   log(formatPlan(plan));
   if (!apply) {
     log("\nSimulación: no se ha escrito nada. Usa --apply para aplicar.");
-    return plan;
+    return { ...plan, versionBumped: false };
   }
 
   const now = FieldValue.serverTimestamp();
@@ -45,10 +45,16 @@ export async function runImport({ db, catalog, apply, log = console.log }) {
       if (kind === "create") batch.create(ref, toFirestoreDoc(e, { now, create: true }));
       else batch.update(ref, toFirestoreDoc(e, { now, create: false }), { lastUpdateTime: updateTimes.get(e.id) });
     }
+    // Cada lote con operaciones sube la versión del catálogo (se crea en 1 si no existe).
+    batch.set(
+      db.doc(CATALOG_META_PATH),
+      { version: FieldValue.increment(1), updatedAt: now, updatedBy: CATALOG_ADMIN_UID },
+      { merge: true },
+    );
     await batch.commit();
   }
   log(`\nAplicado: ${plan.create.length} creadas, ${plan.update.length} actualizadas.`);
-  return plan;
+  return { ...plan, versionBumped: ops.length > 0 };
 }
 
 function parseArgs(argv) {

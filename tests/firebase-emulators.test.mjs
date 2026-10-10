@@ -1327,6 +1327,97 @@ test("un ejercicio valida el tipo y rechaza campos ajenos o nombre vacío", asyn
   await assertFails(setDoc(doc(chef, "exercises", "vacio"), exerciseData("ex-shape", { name: "", nameLower: "" })));
 });
 
+const metaData = (uid, version, overrides = {}) => ({
+  version,
+  updatedAt: serverTimestamp(),
+  updatedBy: uid,
+  ...overrides,
+});
+
+test("catalogMeta: un verificado la lee y uno sin verificar no", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "catalogMeta", "exercises"), {
+      version: 3, updatedAt: Timestamp.now(), updatedBy: RECIPE_ADMIN_UID,
+    });
+  });
+  await assertSucceeds(getDoc(doc(verifiedFirestore("meta-reader"), "catalogMeta", "exercises")));
+  await assertFails(getDoc(doc(unverifiedFirestore("meta-unverified"), "catalogMeta", "exercises")));
+  await assertFails(getDocs(collection(verifiedFirestore("meta-reader"), "catalogMeta")));
+});
+
+test("catalogMeta: crear solo con version 1, updatedAt == request.time y updatedBy propio", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await deleteDoc(doc(context.firestore(), "catalogMeta", "exercises"));
+  });
+  const user = verifiedFirestore("meta-creator");
+  const ref = (db) => doc(db, "catalogMeta", "exercises");
+  await assertFails(setDoc(ref(user), metaData("meta-creator", 2)));
+  await assertFails(setDoc(ref(user), metaData("meta-creator", 1.5)));
+  await assertFails(setDoc(ref(user), metaData("meta-creator", "1")));
+  await assertFails(setDoc(ref(user), metaData("meta-creator", 1, { updatedBy: "otro" })));
+  await assertFails(setDoc(ref(user), metaData("meta-creator", 1, { updatedAt: Timestamp.fromMillis(1000) })));
+  await assertFails(setDoc(ref(user), metaData("meta-creator", 1, { extra: true })));
+  await assertFails(setDoc(ref(user), { version: 1, updatedAt: serverTimestamp() }));
+  await assertFails(setDoc(ref(unverifiedFirestore("meta-creator-u")), metaData("meta-creator-u", 1)));
+  await assertSucceeds(setDoc(ref(user), metaData("meta-creator", 1)));
+});
+
+test("catalogMeta: actualizar solo sube de uno en uno (ni igual, ni +2, ni bajar, ni campos extra)", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "catalogMeta", "exercises"), {
+      version: 5, updatedAt: Timestamp.now(), updatedBy: RECIPE_ADMIN_UID,
+    });
+  });
+  const user = verifiedFirestore("meta-updater");
+  const ref = doc(user, "catalogMeta", "exercises");
+  const upd = (v, extra = {}) => updateDoc(ref, { version: v, updatedAt: serverTimestamp(), updatedBy: "meta-updater", ...extra });
+  await assertFails(upd(5));
+  await assertFails(upd(7));
+  await assertFails(upd(4));
+  await assertFails(upd(6.5));
+  await assertFails(upd(6, { extra: 1 }));
+  await assertFails(upd(6, { updatedBy: "otro" }));
+  await assertFails(updateDoc(ref, { version: 6, updatedAt: Timestamp.fromMillis(1000), updatedBy: "meta-updater" }));
+  await assertFails(updateDoc(doc(unverifiedFirestore("meta-updater-u"), "catalogMeta", "exercises"),
+    { version: 6, updatedAt: serverTimestamp(), updatedBy: "meta-updater-u" }));
+  await assertSucceeds(upd(6));
+  await assertFails(upd(6));
+  await assertSucceeds(upd(7));
+});
+
+test("catalogMeta: nadie la borra y otro catalogId se rechaza", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "catalogMeta", "exercises"), {
+      version: 1, updatedAt: Timestamp.now(), updatedBy: RECIPE_ADMIN_UID,
+    });
+  });
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  await assertFails(deleteDoc(doc(admin, "catalogMeta", "exercises")));
+  await assertFails(setDoc(doc(verifiedFirestore("meta-other"), "catalogMeta", "recipes"), metaData("meta-other", 1)));
+  await assertFails(getDoc(doc(admin, "catalogMeta", "recipes")));
+});
+
+test("catalogMeta: una transacción de alta de ejercicio + subida de versión pasa", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await deleteDoc(doc(context.firestore(), "catalogMeta", "exercises"));
+  });
+  const user = verifiedFirestore("meta-tx");
+  const metaRef = doc(user, "catalogMeta", "exercises");
+  const altaConVersion = (id) =>
+    runTransaction(user, async (tx) => {
+      const snap = await tx.get(metaRef);
+      tx.set(doc(user, "exercises", id), exerciseData("meta-tx"));
+      if (snap.exists()) tx.update(metaRef, metaData("meta-tx", snap.data().version + 1));
+      else tx.set(metaRef, metaData("meta-tx", 1));
+    });
+  await assertSucceeds(altaConVersion("tx-uno"));
+  assert.equal((await getDoc(metaRef)).data().version, 1);
+  await assertSucceeds(altaConVersion("tx-dos"));
+  assert.equal((await getDoc(metaRef)).data().version, 2);
+  // La subida de versión sigue siendo opcional para las reglas de exercises (beta 17).
+  await assertSucceeds(setDoc(doc(user, "exercises", "sin-version"), exerciseData("meta-tx")));
+});
+
 test("solo el autor o un admin editan/borran un ejercicio del catálogo", async () => {
   await testEnvironment.withSecurityRulesDisabled(async (context) => {
     const timestamp = Timestamp.now();
