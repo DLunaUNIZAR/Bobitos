@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { toCandidate } from "../scripts/catalog/normalize.mjs";
@@ -116,19 +117,29 @@ test("validateEntry acepta measure REPS/SECONDS y rechaza otro valor o SECONDS e
   assert.deepEqual(validateEntry({ ...ok, type: "CARDIO", measure: "REPS" }), []);
 });
 
-test("validateEntry acepta imagen de wger media y rechaza URL ajena, licencia no admitida o autor >200", () => {
+test("validateEntry acepta image {hash, author, license, sourceUrl} y rechaza url, hash no hexadecimal o sourceUrl ajena", () => {
   const ok = baseEntry();
-  const img = { url: "https://wger.de/media/exercise-images/1/a.png", author: "Ana", license: "CC-BY-SA-4.0" };
+  const img = { hash: "a".repeat(64), author: "Ana", license: "CC-BY-SA-4.0", sourceUrl: "https://wger.de/media/exercise-images/1/a.png" };
   assert.deepEqual(validateEntry({ ...ok, image: img }), []);
   assert.deepEqual(validateEntry({ ...ok, image: null }), []);
-  assert.deepEqual(validateEntry({ ...ok, image: { url: img.url, license: "CC0-1.0" } }), []);
-  assert.ok(validateEntry({ ...ok, image: { ...img, url: "https://evil.example/media/a.png" } }).length > 0);
-  assert.ok(validateEntry({ ...ok, image: { ...img, url: "https://wger.de/es/exercise/1/view/" } }).length > 0);
-  assert.ok(validateEntry({ ...ok, image: { ...img, url: `https://wger.de/media/${"x".repeat(300)}` } }).length > 0);
-  assert.ok(validateEntry({ ...ok, image: { ...img, license: "ODbL" } }).length > 0);
-  assert.ok(validateEntry({ ...ok, image: { ...img, author: "x".repeat(201) } }).length > 0);
-  assert.ok(validateEntry({ ...ok, image: { ...img, extra: 1 } }).length > 0);
+  const { author: _a, ...noAuthor } = img;
+  assert.deepEqual(validateEntry({ ...ok, image: { ...noAuthor, license: "CC0-1.0" } }), []);
+  const bad = (over) => validateEntry({ ...ok, image: { ...img, ...over } }).length > 0;
+  assert.ok(bad({ url: "https://wger.de/media/a.png" }));
+  assert.ok(bad({ hash: "A".repeat(64) }));
+  assert.ok(bad({ hash: "a".repeat(63) }));
+  assert.ok(bad({ hash: "g".repeat(64) }));
+  assert.ok(bad({ hash: undefined }));
+  assert.ok(bad({ sourceUrl: "https://evil.example/media/a.png" }));
+  assert.ok(bad({ sourceUrl: "https://wger.de/es/exercise/1/view/" }));
+  assert.ok(bad({ sourceUrl: undefined }));
+  assert.ok(bad({ sourceUrl: `https://wger.de/media/${"x".repeat(300)}` }));
+  assert.ok(bad({ license: "ODbL" }));
+  assert.ok(bad({ author: "x".repeat(201) }));
+  assert.ok(bad({ extra: 1 }));
   assert.ok(validateEntry({ ...ok, image: "https://wger.de/media/a.png" }).length > 0);
+  // Sin hash solo se admite al preparar las fuentes de las imágenes.
+  assert.deepEqual(validateEntry({ ...ok, image: { ...img, hash: undefined } }, { hashOptional: true }), []);
 });
 
 test("validateEntry acepta bobitos sin url con CC-BY-SA-4.0 y rechaza bobitos con url u otra licencia", () => {
@@ -141,7 +152,7 @@ test("validateEntry acepta bobitos sin url con CC-BY-SA-4.0 y rechaza bobitos co
   assert.ok(validateEntry({ ...own, source: { ...own.source, license: "CC0-1.0" } }).length > 0);
   assert.ok(validateEntry({ ...own, source: { ...own.source, author: "Otro" } }).length > 0);
   assert.ok(validateEntry({ ...own, source: { ...own.source, provider: "otro" } }).length > 0);
-  const img = { url: "https://wger.de/media/a.png", license: "CC-BY-SA-4.0" };
+  const img = { hash: "a".repeat(64), license: "CC-BY-SA-4.0", sourceUrl: "https://wger.de/media/a.png" };
   assert.ok(validateEntry({ ...own, image: img }).length > 0);
   assert.deepEqual(validateEntry({ ...own, image: null }), []);
 });
@@ -166,15 +177,36 @@ test("buildCatalog copia measure SECONDS y rechaza SECONDS en CARDIO", () => {
   assert.ok(run({ include: [{ wgerId: 257, measure: "MINUTES" }], exclude: [] }).problems.length > 0);
 });
 
+const bytesOf = (id) => Buffer.from(`webp-${id}`);
+
 test("buildCatalog elige imagen: la primera, ninguna con false o la indicada; un id inexistente es problema", () => {
-  const img = (sel) => run({ include: [{ wgerId: 245, ...sel }], exclude: [] });
+  const img = (sel) => buildCatalog({ candidates, selection: { include: [{ wgerId: 245, ...sel }], exclude: [] }, fetchedAt: "x", imageBytes: bytesOf });
   const first = img({}).catalog.exercises[0].image;
-  assert.equal(first.url, "https://wger.de/media/exercise-images/245/img30.png.400x400_q85.png");
-  assert.deepEqual(Object.keys(first), ["url", "author", "license"]);
+  assert.equal(first.sourceUrl, "https://wger.de/media/exercise-images/245/img30.png.400x400_q85.png");
+  assert.deepEqual(Object.keys(first), ["hash", "author", "license", "sourceUrl"]);
   assert.equal(img({ image: false }).catalog.exercises[0].image, null);
-  assert.ok(img({ image: 33 }).catalog.exercises[0].image.url.includes("img33"));
+  assert.ok(img({ image: 33 }).catalog.exercises[0].image.sourceUrl.includes("img33"));
   assert.ok(img({ image: 999 }).problems.length > 0);
   assert.equal(run({ include: [{ wgerId: 254 }], exclude: [] }).catalog.exercises[0].image, null);
+});
+
+test("buildCatalog completa el hash desde data/catalog/images y falla si falta el fichero", () => {
+  const sel = { include: [{ wgerId: 245 }], exclude: [] };
+  const asked = [];
+  const ok = buildCatalog({
+    candidates, selection: sel, fetchedAt: "x",
+    imageBytes: (id) => (asked.push(id), bytesOf(id)),
+  });
+  assert.deepEqual(ok.problems, []);
+  const e = ok.catalog.exercises[0];
+  assert.deepEqual(asked, [e.id]);
+  assert.equal(e.image.hash, createHash("sha256").update(bytesOf(e.id)).digest("hex"));
+  const missing = buildCatalog({ candidates, selection: sel, fetchedAt: "x", imageBytes: () => undefined });
+  assert.ok(missing.problems.some((p) => p.includes(`${e.id}.webp`)), missing.problems.join("|"));
+  // Sin imageBytes (preparación de fuentes) la imagen queda sin hash y sin problemas.
+  const pre = run(sel);
+  assert.deepEqual(pre.problems, []);
+  assert.deepEqual(Object.keys(pre.catalog.exercises[0].image), ["author", "license", "sourceUrl"]);
 });
 
 test("buildCatalog crea fichas propias con source bobitos sin url, measure explícita e image null", () => {
@@ -203,14 +235,18 @@ test("buildCatalog falla con bobitosId repetido o no entero, o con slug repetido
 });
 
 test("renderReview muestra medida, imagen con autor y licencia, y el texto completo de las fichas propias", () => {
-  const r = run({
-    include: [{ wgerId: 245, measure: "SECONDS" }, { wgerId: 254 }],
-    exclude: [],
-    custom: [own()],
+  const r = buildCatalog({
+    candidates,
+    selection: { include: [{ wgerId: 245, measure: "SECONDS" }, { wgerId: 254 }], exclude: [], custom: [own()] },
+    fetchedAt: "x",
+    imageBytes: bytesOf,
   });
-  const md = renderReview(r.catalog, r.warnings, [], [], r.imageIds);
+  const hash = r.catalog.exercises.find((e) => e.image).image.hash;
+  const md = renderReview(r.catalog, r.warnings, []);
   assert.match(md, /\| Tipo \| Medida \| .*\| Imagen \|/);
-  assert.match(md, /\[30\]\(https:\/\/wger\.de\/media\/exercise-images\/245\/img30\.png\.400x400_q85\.png\) · Eva · CC-BY-SA-4\.0/);
+  assert.ok(
+    md.includes(`[${hash.slice(0, 8)}](https://wger.de/media/exercise-images/245/img30.png.400x400_q85.png) · Eva · CC-BY-SA-4.0`),
+  );
   assert.match(md, /SECONDS/);
   assert.match(md, /## Imágenes\n\n1 de 3 ejercicios con imagen/);
   assert.match(md, /## Fichas propias \(Catálogo Bobitos\)/);

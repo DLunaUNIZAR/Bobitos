@@ -13,7 +13,7 @@ export const pickSource = (s) =>
   Object.fromEntries(["provider", "id", "author", "license", "url"].filter((k) => s[k] !== undefined).map((k) => [k, s[k]]));
 
 const pickImage = (i) =>
-  i == null ? null : Object.fromEntries(["url", "author", "license"].filter((k) => i[k] !== undefined).map((k) => [k, i[k]]));
+  i == null ? null : Object.fromEntries(["hash", "author", "license", "sourceUrl"].filter((k) => i[k] !== undefined).map((k) => [k, i[k]]));
 
 /**
  * Documento de Firestore (datos ya planos) → `ExistingDoc` de `planImport`.

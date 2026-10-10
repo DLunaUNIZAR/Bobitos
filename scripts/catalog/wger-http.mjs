@@ -34,8 +34,24 @@ export function retryDelayMs(res, attempt) {
 
 const realSleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export async function fetchJson(
+/** Solo se descarga de https://wger.de/media/…; la URL sale del JSON de wger y no es de fiar. */
+export function assertWgerMediaUrl(url) {
+  let u;
+  try {
+    u = new URL(url);
+  } catch {
+    throw new Error(`URL no válida: ${url}`);
+  }
+  if (u.protocol !== "https:" || u.hostname !== "wger.de" || u.port !== "" || !u.pathname.startsWith("/media/")) {
+    throw new Error(`URL fuera de https://wger.de/media/: ${url}`);
+  }
+  return u.href;
+}
+
+// Reintentos acotados (solo 5xx, 429 y red; un 4xx es permanente). `read` extrae el cuerpo de la respuesta.
+async function fetchWithRetry(
   url,
+  read,
   { fetchImpl = fetch, sleep = realSleep, attempts = 3, timeoutMs = 30_000, headers = DEFAULT_HEADERS } = {},
 ) {
   let last;
@@ -48,7 +64,7 @@ export async function fetchJson(
         delay = retryDelayMs(res, attempt);
         if (delay === null) break;
       } else {
-        return await res.json();
+        return await read(res);
       }
     } catch (e) {
       last = e;
@@ -56,4 +72,11 @@ export async function fetchJson(
     if (attempt < attempts) await sleep(delay);
   }
   throw new Error(`No se pudo descargar ${url}: ${last?.message}`);
+}
+
+export const fetchJson = (url, opts) => fetchWithRetry(url, (res) => res.json(), opts);
+
+/** Descarga binaria (miniaturas): devuelve un Buffer. */
+export async function fetchBinary(url, opts) {
+  return fetchWithRetry(assertWgerMediaUrl(url), async (res) => Buffer.from(await res.arrayBuffer()), opts);
 }

@@ -16,10 +16,12 @@ import {
   slug,
   sortEquipment,
 } from "./normalize.mjs";
+import { sha256Hex } from "./images.mjs";
 
+const HASH_RE = /^[0-9a-f]{64}$/;
 const ADMITTED_LICENSES = new Set(Object.values(LICENSES));
 
-export function validateEntry(entry) {
+export function validateEntry(entry, { hashOptional = false } = {}) {
   const errs = [];
   const str = (v) => typeof v === "string";
   if (!str(entry.name) || entry.name.trim() === "") errs.push("name vacío");
@@ -64,9 +66,12 @@ export function validateEntry(entry) {
     if (s?.provider !== "wger") errs.push("image solo se admite con proveedor wger");
     if (typeof im !== "object" || Array.isArray(im)) errs.push("image debe ser un mapa");
     else {
-      for (const k of Object.keys(im)) if (!["url", "author", "license"].includes(k)) errs.push(`image.${k} no admitido`);
-      if (!str(im.url) || !im.url.startsWith(WGER_MEDIA_PREFIX)) errs.push("image.url no es de wger.de/media");
-      else if (im.url.length > 300) errs.push("image.url > 300");
+      for (const k of Object.keys(im)) if (!["hash", "author", "license", "sourceUrl"].includes(k)) errs.push(`image.${k} no admitido`);
+      if (im.hash === undefined && hashOptional) {
+        // Preparación de fuentes: el hash se completa al leer data/catalog/images.
+      } else if (!str(im.hash) || !HASH_RE.test(im.hash)) errs.push("image.hash debe tener 64 caracteres hexadecimales en minúscula");
+      if (!str(im.sourceUrl) || !im.sourceUrl.startsWith(WGER_MEDIA_PREFIX)) errs.push("image.sourceUrl no es de wger.de/media");
+      else if (im.sourceUrl.length > 300) errs.push("image.sourceUrl > 300");
       if (im.author !== undefined && (!str(im.author) || im.author.length > 200)) errs.push("image.author inválido (≤ 200)");
       if (!ADMITTED_LICENSES.has(im.license)) errs.push(`image.license no admitida: ${im.license}`);
     }
@@ -81,7 +86,11 @@ export function validateEntry(entry) {
  *   custom?: [{bobitosId, name, type, muscleGroup, equipment, description, measure?}],
  * }
  */
-export function buildCatalog({ candidates, selection, fetchedAt }) {
+/**
+ * `imageBytes(id)`: bytes de data/catalog/images/<id>.webp (o undefined si falta). Con él, `image.hash` se
+ * completa y su ausencia es un problema; sin él (preparación de las descargas) la imagen queda sin hash.
+ */
+export function buildCatalog({ candidates, selection, fetchedAt, imageBytes }) {
   const problems = [];
   const warnings = [];
   const include = selection.include ?? [];
@@ -89,7 +98,6 @@ export function buildCatalog({ candidates, selection, fetchedAt }) {
   const excludedIds = new Set(exclude.map((e) => e.wgerId));
   const exercises = [];
   const seen = new Map();
-  const imageIds = {};
 
   for (const item of include) {
     const id = item.wgerId;
@@ -116,8 +124,12 @@ export function buildCatalog({ candidates, selection, fetchedAt }) {
     const picked = pickImage(c.images ?? [], item.image);
     if (picked.problem) problems.push(`wger ${id} (${name}): ${picked.problem}`);
     entry.image = picked.image;
-    if (picked.imageId !== undefined) imageIds[entry.id] = picked.imageId;
-    const errs = validateEntry(entry);
+    if (entry.image && imageBytes) {
+      const bytes = imageBytes(entry.id);
+      if (bytes === undefined || bytes === null) problems.push(`wger ${id} (${name}): falta data/catalog/images/${entry.id}.webp`);
+      else entry.image = { hash: sha256Hex(bytes), ...entry.image };
+    }
+    const errs = validateEntry(entry, { hashOptional: !imageBytes });
     if (errs.length) problems.push(`wger ${id} (${entry.name}): ${errs.join("; ")}`);
     if (seen.has(entry.id)) problems.push(`slug repetido «${entry.id}» (${seen.get(entry.id)} y wger ${id})`);
     else seen.set(entry.id, `wger ${id}`);
@@ -166,7 +178,6 @@ export function buildCatalog({ candidates, selection, fetchedAt }) {
     catalog: { schemaVersion: 1, license: "CC-BY-SA-4.0", source: "https://wger.de", fetchedAt, exercises },
     problems,
     warnings,
-    imageIds,
   };
 }
 
@@ -186,8 +197,6 @@ export function scoreCandidate(c) {
   return score;
 }
 
-// Nombre del fichero de la miniatura, p. ej. «uuid.webp»: sirve de referencia corta.
-const imageName = (url) => url.split("/").pop().split(".")[0];
 const esc = (s) => String(s ?? "").replace(/\|/g, "\\|").replace(/\s*\n\s*/g, " ");
 const clip = (s, n) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
@@ -226,8 +235,7 @@ export function tally(items, key) {
   return [...countBy(items, key)].sort((a, b) => String(a[0]).localeCompare(String(b[0]), "es"));
 }
 
-/** `imageIds`: id de wger de cada imagen elegida por entrada (solo para la revisión). */
-export function renderReview(catalog, warnings = [], notes = [], excluded = [], imageIds = {}) {
+export function renderReview(catalog, warnings = [], notes = [], excluded = []) {
   const ex = catalog.exercises;
   const lines = ["# Revisión del catálogo de ejercicios", "", `${ex.length} ejercicios, obtenidos de wger el ${catalog.fetchedAt}.`, ""];
   for (const [title, key] of [
@@ -255,7 +263,7 @@ export function renderReview(catalog, warnings = [], notes = [], excluded = [], 
     );
     for (const e of byGroup.get(g)) {
       const origin = e.source.url ? `[${e.source.id}](${e.source.url})` : "propia";
-      const image = e.image ? `[${imageIds[e.id] ?? imageName(e.image.url)}](${e.image.url}) · ${esc(e.image.author)} · ${e.image.license}` : "—";
+      const image = e.image ? `[${e.image.hash.slice(0, 8)}](${e.image.sourceUrl}) · ${esc(e.image.author)} · ${e.image.license}` : "—";
       lines.push(
         `| ${esc(e.name)} | ${e.type} | ${e.measure ?? "REPS"} | ${e.equipment.join(", ")} | ${origin} | ${image} | ${e.source.license} · ${esc(e.source.author)} | ${esc(clip(e.description, 160))} |`,
       );

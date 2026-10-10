@@ -1,5 +1,6 @@
 // Sin argumentos: genera data/catalog/exercises.json y exercises-review.md a partir de la selección.
 // Con --candidates: genera build/catalog/candidates.{md,json} para elegir.
+import { readFileSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { toCandidate } from "./normalize.mjs";
 import { buildCatalog, countBy, renderCandidates, renderReview, scoreCandidate } from "./selection.mjs";
@@ -45,7 +46,18 @@ try {
   console.error("Falta data/catalog/exercises-selection.json.");
   process.exit(1);
 }
-const { catalog, problems, warnings, imageIds } = buildCatalog({ candidates, selection, fetchedAt: raw.fetchedAt });
+const { catalog, problems, warnings } = buildCatalog({
+  candidates,
+  selection,
+  fetchedAt: raw.fetchedAt,
+  imageBytes: (id) => {
+    try {
+      return readFileSync(new URL(`data/catalog/images/${id}.webp`, ROOT));
+    } catch {
+      return undefined;
+    }
+  },
+});
 if (problems.length) {
   console.error("Problemas:\n" + problems.map((p) => `- ${p}`).join("\n"));
   process.exit(1);
@@ -55,6 +67,6 @@ if (n < 200 || n > 300) console.warn(`Aviso: ${n} ejercicios, fuera del rango 20
 const notes = selection.notes ?? [];
 const excluded = (selection.exclude ?? []).map((x) => ({ ...x, name: candidates.get(x.wgerId)?.name }));
 await writeFile(new URL("data/catalog/exercises.json", ROOT), JSON.stringify(catalog, null, 2) + "\n");
-await writeFile(new URL("data/catalog/exercises-review.md", ROOT), renderReview(catalog, warnings, notes, excluded, imageIds));
+await writeFile(new URL("data/catalog/exercises-review.md", ROOT), renderReview(catalog, warnings, notes, excluded));
 for (const w of warnings) console.warn(`Aviso: ${w}`);
 console.log(`Catálogo con ${n} ejercicios.`);

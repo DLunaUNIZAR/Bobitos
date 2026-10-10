@@ -165,7 +165,7 @@ test("managedFields pone REPS e image null por defecto", () => {
   assert.equal(m.measure, "REPS");
   assert.ok("image" in m);
   assert.equal(m.image, null);
-  const img = { url: "https://wger.de/media/a.png", license: "CC0-1.0" };
+  const img = { hash: "a".repeat(64), license: "CC0-1.0", sourceUrl: "https://wger.de/media/a.png" };
   const withData = managedFields(entry({ measure: "SECONDS", image: { ...img, extra: "x" } }));
   assert.equal(withData.measure, "SECONDS");
   assert.deepEqual(withData.image, img);
@@ -193,7 +193,7 @@ test("una ficha importada sin measure ni image no se reescribe si el JSON trae R
   const p = plan(catalogOf(e), [old]);
   assert.equal(p.update.length, 0);
   assert.equal(p.unchanged.length, 1);
-  const withImage = entry({ image: { url: "https://wger.de/media/a.png", license: "CC0-1.0" } });
+  const withImage = entry({ image: { hash: "a".repeat(64), license: "CC0-1.0", sourceUrl: "https://wger.de/media/a.png" } });
   assert.equal(plan(catalogOf(withImage), [old]).update.length, 1);
   assert.equal(plan(catalogOf(entry({ measure: "SECONDS" })), [old]).update.length, 1);
 });

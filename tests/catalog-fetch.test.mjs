@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { assertWgerApiUrl, fetchJson } from "../scripts/catalog/wger-http.mjs";
+import { assertWgerApiUrl, assertWgerMediaUrl, fetchBinary, fetchJson } from "../scripts/catalog/wger-http.mjs";
 
 const URL_OK = "https://wger.de/api/v2/exerciseinfo/?limit=200";
 const res = (status, body = {}, headers = {}) => ({
@@ -67,4 +67,45 @@ test("assertWgerApiUrl acepta /api/v2/ de wger.de y rechaza otro host, http:// u
   assert.throws(() => assertWgerApiUrl("http://wger.de/api/v2/exerciseinfo/"));
   assert.throws(() => assertWgerApiUrl("https://wger.de/media/x.png"));
   assert.throws(() => assertWgerApiUrl("no es una url"));
+});
+
+test("assertWgerMediaUrl acepta /media/ de wger.de y rechaza otro host o ruta", () => {
+  const ok = "https://wger.de/media/exercise-images/1/a.png.400x400_q85.png";
+  assert.equal(assertWgerMediaUrl(ok), ok);
+  assert.throws(() => assertWgerMediaUrl("https://evil.example/media/a.png"));
+  assert.throws(() => assertWgerMediaUrl("https://wger.de.evil.example/media/a.png"));
+  assert.throws(() => assertWgerMediaUrl("http://wger.de/media/a.png"));
+  assert.throws(() => assertWgerMediaUrl("https://wger.de:8443/media/a.png"));
+  assert.throws(() => assertWgerMediaUrl("https://wger.de/api/v2/exerciseinfo/"));
+  assert.throws(() => assertWgerMediaUrl("no es una url"));
+});
+
+const binRes = (status, bytes = [1, 2, 3]) => ({
+  ok: status >= 200 && status < 300,
+  status,
+  headers: { get: () => null },
+  arrayBuffer: async () => new Uint8Array(bytes).buffer,
+});
+const MEDIA = "https://wger.de/media/exercise-images/1/a.png";
+
+test("fetchBinary devuelve los bytes y envía el User-Agent", async () => {
+  const { fetchImpl, calls } = scripted(binRes(200, [9, 8, 7]));
+  const buf = await fetchBinary(MEDIA, { fetchImpl, sleep: sleeps().sleep });
+  assert.deepEqual([...buf], [9, 8, 7]);
+  assert.match(calls[0].opts.headers["User-Agent"], /Bobitos/);
+});
+
+test("fetchBinary no reintenta un 404", async () => {
+  const { fetchImpl, calls } = scripted(binRes(404));
+  const s = sleeps();
+  await assert.rejects(fetchBinary(MEDIA, { fetchImpl, sleep: s.sleep }), /HTTP 404/);
+  assert.equal(calls.length, 1);
+  assert.deepEqual(s.list, []);
+});
+
+test("fetchBinary reintenta un 503 y rechaza una URL que no es de wger.de/media", async () => {
+  const { fetchImpl, calls } = scripted(binRes(503), binRes(200));
+  assert.deepEqual([...(await fetchBinary(MEDIA, { fetchImpl, sleep: sleeps().sleep }))], [1, 2, 3]);
+  assert.equal(calls.length, 2);
+  await assert.rejects(fetchBinary("https://evil.example/media/a.png", { fetchImpl }));
 });

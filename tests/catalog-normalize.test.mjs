@@ -187,12 +187,13 @@ test("imageCandidates quita correos y usa «colaboradores de wger» si falta aut
 test("pickImage elige la primera; false no pone imagen; un id elige esa y un id inexistente es problema", () => {
   const images = imageCandidates(byId(245));
   assert.deepEqual(pickImage(images), {
-    image: { url: images[0].url, author: "Eva", license: "CC-BY-SA-4.0" },
+    image: { sourceUrl: images[0].url, author: "Eva", license: "CC-BY-SA-4.0" },
     imageId: 30,
   });
   assert.deepEqual(pickImage([]), { image: null });
   assert.deepEqual(pickImage(images, false), { image: null });
-  assert.equal(pickImage(images, 33).image.url, images[2].url);
+  assert.equal(pickImage(images, 33).image.sourceUrl, images[2].url);
+  assert.ok(!("url" in pickImage(images, 33).image));
   assert.equal(pickImage(images, 33).imageId, 33);
   const bad = pickImage(images, 999);
   assert.equal(bad.image, null);

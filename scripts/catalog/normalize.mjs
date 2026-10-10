@@ -321,7 +321,7 @@ export function pickImage(images, override) {
   return toImage(found);
 }
 
-const toImage = ({ id, url, author, license }) => ({ image: { url, author, license }, imageId: id });
+const toImage = ({ id, url, author, license }) => ({ image: { author, license, sourceUrl: url }, imageId: id });
 
 export function toCandidate(info) {
   const wgerId = info.id;
