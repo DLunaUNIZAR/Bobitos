@@ -5,7 +5,9 @@ import {
   CATALOG_ADMIN_UID,
   CATALOG_AUTHOR_NAME,
   formatPlan,
+  docToExisting,
   managedFields,
+  pickSource,
   planImport,
   toFirestoreDoc,
 } from "../scripts/catalog/import-plan.mjs";
@@ -138,4 +140,49 @@ test("planImport avisa de un alta casi igual a una existente con material extra"
   const nuevo = entry({ id: "press-de-banca-con-barra", name: "Press de banca con barra" });
   const p = plan(catalogOf(nuevo), [imported(old)]);
   assert.deepEqual(p.nearDuplicates, [{ id: "press-de-banca-con-barra", existingId: "press-banca" }]);
+});
+
+test("pickSource no deja claves undefined", () => {
+  const own = pickSource({ provider: "bobitos", id: 1, author: "Catálogo Bobitos", license: "CC-BY-SA-4.0" });
+  assert.deepEqual(own, { provider: "bobitos", id: 1, author: "Catálogo Bobitos", license: "CC-BY-SA-4.0" });
+  assert.ok(!("url" in own));
+  assert.ok(Object.values(pickSource({ provider: "wger", id: 2, license: "CC0-1.0" })).every((v) => v !== undefined));
+});
+
+test("managedFields pone REPS e image null por defecto", () => {
+  const m = managedFields(entry());
+  assert.equal(m.measure, "REPS");
+  assert.ok("image" in m);
+  assert.equal(m.image, null);
+  const img = { url: "https://wger.de/media/a.png", license: "CC0-1.0" };
+  const withData = managedFields(entry({ measure: "SECONDS", image: { ...img, extra: "x" } }));
+  assert.equal(withData.measure, "SECONDS");
+  assert.deepEqual(withData.image, img);
+  assert.ok(Object.values(withData.image).every((v) => v !== undefined));
+});
+
+test("una ficha importada sin measure ni image no se reescribe si el JSON trae REPS y sin imagen", () => {
+  const e = entry({ measure: "REPS" });
+  const old = docToExisting(
+    e.id,
+    {
+      ownerUid: CATALOG_ADMIN_UID,
+      name: e.name,
+      nameLower: e.name.toLowerCase(),
+      type: e.type,
+      muscleGroup: e.muscleGroup,
+      description: e.description,
+      equipment: e.equipment,
+      source: e.source,
+    },
+    { updatedAtMillis: 1000, importedAtMillis: 1000 },
+  );
+  assert.equal(old.fields.measure, "REPS");
+  assert.equal(old.fields.image, null);
+  const p = plan(catalogOf(e), [old]);
+  assert.equal(p.update.length, 0);
+  assert.equal(p.unchanged.length, 1);
+  const withImage = entry({ image: { url: "https://wger.de/media/a.png", license: "CC0-1.0" } });
+  assert.equal(plan(catalogOf(withImage), [old]).update.length, 1);
+  assert.equal(plan(catalogOf(entry({ measure: "SECONDS" })), [old]).update.length, 1);
 });

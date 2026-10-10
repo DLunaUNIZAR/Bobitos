@@ -91,3 +91,57 @@ test("validateEntry exige source.id entero > 0", () => {
     assert.ok(validateEntry({ ...ok, source: { ...ok.source, id: bad } }).length > 0, `id ${bad}`);
   }
 });
+
+const baseEntry = () => ({
+  id: "press",
+  name: "Press",
+  type: "PESO_LIBRE",
+  muscleGroup: "Pecho",
+  description: "Descripción válida de más de veinte caracteres.",
+  equipment: ["BARRA"],
+  source: { provider: "wger", id: 1, author: "a", license: "CC-BY-SA-4.0", url: "https://wger.de/es/exercise/1/view/" },
+});
+
+test("validateEntry acepta measure REPS/SECONDS y rechaza otro valor o SECONDS en CARDIO", () => {
+  const ok = baseEntry();
+  assert.deepEqual(validateEntry({ ...ok, measure: "REPS" }), []);
+  assert.deepEqual(validateEntry({ ...ok, measure: "SECONDS" }), []);
+  for (const t of ["MAQUINA", "PESO_LIBRE", "PESO_CORPORAL"]) {
+    assert.deepEqual(validateEntry({ ...ok, type: t, measure: "SECONDS" }), [], t);
+  }
+  assert.ok(validateEntry({ ...ok, measure: "MINUTES" }).length > 0);
+  assert.ok(validateEntry({ ...ok, measure: null }).length > 0);
+  assert.ok(validateEntry({ ...ok, type: "CARDIO", measure: "SECONDS" }).length > 0);
+  assert.ok(validateEntry({ ...ok, type: "OTROS", measure: "SECONDS" }).length > 0);
+  assert.deepEqual(validateEntry({ ...ok, type: "CARDIO", measure: "REPS" }), []);
+});
+
+test("validateEntry acepta imagen de wger media y rechaza URL ajena, licencia no admitida o autor >200", () => {
+  const ok = baseEntry();
+  const img = { url: "https://wger.de/media/exercise-images/1/a.png", author: "Ana", license: "CC-BY-SA-4.0" };
+  assert.deepEqual(validateEntry({ ...ok, image: img }), []);
+  assert.deepEqual(validateEntry({ ...ok, image: null }), []);
+  assert.deepEqual(validateEntry({ ...ok, image: { url: img.url, license: "CC0-1.0" } }), []);
+  assert.ok(validateEntry({ ...ok, image: { ...img, url: "https://evil.example/media/a.png" } }).length > 0);
+  assert.ok(validateEntry({ ...ok, image: { ...img, url: "https://wger.de/es/exercise/1/view/" } }).length > 0);
+  assert.ok(validateEntry({ ...ok, image: { ...img, url: `https://wger.de/media/${"x".repeat(300)}` } }).length > 0);
+  assert.ok(validateEntry({ ...ok, image: { ...img, license: "ODbL" } }).length > 0);
+  assert.ok(validateEntry({ ...ok, image: { ...img, author: "x".repeat(201) } }).length > 0);
+  assert.ok(validateEntry({ ...ok, image: { ...img, extra: 1 } }).length > 0);
+  assert.ok(validateEntry({ ...ok, image: "https://wger.de/media/a.png" }).length > 0);
+});
+
+test("validateEntry acepta bobitos sin url con CC-BY-SA-4.0 y rechaza bobitos con url u otra licencia", () => {
+  const own = {
+    ...baseEntry(),
+    source: { provider: "bobitos", id: 1, author: "Catálogo Bobitos", license: "CC-BY-SA-4.0" },
+  };
+  assert.deepEqual(validateEntry(own), []);
+  assert.ok(validateEntry({ ...own, source: { ...own.source, url: "https://wger.de/es/exercise/1/view/" } }).length > 0);
+  assert.ok(validateEntry({ ...own, source: { ...own.source, license: "CC0-1.0" } }).length > 0);
+  assert.ok(validateEntry({ ...own, source: { ...own.source, author: "Otro" } }).length > 0);
+  assert.ok(validateEntry({ ...own, source: { ...own.source, provider: "otro" } }).length > 0);
+  const img = { url: "https://wger.de/media/a.png", license: "CC-BY-SA-4.0" };
+  assert.ok(validateEntry({ ...own, image: img }).length > 0);
+  assert.deepEqual(validateEntry({ ...own, image: null }), []);
+});

@@ -54,6 +54,12 @@ export const PRIMARY_MUSCLE_GROUP = {
   7: "Gemelos",
   15: "Gemelos",
 };
+// Contrato v2: medida de las series, tipos con series de fuerza, proveedores y atribución propia.
+export const SET_MEASURES = ["REPS", "SECONDS"];
+export const STRENGTH_TYPES = ["MAQUINA", "PESO_LIBRE", "PESO_CORPORAL"];
+export const PROVIDERS = ["wger", "bobitos"];
+export const BOBITOS_AUTHOR = "Catálogo Bobitos";
+export const WGER_MEDIA_PREFIX = "https://wger.de/media/";
 export const LICENSES = { 1: "CC-BY-SA-3.0", 2: "CC-BY-SA-4.0", 3: "CC0-1.0", 4: "CC-BY-4.0" };
 export const KEEP_CASE = ["Scott", "Arnold", "Pallof", "Zottman", "Smith", "Jefferson", "Bulgaria", "Romano", "Landmine"];
 export const ACCENT_FIXES = {

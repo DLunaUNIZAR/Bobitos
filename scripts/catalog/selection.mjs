@@ -1,5 +1,18 @@
 // Selección, validación y render del catálogo de ejercicios. Funciones puras.
-import { EQUIPMENT, EXERCISE_TYPES, LICENSES, groupBy, isNearDuplicate, foldText, slug, sortEquipment } from "./normalize.mjs";
+import {
+  BOBITOS_AUTHOR,
+  EQUIPMENT,
+  EXERCISE_TYPES,
+  LICENSES,
+  PROVIDERS,
+  SET_MEASURES,
+  STRENGTH_TYPES,
+  WGER_MEDIA_PREFIX,
+  groupBy,   isNearDuplicate,
+  foldText,
+  slug,
+  sortEquipment,
+} from "./normalize.mjs";
 
 const ADMITTED_LICENSES = new Set(Object.values(LICENSES));
 
@@ -20,16 +33,40 @@ export function validateEntry(entry) {
     for (const e of entry.equipment) if (!EQUIPMENT.includes(e)) errs.push(`equipment inválido: ${e}`);
     if (new Set(entry.equipment).size !== entry.equipment.length) errs.push("equipment repetido");
   }
+  if (entry.measure !== undefined) {
+    if (!SET_MEASURES.includes(entry.measure)) errs.push(`measure inválido: ${entry.measure}`);
+    else if (entry.measure === "SECONDS" && !STRENGTH_TYPES.includes(entry.type)) {
+      errs.push(`measure SECONDS no admitido en ${entry.type}`);
+    }
+  }
   const s = entry.source;
   if (!s || typeof s !== "object") errs.push("source ausente");
   else {
-    if (s.provider !== "wger") errs.push("source.provider debe ser wger");
+    if (!PROVIDERS.includes(s.provider)) errs.push(`source.provider no admitido: ${s.provider}`);
     if (!str(s.author) || s.author === "") errs.push("source.author vacío");
     else if (s.author.length > 200) errs.push("source.author > 200");
     if (!ADMITTED_LICENSES.has(s.license)) errs.push(`source.license no admitida: ${s.license}`);
     if (!Number.isInteger(s.id) || s.id <= 0) errs.push("source.id debe ser un entero > 0");
-    if (!str(s.url) || !s.url.startsWith("https://wger.de/")) errs.push("source.url no es de wger");
-    else if (s.url.length > 200) errs.push("source.url > 200");
+    if (s.provider === "bobitos") {
+      if (s.url !== undefined) errs.push("source.url no se admite en fichas bobitos");
+      if (s.license !== "CC-BY-SA-4.0") errs.push("source.license de bobitos debe ser CC-BY-SA-4.0");
+      if (s.author !== BOBITOS_AUTHOR) errs.push(`source.author de bobitos debe ser «${BOBITOS_AUTHOR}»`);
+    } else if (s.provider === "wger") {
+      if (!str(s.url) || !s.url.startsWith("https://wger.de/")) errs.push("source.url no es de wger");
+      else if (s.url.length > 200) errs.push("source.url > 200");
+    }
+  }
+  if (entry.image !== undefined && entry.image !== null) {
+    const im = entry.image;
+    if (s?.provider !== "wger") errs.push("image solo se admite con proveedor wger");
+    if (typeof im !== "object" || Array.isArray(im)) errs.push("image debe ser un mapa");
+    else {
+      for (const k of Object.keys(im)) if (!["url", "author", "license"].includes(k)) errs.push(`image.${k} no admitido`);
+      if (!str(im.url) || !im.url.startsWith(WGER_MEDIA_PREFIX)) errs.push("image.url no es de wger.de/media");
+      else if (im.url.length > 300) errs.push("image.url > 300");
+      if (im.author !== undefined && (!str(im.author) || im.author.length > 200)) errs.push("image.author inválido (≤ 200)");
+      if (!ADMITTED_LICENSES.has(im.license)) errs.push(`image.license no admitida: ${im.license}`);
+    }
   }
   return errs;
 }

@@ -1154,7 +1154,7 @@ service cloud.firestore {
         ])
         && request.resource.data.keys().hasOnly([
           "name", "nameLower", "type", "ownerUid", "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt",
-          "muscleGroup", "description", "equipment", "source"
+          "muscleGroup", "description", "equipment", "source", "measure", "image"
         ])
         && request.resource.data.type in ["MAQUINA", "PESO_LIBRE", "PESO_CORPORAL", "CARDIO", "OTROS"]
         && (!request.resource.data.keys().hasAny(["description"])
@@ -1169,6 +1169,12 @@ service cloud.firestore {
               "BANCO", "BANCO_INCLINADO", "BARRA_DOMINADAS", "ESTERILLA", "FITBALL", "BANDA_ELASTICA"
             ])))
         && (!request.resource.data.keys().hasAny(["source"]) || validExerciseSource(request.resource.data.source))
+        && (!request.resource.data.keys().hasAny(["measure"])
+          || request.resource.data.measure == null
+          || request.resource.data.measure in ["REPS", "SECONDS"])
+        && (!request.resource.data.keys().hasAny(["image"])
+          || request.resource.data.image == null
+          || validExerciseImage(request.resource.data.image))
         && (!request.resource.data.keys().hasAny(["muscleGroup"])
           || request.resource.data.muscleGroup == null
           || (request.resource.data.muscleGroup is string && request.resource.data.muscleGroup.size() <= 60))
@@ -1191,17 +1197,27 @@ service cloud.firestore {
     function validExerciseSource(s) {
       return s is map && s.keys().hasAll(["provider", "id", "license"])
         && s.keys().hasOnly(["provider", "id", "license", "author", "url", "importedAt"])
-        && s.provider == "wger" && s.id is int && s.id > 0
+        && s.provider in ["wger", "bobitos"] && s.id is int && s.id > 0
         && s.license in ["CC-BY-SA-3.0", "CC-BY-SA-4.0", "CC-BY-4.0", "CC0-1.0"]
+        && (s.provider != "bobitos" || (s.license == "CC-BY-SA-4.0" && !s.keys().hasAny(["url"])))
         && (!s.keys().hasAny(["author"]) || (s.author is string && s.author.size() <= 200))
         && (!s.keys().hasAny(["url"])
           || (s.url is string && s.url.size() <= 200 && s.url.matches('https://wger[.]de/.*')))
         && (!s.keys().hasAny(["importedAt"]) || s.importedAt is timestamp);
     }
 
+    // Imagen del importador (wger, solo lectura para los clientes: no entra en `affectedKeys` ni se crea).
+    function validExerciseImage(i) {
+      return i is map && i.keys().hasAll(["url", "license"])
+        && i.keys().hasOnly(["url", "author", "license"])
+        && i.url is string && i.url.size() <= 300 && i.url.matches('https://wger[.]de/media/.*')
+        && i.license in ["CC-BY-SA-3.0", "CC-BY-SA-4.0", "CC-BY-4.0", "CC0-1.0"]
+        && (!i.keys().hasAny(["author"]) || (i.author is string && i.author.size() <= 200));
+    }
+
     function validNewExercise() {
       return verifiedUser() && validExerciseShape()
-        && !request.resource.data.keys().hasAny(["source"])
+        && !request.resource.data.keys().hasAny(["source", "image"])
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time
         && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
@@ -1215,7 +1231,7 @@ service cloud.firestore {
     function validExerciseUpdate() {
       return ownsOrCuratesExercise() && validExerciseShape()
         && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(["name", "nameLower", "type", "muscleGroup", "description", "equipment", "updatedBy", "updatedAt"])
+          .hasOnly(["name", "nameLower", "type", "muscleGroup", "description", "equipment", "measure", "updatedBy", "updatedAt"])
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.createdBy == resource.data.createdBy
         && request.resource.data.createdByName == resource.data.createdByName

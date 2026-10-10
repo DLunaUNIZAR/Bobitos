@@ -6,7 +6,12 @@ import { isNearDuplicate } from "./normalize.mjs";
 export const CATALOG_ADMIN_UID = "dWWH7eRhHEPopJf5BHPB3Dp6fry1";
 export const CATALOG_AUTHOR_NAME = "Catálogo Bobitos";
 
-export const pickSource = (s) => ({ provider: s.provider, id: s.id, author: s.author, license: s.license, url: s.url });
+// Solo las claves presentes: Firestore rechaza `undefined` y las fichas propias no llevan `url`.
+export const pickSource = (s) =>
+  Object.fromEntries(["provider", "id", "author", "license", "url"].filter((k) => s[k] !== undefined).map((k) => [k, s[k]]));
+
+const pickImage = (i) =>
+  i == null ? null : Object.fromEntries(["url", "author", "license"].filter((k) => i[k] !== undefined).map((k) => [k, i[k]]));
 
 /**
  * Documento de Firestore (datos ya planos) → `ExistingDoc` de `planImport`.
@@ -27,6 +32,8 @@ export function docToExisting(id, data, { updatedAtMillis, importedAtMillis }) {
       muscleGroup: data.muscleGroup,
       description: data.description,
       equipment: data.equipment,
+      measure: data.measure ?? "REPS",
+      image: data.image ?? null,
       source: s ? pickSource(s) : undefined,
     },
   };
@@ -40,6 +47,8 @@ export function managedFields(entry) {
     muscleGroup: entry.muscleGroup,
     description: entry.description,
     equipment: [...entry.equipment],
+    measure: entry.measure ?? "REPS",
+    image: pickImage(entry.image),
     source: pickSource(entry.source),
   };
 }

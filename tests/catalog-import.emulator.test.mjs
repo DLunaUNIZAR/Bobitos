@@ -73,3 +73,31 @@ test("actualiza una ficha importada cuyo JSON cambió", async () => {
   assert.equal(d.description, "Cambio del JSON");
   assert.equal(d.updatedAt.toMillis(), d.source.importedAt.toMillis());
 });
+
+test("importa una ficha propia sin url ni claves undefined", async () => {
+  const own = {
+    id: "plancha-lateral-propia",
+    name: "Plancha lateral propia",
+    type: "PESO_CORPORAL",
+    measure: "SECONDS",
+    muscleGroup: "Abdomen",
+    description: "Apoya el antebrazo y mantén el cuerpo recto.",
+    equipment: ["ESTERILLA"],
+    source: { provider: "bobitos", id: 1, author: "Catálogo Bobitos", license: "CC-BY-SA-4.0" },
+  };
+  const withImage = {
+    ...small.exercises[0],
+    image: { url: "https://wger.de/media/exercise-images/1/a.png", author: "Ana", license: "CC-BY-SA-4.0" },
+  };
+  const cat = { ...small, exercises: [own, withImage] };
+  const p = await runImport({ db, catalog: cat, apply: true, log: quiet });
+  assert.equal(p.create.length, 2);
+  const d = (await db.doc(`exercises/${own.id}`).get()).data();
+  assert.equal(d.source.provider, "bobitos");
+  assert.ok(!("url" in d.source));
+  assert.equal(d.measure, "SECONDS");
+  assert.equal(d.image, null);
+  assert.deepEqual((await db.doc(`exercises/${withImage.id}`).get()).data().image, withImage.image);
+  const again = await runImport({ db, catalog: cat, apply: true, log: quiet });
+  assert.equal(again.create.length + again.update.length, 0);
+});

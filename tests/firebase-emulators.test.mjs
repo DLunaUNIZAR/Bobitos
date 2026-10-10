@@ -33,6 +33,7 @@ import {
   writeBatch,
   collection,
   deleteDoc,
+  deleteField,
   increment,
   onSnapshot,
   runTransaction,
@@ -1375,12 +1376,12 @@ const importedEntry = {
   },
 };
 
-async function seedImportedExercise(id, entry = importedEntry) {
+async function seedImportedExercise(id, entry = importedEntry, raw = {}) {
   await testEnvironment.withSecurityRulesDisabled(async (context) => {
-    await setDoc(
-      doc(context.firestore(), "exercises", id),
-      toFirestoreDoc(entry, { now: Timestamp.now(), create: true }),
-    );
+    await setDoc(doc(context.firestore(), "exercises", id), {
+      ...toFirestoreDoc(entry, { now: Timestamp.now(), create: true }),
+      ...raw,
+    });
   });
 }
 
@@ -1459,6 +1460,80 @@ test("un source con proveedor o licencia no admitidos invalida cualquier edició
   });
   const admin = verifiedFirestore(RECIPE_ADMIN_UID);
   for (const id of ["fuente-mala-proveedor", "fuente-mala-licencia"]) {
+    await assertFails(updateDoc(doc(admin, "exercises", id), editFields(RECIPE_ADMIN_UID, { description: "x" })));
+  }
+});
+
+const wgerImage = { url: "https://wger.de/media/exercise-images/111/a.png", author: "Ana", license: "CC-BY-SA-4.0" };
+const ownSource = { provider: "bobitos", id: 1, license: "CC-BY-SA-4.0", author: "Catálogo Bobitos" };
+
+test("un ejercicio acepta measure REPS o SECONDS y rechaza MINUTES", async () => {
+  const user = verifiedFirestore("ex-measure");
+  await assertSucceeds(setDoc(doc(user, "exercises", "m-reps"), exerciseData("ex-measure", { measure: "REPS" })));
+  await assertSucceeds(setDoc(doc(user, "exercises", "m-secs"), exerciseData("ex-measure", { measure: "SECONDS" })));
+  await assertSucceeds(setDoc(doc(user, "exercises", "m-null"), exerciseData("ex-measure", { measure: null })));
+  await assertFails(setDoc(doc(user, "exercises", "m-min"), exerciseData("ex-measure", { measure: "MINUTES" })));
+  await assertFails(setDoc(doc(user, "exercises", "m-num"), exerciseData("ex-measure", { measure: 30 })));
+  await assertSucceeds(
+    updateDoc(doc(user, "exercises", "m-reps"), editFields("ex-measure", { measure: "SECONDS" })),
+  );
+  await assertFails(updateDoc(doc(user, "exercises", "m-reps"), editFields("ex-measure", { measure: "MINUTES" })));
+});
+
+test("nadie crea un ejercicio con image desde el cliente, ni el admin", async () => {
+  const user = verifiedFirestore("ex-img-user");
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  await assertFails(setDoc(doc(user, "exercises", "con-imagen"), exerciseData("ex-img-user", { image: wgerImage })));
+  await assertFails(setDoc(doc(user, "exercises", "imagen-nula"), exerciseData("ex-img-user", { image: null })));
+  await assertFails(
+    setDoc(doc(admin, "exercises", "con-imagen-admin"), exerciseData(RECIPE_ADMIN_UID, { image: wgerImage })),
+  );
+});
+
+test("en una ficha importada con imagen el admin edita la descripción y nadie cambia la imagen", async () => {
+  await seedImportedExercise("con-imagen", { ...importedEntry, image: wgerImage });
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  const ref = doc(admin, "exercises", "con-imagen");
+  await assertSucceeds(updateDoc(ref, editFields(RECIPE_ADMIN_UID, { description: "Editada", measure: "SECONDS" })));
+  await assertFails(updateDoc(ref, editFields(RECIPE_ADMIN_UID, { image: { ...wgerImage, author: "Otro" } })));
+  await assertFails(updateDoc(ref, editFields(RECIPE_ADMIN_UID, { image: null })));
+  await assertFails(updateDoc(ref, editFields(RECIPE_ADMIN_UID, { "image.url": "https://wger.de/media/otra.png" })));
+  await assertFails(updateDoc(ref, editFields(RECIPE_ADMIN_UID, { image: deleteField() })));
+});
+
+test("una imagen fuera de wger.de/media o con licencia no admitida invalida cualquier edición", async () => {
+  const bad = {
+    "img-ajena": { ...wgerImage, url: "https://evil.example/media/a.png" },
+    "img-ruta": { ...wgerImage, url: "https://wger.de/es/exercise/1/view/" },
+    "img-licencia": { ...wgerImage, license: "ODbL" },
+    "img-larga": { ...wgerImage, author: "x".repeat(201) },
+    "img-extra": { ...wgerImage, extra: 1 },
+    "img-texto": "https://wger.de/media/a.png",
+  };
+  for (const [id, image] of Object.entries(bad)) await seedImportedExercise(id, importedEntry, { image });
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  for (const id of Object.keys(bad)) {
+    await assertFails(updateDoc(doc(admin, "exercises", id), editFields(RECIPE_ADMIN_UID, { description: "x" })));
+  }
+});
+
+test("una ficha bobitos (sin url, CC BY-SA 4.0) es editable por el admin; bobitos con url u otra licencia no", async () => {
+  await seedImportedExercise("propia", { ...importedEntry, source: ownSource });
+  await seedImportedExercise("propia-url", {
+    ...importedEntry,
+    source: { ...ownSource, url: "https://wger.de/es/exercise/1/view/" },
+  });
+  await seedImportedExercise("propia-licencia", { ...importedEntry, source: { ...ownSource, license: "CC0-1.0" } });
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  const other = verifiedFirestore("ex-own-other");
+  await assertSucceeds(
+    updateDoc(doc(admin, "exercises", "propia"), editFields(RECIPE_ADMIN_UID, { description: "Editada" })),
+  );
+  await assertFails(updateDoc(doc(other, "exercises", "propia"), editFields("ex-own-other", { description: "x" })));
+  await assertFails(
+    updateDoc(doc(admin, "exercises", "propia"), editFields(RECIPE_ADMIN_UID, { source: ownSource })),
+  );
+  for (const id of ["propia-url", "propia-licencia"]) {
     await assertFails(updateDoc(doc(admin, "exercises", id), editFields(RECIPE_ADMIN_UID, { description: "x" })));
   }
 });
