@@ -5,7 +5,7 @@
 | Campo | Valor |
 | --- | --- |
 | Estado | Modelo multiusuario y módulos compartidos implementados (incluye el planificador de comidas, Fase 1) |
-| Versión | 0.7.0 |
+| Versión | 0.8.0 |
 | Fecha | 10 de octubre de 2026 |
 
 ## 1. Objetivos
@@ -420,10 +420,11 @@ muscleGroup: string?                   # ≤60
 description: string?                   # ≤2000, texto plano
 equipment: array<string>?              # ≤13, sin repetidos, valores del enum de material
 measure: "REPS" | "SECONDS"?           # en qué se registran las series; ausente o null = REPS. SECONDS solo en MAQUINA, PESO_LIBRE y PESO_CORPORAL (lo valida la app y el importador, no las reglas)
-image: map?                            # imagen enlazada (no almacenada); solo la escribe el importador
-  url: string                          # ≤300, empieza por https://wger.de/media/
+image: map?                            # referencia a la imagen (el WebP vive en exerciseImages/{exerciseId}); solo la escribe el importador
+  hash: string                         # sha256 del WebP, 64 caracteres hexadecimales en minúscula
   author: string?                      # ≤200, sin correos
   license: "CC-BY-SA-3.0" | "CC-BY-SA-4.0" | "CC-BY-4.0" | "CC0-1.0"
+  sourceUrl: string                    # ≤300, empieza por https://wger.de/media/; solo procedencia, la app no la abre
 source: map?                           # atribución; solo la escribe el importador
   provider: "wger" | "bobitos"         # bobitos = ficha propia del proyecto (Catálogo Bobitos)
   id: int                              # >0, id de la ficha en wger (o bobitosId)
@@ -468,6 +469,32 @@ notes: string?
 ```
 
 Un ejercicio de repeticiones se escribe exactamente igual que antes de `measure` y `seconds`. La app antigua ignora ambos campos y los pierde al guardar la rutina o la sesión.
+
+### Imágenes de ejercicios (colección `exerciseImages`)
+
+Colección **top-level** con la miniatura de cada ejercicio del catálogo que tiene imagen (ver «Imágenes» en [`EXERCISE_CATALOG.md`](EXERCISE_CATALOG.md)). El documento comparte id con la ficha.
+
+```text
+exerciseImages/{exerciseId}            # mismo id que exercises/{exerciseId}
+```
+
+```text
+data: bytes                            # WebP de 400 px como máximo (≈14 KB de media, ≤200 KB)
+contentType: "image/webp"
+hash: string                           # sha256 de data; coincide con exercises.image.hash
+width: int
+height: int
+author: string?                        # ≤200, sin correos
+license: "CC-BY-SA-3.0" | "CC-BY-SA-4.0" | "CC-BY-4.0" | "CC0-1.0"
+sourceUrl: string                      # procedencia en https://wger.de/media/
+updatedAt: timestamp                   # serverTimestamp del importador
+```
+
+- **Lectura:** solo `get` de un documento, para cualquier usuario verificado. Sin `list`.
+- **Escritura:** ningún cliente. La hace el importador con el Admin SDK, que se salta las reglas.
+- La app lee cada imagen una vez por dispositivo y la guarda en caché (1 lectura por imagen y dispositivo).
+- El importador sube las imágenes antes que las fichas y nunca borra las huérfanas.
+- Sin `get()`/`exists()` en las reglas y sin índices.
 
 ### Versión del catálogo (documento `catalogMeta/exercises`)
 

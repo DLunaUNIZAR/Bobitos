@@ -14,5 +14,4 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - **Interno:** `DataStore<Preferences>` está enlazado en Hilt sin calificador (`DataModule.kt`).
 - **Interno:** el mecanismo `editorSave` está copiado en 13 ViewModels, y la derivación de `errorMessage` en unas 10 pantallas. Falta un helper común.
 - **Interno:** el parseo de `SetMeasure` está en 3 sitios, la etiqueta de medida está duplicada y la regex `WHITESPACE` repite la de `TextSearch`.
-- **Interno:** `docs/EXERCISE_CATALOG.md:222` dice que se hace «una lectura» por lote, pero se usa `increment`. Además, `exercises-selection.json:3` tiene una frase contradictoria.
-
+- **Interno:** `exercises-selection.json:3` tiene una frase contradictoria.

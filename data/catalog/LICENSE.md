@@ -21,4 +21,4 @@ Seis fichas (ergómetro de remo, dominadas con lastre, elevación de gemelos de 
 
 ## Imágenes
 
-Las imágenes no forman parte del catálogo ni se redistribuyen: cada ficha de wger solo enlaza (campo `image`) la miniatura alojada en `https://wger.de/media/`. Cada enlace lleva el autor y la licencia de esa imagen (CC BY-SA 3.0, CC BY-SA 4.0, CC0 1.0 o CC BY 4.0), sin correos. Se excluyen las imágenes generadas por inteligencia artificial.
+Las imágenes de las fichas de wger se redistribuyen como **adaptaciones** (redimensionadas a 400 px como máximo y convertidas a WebP) de obras con licencia CC BY-SA 3.0 o CC BY-SA 4.0. Cada una conserva su autor, su licencia y su procedencia (`sourceUrl`, la dirección original en wger) en el campo `image` de su ficha, y se publica bajo la misma licencia que la obra original. Las copias se versionan en `data/catalog/images/` y el importador las almacena en Firestore. Se excluyen las imágenes generadas por inteligencia artificial.

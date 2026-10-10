@@ -1,6 +1,6 @@
 # Catálogo común de ejercicios
 
-El catálogo de ejercicios (`exercises/{exerciseId}`, colección top-level global) se siembra con unos 200 ejercicios de [wger](https://wger.de), en español, con su descripción, material, atribución y, en parte de ellos, una imagen enlazada, más unas pocas fichas propias del proyecto. Este documento explica de dónde salen los datos, cómo regenerarlos, revisarlos e importarlos, y qué esperar de la importación.
+El catálogo de ejercicios (`exercises/{exerciseId}`, colección top-level global) se siembra con unos 200 ejercicios de [wger](https://wger.de), en español, con su descripción, material, atribución y, en parte de ellos, una miniatura almacenada en Firestore, más unas pocas fichas propias del proyecto. Este documento explica de dónde salen los datos, cómo regenerarlos, revisarlos e importarlos, y qué esperar de la importación.
 
 El esquema de la colección está en la sección «Ejercicios» de [`DATA_MODEL.md`](DATA_MODEL.md).
 
@@ -70,7 +70,7 @@ node scripts/catalog/import-exercises.mjs --project demo-bobitos|bobitos-dev|dev
 - `--apply`: sin él, el importador solo **simula**: lee Firestore, imprime el plan y no escribe nada.
 - `--catalog`: ruta alternativa al JSON (por defecto `data/catalog/exercises.json`).
 
-Es idempotente y **nunca borra**. Escribe por lotes de 400 y las actualizaciones llevan precondición de `lastUpdateTime` (si alguien edita una ficha entre la lectura y la escritura, falla en lugar de pisarla). Cada lote con operaciones sube además la versión del catálogo (`catalogMeta/exercises`, ver «Versión del catálogo y caché»); si no hay cambios, no la toca. La simulación no escribe nada, tampoco la versión, pero imprime una línea indicando si subiría.
+Es idempotente y **nunca borra**. Sube antes las imágenes que falten o hayan cambiado (ver «Imágenes») y escribe las fichas por lotes de 400 y las actualizaciones llevan precondición de `lastUpdateTime` (si alguien edita una ficha entre la lectura y la escritura, falla en lugar de pisarla). Cada lote con operaciones sube además la versión del catálogo (`catalogMeta/exercises`, ver «Versión del catálogo y caché»); si no hay cambios, no la toca. La simulación no escribe nada, tampoco la versión, pero imprime una línea indicando si subiría.
 
 ### En el emulador
 
@@ -79,7 +79,7 @@ npm run emulators            # en otra terminal
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 node scripts/catalog/import-exercises.mjs --project demo-bobitos --apply
 ```
 
-Un proyecto `demo-*` exige `FIRESTORE_EMULATOR_HOST`. Para ver el resultado en la app usa `npm run android:connect-emulators`. Una segunda ejecución sin cambios debe informar de 0 creadas y 0 actualizadas, y la versión no sube.
+Un proyecto `demo-*` exige `FIRESTORE_EMULATOR_HOST`. Para ver el resultado en la app usa `npm run android:connect-emulators`. Una segunda ejecución sin cambios debe informar de 0 creadas, 0 actualizadas y 0 imágenes a subir, y la versión no sube.
 
 ### En `bobitos-dev`
 
@@ -110,7 +110,7 @@ El informe de la simulación agrupa las fichas así:
 | Importada, del admin, pero **ya no está en el JSON** (huérfana) | La **lista**; no la borra. |
 | Nombre casi igual a otra ficha existente con distinto id | La crea y la señala como posible duplicado. |
 
-Al terminar con `--apply` imprime cuántas fichas se han creado y actualizado, y si ha subido la versión.
+Al terminar con `--apply` imprime cuántas fichas se han creado y actualizado y cuántas imágenes ha subido, y si ha subido la versión.
 
 ### Reimportar y fichas editadas
 
@@ -175,14 +175,36 @@ Los isométricos (plancha, plancha lateral, hollow hold, L-sit y sentadilla en l
 
 ## Imágenes
 
-Las imágenes **se enlazan, no se almacenan** (el proyecto está en el plan Spark, sin Firebase Storage). El campo `image` es `null` o `{ url, author, license }`:
+Las miniaturas **se almacenan en Firestore** (colección `exerciseImages`, un documento por ejercicio con imagen) y las copia el importador; la app nunca pide nada a wger.de. El campo `image` de la ficha es `null` o `{ hash, author?, license, sourceUrl }`:
 
-- `url`: miniatura de 400 px alojada en `https://wger.de/media/` (máximo 300 caracteres). Es lo único que la app pasa a la librería de imágenes (Coil).
+- `hash`: sha256 (hexadecimal) del WebP. Es lo que usa el importador para saber si una imagen cambió.
 - `author` y `license`: de esa imagen concreta; la licencia es una de las cuatro admitidas. Sin autor, o si solo había un correo, se muestra «colaboradores de wger» (los correos se eliminan).
+- `sourceUrl`: procedencia de la imagen en `https://wger.de/media/` (máximo 300 caracteres). Solo se usa para informar y para descargarla con `catalog:images`; la app no la abre.
 - Se **excluyen las imágenes generadas por IA** (y las que no tienen miniatura o licencia admitida). Por defecto se toma la primera imagen que cumple (las principales primero, luego por id). En la selección, `"image": false` quita la imagen de una ficha y `"image": <id de imagen>` elige otra; un id que no existe es un problema de `catalog:build`.
-- Solo se muestran en la ficha del ejercicio (no en las listas). Si no carga, el bloque desaparece. Cada imagen se muestra con su crédito y enlace a la licencia.
-- Ningún cliente puede crear ni cambiar `image`: solo el importador. Las reglas la validan (URL, autor, licencia) si está presente.
-- Privacidad: al abrir la ficha, el dispositivo descarga la imagen directamente de wger.de, que recibe la dirección IP (ver `PRIVACY_POLICY.md`).
+
+### Descargar y versionar: `catalog:images`
+
+```bash
+npm run catalog:images   # descarga de wger lo que falta y escribe data/catalog/images/<id>.webp
+npm run catalog:build    # recalcula image.hash en exercises.json a partir de esos ficheros
+```
+
+`catalog:images` solo descarga las imágenes que aún no están en `data/catalog/images/`. Convierte cada una a **WebP de 400 px como máximo de lado** (sin ampliar), **calidad 80** y sin metadatos, y falla en esa imagen si pasa de 200 KB. Los WebP se versionan en el repositorio: hoy son 93 ficheros que suman unos 1,3 MB (14 KB de media, 43 KB la mayor). Si una imagen deja de usarse, el comando la informa como sin usar, pero no borra el fichero.
+
+### Subida: el importador
+
+El importador (ver «Importar») compara el `hash` de cada ficha con el de `exerciseImages/<id>`:
+
+- Antes de escribir nada, y también en la simulación, comprueba que cada WebP a subir existe en `data/catalog/images/` y que su sha256 coincide con `image.hash`; si no, aborta.
+- Con `--apply`, sube las imágenes **antes** que las fichas que apuntan a ellas, en lotes de como mucho 50 documentos y 5 MiB. Cada documento guarda `data` (los bytes), `contentType`, `hash`, `width`, `height`, `author`, `license`, `sourceUrl` y `updatedAt` (esquema en `DATA_MODEL.md`).
+- Sube solo las imágenes nuevas o con otro hash. Las **huérfanas** (en `exerciseImages` pero sin ficha con imagen en el catálogo) se informan en el plan y **no se borran**.
+- Ningún cliente puede escribir `exerciseImages` ni cambiar `image`: solo el importador. Las reglas validan `image` (hash, autor, licencia y `sourceUrl`) si está presente.
+
+### En la app
+
+- Solo se muestran en la ficha del ejercicio (no en las listas), con su crédito (autor y enlace a la licencia) debajo. Si no hay imagen o no se puede leer, el bloque entero, crédito incluido, no aparece.
+- La app lee `exerciseImages/<id>` con un `get` (las reglas no permiten listar) y la guarda en caché local: **1 lectura por imagen y dispositivo**, y sin conexión sigue viéndose si ya se abrió. Si el servidor devuelve una imagen con otro hash que la ficha, muestra la del servidor.
+- Privacidad: el dispositivo no contacta con wger.de; las imágenes salen de Firebase (ver `PRIVACY_POLICY.md`).
 
 ## Fichas propias (Catálogo Bobitos)
 
@@ -195,13 +217,13 @@ Para los básicos que wger no ofrece en español hay fichas redactadas en el rep
 
 ## Orden de despliegue y compatibilidad
 
-1. **Reglas primero**: `npx firebase deploy --only firestore:rules --project dev`. Con las reglas viejas, la app nueva recibe `PERMISSION_DENIED` al guardar un ejercicio (descripción, material, `measure` o la versión del catálogo).
+1. **Reglas primero**: `npx firebase deploy --only firestore:rules --project dev`. Con las reglas viejas, la app nueva no puede leer `exerciseImages` (el importador sí escribe, porque el Admin SDK se salta las reglas) y recibe `PERMISSION_DENIED` al guardar un ejercicio (descripción, material, `measure` o la versión del catálogo).
 2. **Importación** del catálogo (simulación, revisión, `--apply`).
 3. **Beta** con la app nueva, justo después. Las notas de la beta piden que **todos los miembros de cada espacio actualicen**.
 
 Compatibilidad con versiones antiguas:
 
-- La app antigua ignora los campos nuevos (`description`, `equipment`, `source`, `measure`, `image`) y puede seguir creando y editando fichas, porque son opcionales.
+- La app antigua ignora los campos nuevos (`description`, `equipment`, `source`, `measure`, `image`) y la colección `exerciseImages` y puede seguir creando y editando fichas, porque son opcionales.
 - La app antigua ignora `measure` y `seconds`: al guardar una rutina o una sesión, los pierde (igual que pasa con `PESO_CORPORAL`).
 - Las escrituras de la app antigua no suben la versión del catálogo: la caché de la app nueva las verá como tarde a los 7 días.
 - La app antigua **descarta las fichas `PESO_CORPORAL`** (su parser exige un tipo conocido). Las lee como «Otros» donde ya hay rutinas guardadas y, al guardar, **pierde las series** de esos ejercicios. Por eso hay que actualizar todos los dispositivos.
@@ -219,7 +241,8 @@ Para no leer el catálogo entero en cada apertura, existe el documento `catalogM
 
 ## Coste en Firestore (plan Spark)
 
-- Importación: unas 300 lecturas y 250 escrituras, una sola vez (más una lectura y una escritura de la versión por lote). Una simulación cuesta solo las lecturas.
+- Importación: unas 300 lecturas (fichas del catálogo más las imágenes ya subidas) y unas 310 escrituras (214 fichas y 93 imágenes), una sola vez. Cada lote de fichas suma además una escritura de la versión, sin lectura (usa `increment`). Una simulación cuesta solo las lecturas.
+- Ver la imagen de un ejercicio: **1 lectura por imagen y dispositivo**; después sale de la caché local. La colección pesa unos 1,3 MB, muy por debajo de los 1 GiB gratuitos de Spark.
 - Abrir el catálogo **sin cambios**: **1 lectura** (la de `catalogMeta/exercises`). Antes costaba unas 250-300.
 - Abrir con cambios (versión nueva, caché incompleta o caducada): 1 + N lecturas, con N el tamaño del catálogo (unas 250-300 para 214 fichas más las de usuarios). El catálogo se carga de forma diferida: solo lo pagan la pantalla Ejercicios y los editores de rutinas y de gimnasio cuando se abren.
 - Cada guardado de un ejercicio (crear, editar o borrar): **+2 lecturas** (la versión dentro de la transacción y la relectura de la ficha para meterla en la caché) y **+1 escritura** (la versión, además de la de la ficha).
