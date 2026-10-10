@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -8,6 +7,7 @@ import { after, before, beforeEach, test } from "node:test";
 import { deleteApp, initializeApp } from "firebase-admin/app";
 import { Timestamp, getFirestore } from "firebase-admin/firestore";
 import { CATALOG_ADMIN_UID } from "../scripts/catalog/import-plan.mjs";
+import { sha256Hex as sha } from "../scripts/catalog/images.mjs";
 import { runImport } from "../scripts/catalog/import-exercises.mjs";
 
 const catalog = JSON.parse(await readFile(new URL("../data/catalog/exercises.json", import.meta.url), "utf8"));
@@ -32,7 +32,6 @@ beforeEach(async () => {
 const quiet = () => {};
 const imagesDir = fileURLToPath(new URL("../data/catalog/images/", import.meta.url));
 const withImages = small.exercises.filter((e) => e.image);
-const sha = (buf) => createHash("sha256").update(buf).digest("hex");
 
 test("importa y una segunda pasada no escribe", async () => {
   const first = await runImport({ db, catalog: small, apply: true, log: quiet });

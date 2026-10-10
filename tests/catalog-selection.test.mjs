@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { sha256Hex } from "../scripts/catalog/images.mjs";
 import { toCandidate } from "../scripts/catalog/normalize.mjs";
 import { buildCatalog, renderReview, validateEntry } from "../scripts/catalog/selection.mjs";
 
@@ -200,7 +200,7 @@ test("buildCatalog completa el hash desde data/catalog/images y falla si falta e
   assert.deepEqual(ok.problems, []);
   const e = ok.catalog.exercises[0];
   assert.deepEqual(asked, [e.id]);
-  assert.equal(e.image.hash, createHash("sha256").update(bytesOf(e.id)).digest("hex"));
+  assert.equal(e.image.hash, sha256Hex(bytesOf(e.id)));
   const missing = buildCatalog({ candidates, selection: sel, fetchedAt: "x", imageBytes: () => undefined });
   assert.ok(missing.problems.some((p) => p.includes(`${e.id}.webp`)), missing.problems.join("|"));
   // Sin imageBytes (preparación de fuentes) la imagen queda sin hash y sin problemas.

@@ -211,11 +211,11 @@ test("planImageImport sube las nuevas o con hash distinto, deja las iguales e in
     { id: "vieja", hash: hashOf("d") },
     { id: "sin-foto", hash: hashOf("e") },
   ];
-  const p = planImageImport({ catalog, existingImages });
+  const p = planImageImport({ catalog, existingImages, plan: plan(catalog) });
   assert.deepEqual(p.upload, ["nueva", "cambiada"]);
   assert.deepEqual(p.unchanged, ["igual"]);
   assert.deepEqual(p.orphaned, ["vieja", "sin-foto"]);
-  assert.deepEqual(planImageImport({ catalog: catalogOf(entry()), existingImages: [] }), { upload: [], unchanged: [], skipped: [], orphaned: [] });
+  assert.deepEqual(planImageImport({ catalog: catalogOf(entry()), existingImages: [], plan: plan(catalogOf(entry())) }), { upload: [], unchanged: [], skipped: [], orphaned: [] });
 });
 
 test("planImageImport no sube imágenes de fichas omitidas y las informa", () => {
@@ -249,7 +249,7 @@ test("planImageImport sube cuando solo cambian autor, licencia o sourceUrl con e
 
 test("formatPlan muestra las imágenes a subir", () => {
   const catalog = catalogOf(withImage("nueva", "a"), withImage("igual", "c"));
-  const imagePlan = planImageImport({ catalog, existingImages: [{ id: "igual", ...withImage("igual", "c").image }, { id: "vieja", hash: hashOf("d") }] });
+  const imagePlan = planImageImport({ catalog, existingImages: [{ id: "igual", ...withImage("igual", "c").image }, { id: "vieja", hash: hashOf("d") }], plan: plan(catalog) });
   const out = formatPlan({ ...plan(catalog), images: imagePlan });
   assert.match(out, /Imágenes a subir: 1/);
   assert.match(out, /Imágenes sin cambios: 1/);

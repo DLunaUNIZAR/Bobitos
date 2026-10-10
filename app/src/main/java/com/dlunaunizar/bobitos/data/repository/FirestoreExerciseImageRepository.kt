@@ -7,8 +7,6 @@ import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private const val EXERCISE_IMAGES = "exerciseImages"
-
 // Lee exerciseImages/{id}. Un CACHE sin documento lanza FirebaseFirestoreException: lo absorbe CachedExerciseImageRepository.
 internal class FirestoreImageSource(private val firestore: FirebaseFirestore) : ImageSource {
     override suspend fun readCache(exerciseId: String): StoredImage? = read(exerciseId, Source.CACHE)
@@ -17,6 +15,10 @@ internal class FirestoreImageSource(private val firestore: FirebaseFirestore) : 
 
     private suspend fun read(exerciseId: String, source: Source): StoredImage? =
         firestore.document("$EXERCISE_IMAGES/$exerciseId").get(source).await().toStoredImage()
+
+    companion object {
+        const val EXERCISE_IMAGES = "exerciseImages"
+    }
 }
 
 private fun DocumentSnapshot.toStoredImage(): StoredImage? {

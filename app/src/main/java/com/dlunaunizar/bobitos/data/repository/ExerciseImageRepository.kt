@@ -10,7 +10,12 @@ interface ExerciseImageRepository {
 }
 
 // Bytes y atribución tal como constan en el documento exerciseImages/{id} que se ha leído (de caché o servidor).
-data class LoadedImage(val bytes: ByteArray, val author: String?, val license: String?, val sourceUrl: String?)
+data class LoadedImage(
+    val bytes: ByteArray,
+    val author: String? = null,
+    val license: String? = null,
+    val sourceUrl: String? = null,
+)
 
 enum class ImageRead { CACHE, SERVER }
 
@@ -18,19 +23,16 @@ enum class ImageRead { CACHE, SERVER }
 internal fun decideImageRead(cachedHash: String?, wantedHash: String): ImageRead =
     if (cachedHash == wantedHash) ImageRead.CACHE else ImageRead.SERVER
 
-internal class StoredImage(
-    val hash: String,
-    val bytes: ByteArray,
-    val author: String? = null,
-    val license: String? = null,
-    val sourceUrl: String? = null,
-)
+internal class StoredImage(val hash: String, val image: LoadedImage)
 
 // `data` llega como Blob de Firestore (ya convertido a ByteArray por quien lee) y `hash` como texto.
 internal fun parseImageDoc(map: Map<String, Any?>?): StoredImage? {
     val data = map?.get("data") as? ByteArray ?: return null
     val hash = map["hash"] as? String ?: return null
-    return StoredImage(hash, data, map["author"] as? String, map["license"] as? String, map["sourceUrl"] as? String)
+    return StoredImage(
+        hash,
+        LoadedImage(data, map["author"] as? String, map["license"] as? String, map["sourceUrl"] as? String),
+    )
 }
 
 // Lectura de un documento de imagen; las excepciones de lectura se tratan como «no disponible».
@@ -51,7 +53,7 @@ internal class CachedExerciseImageRepository(
         } else {
             attempt { withTimeoutOrNull(timeoutMillis) { source.readServer(exerciseId) } }
         }
-        return stored?.let { LoadedImage(it.bytes, it.author, it.license, it.sourceUrl) }
+        return stored?.image
     }
 
     private suspend fun <T> attempt(block: suspend () -> T?): T? = try {

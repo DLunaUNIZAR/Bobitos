@@ -3,19 +3,22 @@
 export const DEFAULT_HEADERS = { "User-Agent": "BobitosCatalogBuilder/1.0 (+https://github.com/DLunaUNIZAR/Bobitos)" };
 const MAX_RETRY_AFTER_MS = 60_000;
 
-/** Solo se descarga de https://wger.de/api/v2/…; `page.next` viene de la red y no es de fiar. */
-export function assertWgerApiUrl(url) {
+/** Solo se descarga de https://wger.de<pathPrefix>…; las URL vienen de la red y no son de fiar. */
+function assertWgerUrl(url, pathPrefix, label) {
   let u;
   try {
     u = new URL(url);
   } catch {
     throw new Error(`URL no válida: ${url}`);
   }
-  if (u.protocol !== "https:" || u.hostname !== "wger.de" || u.port !== "" || !u.pathname.startsWith("/api/v2/")) {
-    throw new Error(`URL fuera de https://wger.de/api/v2/: ${url}`);
+  if (u.protocol !== "https:" || u.hostname !== "wger.de" || u.port !== "" || !u.pathname.startsWith(pathPrefix)) {
+    throw new Error(`URL fuera de ${label}: ${url}`);
   }
   return u.href;
 }
+
+/** Solo se descarga de https://wger.de/api/v2/…; `page.next` viene de la red y no es de fiar. */
+export const assertWgerApiUrl = (url) => assertWgerUrl(url, "/api/v2/", "https://wger.de/api/v2/");
 
 /** Milisegundos de espera antes del siguiente intento, o null si el error es permanente. */
 export function retryDelayMs(res, attempt) {
@@ -35,18 +38,7 @@ export function retryDelayMs(res, attempt) {
 const realSleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** Solo se descarga de https://wger.de/media/…; la URL sale del JSON de wger y no es de fiar. */
-export function assertWgerMediaUrl(url) {
-  let u;
-  try {
-    u = new URL(url);
-  } catch {
-    throw new Error(`URL no válida: ${url}`);
-  }
-  if (u.protocol !== "https:" || u.hostname !== "wger.de" || u.port !== "" || !u.pathname.startsWith("/media/")) {
-    throw new Error(`URL fuera de https://wger.de/media/: ${url}`);
-  }
-  return u.href;
-}
+export const assertWgerMediaUrl = (url) => assertWgerUrl(url, "/media/", "https://wger.de/media/");
 
 // Reintentos acotados (solo 5xx, 429 y red; un 4xx es permanente). `read` extrae el cuerpo de la respuesta.
 async function fetchWithRetry(

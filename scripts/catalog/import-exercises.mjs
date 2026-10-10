@@ -1,12 +1,12 @@
 // Importa data/catalog/exercises.json a Firestore con firebase-admin. Idempotente; nunca borra.
 // Uso: node scripts/catalog/import-exercises.mjs --project demo-bobitos|bobitos-dev|dev [--apply] [--catalog ruta]
-import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { applicationDefault, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { CATALOG_ADMIN_UID, CATALOG_META_PATH, docToExisting, formatPlan, planImageImport, planImport, toFirestoreDoc } from "./import-plan.mjs";
+import { sha256Hex } from "./images.mjs";
 import { validateEntry } from "./selection.mjs";
 
 const BATCH_SIZE = 400;
@@ -29,7 +29,7 @@ function loadImagesToUpload(ids, catalog, imagesDir) {
     } catch (e) {
       throw new Error(`${id}: no se puede leer ${id}.webp en ${imagesDir} (${e.message})`);
     }
-    const hash = createHash("sha256").update(data).digest("hex");
+    const hash = sha256Hex(data);
     if (hash !== image.hash) {
       throw new Error(`${id}: el sha256 de ${id}.webp (${hash}) no coincide con image.hash del catálogo (${image.hash})`);
     }
@@ -80,7 +80,7 @@ export async function runImport({ db, catalog, apply, log = console.log, imagesD
     sourceUrl: d.get("sourceUrl"),
   }));
 
-  const plan = { ...planImport({ catalog, existing, adminUid: CATALOG_ADMIN_UID }) };
+  const plan = planImport({ catalog, existing, adminUid: CATALOG_ADMIN_UID });
   plan.images = planImageImport({ catalog, existingImages, plan });
   // Antes de escribir nada: todos los ficheros existen y casan con el hash del catálogo.
   const toUpload = loadImagesToUpload(plan.images.upload, catalog, imagesDir);
@@ -92,15 +92,17 @@ export async function runImport({ db, catalog, apply, log = console.log, imagesD
 
   const now = FieldValue.serverTimestamp();
   // Las imágenes van antes que las fichas que apuntan a su hash. Nunca se borra ninguna.
+  let uploads = toUpload;
   if (toUpload.length > 0) {
     const sharp = (await import("sharp")).default;
-    for (const it of toUpload) {
-      const { width, height } = await sharp(it.data).metadata();
-      it.width = width;
-      it.height = height;
-    }
+    uploads = await Promise.all(
+      toUpload.map(async (it) => {
+        const { width, height } = await sharp(it.data).metadata();
+        return { ...it, width, height };
+      }),
+    );
   }
-  for (const chunk of chunkImages(toUpload)) {
+  for (const chunk of chunkImages(uploads)) {
     const batch = db.batch();
     for (const { id, data, image, width, height } of chunk) {
       batch.set(db.collection("exerciseImages").doc(id), {

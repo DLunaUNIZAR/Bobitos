@@ -43,7 +43,7 @@ try {
 const r = await buildImages({
   entries: catalog.exercises,
   manifest,
-  fetchBinary: fetchBinary,
+  fetchBinary,
   readExisting: async () => new Set(await readdir(OUT)),
   writeImage: (name, data) => writeFile(new URL(name, OUT), data),
 });
