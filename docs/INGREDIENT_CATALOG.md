@@ -133,7 +133,7 @@ Al terminar con `--apply` imprime cuántos ha creado y actualizado. Si no hay na
 `scripts/catalog/reset-ingredients.mjs` (`npm run catalog:reset-ingredients --`) es de **un solo uso**: deja los ingredientes en blanco antes de la primera importación.
 
 ```text
-node scripts/catalog/reset-ingredients.mjs --project demo-bobitos|bobitos-dev|dev [--apply]
+node scripts/catalog/reset-ingredients.mjs --project demo-bobitos|bobitos-dev|dev [--apply] [--repetir]
 ```
 
 **Qué borra:**
@@ -148,6 +148,8 @@ Cómo se usa:
 1. Primero la **simulación** (sin `--apply`): cuenta ingredientes, marcas y preferencias y no escribe nada.
 2. Si los recuentos son los esperados, repetir con `--apply`.
 3. Se ejecuta **una sola vez**: después de desplegar las reglas del plan 2 y justo antes de la primera importación. Tiene las mismas protecciones de proyecto que el importador.
+
+**Protección contra repetirlo:** si existe `catalogMeta/ingredients` (el catálogo ya se importó), `ingredientPrefs` guarda las tiendas de los usuarios por ingrediente y borrarlas las perdería (además dejaría el catálogo vacío sin subir su versión). Por eso la simulación imprime un aviso y `--apply` se niega a borrar y falla. Solo se fuerza con `--repetir`, y únicamente si de verdad se quiere perder esos datos.
 
 ## Orden de despliegue
 
@@ -181,7 +183,8 @@ Cada acción contra `bobitos-dev` la confirma el usuario una a una, y solo se de
 | `Falta GOOGLE_APPLICATION_CREDENTIALS (clave de cuenta de servicio fuera del repo).` | Exporta la ruta de la clave JSON de `bobitos-dev`. |
 | `La clave es del proyecto «X», no de bobitos-dev.` | La clave es de otro proyecto; usa la de `bobitos-dev`. |
 | `Usa --project demo-bobitos, bobitos-dev o dev.` | Falta `--project` o su valor no es válido. |
-| `Argumento desconocido: ...` | Solo existen `--project`, `--apply` y, en el importador, `--catalog`. |
+| `Argumento desconocido: ...` | Solo existen `--project`, `--apply` y, en el importador, `--catalog`; en el borrado, `--repetir`. |
+| `El catálogo de ingredientes ya se importó ... No se ha borrado nada. Para forzarlo, añade --repetir.` | El borrado inicial es de un solo uso y destruiría las tiendas de los usuarios (`ingredientPrefs`). No lo repitas; solo con `--repetir` si se quiere perder esos datos. |
 | Error de precondición (`FAILED_PRECONDITION`) al aplicar | Alguien editó un documento entre la lectura y la escritura; repite la simulación y el `--apply`. |
 
 El uid admin con el que se importa (`CATALOG_ADMIN_UID` en `scripts/catalog/import-plan.mjs`) es el mismo que en el catálogo de ejercicios; ver [`EXERCISE_CATALOG.md`](EXERCISE_CATALOG.md) y [`RECIPES_ADMIN.md`](RECIPES_ADMIN.md).
