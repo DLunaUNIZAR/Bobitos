@@ -110,6 +110,7 @@ fun ExercisesScreen(
                 filter = filter,
                 onTypeChange = { typeFilter = it },
                 onGroupChange = { groupFilter = it },
+                onRetry = viewModel::retryCatalog,
                 onOpen = {
                     detailExerciseId = it.id
                     detailOpen = true
@@ -198,10 +199,15 @@ private fun ExerciseCatalog(
     onOpen: (CatalogExercise) -> Unit,
     onEdit: (CatalogExercise) -> Unit,
     onDelete: (CatalogExercise) -> Unit,
+    onRetry: () -> Unit,
 ) {
     when (val catalog = state.catalog) {
         UiState.Loading -> LoadingState(Modifier.fillMaxWidth())
-        is UiState.Error -> ErrorState(Modifier.fillMaxWidth(), message = catalog.message)
+        is UiState.Error -> ErrorState(
+            Modifier.fillMaxWidth(),
+            message = state.catalogError?.let { stringResource(it.stringResourceId) } ?: catalog.message,
+            onRetry = onRetry,
+        )
         is UiState.Content -> {
             val groups = remember(catalog.value) { catalog.value.muscleGroups() }
             val filtered = remember(catalog.value, filter) { catalog.value.filterExercises(filter) }
@@ -339,6 +345,7 @@ private val ExerciseUiMessage.stringResourceId: Int
         ExerciseUiMessage.NetworkError -> R.string.space_error_network
         ExerciseUiMessage.UnexpectedError -> R.string.space_error_unexpected
         ExerciseUiMessage.SaveTimeout -> R.string.write_timeout
+        ExerciseUiMessage.CatalogUnavailable -> R.string.exercises_catalog_unavailable
         ExerciseUiMessage.Saved -> R.string.exercises_notice_saved
         ExerciseUiMessage.Deleted -> R.string.exercises_notice_deleted
     }

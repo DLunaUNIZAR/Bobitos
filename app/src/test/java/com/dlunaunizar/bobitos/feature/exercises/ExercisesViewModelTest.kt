@@ -52,6 +52,37 @@ class ExercisesViewModelTest {
     }
 
     @Test
+    fun `an offline catalog shows a localized message instead of the exception text`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.catalogFailure = java.io.IOException("Failed to get document because the client is offline.")
+
+            viewModel.observe()
+            advanceUntilIdle()
+
+            assertEquals(UiState.Error(null), viewModel.uiState.value.catalog)
+            assertEquals(ExerciseUiMessage.CatalogUnavailable, viewModel.uiState.value.catalogError)
+        }
+
+    @Test
+    fun `retrying the catalog subscribes again and shows the list when it answers`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.catalogFailure = java.io.IOException("offline")
+            viewModel.observe()
+            advanceUntilIdle()
+
+            repository.catalogFailure = null
+            repository.catalogState.value = listOf(exercise("press-banca", "Press banca", ExerciseType.PESO_LIBRE))
+            viewModel.retryCatalog()
+            advanceUntilIdle()
+
+            assertEquals(
+                listOf("Press banca"),
+                (viewModel.uiState.value.catalog as UiState.Content).value.map(CatalogExercise::name),
+            )
+            assertNull(viewModel.uiState.value.catalogError)
+        }
+
+    @Test
     fun `creating trims the name and reports success`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe()
         advanceUntilIdle()
@@ -194,7 +225,10 @@ private class FakeExerciseRepository : ExerciseRepository {
     val createdType: ExerciseType? get() = createdInput?.type
     var deletedId: String? = null
 
-    override fun catalog(): Flow<List<CatalogExercise>> = catalogState
+    var catalogFailure: Throwable? = null
+
+    override fun catalog(): Flow<List<CatalogExercise>> =
+        catalogFailure?.let { failure -> kotlinx.coroutines.flow.flow { throw failure } } ?: catalogState
     override fun isCurrentUserCatalogAdmin(): Boolean = false
     override fun currentUserId(): String? = "me"
     override suspend fun exerciseById(id: String): CatalogExercise? = catalogState.value.firstOrNull { it.id == id }

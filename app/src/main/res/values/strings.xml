@@ -616,6 +616,7 @@
     <string name="exercises_error_name_too_long">El nombre no puede superar 120 caracteres.</string>
     <string name="exercises_error_muscle_too_long">El grupo muscular no puede superar 60 caracteres.</string>
     <string name="exercises_error_description_too_long">La descripción no puede superar 2000 caracteres.</string>
+    <string name="exercises_catalog_unavailable">No se pudo cargar el catálogo. Comprueba la conexión.</string>
     <string name="exercises_error_exists">Ese ejercicio ya existe.</string>
     <string name="exercises_error_not_found">El ejercicio ya no existe.</string>
     <string name="exercises_notice_saved">Ejercicio guardado</string>

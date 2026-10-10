@@ -11,6 +11,8 @@ data class ExercisesUiState(
     val currentUid: String? = null,
     val isSaving: Boolean = false,
     val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
+    // Motivo, localizable, de que el catálogo no cargara (con `catalog` en Error).
+    val catalogError: ExerciseUiMessage? = null,
     val error: ExerciseUiMessage? = null,
     val notice: ExerciseUiMessage? = null,
 ) {
@@ -30,6 +32,7 @@ enum class ExerciseUiMessage {
     NetworkError,
     UnexpectedError,
     SaveTimeout,
+    CatalogUnavailable,
     Saved,
     Deleted,
 }

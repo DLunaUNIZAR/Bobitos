@@ -39,11 +39,29 @@ class ExercisesViewModel @Inject constructor(private val repository: ExerciseRep
         mutableUiState.update {
             it.copy(isAdmin = repository.isCurrentUserCatalogAdmin(), currentUid = repository.currentUserId())
         }
+        startCatalog()
+    }
+
+    private fun startCatalog() {
         catalogJob = viewModelScope.launch {
             repository.catalog()
-                .catch { error -> mutableUiState.update { it.copy(catalog = UiState.Error(error.message)) } }
-                .collect { list -> mutableUiState.update { it.copy(catalog = UiState.Content(list)) } }
+                .catch {
+                    // Sin red y sin caché: mensaje propio, no el texto técnico de Firebase.
+                    mutableUiState.update {
+                        it.copy(catalog = UiState.Error(), catalogError = ExerciseUiMessage.CatalogUnavailable)
+                    }
+                }
+                .collect { list ->
+                    mutableUiState.update { it.copy(catalog = UiState.Content(list), catalogError = null) }
+                }
         }
+    }
+
+    fun retryCatalog() {
+        if (!observing) return
+        catalogJob?.cancel()
+        mutableUiState.update { it.copy(catalog = UiState.Loading, catalogError = null) }
+        startCatalog()
     }
 
     fun stopObserving() {
