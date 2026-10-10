@@ -18,9 +18,9 @@ import androidx.compose.ui.text.withLink
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberSafeLinks
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
+import com.dlunaunizar.bobitos.feature.exercises.CC_BY_SA_4_URL
+import com.dlunaunizar.bobitos.feature.exercises.WGER_URL
 
-private const val WGER_URL = "https://wger.de/"
-private const val CC_BY_SA_URL = "https://creativecommons.org/licenses/by-sa/4.0/deed.es"
 private const val OFF_URL = "https://world.openfoodfacts.org/"
 private const val ODBL_URL = "https://opendatacommons.org/licenses/odbl/1-0/"
 private const val DBCL_URL = "https://opendatacommons.org/licenses/dbcl/1-0/"
@@ -43,7 +43,7 @@ fun CreditsDialog(onDismiss: () -> Unit) {
             ) {
                 CreditBlock(
                     stringResource(R.string.credits_wger_title),
-                    linked(wger, link, "wger.de" to WGER_URL, "CC BY-SA 4.0" to CC_BY_SA_URL),
+                    linked(wger, link, "wger.de" to WGER_URL, "CC BY-SA 4.0" to CC_BY_SA_4_URL),
                 )
                 CreditBlock(
                     stringResource(R.string.credits_off_title),

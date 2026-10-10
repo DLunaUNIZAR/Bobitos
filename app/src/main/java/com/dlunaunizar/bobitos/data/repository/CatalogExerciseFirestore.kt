@@ -5,6 +5,7 @@ import com.dlunaunizar.bobitos.core.model.ExerciseEquipment
 import com.dlunaunizar.bobitos.core.model.ExerciseInput
 import com.dlunaunizar.bobitos.core.model.ExerciseSource
 import com.dlunaunizar.bobitos.core.model.ExerciseType
+import com.dlunaunizar.bobitos.core.model.MAX_EXERCISE_DESCRIPTION_LENGTH
 import java.text.Collator
 import java.time.Instant
 import java.util.Locale
@@ -13,7 +14,6 @@ import java.util.Locale
 // Los nombres de campo son los que escribe scripts/catalog/import-plan.mjs y admiten las reglas.
 internal const val MAX_EXERCISE_NAME_LENGTH = 120
 internal const val MAX_EXERCISE_MUSCLE_LENGTH = 60
-internal const val MAX_EXERCISE_DESCRIPTION_LENGTH = 2000
 
 // null → la ficha se descarta (le falta un campo obligatorio). Los campos nuevos son opcionales
 // (retro-compat con fichas antiguas) y un tipo desconocido cae a OTROS en vez de ocultar la ficha.
@@ -96,7 +96,9 @@ internal fun ExerciseInput.toFirestoreFields(): Map<String, Any?> = mapOf(
 )
 
 // Orden alfabético en español sin distinguir tildes ni mayúsculas; desempata por id.
-internal fun List<CatalogExercise>.sortedForCatalog(): List<CatalogExercise> {
-    val collator = Collator.getInstance(Locale.forLanguageTag("es-ES")).apply { strength = Collator.PRIMARY }
-    return sortedWith(compareBy<CatalogExercise, String>(collator) { it.name }.thenBy { it.id })
-}
+internal fun List<CatalogExercise>.sortedForCatalog(): List<CatalogExercise> =
+    sortedWith(compareBy<CatalogExercise, String>(CATALOG_COLLATOR) { it.name }.thenBy { it.id })
+
+// Compartido entre llamadas: RuleBasedCollator.compare está sincronizado.
+private val CATALOG_COLLATOR: Collator =
+    Collator.getInstance(Locale.forLanguageTag("es-ES")).apply { strength = Collator.PRIMARY }

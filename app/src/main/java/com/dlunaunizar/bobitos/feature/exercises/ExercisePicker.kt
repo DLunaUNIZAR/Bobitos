@@ -21,15 +21,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
-import com.dlunaunizar.bobitos.core.common.matchesQuery
+import com.dlunaunizar.bobitos.core.common.prepareQuery
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 
 // Filtra el catálogo del selector por nombre o grupo muscular (sin tildes ni mayúsculas), conservando el
 // orden. Una consulta en blanco devuelve todo el catálogo.
-internal fun filterExercisePicker(catalog: List<CatalogExercise>, query: String): List<CatalogExercise> =
-    catalog.filter { matchesQuery(query, it.name, it.muscleGroup) }
+internal fun filterExercisePicker(catalog: List<CatalogExercise>, query: String): List<CatalogExercise> {
+    val prepared = prepareQuery(query)
+    return catalog.filter { prepared.matches(it.name, it.muscleGroup) }
+}
 
 // Selector de ejercicio con búsqueda. La primera fila, «Personalizado…», siempre está: con el catálogo aún
 // vacío (carga diferida) o sin coincidencias se puede seguir creando un ejercicio libre. La consulta

@@ -143,13 +143,26 @@ export function foldText(s) {
   return String(s).normalize("NFD").replace(/\p{M}+/gu, "").toLowerCase();
 }
 
+/** Agrupa conservando el orden de aparición de claves y de elementos. */
+export function groupBy(items, keyFn) {
+  const groups = new Map();
+  for (const item of items) {
+    const k = keyFn(item);
+    const list = groups.get(k);
+    if (list) list.push(item);
+    else groups.set(k, [item]);
+  }
+  return groups;
+}
+
+/** Elimina repetidos y ordena según `EQUIPMENT`. */
+export function sortEquipment(list) {
+  return [...new Set(list)].sort((a, b) => EQUIPMENT.indexOf(a) - EQUIPMENT.indexOf(b));
+}
+
 /** Copia exacta de `slug` de CatalogIngredient.kt. */
 export function slug(name) {
-  return String(name)
-    .trim()
-    .normalize("NFD")
-    .replace(/\p{M}+/gu, "")
-    .toLowerCase()
+  return foldText(String(name).trim())
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
@@ -233,8 +246,7 @@ export function toCandidate(info) {
   if (spanish.length === 0) return reject("sin-traduccion-es");
 
   const withText = spanish.map((t) => ({ t, text: htmlToText(t.description) }));
-  withText.sort((a, b) => b.text.length - a.text.length);
-  const { t, text } = withText[0];
+  const { t, text } = withText.reduce((best, x) => (x.text.length > best.text.length ? x : best));
 
   const licenseId = t.license ?? info.license?.id;
   const license = LICENSES[licenseId];
@@ -242,9 +254,7 @@ export function toCandidate(info) {
   if (text.length < 20) return reject("sin-descripcion", t.name);
 
   const name = normalizeName(t.name ?? "");
-  const equipment = [
-    ...new Set((info.equipment ?? []).map((e) => WGER_EQUIPMENT[e.id]).filter(Boolean)),
-  ].sort((a, b) => EQUIPMENT.indexOf(a) - EQUIPMENT.indexOf(b));
+  const equipment = sortEquipment((info.equipment ?? []).map((e) => WGER_EQUIPMENT[e.id]).filter(Boolean));
   const { type, reason } = inferType({ categoryId: info.category?.id, equipment, name });
 
   const history = [...new Set((t.author_history ?? []).map(stripEmail).filter(Boolean))];

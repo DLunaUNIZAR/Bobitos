@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { applicationDefault, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
-import { CATALOG_ADMIN_UID, formatPlan, planImport, toFirestoreDoc } from "./import-plan.mjs";
+import { CATALOG_ADMIN_UID, docToExisting, formatPlan, planImport, toFirestoreDoc } from "./import-plan.mjs";
 import { validateEntry } from "./selection.mjs";
 
 const BATCH_SIZE = 400;
@@ -20,23 +20,10 @@ export async function runImport({ db, catalog, apply, log = console.log }) {
   const existing = snap.docs.map((d) => {
     const data = d.data();
     updateTimes.set(d.id, d.updateTime);
-    const s = data.source;
-    return {
-      id: d.id,
-      ownerUid: data.ownerUid,
-      hasSource: s != null && typeof s === "object",
-      updatedAtMillis: toMillis(data.updatedAt) ?? 0,
-      importedAtMillis: toMillis(s?.importedAt),
-      fields: {
-        name: data.name,
-        nameLower: data.nameLower,
-        type: data.type,
-        muscleGroup: data.muscleGroup,
-        description: data.description,
-        equipment: data.equipment,
-        source: s ? { provider: s.provider, id: s.id, author: s.author, license: s.license, url: s.url } : undefined,
-      },
-    };
+    return docToExisting(d.id, data, {
+      updatedAtMillis: toMillis(data.updatedAt),
+      importedAtMillis: toMillis(data.source?.importedAt),
+    });
   });
 
   const plan = planImport({ catalog, existing, adminUid: CATALOG_ADMIN_UID });

@@ -46,7 +46,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
-import com.dlunaunizar.bobitos.core.common.matchesQuery
+import com.dlunaunizar.bobitos.core.common.prepareQuery
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
@@ -186,7 +186,8 @@ private fun ExerciseCatalog(
         UiState.Loading -> LoadingState(Modifier.fillMaxWidth())
         is UiState.Error -> ErrorState(Modifier.fillMaxWidth(), message = catalog.message)
         is UiState.Content -> {
-            val filtered = catalog.value.filter { matchesQuery(state.query, it.name, it.muscleGroup) }
+            val prepared = prepareQuery(state.query)
+            val filtered = catalog.value.filter { prepared.matches(it.name, it.muscleGroup) }
             if (filtered.isEmpty()) {
                 EmptyState(
                     modifier = Modifier.fillMaxWidth(),

@@ -2,7 +2,7 @@
 // Con --candidates: genera build/catalog/candidates.{md,json} para elegir.
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { toCandidate } from "./normalize.mjs";
-import { buildCatalog, renderCandidates, renderReview, scoreCandidate } from "./selection.mjs";
+import { buildCatalog, countBy, renderCandidates, renderReview, scoreCandidate } from "./selection.mjs";
 
 const ROOT = new URL("../../", import.meta.url);
 const RAW = new URL("build/catalog/wger-exerciseinfo.json", ROOT);
@@ -33,8 +33,7 @@ if (process.argv.includes("--candidates")) {
     new URL("candidates.json", outDir),
     JSON.stringify(list.map((c) => ({ ...c, score: scoreCandidate(c) })), null, 2) + "\n",
   );
-  const byReason = {};
-  for (const r of rejected) byReason[r.reason] = (byReason[r.reason] ?? 0) + 1;
+  const byReason = Object.fromEntries(countBy(rejected, (r) => r.reason));
   console.log(`${list.length} candidatos; descartados: ${JSON.stringify(byReason)}`);
   process.exit(0);
 }

@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.core.designsystem.component
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
@@ -16,10 +17,12 @@ import androidx.compose.ui.text.style.TextDecoration
 @Composable
 fun rememberSafeLinks(): (String) -> LinkAnnotation.Url {
     val uriHandler = LocalUriHandler.current
-    val style = TextLinkStyles(
-        SpanStyle(color = MaterialTheme.colorScheme.primary, textDecoration = TextDecoration.Underline),
-    )
-    return { url ->
-        LinkAnnotation.Url(url, style) { runCatching { uriHandler.openUri(url) } }
+    val color = MaterialTheme.colorScheme.primary
+    return remember(uriHandler, color) {
+        val style = TextLinkStyles(SpanStyle(color = color, textDecoration = TextDecoration.Underline))
+        val link: (String) -> LinkAnnotation.Url = { url ->
+            LinkAnnotation.Url(url, style) { runCatching { uriHandler.openUri(url) } }
+        }
+        link
     }
 }

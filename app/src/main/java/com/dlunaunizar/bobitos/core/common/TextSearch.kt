@@ -11,9 +11,16 @@ fun String.foldForSearch(): String = Normalizer.normalize(this, Normalizer.Form.
 
 // Cada palabra de la consulta (sin tildes) tiene que aparecer en algún campo; el orden no importa.
 // Una consulta en blanco coincide con todo.
-fun matchesQuery(query: String, vararg fields: String?): Boolean {
-    val words = query.foldForSearch().split(' ', '\t', '\n').filter { it.isNotEmpty() }
-    if (words.isEmpty()) return true
-    val haystack = fields.filterNotNull().map { it.foldForSearch() }
-    return words.all { word -> haystack.any { it.contains(word) } }
+fun matchesQuery(query: String, vararg fields: String?): Boolean = prepareQuery(query).matches(*fields)
+
+// Consulta ya plegada y troceada, para filtrar muchos ítems sin repetir ese trabajo por cada uno.
+class SearchQuery internal constructor(private val words: List<String>) {
+    fun matches(vararg fields: String?): Boolean {
+        if (words.isEmpty()) return true
+        val haystack = fields.filterNotNull().map { it.foldForSearch() }
+        return words.all { word -> haystack.any { it.contains(word) } }
+    }
 }
+
+fun prepareQuery(query: String): SearchQuery =
+    SearchQuery(query.foldForSearch().split(' ', '\t', '\n').filter { it.isNotEmpty() })

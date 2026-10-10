@@ -1,5 +1,5 @@
 // Selección, validación y render del catálogo de ejercicios. Funciones puras.
-import { EQUIPMENT, EXERCISE_TYPES, LICENSES, nearDuplicateKey, foldText, slug } from "./normalize.mjs";
+import { EQUIPMENT, EXERCISE_TYPES, LICENSES, groupBy, nearDuplicateKey, foldText, slug, sortEquipment } from "./normalize.mjs";
 
 const ADMITTED_LICENSES = new Set(Object.values(LICENSES));
 
@@ -63,7 +63,7 @@ export function buildCatalog({ candidates, selection, fetchedAt }) {
       type: item.type ?? c.type,
       muscleGroup: item.muscleGroup ?? c.muscleGroup,
       description: item.description ?? c.description,
-      equipment: [...new Set(item.equipment ?? c.equipment)].sort((a, b) => EQUIPMENT.indexOf(a) - EQUIPMENT.indexOf(b)),
+      equipment: sortEquipment(item.equipment ?? c.equipment),
       source: { ...c.source },
     };
     const errs = validateEntry(entry);
@@ -78,12 +78,7 @@ export function buildCatalog({ candidates, selection, fetchedAt }) {
 
   exercises.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 
-  const groups = new Map();
-  for (const e of exercises) {
-    const k = nearDuplicateKey(e.name);
-    groups.set(k, [...(groups.get(k) ?? []), e]);
-  }
-  for (const list of groups.values()) {
+  for (const list of groupBy(exercises, (e) => nearDuplicateKey(e.name)).values()) {
     if (list.length > 1) warnings.push(`casi duplicados: ${list.map((e) => `«${e.name}»`).join(", ")}`);
   }
 
@@ -115,12 +110,7 @@ const clip = (s, n) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
 export function renderCandidates(candidates, rejected) {
   const list = [...candidates].map((c) => ({ c, score: scoreCandidate(c) }));
-  const groups = new Map();
-  for (const x of list) {
-    const k = nearDuplicateKey(x.c.name);
-    groups.set(k, [...(groups.get(k) ?? []), x]);
-  }
-  const ordered = [...groups.values()]
+  const ordered = [...groupBy(list, (x) => nearDuplicateKey(x.c.name)).values()]
     .map((g) => g.sort((a, b) => b.score - a.score || a.c.wgerId - b.c.wgerId))
     .sort((a, b) => b[0].score - a[0].score || a[0].c.name.localeCompare(b[0].c.name, "es"));
   const lines = ["# Candidatos de wger", "", `${list.length} candidatos, ${rejected.length} descartados.`, ""];
@@ -133,17 +123,24 @@ export function renderCandidates(candidates, rejected) {
       );
     }
   }
-  const byReason = new Map();
-  for (const r of rejected) byReason.set(r.reason, (byReason.get(r.reason) ?? 0) + 1);
   lines.push("", "## Descartados", "");
-  for (const [reason, n] of byReason) lines.push(`- ${reason}: ${n}`);
+  for (const [reason, n] of countBy(rejected, (r) => r.reason)) lines.push(`- ${reason}: ${n}`);
   return `${lines.join("\n")}\n`;
 }
 
-function tally(items, key) {
+/** Recuento por clave, en orden de primera aparición. */
+export function countBy(items, key) {
   const m = new Map();
-  for (const it of items) m.set(key(it), (m.get(key(it)) ?? 0) + 1);
-  return [...m].sort((a, b) => String(a[0]).localeCompare(String(b[0]), "es"));
+  for (const it of items) {
+    const k = key(it);
+    m.set(k, (m.get(k) ?? 0) + 1);
+  }
+  return m;
+}
+
+/** Recuento por clave, ordenado alfabéticamente (es). */
+export function tally(items, key) {
+  return [...countBy(items, key)].sort((a, b) => String(a[0]).localeCompare(String(b[0]), "es"));
 }
 
 export function renderReview(catalog, warnings = [], notes = [], excluded = []) {
@@ -160,10 +157,11 @@ export function renderReview(catalog, warnings = [], notes = [], excluded = []) 
   }
   if (warnings.length) lines.push("## Avisos", "", ...warnings.map((w) => `- ${w}`), "");
   if (notes.length) lines.push("## Notas", "", ...notes.map((n) => `- ${n}`), "");
-  const groups = [...new Set(ex.map((e) => e.muscleGroup))].sort((a, b) => a.localeCompare(b, "es"));
+  const byGroup = groupBy(ex, (e) => e.muscleGroup);
+  const groups = [...byGroup.keys()].sort((a, b) => a.localeCompare(b, "es"));
   for (const g of groups) {
     lines.push(`## ${g}`, "", "| Nombre | Tipo | Material | wger | Licencia · autor | Descripción |", "|---|---|---|---|---|---|");
-    for (const e of ex.filter((x) => x.muscleGroup === g)) {
+    for (const e of byGroup.get(g)) {
       lines.push(
         `| ${esc(e.name)} | ${e.type} | ${e.equipment.join(", ")} | [${e.source.id}](${e.source.url}) | ${e.source.license} · ${esc(e.source.author)} | ${esc(clip(e.description, 160))} |`,
       );

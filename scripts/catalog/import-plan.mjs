@@ -1,13 +1,38 @@
 // Plan de importación del catálogo de ejercicios. Puro: no importa firebase-admin (lo usan los
 // tests de reglas). `now` llega ya construido (FieldValue.serverTimestamp() o un Timestamp).
-import { nearDuplicateKey } from "./normalize.mjs";
+import { groupBy, nearDuplicateKey } from "./normalize.mjs";
 
 // Debe coincidir con firestore.rules (recipeAdmins()) y RecipeAdmins.kt; un test lo vigila.
 export const CATALOG_ADMIN_UID = "dWWH7eRhHEPopJf5BHPB3Dp6fry1";
 export const CATALOG_AUTHOR_NAME = "Catálogo Bobitos";
 
+export const pickSource = (s) => ({ provider: s.provider, id: s.id, author: s.author, license: s.license, url: s.url });
+
+/**
+ * Documento de Firestore (datos ya planos) → `ExistingDoc` de `planImport`.
+ * Las marcas de tiempo llegan ya en milisegundos (null si faltan).
+ */
+export function docToExisting(id, data, { updatedAtMillis, importedAtMillis }) {
+  const s = data.source;
+  return {
+    id,
+    ownerUid: data.ownerUid,
+    hasSource: s != null && typeof s === "object",
+    updatedAtMillis: updatedAtMillis ?? 0,
+    importedAtMillis,
+    fields: {
+      name: data.name,
+      nameLower: data.nameLower,
+      type: data.type,
+      muscleGroup: data.muscleGroup,
+      description: data.description,
+      equipment: data.equipment,
+      source: s ? pickSource(s) : undefined,
+    },
+  };
+}
+
 export function managedFields(entry) {
-  const s = entry.source;
   return {
     name: entry.name,
     nameLower: entry.name.toLowerCase(),
@@ -15,7 +40,7 @@ export function managedFields(entry) {
     muscleGroup: entry.muscleGroup,
     description: entry.description,
     equipment: [...entry.equipment],
-    source: { provider: s.provider, id: s.id, author: s.author, license: s.license, url: s.url },
+    source: pickSource(entry.source),
   };
 }
 
@@ -47,20 +72,17 @@ export function planImport({ catalog, existing, adminUid }) {
   };
   const byId = new Map(existing.map((d) => [d.id, d]));
   const catalogIds = new Set(catalog.exercises.map((e) => e.id));
-  const existingByKey = new Map();
-  for (const d of existing) {
-    const name = d.fields?.name;
-    if (typeof name !== "string") continue;
-    const k = nearDuplicateKey(name);
-    existingByKey.set(k, [...(existingByKey.get(k) ?? []), d.id]);
-  }
+  const existingByKey = groupBy(
+    existing.filter((d) => typeof d.fields?.name === "string"),
+    (d) => nearDuplicateKey(d.fields.name),
+  );
 
   for (const entry of catalog.exercises) {
     const cur = byId.get(entry.id);
     if (!cur) {
       plan.create.push(entry);
       const k = nearDuplicateKey(entry.name);
-      for (const existingId of existingByKey.get(k) ?? []) {
+      for (const { id: existingId } of existingByKey.get(k) ?? []) {
         if (existingId !== entry.id) plan.nearDuplicates.push({ id: entry.id, existingId });
       }
     } else if (cur.ownerUid !== adminUid) {

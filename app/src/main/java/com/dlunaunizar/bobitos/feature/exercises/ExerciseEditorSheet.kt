@@ -25,8 +25,7 @@ import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseEquipment
 import com.dlunaunizar.bobitos.core.model.ExerciseInput
 import com.dlunaunizar.bobitos.core.model.ExerciseType
-
-private const val MAX_DESCRIPTION = 2000
+import com.dlunaunizar.bobitos.core.model.MAX_EXERCISE_DESCRIPTION_LENGTH
 
 // Hoja de alta y edición de un ejercicio del catálogo: nombre, tipo, grupo, material y descripción.
 @OptIn(ExperimentalLayoutApi::class)
@@ -42,7 +41,7 @@ internal fun ExerciseEditorSheet(
     BobitosFormSheet(
         title = stringResource(if (exercise == null) R.string.exercises_add_title else R.string.exercises_edit_title),
         confirmLabel = stringResource(R.string.save),
-        confirmEnabled = draft.name.isNotBlank() && draft.description.length <= MAX_DESCRIPTION,
+        confirmEnabled = draft.name.isNotBlank() && draft.description.length <= MAX_EXERCISE_DESCRIPTION_LENGTH,
         saving = saving,
         dirty = { draft != initial },
         onDismiss = onDismiss,
@@ -90,9 +89,15 @@ internal fun ExerciseEditorSheet(
             onValueChange = { draft = draft.copy(description = it) },
             label = { Text(stringResource(R.string.exercises_description_label)) },
             supportingText = {
-                Text(stringResource(R.string.exercises_description_counter, draft.description.length, MAX_DESCRIPTION))
+                Text(
+                    stringResource(
+                        R.string.exercises_description_counter,
+                        draft.description.length,
+                        MAX_EXERCISE_DESCRIPTION_LENGTH,
+                    ),
+                )
             },
-            isError = draft.description.length > MAX_DESCRIPTION,
+            isError = draft.description.length > MAX_EXERCISE_DESCRIPTION_LENGTH,
             minLines = 3,
             modifier = Modifier.fillMaxWidth(),
         )

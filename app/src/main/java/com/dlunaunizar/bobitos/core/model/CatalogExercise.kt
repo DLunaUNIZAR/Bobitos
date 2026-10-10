@@ -38,6 +38,9 @@ data class ExerciseSource(
     val url: String? = null,
 )
 
+// Longitud máxima de la descripción (editor y validación del repositorio; coincide con las reglas).
+const val MAX_EXERCISE_DESCRIPTION_LENGTH = 2000
+
 // Datos editables de una ficha (lo que escribe el editor); el repositorio los valida y persiste.
 data class ExerciseInput(
     val name: String,
