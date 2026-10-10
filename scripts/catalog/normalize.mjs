@@ -218,6 +218,14 @@ function muscleGroupOf(info) {
   return base ?? "Cardio";
 }
 
+// La autoría no debe exponer correos: se quita la dirección (y los < > que la rodean).
+function stripEmail(value) {
+  return String(value ?? "")
+    .replace(/<?[^\s<>@,;]+@[^\s<>@,;]+>?/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function toCandidate(info) {
   const wgerId = info.id;
   const spanish = (info.translations ?? []).filter((t) => t.language === SPANISH);
@@ -239,11 +247,11 @@ export function toCandidate(info) {
   ].sort((a, b) => EQUIPMENT.indexOf(a) - EQUIPMENT.indexOf(b));
   const { type, reason } = inferType({ categoryId: info.category?.id, equipment, name });
 
-  const history = [...new Set((t.author_history ?? []).filter(Boolean))];
+  const history = [...new Set((t.author_history ?? []).map(stripEmail).filter(Boolean))];
   const author =
     history.length > 0
       ? history.join(", ")
-      : t.license_author || info.license_author || "colaboradores de wger";
+      : stripEmail(t.license_author || info.license_author) || "colaboradores de wger";
 
   const flags = [];
   if (spanish.length > 1) flags.push("traduccion-es-multiple");

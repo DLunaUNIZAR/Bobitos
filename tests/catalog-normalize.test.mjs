@@ -122,3 +122,18 @@ test("toCandidate descarta sin español, sin descripción u ODbL y conserva la a
   assert.equal(toCandidate(byId(254)).candidate.type, "PESO_LIBRE");
   assert.equal(toCandidate(byId(254)).candidate.typeReason, "nombre");
 });
+
+test("toCandidate no deja correos en la autoría", () => {
+  const authorOf = (history, licenseAuthor) => {
+    const x = structuredClone(byId(257));
+    const tr = x.translations.find((t) => t.language === 4);
+    tr.author_history = history;
+    tr.license_author = licenseAuthor;
+    x.license_author = licenseAuthor;
+    return toCandidate(x).candidate.source.author;
+  };
+  assert.equal(authorOf(["hpmbala@gmail.com"], "hpmbala@gmail.com"), "colaboradores de wger");
+  assert.equal(authorOf(["Ana", "x@y.com"], "x@y.com"), "Ana");
+  assert.equal(authorOf(["Ana <ana@x.es>"], ""), "Ana");
+  assert.equal(authorOf([], "z@y.com"), "colaboradores de wger");
+});
