@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -76,7 +75,6 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -170,7 +168,6 @@ fun TasksScreen(
     var templatesVisible by remember { mutableStateOf(false) }
     var completedExpanded by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
-    var quickTitle by rememberSaveable { mutableStateOf("") }
 
     Box(modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().padding(Spacing.lg)) {
@@ -199,17 +196,6 @@ fun TasksScreen(
                 }
             }
             TaskFeedback(state, viewModel::clearFeedback)
-            TaskQuickAdd(
-                title = quickTitle,
-                enabled = enabled,
-                onTitleChange = { quickTitle = it },
-                onAdd = {
-                    viewModel.createTask(
-                        spaceId, quickTitle.trim(), null, null, null, TaskPriority.MEDIUM, null, null, null,
-                    )
-                    quickTitle = ""
-                },
-            )
             TaskFilterBar(state.filters, members, viewModel::setFilters)
             SearchField(
                 query = query,
@@ -349,7 +335,6 @@ fun TasksScreen(
                     viewModel.createTask(
                         spaceId, title, description, assignee, due, priority, type, recurrence, start,
                     )
-                    quickTitle = ""
                 }
                 editorVisible = false
             },
@@ -368,31 +353,6 @@ fun TasksScreen(
             },
             onDismiss = { deleteTask = null },
         )
-    }
-}
-
-// Alta rápida: crear una tarea solo con el título (prioridad media, sin tipo/responsable/fecha).
-// Alta rápida (vía fugaz); para el formulario completo está el FAB «Nueva tarea».
-@Composable
-private fun TaskQuickAdd(title: String, enabled: Boolean, onTitleChange: (String) -> Unit, onAdd: () -> Unit) {
-    val canAdd = enabled && title.isNotBlank()
-    Row(
-        modifier = Modifier.padding(top = Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        OutlinedTextField(
-            value = title,
-            onValueChange = onTitleChange,
-            modifier = Modifier.weight(1f),
-            label = { Text(stringResource(R.string.tasks_quick_add_hint)) },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { if (canAdd) onAdd() }),
-        )
-        IconButton(onClick = onAdd, enabled = canAdd) {
-            Icon(Icons.Rounded.Add, contentDescription = stringResource(R.string.tasks_quick_add))
-        }
     }
 }
 

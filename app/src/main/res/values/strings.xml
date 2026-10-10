@@ -234,8 +234,6 @@
         <item quantity="other">%1$d de %2$d tareas</item>
     </plurals>
     <string name="tasks_add">Nueva tarea</string>
-    <string name="tasks_quick_add">Añadir tarea</string>
-    <string name="tasks_quick_add_hint">Apunta una tarea…</string>
     <string name="tasks_templates">Plantillas</string>
     <string name="tasks_templates_title">Plantillas del hogar</string>
     <string name="tasks_tpl_bathroom">Limpiar el baño</string>
