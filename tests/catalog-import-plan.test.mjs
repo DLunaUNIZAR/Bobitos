@@ -8,6 +8,7 @@ import {
   formatPlan,
   docToExisting,
   managedFields,
+  planImageImport,
   pickSource,
   planImport,
   toFirestoreDoc,
@@ -196,4 +197,39 @@ test("una ficha importada sin measure ni image no se reescribe si el JSON trae R
   const withImage = entry({ image: { hash: "a".repeat(64), license: "CC0-1.0", sourceUrl: "https://wger.de/media/a.png" } });
   assert.equal(plan(catalogOf(withImage), [old]).update.length, 1);
   assert.equal(plan(catalogOf(entry({ measure: "SECONDS" })), [old]).update.length, 1);
+});
+
+const hashOf = (c) => c.repeat(64);
+const withImage = (id, c) =>
+  entry({ id, name: id, image: { hash: hashOf(c), author: "Ana", license: "CC0-1.0", sourceUrl: "https://wger.de/media/a.png" } });
+
+test("planImageImport sube las nuevas o con hash distinto, deja las iguales e informa de huérfanas", () => {
+  const catalog = catalogOf(withImage("nueva", "a"), withImage("cambiada", "b"), withImage("igual", "c"), entry({ id: "sin-foto" }));
+  const existingImages = [
+    { id: "cambiada", hash: hashOf("x") },
+    { id: "igual", hash: hashOf("c") },
+    { id: "vieja", hash: hashOf("d") },
+    { id: "sin-foto", hash: hashOf("e") },
+  ];
+  const p = planImageImport({ catalog, existingImages });
+  assert.deepEqual(p.upload, ["nueva", "cambiada"]);
+  assert.deepEqual(p.unchanged, ["igual"]);
+  assert.deepEqual(p.orphaned, ["vieja", "sin-foto"]);
+  assert.deepEqual(planImageImport({ catalog: catalogOf(entry()), existingImages: [] }), { upload: [], unchanged: [], orphaned: [] });
+});
+
+test("formatPlan muestra las imágenes a subir", () => {
+  const catalog = catalogOf(withImage("nueva", "a"), withImage("igual", "c"));
+  const imagePlan = planImageImport({ catalog, existingImages: [{ id: "igual", hash: hashOf("c") }, { id: "vieja", hash: hashOf("d") }] });
+  const out = formatPlan({ ...plan(catalog), images: imagePlan });
+  assert.match(out, /Imágenes a subir: 1/);
+  assert.match(out, /Imágenes sin cambios: 1/);
+  assert.match(out, /Imágenes huérfanas \(no se borran\): 1/);
+  assert.match(out, / - vieja/);
+  assert.doesNotMatch(formatPlan(plan(catalog)), /Imágenes/);
+});
+
+test("import-plan.mjs no importa firebase-admin", async () => {
+  const src = await readFile(new URL("../scripts/catalog/import-plan.mjs", import.meta.url), "utf8");
+  assert.doesNotMatch(src, /(from|import)\s*\(?\s*["']firebase-admin/);
 });

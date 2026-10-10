@@ -21,6 +21,7 @@ import {
   signOut,
 } from "firebase/auth";
 import {
+  Bytes,
   Timestamp,
   doc,
   getDoc,
@@ -1555,7 +1556,12 @@ test("un source con proveedor o licencia no admitidos invalida cualquier edició
   }
 });
 
-const wgerImage = { url: "https://wger.de/media/exercise-images/111/a.png", author: "Ana", license: "CC-BY-SA-4.0" };
+const wgerImage = {
+  hash: "a".repeat(64),
+  author: "Ana",
+  license: "CC-BY-SA-4.0",
+  sourceUrl: "https://wger.de/media/exercise-images/111/a.png",
+};
 const ownSource = { provider: "bobitos", id: 1, license: "CC-BY-SA-4.0", author: "Catálogo Bobitos" };
 
 test("un ejercicio acepta measure REPS o SECONDS y rechaza MINUTES", async () => {
@@ -1588,24 +1594,66 @@ test("en una ficha importada con imagen el admin edita la descripción y nadie c
   await assertSucceeds(updateDoc(ref, editFields(RECIPE_ADMIN_UID, { description: "Editada", measure: "SECONDS" })));
   await assertFails(updateDoc(ref, editFields(RECIPE_ADMIN_UID, { image: { ...wgerImage, author: "Otro" } })));
   await assertFails(updateDoc(ref, editFields(RECIPE_ADMIN_UID, { image: null })));
-  await assertFails(updateDoc(ref, editFields(RECIPE_ADMIN_UID, { "image.url": "https://wger.de/media/otra.png" })));
+  await assertFails(updateDoc(ref, editFields(RECIPE_ADMIN_UID, { "image.sourceUrl": "https://wger.de/media/otra.png" })));
   await assertFails(updateDoc(ref, editFields(RECIPE_ADMIN_UID, { image: deleteField() })));
 });
 
-test("una imagen fuera de wger.de/media o con licencia no admitida invalida cualquier edición", async () => {
+test("una ficha con image {hash, license, sourceUrl} es válida; image con url, hash no hexadecimal o sourceUrl ajena no", async () => {
+  const good = {
+    "img-minima": { hash: "b".repeat(64), license: "CC0-1.0", sourceUrl: "https://wger.de/media/a.png" },
+    "img-completa": wgerImage,
+  };
   const bad = {
-    "img-ajena": { ...wgerImage, url: "https://evil.example/media/a.png" },
-    "img-ruta": { ...wgerImage, url: "https://wger.de/es/exercise/1/view/" },
+    "img-url-vieja": { url: "https://wger.de/media/a.png", author: "Ana", license: "CC-BY-SA-4.0" },
+    "img-url-extra": { ...wgerImage, url: "https://wger.de/media/a.png" },
+    "img-sin-hash": { license: "CC0-1.0", sourceUrl: "https://wger.de/media/a.png" },
+    "img-hash-corto": { ...wgerImage, hash: "a".repeat(63) },
+    "img-hash-mayus": { ...wgerImage, hash: "A".repeat(64) },
+    "img-hash-no-hex": { ...wgerImage, hash: "g".repeat(64) },
+    "img-hash-numero": { ...wgerImage, hash: 12 },
+    "img-ajena": { ...wgerImage, sourceUrl: "https://evil.example/media/a.png" },
+    "img-ruta": { ...wgerImage, sourceUrl: "https://wger.de/es/exercise/1/view/" },
+    "img-larga-url": { ...wgerImage, sourceUrl: `https://wger.de/media/${"x".repeat(300)}` },
     "img-licencia": { ...wgerImage, license: "ODbL" },
     "img-larga": { ...wgerImage, author: "x".repeat(201) },
     "img-extra": { ...wgerImage, extra: 1 },
     "img-texto": "https://wger.de/media/a.png",
   };
-  for (const [id, image] of Object.entries(bad)) await seedImportedExercise(id, importedEntry, { image });
+  const entries = { ...good, ...bad };
+  for (const [id, image] of Object.entries(entries)) await seedImportedExercise(id, importedEntry, { image });
   const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  for (const id of Object.keys(good)) {
+    await assertSucceeds(updateDoc(doc(admin, "exercises", id), editFields(RECIPE_ADMIN_UID, { description: "x" })));
+  }
   for (const id of Object.keys(bad)) {
     await assertFails(updateDoc(doc(admin, "exercises", id), editFields(RECIPE_ADMIN_UID, { description: "x" })));
   }
+});
+
+test("exerciseImages: un verificado la lee (get) y uno sin verificar no; nadie la lista ni la escribe", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "exerciseImages", "con-foto"), {
+      data: Bytes.fromUint8Array(new Uint8Array([1, 2, 3])),
+      contentType: "image/webp",
+      hash: "a".repeat(64),
+      width: 10,
+      height: 10,
+      license: "CC0-1.0",
+      sourceUrl: "https://wger.de/media/a.png",
+    });
+  });
+  const user = verifiedFirestore("img-reader");
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  await assertSucceeds(getDoc(doc(user, "exerciseImages", "con-foto")));
+  await assertSucceeds(getDoc(doc(user, "exerciseImages", "no-existe")));
+  await assertFails(getDoc(doc(unverifiedFirestore("img-unverified"), "exerciseImages", "con-foto")));
+  await assertFails(getDocs(collection(user, "exerciseImages")));
+  await assertFails(getDocs(collection(admin, "exerciseImages")));
+  const payload = { data: Bytes.fromUint8Array(new Uint8Array([9])), contentType: "image/webp", hash: "b".repeat(64) };
+  await assertFails(setDoc(doc(user, "exerciseImages", "nueva"), payload));
+  await assertFails(setDoc(doc(admin, "exerciseImages", "nueva-admin"), payload));
+  await assertFails(updateDoc(doc(admin, "exerciseImages", "con-foto"), { hash: "c".repeat(64) }));
+  await assertFails(deleteDoc(doc(admin, "exerciseImages", "con-foto")));
 });
 
 test("una ficha bobitos (sin url, CC BY-SA 4.0) es editable por el admin; bobitos con url u otra licencia no", async () => {

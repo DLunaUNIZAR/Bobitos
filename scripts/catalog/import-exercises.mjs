@@ -1,17 +1,61 @@
 // Importa data/catalog/exercises.json a Firestore con firebase-admin. Idempotente; nunca borra.
 // Uso: node scripts/catalog/import-exercises.mjs --project demo-bobitos|bobitos-dev|dev [--apply] [--catalog ruta]
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { pathToFileURL } from "node:url";
+import { join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { applicationDefault, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
-import { CATALOG_ADMIN_UID, CATALOG_META_PATH, docToExisting, formatPlan, planImport, toFirestoreDoc } from "./import-plan.mjs";
+import { CATALOG_ADMIN_UID, CATALOG_META_PATH, docToExisting, formatPlan, planImageImport, planImport, toFirestoreDoc } from "./import-plan.mjs";
 import { validateEntry } from "./selection.mjs";
 
 const BATCH_SIZE = 400;
+// Lotes de imágenes: pocos documentos y con tope de bytes (cada WebP pesa ≤200 KB; el límite de
+// Firestore por commit es 10 MiB).
+const IMAGE_BATCH_DOCS = 50;
+const IMAGE_BATCH_BYTES = 5 * 1024 * 1024;
+const DEFAULT_IMAGES_DIR = fileURLToPath(new URL("../../data/catalog/images/", import.meta.url));
 
 const toMillis = (t) => (t && typeof t.toMillis === "function" ? t.toMillis() : null);
 
-export async function runImport({ db, catalog, apply, log = console.log }) {
+/** Lee data/catalog/images/<id>.webp de cada imagen a subir y comprueba su sha256 con el catálogo. */
+function loadImagesToUpload(ids, catalog, imagesDir) {
+  const byId = new Map(catalog.exercises.map((e) => [e.id, e]));
+  return ids.map((id) => {
+    const { image } = byId.get(id);
+    let data;
+    try {
+      data = readFileSync(join(imagesDir, `${id}.webp`));
+    } catch (e) {
+      throw new Error(`${id}: no se puede leer ${id}.webp en ${imagesDir} (${e.message})`);
+    }
+    const hash = createHash("sha256").update(data).digest("hex");
+    if (hash !== image.hash) {
+      throw new Error(`${id}: el sha256 de ${id}.webp (${hash}) no coincide con image.hash del catálogo (${image.hash})`);
+    }
+    return { id, data, image };
+  });
+}
+
+/** Agrupa en lotes de como mucho IMAGE_BATCH_DOCS documentos e IMAGE_BATCH_BYTES bytes de imagen. */
+export function chunkImages(items) {
+  const chunks = [];
+  let cur = [];
+  let bytes = 0;
+  for (const it of items) {
+    if (cur.length > 0 && (cur.length >= IMAGE_BATCH_DOCS || bytes + it.data.length > IMAGE_BATCH_BYTES)) {
+      chunks.push(cur);
+      cur = [];
+      bytes = 0;
+    }
+    cur.push(it);
+    bytes += it.data.length;
+  }
+  if (cur.length > 0) chunks.push(cur);
+  return chunks;
+}
+
+export async function runImport({ db, catalog, apply, log = console.log, imagesDir = DEFAULT_IMAGES_DIR }) {
   const problems = catalog.exercises.flatMap((e) => validateEntry(e).map((m) => `${e.id ?? e.name}: ${m}`));
   if (problems.length) throw new Error(`Catálogo inválido:\n${problems.join("\n")}`);
 
@@ -26,7 +70,14 @@ export async function runImport({ db, catalog, apply, log = console.log }) {
     });
   });
 
-  const plan = planImport({ catalog, existing, adminUid: CATALOG_ADMIN_UID });
+  // Solo el hash: select() evita traer los bytes de cada imagen.
+  const imageSnap = await db.collection("exerciseImages").select("hash").get();
+  const existingImages = imageSnap.docs.map((d) => ({ id: d.id, hash: d.get("hash") }));
+
+  const plan = { ...planImport({ catalog, existing, adminUid: CATALOG_ADMIN_UID }) };
+  plan.images = planImageImport({ catalog, existingImages });
+  // Antes de escribir nada: todos los ficheros existen y casan con el hash del catálogo.
+  const toUpload = loadImagesToUpload(plan.images.upload, catalog, imagesDir);
   log(formatPlan(plan));
   if (!apply) {
     log("\nSimulación: no se ha escrito nada. Usa --apply para aplicar.");
@@ -34,6 +85,32 @@ export async function runImport({ db, catalog, apply, log = console.log }) {
   }
 
   const now = FieldValue.serverTimestamp();
+  // Las imágenes van antes que las fichas que apuntan a su hash. Nunca se borra ninguna.
+  if (toUpload.length > 0) {
+    const sharp = (await import("sharp")).default;
+    for (const it of toUpload) {
+      const { width, height } = await sharp(it.data).metadata();
+      it.width = width;
+      it.height = height;
+    }
+  }
+  for (const chunk of chunkImages(toUpload)) {
+    const batch = db.batch();
+    for (const { id, data, image, width, height } of chunk) {
+      batch.set(db.collection("exerciseImages").doc(id), {
+        data,
+        contentType: "image/webp",
+        hash: image.hash,
+        width,
+        height,
+        ...(image.author !== undefined ? { author: image.author } : {}),
+        license: image.license,
+        sourceUrl: image.sourceUrl,
+        updatedAt: now,
+      });
+    }
+    await batch.commit();
+  }
   const ops = [
     ...plan.create.map((e) => ({ kind: "create", e })),
     ...plan.update.map((e) => ({ kind: "update", e })),
@@ -53,7 +130,9 @@ export async function runImport({ db, catalog, apply, log = console.log }) {
     );
     await batch.commit();
   }
-  log(`\nAplicado: ${plan.create.length} creadas, ${plan.update.length} actualizadas.`);
+  log(
+    `\nAplicado: ${plan.create.length} creadas, ${plan.update.length} actualizadas, ${toUpload.length} imágenes subidas.`,
+  );
   return { ...plan, versionBumped: ops.length > 0 };
 }
 

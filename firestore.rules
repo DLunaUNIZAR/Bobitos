@@ -1206,13 +1206,15 @@ service cloud.firestore {
         && (!s.keys().hasAny(["importedAt"]) || s.importedAt is timestamp);
     }
 
-    // Imagen del importador (wger, solo lectura para los clientes: no entra en `affectedKeys` ni se crea).
+    // Referencia a la imagen del importador (el WebP vive en exerciseImages/{id}; `sourceUrl` es solo la
+    // procedencia en wger). Solo lectura para los clientes: no entra en `affectedKeys` ni se crea.
     function validExerciseImage(i) {
-      return i is map && i.keys().hasAll(["url", "license"])
-        && i.keys().hasOnly(["url", "author", "license"])
-        && i.url is string && i.url.size() <= 300 && i.url.matches('https://wger[.]de/media/.*')
+      return i is map && i.keys().hasAll(["hash", "license", "sourceUrl"])
+        && i.keys().hasOnly(["hash", "author", "license", "sourceUrl"])
+        && i.hash is string && i.hash.matches('^[0-9a-f]{64}$')
         && i.license in ["CC-BY-SA-3.0", "CC-BY-SA-4.0", "CC-BY-4.0", "CC0-1.0"]
-        && (!i.keys().hasAny(["author"]) || (i.author is string && i.author.size() <= 200));
+        && (!i.keys().hasAny(["author"]) || (i.author is string && i.author.size() <= 200))
+        && i.sourceUrl is string && i.sourceUrl.size() <= 300 && i.sourceUrl.matches('https://wger[.]de/media/.*');
     }
 
     function validNewExercise() {
@@ -1340,6 +1342,12 @@ service cloud.firestore {
         && request.resource.data.version == 1;
       allow update: if catalogId == "exercises" && validCatalogMeta()
         && request.resource.data.version == resource.data.version + 1;
+    }
+
+    // Miniaturas de los ejercicios del catálogo: las sube el importador (Admin SDK). Los verificados
+    // leen una por id (get); no hay list ni escrituras de clientes.
+    match /exerciseImages/{exerciseId} {
+      allow get: if verifiedUser();
     }
 
     // Preferencias de ingredientes por usuario (supermercado/marca por defecto): documento privado del

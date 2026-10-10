@@ -113,6 +113,24 @@ export function planImport({ catalog, existing, adminUid }) {
   return plan;
 }
 
+/**
+ * Imágenes (exerciseImages/<id>) frente al catálogo, por hash. `existingImages`: [{id, hash}].
+ * `upload`: ids sin imagen o con otro hash; `unchanged`: mismo hash; `orphaned`: imágenes que ya
+ * no usa ninguna ficha del catálogo (se informan, no se borran).
+ */
+export function planImageImport({ catalog, existingImages }) {
+  const byId = new Map(existingImages.map((i) => [i.id, i.hash]));
+  const out = { upload: [], unchanged: [], orphaned: [] };
+  const wanted = new Set();
+  for (const e of catalog.exercises) {
+    if (!e.image) continue;
+    wanted.add(e.id);
+    (byId.get(e.id) === e.image.hash ? out.unchanged : out.upload).push(e.id);
+  }
+  out.orphaned = existingImages.filter((i) => !wanted.has(i.id)).map((i) => i.id);
+  return out;
+}
+
 const section = (title, list, fmt = (x) => x) =>
   list.length === 0 ? [] : [`${title}: ${list.length}`, ...list.map((x) => `  - ${fmt(x)}`)];
 
@@ -130,6 +148,13 @@ export function formatPlan(plan) {
     ...section("Omitidas (editadas en la app tras importarse)", plan.skippedEditedInApp),
     ...section("Huérfanas (ya no están en el JSON; no se borran)", plan.orphaned),
     ...section("Posibles duplicados (nombre casi igual)", plan.nearDuplicates, (x) => `${x.id} ~ ${x.existingId}`),
+    ...(plan.images
+      ? [
+          `Imágenes a subir: ${plan.images.upload.length}`,
+          `Imágenes sin cambios: ${plan.images.unchanged.length}`,
+          ...section("Imágenes huérfanas (no se borran)", plan.images.orphaned),
+        ]
+      : []),
   ];
   return lines.join("\n");
 }
