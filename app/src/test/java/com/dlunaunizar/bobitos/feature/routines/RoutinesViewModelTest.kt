@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.feature.routines
 import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
+import com.dlunaunizar.bobitos.core.model.ExerciseInput
 import com.dlunaunizar.bobitos.core.model.ExerciseSet
 import com.dlunaunizar.bobitos.core.model.ExerciseType
 import com.dlunaunizar.bobitos.core.model.Routine
@@ -133,8 +134,8 @@ private class FakeExerciseRepository : ExerciseRepository {
     override fun isCurrentUserCatalogAdmin(): Boolean = false
     override fun currentUserId(): String? = "u"
     override suspend fun exerciseById(id: String): CatalogExercise? = null
-    override suspend fun createExercise(name: String, type: ExerciseType, muscleGroup: String?) = Unit
-    override suspend fun updateExercise(id: String, name: String, type: ExerciseType, muscleGroup: String?) = Unit
+    override suspend fun createExercise(input: ExerciseInput) = Unit
+    override suspend fun updateExercise(id: String, input: ExerciseInput) = Unit
     override suspend fun deleteExercise(id: String) = Unit
 }
 

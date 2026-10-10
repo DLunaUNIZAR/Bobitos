@@ -3,7 +3,7 @@ package com.dlunaunizar.bobitos.feature.exercises
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.UiState
-import com.dlunaunizar.bobitos.core.model.ExerciseType
+import com.dlunaunizar.bobitos.core.model.ExerciseInput
 import com.dlunaunizar.bobitos.core.model.slug
 import com.dlunaunizar.bobitos.data.repository.ExerciseFailure
 import com.dlunaunizar.bobitos.data.repository.ExerciseRepository
@@ -47,8 +47,8 @@ class ExercisesViewModel @Inject constructor(private val repository: ExerciseRep
 
     fun setQuery(query: String) = mutableUiState.update { it.copy(query = query) }
 
-    fun createExercise(name: String, type: ExerciseType, muscleGroup: String?) {
-        val trimmed = name.trim()
+    fun createExercise(input: ExerciseInput) {
+        val trimmed = input.name.trim()
         if (trimmed.isEmpty()) {
             showError(ExerciseUiMessage.NameRequired)
             return
@@ -57,15 +57,15 @@ class ExercisesViewModel @Inject constructor(private val repository: ExerciseRep
             showError(ExerciseUiMessage.AlreadyExists)
             return
         }
-        runAction(ExerciseUiMessage.Saved) { repository.createExercise(trimmed, type, muscleGroup) }
+        runAction(ExerciseUiMessage.Saved) { repository.createExercise(input.copy(name = trimmed)) }
     }
 
-    fun updateExercise(id: String, name: String, type: ExerciseType, muscleGroup: String?) {
-        if (name.trim().isEmpty()) {
+    fun updateExercise(id: String, input: ExerciseInput) {
+        if (input.name.trim().isEmpty()) {
             showError(ExerciseUiMessage.NameRequired)
             return
         }
-        runAction(ExerciseUiMessage.Saved) { repository.updateExercise(id, name.trim(), type, muscleGroup) }
+        runAction(ExerciseUiMessage.Saved) { repository.updateExercise(id, input.copy(name = input.name.trim())) }
     }
 
     fun deleteExercise(id: String) {
@@ -99,6 +99,7 @@ private fun Throwable.toUiMessage(): ExerciseUiMessage = when ((this as? Exercis
     ExerciseFailure.NameRequired -> ExerciseUiMessage.NameRequired
     ExerciseFailure.NameTooLong -> ExerciseUiMessage.NameTooLong
     ExerciseFailure.MuscleGroupTooLong -> ExerciseUiMessage.MuscleGroupTooLong
+    ExerciseFailure.DescriptionTooLong -> ExerciseUiMessage.DescriptionTooLong
     ExerciseFailure.NotAuthenticated -> ExerciseUiMessage.NotAuthenticated
     ExerciseFailure.EmailNotVerified -> ExerciseUiMessage.EmailNotVerified
     ExerciseFailure.ExerciseNotFound -> ExerciseUiMessage.NotFound

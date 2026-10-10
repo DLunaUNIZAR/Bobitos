@@ -1,0 +1,102 @@
+package com.dlunaunizar.bobitos.data.repository
+
+import com.dlunaunizar.bobitos.core.model.CatalogExercise
+import com.dlunaunizar.bobitos.core.model.ExerciseEquipment
+import com.dlunaunizar.bobitos.core.model.ExerciseInput
+import com.dlunaunizar.bobitos.core.model.ExerciseSource
+import com.dlunaunizar.bobitos.core.model.ExerciseType
+import java.text.Collator
+import java.time.Instant
+import java.util.Locale
+
+// Parseo y validación puros (sin Firebase) del catálogo de ejercicios, para poder probarlos en JVM.
+// Los nombres de campo son los que escribe scripts/catalog/import-plan.mjs y admiten las reglas.
+internal const val MAX_EXERCISE_NAME_LENGTH = 120
+internal const val MAX_EXERCISE_MUSCLE_LENGTH = 60
+internal const val MAX_EXERCISE_DESCRIPTION_LENGTH = 2000
+
+// null → la ficha se descarta (le falta un campo obligatorio). Los campos nuevos son opcionales
+// (retro-compat con fichas antiguas) y un tipo desconocido cae a OTROS en vez de ocultar la ficha.
+internal fun parseCatalogExercise(
+    id: String,
+    data: Map<String, Any?>,
+    createdAt: Instant?,
+    updatedAt: Instant?,
+): CatalogExercise? {
+    val createdBy = data["createdBy"] as? String
+    val name = data["name"] as? String
+    val ownerUid = data["ownerUid"] as? String
+    if (createdAt == null || createdBy == null) return null
+    if (name == null || ownerUid == null) return null
+    return CatalogExercise(
+        id = id,
+        name = name,
+        type = parseExerciseType(data["type"]),
+        muscleGroup = data["muscleGroup"] as? String,
+        description = (data["description"] as? String)?.takeIf(String::isNotBlank),
+        equipment = parseExerciseEquipment(data["equipment"]),
+        source = parseExerciseSource(data["source"]),
+        ownerUid = ownerUid,
+        createdBy = createdBy,
+        createdByName = data["createdByName"] as? String ?: createdBy,
+        createdAt = createdAt,
+        updatedBy = data["updatedBy"] as? String ?: createdBy,
+        updatedAt = updatedAt ?: createdAt,
+    )
+}
+
+internal fun parseExerciseType(raw: Any?): ExerciseType =
+    (raw as? String)?.let { value -> runCatching { ExerciseType.valueOf(value) }.getOrNull() } ?: ExerciseType.OTROS
+
+// Ignora desconocidos y duplicados; devuelve en el orden canónico del enum.
+internal fun parseExerciseEquipment(raw: Any?): List<ExerciseEquipment> {
+    val names = (raw as? List<*>).orEmpty().filterIsInstance<String>().toSet()
+    return ExerciseEquipment.entries.filter { it.name in names }
+}
+
+internal fun parseExerciseSource(raw: Any?): ExerciseSource? {
+    val map = raw as? Map<*, *> ?: return null
+    val provider = map["provider"] as? String
+    val sourceId = (map["id"] as? Number)?.toLong()
+    val license = map["license"] as? String
+    if (provider == null || sourceId == null || license == null) return null
+    return ExerciseSource(provider, sourceId, license, map["author"] as? String, map["url"] as? String)
+}
+
+// Recorta y valida; lanza ExerciseRepositoryException con el fallo concreto.
+internal fun validateExerciseInput(input: ExerciseInput): ExerciseInput {
+    val name = input.name.trim()
+    val muscle = input.muscleGroup?.trim()?.takeIf(String::isNotEmpty)
+    val description = input.description?.trim()?.takeIf(String::isNotEmpty)
+    val failure = when {
+        name.isEmpty() -> ExerciseFailure.NameRequired
+        name.length > MAX_EXERCISE_NAME_LENGTH -> ExerciseFailure.NameTooLong
+        muscle != null && muscle.length > MAX_EXERCISE_MUSCLE_LENGTH -> ExerciseFailure.MuscleGroupTooLong
+        description != null && description.length > MAX_EXERCISE_DESCRIPTION_LENGTH ->
+            ExerciseFailure.DescriptionTooLong
+        else -> null
+    }
+    if (failure != null) throw ExerciseRepositoryException(failure)
+    return input.copy(
+        name = name,
+        muscleGroup = muscle,
+        description = description,
+        equipment = ExerciseEquipment.entries.filter { it in input.equipment },
+    )
+}
+
+// Campos editables por el usuario; el repositorio añade dueño y marcas de tiempo.
+internal fun ExerciseInput.toFirestoreFields(): Map<String, Any?> = mapOf(
+    "name" to name,
+    "nameLower" to name.lowercase(),
+    "type" to type.name,
+    "muscleGroup" to muscleGroup,
+    "description" to description,
+    "equipment" to equipment.map(ExerciseEquipment::name),
+)
+
+// Orden alfabético en español sin distinguir tildes ni mayúsculas; desempata por id.
+internal fun List<CatalogExercise>.sortedForCatalog(): List<CatalogExercise> {
+    val collator = Collator.getInstance(Locale.forLanguageTag("es-ES")).apply { strength = Collator.PRIMARY }
+    return sortedWith(compareBy<CatalogExercise, String>(collator) { it.name }.thenBy { it.id })
+}

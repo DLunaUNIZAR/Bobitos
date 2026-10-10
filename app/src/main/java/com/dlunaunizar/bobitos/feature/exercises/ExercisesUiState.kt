@@ -20,6 +20,7 @@ enum class ExerciseUiMessage {
     NameRequired,
     NameTooLong,
     MuscleGroupTooLong,
+    DescriptionTooLong,
     AlreadyExists,
     NotAuthenticated,
     EmailNotVerified,

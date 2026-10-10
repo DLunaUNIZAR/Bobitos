@@ -152,7 +152,7 @@ private fun StrengthSets(draft: ExerciseDraft) {
             OutlinedTextField(
                 value = set.weight,
                 onValueChange = { set.weight = it.filter { ch -> ch.isDigit() || ch == '.' || ch == ',' } },
-                label = { Text(stringResource(R.string.routines_weight_label)) },
+                label = { Text(stringResource(draft.type.weightLabelRes)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.weight(1f),

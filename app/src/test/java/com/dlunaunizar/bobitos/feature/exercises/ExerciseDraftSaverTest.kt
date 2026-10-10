@@ -59,6 +59,16 @@ class ExerciseDraftSaverTest {
     }
 
     @Test
+    fun `PESO_CORPORAL survives rotation`() {
+        val original = listOf(
+            ExerciseDraft(name = "Dominadas", type = ExerciseType.PESO_CORPORAL, sets = listOf(SetDraft("8", "5"))),
+        )
+        val restored = roundTrip(original)
+        assertEquals(ExerciseType.PESO_CORPORAL, restored.single().type)
+        assertEquals(original.toRoutineExercises(), restored.toRoutineExercises())
+    }
+
+    @Test
     fun laListaRestauradaEsEditableYNoComparteEstadoConLaOriginal() {
         val original = listOf(ExerciseDraft(name = "Remo", type = ExerciseType.CARDIO))
         val restored = roundTrip(original)

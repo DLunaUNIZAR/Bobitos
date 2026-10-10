@@ -37,6 +37,24 @@ class ExerciseListEditorTest {
     }
 
     @Test
+    fun `bodyweight sets keep reps and optional ballast`() {
+        val drafts = listOf(
+            ExerciseDraft(
+                name = "Dominadas",
+                type = ExerciseType.PESO_CORPORAL,
+                sets = listOf(SetDraft("12", ""), SetDraft("8", "5,5")),
+            ),
+        )
+
+        assertEquals(
+            listOf(ExerciseSet(12, null), ExerciseSet(8, 5.5)),
+            drafts.toRoutineExercises().single().sets,
+        )
+        assertEquals(null, drafts.toRoutineExercises().single().durationMinutes)
+        assertEquals(null, drafts.toRoutineExercises().single().level)
+    }
+
+    @Test
     fun `blank notes normalize to null`() {
         val drafts = listOf(RoutineExercise("Sentadilla", type = ExerciseType.MAQUINA)).toExerciseDrafts()
         drafts.first().notes = "   "

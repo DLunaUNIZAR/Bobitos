@@ -58,6 +58,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
+import com.dlunaunizar.bobitos.core.model.ExerciseInput
 import com.dlunaunizar.bobitos.core.model.ExerciseType
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -128,9 +129,9 @@ fun ExercisesScreen(
             exercise = editorExercise,
             saving = state.isSaving,
             onDismiss = { editorOpen = false },
-            onSave = { name, type, muscle ->
-                editorExercise?.let { viewModel.updateExercise(it.id, name, type, muscle) }
-                    ?: viewModel.createExercise(name, type, muscle)
+            onSave = { input ->
+                editorExercise?.let { viewModel.updateExercise(it.id, input) }
+                    ?: viewModel.createExercise(input)
                 editorOpen = false
             },
         )
@@ -269,7 +270,7 @@ private fun ExerciseEditorDialog(
     exercise: CatalogExercise?,
     saving: Boolean,
     onDismiss: () -> Unit,
-    onSave: (String, ExerciseType, String?) -> Unit,
+    onSave: (ExerciseInput) -> Unit,
 ) {
     val initial = CatalogExerciseDraft.of(exercise)
     var draft by rememberSaveable(exercise?.id) { mutableStateOf(initial) }
@@ -280,7 +281,7 @@ private fun ExerciseEditorDialog(
         saving = saving,
         dirty = { draft != initial },
         onDismiss = onDismiss,
-        onConfirm = { onSave(draft.name, draft.type, draft.muscle.trim().ifBlank { null }) },
+        onConfirm = { onSave(draft.toInput()) },
     ) {
         OutlinedTextField(
             value = draft.name,
@@ -337,6 +338,7 @@ private val ExerciseUiMessage.stringResourceId: Int
         ExerciseUiMessage.NameRequired -> R.string.exercises_error_name_required
         ExerciseUiMessage.NameTooLong -> R.string.exercises_error_name_too_long
         ExerciseUiMessage.MuscleGroupTooLong -> R.string.exercises_error_muscle_too_long
+        ExerciseUiMessage.DescriptionTooLong -> R.string.exercises_error_description_too_long
         ExerciseUiMessage.AlreadyExists -> R.string.exercises_error_exists
         ExerciseUiMessage.NotAuthenticated -> R.string.space_error_not_authenticated
         ExerciseUiMessage.EmailNotVerified -> R.string.space_error_email_not_verified

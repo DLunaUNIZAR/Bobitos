@@ -2,7 +2,7 @@ package com.dlunaunizar.bobitos.data.repository
 
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
-import com.dlunaunizar.bobitos.core.model.ExerciseType
+import com.dlunaunizar.bobitos.core.model.ExerciseInput
 import com.dlunaunizar.bobitos.core.model.slug
 import com.dlunaunizar.bobitos.data.sync.RealtimeMetrics
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
@@ -29,6 +29,7 @@ class FirestoreExerciseRepository @Inject constructor(
     override fun catalog(): Flow<List<CatalogExercise>> = callbackFlow {
         val metricId = realtimeMetrics.listenerStarted(SCOPE)
         val registration = exercisesCollection()
+            .orderBy(FIELD_NAME_LOWER)
             .limit(MAX_VISIBLE_EXERCISES)
             .addSnapshotListener { snapshot, error ->
                 when {
@@ -42,7 +43,7 @@ class FirestoreExerciseRepository @Inject constructor(
                         trySend(
                             snapshot.documents
                                 .mapNotNull(DocumentSnapshot::toCatalogExercise)
-                                .sortedWith(compareBy({ it.name.lowercase() }, CatalogExercise::id)),
+                                .sortedForCatalog(),
                         )
                     }
                 }
@@ -61,16 +62,12 @@ class FirestoreExerciseRepository @Inject constructor(
     override suspend fun exerciseById(id: String): CatalogExercise? =
         runCatching { exercisesCollection().document(id).get().await().toCatalogExercise() }.getOrNull()
 
-    override suspend fun createExercise(name: String, type: ExerciseType, muscleGroup: String?) = runOperation {
+    override suspend fun createExercise(input: ExerciseInput) = runOperation {
         val user = requireVerifiedUser()
-        val values = validate(name, muscleGroup)
+        val values = validateExerciseInput(input)
         val id = slug(values.name).ifEmpty { throw ExerciseRepositoryException(ExerciseFailure.NameRequired) }
         exercisesCollection().document(id).set(
-            mapOf(
-                FIELD_NAME to values.name,
-                FIELD_NAME_LOWER to values.name.lowercase(),
-                FIELD_TYPE to type.name,
-                FIELD_MUSCLE_GROUP to values.muscleGroup,
+            values.toFirestoreFields() + mapOf(
                 FIELD_OWNER_UID to user.id,
                 FIELD_CREATED_BY to user.id,
                 FIELD_CREATED_BY_NAME to user.catalogDisplayName,
@@ -82,22 +79,17 @@ class FirestoreExerciseRepository @Inject constructor(
         Unit
     }
 
-    override suspend fun updateExercise(id: String, name: String, type: ExerciseType, muscleGroup: String?) =
-        runOperation {
-            val user = requireVerifiedUser()
-            val values = validate(name, muscleGroup)
-            exercisesCollection().document(id).update(
-                mapOf(
-                    FIELD_NAME to values.name,
-                    FIELD_NAME_LOWER to values.name.lowercase(),
-                    FIELD_TYPE to type.name,
-                    FIELD_MUSCLE_GROUP to values.muscleGroup,
-                    FIELD_UPDATED_BY to user.id,
-                    FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
-                ),
-            ).await()
-            Unit
-        }
+    override suspend fun updateExercise(id: String, input: ExerciseInput) = runOperation {
+        val user = requireVerifiedUser()
+        val values = validateExerciseInput(input)
+        exercisesCollection().document(id).update(
+            values.toFirestoreFields() + mapOf(
+                FIELD_UPDATED_BY to user.id,
+                FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+            ),
+        ).await()
+        Unit
+    }
 
     override suspend fun deleteExercise(id: String) = runOperation {
         requireVerifiedUser()
@@ -114,18 +106,6 @@ class FirestoreExerciseRepository @Inject constructor(
             throw ExerciseRepositoryException(ExerciseFailure.EmailNotVerified)
         }
         return user
-    }
-
-    private fun validate(name: String, muscleGroup: String?): ExerciseValues {
-        val normalizedName = name.trim()
-        val normalizedMuscle = muscleGroup?.trim()?.takeIf(String::isNotEmpty)
-        when {
-            normalizedName.isEmpty() -> throw ExerciseRepositoryException(ExerciseFailure.NameRequired)
-            normalizedName.length > MAX_NAME_LENGTH -> throw ExerciseRepositoryException(ExerciseFailure.NameTooLong)
-            normalizedMuscle != null && normalizedMuscle.length > MAX_MUSCLE_LENGTH ->
-                throw ExerciseRepositoryException(ExerciseFailure.MuscleGroupTooLong)
-        }
-        return ExerciseValues(normalizedName, normalizedMuscle)
     }
 
     private suspend inline fun <T> runOperation(crossinline operation: suspend () -> T): T {
@@ -145,48 +125,29 @@ class FirestoreExerciseRepository @Inject constructor(
         }
     }
 
-    private data class ExerciseValues(val name: String, val muscleGroup: String?)
-
     private companion object {
         const val EXERCISES = "exercises"
         const val SCOPE = "exercises:catalog"
-        const val FIELD_NAME = "name"
         const val FIELD_NAME_LOWER = "nameLower"
-        const val FIELD_TYPE = "type"
-        const val FIELD_MUSCLE_GROUP = "muscleGroup"
         const val FIELD_OWNER_UID = "ownerUid"
         const val FIELD_CREATED_BY = "createdBy"
         const val FIELD_CREATED_BY_NAME = "createdByName"
         const val FIELD_CREATED_AT = "createdAt"
         const val FIELD_UPDATED_BY = "updatedBy"
         const val FIELD_UPDATED_AT = "updatedAt"
-        const val MAX_NAME_LENGTH = 120
-        const val MAX_MUSCLE_LENGTH = 60
-        const val MAX_VISIBLE_EXERCISES = 500L
+        const val MAX_VISIBLE_EXERCISES = 1000L
     }
 }
 
 private val AuthUser.catalogDisplayName: String
     get() = displayName.ifBlank { email.substringBefore('@') }.take(60)
 
-private fun DocumentSnapshot.toCatalogExercise(): CatalogExercise? {
-    val createdAt = getTimestamp("createdAt")?.toDate()?.toInstant() ?: return null
-    val updatedAt = getTimestamp("updatedAt")?.toDate()?.toInstant() ?: createdAt
-    val type =
-        getString("type")?.let { value -> runCatching { ExerciseType.valueOf(value) }.getOrNull() } ?: return null
-    return CatalogExercise(
-        id = id,
-        name = getString("name") ?: return null,
-        type = type,
-        muscleGroup = getString("muscleGroup"),
-        ownerUid = getString("ownerUid") ?: return null,
-        createdBy = getString("createdBy") ?: return null,
-        createdByName = getString("createdByName") ?: getString("createdBy") ?: return null,
-        createdAt = createdAt,
-        updatedBy = getString("updatedBy") ?: getString("createdBy") ?: return null,
-        updatedAt = updatedAt,
-    )
-}
+private fun DocumentSnapshot.toCatalogExercise(): CatalogExercise? = parseCatalogExercise(
+    id = id,
+    data = data.orEmpty(),
+    createdAt = getTimestamp("createdAt")?.toDate()?.toInstant(),
+    updatedAt = getTimestamp("updatedAt")?.toDate()?.toInstant(),
+)
 
 private fun Throwable.toExerciseRepositoryException(): ExerciseRepositoryException = ExerciseRepositoryException(
     failure = when ((this as? FirebaseFirestoreException)?.code) {

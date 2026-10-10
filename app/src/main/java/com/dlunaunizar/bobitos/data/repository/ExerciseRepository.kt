@@ -1,7 +1,7 @@
 package com.dlunaunizar.bobitos.data.repository
 
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
-import com.dlunaunizar.bobitos.core.model.ExerciseType
+import com.dlunaunizar.bobitos.core.model.ExerciseInput
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -17,9 +17,9 @@ interface ExerciseRepository {
 
     suspend fun exerciseById(id: String): CatalogExercise?
 
-    suspend fun createExercise(name: String, type: ExerciseType, muscleGroup: String?)
+    suspend fun createExercise(input: ExerciseInput)
 
-    suspend fun updateExercise(id: String, name: String, type: ExerciseType, muscleGroup: String?)
+    suspend fun updateExercise(id: String, input: ExerciseInput)
 
     suspend fun deleteExercise(id: String)
 }
@@ -28,6 +28,7 @@ enum class ExerciseFailure {
     NameRequired,
     NameTooLong,
     MuscleGroupTooLong,
+    DescriptionTooLong,
     NotAuthenticated,
     EmailNotVerified,
     ExerciseNotFound,
