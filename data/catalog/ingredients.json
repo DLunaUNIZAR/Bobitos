@@ -1,0 +1,2045 @@
+{
+  "schemaVersion": 1,
+  "ingredients": [
+    {
+      "id": "aguacate",
+      "name": "Aguacate",
+      "category": "Frutas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "albaricoque",
+      "name": "Albaricoque",
+      "category": "Frutas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "arandanos",
+      "name": "Arándanos",
+      "category": "Frutas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "caqui",
+      "name": "Caqui",
+      "category": "Frutas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "cereza",
+      "name": "Cereza",
+      "category": "Frutas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "ciruela",
+      "name": "Ciruela",
+      "category": "Frutas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "coco",
+      "name": "Coco",
+      "category": "Frutas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "datiles",
+      "name": "Dátiles",
+      "category": "Frutas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "frambuesas",
+      "name": "Frambuesas",
+      "category": "Frutas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "fresas",
+      "name": "Fresas",
+      "category": "Frutas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "granada",
+      "name": "Granada",
+      "category": "Frutas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "higos",
+      "name": "Higos",
+      "category": "Frutas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "kiwi",
+      "name": "Kiwi",
+      "category": "Frutas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "lima",
+      "name": "Lima",
+      "category": "Frutas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "limon",
+      "name": "Limón",
+      "category": "Frutas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "mandarina",
+      "name": "Mandarina",
+      "category": "Frutas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "mango",
+      "name": "Mango",
+      "category": "Frutas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "manzana",
+      "name": "Manzana",
+      "category": "Frutas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "melocoton",
+      "name": "Melocotón",
+      "category": "Frutas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "melon",
+      "name": "Melón",
+      "category": "Frutas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "membrillo",
+      "name": "Membrillo",
+      "category": "Frutas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "naranja",
+      "name": "Naranja",
+      "category": "Frutas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "pera",
+      "name": "Pera",
+      "category": "Frutas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "pina",
+      "name": "Piña",
+      "category": "Frutas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "platano",
+      "name": "Plátano",
+      "category": "Frutas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "pomelo",
+      "name": "Pomelo",
+      "category": "Frutas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "sandia",
+      "name": "Sandía",
+      "category": "Frutas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "uva-pasa",
+      "name": "Uva pasa",
+      "category": "Frutas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "uvas",
+      "name": "Uvas",
+      "category": "Frutas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "aceitunas-negras",
+      "name": "Aceitunas negras",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "aceitunas-verdes",
+      "name": "Aceitunas verdes",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "acelgas",
+      "name": "Acelgas",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "ajo",
+      "name": "Ajo",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "alcachofa",
+      "name": "Alcachofa",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "alcaparras",
+      "name": "Alcaparras",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "apio",
+      "name": "Apio",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "berenjena",
+      "name": "Berenjena",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "boniato",
+      "name": "Boniato",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "brocoli",
+      "name": "Brócoli",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "calabacin",
+      "name": "Calabacín",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "calabaza",
+      "name": "Calabaza",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "canonigos",
+      "name": "Canónigos",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "cebolla",
+      "name": "Cebolla",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "cebolla-morada",
+      "name": "Cebolla morada",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "cebolleta",
+      "name": "Cebolleta",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "champinones",
+      "name": "Champiñones",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "col",
+      "name": "Col",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "coliflor",
+      "name": "Coliflor",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "endivias",
+      "name": "Endivias",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "esparragos-verdes",
+      "name": "Espárragos verdes",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "espinacas",
+      "name": "Espinacas",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "guisantes",
+      "name": "Guisantes",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "jengibre",
+      "name": "Jengibre",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "judias-verdes",
+      "name": "Judías verdes",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "lechuga",
+      "name": "Lechuga",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "lombarda",
+      "name": "Lombarda",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "maiz-dulce",
+      "name": "Maíz dulce",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "patata",
+      "name": "Patata",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "pepinillos",
+      "name": "Pepinillos",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pepino",
+      "name": "Pepino",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "pimiento-del-padron",
+      "name": "Pimiento del padrón",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pimiento-del-piquillo",
+      "name": "Pimiento del piquillo",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pimiento-rojo",
+      "name": "Pimiento rojo",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "pimiento-verde",
+      "name": "Pimiento verde",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "pimientos-asados",
+      "name": "Pimientos asados",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "puerro",
+      "name": "Puerro",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "remolacha",
+      "name": "Remolacha",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "remolacha-cocida",
+      "name": "Remolacha cocida",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "repollo",
+      "name": "Repollo",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "rucula",
+      "name": "Rúcula",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "setas",
+      "name": "Setas",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "tomate",
+      "name": "Tomate",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "tomate-triturado",
+      "name": "Tomate triturado",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "zanahoria",
+      "name": "Zanahoria",
+      "category": "Verduras y hortalizas",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "albondigas",
+      "name": "Albóndigas",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "alitas-de-pollo",
+      "name": "Alitas de pollo",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "bacon",
+      "name": "Bacon",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "carne-picada-mixta",
+      "name": "Carne picada mixta",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "chorizo",
+      "name": "Chorizo",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "chuletas-de-cerdo",
+      "name": "Chuletas de cerdo",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "chuletas-de-cordero",
+      "name": "Chuletas de cordero",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "conejo",
+      "name": "Conejo",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "contramuslos-de-pollo",
+      "name": "Contramuslos de pollo",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "costillas-de-cerdo",
+      "name": "Costillas de cerdo",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "entrecot",
+      "name": "Entrecot",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "filete-de-ternera",
+      "name": "Filete de ternera",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "fuet",
+      "name": "Fuet",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "hamburguesas",
+      "name": "Hamburguesas",
+      "category": "Carnes",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "jamon-cocido",
+      "name": "Jamón cocido",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "jamon-iberico",
+      "name": "Jamón ibérico",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "jamon-serrano",
+      "name": "Jamón serrano",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "lomo-de-cerdo",
+      "name": "Lomo de cerdo",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "morcilla",
+      "name": "Morcilla",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "muslos-de-pollo",
+      "name": "Muslos de pollo",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "panceta",
+      "name": "Panceta",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pechuga-de-pavo",
+      "name": "Pechuga de pavo",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pechuga-de-pollo",
+      "name": "Pechuga de pollo",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pierna-de-cordero",
+      "name": "Pierna de cordero",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pollo-entero",
+      "name": "Pollo entero",
+      "category": "Carnes",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "salchichas",
+      "name": "Salchichas",
+      "category": "Carnes",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "salchichon",
+      "name": "Salchichón",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "sobrasada",
+      "name": "Sobrasada",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "solomillo-de-cerdo",
+      "name": "Solomillo de cerdo",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "solomillo-de-ternera",
+      "name": "Solomillo de ternera",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "ternera-picada",
+      "name": "Ternera picada",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "almejas",
+      "name": "Almejas",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "anchoas",
+      "name": "Anchoas",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "atun-en-lata",
+      "name": "Atún en lata",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "atun-fresco",
+      "name": "Atún fresco",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "bacalao",
+      "name": "Bacalao",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "bacalao-desalado",
+      "name": "Bacalao desalado",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "berberechos",
+      "name": "Berberechos",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "bonito-en-lata",
+      "name": "Bonito en lata",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "boquerones",
+      "name": "Boquerones",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "caballa",
+      "name": "Caballa",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "calamares",
+      "name": "Calamares",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "chipirones",
+      "name": "Chipirones",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "cigalas",
+      "name": "Cigalas",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "dorada",
+      "name": "Dorada",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "gambas",
+      "name": "Gambas",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "langostinos",
+      "name": "Langostinos",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "lenguado",
+      "name": "Lenguado",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "lubina",
+      "name": "Lubina",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "mejillones",
+      "name": "Mejillones",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "merluza",
+      "name": "Merluza",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pez-espada",
+      "name": "Pez espada",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pulpo",
+      "name": "Pulpo",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "rape",
+      "name": "Rape",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "salmon",
+      "name": "Salmón",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "salmon-ahumado",
+      "name": "Salmón ahumado",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "sardinas",
+      "name": "Sardinas",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "sardinillas-en-lata",
+      "name": "Sardinillas en lata",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "sepia",
+      "name": "Sepia",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "surimi",
+      "name": "Surimi",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "trucha",
+      "name": "Trucha",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "bebida-de-soja",
+      "name": "Bebida de soja",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "flan",
+      "name": "Flan",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "huevos",
+      "name": "Huevos",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "leche-condensada",
+      "name": "Leche condensada",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "leche-de-avena",
+      "name": "Leche de avena",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "leche-desnatada",
+      "name": "Leche desnatada",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "leche-entera",
+      "name": "Leche entera",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "leche-semidesnatada",
+      "name": "Leche semidesnatada",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "mantequilla",
+      "name": "Mantequilla",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "margarina",
+      "name": "Margarina",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "mascarpone",
+      "name": "Mascarpone",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "nata-para-cocinar",
+      "name": "Nata para cocinar",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "nata-para-montar",
+      "name": "Nata para montar",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "natillas",
+      "name": "Natillas",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "queso-curado",
+      "name": "Queso curado",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "queso-de-cabra",
+      "name": "Queso de cabra",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "queso-en-lonchas",
+      "name": "Queso en lonchas",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "queso-fresco",
+      "name": "Queso fresco",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "queso-manchego",
+      "name": "Queso manchego",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "queso-mozzarella",
+      "name": "Queso mozzarella",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "queso-parmesano",
+      "name": "Queso parmesano",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "queso-rallado",
+      "name": "Queso rallado",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "queso-semicurado",
+      "name": "Queso semicurado",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "requeson",
+      "name": "Requesón",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "yogur-desnatado",
+      "name": "Yogur desnatado",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "yogur-griego",
+      "name": "Yogur griego",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "yogur-natural",
+      "name": "Yogur natural",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "alubias-blancas",
+      "name": "Alubias blancas",
+      "category": "Legumbres",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "alubias-cocidas",
+      "name": "Alubias cocidas",
+      "category": "Legumbres",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "alubias-pintas",
+      "name": "Alubias pintas",
+      "category": "Legumbres",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "alubias-rojas",
+      "name": "Alubias rojas",
+      "category": "Legumbres",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "garbanzos",
+      "name": "Garbanzos",
+      "category": "Legumbres",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "garbanzos-cocidos",
+      "name": "Garbanzos cocidos",
+      "category": "Legumbres",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "hummus",
+      "name": "Hummus",
+      "category": "Legumbres",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "lentejas",
+      "name": "Lentejas",
+      "category": "Legumbres",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "lentejas-cocidas",
+      "name": "Lentejas cocidas",
+      "category": "Legumbres",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "lentejas-pardinas",
+      "name": "Lentejas pardinas",
+      "category": "Legumbres",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "arroz",
+      "name": "Arroz",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "arroz-basmati",
+      "name": "Arroz basmati",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "arroz-bomba",
+      "name": "Arroz bomba",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "arroz-integral",
+      "name": "Arroz integral",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "avena",
+      "name": "Avena",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "bulgur",
+      "name": "Bulgur",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "canelones",
+      "name": "Canelones",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "cereales-de-desayuno",
+      "name": "Cereales de desayuno",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "copos-de-avena",
+      "name": "Copos de avena",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "cuscus",
+      "name": "Cuscús",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "espaguetis",
+      "name": "Espaguetis",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "fideos",
+      "name": "Fideos",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "harina-de-garbanzo",
+      "name": "Harina de garbanzo",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "harina-de-maiz",
+      "name": "Harina de maíz",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "harina-de-reposteria",
+      "name": "Harina de repostería",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "harina-de-trigo",
+      "name": "Harina de trigo",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "harina-integral",
+      "name": "Harina integral",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "lasana",
+      "name": "Lasaña",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "levadura-de-panaderia",
+      "name": "Levadura de panadería",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "levadura-quimica",
+      "name": "Levadura química",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "macarrones",
+      "name": "Macarrones",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "maicena",
+      "name": "Maicena",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "masa-de-hojaldre",
+      "name": "Masa de hojaldre",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "masa-de-pizza",
+      "name": "Masa de pizza",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "masa-quebrada",
+      "name": "Masa quebrada",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "pan-rallado",
+      "name": "Pan rallado",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pasta-fresca",
+      "name": "Pasta fresca",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pasta-integral",
+      "name": "Pasta integral",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "quinoa",
+      "name": "Quinoa",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "semola",
+      "name": "Sémola",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "tortillas-de-trigo",
+      "name": "Tortillas de trigo",
+      "category": "Cereales, pasta y arroz",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "baguette",
+      "name": "Baguette",
+      "category": "Panadería",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "barra-de-pan",
+      "name": "Barra de pan",
+      "category": "Panadería",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "biscotes",
+      "name": "Biscotes",
+      "category": "Panadería",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "bizcocho",
+      "name": "Bizcocho",
+      "category": "Panadería",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "colines",
+      "name": "Colines",
+      "category": "Panadería",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "cruasan",
+      "name": "Cruasán",
+      "category": "Panadería",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "galletas-maria",
+      "name": "Galletas María",
+      "category": "Panadería",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "magdalenas",
+      "name": "Magdalenas",
+      "category": "Panadería",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "pan-de-hamburguesa",
+      "name": "Pan de hamburguesa",
+      "category": "Panadería",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "pan-de-hogaza",
+      "name": "Pan de hogaza",
+      "category": "Panadería",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pan-de-molde",
+      "name": "Pan de molde",
+      "category": "Panadería",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pan-de-perrito",
+      "name": "Pan de perrito",
+      "category": "Panadería",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "pan-de-pita",
+      "name": "Pan de pita",
+      "category": "Panadería",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "pan-integral",
+      "name": "Pan integral",
+      "category": "Panadería",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "picos",
+      "name": "Picos",
+      "category": "Panadería",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "tostadas",
+      "name": "Tostadas",
+      "category": "Panadería",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "aceite-de-girasol",
+      "name": "Aceite de girasol",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "aceite-de-oliva-suave",
+      "name": "Aceite de oliva suave",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "aceite-de-oliva-virgen-extra",
+      "name": "Aceite de oliva virgen extra",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "aceite-de-sesamo",
+      "name": "Aceite de sésamo",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "caldo-de-pollo",
+      "name": "Caldo de pollo",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "caldo-de-verduras",
+      "name": "Caldo de verduras",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "concentrado-de-tomate",
+      "name": "Concentrado de tomate",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "ketchup",
+      "name": "Kétchup",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "leche-de-coco",
+      "name": "Leche de coco",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "mayonesa",
+      "name": "Mayonesa",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "mostaza",
+      "name": "Mostaza",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pastillas-de-caldo",
+      "name": "Pastillas de caldo",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "pesto",
+      "name": "Pesto",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "sal",
+      "name": "Sal",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "sal-gruesa",
+      "name": "Sal gruesa",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "salsa-bechamel",
+      "name": "Salsa bechamel",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "salsa-de-soja",
+      "name": "Salsa de soja",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "salsa-de-tomate",
+      "name": "Salsa de tomate",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "salsa-picante",
+      "name": "Salsa picante",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "tomate-frito",
+      "name": "Tomate frito",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "vinagre-balsamico",
+      "name": "Vinagre balsámico",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "vinagre-de-manzana",
+      "name": "Vinagre de manzana",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "vinagre-de-vino",
+      "name": "Vinagre de vino",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "zumo-de-limon",
+      "name": "Zumo de limón",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "ajo-en-polvo",
+      "name": "Ajo en polvo",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "albahaca",
+      "name": "Albahaca",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "azafran",
+      "name": "Azafrán",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "canela-en-polvo",
+      "name": "Canela en polvo",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "canela-en-rama",
+      "name": "Canela en rama",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "cebollino",
+      "name": "Cebollino",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "cilantro",
+      "name": "Cilantro",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "clavo",
+      "name": "Clavo",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "comino",
+      "name": "Comino",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "curcuma",
+      "name": "Cúrcuma",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "curry-en-polvo",
+      "name": "Curry en polvo",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "eneldo",
+      "name": "Eneldo",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "esencia-de-vainilla",
+      "name": "Esencia de vainilla",
+      "category": "Especias y hierbas",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "guindilla",
+      "name": "Guindilla",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "hierbabuena",
+      "name": "Hierbabuena",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "laurel",
+      "name": "Laurel",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "menta",
+      "name": "Menta",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "nuez-moscada",
+      "name": "Nuez moscada",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "oregano",
+      "name": "Orégano",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "perejil",
+      "name": "Perejil",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pimenton-ahumado",
+      "name": "Pimentón ahumado",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pimenton-dulce",
+      "name": "Pimentón dulce",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pimenton-picante",
+      "name": "Pimentón picante",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pimienta-blanca",
+      "name": "Pimienta blanca",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pimienta-negra",
+      "name": "Pimienta negra",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "romero",
+      "name": "Romero",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "tomillo",
+      "name": "Tomillo",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "vainilla-en-rama",
+      "name": "Vainilla en rama",
+      "category": "Especias y hierbas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "almendra-molida",
+      "name": "Almendra molida",
+      "category": "Frutos secos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "almendras",
+      "name": "Almendras",
+      "category": "Frutos secos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "almendras-fileteadas",
+      "name": "Almendras fileteadas",
+      "category": "Frutos secos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "anacardos",
+      "name": "Anacardos",
+      "category": "Frutos secos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "avellanas",
+      "name": "Avellanas",
+      "category": "Frutos secos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "cacahuetes",
+      "name": "Cacahuetes",
+      "category": "Frutos secos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "castanas",
+      "name": "Castañas",
+      "category": "Frutos secos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "coco-rallado",
+      "name": "Coco rallado",
+      "category": "Frutos secos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "crema-de-cacahuete",
+      "name": "Crema de cacahuete",
+      "category": "Frutos secos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "nueces",
+      "name": "Nueces",
+      "category": "Frutos secos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pinones",
+      "name": "Piñones",
+      "category": "Frutos secos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pipas-de-calabaza",
+      "name": "Pipas de calabaza",
+      "category": "Frutos secos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pipas-de-girasol",
+      "name": "Pipas de girasol",
+      "category": "Frutos secos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pistachos",
+      "name": "Pistachos",
+      "category": "Frutos secos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "semillas-de-chia",
+      "name": "Semillas de chía",
+      "category": "Frutos secos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "semillas-de-lino",
+      "name": "Semillas de lino",
+      "category": "Frutos secos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "azucar",
+      "name": "Azúcar",
+      "category": "Dulces y chocolate",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "azucar-glas",
+      "name": "Azúcar glas",
+      "category": "Dulces y chocolate",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "azucar-moreno",
+      "name": "Azúcar moreno",
+      "category": "Dulces y chocolate",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "cacao-en-polvo",
+      "name": "Cacao en polvo",
+      "category": "Dulces y chocolate",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "cacao-soluble",
+      "name": "Cacao soluble",
+      "category": "Dulces y chocolate",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "chocolate-blanco",
+      "name": "Chocolate blanco",
+      "category": "Dulces y chocolate",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "chocolate-con-leche",
+      "name": "Chocolate con leche",
+      "category": "Dulces y chocolate",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "chocolate-negro",
+      "name": "Chocolate negro",
+      "category": "Dulces y chocolate",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "crema-de-cacao",
+      "name": "Crema de cacao",
+      "category": "Dulces y chocolate",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "edulcorante",
+      "name": "Edulcorante",
+      "category": "Dulces y chocolate",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "gelatina-en-polvo",
+      "name": "Gelatina en polvo",
+      "category": "Dulces y chocolate",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "membrillo-en-dulce",
+      "name": "Membrillo en dulce",
+      "category": "Dulces y chocolate",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "mermelada-de-fresa",
+      "name": "Mermelada de fresa",
+      "category": "Dulces y chocolate",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "miel",
+      "name": "Miel",
+      "category": "Dulces y chocolate",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pepitas-de-chocolate",
+      "name": "Pepitas de chocolate",
+      "category": "Dulces y chocolate",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "sirope-de-arce",
+      "name": "Sirope de arce",
+      "category": "Dulces y chocolate",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "turron",
+      "name": "Turrón",
+      "category": "Dulces y chocolate",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "agua",
+      "name": "Agua",
+      "category": "Bebidas",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "agua-con-gas",
+      "name": "Agua con gas",
+      "category": "Bebidas",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "cafe-descafeinado",
+      "name": "Café descafeinado",
+      "category": "Bebidas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "cafe-en-grano",
+      "name": "Café en grano",
+      "category": "Bebidas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "cafe-molido",
+      "name": "Café molido",
+      "category": "Bebidas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "cafe-soluble",
+      "name": "Café soluble",
+      "category": "Bebidas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "cava",
+      "name": "Cava",
+      "category": "Bebidas",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "cerveza",
+      "name": "Cerveza",
+      "category": "Bebidas",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "ginebra",
+      "name": "Ginebra",
+      "category": "Bebidas",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "horchata",
+      "name": "Horchata",
+      "category": "Bebidas",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "infusion-de-manzanilla",
+      "name": "Infusión de manzanilla",
+      "category": "Bebidas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "infusion-de-poleo-menta",
+      "name": "Infusión de poleo menta",
+      "category": "Bebidas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "refresco-de-cola",
+      "name": "Refresco de cola",
+      "category": "Bebidas",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "te-negro",
+      "name": "Té negro",
+      "category": "Bebidas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "te-verde",
+      "name": "Té verde",
+      "category": "Bebidas",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "tonica",
+      "name": "Tónica",
+      "category": "Bebidas",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "vino-blanco",
+      "name": "Vino blanco",
+      "category": "Bebidas",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "vino-rosado",
+      "name": "Vino rosado",
+      "category": "Bebidas",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "vino-tinto",
+      "name": "Vino tinto",
+      "category": "Bebidas",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "zumo-de-manzana",
+      "name": "Zumo de manzana",
+      "category": "Bebidas",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "zumo-de-naranja",
+      "name": "Zumo de naranja",
+      "category": "Bebidas",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "zumo-de-pina",
+      "name": "Zumo de piña",
+      "category": "Bebidas",
+      "defaultUnit": "ml"
+    },
+    {
+      "id": "croquetas-congeladas",
+      "name": "Croquetas congeladas",
+      "category": "Congelados y otros",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "espinacas-congeladas",
+      "name": "Espinacas congeladas",
+      "category": "Congelados y otros",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "fruta-congelada",
+      "name": "Fruta congelada",
+      "category": "Congelados y otros",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "guisantes-congelados",
+      "name": "Guisantes congelados",
+      "category": "Congelados y otros",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "hamburguesa-vegetal",
+      "name": "Hamburguesa vegetal",
+      "category": "Congelados y otros",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "helado",
+      "name": "Helado",
+      "category": "Congelados y otros",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "judias-verdes-congeladas",
+      "name": "Judías verdes congeladas",
+      "category": "Congelados y otros",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "levadura-nutricional",
+      "name": "Levadura nutricional",
+      "category": "Congelados y otros",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "menestra-congelada",
+      "name": "Menestra congelada",
+      "category": "Congelados y otros",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "patatas-fritas-congeladas",
+      "name": "Patatas fritas congeladas",
+      "category": "Congelados y otros",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pescado-empanado",
+      "name": "Pescado empanado",
+      "category": "Congelados y otros",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pizza-congelada",
+      "name": "Pizza congelada",
+      "category": "Congelados y otros",
+      "defaultUnit": "ud"
+    },
+    {
+      "id": "seitan",
+      "name": "Seitán",
+      "category": "Congelados y otros",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "tofu",
+      "name": "Tofu",
+      "category": "Congelados y otros",
+      "defaultUnit": "g"
+    }
+  ]
+}
