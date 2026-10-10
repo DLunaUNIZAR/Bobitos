@@ -5,6 +5,7 @@ import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.CancellationException
 
 /** Documentos leídos (`rawCount`, incluidos los que no se pudieron interpretar) y los ya interpretados. */
@@ -107,4 +108,24 @@ class VersionedCatalogLoader<T>(
         val state = syncStateAfterOwnWrite(store.read(key), previousVersion, source.readCache().rawCount)
         if (state != null) store.write(key, state)
     }
+}
+
+/**
+ * Tras una escritura ya confirmada: relee la ficha del servidor (`refresh` devuelve si lo consiguió)
+ * y solo entonces adopta la versión. Si la relectura falla o no responde, no adopta (la próxima apertura
+ * refrescará) pero el guardado se da por bueno.
+ */
+internal suspend fun refreshAfterWrite(
+    timeoutMillis: Long,
+    refresh: suspend () -> Boolean,
+    adopt: suspend () -> Unit,
+) {
+    val refreshed = try {
+        withTimeoutOrNull(timeoutMillis) { refresh() } ?: false
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (@Suppress("TooGenericExceptionCaught") _: Exception) {
+        false
+    }
+    if (refreshed) adopt()
 }

@@ -13,10 +13,12 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.Transaction
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -61,7 +63,7 @@ class FirestoreExerciseRepository @Inject constructor(
             FIELD_UPDATED_BY to user.id,
             FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
         )
-        writeWithVersion(user.id, id) { transaction, ref -> transaction.set(ref, fields) }
+        writeWithVersion(user.id, id, isCreate = true) { transaction, ref -> transaction.set(ref, fields) }
     }
 
     override suspend fun updateExercise(id: String, input: ExerciseInput) = runOperation {
@@ -86,30 +88,61 @@ class FirestoreExerciseRepository @Inject constructor(
      * `version == anterior + 1`, o 1 si no existe). Después refresca la ficha en la caché local y
      * adopta la nueva versión solo si nadie se interpuso, para no releer el catálogo.
      */
-    private suspend fun writeWithVersion(userId: String, id: String, write: (Transaction, DocumentReference) -> Unit) {
+    private suspend fun writeWithVersion(
+        userId: String,
+        id: String,
+        isCreate: Boolean = false,
+        write: (Transaction, DocumentReference) -> Unit,
+    ) {
         val exerciseRef = exercisesCollection().document(id)
         val metaRef = firestore.collection(CATALOG_META).document(EXERCISES)
-        val previous = firestore.runTransaction { transaction ->
-            val meta = transaction.get(metaRef)
-            val previousVersion = if (meta.exists()) meta.getLong(FIELD_VERSION) ?: 0L else 0L
-            write(transaction, exerciseRef)
-            val fields = mapOf(
-                FIELD_VERSION to previousVersion + 1,
-                FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
-                FIELD_UPDATED_BY to userId,
-            )
-            if (meta.exists()) transaction.update(metaRef, fields) else transaction.set(metaRef, fields)
-            previousVersion
-        }.await()
-        val refreshed = try {
-            exerciseRef.get(Source.SERVER).await()
-            true
-        } catch (_: FirebaseFirestoreException) {
-            false
+        val previous = try {
+            commitVersioned(metaRef, exerciseRef, userId, write)
+        } catch (error: FirebaseFirestoreException) {
+            val denied = error.code == FirebaseFirestoreException.Code.PERMISSION_DENIED
+            if (isCreate && denied && exerciseExists(exerciseRef)) {
+                throw ExerciseRepositoryException(ExerciseFailure.AlreadyExists, error)
+            }
+            throw error
         }
-        if (refreshed) loader.afterOwnWrite(previous)
+        // La transacción ya se confirmó: una relectura lenta o fallida no puede convertir el guardado en error.
+        refreshAfterWrite(
+            timeoutMillis = REFRESH_TIMEOUT_MILLIS,
+            refresh = {
+                exerciseRef.get(Source.SERVER).await()
+                true
+            },
+            adopt = { loader.afterOwnWrite(previous) },
+        )
         localChanges.tryEmit(Unit)
     }
+
+    // Un alta rechazada por las reglas porque la ficha ya existe (otro la creó antes) no es falta de permiso.
+    private suspend fun exerciseExists(ref: DocumentReference): Boolean = try {
+        withTimeoutOrNull(REFRESH_TIMEOUT_MILLIS) { ref.get(Source.SERVER).await().exists() } ?: false
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (@Suppress("TooGenericExceptionCaught") _: Exception) {
+        false
+    }
+
+    private suspend fun commitVersioned(
+        metaRef: DocumentReference,
+        exerciseRef: DocumentReference,
+        userId: String,
+        write: (Transaction, DocumentReference) -> Unit,
+    ): Long = firestore.runTransaction { transaction ->
+        val meta = transaction.get(metaRef)
+        val previousVersion = if (meta.exists()) meta.getLong(FIELD_VERSION) ?: 0L else 0L
+        write(transaction, exerciseRef)
+        val fields = mapOf(
+            FIELD_VERSION to previousVersion + 1,
+            FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+            FIELD_UPDATED_BY to userId,
+        )
+        if (meta.exists()) transaction.update(metaRef, fields) else transaction.set(metaRef, fields)
+        previousVersion
+    }.await()
 
     private fun requireVerifiedUser(): AuthUser {
         val user = authRepository.currentUser.value
@@ -138,6 +171,7 @@ class FirestoreExerciseRepository @Inject constructor(
     }
 
     private companion object {
+        const val REFRESH_TIMEOUT_MILLIS = 5_000L
         const val EXERCISES = "exercises"
         const val CATALOG_META = "catalogMeta"
         const val FIELD_VERSION = "version"

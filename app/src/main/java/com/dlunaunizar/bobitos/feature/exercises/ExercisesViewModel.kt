@@ -126,6 +126,7 @@ private fun Throwable.toRepositoryUiMessage(): ExerciseUiMessage =
         ExerciseFailure.EmailNotVerified -> ExerciseUiMessage.EmailNotVerified
         ExerciseFailure.ExerciseNotFound -> ExerciseUiMessage.NotFound
         ExerciseFailure.PermissionDenied -> ExerciseUiMessage.PermissionDenied
+        ExerciseFailure.AlreadyExists -> ExerciseUiMessage.AlreadyExists
         ExerciseFailure.Network -> ExerciseUiMessage.NetworkError
         ExerciseFailure.Unknown, null -> ExerciseUiMessage.UnexpectedError
     }

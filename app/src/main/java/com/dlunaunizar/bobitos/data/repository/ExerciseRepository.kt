@@ -33,6 +33,7 @@ enum class ExerciseFailure {
     EmailNotVerified,
     ExerciseNotFound,
     PermissionDenied,
+    AlreadyExists,
     Network,
     Unknown,
 }
