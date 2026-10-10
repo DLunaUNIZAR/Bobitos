@@ -21,8 +21,8 @@
 
 - CARDIO: 14
 - MAQUINA: 54
-- OTROS: 6
-- PESO_CORPORAL: 45
+- OTROS: 1
+- PESO_CORPORAL: 50
 - PESO_LIBRE: 89
 
 ## Por licencia
@@ -59,13 +59,13 @@
 | Elevaciones de rodillas colgado | PESO_CORPORAL | BARRA_DOMINADAS | [978](https://wger.de/es/exercise/978/view/) | CC-BY-SA-4.0 · clafal, colundrum | Este es un ejercicio fundamental para fortalecer la pared abdominal, con un gran enfoque en la sección inferior. Para realizarlo, cuélgate de una barra con los… |
 | Flexión lateral del tronco con mancuerna | PESO_LIBRE | MANCUERNAS | [577](https://wger.de/es/exercise/577/view/) | CC-BY-SA-4.0 · wger.de | También conocida como inclinaciones laterales con mancuerna. Ponte de pie a la altura de las caderas con las rodillas ligeramente flexionadas, mantén la curvat… |
 | Giro ruso con pesa rusa | PESO_LIBRE | KETTLEBELL | [1193](https://wger.de/es/exercise/1193/view/) | CC-BY-SA-4.0 · admin | sentado en el suelo agarramos la pesa rusa, flexionamos las piernas y las separamos del suelo. Ahora llevaremos a un lado y otro la pesa |
-| Hollow hold | OTROS | ESTERILLA | [297](https://wger.de/es/exercise/297/view/) | CC-BY-SA-4.0 · wger.de | Colócate sobre una esterilla y túmbate boca arriba. Contrae los abdominales, estira los brazos y las piernas y elévalos (la cabeza y los hombros también se ele… |
-| L-sit | OTROS |  | [1852](https://wger.de/es/exercise/1852/view/) | CC-BY-SA-4.0 · wger.de | Siéntate en el suelo con las piernas juntas y los brazos a los lados. Empuja tu cuerpo hacia arriba separándolo del suelo con las manos, manteniendo la misma p… |
+| Hollow hold | PESO_CORPORAL | ESTERILLA | [297](https://wger.de/es/exercise/297/view/) | CC-BY-SA-4.0 · wger.de | Colócate sobre una esterilla y túmbate boca arriba. Contrae los abdominales, estira los brazos y las piernas y elévalos (la cabeza y los hombros también se ele… |
+| L-sit | PESO_CORPORAL |  | [1852](https://wger.de/es/exercise/1852/view/) | CC-BY-SA-4.0 · wger.de | Siéntate en el suelo con las piernas juntas y los brazos a los lados. Empuja tu cuerpo hacia arriba separándolo del suelo con las manos, manteniendo la misma p… |
 | Leñador en polea | MAQUINA | POLEA | [145](https://wger.de/es/exercise/145/view/) | CC-BY-SA-4.0 · wgerjhn | Este es un ejercicio funcional clave para desarrollar la fuerza de rotación del core, trabajando intensamente los músculos oblicuos. Instrucciones: Ajusta la… |
 | Limpiaparabrisas colgado | PESO_CORPORAL | BARRA_DOMINADAS | [1743](https://wger.de/es/exercise/1743/view/) | CC-BY-SA-4.0 · wger.de | Cuélgate de una barra de dominadas y eleva las piernas hacia el techo. Mueve la parte inferior del cuerpo de izquierda a derecha con las piernas rectas, como u… |
 | Pallof press | MAQUINA | POLEA | [1194](https://wger.de/es/exercise/1194/view/) | CC-BY-SA-4.0 · wger.de | El Pallof press es un ejercicio antirrotación que entrena los músculos grandes y pequeños alrededor de la columna para resistir la rotación. • Colócate en par… |
-| Plancha | OTROS |  | [1307](https://wger.de/es/exercise/1307/view/) | CC-BY-SA-4.0 · wger.de | La plancha es un ejercicio con el peso corporal. Como movimiento multifuncional, la plancha no solo trabaja tus abdominales, sino también la columna y la cader… |
-| Plancha lateral | OTROS |  | [1019](https://wger.de/es/exercise/1019/view/) | CC-BY-SA-4.0 · Gabriel Tandil (imported from Feeel), Luis Alfredo Figueroa Bracamontes (imported from Feeel), Diego Sanguinetti (imported from Feeel), mondstern (imported from Feeel) | • Acuéstese sobre su lado correspondiente, con el codo en ángulo recto y el brazo hacia afuera • Levante la pelvis del suelo levantando el hombro hacia arriba,… |
+| Plancha | PESO_CORPORAL |  | [1307](https://wger.de/es/exercise/1307/view/) | CC-BY-SA-4.0 · wger.de | La plancha es un ejercicio con el peso corporal. Como movimiento multifuncional, la plancha no solo trabaja tus abdominales, sino también la columna y la cader… |
+| Plancha lateral | PESO_CORPORAL |  | [1019](https://wger.de/es/exercise/1019/view/) | CC-BY-SA-4.0 · Gabriel Tandil (imported from Feeel), Luis Alfredo Figueroa Bracamontes (imported from Feeel), Diego Sanguinetti (imported from Feeel), mondstern (imported from Feeel) | • Acuéstese sobre su lado correspondiente, con el codo en ángulo recto y el brazo hacia afuera • Levante la pelvis del suelo levantando el hombro hacia arriba,… |
 | Rollout con barra | PESO_LIBRE | BARRA | [41](https://wger.de/es/exercise/41/view/) | CC-BY-SA-4.0 · wgerjhn | Cómo realizarlo: • Preparación: Carga una barra con discos redondos (de 5 o 10 kg es suficiente para que ruede bien). Arrodíllate en el suelo, preferiblemente… |
 | Rueda abdominal | PESO_CORPORAL |  | [1573](https://wger.de/es/exercise/1573/view/) | CC-BY-SA-4.0 · wger.de | • Posición inicial: Arrodíllate en el suelo con la rueda abdominal frente a ti. • Agarra la rueda: Sujeta los mangos con firmeza. • Despliega: Rueda lentamente… |
 | Tijeras abdominales | PESO_CORPORAL |  | [545](https://wger.de/es/exercise/545/view/) | CC-BY-SA-4.0 · wger.de | Las tijeras son un ejercicio abdominal que fortalece el transverso abdominal, ayudando a aplanar el vientre y a fortalecer todo el core. Las tijeras no solo so… |
@@ -203,7 +203,7 @@
 | Pull through en polea | MAQUINA | POLEA | [1751](https://wger.de/es/exercise/1751/view/) | CC-BY-SA-4.0 · wger.de | El Cable Pull Through es un ejercicio para el tren inferior que trabaja los glúteos y los isquiotibiales mediante un movimiento de "bisagra de cadera" (hip hin… |
 | Sentadilla al cajón | PESO_LIBRE |  | [977](https://wger.de/es/exercise/977/view/) | CC-BY-SA-4.0 · wgerjhn | Este ejercicio es una variante de la sentadilla tradicional que ayuda a mejorar la técnica, desarrollar potencia y asegurar que se alcanza la profundidad corre… |
 | Sentadilla cosaca | PESO_CORPORAL |  | [1407](https://wger.de/es/exercise/1407/view/) | CC-BY-SA-4.0 · wger.de | La sentadilla cosaca es un ejercicio multiarticular que trabaja principalmente las piernas y los glúteos, pero también involucra los músculos estabilizadores. … |
-| Sentadilla en la pared | OTROS |  | [1408](https://wger.de/es/exercise/1408/view/) | CC-BY-SA-4.0 · wger.de | La sentadilla en pared (o silla en la pared) es un ejercicio isométrico que involucra principalmente los músculos de las piernas, mejorando la resistencia musc… |
+| Sentadilla en la pared | PESO_CORPORAL |  | [1408](https://wger.de/es/exercise/1408/view/) | CC-BY-SA-4.0 · wger.de | La sentadilla en pared (o silla en la pared) es un ejercicio isométrico que involucra principalmente los músculos de las piernas, mejorando la resistencia musc… |
 | Subida al banco | PESO_CORPORAL | BANCO | [981](https://wger.de/es/exercise/981/view/) | CC-BY-SA-4.0 · Gabriel Tandil (imported from Feeel), Luis Alfredo Figueroa Bracamontes (imported from Feeel), Diego Sanguinetti (imported from Feeel), mondstern (imported from Feeel) | • Párese frente a una silla • Súbase a la silla • Bájese de la silla • Repita |
 | Swing con kettlebell | PESO_LIBRE | KETTLEBELL | [331](https://wger.de/es/exercise/331/view/) | CC-BY-SA-4.0 · wger.de | Sujeta la kettlebell con firmeza con ambas manos. Mantén la espalda recta durante todo el movimiento, evitando cualquier redondeo de la columna. Manteniendo la… |
 | Zancada hacia atrás con mancuernas | PESO_LIBRE | MANCUERNAS | [1651](https://wger.de/es/exercise/1651/view/) | CC-BY-SA-4.0 · wger.de | En este ejercicio sostienes una mancuerna en cada mano y das un paso hacia atrás hasta una posición de zancada, para luego volver a ponerte de pie. Trabaja pri… |

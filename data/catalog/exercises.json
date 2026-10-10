@@ -1684,7 +1684,7 @@
     {
       "id": "hollow-hold",
       "name": "Hollow hold",
-      "type": "OTROS",
+      "type": "PESO_CORPORAL",
       "muscleGroup": "Abdomen",
       "description": "Colócate sobre una esterilla y túmbate boca arriba. Contrae los abdominales, estira los brazos y las piernas y elévalos (la cabeza y los hombros también se elevan). Asegúrate de que la zona lumbar permanezca en contacto con la esterilla.",
       "equipment": [
@@ -1835,7 +1835,7 @@
     {
       "id": "l-sit",
       "name": "L-sit",
-      "type": "OTROS",
+      "type": "PESO_CORPORAL",
       "muscleGroup": "Abdomen",
       "description": "Siéntate en el suelo con las piernas juntas y los brazos a los lados. Empuja tu cuerpo hacia arriba separándolo del suelo con las manos, manteniendo la misma posición de sentado para que las piernas queden rectas y los pies no toquen el suelo.\n\nMantén la posición el tiempo que necesites.",
       "equipment": [],
@@ -2205,7 +2205,7 @@
     {
       "id": "plancha",
       "name": "Plancha",
-      "type": "OTROS",
+      "type": "PESO_CORPORAL",
       "muscleGroup": "Abdomen",
       "description": "La plancha es un ejercicio con el peso corporal. Como movimiento multifuncional, la plancha no solo trabaja tus abdominales, sino también la columna y la cadera. La plancha fortalece y tonifica todo tu cuerpo, mejora tu postura y tu equilibrio, reduce la grasa corporal y puede ayudar a acelerar tu metabolismo. Ejercicios como la «posición de plancha» ayudan a fortalecer la resistencia de los músculos abdominales estabilizadores. También puede ayudar a aliviar el dolor de espalda asociado a un debilitamiento de la función de los músculos estabilizadores del cuerpo. Las planchas son un ejercicio versátil que trabaja muchos de los grupos musculares más importantes del cuerpo, por lo que cualquier persona puede aplicarlas para mejorar la resistencia y la fuerza corporal general.",
       "equipment": [],
@@ -2220,7 +2220,7 @@
     {
       "id": "plancha-lateral",
       "name": "Plancha lateral",
-      "type": "OTROS",
+      "type": "PESO_CORPORAL",
       "muscleGroup": "Abdomen",
       "description": "• Acuéstese sobre su lado correspondiente, con el codo en ángulo recto y el brazo hacia afuera\n• Levante la pelvis del suelo levantando el hombro hacia arriba, manteniendo el antebrazo en el suelo; la cabeza, la pelvis y los pies deben estar en línea recta\n• Mantenga esta posición",
       "equipment": [],
@@ -3099,7 +3099,7 @@
     {
       "id": "sentadilla-en-la-pared",
       "name": "Sentadilla en la pared",
-      "type": "OTROS",
+      "type": "PESO_CORPORAL",
       "muscleGroup": "Glúteos",
       "description": "La sentadilla en pared (o silla en la pared) es un ejercicio isométrico que involucra principalmente los músculos de las piernas, mejorando la resistencia muscular y la estabilidad. Estos son los músculos principales y secundarios que se activan durante el ejercicio.",
       "equipment": [],
