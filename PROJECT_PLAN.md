@@ -346,6 +346,7 @@ Las fechas con hora se almacenarán como instantes UTC y conservarán la zona ho
 - No activar Cloud Functions durante el desarrollo del núcleo.
 - No utilizar autenticación por SMS.
 - No almacenar archivos ni fotografías.
+  - Excepción acordada el 10/10/2026: las imágenes de los ejercicios **se enlazan** desde wger.de (miniaturas alojadas allí, con su autor y licencia), no se almacenan; ver la sección 15.
 - Limitar listeners, consultas e historiales.
 - Revisar periódicamente lecturas y escrituras.
 - No activar servicios de pago sin una decisión registrada.
@@ -684,6 +685,7 @@ Las estimaciones incluyen aprendizaje, desarrollo, pruebas y correcciones. Se re
 | 16/07/2026 | Firebase App Distribution para la beta | Mantener coste cero, limitar testers y facilitar avisos de actualización sin publicar en Google Play |
 | 17/07/2026 | Firebase local mediante `adb reverse` | Evitar timeouts del SDK Android y disponer de una conexión reproducible a Auth y Firestore desde el emulador |
 | 17/07/2026 | Mi calendario contiene solo eventos donde participa el usuario | Separar la vista personal agregada de la visibilidad completa que mantiene cada espacio |
+| 10/10/2026 | Imágenes de ejercicios enlazadas desde wger.de, sin almacenarlas | Se mantiene el plan Spark sin Firebase Storage: la app solo enlaza la miniatura alojada en `https://wger.de/media/` y la carga con una librería de imágenes. Se excluyen las imágenes generadas por IA y cada una muestra su autor y su licencia. Matiza la decisión «Sin archivos ni fotos en el MVP» para las fotos de usuarios, que sigue vigente |
 
 ## 16. Próximas decisiones
 

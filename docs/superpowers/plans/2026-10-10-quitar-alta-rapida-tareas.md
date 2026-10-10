@@ -2,7 +2,7 @@
 
 > **Para agentes:** se ejecuta con el método `delegating-plan-execution` (plan pequeño: pasos 1, 2, 3, 5 y 6). Los pasos usan casillas (`- [ ]`).
 
-**Objetivo:** que en la pestaña Tareas la única forma de crear una tarea sea el botón «Añadir tarea» (FAB y botón del estado vacío), que abre el formulario completo.
+**Objetivo:** que en la pestaña Tareas la única forma de crear una tarea sea el botón «Nueva tarea» (FAB y botón del estado vacío), que abre el formulario completo.
 
 **Arquitectura:** cambio solo de UI. Se borra la fila de alta rápida (campo de texto + botón «+») de la cabecera de `TasksScreen`, su estado `quickTitle` y sus dos textos. No cambian el ViewModel, el repositorio ni las reglas de Firestore.
 
@@ -12,18 +12,18 @@
 
 ## Contexto
 
-El alta rápida entró con B6 (commit `6179276`, #191): crea la tarea solo con el título (prioridad media, sin responsable, tipo, fecha ni periodicidad). Desde que existe el FAB «Añadir tarea» (B9), esa fila sobra y permite crear tareas incompletas. El usuario quiere quitarla.
+El alta rápida entró con B6 (commit `6179276`, #191): crea la tarea solo con el título (prioridad media, sin responsable, tipo, fecha ni periodicidad). Desde que existe el FAB «Nueva tarea» (B9), esa fila sobra y permite crear tareas incompletas. El usuario quiere quitarla.
 
 ## Restricciones globales
 
 - No tocar `TasksViewModel`, `TaskRepository` ni `firestore.rules`: `createTask` lo siguen usando el editor y el «Deshacer» de borrar.
-- Se mantienen el FAB «Añadir tarea» (`R.string.tasks_add`), el botón «Añadir tarea» del estado vacío y el botón «Plantillas».
+- Se mantienen el FAB «Nueva tarea» (`R.string.tasks_add`), el botón «Nueva tarea» del estado vacío y el botón «Plantillas».
 - Sin imports sin usar: ktlint (`no-unused-imports`) falla si quedan.
 - Para Gradle hay que anteponer `export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"`.
 
 ## Review Focus
 
-1. Lista vacía: el botón «Añadir tarea» del estado vacío y el FAB siguen abriendo el editor en blanco.
+1. Lista vacía: el botón «Nueva tarea» del estado vacío y el FAB siguen abriendo el editor en blanco.
 2. Usuario sin permiso de escritura (`canWrite = false`): no ve ninguna vía de creación (antes el campo aparecía deshabilitado; ahora desaparece).
 3. Crear una tarea desde el editor sigue funcionando y lo cierra, aunque se haya quitado el `quickTitle = ""` del `onSave`.
 4. La cabecera no queda descuadrada: `TaskFilterBar` ya trae `padding(top = Spacing.sm)`.
@@ -112,6 +112,8 @@ git commit -m "feat(tareas): crear tareas solo desde «Añadir tarea» (fuera el
 - Gradle en verde (paso 8) y grep limpio (paso 7).
 - A mano en emulador o dispositivo (`./gradlew :app:installDebug`), en la pestaña Tareas:
   - La cabecera muestra el título, el contador y «Plantillas», y debajo directamente los filtros. No hay campo de texto ni «+».
-  - El FAB «Añadir tarea» abre el formulario completo, y al guardar la tarea aparece en la lista.
+  - El FAB «Nueva tarea» abre el formulario completo, y al guardar la tarea aparece en la lista.
   - Con la lista vacía, el botón del estado vacío abre el mismo formulario.
   - «Plantillas» sigue abriendo el editor prerrellenado.
+
+> **Nota:** el mensaje del commit `58387a2` («crear tareas solo desde «Añadir tarea»…») llama «Añadir tarea» al FAB, pero su texto real (`tasks_add`) es «Nueva tarea». El mensaje no se puede cambiar sin reescribir el historial; este plan ya usa el nombre correcto.

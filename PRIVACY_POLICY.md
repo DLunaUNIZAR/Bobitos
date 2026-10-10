@@ -1,6 +1,6 @@
 # Política de privacidad de Bobitos
 
-Última actualización: 17 de julio de 2026.
+Última actualización: 10 de octubre de 2026.
 
 ## Responsable y finalidad
 
@@ -13,6 +13,7 @@ Bobitos es una aplicación privada en desarrollo gestionada por DLunaUNIZAR. Uti
 - Productos, tareas, eventos y participantes introducidos por los usuarios.
 - Datos técnicos mínimos de seguridad, sincronización y funcionamiento proporcionados por Firebase.
 - Informes de fallos y diagnóstico de estabilidad, únicamente en las compilaciones de distribución (release), mediante Firebase Crashlytics.
+- Imágenes de ejercicios: al abrir la ficha de un ejercicio que tiene imagen, la aplicación descarga esa imagen directamente de wger.de, un servicio de terceros que, como en cualquier petición web, recibe la dirección IP del dispositivo. Bobitos no almacena ni sube imágenes.
 
 Bobitos no vende datos, no muestra publicidad y no contiene perfiles públicos ni contenido accesible a desconocidos. Google Analytics no está integrado en la aplicación Android del MVP. Firebase Crashlytics solo está activo en las compilaciones de distribución: recopila la traza del fallo y datos técnicos del dispositivo (modelo y versión de Android) para corregir problemas de estabilidad, no está diseñado para identificar a la persona usuaria y las compilaciones de desarrollo no envían estos datos.
 

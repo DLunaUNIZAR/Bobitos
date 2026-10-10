@@ -5,7 +5,7 @@
 | Campo | Valor |
 | --- | --- |
 | Estado | Modelo multiusuario y módulos compartidos implementados (incluye el planificador de comidas, Fase 1) |
-| Versión | 0.6.0 |
+| Versión | 0.7.0 |
 | Fecha | 10 de octubre de 2026 |
 
 ## 1. Objetivos
@@ -33,10 +33,11 @@ routines/{routineId}
 ingredients/{ingredientId}
 exercises/{exerciseId}
 ingredientPrefs/{userId}
+catalogMeta/exercises
 invitations/{inviteToken}
 ```
 
-Las colecciones **top-level globales** (no cuelgan de un espacio) son `recipes`, `routines`, `ingredients`, `exercises` e `ingredientPrefs`. `recipes` agrupa el catálogo común y las recetas personales de todos los usuarios (ver sección 11 · Recetario); `exercises` es el catálogo común de ejercicios (ver la sección «Ejercicios» tras el Recetario).
+Las colecciones **top-level globales** (no cuelgan de un espacio) son `recipes`, `routines`, `ingredients`, `exercises`, `catalogMeta` e `ingredientPrefs`. `recipes` agrupa el catálogo común y las recetas personales de todos los usuarios (ver sección 11 · Recetario); `exercises` es el catálogo común de ejercicios (ver la sección «Ejercicios» tras el Recetario).
 
 ## 3. Convenciones
 
@@ -418,12 +419,17 @@ type: "MAQUINA" | "PESO_LIBRE" | "PESO_CORPORAL" | "CARDIO" | "OTROS"
 muscleGroup: string?                   # ≤60
 description: string?                   # ≤2000, texto plano
 equipment: array<string>?              # ≤13, sin repetidos, valores del enum de material
-source: map?                           # atribución; solo la escribe el importador
-  provider: "wger"
-  id: int                              # >0, id de la ficha en wger
+measure: "REPS" | "SECONDS"?           # en qué se registran las series; ausente o null = REPS. SECONDS solo en MAQUINA, PESO_LIBRE y PESO_CORPORAL (lo valida la app y el importador, no las reglas)
+image: map?                            # imagen enlazada (no almacenada); solo la escribe el importador
+  url: string                          # ≤300, empieza por https://wger.de/media/
+  author: string?                      # ≤200, sin correos
   license: "CC-BY-SA-3.0" | "CC-BY-SA-4.0" | "CC-BY-4.0" | "CC0-1.0"
-  author: string?                      # ≤200
-  url: string?                         # ≤200, empieza por https://wger.de/
+source: map?                           # atribución; solo la escribe el importador
+  provider: "wger" | "bobitos"         # bobitos = ficha propia del proyecto (Catálogo Bobitos)
+  id: int                              # >0, id de la ficha en wger (o bobitosId)
+  license: "CC-BY-SA-3.0" | "CC-BY-SA-4.0" | "CC-BY-4.0" | "CC0-1.0"   # bobitos: siempre CC-BY-SA-4.0
+  author: string?                      # ≤200; bobitos: «Catálogo Bobitos»
+  url: string?                         # ≤200, empieza por https://wger.de/; prohibida en bobitos
   importedAt: timestamp?
 ownerUid: string
 createdBy: string
@@ -436,11 +442,49 @@ updatedAt: timestamp
 Valores de `equipment`: `BARRA`, `BARRA_Z`, `MANCUERNAS`, `KETTLEBELL`, `DISCO`, `POLEA`, `MAQUINA`, `BANCO`, `BANCO_INCLINADO`, `BARRA_DOMINADAS`, `ESTERILLA`, `FITBALL`, `BANDA_ELASTICA`.
 
 - **Lectura:** cualquier usuario verificado.
-- **Creación:** el propio usuario (`ownerUid == uid`, marcas de tiempo = `request.time`). Los clientes **no pueden crear `source`**: lo escribe solo el importador con el Admin SDK, que se salta las reglas.
-- **Edición:** el dueño o un admin. Solo cambian `name`, `nameLower`, `type`, `muscleGroup`, `description`, `equipment`, `updatedBy` y `updatedAt`; `source` y la autoría son inmutables para los clientes.
+- **Creación:** el propio usuario (`ownerUid == uid`, marcas de tiempo = `request.time`). Los clientes **no pueden crear `source` ni `image`**: los escribe solo el importador con el Admin SDK, que se salta las reglas.
+- **Edición:** el dueño o un admin. Solo cambian `name`, `nameLower`, `type`, `muscleGroup`, `description`, `equipment`, `measure`, `updatedBy` y `updatedAt`; `source`, `image` y la autoría son inmutables para los clientes (y, si la ficha tiene `image`, debe seguir siendo válida).
 - **Borrado:** el dueño o un admin.
-- Los campos `description`, `equipment` y `source` son opcionales y retrocompatibles; la app antigua los ignora, pero descarta las fichas `PESO_CORPORAL` (ver `EXERCISE_CATALOG.md`).
+- Los campos `description`, `equipment`, `measure`, `image` y `source` son opcionales y retrocompatibles; la app antigua los ignora, pero descarta las fichas `PESO_CORPORAL` (ver `EXERCISE_CATALOG.md`).
 - Sin `get()`/`exists()` en las reglas y sin índices compuestos.
+- La app lista el catálogo con `limit(1000)` y sin `orderBy` (ordena en el cliente), para no perder las fichas sin `nameLower`.
+
+#### Ejercicios embebidos en `routines` y `activities.session`
+
+La lista de ejercicios de una rutina (`routines.exercises`) y la de una sesión de gimnasio (`activities.session`) comparten contrato y las mismas guardas de reglas (la app acota a 30 ejercicios y 20 series por ejercicio):
+
+```text
+name: string
+exerciseId: string?                    # ficha del catálogo, si viene de ella
+type: "MAQUINA" | "PESO_LIBRE" | "PESO_CORPORAL" | "CARDIO" | "OTROS"
+measure: "SECONDS"?                    # solo se escribe si es SECONDS; ausente = repeticiones
+sets: array<map>
+  reps: int?
+  weight: number?
+  seconds: int?                        # solo se escribe si hay valor (series por tiempo)
+durationMinutes: int?                  # CARDIO y OTROS
+level: string?
+notes: string?
+```
+
+Un ejercicio de repeticiones se escribe exactamente igual que antes de `measure` y `seconds`. La app antigua ignora ambos campos y los pierde al guardar la rutina o la sesión.
+
+### Versión del catálogo (documento `catalogMeta/exercises`)
+
+Documento único, **top-level**, con la versión del catálogo de ejercicios para que la app cachee el catálogo en lugar de releerlo entero en cada apertura (ver «Versión del catálogo y caché» en [`EXERCISE_CATALOG.md`](EXERCISE_CATALOG.md)).
+
+```text
+catalogMeta/exercises
+version: int                           # 1 al crearlo; +1 en cada cambio del catálogo
+updatedAt: timestamp                   # request.time
+updatedBy: string                      # uid de quien lo sube (la cuenta admin en el importador)
+```
+
+- **Lectura:** solo `get` del documento `exercises`, para cualquier usuario verificado. Sin `list`.
+- **Creación:** solo `exercises`, con `version == 1`, `updatedAt == request.time`, `updatedBy == uid` y sin más campos.
+- **Actualización:** `version == anterior + 1`, con las mismas guardas. **Sin borrado.**
+- Lo suben el importador (una vez por lote) y cada guardado de un ejercicio desde la app, en la misma transacción que la ficha. Las reglas de `exercises` no exigen subirla, para no romper las escrituras de la app antigua; a cambio, la caché de la app caduca a los 7 días.
+- Cada guardado cuesta +2 lecturas y +1 escritura; abrir el catálogo sin cambios, 1 lectura.
 
 ## 12. Acceso desde Security Rules
 
