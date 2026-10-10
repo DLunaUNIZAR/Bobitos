@@ -10,6 +10,7 @@ import com.dlunaunizar.bobitos.core.model.MAX_EXERCISE_DESCRIPTION_LENGTH
 import com.dlunaunizar.bobitos.core.model.MAX_EXERCISE_MUSCLE_LENGTH
 import com.dlunaunizar.bobitos.core.model.MAX_EXERCISE_NAME_LENGTH
 import com.dlunaunizar.bobitos.core.model.SetMeasure
+import com.dlunaunizar.bobitos.core.model.recordsSets
 import java.text.Collator
 import java.time.Instant
 import java.util.Locale
@@ -82,10 +83,6 @@ internal fun parseExerciseSource(raw: Any?): ExerciseSource? {
     return ExerciseSource(provider, sourceId, license, map["author"] as? String, map["url"] as? String)
 }
 
-// Mismos tipos que ExerciseType.isStrength de la UI: los que registran series (el resto no tiene medida).
-private fun ExerciseType.recordsSets(): Boolean =
-    this == ExerciseType.MAQUINA || this == ExerciseType.PESO_LIBRE || this == ExerciseType.PESO_CORPORAL
-
 // Recorta y valida; lanza ExerciseRepositoryException con el fallo concreto.
 internal fun validateExerciseInput(input: ExerciseInput): ExerciseInput {
     val name = input.name.trim()
@@ -102,7 +99,7 @@ internal fun validateExerciseInput(input: ExerciseInput): ExerciseInput {
     if (failure != null) throw ExerciseRepositoryException(failure)
     return input.copy(
         name = name,
-        measure = if (input.type.recordsSets()) input.measure else SetMeasure.REPS,
+        measure = if (input.type.recordsSets) input.measure else SetMeasure.REPS,
         muscleGroup = muscle,
         description = description,
         equipment = ExerciseEquipment.entries.filter { it in input.equipment },

@@ -20,6 +20,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -42,6 +45,7 @@ import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseSet
 import com.dlunaunizar.bobitos.core.model.ExerciseType
 import com.dlunaunizar.bobitos.core.model.RoutineExercise
+import com.dlunaunizar.bobitos.core.model.SetMeasure
 
 // Editor reutilizable de una lista de ejercicios (drafts observables), compartido por el catálogo de
 // Rutinas (definir la plantilla) y por la sesión de una actividad de gimnasio (registrar lo hecho).
@@ -76,15 +80,7 @@ internal fun ExerciseListEditor(
             onDismiss = { picking = false },
             onPick = { catalogExercise ->
                 drafts.add(
-                    if (catalogExercise == null) {
-                        ExerciseDraft()
-                    } else {
-                        ExerciseDraft(
-                            name = catalogExercise.name,
-                            exerciseId = catalogExercise.id,
-                            type = catalogExercise.type,
-                        )
-                    },
+                    catalogExercise?.toExerciseDraft() ?: ExerciseDraft(),
                 )
                 picking = false
             },
@@ -139,15 +135,41 @@ private fun ExerciseDraftCard(draft: ExerciseDraft, onRemove: () -> Unit) {
 @Composable
 private fun StrengthSets(draft: ExerciseDraft) {
     Text(stringResource(R.string.routines_sets_label), style = MaterialTheme.typography.labelLarge)
+    val measures = SetMeasure.entries
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+        measures.forEachIndexed { position, option ->
+            SegmentedButton(
+                selected = draft.measure == option,
+                onClick = { draft.measure = option },
+                shape = SegmentedButtonDefaults.itemShape(index = position, count = measures.size),
+            ) {
+                Text(
+                    stringResource(
+                        if (option == SetMeasure.SECONDS) {
+                            R.string.exercises_measure_seconds
+                        } else {
+                            R.string.exercises_measure_reps
+                        },
+                    ),
+                )
+            }
+        }
+    }
+    val timed = draft.measure == SetMeasure.SECONDS
     draft.sets.forEachIndexed { index, set ->
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             OutlinedTextField(
-                value = set.reps,
-                onValueChange = { set.reps = it.filter(Char::isDigit) },
-                label = { Text(stringResource(R.string.routines_reps_label)) },
+                value = if (timed) set.seconds else set.reps,
+                onValueChange = {
+                    val digits = it.filter(Char::isDigit)
+                    if (timed) set.seconds = digits else set.reps = digits
+                },
+                label = {
+                    Text(stringResource(if (timed) R.string.routines_seconds_label else R.string.routines_reps_label))
+                },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.weight(1f),
@@ -194,8 +216,9 @@ private fun CardioFields(draft: ExerciseDraft) {
 
 // --- Borradores observables ---
 
-internal class SetDraft(reps: String = "", weight: String = "") {
+internal class SetDraft(reps: String = "", weight: String = "", seconds: String = "") {
     var reps by mutableStateOf(reps)
+    var seconds by mutableStateOf(seconds)
     var weight by mutableStateOf(weight)
 }
 
@@ -207,7 +230,9 @@ internal class ExerciseDraft(
     duration: String = "",
     level: String = "",
     notes: String = "",
+    measure: SetMeasure = SetMeasure.REPS,
 ) {
+    var measure by mutableStateOf(measure)
     var name by mutableStateOf(name)
     var type by mutableStateOf(type)
     val sets: SnapshotStateList<SetDraft> = sets.toMutableStateList()
@@ -216,12 +241,23 @@ internal class ExerciseDraft(
     var notes by mutableStateOf(notes)
 }
 
+// Borrador nuevo desde una ficha del catálogo: hereda nombre, tipo y la medida de sus series.
+internal fun CatalogExercise.toExerciseDraft(): ExerciseDraft =
+    ExerciseDraft(name = name, exerciseId = id, type = type, measure = measure)
+
 internal fun List<RoutineExercise>.toExerciseDrafts(): List<ExerciseDraft> = map { exercise ->
     ExerciseDraft(
         name = exercise.name,
         exerciseId = exercise.exerciseId,
         type = exercise.type,
-        sets = exercise.sets.map { SetDraft(it.reps?.toString().orEmpty(), it.weight?.let(::formatDecimal).orEmpty()) },
+        measure = exercise.measure,
+        sets = exercise.sets.map {
+            SetDraft(
+                reps = it.reps?.toString().orEmpty(),
+                weight = it.weight?.let(::formatDecimal).orEmpty(),
+                seconds = it.seconds?.toString().orEmpty(),
+            )
+        },
         duration = exercise.durationMinutes?.toString().orEmpty(),
         level = exercise.level.orEmpty(),
         notes = exercise.notes.orEmpty(),
@@ -230,6 +266,7 @@ internal fun List<RoutineExercise>.toExerciseDrafts(): List<ExerciseDraft> = map
 
 internal fun List<ExerciseDraft>.toRoutineExercises(): List<RoutineExercise> =
     filter { it.name.isNotBlank() }.map { draft ->
+        val timed = draft.type.isStrength && draft.measure == SetMeasure.SECONDS
         RoutineExercise(
             name = draft.name.trim(),
             exerciseId = draft.exerciseId,
@@ -237,7 +274,12 @@ internal fun List<ExerciseDraft>.toRoutineExercises(): List<RoutineExercise> =
             sets = if (draft.type.isStrength) {
                 // El teclado decimal en locale es-ES emite coma; se normaliza a punto antes de parsear.
                 draft.sets.map {
-                    ExerciseSet(reps = it.reps.toIntOrNull(), weight = it.weight.replace(',', '.').toDoubleOrNull())
+                    val weight = it.weight.replace(',', '.').toDoubleOrNull()
+                    if (timed) {
+                        ExerciseSet(weight = weight, seconds = it.seconds.toIntOrNull())
+                    } else {
+                        ExerciseSet(reps = it.reps.toIntOrNull(), weight = weight)
+                    }
                 }
             } else {
                 emptyList()
@@ -245,5 +287,6 @@ internal fun List<ExerciseDraft>.toRoutineExercises(): List<RoutineExercise> =
             durationMinutes = if (draft.type.isStrength) null else draft.duration.toIntOrNull(),
             level = if (draft.type.isStrength) null else draft.level.trim().ifBlank { null },
             notes = draft.notes.trim().ifBlank { null },
+            measure = if (timed) SetMeasure.SECONDS else SetMeasure.REPS,
         )
     }

@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.feature.exercises
 import androidx.compose.runtime.saveable.SaverScope
 import androidx.compose.runtime.toMutableStateList
 import com.dlunaunizar.bobitos.core.model.ExerciseType
+import com.dlunaunizar.bobitos.core.model.SetMeasure
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -74,5 +75,40 @@ class ExerciseDraftSaverTest {
         val restored = roundTrip(original)
         restored.single().name = "Otro"
         assertEquals("Remo", original.single().name)
+    }
+
+    @Test
+    fun `measure and seconds survive rotation`() {
+        val original = listOf(
+            ExerciseDraft(
+                name = "Plancha",
+                type = ExerciseType.PESO_CORPORAL,
+                measure = SetMeasure.SECONDS,
+                sets = listOf(SetDraft(seconds = "45", weight = "5")),
+            ),
+        )
+        val restored = roundTrip(original)
+        assertEquals(SetMeasure.SECONDS, restored.single().measure)
+        assertEquals("45", restored.single().sets.single().seconds)
+        assertEquals(original.toRoutineExercises(), restored.toRoutineExercises())
+    }
+
+    @Test
+    fun `state saved by the previous version restores as REPS`() {
+        val old = arrayListOf<Any?>(
+            "Press",
+            "e1",
+            "MAQUINA",
+            arrayListOf(arrayListOf("10", "60")),
+            "",
+            "",
+            "nota",
+        )
+        val restored = with(ExerciseDraftListSaver) { restore(arrayListOf(old))!! }
+        val draft = restored.single()
+        assertEquals(SetMeasure.REPS, draft.measure)
+        assertEquals("10", draft.sets.single().reps)
+        assertEquals("", draft.sets.single().seconds)
+        assertEquals("60", draft.sets.single().weight)
     }
 }

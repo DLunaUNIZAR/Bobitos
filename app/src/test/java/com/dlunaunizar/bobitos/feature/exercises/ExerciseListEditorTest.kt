@@ -1,10 +1,13 @@
 package com.dlunaunizar.bobitos.feature.exercises
 
+import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseSet
 import com.dlunaunizar.bobitos.core.model.ExerciseType
 import com.dlunaunizar.bobitos.core.model.RoutineExercise
+import com.dlunaunizar.bobitos.core.model.SetMeasure
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.time.Instant
 
 class ExerciseListEditorTest {
     @Test
@@ -60,5 +63,65 @@ class ExerciseListEditorTest {
         drafts.first().notes = "   "
 
         assertEquals(null, drafts.toRoutineExercises().first().notes)
+    }
+
+    @Test
+    fun `drafts round-trip measure and seconds`() {
+        val original = listOf(
+            RoutineExercise(
+                name = "Plancha",
+                type = ExerciseType.PESO_CORPORAL,
+                sets = listOf(ExerciseSet(seconds = 45), ExerciseSet(seconds = 30, weight = 2.5)),
+                measure = SetMeasure.SECONDS,
+            ),
+        )
+        assertEquals(original, original.toExerciseDrafts().toRoutineExercises())
+    }
+
+    @Test
+    fun `timed sets keep seconds and optional weight`() {
+        val draft = ExerciseDraft(
+            name = "Plancha",
+            type = ExerciseType.PESO_CORPORAL,
+            measure = SetMeasure.SECONDS,
+            sets = listOf(SetDraft(seconds = "40", weight = "5,5"), SetDraft(reps = "9", seconds = "")),
+        )
+        val sets = listOf(draft).toRoutineExercises().single().sets
+        assertEquals(listOf(ExerciseSet(seconds = 40, weight = 5.5), ExerciseSet()), sets)
+    }
+
+    @Test
+    fun `switching a timed exercise to cardio drops sets and measure`() {
+        val draft = ExerciseDraft(
+            name = "Plancha",
+            type = ExerciseType.PESO_CORPORAL,
+            measure = SetMeasure.SECONDS,
+            sets = listOf(SetDraft(seconds = "40")),
+        )
+        draft.type = ExerciseType.CARDIO
+        val exercise = listOf(draft).toRoutineExercises().single()
+        assertEquals(emptyList<ExerciseSet>(), exercise.sets)
+        assertEquals(SetMeasure.REPS, exercise.measure)
+    }
+
+    @Test
+    fun `a timed catalog exercise starts in seconds`() {
+        val now = Instant.EPOCH
+        val catalog = CatalogExercise(
+            id = "plancha",
+            name = "Plancha",
+            type = ExerciseType.PESO_CORPORAL,
+            measure = SetMeasure.SECONDS,
+            ownerUid = "u",
+            createdBy = "u",
+            createdByName = "U",
+            createdAt = now,
+            updatedBy = "u",
+            updatedAt = now,
+        )
+        val draft = catalog.toExerciseDraft()
+        assertEquals(SetMeasure.SECONDS, draft.measure)
+        assertEquals("plancha", draft.exerciseId)
+        assertEquals(ExerciseType.PESO_CORPORAL, draft.type)
     }
 }

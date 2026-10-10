@@ -531,6 +531,7 @@
     <string name="routines_exercise_name_label">Nombre del ejercicio</string>
     <string name="routines_sets_label">Series</string>
     <string name="routines_reps_label">Reps</string>
+    <string name="routines_seconds_label">Segundos</string>
     <string name="routines_weight_label">Peso (kg)</string>
     <string name="routines_ballast_label">Lastre (kg)</string>
     <string name="routines_add_set">Añadir serie</string>

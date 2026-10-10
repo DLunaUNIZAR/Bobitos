@@ -1,7 +1,8 @@
 package com.dlunaunizar.bobitos.core.model
 
-// Una serie de un ejercicio de fuerza: repeticiones y peso (ambos opcionales).
-data class ExerciseSet(val reps: Int? = null, val weight: Double? = null)
+// Una serie de un ejercicio de fuerza: repeticiones o segundos (según la medida del ejercicio) y peso,
+// todos opcionales.
+data class ExerciseSet(val reps: Int? = null, val weight: Double? = null, val seconds: Int? = null)
 
 // Ejercicio dentro de una rutina o de una sesión de gimnasio (parámetros según [type]):
 // fuerza (máquina/peso libre) usa [sets]; cardio usa [durationMinutes] + [level].
@@ -13,4 +14,5 @@ data class RoutineExercise(
     val durationMinutes: Int? = null,
     val level: String? = null,
     val notes: String? = null,
+    val measure: SetMeasure = SetMeasure.REPS, // en qué se mide cada serie (solo fuerza)
 )

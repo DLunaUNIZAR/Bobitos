@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.Color
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.model.ExerciseEquipment
 import com.dlunaunizar.bobitos.core.model.ExerciseType
+import com.dlunaunizar.bobitos.core.model.recordsSets
 
 @get:StringRes
 internal val ExerciseType.labelRes: Int
@@ -16,9 +17,9 @@ internal val ExerciseType.labelRes: Int
         ExerciseType.OTROS -> R.string.exercise_type_other
     }
 
-// Cierto si el tipo registra series (máquina/peso libre/peso corporal) frente a tiempo/nivel (cardio).
+// Cierto si el tipo registra series frente a tiempo/nivel (cardio); la lista vive en core/model.
 internal val ExerciseType.isStrength: Boolean
-    get() = this == ExerciseType.MAQUINA || this == ExerciseType.PESO_LIBRE || this == ExerciseType.PESO_CORPORAL
+    get() = recordsSets
 
 // En peso corporal la carga es un lastre opcional, no el peso levantado.
 @get:StringRes

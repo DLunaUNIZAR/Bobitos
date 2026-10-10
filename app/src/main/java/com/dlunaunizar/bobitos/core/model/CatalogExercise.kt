@@ -35,6 +35,10 @@ enum class SetMeasure {
     SECONDS,
 }
 
+// Cierto si el tipo registra series (máquina/peso libre/peso corporal) frente a tiempo/nivel (cardio, otros).
+val ExerciseType.recordsSets: Boolean
+    get() = this == ExerciseType.MAQUINA || this == ExerciseType.PESO_LIBRE || this == ExerciseType.PESO_CORPORAL
+
 // Imagen de la ficha, enlazada desde wger.de con su autoría y licencia (no se copia ni se sube).
 data class ExerciseImage(val url: String, val author: String?, val license: String)
 
