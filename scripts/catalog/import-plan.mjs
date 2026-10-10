@@ -1,10 +1,10 @@
 // Plan de importación del catálogo de ejercicios. Puro: no importa firebase-admin (lo usan los
 // tests de reglas). `now` llega ya construido (FieldValue.serverTimestamp() o un Timestamp).
-import { formatImportPlan, planCatalogImport, section } from "./import-core.mjs";
+import { CATALOG_ADMIN_UID, baseExisting, formatImportPlan, planCatalogImport, section, stampCatalogDoc } from "./import-core.mjs";
 import { isNearDuplicate } from "./normalize.mjs";
 
-// Debe coincidir con firestore.rules (recipeAdmins()) y RecipeAdmins.kt; un test lo vigila.
-export const CATALOG_ADMIN_UID = "dWWH7eRhHEPopJf5BHPB3Dp6fry1";
+// Se reexporta desde el núcleo (lo importan los tests y los scripts de ejercicios).
+export { CATALOG_ADMIN_UID };
 // Documento con la versión del catálogo (la caché del cliente caduca al cambiar).
 export const CATALOG_META_PATH = "catalogMeta/exercises";
 export const CATALOG_AUTHOR_NAME = "Catálogo Bobitos";
@@ -22,24 +22,17 @@ const pickImage = (i) =>
  */
 export function docToExisting(id, data, { updatedAtMillis, importedAtMillis }) {
   const s = data.source;
-  return {
-    id,
-    ownerUid: data.ownerUid,
-    hasSource: s != null && typeof s === "object",
-    updatedAtMillis: updatedAtMillis ?? 0,
-    importedAtMillis,
-    fields: {
-      name: data.name,
-      nameLower: data.nameLower,
-      type: data.type,
-      muscleGroup: data.muscleGroup,
-      description: data.description,
-      equipment: data.equipment,
-      measure: data.measure ?? "REPS",
-      image: data.image ?? null,
-      source: s ? pickSource(s) : undefined,
-    },
-  };
+  return baseExisting(id, data, { updatedAtMillis, importedAtMillis }, {
+    name: data.name,
+    nameLower: data.nameLower,
+    type: data.type,
+    muscleGroup: data.muscleGroup,
+    description: data.description,
+    equipment: data.equipment,
+    measure: data.measure ?? "REPS",
+    image: data.image ?? null,
+    source: s ? pickSource(s) : undefined,
+  });
 }
 
 export function managedFields(entry) {
@@ -57,8 +50,7 @@ export function managedFields(entry) {
 }
 
 export function toFirestoreDoc(entry, { now, create = false }) {
-  const m = managedFields(entry);
-  const doc = { ...m, source: { ...m.source, importedAt: now }, updatedBy: CATALOG_ADMIN_UID, updatedAt: now };
+  const doc = stampCatalogDoc(managedFields(entry), { now, adminUid: CATALOG_ADMIN_UID });
   if (!create) return doc;
   return {
     ...doc,

@@ -5,26 +5,23 @@
 // Protección: si catalogMeta/ingredients existe, el catálogo ya se importó e ingredientPrefs guarda las tiendas
 // de los usuarios; borrar las perdería. En ese caso la simulación avisa y --apply se niega salvo con --repetir.
 // Uso: node scripts/catalog/reset-ingredients.mjs --project demo-bobitos|bobitos-dev|dev [--apply] [--repetir]
-import { pathToFileURL } from "node:url";
 import { getFirestore } from "firebase-admin/firestore";
-import { connectAdmin } from "./admin-cli.mjs";
+import { connectAdmin, parseCliArgs, runMain } from "./admin-cli.mjs";
+import { INGREDIENTS_COLLECTION, INGREDIENTS_META_PATH } from "./ingredient-import-plan.mjs";
 
 export function parseResetArgs(argv) {
-  const args = { apply: false, project: null, repeat: false };
-  for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === "--apply") args.apply = true;
-    else if (argv[i] === "--repetir") args.repeat = true;
-    else if (argv[i] === "--project") args.project = argv[++i];
-    else throw new Error(`Argumento desconocido: ${argv[i]}`);
-  }
-  return args;
+  return parseCliArgs(
+    argv,
+    { "--apply": { key: "apply" }, "--repetir": { key: "repeat" }, "--project": { key: "project", value: true } },
+    { apply: false, project: null, repeat: false },
+  );
 }
 
 export async function countIngredientData(db) {
   // listDocuments incluye los padres sin datos que solo tienen marcas.
-  const refs = await db.collection("ingredients").listDocuments();
-  let brands = 0;
-  for (const ref of refs) brands += (await ref.collection("brands").count().get()).data().count;
+  const refs = await db.collection(INGREDIENTS_COLLECTION).listDocuments();
+  const perParent = await Promise.all(refs.map(async (ref) => (await ref.collection("brands").count().get()).data().count));
+  const brands = perParent.reduce((a, n) => a + n, 0);
   const prefs = (await db.collection("ingredientPrefs").count().get()).data().count;
   return { ingredients: refs.length, brands, prefs };
 }
@@ -34,7 +31,7 @@ const AVISO_YA_IMPORTADO =
   "de los usuarios y borrar las perdería. El borrado es de un solo uso.";
 
 export async function runReset({ db, apply, repeat = false, log = console.log }) {
-  const yaImportado = (await db.doc("catalogMeta/ingredients").get()).exists;
+  const yaImportado = (await db.doc(INGREDIENTS_META_PATH).get()).exists;
   if (yaImportado && apply && !repeat) {
     throw new Error(`${AVISO_YA_IMPORTADO} No se ha borrado nada. Para forzarlo, añade --repetir.`);
   }
@@ -46,19 +43,14 @@ export async function runReset({ db, apply, repeat = false, log = console.log })
     return { ...counts, deleted: false };
   }
   // Solo estas dos colecciones.
-  await db.recursiveDelete(db.collection("ingredients"));
+  await db.recursiveDelete(db.collection(INGREDIENTS_COLLECTION));
   await db.recursiveDelete(db.collection("ingredientPrefs"));
   log(`Borrado: ${counts.ingredients} ingredientes, ${counts.brands} marcas, ${counts.prefs} preferencias`);
   return { ...counts, deleted: true };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  try {
-    const args = parseResetArgs(process.argv.slice(2));
-    const app = connectAdmin(args.project);
-    await runReset({ db: getFirestore(app), apply: args.apply, repeat: args.repeat });
-  } catch (e) {
-    console.error(e.message);
-    process.exitCode = 1;
-  }
-}
+await runMain(import.meta.url, async () => {
+  const args = parseResetArgs(process.argv.slice(2));
+  const app = connectAdmin(args.project);
+  await runReset({ db: getFirestore(app), apply: args.apply, repeat: args.repeat });
+});

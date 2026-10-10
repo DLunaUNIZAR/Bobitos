@@ -1,6 +1,6 @@
 // Lista de ingredientes genéricos del catálogo común de Bobitos: constantes, validación y revisión.
 // Funciones puras y sin dependencias de red.
-import { nearDuplicateKey, slug } from "./normalize.mjs";
+import { groupBy, nearDuplicateKey, slug } from "./normalize.mjs";
 
 // Mismas categorías y mismo orden que la interfaz de la app.
 export const INGREDIENT_CATEGORIES = [
@@ -68,13 +68,13 @@ export function validateIngredientCatalog(catalog) {
     problems.push("ingredients tiene que ser una lista no vacía.");
     return problems;
   }
-  const ids = new Map();
+  const ids = new Set();
   const keys = new Map();
   for (const entry of list) {
     for (const p of validateIngredient(entry)) problems.push(`${entry?.id ?? entry?.name}: ${p}`);
     if (typeof entry?.id !== "string" || typeof entry?.name !== "string") continue;
     if (ids.has(entry.id)) problems.push(`id repetido: ${entry.id}`);
-    else ids.set(entry.id, true);
+    else ids.add(entry.id);
     const key = ingredientKey(entry.name);
     if (keys.has(key) && keys.get(key) !== entry.id) problems.push(`casi duplicado: ${keys.get(key)} ~ ${entry.id}`);
     else keys.set(key, entry.id);
@@ -95,10 +95,11 @@ export function renderIngredientReview(catalog) {
     "| Categoría | Ingredientes |",
     "|---|---|",
   ];
-  for (const c of INGREDIENT_CATEGORIES) lines.push(`| ${c} | ${list.filter((i) => i.category === c).length} |`);
+  const byCategory = groupBy(list, (i) => i.category);
+  for (const c of INGREDIENT_CATEGORIES) lines.push(`| ${c} | ${(byCategory.get(c) ?? []).length} |`);
   lines.push("");
   for (const c of INGREDIENT_CATEGORIES) {
-    const items = list.filter((i) => i.category === c).sort((a, b) => collator.compare(a.name, b.name));
+    const items = [...(byCategory.get(c) ?? [])].sort((a, b) => collator.compare(a.name, b.name));
     if (!items.length) continue;
     lines.push(`## ${c}`, "", "| Nombre | Unidad | id |", "|---|---|---|");
     for (const i of items) lines.push(`| ${i.name} | ${i.defaultUnit} | ${i.id} |`);

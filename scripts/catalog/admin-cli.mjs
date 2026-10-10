@@ -1,5 +1,6 @@
 // Protecciones de proyecto y argumentos compartidas por los scripts de catálogo que escriben en Firestore.
 import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 import { applicationDefault, initializeApp } from "firebase-admin/app";
 
 /**
@@ -33,13 +34,35 @@ export function connectAdmin(projectArg) {
   return useCredential ? initializeApp({ credential: applicationDefault(), projectId }) : initializeApp({ projectId });
 }
 
-export function parseImportArgs(argv, { defaultCatalog }) {
-  const args = { apply: false, catalog: defaultCatalog, project: null };
+/**
+ * Lee `argv` según `spec` ({ "--flag": { key, value: true si lleva valor } }) a partir de `initial`.
+ * Lanza «Argumento desconocido» ante cualquier otro argumento.
+ */
+export function parseCliArgs(argv, spec, initial) {
+  const args = { ...initial };
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === "--apply") args.apply = true;
-    else if (argv[i] === "--project") args.project = argv[++i];
-    else if (argv[i] === "--catalog") args.catalog = argv[++i];
-    else throw new Error(`Argumento desconocido: ${argv[i]}`);
+    const flag = spec[argv[i]];
+    if (!flag) throw new Error(`Argumento desconocido: ${argv[i]}`);
+    args[flag.key] = flag.value ? argv[++i] : true;
   }
   return args;
+}
+
+export function parseImportArgs(argv, { defaultCatalog }) {
+  return parseCliArgs(
+    argv,
+    { "--apply": { key: "apply" }, "--project": { key: "project", value: true }, "--catalog": { key: "catalog", value: true } },
+    { apply: false, catalog: defaultCatalog, project: null },
+  );
+}
+
+/** Ejecuta `fn` solo si el módulo es el programa principal; los errores salen por stderr con código 1. */
+export async function runMain(importMetaUrl, fn) {
+  if (!(process.argv[1] && importMetaUrl === pathToFileURL(process.argv[1]).href)) return;
+  try {
+    await fn();
+  } catch (e) {
+    console.error(e.message);
+    process.exitCode = 1;
+  }
 }

@@ -1,5 +1,46 @@
-// Núcleo genérico del importador de catálogos (ejercicios, ingredientes). Puro salvo
-// `commitCatalogOps`, que recibe `db` ya construido: no importa firebase-admin.
+// Núcleo genérico del importador de catálogos (ejercicios, ingredientes). Puro salvo `loadExisting` y
+// `commitCatalogOps`, que reciben `db` (y `FieldValue`) ya construidos: no importa firebase-admin.
+
+// Debe coincidir con firestore.rules (recipeAdmins()) y RecipeAdmins.kt; un test lo vigila.
+export const CATALOG_ADMIN_UID = "dWWH7eRhHEPopJf5BHPB3Dp6fry1";
+
+const toMillis = (t) => (t && typeof t.toMillis === "function" ? t.toMillis() : null);
+
+/**
+ * Lee la colección y la convierte con `docToExisting(id, data, {updatedAtMillis, importedAtMillis})`.
+ * Devuelve `{ existing, updateTimes }` (updateTimes: id → updateTime, para la precondición del lote).
+ */
+export async function loadExisting(db, collection, docToExisting) {
+  const snap = await db.collection(collection).get();
+  const updateTimes = new Map();
+  const existing = snap.docs.map((d) => {
+    const data = d.data();
+    updateTimes.set(d.id, d.updateTime);
+    return docToExisting(d.id, data, {
+      updatedAtMillis: toMillis(data.updatedAt),
+      importedAtMillis: toMillis(data.source?.importedAt),
+    });
+  });
+  return { existing, updateTimes };
+}
+
+/** Esqueleto común de `ExistingDoc`; cada catálogo aporta solo `fields`. */
+export function baseExisting(id, data, { updatedAtMillis, importedAtMillis }, fields) {
+  const s = data.source;
+  return {
+    id,
+    ownerUid: data.ownerUid,
+    hasSource: s != null && typeof s === "object",
+    updatedAtMillis: updatedAtMillis ?? 0,
+    importedAtMillis,
+    fields,
+  };
+}
+
+/** Parte común del documento a escribir: campos gestionados + marca de importación y de autor. */
+export function stampCatalogDoc(managed, { now, adminUid }) {
+  return { ...managed, source: { ...managed.source, importedAt: now }, updatedBy: adminUid, updatedAt: now };
+}
 
 export const canonical = (v) =>
   JSON.stringify(v, (_k, x) =>
@@ -76,12 +117,15 @@ export function formatImportPlan(plan, { title, metaPath }) {
 }
 
 /**
- * Escribe en lotes las operaciones `ops` ([{kind: "create"|"update", e}]). Cada lote con operaciones
- * sube la `version` de `metaPath` (se crea en 1 si no existe). Devuelve cuántas operaciones escribió.
+ * Escribe en lotes las altas (`plan.create`) y las actualizaciones (`plan.update`). `FieldValue` es el de
+ * firebase-admin/firestore. Cada lote con operaciones sube la `version` de `metaPath` (se crea en 1 si no
+ * existe). Devuelve cuántas operaciones escribió.
  */
-export async function commitCatalogOps({ db, collection, ops, toDoc, updateTimes, metaPath, adminUid, now, batchSize = 400 }) {
-  // FieldValue se importa aquí para que el resto del módulo siga sin depender de firebase-admin.
-  const { FieldValue } = await import("firebase-admin/firestore");
+export async function commitCatalogOps({ db, FieldValue, collection, plan, toDoc, updateTimes, metaPath, adminUid, now, batchSize = 400 }) {
+  const ops = [
+    ...plan.create.map((e) => ({ kind: "create", e })),
+    ...plan.update.map((e) => ({ kind: "update", e })),
+  ];
   for (let i = 0; i < ops.length; i += batchSize) {
     const batch = db.batch();
     for (const { kind, e } of ops.slice(i, i + batchSize)) {

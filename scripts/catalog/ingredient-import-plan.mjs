@@ -1,9 +1,9 @@
 // Plan de importación del catálogo de ingredientes. Puro: no importa firebase-admin. `now` llega ya
 // construido (FieldValue.serverTimestamp() o un Timestamp). El documento común no lleva dueño.
-import { formatImportPlan, planCatalogImport } from "./import-core.mjs";
-import { CATALOG_ADMIN_UID } from "./import-plan.mjs";
+import { CATALOG_ADMIN_UID, baseExisting, formatImportPlan, planCatalogImport, stampCatalogDoc } from "./import-core.mjs";
 import { ingredientKey } from "./ingredients.mjs";
 
+export const INGREDIENTS_COLLECTION = "ingredients";
 // Documento con la versión del catálogo de ingredientes (la caché del cliente caduca al cambiar).
 export const INGREDIENTS_META_PATH = "catalogMeta/ingredients";
 
@@ -23,25 +23,17 @@ export function ingredientManagedFields(entry) {
  */
 export function ingredientDocToExisting(id, data, { updatedAtMillis, importedAtMillis }) {
   const s = data.source;
-  return {
-    id,
-    ownerUid: data.ownerUid,
-    hasSource: s != null && typeof s === "object",
-    updatedAtMillis: updatedAtMillis ?? 0,
-    importedAtMillis,
-    fields: {
-      name: data.name,
-      nameLower: data.nameLower,
-      category: data.category,
-      defaultUnit: data.defaultUnit,
-      source: s ? { provider: s.provider } : undefined,
-    },
-  };
+  return baseExisting(id, data, { updatedAtMillis, importedAtMillis }, {
+    name: data.name,
+    nameLower: data.nameLower,
+    category: data.category,
+    defaultUnit: data.defaultUnit,
+    source: s ? { provider: s.provider } : undefined,
+  });
 }
 
 export function ingredientToFirestoreDoc(entry, { now, create = false }) {
-  const m = ingredientManagedFields(entry);
-  const doc = { ...m, source: { ...m.source, importedAt: now }, updatedBy: CATALOG_ADMIN_UID, updatedAt: now };
+  const doc = stampCatalogDoc(ingredientManagedFields(entry), { now, adminUid: CATALOG_ADMIN_UID });
   return create ? { ...doc, createdAt: now } : doc;
 }
 

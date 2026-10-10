@@ -2,11 +2,11 @@
 // Uso: node scripts/catalog/import-exercises.mjs --project demo-bobitos|bobitos-dev|dev [--apply] [--catalog ruta]
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { CATALOG_ADMIN_UID, CATALOG_META_PATH, docToExisting, formatPlan, planImageImport, planImport, toFirestoreDoc } from "./import-plan.mjs";
-import { commitCatalogOps } from "./import-core.mjs";
-import { connectAdmin, parseImportArgs } from "./admin-cli.mjs";
+import { commitCatalogOps, loadExisting } from "./import-core.mjs";
+import { connectAdmin, parseImportArgs, runMain } from "./admin-cli.mjs";
 import { sha256Hex } from "./images.mjs";
 import { validateEntry } from "./selection.mjs";
 
@@ -15,8 +15,6 @@ import { validateEntry } from "./selection.mjs";
 const IMAGE_BATCH_DOCS = 50;
 const IMAGE_BATCH_BYTES = 5 * 1024 * 1024;
 const DEFAULT_IMAGES_DIR = fileURLToPath(new URL("../../data/catalog/images/", import.meta.url));
-
-const toMillis = (t) => (t && typeof t.toMillis === "function" ? t.toMillis() : null);
 
 /** Lee data/catalog/images/<id>.webp de cada imagen a subir y comprueba su sha256 con el catálogo. */
 function loadImagesToUpload(ids, catalog, imagesDir) {
@@ -59,16 +57,7 @@ export async function runImport({ db, catalog, apply, log = console.log, imagesD
   const problems = catalog.exercises.flatMap((e) => validateEntry(e).map((m) => `${e.id ?? e.name}: ${m}`));
   if (problems.length) throw new Error(`Catálogo inválido:\n${problems.join("\n")}`);
 
-  const snap = await db.collection("exercises").get();
-  const updateTimes = new Map();
-  const existing = snap.docs.map((d) => {
-    const data = d.data();
-    updateTimes.set(d.id, d.updateTime);
-    return docToExisting(d.id, data, {
-      updatedAtMillis: toMillis(data.updatedAt),
-      importedAtMillis: toMillis(data.source?.importedAt),
-    });
-  });
+  const { existing, updateTimes } = await loadExisting(db, "exercises", docToExisting);
 
   // Solo los metadatos: select() evita traer los bytes de cada imagen.
   const imageSnap = await db.collection("exerciseImages").select("hash", "author", "license", "sourceUrl").get();
@@ -119,28 +108,19 @@ export async function runImport({ db, catalog, apply, log = console.log, imagesD
     }
     await batch.commit();
   }
-  const ops = [
-    ...plan.create.map((e) => ({ kind: "create", e })),
-    ...plan.update.map((e) => ({ kind: "update", e })),
-  ];
   await commitCatalogOps({
-    db, collection: "exercises", ops, toDoc: toFirestoreDoc, updateTimes,
+    db, FieldValue, collection: "exercises", plan, toDoc: toFirestoreDoc, updateTimes,
     metaPath: CATALOG_META_PATH, adminUid: CATALOG_ADMIN_UID, now,
   });
   log(
     `\nAplicado: ${plan.create.length} creadas, ${plan.update.length} actualizadas, ${toUpload.length} imágenes subidas.`,
   );
-  return { ...plan, versionBumped: ops.length > 0 };
+  return { ...plan, versionBumped: plan.create.length + plan.update.length > 0 };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  try {
-    const args = parseImportArgs(process.argv.slice(2), { defaultCatalog: "data/catalog/exercises.json" });
-    const app = connectAdmin(args.project);
-    const catalog = JSON.parse(readFileSync(args.catalog, "utf8"));
-    await runImport({ db: getFirestore(app), catalog, apply: args.apply });
-  } catch (e) {
-    console.error(e.message);
-    process.exitCode = 1;
-  }
-}
+await runMain(import.meta.url, async () => {
+  const args = parseImportArgs(process.argv.slice(2), { defaultCatalog: "data/catalog/exercises.json" });
+  const app = connectAdmin(args.project);
+  const catalog = JSON.parse(readFileSync(args.catalog, "utf8"));
+  await runImport({ db: getFirestore(app), catalog, apply: args.apply });
+});

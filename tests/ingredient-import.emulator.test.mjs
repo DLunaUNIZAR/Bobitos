@@ -1,22 +1,14 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { after, before, beforeEach, test } from "node:test";
-import { deleteApp, initializeApp } from "firebase-admin/app";
-import { Timestamp, getFirestore } from "firebase-admin/firestore";
+import { beforeEach, test } from "node:test";
+import { Timestamp } from "firebase-admin/firestore";
 import { runIngredientImport } from "../scripts/catalog/import-ingredients.mjs";
+import { quiet, setupEmulatorDb } from "./helpers/emulator-db.mjs";
 
 const full = JSON.parse(await readFile(new URL("../data/catalog/ingredients.json", import.meta.url), "utf8"));
 const small = { ...full, ingredients: full.ingredients.slice(0, 5) };
-const quiet = () => {};
-let app;
-let db;
 
-before(() => {
-  assert.ok(process.env.FIRESTORE_EMULATOR_HOST, "falta FIRESTORE_EMULATOR_HOST");
-  app = initializeApp({ projectId: "demo-bobitos" }, "ingredient-import-test");
-  db = getFirestore(app);
-});
-after(() => deleteApp(app));
+const db = setupEmulatorDb("ingredient-import-test");
 beforeEach(async () => {
   await db.recursiveDelete(db.collection("ingredients"));
   await db.doc("catalogMeta/ingredients").delete();

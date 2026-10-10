@@ -1,19 +1,9 @@
 import assert from "node:assert/strict";
-import { after, before, beforeEach, test } from "node:test";
-import { deleteApp, initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { beforeEach, test } from "node:test";
 import { parseResetArgs, runReset } from "../scripts/catalog/reset-ingredients.mjs";
+import { quiet, setupEmulatorDb } from "./helpers/emulator-db.mjs";
 
-const quiet = () => {};
-let app;
-let db;
-
-before(() => {
-  assert.ok(process.env.FIRESTORE_EMULATOR_HOST, "falta FIRESTORE_EMULATOR_HOST");
-  app = initializeApp({ projectId: "demo-bobitos" }, "ingredient-reset-test");
-  db = getFirestore(app);
-});
-after(() => deleteApp(app));
+const db = setupEmulatorDb("ingredient-reset-test");
 
 beforeEach(async () => {
   for (const path of ["ingredients", "ingredientPrefs", "users", "exercises", "catalogMeta"]) {
