@@ -1,5 +1,9 @@
 package com.dlunaunizar.bobitos.data.di
 
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStore
 import com.dlunaunizar.bobitos.data.connectivity.AndroidConnectivityRepository
 import com.dlunaunizar.bobitos.data.connectivity.ConnectivityRepository
 import com.dlunaunizar.bobitos.data.openfoodfacts.HttpOpenFoodFactsClient
@@ -14,7 +18,9 @@ import com.dlunaunizar.bobitos.data.repository.AccountRepository
 import com.dlunaunizar.bobitos.data.repository.ActiveSpaceRepository
 import com.dlunaunizar.bobitos.data.repository.AuthRepository
 import com.dlunaunizar.bobitos.data.repository.CalendarRepository
+import com.dlunaunizar.bobitos.data.repository.CatalogSyncStore
 import com.dlunaunizar.bobitos.data.repository.DataStoreActiveSpaceRepository
+import com.dlunaunizar.bobitos.data.repository.DataStoreCatalogSyncStore
 import com.dlunaunizar.bobitos.data.repository.DataStoreOnboardingPreferenceRepository
 import com.dlunaunizar.bobitos.data.repository.DataStoreReminderPreferenceRepository
 import com.dlunaunizar.bobitos.data.repository.DataStoreThemePreferenceRepository
@@ -54,7 +60,9 @@ import com.dlunaunizar.bobitos.data.sync.FirestoreSyncRepository
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
 import dagger.Binds
 import dagger.Module
+import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -94,6 +102,9 @@ abstract class DataModule {
 
     @Binds @Singleton
     abstract fun bindExerciseRepository(repository: FirestoreExerciseRepository): ExerciseRepository
+
+    @Binds @Singleton
+    abstract fun bindCatalogSyncStore(store: DataStoreCatalogSyncStore): CatalogSyncStore
 
     @Binds @Singleton
     abstract fun bindRoutineRepository(repository: FirestoreRoutineRepository): RoutineRepository
@@ -158,4 +169,13 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindSyncRepository(repository: FirestoreSyncRepository): SyncRepository
+
+    companion object {
+        @Provides
+        @Singleton
+        fun provideCatalogSyncDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
+            context.catalogSyncDataStore
+    }
 }
+
+private val Context.catalogSyncDataStore by preferencesDataStore(name = "catalog_sync")
