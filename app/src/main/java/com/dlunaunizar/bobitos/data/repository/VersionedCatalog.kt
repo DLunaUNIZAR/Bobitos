@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.data.repository
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.flow.Flow
@@ -85,7 +86,7 @@ class VersionedCatalogLoader<T>(
         val cache = source.readCache()
         if (cache.rawCount > 0) send(cache.items)
         val meta = source.readMeta()
-        val decision = decideCatalogLoad(meta, store.read(key), cache.rawCount, now())
+        val decision = decideCatalogLoad(meta, readStored(), cache.rawCount, now())
         if (decision == CatalogLoad.SERVER) refreshFromServer(meta, hadCache = cache.rawCount > 0)
     }
 
@@ -98,15 +99,34 @@ class VersionedCatalogLoader<T>(
             if (hadCache) return else throw error
         }
         if (meta is CatalogMeta.Known) {
-            store.write(key, CatalogSyncState(meta.version, page.rawCount, now()))
+            writeStored(CatalogSyncState(meta.version, page.rawCount, now()))
         }
         send(page.items)
     }
 
     /** Adopta la versión que acaba de subir esta propia escritura, si nadie se interpuso. */
     suspend fun afterOwnWrite(previousVersion: Long) {
-        val state = syncStateAfterOwnWrite(store.read(key), previousVersion, source.readCache().rawCount)
-        if (state != null) store.write(key, state)
+        val state = syncStateAfterOwnWrite(readStored(), previousVersion, source.readCache().rawCount)
+        if (state != null) writeStored(state)
+    }
+
+    // Un fallo del almacén local (fichero corrupto, disco lleno) no es fatal: sin versión guardada se lee del servidor.
+    private suspend fun readStored(): CatalogSyncState? = try {
+        store.read(key)
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (@Suppress("TooGenericExceptionCaught") _: Exception) {
+        null
+    }
+
+    private suspend fun writeStored(state: CatalogSyncState) {
+        try {
+            store.write(key, state)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (@Suppress("TooGenericExceptionCaught") _: Exception) {
+            // No se cachea la versión; la próxima apertura volverá a leer del servidor.
+        }
     }
 }
 
@@ -128,4 +148,30 @@ internal suspend fun refreshAfterWrite(
         false
     }
     if (refreshed) adopt()
+}
+
+/**
+ * Guardado en dos tiempos: [commit] (la transacción) decide el resultado del guardado; lo posterior
+ * (relectura, adopción de la versión y [onDone]) se hace en [scope], fuera de la corrutina del guardado.
+ */
+internal suspend fun <P> commitThenRefresh(
+    scope: CoroutineScope,
+    timeoutMillis: Long,
+    commit: suspend () -> P,
+    refresh: suspend () -> Boolean,
+    adopt: suspend (P) -> Unit,
+    onDone: () -> Unit,
+) {
+    val committed = commit()
+    scope.launch {
+        try {
+            refreshAfterWrite(timeoutMillis, refresh, { adopt(committed) })
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (@Suppress("TooGenericExceptionCaught") _: Exception) {
+            // El guardado ya se confirmó: lo posterior solo afecta a la caché local.
+        } finally {
+            onDone()
+        }
+    }
 }

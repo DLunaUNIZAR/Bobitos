@@ -49,6 +49,17 @@ private class FakeSyncStore(var state: CatalogSyncState? = null) : CatalogSyncSt
     }
 }
 
+private class BrokenSyncStore(val failRead: Boolean = false, val failWrite: Boolean = false) : CatalogSyncStore {
+    override suspend fun read(key: String): CatalogSyncState? {
+        if (failRead) throw IOException("DataStore corrupto")
+        return CatalogSyncState(3, 2, NOW - DAY)
+    }
+
+    override suspend fun write(key: String, state: CatalogSyncState) {
+        if (failWrite) throw IOException("disco lleno")
+    }
+}
+
 private fun page(vararg items: String) = CatalogPage(items.toList(), items.size)
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -205,6 +216,39 @@ class VersionedCatalogLoaderTest {
         assertEquals(listOf(listOf("a"), listOf("a", "b")), emitted)
         assertEquals(0, source.serverReads)
         job.cancel()
+    }
+
+    @Test
+    fun `a failing store write still emits the server page`() = runTest {
+        source.server = page("a", "b")
+        source.meta = CatalogMeta.Known(3)
+        val brokenLoader = VersionedCatalogLoader(source, BrokenSyncStore(failWrite = true), "k") { NOW }
+        source.cache = CatalogPage(emptyList(), 0)
+
+        val emitted = brokenLoader.catalog(MutableSharedFlow()).toListUntilIdle(this)
+
+        assertEquals(listOf(listOf("a", "b")), emitted)
+    }
+
+    @Test
+    fun `a failing store read goes to the server`() = runTest {
+        source.cache = page("a")
+        source.server = page("a", "b")
+        source.meta = CatalogMeta.Known(3)
+        val brokenLoader = VersionedCatalogLoader(source, BrokenSyncStore(failRead = true), "k") { NOW }
+
+        val emitted = brokenLoader.catalog(MutableSharedFlow()).toListUntilIdle(this)
+
+        assertEquals(listOf(listOf("a"), listOf("a", "b")), emitted)
+        assertEquals(1, source.serverReads)
+    }
+
+    @Test
+    fun `afterOwnWrite with a broken store does not throw`() = runTest {
+        source.cache = page("a")
+
+        VersionedCatalogLoader(source, BrokenSyncStore(failRead = true), "k") { NOW }.afterOwnWrite(3)
+        VersionedCatalogLoader(source, BrokenSyncStore(failWrite = true), "k") { NOW }.afterOwnWrite(3)
     }
 }
 

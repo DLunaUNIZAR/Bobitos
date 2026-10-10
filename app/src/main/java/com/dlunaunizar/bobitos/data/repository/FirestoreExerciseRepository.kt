@@ -14,6 +14,9 @@ import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.Transaction
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -33,6 +36,9 @@ class FirestoreExerciseRepository @Inject constructor(
         extraBufferCapacity = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
+
+    // Lo posterior a un guardado confirmado vive aquí (el repositorio es un singleton), no en la corrutina del guardado.
+    private val postCommitScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val loader = VersionedCatalogLoader(
         source = FirestoreExerciseCatalogSource(firestore),
         store = syncStore,
@@ -96,25 +102,29 @@ class FirestoreExerciseRepository @Inject constructor(
     ) {
         val exerciseRef = exercisesCollection().document(id)
         val metaRef = firestore.collection(CATALOG_META).document(EXERCISES)
-        val previous = try {
-            commitVersioned(metaRef, exerciseRef, userId, write)
-        } catch (error: FirebaseFirestoreException) {
-            val denied = error.code == FirebaseFirestoreException.Code.PERMISSION_DENIED
-            if (isCreate && denied && exerciseExists(exerciseRef)) {
-                throw ExerciseRepositoryException(ExerciseFailure.AlreadyExists, error)
-            }
-            throw error
-        }
-        // La transacción ya se confirmó: una relectura lenta o fallida no puede convertir el guardado en error.
-        refreshAfterWrite(
+        // La transacción ya se confirmó: relectura, adopción de la versión y aviso se hacen fuera del
+        // guardado (y de su tiempo máximo) para que no puedan convertirlo en error.
+        commitThenRefresh(
+            scope = postCommitScope,
             timeoutMillis = REFRESH_TIMEOUT_MILLIS,
+            commit = {
+                try {
+                    commitVersioned(metaRef, exerciseRef, userId, write)
+                } catch (error: FirebaseFirestoreException) {
+                    val denied = error.code == FirebaseFirestoreException.Code.PERMISSION_DENIED
+                    if (isCreate && denied && exerciseExists(exerciseRef)) {
+                        throw ExerciseRepositoryException(ExerciseFailure.AlreadyExists, error)
+                    }
+                    throw error
+                }
+            },
             refresh = {
                 exerciseRef.get(Source.SERVER).await()
                 true
             },
-            adopt = { loader.afterOwnWrite(previous) },
+            adopt = { previous -> loader.afterOwnWrite(previous) },
+            onDone = { localChanges.tryEmit(Unit) },
         )
-        localChanges.tryEmit(Unit)
     }
 
     // Un alta rechazada por las reglas porque la ficha ya existe (otro la creó antes) no es falta de permiso.
