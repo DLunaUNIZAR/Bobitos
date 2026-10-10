@@ -31,4 +31,11 @@ class AttributionStringsTest {
         val v = aaptValue("exercises_attribution_license")
         assertTrue(v.startsWith(" ") && v.endsWith(" "))
     }
+
+    @Test
+    fun laAtribucionDeBobitosYLaDeOtrasFuentesTienenSuTexto() {
+        val v = aaptValue("exercises_attribution_bobitos")
+        assertTrue(v.startsWith("Texto original del Catálogo Bobitos"))
+        assertTrue(aaptValue("exercises_attribution_other").startsWith("Fuente: %1\$s"))
+    }
 }

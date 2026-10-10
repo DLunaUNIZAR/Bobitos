@@ -5,6 +5,7 @@ import com.dlunaunizar.bobitos.core.model.ExerciseEquipment
 import com.dlunaunizar.bobitos.core.model.ExerciseInput
 import com.dlunaunizar.bobitos.core.model.ExerciseSource
 import com.dlunaunizar.bobitos.core.model.ExerciseType
+import com.dlunaunizar.bobitos.core.model.SetMeasure
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
@@ -148,5 +149,77 @@ class CatalogExerciseFirestoreTest {
         val sorted = listOf(exercise("remo", "Remo"), exercise("burpee", "Burpee"), exercise("angel", "Ángel"))
             .sortedForCatalog()
         assertEquals(listOf("Ángel", "Burpee", "Remo"), sorted.map(CatalogExercise::name))
+    }
+
+    private fun wgerImage(extra: Map<String, Any?> = emptyMap()): Map<String, Any?> =
+        mapOf("url" to "https://wger.de/media/exercise-images/1/a.png", "license" to "CC-BY-SA-4.0") + extra
+
+    @Test
+    fun `measure SECONDS is parsed, missing or unknown is REPS`() {
+        assertEquals(SetMeasure.SECONDS, parse(legacy() + ("measure" to "SECONDS"))!!.measure)
+        assertEquals(SetMeasure.REPS, parse(legacy() + ("measure" to "REPS"))!!.measure)
+        assertEquals(SetMeasure.REPS, parse(legacy())!!.measure)
+        assertEquals(SetMeasure.REPS, parse(legacy() + ("measure" to "MINUTES"))!!.measure)
+        assertEquals(SetMeasure.REPS, parse(legacy() + ("measure" to 3))!!.measure)
+    }
+
+    @Test
+    fun `wger media image is parsed, foreign url, missing licence or non-map is ignored`() {
+        val image = parse(legacy() + ("image" to wgerImage(mapOf("author" to "Ana"))))!!.image!!
+        assertEquals("https://wger.de/media/exercise-images/1/a.png", image.url)
+        assertEquals("Ana", image.author)
+        assertEquals("CC-BY-SA-4.0", image.license)
+        assertNull(parse(legacy() + ("image" to wgerImage()))!!.image!!.author)
+        assertNull(parseExerciseImage(wgerImage(mapOf("url" to "https://evil.example/media/a.png"))))
+        assertNull(parseExerciseImage(wgerImage(mapOf("url" to "http://wger.de/media/a.png"))))
+        assertNull(parseExerciseImage(wgerImage(mapOf("url" to "https://wger.de/other/a.png"))))
+        assertNull(parseExerciseImage(wgerImage() - "license"))
+        assertNull(parseExerciseImage(wgerImage() - "url"))
+        assertNull(parseExerciseImage("https://wger.de/media/a.png"))
+        assertNull(parseExerciseImage(null))
+        // La ficha se conserva aunque la imagen no valga.
+        val kept = parse(legacy() + ("image" to "x"))
+        assertEquals("Press banca", kept!!.name)
+        assertNull(kept.image)
+    }
+
+    @Test
+    fun `bobitos source without url parses`() {
+        val source = parse(
+            legacy() + (
+                "source" to mapOf(
+                    "provider" to "bobitos",
+                    "id" to 7L,
+                    "license" to "CC-BY-SA-4.0",
+                    "author" to "Catálogo Bobitos",
+                )
+                ),
+        )!!.source!!
+        assertEquals("bobitos", source.provider)
+        assertEquals(7L, source.sourceId)
+        assertNull(source.url)
+    }
+
+    @Test
+    fun `document without nameLower is kept`() {
+        assertEquals("Press banca", parse(legacy() - "nameLower")!!.name)
+    }
+
+    @Test
+    fun `toFirestoreFields writes measure`() {
+        val base = ExerciseInput("Plancha", ExerciseType.PESO_CORPORAL, null, null, emptyList())
+        assertEquals("REPS", base.toFirestoreFields()["measure"])
+        val fields = base.copy(measure = SetMeasure.SECONDS).toFirestoreFields()
+        assertEquals("SECONDS", fields["measure"])
+        assertEquals(false, fields.containsKey("image"))
+        assertEquals(false, fields.containsKey("source"))
+    }
+
+    @Test
+    fun `validateExerciseInput keeps SECONDS for strength types and forces REPS otherwise`() {
+        val seconds = ExerciseInput("Plancha", ExerciseType.PESO_CORPORAL, null, null, emptyList(), SetMeasure.SECONDS)
+        assertEquals(SetMeasure.SECONDS, validateExerciseInput(seconds).measure)
+        assertEquals(SetMeasure.REPS, validateExerciseInput(seconds.copy(type = ExerciseType.CARDIO)).measure)
+        assertEquals(SetMeasure.REPS, validateExerciseInput(seconds.copy(type = ExerciseType.OTROS)).measure)
     }
 }

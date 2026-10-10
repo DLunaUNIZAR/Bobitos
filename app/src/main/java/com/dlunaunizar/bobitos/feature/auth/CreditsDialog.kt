@@ -31,6 +31,8 @@ private const val OFL_URL = "https://openfontlicense.org/open-font-license-offic
 fun CreditsDialog(onDismiss: () -> Unit) {
     val link = rememberSafeLinks()
     val wger = stringResource(R.string.credits_wger_body)
+    val images = stringResource(R.string.credits_images_body)
+    val bobitos = stringResource(R.string.credits_bobitos_body)
     val off = stringResource(R.string.credits_off_body)
     val font = stringResource(R.string.credits_font_body)
     AlertDialog(
@@ -45,6 +47,11 @@ fun CreditsDialog(onDismiss: () -> Unit) {
                     stringResource(R.string.credits_wger_title),
                     linked(wger, link, "wger.de" to WGER_URL, "CC BY-SA 4.0" to CC_BY_SA_4_URL),
                 )
+                CreditBlock(
+                    stringResource(R.string.credits_bobitos_title),
+                    linked(bobitos, link, "CC BY-SA 4.0" to CC_BY_SA_4_URL),
+                )
+                Text(linked(images, link, "wger.de" to WGER_URL), style = MaterialTheme.typography.bodyMedium)
                 CreditBlock(
                     stringResource(R.string.credits_off_title),
                     linked(off, link, "Open Food Facts" to OFF_URL, "ODbL 1.0" to ODBL_URL, "DbCL 1.0" to DBCL_URL),

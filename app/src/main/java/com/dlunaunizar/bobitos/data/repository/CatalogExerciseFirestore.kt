@@ -2,12 +2,14 @@ package com.dlunaunizar.bobitos.data.repository
 
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseEquipment
+import com.dlunaunizar.bobitos.core.model.ExerciseImage
 import com.dlunaunizar.bobitos.core.model.ExerciseInput
 import com.dlunaunizar.bobitos.core.model.ExerciseSource
 import com.dlunaunizar.bobitos.core.model.ExerciseType
 import com.dlunaunizar.bobitos.core.model.MAX_EXERCISE_DESCRIPTION_LENGTH
 import com.dlunaunizar.bobitos.core.model.MAX_EXERCISE_MUSCLE_LENGTH
 import com.dlunaunizar.bobitos.core.model.MAX_EXERCISE_NAME_LENGTH
+import com.dlunaunizar.bobitos.core.model.SetMeasure
 import java.text.Collator
 import java.time.Instant
 import java.util.Locale
@@ -35,6 +37,8 @@ internal fun parseCatalogExercise(
         muscleGroup = data["muscleGroup"] as? String,
         description = (data["description"] as? String)?.takeIf(String::isNotBlank),
         equipment = parseExerciseEquipment(data["equipment"]),
+        measure = parseSetMeasure(data["measure"]),
+        image = parseExerciseImage(data["image"]),
         source = parseExerciseSource(data["source"]),
         ownerUid = ownerUid,
         createdBy = createdBy,
@@ -47,6 +51,21 @@ internal fun parseCatalogExercise(
 
 internal fun parseExerciseType(raw: Any?): ExerciseType =
     (raw as? String)?.let { value -> runCatching { ExerciseType.valueOf(value) }.getOrNull() } ?: ExerciseType.OTROS
+
+// Ausente o desconocida (p. ej. una beta antigua que no la escribe) → repeticiones.
+internal fun parseSetMeasure(raw: Any?): SetMeasure =
+    (raw as? String)?.let { value -> runCatching { SetMeasure.valueOf(value) }.getOrNull() } ?: SetMeasure.REPS
+
+private const val WGER_MEDIA_PREFIX = "https://wger.de/media/"
+
+// Solo se acepta una imagen alojada en wger.de/media y con licencia; si no, la ficha sigue sin imagen.
+internal fun parseExerciseImage(raw: Any?): ExerciseImage? {
+    val map = raw as? Map<*, *> ?: return null
+    val url = map["url"] as? String
+    val license = map["license"] as? String
+    if (url == null || license == null || !url.startsWith(WGER_MEDIA_PREFIX)) return null
+    return ExerciseImage(url, map["author"] as? String, license)
+}
 
 // Ignora desconocidos y duplicados; devuelve en el orden canónico del enum.
 internal fun parseExerciseEquipment(raw: Any?): List<ExerciseEquipment> {
@@ -62,6 +81,10 @@ internal fun parseExerciseSource(raw: Any?): ExerciseSource? {
     if (provider == null || sourceId == null || license == null) return null
     return ExerciseSource(provider, sourceId, license, map["author"] as? String, map["url"] as? String)
 }
+
+// Mismos tipos que ExerciseType.isStrength de la UI: los que registran series (el resto no tiene medida).
+private fun ExerciseType.recordsSets(): Boolean =
+    this == ExerciseType.MAQUINA || this == ExerciseType.PESO_LIBRE || this == ExerciseType.PESO_CORPORAL
 
 // Recorta y valida; lanza ExerciseRepositoryException con el fallo concreto.
 internal fun validateExerciseInput(input: ExerciseInput): ExerciseInput {
@@ -79,6 +102,7 @@ internal fun validateExerciseInput(input: ExerciseInput): ExerciseInput {
     if (failure != null) throw ExerciseRepositoryException(failure)
     return input.copy(
         name = name,
+        measure = if (input.type.recordsSets()) input.measure else SetMeasure.REPS,
         muscleGroup = muscle,
         description = description,
         equipment = ExerciseEquipment.entries.filter { it in input.equipment },
@@ -93,6 +117,7 @@ internal fun ExerciseInput.toFirestoreFields(): Map<String, Any?> = mapOf(
     "muscleGroup" to muscleGroup,
     "description" to description,
     "equipment" to equipment.map(ExerciseEquipment::name),
+    "measure" to measure.name,
 )
 
 // Orden alfabético en español sin distinguir tildes ni mayúsculas; desempata por id.

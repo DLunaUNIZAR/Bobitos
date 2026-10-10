@@ -4,6 +4,7 @@ import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseEquipment
 import com.dlunaunizar.bobitos.core.model.ExerciseInput
 import com.dlunaunizar.bobitos.core.model.ExerciseType
+import com.dlunaunizar.bobitos.core.model.SetMeasure
 import com.dlunaunizar.bobitos.core.model.slug
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -108,5 +109,16 @@ class CatalogExerciseDraftTest {
     fun editarSinCambiarElNombreNoEsDuplicado() {
         // Quien edita pasa los ids de los demás ejercicios, sin el suyo.
         assertEquals(emptySet<ExerciseDraftError>(), draft(name = "Remo").errors(setOf(slug("Press banca"))))
+    }
+
+    @Test
+    fun `editing keeps measure, non-strength types save REPS`() {
+        val seconds = exercise("core").copy(type = ExerciseType.PESO_CORPORAL, measure = SetMeasure.SECONDS)
+        val draft = CatalogExerciseDraft.of(seconds)
+        assertEquals(SetMeasure.SECONDS, draft.measure)
+        assertEquals(SetMeasure.SECONDS, draft.toInput().measure)
+        assertEquals(SetMeasure.REPS, CatalogExerciseDraft.of(null).measure)
+        assertEquals(SetMeasure.REPS, draft.copy(type = ExerciseType.CARDIO).toInput().measure)
+        assertEquals(SetMeasure.REPS, draft.copy(type = ExerciseType.OTROS).toInput().measure)
     }
 }

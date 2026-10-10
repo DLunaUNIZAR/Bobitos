@@ -14,8 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -53,6 +51,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
+import com.dlunaunizar.bobitos.core.designsystem.component.InfoChip
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
@@ -268,14 +267,7 @@ private fun ExerciseRow(
                     )
                 }
             }
-            AssistChip(
-                onClick = {},
-                enabled = false,
-                label = { Text(stringResource(exercise.type.labelRes)) },
-                colors = AssistChipDefaults.assistChipColors(
-                    disabledLabelColor = exercise.type.accent(),
-                ),
-            )
+            InfoChip(stringResource(exercise.type.labelRes), contentColor = exercise.type.accent())
             if (canEdit) {
                 Box {
                     IconButton(onClick = { menu = true }) {

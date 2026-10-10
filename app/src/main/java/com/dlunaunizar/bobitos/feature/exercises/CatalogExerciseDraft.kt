@@ -8,6 +8,7 @@ import com.dlunaunizar.bobitos.core.model.ExerciseType
 import com.dlunaunizar.bobitos.core.model.MAX_EXERCISE_DESCRIPTION_LENGTH
 import com.dlunaunizar.bobitos.core.model.MAX_EXERCISE_MUSCLE_LENGTH
 import com.dlunaunizar.bobitos.core.model.MAX_EXERCISE_NAME_LENGTH
+import com.dlunaunizar.bobitos.core.model.SetMeasure
 import com.dlunaunizar.bobitos.core.model.slug
 import kotlinx.parcelize.Parcelize
 
@@ -22,6 +23,7 @@ internal data class CatalogExerciseDraft(
     val muscle: String,
     val description: String = "",
     val equipment: List<ExerciseEquipment> = emptyList(),
+    val measure: SetMeasure = SetMeasure.REPS,
 ) : Parcelable {
     fun toInput() = ExerciseInput(
         name = name.trim(),
@@ -29,6 +31,7 @@ internal data class CatalogExerciseDraft(
         muscleGroup = muscle.trim().ifBlank { null },
         description = description.trim().ifBlank { null },
         equipment = equipment,
+        measure = if (type.isStrength) measure else SetMeasure.REPS,
     )
 
     // otherIds: ids (slugs) de los demás ejercicios del catálogo, sin el que se edita.
@@ -48,6 +51,7 @@ internal data class CatalogExerciseDraft(
             muscle = exercise?.muscleGroup.orEmpty(),
             description = exercise?.description.orEmpty(),
             equipment = exercise?.equipment.orEmpty(),
+            measure = exercise?.measure ?: SetMeasure.REPS,
         )
     }
 }

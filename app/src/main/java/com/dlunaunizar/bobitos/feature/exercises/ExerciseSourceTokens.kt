@@ -27,3 +27,20 @@ internal fun licenseUrl(code: String): String? = when (code) {
 
 // Solo se enlaza la ficha de wger.de; cualquier otra URL (aunque venga de Firestore) se muestra sin enlace.
 internal fun ExerciseSource.linkUrl(): String? = url?.takeIf { it.startsWith(WGER_URL) }
+
+// Qué atribución mostrar según el proveedor de la ficha; el texto lo compone la UI.
+internal sealed interface ExerciseAttribution {
+    data class Wger(val sourceId: Long, val author: String?, val license: String, val url: String?) :
+        ExerciseAttribution
+
+    // Fichas propias del catálogo: texto original del proyecto, sin ficha externa que enlazar.
+    data class Bobitos(val license: String) : ExerciseAttribution
+
+    data class Other(val provider: String, val license: String) : ExerciseAttribution
+}
+
+internal fun ExerciseSource.attribution(): ExerciseAttribution = when (provider) {
+    "wger" -> ExerciseAttribution.Wger(sourceId, author, license, linkUrl())
+    "bobitos" -> ExerciseAttribution.Bobitos(license)
+    else -> ExerciseAttribution.Other(provider, license)
+}

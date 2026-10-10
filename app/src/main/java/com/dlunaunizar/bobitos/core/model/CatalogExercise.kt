@@ -29,6 +29,15 @@ enum class ExerciseEquipment {
     BANDA_ELASTICA,
 }
 
+// En qué se mide cada serie del ejercicio: repeticiones (por defecto) o segundos (isométricos).
+enum class SetMeasure {
+    REPS,
+    SECONDS,
+}
+
+// Imagen de la ficha, enlazada desde wger.de con su autoría y licencia (no se copia ni se sube).
+data class ExerciseImage(val url: String, val author: String?, val license: String)
+
 // Procedencia de una ficha importada (p. ej. wger) para atribuir autor y licencia.
 data class ExerciseSource(
     val provider: String,
@@ -50,6 +59,7 @@ data class ExerciseInput(
     val muscleGroup: String?,
     val description: String?,
     val equipment: List<ExerciseEquipment>,
+    val measure: SetMeasure = SetMeasure.REPS,
 )
 
 // Ficha del catálogo global de ejercicios (≈ CatalogIngredient; id = slug del nombre).
@@ -60,6 +70,8 @@ data class CatalogExercise(
     val muscleGroup: String? = null,
     val description: String? = null,
     val equipment: List<ExerciseEquipment> = emptyList(),
+    val measure: SetMeasure = SetMeasure.REPS,
+    val image: ExerciseImage? = null,
     val source: ExerciseSource? = null,
     val ownerUid: String,
     val createdBy: String,

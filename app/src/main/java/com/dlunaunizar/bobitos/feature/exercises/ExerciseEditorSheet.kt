@@ -26,6 +26,7 @@ import com.dlunaunizar.bobitos.core.model.ExerciseEquipment
 import com.dlunaunizar.bobitos.core.model.ExerciseInput
 import com.dlunaunizar.bobitos.core.model.ExerciseType
 import com.dlunaunizar.bobitos.core.model.MAX_EXERCISE_DESCRIPTION_LENGTH
+import com.dlunaunizar.bobitos.core.model.SetMeasure
 
 // Hoja de alta y edición de un ejercicio del catálogo: nombre, tipo, grupo, material y descripción.
 @OptIn(ExperimentalLayoutApi::class)
@@ -74,6 +75,9 @@ internal fun ExerciseEditorSheet(
                 )
             }
         }
+        if (draft.type.isStrength) {
+            MeasureSelector(draft.measure) { draft = draft.copy(measure = it) }
+        }
         OutlinedTextField(
             value = draft.muscle,
             onValueChange = { draft = draft.copy(muscle = it) },
@@ -87,16 +91,7 @@ internal fun ExerciseEditorSheet(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        Text(stringResource(R.string.exercises_equipment_label), style = MaterialTheme.typography.labelLarge)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            ExerciseEquipment.entries.forEach { option ->
-                FilterChip(
-                    selected = option in draft.equipment,
-                    onClick = { draft = draft.copy(equipment = draft.equipment.toggled(option)) },
-                    label = { Text(stringResource(option.labelRes)) },
-                )
-            }
-        }
+        EquipmentSelector(draft.equipment) { draft = draft.copy(equipment = draft.equipment.toggled(it)) }
         OutlinedTextField(
             value = draft.description,
             onValueChange = { draft = draft.copy(description = it) },
@@ -134,6 +129,42 @@ private val NAME_ERRORS = setOf(
     ExerciseDraftError.NameTooLong,
     ExerciseDraftError.NameExists,
 )
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun EquipmentSelector(selected: List<ExerciseEquipment>, onToggle: (ExerciseEquipment) -> Unit) {
+    Text(stringResource(R.string.exercises_equipment_label), style = MaterialTheme.typography.labelLarge)
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        ExerciseEquipment.entries.forEach { option ->
+            FilterChip(
+                selected = option in selected,
+                onClick = { onToggle(option) },
+                label = { Text(stringResource(option.labelRes)) },
+            )
+        }
+    }
+}
+
+// «Se registra en»: repeticiones o segundos; solo tiene sentido en los tipos con series.
+@Composable
+private fun MeasureSelector(selected: SetMeasure, onSelect: (SetMeasure) -> Unit) {
+    Text(stringResource(R.string.exercises_measure_label), style = MaterialTheme.typography.labelLarge)
+    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        SetMeasure.entries.forEach { option ->
+            FilterChip(
+                selected = selected == option,
+                onClick = { onSelect(option) },
+                label = { Text(stringResource(option.labelRes)) },
+            )
+        }
+    }
+}
+
+private val SetMeasure.labelRes: Int
+    get() = when (this) {
+        SetMeasure.REPS -> R.string.exercises_measure_reps
+        SetMeasure.SECONDS -> R.string.exercises_measure_seconds
+    }
 
 private val ExerciseDraftError.messageRes: Int
     get() = when (this) {

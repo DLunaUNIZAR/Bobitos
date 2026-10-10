@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.feature.exercises
 import com.dlunaunizar.bobitos.core.model.ExerciseSource
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ExerciseSourceTokensTest {
@@ -32,5 +33,23 @@ class ExerciseSourceTokensTest {
         assertNull(source("http://wger.de/x").linkUrl())
         assertNull(source("https://evil.example/https://wger.de/").linkUrl())
         assertNull(source(null).linkUrl())
+    }
+
+    @Test
+    fun `bobitos attribution has own wording and no link`() {
+        val bobitos = ExerciseSource("bobitos", 7, "CC-BY-SA-4.0", "Catálogo Bobitos", null)
+        assertEquals(ExerciseAttribution.Bobitos("CC-BY-SA-4.0"), bobitos.attribution())
+        // Aunque llegara una url, no se enlaza ninguna ficha externa.
+        assertTrue(bobitos.copy(url = "https://wger.de/x").attribution() is ExerciseAttribution.Bobitos)
+        assertEquals(
+            ExerciseAttribution.Wger(1, "Ana", "CC-BY-SA-4.0", "https://wger.de/es/exercise/1/view/"),
+            source("https://wger.de/es/exercise/1/view/").attribution(),
+        )
+    }
+
+    @Test
+    fun `unknown provider shows provider and licence`() {
+        val other = ExerciseSource("acme", 3, "XYZ-9", null, "https://acme.example/3")
+        assertEquals(ExerciseAttribution.Other("acme", "XYZ-9"), other.attribution())
     }
 }
