@@ -1,0 +1,604 @@
+[
+  {
+    "id": 257,
+    "uuid": "d677de4c-5bd9-412a-91f1-857116a666a2",
+    "category": {
+      "id": 9,
+      "name": "Legs"
+    },
+    "muscles": [
+      {
+        "id": 10,
+        "name": "Quadriceps femoris",
+        "name_en": "Quads"
+      }
+    ],
+    "muscles_secondary": [
+      {
+        "id": 6,
+        "name": "Rectus abdominis",
+        "name_en": "Abs"
+      }
+    ],
+    "equipment": [
+      {
+        "id": 1,
+        "name": "Barbell"
+      }
+    ],
+    "license": {
+      "id": 1,
+      "full_name": " Creative Commons Attribution Share Alike 3",
+      "short_name": "CC-BY-SA 3",
+      "url": "https://creativecommons.org/licenses/by-sa/3.0/deed.en"
+    },
+    "license_author": "sistab2",
+    "translations": [
+      {
+        "id": 390,
+        "uuid": "d23d1980-3a50-4d3f-8123-90d7e55c7804",
+        "name": "Front Kniebeuge",
+        "exercise": 257,
+        "description": "<p>Bei dieser Variante des Kniebeugens werden der Beinbizeps und der Große Gesäßmuskel trainiert.</p>\n<p>Daneben werden die Rückenstrecker und die Abduktoren beansprucht.</p>\n",
+        "language": 1,
+        "license": 1,
+        "license_author": "sistab2",
+        "author_history": [
+          "sistab2",
+          "Fogu"
+        ]
+      },
+      {
+        "id": 191,
+        "uuid": "f2e563d2-507b-4586-88c8-77652cd19648",
+        "name": "Front Squats",
+        "exercise": 257,
+        "description": "<p>This variation of the squat trains the hamstrings and gluteus maximus. It also works the back extensors and abductors.</p>\n",
+        "language": 2,
+        "license": 1,
+        "license_author": "sistab2",
+        "author_history": [
+          "sistab2"
+        ]
+      },
+      {
+        "id": 2731,
+        "uuid": "83b6fb1f-4646-4314-95fa-a6bb2f38f363",
+        "name": "Sentadilla Frontal",
+        "exercise": 257,
+        "description": "<p>Contrario a la creencia popular, esta variante de la sentadilla pone un énfasis mucho mayor en los <strong>cuádriceps</strong> y en la <strong>fuerza del core</strong> (abdominales y espalda alta), ya que la posición de la barra obliga a mantener el torso extremadamente erguido.</p>\n<p>Instrucciones</p>\n<ol>\n<li><strong>Posición:</strong> Sostén la barra sobre la parte frontal de tus hombros (deltoides). Puedes usar un agarre de levantamiento olímpico (\"clean grip\", con los codos apuntando al frente) o cruzando los brazos para estabilizar la barra.</li>\n<li><strong>Descenso:</strong> Manteniendo el pecho y los codos elevados en todo momento, baja a una sentadilla profunda. El torso debe permanecer lo más vertical posible durante todo el recorrido.</li>\n<li><strong>Ascenso:</strong> Empuja con fuerza a través de tus piernas (enfocándote en los cuádriceps) para volver a la posición inicial.</li>\n</ol>\n",
+        "language": 4,
+        "license": 2,
+        "license_author": "wgerjhn",
+        "author_history": [
+          "wgerjhn"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 238,
+    "uuid": "95d226ad-3bf7-4cd6-aa64-2f26b526d8b6",
+    "category": {
+      "id": 11,
+      "name": "Chest"
+    },
+    "muscles": [
+      {
+        "id": 4,
+        "name": "Pectoralis major",
+        "name_en": "Chest"
+      }
+    ],
+    "muscles_secondary": [],
+    "equipment": [
+      {
+        "id": 3,
+        "name": "Dumbbell"
+      }
+    ],
+    "license": {
+      "id": 1,
+      "full_name": " Creative Commons Attribution Share Alike 3",
+      "short_name": "CC-BY-SA 3",
+      "url": "https://creativecommons.org/licenses/by-sa/3.0/deed.en"
+    },
+    "license_author": "wger.de",
+    "translations": [
+      {
+        "id": 2722,
+        "uuid": "3413a5d8-d729-4a68-9b99-24fb251eaefd",
+        "name": "Aperturas con Mancuernas",
+        "exercise": 238,
+        "description": "<p>Este es un ejercicio de aislamiento clásico, excelente para estirar las fibras musculares del pecho y lograr una fuerte contracción, ideal para trabajar la amplitud pectoral.</p>\n<p>Instrucciones</p>\n<ol>\n<li><strong>Posición:</strong> Acuéstate en un banco plano con los pies firmes en el suelo y la espalda bien apoyada. Sostén las mancuernas directamente sobre tu pecho con las palmas de las manos enfrentadas.</li>\n<li><strong>Apertura:</strong> Manteniendo una ligera y constante flexión en los codos, baja las mancuernas hacia los lados en un arco amplio y controlado, hasta que sientas un buen estiramiento en el pecho.</li>\n<li><strong>Cierre:</strong> Regresa a la posición inicial siguiendo el mismo arco y apretando los pectorales, como si estuvieras dando un gran abrazo. El movimiento debe ser fluido y controlado.</li>\n</ol>\n",
+        "language": 4,
+        "license": 2,
+        "license_author": "wgerjhn",
+        "author_history": [
+          "wgerjhn"
+        ]
+      },
+      {
+        "id": 18,
+        "uuid": "c0119734-a412-4f34-91f1-cd1c1177fcb8",
+        "name": "Fliegende KH Flachbank",
+        "exercise": 238,
+        "description": "<p>Greife zwei Kurzhanteln und lege dich auf eine Bank und strecke die Arme schulterbreit vollständig aus. Füße, Rücken und Kopf liegen fest auf Boden/Bank und geben Halt. Beuge nun leicht die Arme am Ellenbogengelenk und lasse sie mit einer Halbkreisbewegung seitlich runter. Ohne diesen Winkel zu verändern bringe sie wieder nach oben.</p>\n",
+        "language": 1,
+        "license": 1,
+        "license_author": "wger.de",
+        "author_history": [
+          "wger.de"
+        ]
+      },
+      {
+        "id": 145,
+        "uuid": "754391c6-39d5-4bb6-a311-68a520f6fd3a",
+        "name": "Fly With Dumbbells",
+        "exercise": 238,
+        "description": "<p>Take two dumbbells and lay on a bench, make sure the feet are firmly on the ground and your back is not arched, but has good contact with the bench. The arms are stretched in front of you, about shoulder wide. Bend now the arms a bit and let them down with a half-circle movement to the side. Without changing the angle of the elbow bring them in a fluid movement back up.</p>\n",
+        "language": 2,
+        "license": 1,
+        "license_author": "wger.de",
+        "author_history": [
+          "wger.de"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 245,
+    "uuid": "893c07ea-2e24-49b6-92e4-d0033eedec62",
+    "category": {
+      "id": 8,
+      "name": "Arms"
+    },
+    "muscles": [
+      {
+        "id": 5,
+        "name": "Triceps brachii",
+        "name_en": "Triceps"
+      }
+    ],
+    "muscles_secondary": [],
+    "equipment": [
+      {
+        "id": 8,
+        "name": "Bench"
+      },
+      {
+        "id": 3,
+        "name": "Dumbbell"
+      }
+    ],
+    "license": {
+      "id": 1,
+      "full_name": " Creative Commons Attribution Share Alike 3",
+      "short_name": "CC-BY-SA 3",
+      "url": "https://creativecommons.org/licenses/by-sa/3.0/deed.en"
+    },
+    "license_author": "wger.de",
+    "translations": [
+      {
+        "id": 58,
+        "uuid": "bdf8997a-84ce-434a-ae95-1f9fc50f43bb",
+        "name": "Frenchpress KH",
+        "exercise": 245,
+        "description": "<p>Nehme die Hanteln in die Hand, lege dich auf eine Bank und stelle dich so hin, dass ca. 1/4 des Kopfes nicht mehr auf der Bank liegt. Strecke die Arme aus und lasse nun mit einem Bogen die Gewichte runter. Wenn die Hanteln knapp über die Stirn sind, drücke sie wieder nach oben.</p>\n<p>Es ist wichtig die Ellenbogen während der ganzen Übung wenig zu bewegen, damit die Trizeps die Arbeit machen.</p>\n",
+        "language": 1,
+        "license": 1,
+        "license_author": "wger.de",
+        "author_history": [
+          "wger.de"
+        ]
+      },
+      {
+        "id": 2737,
+        "uuid": "fd670276-3f9e-4bcb-ae69-fa5d7eda459f",
+        "name": "Press Francés con Mancuernas",
+        "exercise": 245,
+        "description": "<p>Este ejercicio, también conocido como \"rompecráneos\" (<em>skullcrushers</em>), es uno de los más efectivos para aislar y añadir masa a los tríceps, con un gran enfoque en la cabeza larga del músculo.</p>\n<p>Instrucciones</p>\n<ol>\n<li><strong>Posición:</strong> Acuéstate en un banco plano. Sostén un par de mancuernas sobre tu pecho con un agarre neutro (palmas enfrentadas) y luego inclina los brazos ligeramente hacia atrás de la vertical. Esta inclinación es clave para mantener una tensión constante sobre el tríceps.</li>\n<li><strong>Descenso:</strong> Manteniendo la parte superior de los brazos completamente inmóvil en ese ángulo, flexiona únicamente los codos para bajar las mancuernas a los costados de tu cabeza hasta sentir un buen estiramiento.</li>\n<li><strong>Ascenso:</strong> Extiende los codos para volver a la posición inicial, enfocándote en contraer con fuerza los tríceps. El único movimiento debe provenir de la articulación del codo.</li>\n</ol>\n",
+        "language": 4,
+        "license": 2,
+        "license_author": "wgerjhn",
+        "author_history": [
+          "wgerjhn"
+        ]
+      },
+      {
+        "id": 85,
+        "uuid": "ee00d53e-4482-44aa-b780-bbc570061841",
+        "name": "Skullcrusher Dumbbells",
+        "exercise": 245,
+        "description": "<p>Hold the dumbbells and lay down on a flat bench in such a way that around 1/4 of your head is over the edge. Stretch arms straight up and then lean dumbbells away from your toes to a 10-20 degree angle. Keep upper arm at this angle throughout exercise. Dumbbell shall not be amed at your head, but away over your head. This will maximise gain from exercise with load on triceps all the time.</p>\n<p>Pay attention to your elbows and arms: only the triceps are doing the work, the rest of the arms should not move.</p>\n",
+        "language": 2,
+        "license": 1,
+        "license_author": "wger.de",
+        "author_history": [
+          "wger.de"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 211,
+    "uuid": "d8bddb58-91b0-4d7b-8ec1-cd742584b607",
+    "category": {
+      "id": 8,
+      "name": "Arms"
+    },
+    "muscles": [
+      {
+        "id": 5,
+        "name": "Triceps brachii",
+        "name_en": "Triceps"
+      }
+    ],
+    "muscles_secondary": [
+      {
+        "id": 2,
+        "name": "Anterior deltoid",
+        "name_en": "Shoulders"
+      },
+      {
+        "id": 4,
+        "name": "Pectoralis major",
+        "name_en": "Chest"
+      }
+    ],
+    "equipment": [
+      {
+        "id": 3,
+        "name": "Dumbbell"
+      }
+    ],
+    "license": {
+      "id": 1,
+      "full_name": " Creative Commons Attribution Share Alike 3",
+      "short_name": "CC-BY-SA 3",
+      "url": "https://creativecommons.org/licenses/by-sa/3.0/deed.en"
+    },
+    "license_author": "tuninx",
+    "translations": [
+      {
+        "id": 274,
+        "uuid": "3f7b893e-a089-450f-b8cc-ec3ec17d3bf3",
+        "name": "Dumbbell Triceps Extension",
+        "exercise": 211,
+        "description": "<p>Position one dumbbell over head with both hands under inner plate (heart shaped grip).</p>\n<p>With elbows over head, lower forearm behind upper arm by flexing elbows. Flex wrists at bottom to avoid hitting dumbbell on back of neck. Raise dumbbell over head by extending elbows while hyperextending wrists. Return and repeat.</p>\n",
+        "language": 2,
+        "license": 1,
+        "license_author": "tuninx",
+        "author_history": [
+          "tuninx"
+        ]
+      },
+      {
+        "id": 2724,
+        "uuid": "9be5224d-a539-4bd0-981c-fe03139fe13c",
+        "name": "Press Francés con Mancuerna",
+        "exercise": 211,
+        "description": "<p>Este ejercicio es excelente para aislar los tríceps, con un énfasis especial en la cabeza larga del músculo debido a la posición de los brazos sobre la cabeza, lo que permite un mayor estiramiento.</p>\n<p>Instrucciones</p>\n<ol>\n<li><strong>Posición:</strong> Preferiblemente sentado en un banco, sostén una mancuerna en posición vertical con ambas manos (usando un agarre de \"copa\" o diamante) y elévala por encima de tu cabeza.</li>\n<li><strong>Descenso:</strong> Manteniendo la parte superior de los brazos inmóvil y los codos apuntando al techo, baja la mancuerna por detrás de tu cabeza flexionando los codos hasta sentir un estiramiento profundo en los tríceps.</li>\n<li><strong>Ascenso:</strong> Extiende los codos para volver a la posición inicial, contrayendo con fuerza los tríceps en la parte final del movimiento.</li>\n</ol>\n",
+        "language": 4,
+        "license": 2,
+        "license_author": "wgerjhn",
+        "author_history": [
+          "wgerjhn"
+        ]
+      },
+      {
+        "id": 4313,
+        "uuid": "142cb2ab-1fca-480f-a374-f038ee50640c",
+        "name": "Trizepsstrecken mit Kurzhantel",
+        "exercise": 211,
+        "description": "<p>Positioniere eine Kurzhantel über dem Kopf, beide Hände unter der inneren Gewichtsscheibe (herzförmiger Griff).</p>\n<p>Halte die Ellenbogen über dem Kopf und senke den Unterarm hinter den Oberarm, indem du die Ellenbogen beugst. Beuge am tiefsten Punkt die Handgelenke, um zu vermeiden, dass die Kurzhantel den Nacken trifft. Hebe die Kurzhantel über den Kopf, indem du die Ellenbogen streckst und dabei die Handgelenke überstreckst. Kehre zurück und wiederhole.</p>\n",
+        "language": 1,
+        "license": 2,
+        "license_author": "wger.de",
+        "author_history": [
+          "wger.de"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 254,
+    "uuid": "68e0dbba-2d1e-4a56-8378-8824c1de3342",
+    "category": {
+      "id": 13,
+      "name": "Shoulders"
+    },
+    "muscles": [
+      {
+        "id": 2,
+        "name": "Anterior deltoid",
+        "name_en": "Shoulders"
+      },
+      {
+        "id": 9,
+        "name": "Trapezius",
+        "name_en": ""
+      }
+    ],
+    "muscles_secondary": [],
+    "equipment": [],
+    "license": {
+      "id": 1,
+      "full_name": " Creative Commons Attribution Share Alike 3",
+      "short_name": "CC-BY-SA 3",
+      "url": "https://creativecommons.org/licenses/by-sa/3.0/deed.en"
+    },
+    "license_author": "Marius",
+    "translations": [
+      {
+        "id": 2728,
+        "uuid": "8071f5c7-6d66-47bb-bad5-6f7fe2fdc3bb",
+        "name": "Elevaciones Frontales con Disco",
+        "exercise": 254,
+        "description": "<p>La elevación frontal con disco es una variante de la elevación frontal con mancuerna en la que sujetas un disco entre las dos manos, en lugar de usar una mancuerna, una barra u otro peso. Puede aportar variedad en un entrenamiento de hipertrofia centrado en los hombros, o como parte de un circuito de tren superior o de cuerpo completo.</p>\n<ol>\n<li>De pie y erguido, sujeta un disco con ambas manos en las posiciones de las 3 y las 9 del reloj. Las palmas deben mirarse entre sí y los brazos deben estar extendidos y bloqueados con una ligera flexión en los codos, y el disco debe quedar abajo, cerca de tu cintura y por delante de ti, tan lejos como puedas. <strong>Consejo</strong>: Los brazos permanecerán en esta posición durante todo el ejercicio. Esta será tu posición inicial.</li>\n<li>Eleva lentamente el disco mientras exhalas hasta que quede un poco por encima de la altura de los hombros. Mantén la contracción durante un segundo. Mientras inhalas, baja lentamente el disco de nuevo hasta la posición inicial.</li>\n<li>Repite el número de repeticiones recomendado.</li>\n</ol>\n",
+        "language": 4,
+        "license": 2,
+        "license_author": "wgerjhn",
+        "author_history": [
+          "wgerjhn"
+        ]
+      },
+      {
+        "id": 1047,
+        "uuid": "a0279f68-99d5-4fa1-85d7-12c748df2670",
+        "name": "Front Raises with Plates",
+        "exercise": 254,
+        "description": "<p>The plate front raise is a variation of the dumbbell front raise where the lifter holds a weight plate between two hands, rather than using a dumbbell, barbell, or other weight. It can provide variety in a shoulder-focused muscle-building workout, or as part of an upper body or full-body circuit.</p>\n<ol>\n<li>While standing straight, hold a barbell plate in both hands at the 3 and 9 o'clock positions. Your palms should be facing each other and your arms should be extended and locked with a slight bend at the elbows and the plate should be down near your waist in front of you as far as you can go. <strong>Tip</strong>: The arms will remain in this position throughout the exercise. This will be your starting position.</li>\n<li>Slowly raise the plate as you exhale until it is a little above shoulder level. Hold the contraction for a second. As you inhale, slowly lower the plate back down to the starting position.</li>\n<li>Repeat for the recommended amount of repetitions.</li>\n</ol>\n",
+        "language": 2,
+        "license": 1,
+        "license_author": "Marius",
+        "author_history": [
+          "Marius",
+          "wger.de"
+        ]
+      },
+      {
+        "id": 221,
+        "uuid": "61deb9d0-ec4c-4fe3-8cc4-c276116b4b95",
+        "name": "Frontheben Mit Scheibe",
+        "exercise": 254,
+        "description": "<p>Das Frontheben mit Gewichtsscheibe ist eine Variante des Fronthebens mit Kurzhantel, bei der du eine Gewichtsscheibe zwischen beiden Händen hältst, statt eine Kurzhantel, Langhantel oder ein anderes Gewicht zu verwenden. Es kann für Abwechslung in einem schulterbetonten Muskelaufbautraining sorgen oder Teil eines Oberkörper- oder Ganzkörper-Zirkels sein.</p>\n<ol>\n<li>Halte im aufrechten Stand eine Hantelscheibe mit beiden Händen auf der 3- und 9-Uhr-Position. Deine Handflächen sollten einander zugewandt sein, deine Arme gestreckt und mit einer leichten Beugung im Ellbogen fixiert, und die Scheibe sollte so weit wie möglich unten vor dir auf Höhe der Taille gehalten werden. <strong>Tipp</strong>: Die Arme bleiben während der gesamten Übung in dieser Position. Das ist deine Ausgangsposition.</li>\n<li>Hebe die Scheibe langsam an, während du ausatmest, bis sie etwas über Schulterhöhe ist. Halte die Kontraktion eine Sekunde lang. Während du einatmest, senke die Scheibe langsam wieder in die Ausgangsposition.</li>\n<li>Wiederhole für die empfohlene Anzahl an Wiederholungen.</li>\n</ol>\n",
+        "language": 1,
+        "license": 1,
+        "license_author": "Marius",
+        "author_history": [
+          "Marius"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 177,
+    "uuid": "8dedde58-a5dc-4a23-ad20-fd7cf524f8b5",
+    "category": {
+      "id": 15,
+      "name": "Cardio"
+    },
+    "muscles": [
+      {
+        "id": 14,
+        "name": "Obliquus externus abdominis",
+        "name_en": ""
+      },
+      {
+        "id": 9,
+        "name": "Trapezius",
+        "name_en": ""
+      }
+    ],
+    "muscles_secondary": [
+      {
+        "id": 11,
+        "name": "Biceps femoris",
+        "name_en": "Hamstrings"
+      },
+      {
+        "id": 13,
+        "name": "Brachialis",
+        "name_en": ""
+      },
+      {
+        "id": 8,
+        "name": "Gluteus maximus",
+        "name_en": "Glutes"
+      },
+      {
+        "id": 12,
+        "name": "Latissimus dorsi",
+        "name_en": "Lats"
+      },
+      {
+        "id": 10,
+        "name": "Quadriceps femoris",
+        "name_en": "Quads"
+      }
+    ],
+    "equipment": [
+      {
+        "id": 7,
+        "name": "none (bodyweight exercise)"
+      }
+    ],
+    "license": {
+      "id": 3,
+      "full_name": "Creative Commons Public Domain 1.0",
+      "short_name": "CC0",
+      "url": "http://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    "license_author": "BFad07",
+    "translations": [
+      {
+        "id": 2705,
+        "uuid": "484bb33b-2ac4-451d-a5d9-fc810abcd6aa",
+        "name": "Ciclismo",
+        "exercise": 177,
+        "description": "<p>El ciclismo es el uso de la bicicleta como ejercicio, transporte o deporte. Es una de las actividades cardiovasculares más completas y populares.</p>\n<p><strong>Descripción:</strong></p>\n<p>Como ejercicio, el ciclismo es una actividad de <strong>bajo impacto</strong>, ideal para la salud del corazón y para proteger las articulaciones (rodillas, tobillos). Fortalece principalmente el tren inferior del cuerpo: cuádriceps, isquiotibiales, glúteos y pantorrillas. Se puede practicar al aire libre (ciclismo de ruta o de montaña) o en interiores, utilizando una bicicleta estacionaria o en clases de spinning.</p>\n",
+        "language": 4,
+        "license": 2,
+        "license_author": "wgerjhn",
+        "author_history": [
+          "wgerjhn"
+        ]
+      },
+      {
+        "id": 806,
+        "uuid": "035d5dfc-1a1b-480b-bc9b-b6f634f19aee",
+        "name": "Cycling",
+        "exercise": 177,
+        "description": "<p>Cycling, also called bicycling or biking, is the use of bicycles for transport, recreation, exercise or sport. People engaged in cycling are referred to as cyclists, bicyclists, or bikers. Apart from two-wheeled bicycles, cycling also includes the riding of unicycles, tricycles, quadracycles, recumbent and similar human-powered vehicles.</p>\n",
+        "language": 2,
+        "license": 3,
+        "license_author": "BFad07",
+        "author_history": [
+          "BFad07"
+        ]
+      },
+      {
+        "id": 1065,
+        "uuid": "74466d9b-7658-49b5-8127-c91a70fd2307",
+        "name": "Fahrrad fahren",
+        "exercise": 177,
+        "description": "",
+        "language": 1,
+        "license": 3,
+        "license_author": "BFad07",
+        "author_history": [
+          "wger.de",
+          "BFad07"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 900001,
+    "uuid": "00000000-0000-4000-8000-000000000001",
+    "category": {
+      "id": 11,
+      "name": "Chest"
+    },
+    "muscles": [
+      {
+        "id": 4,
+        "name": "Pectoralis major",
+        "name_en": "Chest"
+      }
+    ],
+    "muscles_secondary": [],
+    "equipment": [
+      {
+        "id": 3,
+        "name": "Dumbbell"
+      }
+    ],
+    "license": {
+      "id": 1,
+      "full_name": " Creative Commons Attribution Share Alike 3",
+      "short_name": "CC-BY-SA 3",
+      "url": "https://creativecommons.org/licenses/by-sa/3.0/deed.en"
+    },
+    "license_author": "wger.de",
+    "translations": [
+      {
+        "id": 2722,
+        "uuid": "3413a5d8-d729-4a68-9b99-24fb251eaefd",
+        "name": "Ejercicio ODbL",
+        "exercise": 238,
+        "description": "<p>Este es un ejercicio de aislamiento clásico, excelente para estirar las fibras musculares del pecho y lograr una fuerte contracción, ideal para trabajar la amplitud pectoral.</p>\n<p>Instrucciones</p>\n<ol>\n<li><strong>Posición:</strong> Acuéstate en un banco plano con los pies firmes en el suelo y la espalda bien apoyada. Sostén las mancuernas directamente sobre tu pecho con las palmas de las manos enfrentadas.</li>\n<li><strong>Apertura:</strong> Manteniendo una ligera y constante flexión en los codos, baja las mancuernas hacia los lados en un arco amplio y controlado, hasta que sientas un buen estiramiento en el pecho.</li>\n<li><strong>Cierre:</strong> Regresa a la posición inicial siguiendo el mismo arco y apretando los pectorales, como si estuvieras dando un gran abrazo. El movimiento debe ser fluido y controlado.</li>\n</ol>\n",
+        "language": 4,
+        "license": 5,
+        "license_author": "wgerjhn",
+        "author_history": [
+          "wgerjhn"
+        ]
+      },
+      {
+        "id": 18,
+        "uuid": "c0119734-a412-4f34-91f1-cd1c1177fcb8",
+        "name": "Fliegende KH Flachbank",
+        "exercise": 238,
+        "description": "<p>Greife zwei Kurzhanteln und lege dich auf eine Bank und strecke die Arme schulterbreit vollständig aus. Füße, Rücken und Kopf liegen fest auf Boden/Bank und geben Halt. Beuge nun leicht die Arme am Ellenbogengelenk und lasse sie mit einer Halbkreisbewegung seitlich runter. Ohne diesen Winkel zu verändern bringe sie wieder nach oben.</p>\n",
+        "language": 1,
+        "license": 1,
+        "license_author": "wger.de",
+        "author_history": [
+          "wger.de"
+        ]
+      },
+      {
+        "id": 145,
+        "uuid": "754391c6-39d5-4bb6-a311-68a520f6fd3a",
+        "name": "Fly With Dumbbells",
+        "exercise": 238,
+        "description": "<p>Take two dumbbells and lay on a bench, make sure the feet are firmly on the ground and your back is not arched, but has good contact with the bench. The arms are stretched in front of you, about shoulder wide. Bend now the arms a bit and let them down with a half-circle movement to the side. Without changing the angle of the elbow bring them in a fluid movement back up.</p>\n",
+        "language": 2,
+        "license": 1,
+        "license_author": "wger.de",
+        "author_history": [
+          "wger.de"
+        ]
+      }
+    ]
+  },
+  {
+    "id": 900002,
+    "uuid": "00000000-0000-4000-8000-000000000002",
+    "category": {
+      "id": 11,
+      "name": "Chest"
+    },
+    "muscles": [
+      {
+        "id": 4,
+        "name": "Pectoralis major",
+        "name_en": "Chest"
+      }
+    ],
+    "muscles_secondary": [],
+    "equipment": [
+      {
+        "id": 3,
+        "name": "Dumbbell"
+      }
+    ],
+    "license": {
+      "id": 1,
+      "full_name": " Creative Commons Attribution Share Alike 3",
+      "short_name": "CC-BY-SA 3",
+      "url": "https://creativecommons.org/licenses/by-sa/3.0/deed.en"
+    },
+    "license_author": "wger.de",
+    "translations": [
+      {
+        "id": 18,
+        "uuid": "c0119734-a412-4f34-91f1-cd1c1177fcb8",
+        "name": "Fliegende KH Flachbank",
+        "exercise": 238,
+        "description": "<p>Greife zwei Kurzhanteln und lege dich auf eine Bank und strecke die Arme schulterbreit vollständig aus. Füße, Rücken und Kopf liegen fest auf Boden/Bank und geben Halt. Beuge nun leicht die Arme am Ellenbogengelenk und lasse sie mit einer Halbkreisbewegung seitlich runter. Ohne diesen Winkel zu verändern bringe sie wieder nach oben.</p>\n",
+        "language": 1,
+        "license": 1,
+        "license_author": "wger.de",
+        "author_history": [
+          "wger.de"
+        ]
+      },
+      {
+        "id": 145,
+        "uuid": "754391c6-39d5-4bb6-a311-68a520f6fd3a",
+        "name": "Fly With Dumbbells",
+        "exercise": 238,
+        "description": "<p>Take two dumbbells and lay on a bench, make sure the feet are firmly on the ground and your back is not arched, but has good contact with the bench. The arms are stretched in front of you, about shoulder wide. Bend now the arms a bit and let them down with a half-circle movement to the side. Without changing the angle of the elbow bring them in a fluid movement back up.</p>\n",
+        "language": 2,
+        "license": 1,
+        "license_author": "wger.de",
+        "author_history": [
+          "wger.de"
+        ]
+      }
+    ]
+  }
+]
