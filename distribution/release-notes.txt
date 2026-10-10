@@ -1,9 +1,23 @@
-Beta de Bobitos — las tareas se crean solo desde el formulario completo.
+Beta de Bobitos — catálogo de ejercicios, formularios que esperan a guardar y créditos.
+
+IMPORTANTE: actualizad todos los miembros de cada espacio. Las versiones anteriores no reconocen el tipo «Peso corporal» y, si editan una rutina o una sesión de gimnasio que lo use, pierden sus series.
 
 Novedades desde la beta anterior:
 
-Tareas
-- Se quita el campo de la cabecera que apuntaba una tarea solo con el nombre. Para crear una tarea, usa el botón "Nueva tarea" (o el de la lista vacía): abre el formulario con responsable, fechas y periodicidad.
-- "Plantillas" sigue abriendo el formulario con los datos de la plantilla ya rellenos.
+Ejercicios
+- Catálogo común con 214 ejercicios en español (de wger.de y propios), con descripción, material y, en muchos casos, imagen.
+- Nuevo tipo «Peso corporal»: series con repeticiones y lastre opcional.
+- Los isométricos (plancha, L-sit…) se registran por series en segundos; cualquier ejercicio de fuerza puede pasar de repeticiones a segundos.
+- Toca un ejercicio para ver su ficha: técnica, material, imagen y autoría.
+- Buscador sin tildes y filtros por grupo muscular y tipo, también al añadir ejercicios a una rutina o a una sesión de gimnasio.
+- «Personalizado…» rellena el nombre con lo que estabas buscando.
+
+Formularios
+- Al pulsar Guardar, el formulario muestra «Guardando…» y solo se cierra cuando el servidor lo confirma. Si falla, se queda abierto con el error y lo que escribiste, para reintentar.
+- Al deshacer un borrado ya no se cierra el formulario que tengas abierto.
+
+Otros
+- «Créditos y licencias» en Perfil: wger, Open Food Facts y la fuente Nunito.
+- La política de privacidad explica el uso de Open Food Facts al escanear códigos de barras.
 
 Comunica cualquier error indicando el modelo del dispositivo, la versión de Android y los pasos para reproducirlo.
