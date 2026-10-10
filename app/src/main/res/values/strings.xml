@@ -564,10 +564,10 @@
     <string name="exercises_equipment_label">Material (opcional)</string>
     <string name="exercises_detail_equipment">Material: %1$s</string>
     <string name="exercises_detail_no_description">Sin descripción.</string>
-    <string name="exercises_attribution_prefix">Texto adaptado de </string>
+    <string name="exercises_attribution_prefix">"Texto adaptado de "</string>
     <string name="exercises_attribution_origin">wger.de (ejercicio n.º %1$d)</string>
-    <string name="exercises_attribution_author"> · Autoría: %1$s</string>
-    <string name="exercises_attribution_license"> · Licencia </string>
+    <string name="exercises_attribution_author">" · Autoría: %1$s"</string>
+    <string name="exercises_attribution_license">" · Licencia "</string>
     <string name="credits_open">Créditos y licencias</string>
     <string name="credits_title">Créditos y licencias</string>
     <string name="credits_wger_title">Ejercicios</string>
