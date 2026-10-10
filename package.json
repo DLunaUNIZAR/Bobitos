@@ -15,7 +15,7 @@
     "catalog:candidates": "node scripts/catalog/build-catalog.mjs --candidates",
     "catalog:images": "node scripts/catalog/build-images.mjs",
     "catalog:build": "node scripts/catalog/build-catalog.mjs",
-    "test:scripts": "node --test tests/beta-release-check.test.mjs tests/catalog-normalize.test.mjs tests/catalog-selection.test.mjs tests/catalog-import-plan.test.mjs tests/catalog-fetch.test.mjs tests/catalog-images.test.mjs",
+    "test:scripts": "node --test tests/beta-release-check.test.mjs tests/catalog-normalize.test.mjs tests/catalog-selection.test.mjs tests/catalog-import-plan.test.mjs tests/catalog-import-core.test.mjs tests/catalog-fetch.test.mjs tests/catalog-images.test.mjs",
     "catalog:import": "node scripts/catalog/import-exercises.mjs",
     "test:catalog-import": "firebase emulators:exec --only firestore --project demo-bobitos \"node --test tests/catalog-import.emulator.test.mjs\""
   },

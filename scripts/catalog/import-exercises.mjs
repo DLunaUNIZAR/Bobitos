@@ -3,13 +3,13 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { applicationDefault, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { CATALOG_ADMIN_UID, CATALOG_META_PATH, docToExisting, formatPlan, planImageImport, planImport, toFirestoreDoc } from "./import-plan.mjs";
+import { commitCatalogOps } from "./import-core.mjs";
+import { connectAdmin, parseImportArgs } from "./admin-cli.mjs";
 import { sha256Hex } from "./images.mjs";
 import { validateEntry } from "./selection.mjs";
 
-const BATCH_SIZE = 400;
 // Lotes de imágenes: pocos documentos y con tope de bytes (cada WebP pesa ≤200 KB; el límite de
 // Firestore por commit es 10 MiB).
 const IMAGE_BATCH_DOCS = 50;
@@ -123,60 +123,20 @@ export async function runImport({ db, catalog, apply, log = console.log, imagesD
     ...plan.create.map((e) => ({ kind: "create", e })),
     ...plan.update.map((e) => ({ kind: "update", e })),
   ];
-  for (let i = 0; i < ops.length; i += BATCH_SIZE) {
-    const batch = db.batch();
-    for (const { kind, e } of ops.slice(i, i + BATCH_SIZE)) {
-      const ref = db.collection("exercises").doc(e.id);
-      if (kind === "create") batch.create(ref, toFirestoreDoc(e, { now, create: true }));
-      else batch.update(ref, toFirestoreDoc(e, { now, create: false }), { lastUpdateTime: updateTimes.get(e.id) });
-    }
-    // Cada lote con operaciones sube la versión del catálogo (se crea en 1 si no existe).
-    batch.set(
-      db.doc(CATALOG_META_PATH),
-      { version: FieldValue.increment(1), updatedAt: now, updatedBy: CATALOG_ADMIN_UID },
-      { merge: true },
-    );
-    await batch.commit();
-  }
+  await commitCatalogOps({
+    db, collection: "exercises", ops, toDoc: toFirestoreDoc, updateTimes,
+    metaPath: CATALOG_META_PATH, adminUid: CATALOG_ADMIN_UID, now,
+  });
   log(
     `\nAplicado: ${plan.create.length} creadas, ${plan.update.length} actualizadas, ${toUpload.length} imágenes subidas.`,
   );
   return { ...plan, versionBumped: ops.length > 0 };
 }
 
-function parseArgs(argv) {
-  const args = { apply: false, catalog: "data/catalog/exercises.json", project: null };
-  for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === "--apply") args.apply = true;
-    else if (argv[i] === "--project") args.project = argv[++i];
-    else if (argv[i] === "--catalog") args.catalog = argv[++i];
-    else throw new Error(`Argumento desconocido: ${argv[i]}`);
-  }
-  return args;
-}
-
-function connect(projectArg) {
-  const projectId = projectArg === "dev" ? "bobitos-dev" : projectArg;
-  const emulator = process.env.FIRESTORE_EMULATOR_HOST;
-  if (projectId?.startsWith("demo-")) {
-    if (!emulator) throw new Error("Un proyecto demo-* exige FIRESTORE_EMULATOR_HOST (emulador).");
-    return initializeApp({ projectId });
-  }
-  if (projectId === "bobitos-dev") {
-    if (emulator) throw new Error("FIRESTORE_EMULATOR_HOST está definida: no se importa a bobitos-dev.");
-    const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-    if (!keyPath) throw new Error("Falta GOOGLE_APPLICATION_CREDENTIALS (clave de cuenta de servicio fuera del repo).");
-    const keyProject = JSON.parse(readFileSync(keyPath, "utf8")).project_id;
-    if (keyProject !== "bobitos-dev") throw new Error(`La clave es del proyecto «${keyProject}», no de bobitos-dev.`);
-    return initializeApp({ credential: applicationDefault(), projectId });
-  }
-  throw new Error("Usa --project demo-bobitos, bobitos-dev o dev.");
-}
-
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
-    const args = parseArgs(process.argv.slice(2));
-    const app = connect(args.project);
+    const args = parseImportArgs(process.argv.slice(2), { defaultCatalog: "data/catalog/exercises.json" });
+    const app = connectAdmin(args.project);
     const catalog = JSON.parse(readFileSync(args.catalog, "utf8"));
     await runImport({ db: getFirestore(app), catalog, apply: args.apply });
   } catch (e) {
