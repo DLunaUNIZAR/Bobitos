@@ -49,6 +49,9 @@ class ExerciseImageRepositoryTest {
         val stored = parseImageDoc(mapOf("data" to bytesA, "hash" to hashA, "contentType" to "image/webp"))!!
         assertEquals(hashA, stored.hash)
         assertArrayEquals(bytesA, stored.bytes)
+        assertNull(stored.author)
+        assertNull(stored.license)
+        assertNull(stored.sourceUrl)
         assertNull(parseImageDoc(mapOf("hash" to hashA)))
         assertNull(parseImageDoc(mapOf("data" to bytesA)))
         assertNull(parseImageDoc(mapOf("data" to "texto", "hash" to hashA)))
@@ -56,47 +59,70 @@ class ExerciseImageRepositoryTest {
     }
 
     @Test
+    fun `parseImageDoc reads author licence and source url`() {
+        val stored = parseImageDoc(
+            mapOf(
+                "data" to bytesA,
+                "hash" to hashA,
+                "author" to "Ana",
+                "license" to "CC-BY-SA-4.0",
+                "sourceUrl" to "https://wger.de/media/a.png",
+            ),
+        )!!
+        assertEquals("Ana", stored.author)
+        assertEquals("CC-BY-SA-4.0", stored.license)
+        assertEquals("https://wger.de/media/a.png", stored.sourceUrl)
+        assertNull(parseImageDoc(mapOf("data" to bytesA, "hash" to hashA, "author" to 5))!!.author)
+    }
+
+    @Test
     fun `same hash in cache reads no server`() = runTest {
-        val source = FakeSource(cache = StoredImage(hashA, bytesA))
-        val result = CachedExerciseImageRepository(source).imageBytes("press", hashA)
-        assertArrayEquals(bytesA, result)
+        val source = FakeSource(cache = StoredImage(hashA, bytesA, "Ana", "CC0-1.0", "https://wger.de/media/a.png"))
+        val result = CachedExerciseImageRepository(source).image("press", hashA)!!
+        assertArrayEquals(bytesA, result.bytes)
+        assertEquals(LoadedImage(result.bytes, "Ana", "CC0-1.0", "https://wger.de/media/a.png"), result)
         assertEquals(0, source.serverReads)
     }
 
     @Test
     fun `different or missing cached hash reads the server`() = runTest {
-        val stale = FakeSource(cache = StoredImage(hashB, bytesB), server = { StoredImage(hashA, bytesA) })
-        assertArrayEquals(bytesA, CachedExerciseImageRepository(stale).imageBytes("press", hashA))
+        val served = StoredImage(hashA, bytesA, "Eva", "CC-BY-4.0", "s")
+        val stale = FakeSource(cache = StoredImage(hashB, bytesB), server = { served })
+        val fromServer = CachedExerciseImageRepository(stale).image("press", hashA)!!
+        assertArrayEquals(bytesA, fromServer.bytes)
+        assertEquals("Eva", fromServer.author)
+        assertEquals("CC-BY-4.0", fromServer.license)
+        assertEquals("s", fromServer.sourceUrl)
         assertEquals(1, stale.serverReads)
 
         val empty = FakeSource(server = { StoredImage(hashA, bytesA) })
-        assertArrayEquals(bytesA, CachedExerciseImageRepository(empty).imageBytes("press", hashA))
+        assertArrayEquals(bytesA, CachedExerciseImageRepository(empty).image("press", hashA)!!.bytes)
         assertEquals(1, empty.serverReads)
     }
 
     @Test
     fun `an empty cache failure falls back to the server`() = runTest {
         val source = FakeSource(cacheFailure = java.io.IOException("cache"), server = { StoredImage(hashA, bytesA) })
-        assertArrayEquals(bytesA, CachedExerciseImageRepository(source).imageBytes("press", hashA))
+        assertArrayEquals(bytesA, CachedExerciseImageRepository(source).image("press", hashA)!!.bytes)
     }
 
     @Test
     fun `server timeout or failure returns null`() = runTest {
         val hanging = FakeSource(server = { awaitCancellation() })
-        assertNull(CachedExerciseImageRepository(hanging, timeoutMillis = 50).imageBytes("press", hashA))
+        assertNull(CachedExerciseImageRepository(hanging, timeoutMillis = 50).image("press", hashA))
 
         val failing = FakeSource(server = { throw java.io.IOException("offline") })
-        assertNull(CachedExerciseImageRepository(failing).imageBytes("press", hashA))
+        assertNull(CachedExerciseImageRepository(failing).image("press", hashA))
 
         val missing = FakeSource(server = { null })
-        assertNull(CachedExerciseImageRepository(missing).imageBytes("press", hashA))
+        assertNull(CachedExerciseImageRepository(missing).image("press", hashA))
     }
 
     @Test
     fun `cancellation is rethrown`() = runTest {
         val source = FakeSource(server = { throw CancellationException("cancelled") })
         assertThrows(CancellationException::class.java) {
-            kotlinx.coroutines.runBlocking { CachedExerciseImageRepository(source).imageBytes("press", hashA) }
+            kotlinx.coroutines.runBlocking { CachedExerciseImageRepository(source).image("press", hashA) }
         }
     }
 }

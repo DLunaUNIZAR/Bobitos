@@ -21,7 +21,15 @@ internal class FirestoreImageSource(private val firestore: FirebaseFirestore) : 
 
 private fun DocumentSnapshot.toStoredImage(): StoredImage? {
     if (!exists()) return null
-    return parseImageDoc(mapOf("data" to getBlob("data")?.toBytes(), "hash" to getString("hash")))
+    return parseImageDoc(
+        mapOf(
+            "data" to getBlob("data")?.toBytes(),
+            "hash" to getString("hash"),
+            "author" to getString("author"),
+            "license" to getString("license"),
+            "sourceUrl" to getString("sourceUrl"),
+        ),
+    )
 }
 
 @Singleton

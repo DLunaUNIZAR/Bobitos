@@ -21,13 +21,14 @@ import com.dlunaunizar.bobitos.core.designsystem.component.rememberSafeLinks
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.SetMeasure
+import com.dlunaunizar.bobitos.data.repository.LoadedImage
 
 // Ficha de solo lectura de un ejercicio: tipo y grupo, material, descripción y atribución de la fuente.
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun ExerciseDetailSheet(
     exercise: CatalogExercise,
-    loadImage: suspend () -> ByteArray?,
+    loadImage: suspend () -> LoadedImage?,
     canEdit: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,

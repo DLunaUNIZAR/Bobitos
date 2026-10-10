@@ -14,6 +14,7 @@ import com.dlunaunizar.bobitos.data.repository.ExerciseFailure
 import com.dlunaunizar.bobitos.data.repository.ExerciseImageRepository
 import com.dlunaunizar.bobitos.data.repository.ExerciseRepository
 import com.dlunaunizar.bobitos.data.repository.ExerciseRepositoryException
+import com.dlunaunizar.bobitos.data.repository.LoadedImage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -45,7 +46,10 @@ class ExercisesViewModelTest {
     fun `loadImage delegates to the repository`() = runTest(mainDispatcherRule.testDispatcher) {
         val withImage = exercise("press-banca", "Press banca", ExerciseType.PESO_LIBRE)
             .copy(image = ExerciseImage("a".repeat(64), null, "CC-BY-SA-4.0", null))
-        assertEquals(listOf<Byte>(7), viewModel.loadImage(withImage)!!.toList())
+        val loaded = viewModel.loadImage(withImage)!!
+        assertEquals(listOf<Byte>(7), loaded.bytes.toList())
+        assertEquals("Ana", loaded.author)
+        assertEquals("CC0-1.0", loaded.license)
         assertEquals(listOf("press-banca" to "a".repeat(64)), imageRepository.requests)
 
         val without = exercise("sentadilla", "Sentadilla", ExerciseType.PESO_LIBRE)
@@ -272,11 +276,11 @@ private fun input(name: String, type: ExerciseType) = ExerciseInput(name, type, 
 
 private class FakeImageRepository : ExerciseImageRepository {
     val requests = mutableListOf<Pair<String, String>>()
-    var bytes: ByteArray? = byteArrayOf(7)
+    var image: LoadedImage? = LoadedImage(byteArrayOf(7), "Ana", "CC0-1.0", "https://wger.de/media/a.png")
 
-    override suspend fun imageBytes(exerciseId: String, hash: String): ByteArray? {
+    override suspend fun image(exerciseId: String, hash: String): LoadedImage? {
         requests += exerciseId to hash
-        return bytes
+        return image
     }
 }
 

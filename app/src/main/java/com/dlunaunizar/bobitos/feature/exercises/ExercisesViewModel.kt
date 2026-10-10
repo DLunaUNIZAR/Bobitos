@@ -16,6 +16,7 @@ import com.dlunaunizar.bobitos.data.repository.ExerciseFailure
 import com.dlunaunizar.bobitos.data.repository.ExerciseImageRepository
 import com.dlunaunizar.bobitos.data.repository.ExerciseRepository
 import com.dlunaunizar.bobitos.data.repository.ExerciseRepositoryException
+import com.dlunaunizar.bobitos.data.repository.LoadedImage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -39,8 +40,8 @@ class ExercisesViewModel @Inject constructor(
     private var observing = false
 
     // Bytes de la imagen de la ficha (caché local si el hash coincide); null si no hay o no se puede leer.
-    suspend fun loadImage(exercise: CatalogExercise): ByteArray? =
-        exercise.image?.let { imageRepository.imageBytes(exercise.id, it.hash) }
+    suspend fun loadImage(exercise: CatalogExercise): LoadedImage? =
+        exercise.image?.let { imageRepository.image(exercise.id, it.hash) }
 
     fun observe() {
         if (observing) return
