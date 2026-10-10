@@ -2,7 +2,7 @@
   "notes": [
     "Imprescindibles que wger no ofrece en español y que no se han inventado: ergómetro de remo (cardio), dominadas con lastre, sentadilla trasera con ficha propia (se usa la ficha genérica «Sentadillas», id 615), extensión/elevación de gemelos de pie en máquina específica, curl femoral de pie, natación y caminata como cardio.",
     "Revisión humana pendiente: «Sentadilla trasera con barra» (id 615) usa una descripción genérica que no menciona la barra; «Press de banca inclinado» (id 538) tiene una descripción muy breve.",
-    "Los ejercicios del grupo «Antebrazos» proceden de la categoría Brazos de wger; «Sentadilla goblet» usa la ficha «Sentadilla con disco» (id 203)."
+    "Los ejercicios del grupo «Antebrazos» proceden de la categoría Brazos de wger; «Sentadilla con disco» usa la ficha de wger con ese mismo nombre (id 203)."
   ],
   "include": [
     {
@@ -520,7 +520,7 @@
     },
     {
       "wgerId": 203,
-      "name": "Sentadilla goblet",
+      "name": "Sentadilla con disco",
       "type": "PESO_LIBRE",
       "equipment": [
         "DISCO"

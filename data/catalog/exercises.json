@@ -3050,6 +3050,23 @@
       }
     },
     {
+      "id": "sentadilla-con-disco",
+      "name": "Sentadilla con disco",
+      "type": "PESO_LIBRE",
+      "muscleGroup": "Cuádriceps",
+      "description": "Tipos de sentadillas con disco Goblet Squat: Es la sentadilla con disco más común, donde el disco se sostiene a la altura del pecho, ayudando a mantener una buena postura y mejorando la estabilidad del tobillo. Overhead Plate Squat: En esta variación, el disco se mantiene por encima de la cabeza durante todo el movimiento de la sentadilla, lo que aumenta la demanda de movilidad y estabilidad del hombro.",
+      "equipment": [
+        "DISCO"
+      ],
+      "source": {
+        "provider": "wger",
+        "id": 203,
+        "author": "Tierrasverdes",
+        "license": "CC-BY-SA-4.0",
+        "url": "https://wger.de/es/exercise/203/view/"
+      }
+    },
+    {
       "id": "sentadilla-con-peso-corporal",
       "name": "Sentadilla con peso corporal",
       "type": "PESO_CORPORAL",
@@ -3143,23 +3160,6 @@
         "author": "wger.de",
         "license": "CC-BY-SA-4.0",
         "url": "https://wger.de/es/exercise/1640/view/"
-      }
-    },
-    {
-      "id": "sentadilla-goblet",
-      "name": "Sentadilla goblet",
-      "type": "PESO_LIBRE",
-      "muscleGroup": "Cuádriceps",
-      "description": "Tipos de sentadillas con disco Goblet Squat: Es la sentadilla con disco más común, donde el disco se sostiene a la altura del pecho, ayudando a mantener una buena postura y mejorando la estabilidad del tobillo. Overhead Plate Squat: En esta variación, el disco se mantiene por encima de la cabeza durante todo el movimiento de la sentadilla, lo que aumenta la demanda de movilidad y estabilidad del hombro.",
-      "equipment": [
-        "DISCO"
-      ],
-      "source": {
-        "provider": "wger",
-        "id": 203,
-        "author": "Tierrasverdes",
-        "license": "CC-BY-SA-4.0",
-        "url": "https://wger.de/es/exercise/203/view/"
       }
     },
     {
