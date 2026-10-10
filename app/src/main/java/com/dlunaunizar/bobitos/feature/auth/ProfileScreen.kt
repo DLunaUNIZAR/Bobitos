@@ -97,7 +97,6 @@ fun ProfileScreen(
         mutableStateOf(user.displayName)
     }
     var showDeleteAccount by rememberSaveable { mutableStateOf(false) }
-    var showPrivacy by rememberSaveable { mutableStateOf(false) }
     var deletionPassword by rememberSaveable { mutableStateOf("") }
 
     LaunchedEffect(user.displayName) {
@@ -183,7 +182,7 @@ fun ProfileScreen(
                     onSelect = remindersViewModel::setLeadTime,
                 )
             }
-            TextButton(onClick = { showPrivacy = true }) { Text(stringResource(R.string.privacy_policy_title)) }
+            LegalButtons()
             TextButton(enabled = !actionState.isLoading && canWrite, onClick = { showDeleteAccount = true }) {
                 Text(stringResource(R.string.account_delete), color = MaterialTheme.colorScheme.error)
             }
@@ -212,6 +211,16 @@ fun ProfileScreen(
             )
         }
     }
+}
+
+// Política de privacidad y créditos y licencias: cada botón abre su diálogo.
+@Composable
+private fun LegalButtons() {
+    var showPrivacy by rememberSaveable { mutableStateOf(false) }
+    var showCredits by rememberSaveable { mutableStateOf(false) }
+    TextButton(onClick = { showPrivacy = true }) { Text(stringResource(R.string.privacy_policy_title)) }
+    TextButton(onClick = { showCredits = true }) { Text(stringResource(R.string.credits_open)) }
+    if (showCredits) CreditsDialog(onDismiss = { showCredits = false })
     if (showPrivacy) {
         AlertDialog(
             onDismissRequest = { showPrivacy = false },

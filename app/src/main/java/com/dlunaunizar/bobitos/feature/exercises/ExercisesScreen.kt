@@ -1,6 +1,5 @@
 package com.dlunaunizar.bobitos.feature.exercises
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.FitnessCenter
@@ -23,7 +21,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,8 +46,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.matchesQuery
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
-import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -58,8 +55,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
-import com.dlunaunizar.bobitos.core.model.ExerciseInput
-import com.dlunaunizar.bobitos.core.model.ExerciseType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,6 +71,8 @@ fun ExercisesScreen(
     // El editor sobrevive a una rotación: se guarda el id del ejercicio, no el objeto.
     var editorOpen by rememberSaveable { mutableStateOf(false) }
     var editorExerciseId by rememberSaveable { mutableStateOf<String?>(null) }
+    var detailOpen by rememberSaveable { mutableStateOf(false) }
+    var detailExerciseId by rememberSaveable { mutableStateOf<String?>(null) }
     var deleteTarget by remember { mutableStateOf<CatalogExercise?>(null) }
     var query by rememberSaveable { mutableStateOf("") }
     LaunchedEffect(query) { viewModel.setQuery(query) }
@@ -108,6 +105,10 @@ fun ExercisesScreen(
             )
             ExerciseCatalog(
                 state = state,
+                onOpen = {
+                    detailExerciseId = it.id
+                    detailOpen = true
+                },
                 onEdit = {
                     editorExerciseId = it.id
                     editorOpen = true
@@ -118,6 +119,28 @@ fun ExercisesScreen(
     }
 
     rememberEditorSlot(
+        open = detailOpen,
+        id = detailExerciseId,
+        items = (state.catalog as? UiState.Content)?.value,
+        idOf = CatalogExercise::id,
+        onGone = { detailOpen = false },
+    )?.item?.let { exercise ->
+        ExerciseDetailSheet(
+            exercise = exercise,
+            canEdit = state.canEdit(exercise),
+            onEdit = {
+                detailOpen = false
+                editorExerciseId = exercise.id
+                editorOpen = true
+            },
+            onDelete = {
+                detailOpen = false
+                deleteTarget = exercise
+            },
+            onDismiss = { detailOpen = false },
+        )
+    }
+    rememberEditorSlot(
         open = editorOpen,
         id = editorExerciseId,
         items = (state.catalog as? UiState.Content)?.value,
@@ -125,7 +148,7 @@ fun ExercisesScreen(
         onGone = { editorOpen = false },
     )?.let { slot ->
         val editorExercise = slot.item
-        ExerciseEditorDialog(
+        ExerciseEditorSheet(
             exercise = editorExercise,
             saving = state.isSaving,
             onDismiss = { editorOpen = false },
@@ -155,6 +178,7 @@ fun ExercisesScreen(
 @Composable
 private fun ExerciseCatalog(
     state: ExercisesUiState,
+    onOpen: (CatalogExercise) -> Unit,
     onEdit: (CatalogExercise) -> Unit,
     onDelete: (CatalogExercise) -> Unit,
 ) {
@@ -162,7 +186,7 @@ private fun ExerciseCatalog(
         UiState.Loading -> LoadingState(Modifier.fillMaxWidth())
         is UiState.Error -> ErrorState(Modifier.fillMaxWidth(), message = catalog.message)
         is UiState.Content -> {
-            val filtered = catalog.value.filter { it.matches(state.query) }
+            val filtered = catalog.value.filter { matchesQuery(state.query, it.name, it.muscleGroup) }
             if (filtered.isEmpty()) {
                 EmptyState(
                     modifier = Modifier.fillMaxWidth(),
@@ -184,6 +208,7 @@ private fun ExerciseCatalog(
                         ExerciseRow(
                             exercise = exercise,
                             canEdit = state.canEdit(exercise),
+                            onOpen = { onOpen(exercise) },
                             onEdit = { onEdit(exercise) },
                             onDelete = { onDelete(exercise) },
                             modifier = Modifier.animateItem(),
@@ -199,12 +224,13 @@ private fun ExerciseCatalog(
 private fun ExerciseRow(
     exercise: CatalogExercise,
     canEdit: Boolean,
+    onOpen: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var menu by remember { mutableStateOf(false) }
-    Card(modifier = modifier.fillMaxWidth()) {
+    Card(onClick = onOpen, modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(
                 start = Spacing.md,
@@ -266,54 +292,6 @@ private fun ExerciseRow(
 }
 
 @Composable
-private fun ExerciseEditorDialog(
-    exercise: CatalogExercise?,
-    saving: Boolean,
-    onDismiss: () -> Unit,
-    onSave: (ExerciseInput) -> Unit,
-) {
-    val initial = CatalogExerciseDraft.of(exercise)
-    var draft by rememberSaveable(exercise?.id) { mutableStateOf(initial) }
-    BobitosFormSheet(
-        title = stringResource(if (exercise == null) R.string.exercises_add_title else R.string.exercises_edit_title),
-        confirmLabel = stringResource(R.string.save),
-        confirmEnabled = draft.name.isNotBlank(),
-        saving = saving,
-        dirty = { draft != initial },
-        onDismiss = onDismiss,
-        onConfirm = { onSave(draft.toInput()) },
-    ) {
-        OutlinedTextField(
-            value = draft.name,
-            onValueChange = { draft = draft.copy(name = it) },
-            label = { Text(stringResource(R.string.exercises_name_label)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Text(stringResource(R.string.exercises_type_label), style = MaterialTheme.typography.labelLarge)
-        Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            ExerciseType.entries.forEach { option ->
-                FilterChip(
-                    selected = draft.type == option,
-                    onClick = { draft = draft.copy(type = option) },
-                    label = { Text(stringResource(option.labelRes)) },
-                )
-            }
-        }
-        OutlinedTextField(
-            value = draft.muscle,
-            onValueChange = { draft = draft.copy(muscle = it) },
-            label = { Text(stringResource(R.string.exercises_muscle_label)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-}
-
-@Composable
 private fun ExercisesFeedback(message: ExerciseUiMessage, isError: Boolean, onDismiss: () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
@@ -325,12 +303,6 @@ private fun ExercisesFeedback(message: ExerciseUiMessage, isError: Boolean, onDi
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.dismiss)) }
         }
     }
-}
-
-private fun CatalogExercise.matches(query: String): Boolean {
-    if (query.isBlank()) return true
-    val trimmed = query.trim()
-    return name.contains(trimmed, ignoreCase = true) || muscleGroup?.contains(trimmed, ignoreCase = true) == true
 }
 
 private val ExerciseUiMessage.stringResourceId: Int
