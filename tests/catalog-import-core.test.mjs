@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { canonical, formatImportPlan, planCatalogImport } from "../scripts/catalog/import-core.mjs";
 import { parseImportArgs, resolveTarget } from "../scripts/catalog/admin-cli.mjs";
+import { parseResetArgs } from "../scripts/catalog/reset-ingredients.mjs";
 
 const fields = (e) => ({ name: e.name, n: e.n ?? 1 });
 const doc = (e, over = {}) => ({
@@ -82,4 +83,12 @@ test("parseImportArgs lee --apply, --project y --catalog y rechaza lo desconocid
   });
   assert.equal(parseImportArgs(["--catalog", "y.json"], { defaultCatalog: "x.json" }).catalog, "y.json");
   assert.throws(() => parseImportArgs(["--borrar"], { defaultCatalog: "x.json" }), /Argumento desconocido: --borrar/);
+});
+
+test("parseImportArgs y parseResetArgs rechazan claves heredadas como argumentos", () => {
+  for (const clave of ["constructor", "toString", "__proto__"]) {
+    const esperado = new RegExp(`Argumento desconocido: ${clave}`);
+    assert.throws(() => parseImportArgs([clave], { defaultCatalog: "x.json" }), esperado);
+    assert.throws(() => parseResetArgs([clave]), esperado);
+  }
 });

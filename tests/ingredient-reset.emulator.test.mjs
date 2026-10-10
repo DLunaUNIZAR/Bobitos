@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
 import { parseResetArgs, runReset } from "../scripts/catalog/reset-ingredients.mjs";
+import { CATALOG_ADMIN_UID } from "../scripts/catalog/import-core.mjs";
 import { quiet, setupEmulatorDb } from "./helpers/emulator-db.mjs";
 
 const db = setupEmulatorDb("ingredient-reset-test");
@@ -41,14 +42,13 @@ test("con apply borra ingredientes, marcas (también bajo padres sin datos) y pr
 });
 
 test("no toca users, exercises ni catalogMeta", async () => {
-  // Con el catálogo ya importado hace falta repetir; aun así catalogMeta/ingredients queda intacto.
+  // Con el catálogo ya importado hace falta repetir; catalogMeta/exercises nunca se toca.
   await db.doc("catalogMeta/ingredients").set({ version: 1 });
   await runReset({ db, apply: true, repeat: true, log: quiet });
   assert.equal((await db.doc("users/u1/brands/p1").get()).exists, true);
   assert.equal((await db.doc("users/u1/ingredients/salsa-casera").get()).exists, true);
   assert.equal((await db.doc("exercises/press-de-banca").get()).exists, true);
   assert.equal((await db.doc("catalogMeta/exercises").get()).get("version"), 3);
-  assert.equal((await db.doc("catalogMeta/ingredients").get()).get("version"), 1);
 });
 
 test("una segunda pasada no encuentra nada", async () => {
@@ -90,5 +90,21 @@ test("con el catálogo ya importado y repetir, borra", async () => {
   assert.equal(r.deleted, true);
   assert.equal((await db.collection("ingredients").listDocuments()).length, 0);
   assert.equal((await db.collection("ingredientPrefs").get()).size, 0);
-  assert.equal((await db.doc("catalogMeta/ingredients").get()).get("version"), 1);
+});
+
+test("con el catálogo ya importado y repetir, sube la versión del catálogo", async () => {
+  await db.doc("catalogMeta/ingredients").set({ version: 1 });
+  const mensajes = [];
+  await runReset({ db, apply: true, repeat: true, log: (m) => mensajes.push(m) });
+  const meta = await db.doc("catalogMeta/ingredients").get();
+  assert.equal(meta.get("version"), 2);
+  assert.ok(meta.get("updatedAt"));
+  assert.equal(meta.get("updatedBy"), CATALOG_ADMIN_UID);
+  assert.ok(mensajes.some((m) => /versión del catálogo/.test(m)));
+  assert.equal((await db.doc("catalogMeta/exercises").get()).get("version"), 3);
+});
+
+test("sin catálogo importado, el borrado no crea catalogMeta/ingredients", async () => {
+  await runReset({ db, apply: true, log: quiet });
+  assert.equal((await db.doc("catalogMeta/ingredients").get()).exists, false);
 });

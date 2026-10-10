@@ -156,7 +156,7 @@ Cómo se usa:
 Cada acción contra `bobitos-dev` la confirma el usuario una a una, y solo se despliega cuando están los tres planes.
 
 1. **Reglas:** `npx firebase deploy --only firestore:rules --project dev`.
-2. **Borrado:** `catalog:reset-ingredients`, primero la simulación y después `--apply`.
+2. **Borrado:** `catalog:reset-ingredients`, primero la simulación y después `--apply`. Con el catálogo ya importado y `--repetir`, el borrado sube además la versión de `catalogMeta/ingredients` para invalidar las cachés; si no existía, no la crea.
 3. **Importación:** `catalog:import-ingredients`, primero la simulación y después `--apply`. Se espera la versión 1 con unos 340 ingredientes.
 4. **Beta 19**, justo después: la beta 18 deja de poder crear ingredientes comunes, marcas y preferencias con las reglas nuevas.
 

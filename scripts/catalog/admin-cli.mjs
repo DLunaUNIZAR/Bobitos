@@ -41,7 +41,8 @@ export function connectAdmin(projectArg) {
 export function parseCliArgs(argv, spec, initial) {
   const args = { ...initial };
   for (let i = 0; i < argv.length; i++) {
-    const flag = spec[argv[i]];
+    // Solo claves propias: constructor, toString o __proto__ no son argumentos válidos.
+    const flag = Object.hasOwn(spec, argv[i]) ? spec[argv[i]] : null;
     if (!flag) throw new Error(`Argumento desconocido: ${argv[i]}`);
     args[flag.key] = flag.value ? argv[++i] : true;
   }
