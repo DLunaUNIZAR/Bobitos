@@ -15,6 +15,14 @@ import kotlinx.parcelize.Parcelize
 // Fallos de un borrador, los mismos que el repositorio rechazaría (así el editor no pierde lo escrito).
 internal enum class ExerciseDraftError { NameRequired, NameTooLong, MuscleTooLong, DescriptionTooLong, NameExists }
 
+// Errores que ve el editor. «Ya existe» se oculta mientras guarda y al terminar (SAVED): el catálogo ya
+// trae la ficha recién creada antes de que se cierre la hoja y no es un error del usuario.
+internal fun visibleDraftErrors(
+    errors: Set<ExerciseDraftError>,
+    saving: Boolean,
+    saved: Boolean,
+): Set<ExerciseDraftError> = if (saving || saved) errors - ExerciseDraftError.NameExists else errors
+
 // Borrador del editor de ejercicio del catálogo. Parcelable para que sobreviva a una rotación.
 @Parcelize
 internal data class CatalogExerciseDraft(

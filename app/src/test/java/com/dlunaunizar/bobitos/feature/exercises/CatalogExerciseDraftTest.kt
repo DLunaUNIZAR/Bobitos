@@ -121,4 +121,15 @@ class CatalogExerciseDraftTest {
         assertEquals(SetMeasure.REPS, draft.copy(type = ExerciseType.CARDIO).toInput().measure)
         assertEquals(SetMeasure.REPS, draft.copy(type = ExerciseType.OTROS).toInput().measure)
     }
+
+    @Test
+    fun yaExisteSeOcultaMientrasGuardaOUnaVezGuardado() {
+        val errors = setOf(ExerciseDraftError.NameExists, ExerciseDraftError.MuscleTooLong)
+        val sinYaExiste = setOf(ExerciseDraftError.MuscleTooLong)
+
+        assertEquals(sinYaExiste, visibleDraftErrors(errors, saving = true, saved = false))
+        assertEquals(sinYaExiste, visibleDraftErrors(errors, saving = false, saved = true))
+        assertEquals(sinYaExiste, visibleDraftErrors(errors, saving = true, saved = true))
+        assertEquals(errors, visibleDraftErrors(errors, saving = false, saved = false))
+    }
 }

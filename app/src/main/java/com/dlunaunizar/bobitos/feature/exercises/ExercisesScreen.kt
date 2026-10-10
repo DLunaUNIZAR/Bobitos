@@ -165,6 +165,7 @@ fun ExercisesScreen(
             otherIds = (state.catalog as? UiState.Content)?.value.orEmpty()
                 .mapNotNull { it.id.takeIf { id -> id != editorExercise?.id } }.toSet(),
             saving = state.isSaving,
+            saved = state.editorSave == EditorSaveStatus.SAVED,
             errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
                 ?.let { stringResource(it.stringResourceId) },
             onDismiss = { editorOpen = false },

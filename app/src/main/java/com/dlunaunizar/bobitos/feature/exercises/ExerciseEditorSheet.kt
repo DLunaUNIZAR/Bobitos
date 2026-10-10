@@ -35,14 +35,15 @@ internal fun ExerciseEditorSheet(
     exercise: CatalogExercise?,
     otherIds: Set<String>,
     saving: Boolean,
+    saved: Boolean,
     errorMessage: String?,
     onDismiss: () -> Unit,
     onSave: (ExerciseInput) -> Unit,
 ) {
     val initial = CatalogExerciseDraft.of(exercise)
     var draft by rememberSaveable(exercise?.id) { mutableStateOf(initial) }
-    val errors = draft.errors(otherIds)
-    val nameError = visibleNameError(draft, errors, saving)
+    val errors = visibleDraftErrors(draft.errors(otherIds), saving, saved)
+    val nameError = visibleNameError(draft, errors)
     BobitosFormSheet(
         title = stringResource(if (exercise == null) R.string.exercises_add_title else R.string.exercises_edit_title),
         confirmLabel = stringResource(R.string.save),
@@ -113,16 +114,10 @@ internal fun ExerciseEditorSheet(
 }
 
 // Con el nombre aún vacío solo se deshabilita Guardar; el mensaje aparece cuando se escribe y se borra.
-// Mientras guarda no se muestra «ya existe»: el catálogo llega con la ficha recién creada antes de cerrar.
-private fun visibleNameError(
-    draft: CatalogExerciseDraft,
-    errors: Set<ExerciseDraftError>,
-    saving: Boolean,
-): ExerciseDraftError? = errors.firstOrNull {
-    it in NAME_ERRORS &&
-        (it != ExerciseDraftError.NameRequired || draft.name.isNotEmpty()) &&
-        !(saving && it == ExerciseDraftError.NameExists)
-}
+private fun visibleNameError(draft: CatalogExerciseDraft, errors: Set<ExerciseDraftError>): ExerciseDraftError? =
+    errors.firstOrNull {
+        it in NAME_ERRORS && (it != ExerciseDraftError.NameRequired || draft.name.isNotEmpty())
+    }
 
 private val NAME_ERRORS = setOf(
     ExerciseDraftError.NameRequired,
