@@ -4,6 +4,7 @@ import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseEquipment
 import com.dlunaunizar.bobitos.core.model.ExerciseInput
 import com.dlunaunizar.bobitos.core.model.ExerciseType
+import com.dlunaunizar.bobitos.core.model.slug
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.Instant
@@ -58,5 +59,54 @@ class CatalogExerciseDraftTest {
             draft.toInput(),
         )
         assertEquals("Texto", draft.copy(description = " Texto ").toInput().description)
+    }
+
+    private fun draft(name: String = "Remo", muscle: String = "", description: String = "") =
+        CatalogExerciseDraft(name, ExerciseType.PESO_LIBRE, muscle, description)
+
+    @Test
+    fun unBorradorCorrectoNoTieneErrores() {
+        assertEquals(emptySet<ExerciseDraftError>(), draft(muscle = "espalda").errors(emptySet()))
+    }
+
+    @Test
+    fun nombreVacioOSoloEspaciosEsError() {
+        assertEquals(setOf(ExerciseDraftError.NameRequired), draft(name = "   ").errors(emptySet()))
+    }
+
+    @Test
+    fun elNombreTieneUnMaximoDe120() {
+        assertEquals(emptySet<ExerciseDraftError>(), draft(name = "a".repeat(120)).errors(emptySet()))
+        assertEquals(setOf(ExerciseDraftError.NameTooLong), draft(name = "a".repeat(121)).errors(emptySet()))
+    }
+
+    @Test
+    fun elGrupoTieneUnMaximoDe60() {
+        assertEquals(emptySet<ExerciseDraftError>(), draft(muscle = "a".repeat(60)).errors(emptySet()))
+        assertEquals(setOf(ExerciseDraftError.MuscleTooLong), draft(muscle = "a".repeat(61)).errors(emptySet()))
+    }
+
+    @Test
+    fun laDescripcionTieneUnMaximoDe2000() {
+        assertEquals(emptySet<ExerciseDraftError>(), draft(description = "a".repeat(2000)).errors(emptySet()))
+        assertEquals(
+            setOf(ExerciseDraftError.DescriptionTooLong),
+            draft(description = "a".repeat(2001)).errors(emptySet()),
+        )
+    }
+
+    @Test
+    fun unNombreConElMismoSlugQueOtroEjercicioEsDuplicado() {
+        val others = setOf(slug("Sentadilla búlgara"))
+        assertEquals(
+            setOf(ExerciseDraftError.NameExists),
+            draft(name = "  SENTADILLA bulgara ").errors(others),
+        )
+    }
+
+    @Test
+    fun editarSinCambiarElNombreNoEsDuplicado() {
+        // Quien edita pasa los ids de los demás ejercicios, sin el suyo.
+        assertEquals(emptySet<ExerciseDraftError>(), draft(name = "Remo").errors(setOf(slug("Press banca"))))
     }
 }

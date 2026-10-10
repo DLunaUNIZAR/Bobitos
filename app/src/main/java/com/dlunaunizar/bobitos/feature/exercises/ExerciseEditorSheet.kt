@@ -32,16 +32,19 @@ import com.dlunaunizar.bobitos.core.model.MAX_EXERCISE_DESCRIPTION_LENGTH
 @Composable
 internal fun ExerciseEditorSheet(
     exercise: CatalogExercise?,
+    otherIds: Set<String>,
     saving: Boolean,
     onDismiss: () -> Unit,
     onSave: (ExerciseInput) -> Unit,
 ) {
     val initial = CatalogExerciseDraft.of(exercise)
     var draft by rememberSaveable(exercise?.id) { mutableStateOf(initial) }
+    val errors = draft.errors(otherIds)
+    val nameError = visibleNameError(draft, errors)
     BobitosFormSheet(
         title = stringResource(if (exercise == null) R.string.exercises_add_title else R.string.exercises_edit_title),
         confirmLabel = stringResource(R.string.save),
-        confirmEnabled = draft.name.isNotBlank() && draft.description.length <= MAX_EXERCISE_DESCRIPTION_LENGTH,
+        confirmEnabled = errors.isEmpty(),
         saving = saving,
         dirty = { draft != initial },
         onDismiss = onDismiss,
@@ -51,6 +54,8 @@ internal fun ExerciseEditorSheet(
             value = draft.name,
             onValueChange = { draft = draft.copy(name = it) },
             label = { Text(stringResource(R.string.exercises_name_label)) },
+            isError = nameError != null,
+            supportingText = nameError?.let { { Text(stringResource(it.messageRes)) } },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -71,6 +76,12 @@ internal fun ExerciseEditorSheet(
             value = draft.muscle,
             onValueChange = { draft = draft.copy(muscle = it) },
             label = { Text(stringResource(R.string.exercises_muscle_label)) },
+            isError = ExerciseDraftError.MuscleTooLong in errors,
+            supportingText = if (ExerciseDraftError.MuscleTooLong in errors) {
+                { Text(stringResource(ExerciseDraftError.MuscleTooLong.messageRes)) }
+            } else {
+                null
+            },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -97,12 +108,31 @@ internal fun ExerciseEditorSheet(
                     ),
                 )
             },
-            isError = draft.description.length > MAX_EXERCISE_DESCRIPTION_LENGTH,
+            isError = ExerciseDraftError.DescriptionTooLong in errors,
             minLines = 3,
             modifier = Modifier.fillMaxWidth(),
         )
     }
 }
+
+// Con el nombre aún vacío solo se deshabilita Guardar; el mensaje aparece cuando se escribe y se borra.
+private fun visibleNameError(draft: CatalogExerciseDraft, errors: Set<ExerciseDraftError>): ExerciseDraftError? =
+    errors.firstOrNull { it in NAME_ERRORS && (it != ExerciseDraftError.NameRequired || draft.name.isNotEmpty()) }
+
+private val NAME_ERRORS = setOf(
+    ExerciseDraftError.NameRequired,
+    ExerciseDraftError.NameTooLong,
+    ExerciseDraftError.NameExists,
+)
+
+private val ExerciseDraftError.messageRes: Int
+    get() = when (this) {
+        ExerciseDraftError.NameRequired -> R.string.exercises_error_name_required
+        ExerciseDraftError.NameTooLong -> R.string.exercises_error_name_too_long
+        ExerciseDraftError.MuscleTooLong -> R.string.exercises_error_muscle_too_long
+        ExerciseDraftError.DescriptionTooLong -> R.string.exercises_error_description_too_long
+        ExerciseDraftError.NameExists -> R.string.exercises_error_exists
+    }
 
 // Alterna un material conservando el orden canónico (el mismo que el del enum y el de scripts/catalog).
 private fun List<ExerciseEquipment>.toggled(option: ExerciseEquipment): List<ExerciseEquipment> =

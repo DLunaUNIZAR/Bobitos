@@ -6,14 +6,14 @@ import com.dlunaunizar.bobitos.core.model.ExerciseInput
 import com.dlunaunizar.bobitos.core.model.ExerciseSource
 import com.dlunaunizar.bobitos.core.model.ExerciseType
 import com.dlunaunizar.bobitos.core.model.MAX_EXERCISE_DESCRIPTION_LENGTH
+import com.dlunaunizar.bobitos.core.model.MAX_EXERCISE_MUSCLE_LENGTH
+import com.dlunaunizar.bobitos.core.model.MAX_EXERCISE_NAME_LENGTH
 import java.text.Collator
 import java.time.Instant
 import java.util.Locale
 
 // Parseo y validación puros (sin Firebase) del catálogo de ejercicios, para poder probarlos en JVM.
 // Los nombres de campo son los que escribe scripts/catalog/import-plan.mjs y admiten las reglas.
-internal const val MAX_EXERCISE_NAME_LENGTH = 120
-internal const val MAX_EXERCISE_MUSCLE_LENGTH = 60
 
 // null → la ficha se descarta (le falta un campo obligatorio). Los campos nuevos son opcionales
 // (retro-compat con fichas antiguas) y un tipo desconocido cae a OTROS en vez de ocultar la ficha.

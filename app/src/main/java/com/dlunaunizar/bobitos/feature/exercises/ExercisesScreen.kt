@@ -150,6 +150,8 @@ fun ExercisesScreen(
         val editorExercise = slot.item
         ExerciseEditorSheet(
             exercise = editorExercise,
+            otherIds = (state.catalog as? UiState.Content)?.value.orEmpty()
+                .mapNotNull { it.id.takeIf { id -> id != editorExercise?.id } }.toSet(),
             saving = state.isSaving,
             onDismiss = { editorOpen = false },
             onSave = { input ->
