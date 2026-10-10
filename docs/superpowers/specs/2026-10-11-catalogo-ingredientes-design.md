@@ -49,6 +49,13 @@ El catálogo común de ingredientes está vacío, y el usuario lo considera el p
   - en las listas gana el común y el personal se oculta;
   - las marcas siguen viéndose, porque se enlazan por slug.
 
+### Enlace por nombre: clave tolerante (decisión del usuario, 2026-10-11, parada A del plan 1)
+
+- **Los ids siguen siendo `slug(name)`.** Lo que cambia es cómo se **reconoce** que un nombre escrito (una fila de receta o de comida, lo tecleado en la Compra) es un ingrediente del catálogo: con la clave tolerante `ingredientKey(name)`, que no distingue singular y plural, tildes, mayúsculas ni palabras vacías («patatas» = Patata, «limones» = Limón).
+- **Por qué:** con el slug exacto, más de la mitad de los nombres reales de recetas no encajaban («patatas», «aceite de oliva», «pimienta»), y el selector de marca no aparecía. Con la clave tolerante y los genéricos añadidos en la parada A, la mayoría encaja.
+- **Dónde está:** `ingredientKey` ya existe en `scripts/catalog/ingredients.mjs` (valida el catálogo). El plan 2 la porta a Kotlin junto a `slug` (`core/model`), con una tabla de casos compartida para que las dos versiones den lo mismo, y aprovecha para juntar también los plurales en «-z» → «-ces» (Nuez/Nueces) en las dos.
+- **Unicidad:** el catálogo común no tiene dos entradas con la misma clave (lo valida el script). Al crear un ingrediente personal, la app lo compara por clave con los comunes y con tus personales, y si coincide te lleva al existente. Las reglas solo comprueban `!exists` por slug.
+
 ### Marcas personales: `users/{uid}/brands/{autoId}`
 
 - **Campos:**
@@ -106,7 +113,7 @@ Si el admin borra un ingrediente común, las marcas que los usuarios tengan de �
 - **Categorías:** una lista cerrada de 14: Frutas · Verduras y hortalizas · Carnes · Pescados y mariscos · Lácteos y huevos · Legumbres · Cereales, pasta y arroz · Panadería · Aceites, salsas y condimentos · Especias y hierbas · Frutos secos · Dulces y chocolate · Bebidas · Congelados y otros.
 - **Unidades:** `g`, `ml` o `ud`.
 - **Revisión:** `data/catalog/ingredients-review.md` es la **parada**: lo revisa el usuario antes de importar.
-- **Validación:** sin duplicados por slug ni casi duplicados (se reutiliza `nearDuplicateKey`), con la categoría dentro de la lista y la unidad dentro del conjunto.
+- **Validación:** sin duplicados por slug ni casi duplicados (con `ingredientKey`, que parte de `nearDuplicateKey`), con la categoría dentro de la lista y la unidad dentro del conjunto.
 
 ### Importador
 
@@ -186,8 +193,8 @@ Dos desplegables en una fila, marca y tienda. Si no tienes marcas del ingredient
 
 ### Dónde aparece
 
-1. **«Añadir» en la Compra:** el selector aparece cuando el nombre corresponde a un ingrediente, al tocar una sugerencia o porque el slug de lo escrito coincide con uno. Para nombres que no son de ningún ingrediente, queda el formulario actual.
-2. **Diálogo de revisión** (`feature/common/IngredientReview.kt`): cada fila **nueva** lleva el selector bajo la cantidad. Las filas que ya están en la lista conservan su marca y su tienda, como hoy.
+1. **«Añadir» en la Compra:** el selector aparece cuando el nombre corresponde a un ingrediente, al tocar una sugerencia o porque lo escrito coincide con uno por la clave tolerante (`ingredientKey`). Para nombres que no son de ningún ingrediente, queda el formulario actual.
+2. **Diálogo de revisión** (`feature/common/IngredientReview.kt`): cada fila **nueva** cuyo nombre corresponde a un ingrediente (por la clave tolerante) lleva el selector bajo la cantidad. Las filas que ya están en la lista conservan su marca y su tienda, como hoy.
 3. **Ficha del ingrediente:** el botón «Añadir a la compra» abre la Compra con el formulario de añadir ya relleno.
 
 ### Lo que desaparece
@@ -268,7 +275,7 @@ Cada acción la confirma el usuario.
 - Nutrición de los genéricos y fuentes externas (CIQUAL, BEDCA, Open Food Facts como catálogo).
 - Precios.
 - Tiendas personalizadas.
-- Enlazar por id los ingredientes de las recetas (sigue el slug del nombre).
+- Enlazar por id los ingredientes de las recetas: se reconocen por la clave tolerante del nombre.
 - Despensa.
 - Marcas compartidas con el espacio.
 
