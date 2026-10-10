@@ -563,6 +563,8 @@
     <string name="exercises_measure_label">Se registra en</string>
     <string name="exercises_measure_reps">Repeticiones</string>
     <string name="exercises_measure_seconds">Segundos</string>
+    <string name="exercises_image_description">Ilustración de %1$s</string>
+    <string name="exercises_image_credit">"Imagen: %1$s · "</string>
     <string name="exercises_detail_by_time">Por tiempo</string>
     <string name="exercises_muscle_label">Grupo muscular (opcional)</string>
     <string name="exercises_description_label">Descripción (opcional)</string>

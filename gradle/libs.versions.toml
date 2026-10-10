@@ -23,6 +23,7 @@ work = "2.10.1"
 jsoup = "1.22.2"
 json = "20260719"
 codeScanner = "16.1.0"
+coil = "3.6.3"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -44,6 +45,8 @@ zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 json = { module = "org.json:json", version.ref = "json" }
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
 play-services-code-scanner = { module = "com.google.android.gms:play-services-code-scanner", version.ref = "codeScanner" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-auth = { module = "com.google.firebase:firebase-auth" }
