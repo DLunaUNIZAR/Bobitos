@@ -4,21 +4,17 @@ import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Catálogo global de ingredientes compartido por todos los usuarios. Lo crea cualquier usuario
- * verificado; solo su autor (o un admin) puede editarlo/borrarlo. La personalización por usuario
- * (supermercado/marca por defecto) vive en [IngredientPrefsRepository], no aquí.
+ * Catálogo común de ingredientes, versionado y compartido por todos los usuarios. Solo el admin
+ * lo escribe. La personalización por usuario (supermercado/marca por defecto) vive en [IngredientPrefsRepository], no aquí.
  */
 interface IngredientRepository {
     fun catalog(): Flow<List<CatalogIngredient>>
 
-    /** Si la cuenta activa puede curar (editar/borrar) fichas ajenas del catálogo común. */
+    /** Si la cuenta activa puede escribir en el catálogo común. */
     fun isCurrentUserCatalogAdmin(): Boolean
 
-    /** UID de la cuenta activa, o null si no hay sesión (para saber qué fichas son propias). */
+    /** UID de la cuenta activa, o null si no hay sesión. */
     fun currentUserId(): String?
-
-    /** Lee una ficha por id (slug) con un get() puntual; null si no existe. Para comprobar existencia. */
-    suspend fun ingredientById(id: String): CatalogIngredient?
 
     suspend fun createIngredient(name: String, category: String?, defaultUnit: String?)
 
@@ -32,6 +28,7 @@ enum class IngredientFailure {
     NameTooLong,
     CategoryTooLong,
     UnitTooLong,
+    AlreadyExists,
     NotAuthenticated,
     EmailNotVerified,
     IngredientNotFound,

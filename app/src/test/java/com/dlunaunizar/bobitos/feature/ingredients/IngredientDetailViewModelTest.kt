@@ -232,16 +232,7 @@ class IngredientDetailViewModelTest {
     }
 }
 
-private fun detailIngredient(id: String, name: String, ownerUid: String = "owner") = CatalogIngredient(
-    id = id,
-    name = name,
-    ownerUid = ownerUid,
-    createdBy = ownerUid,
-    createdByName = ownerUid,
-    createdAt = Instant.EPOCH,
-    updatedBy = ownerUid,
-    updatedAt = Instant.EPOCH,
-)
+private fun detailIngredient(id: String, name: String) = CatalogIngredient(id = id, name = name)
 
 private fun detailBrand(id: String, ingredientId: String, name: String, owner: String = "owner") = IngredientBrand(
     id = id,
@@ -267,7 +258,6 @@ private class DetailFakeIngredientRepo : IngredientRepository {
     override fun catalog(): Flow<List<CatalogIngredient>> = catalogState
     override fun isCurrentUserCatalogAdmin(): Boolean = admin
     override fun currentUserId(): String? = uid
-    override suspend fun ingredientById(id: String): CatalogIngredient? = catalogState.value.firstOrNull { it.id == id }
     override suspend fun createIngredient(name: String, category: String?, defaultUnit: String?) = Unit
     override suspend fun updateIngredient(id: String, name: String, category: String?, defaultUnit: String?) {
         if (hang) {

@@ -225,6 +225,7 @@ private fun IngredientFailure.toUiMessage(): IngredientUiMessage = when (this) {
     IngredientFailure.NameTooLong -> IngredientUiMessage.NameTooLong
     IngredientFailure.CategoryTooLong -> IngredientUiMessage.CategoryTooLong
     IngredientFailure.UnitTooLong -> IngredientUiMessage.UnitTooLong
+    IngredientFailure.AlreadyExists -> IngredientUiMessage.AlreadyExists
     IngredientFailure.NotAuthenticated -> IngredientUiMessage.NotAuthenticated
     IngredientFailure.EmailNotVerified -> IngredientUiMessage.EmailNotVerified
     IngredientFailure.IngredientNotFound -> IngredientUiMessage.NotFound

@@ -30,7 +30,7 @@ data class IngredientDetailUiState(
     val finished: Boolean = false,
 ) {
     val canEditIngredient: Boolean
-        get() = ingredient != null && (isAdmin || ingredient.ownerUid == currentUid)
+        get() = ingredient != null && isAdmin
 
     fun canEditBrand(brand: IngredientBrand): Boolean = isAdmin || brand.ownerUid == currentUid
 }

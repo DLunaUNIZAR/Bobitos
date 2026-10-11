@@ -3,16 +3,20 @@ package com.dlunaunizar.bobitos.data.repository
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.slug
-import com.dlunaunizar.bobitos.data.sync.RealtimeMetrics
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
 import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
-import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
-import kotlinx.coroutines.channels.awaitClose
+import com.google.firebase.firestore.Source
+import com.google.firebase.firestore.Transaction
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -21,115 +25,114 @@ import javax.inject.Singleton
 class FirestoreIngredientRepository @Inject constructor(
     private val authRepository: AuthRepository,
     private val syncRepository: SyncRepository,
-    private val realtimeMetrics: RealtimeMetrics,
+    syncStore: CatalogSyncStore,
 ) : IngredientRepository {
     private val firestore = FirebaseFirestore.getInstance()
+    private val localChanges = MutableSharedFlow<Unit>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
 
-    override fun catalog(): Flow<List<CatalogIngredient>> = callbackFlow {
-        val metricId = realtimeMetrics.listenerStarted(SCOPE)
-        val registration = ingredientsCollection()
-            .limit(MAX_VISIBLE_INGREDIENTS)
-            .addSnapshotListener { snapshot, error ->
-                when {
-                    error != null -> close(error.toIngredientRepositoryException())
-                    snapshot != null -> {
-                        realtimeMetrics.snapshotReceived(
-                            SCOPE,
-                            snapshot.documentChanges.size,
-                            snapshot.metadata.isFromCache,
-                        )
-                        trySend(
-                            snapshot.documents
-                                .mapNotNull(DocumentSnapshot::toCatalogIngredient)
-                                .sortedWith(compareBy({ it.name.lowercase() }, CatalogIngredient::id)),
-                        )
-                    }
-                }
-            }
-        awaitClose {
-            registration.remove()
-            realtimeMetrics.listenerStopped(metricId)
-        }
-    }
+    // Lo posterior a un guardado confirmado vive aquí (el repositorio es un singleton), no en la corrutina del guardado.
+    private val postCommitScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val loader = VersionedCatalogLoader(
+        source = FirestoreIngredientCatalogSource(firestore),
+        store = syncStore,
+        key = INGREDIENTS,
+        now = System::currentTimeMillis,
+    )
+
+    // Los cambios de otros dispositivos llegan en la siguiente apertura, no en directo.
+    override fun catalog(): Flow<List<CatalogIngredient>> = loader.catalog(localChanges)
 
     override fun isCurrentUserCatalogAdmin(): Boolean =
         authRepository.currentUser.value?.id?.let(RecipeAdmins.uids::contains) == true
 
     override fun currentUserId(): String? = authRepository.currentUser.value?.id
 
-    override suspend fun ingredientById(id: String): CatalogIngredient? =
-        runCatching { ingredientsCollection().document(id).get().await().toCatalogIngredient() }.getOrNull()
-
     override suspend fun createIngredient(name: String, category: String?, defaultUnit: String?) = runOperation {
-        val user = requireVerifiedUser()
-        val values = validate(name, category, defaultUnit)
-        val id = slug(values.name).ifEmpty { throw IngredientRepositoryException(IngredientFailure.NameRequired) }
-        ingredientsCollection().document(id).set(
-            mapOf(
-                FIELD_NAME to values.name,
-                FIELD_NAME_LOWER to values.name.lowercase(),
-                FIELD_CATEGORY to values.category,
-                FIELD_DEFAULT_UNIT to values.unit,
-                FIELD_OWNER_UID to user.id,
-                FIELD_CREATED_BY to user.id,
-                FIELD_CREATED_BY_NAME to user.catalogDisplayName,
-                FIELD_CREATED_AT to FieldValue.serverTimestamp(),
-                FIELD_UPDATED_BY to user.id,
-                FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
-            ),
-        ).await()
-        Unit
+        val user = requireAdmin()
+        val values = validateIngredientInput(name, category, defaultUnit)
+        val id = slug(values.name)
+        val fields = values.toFirestoreFields() + mapOf(
+            FIELD_CREATED_AT to FieldValue.serverTimestamp(),
+            FIELD_UPDATED_BY to user.id,
+            FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+        )
+        writeWithVersion(user.id, id) { transaction, ref ->
+            if (transaction.get(ref).exists()) throw IngredientRepositoryException(IngredientFailure.AlreadyExists)
+            transaction.set(ref, fields)
+        }
     }
 
     override suspend fun updateIngredient(id: String, name: String, category: String?, defaultUnit: String?) =
         runOperation {
-            val user = requireVerifiedUser()
-            val values = validate(name, category, defaultUnit)
-            ingredientsCollection().document(id).update(
-                mapOf(
-                    FIELD_NAME to values.name,
-                    FIELD_NAME_LOWER to values.name.lowercase(),
-                    FIELD_CATEGORY to values.category,
-                    FIELD_DEFAULT_UNIT to values.unit,
-                    FIELD_UPDATED_BY to user.id,
-                    FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
-                ),
-            ).await()
-            Unit
+            val user = requireAdmin()
+            val values = validateIngredientInput(name, category, defaultUnit)
+            val fields = values.toFirestoreFields() + mapOf(
+                FIELD_UPDATED_BY to user.id,
+                FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+            )
+            writeWithVersion(user.id, id) { transaction, ref -> transaction.update(ref, fields) }
         }
 
     override suspend fun deleteIngredient(id: String) = runOperation {
-        requireVerifiedUser()
-        ingredientsCollection().document(id).delete().await()
-        Unit
+        val user = requireAdmin()
+        writeWithVersion(user.id, id) { transaction, ref -> transaction.delete(ref) }
     }
 
-    private fun ingredientsCollection() = firestore.collection(INGREDIENTS)
+    /**
+     * Escribe la ficha y sube `catalogMeta/ingredients` en la misma transacción (las reglas exigen
+     * `version == anterior + 1`, o 1 si no existe). Después refresca la ficha en la caché local y
+     * adopta la nueva versión solo si nadie se interpuso, para no releer el catálogo.
+     */
+    private suspend fun writeWithVersion(userId: String, id: String, write: (Transaction, DocumentReference) -> Unit) {
+        val ingredientRef = firestore.collection(INGREDIENTS).document(id)
+        val metaRef = firestore.collection(CATALOG_META).document(INGREDIENTS)
+        // La transacción ya se confirmó: relectura, adopción de la versión y aviso se hacen fuera del
+        // guardado (y de su tiempo máximo) para que no puedan convertirlo en error.
+        commitThenRefresh(
+            scope = postCommitScope,
+            timeoutMillis = REFRESH_TIMEOUT_MILLIS,
+            commit = { commitVersioned(metaRef, ingredientRef, userId, write) },
+            refresh = {
+                ingredientRef.get(Source.SERVER).await()
+                true
+            },
+            adopt = { previous -> loader.afterOwnWrite(previous) },
+            onDone = { localChanges.tryEmit(Unit) },
+        )
+    }
 
-    private fun requireVerifiedUser(): AuthUser {
+    private suspend fun commitVersioned(
+        metaRef: DocumentReference,
+        ingredientRef: DocumentReference,
+        userId: String,
+        write: (Transaction, DocumentReference) -> Unit,
+    ): Long = firestore.runTransaction { transaction ->
+        val meta = transaction.get(metaRef)
+        val previousVersion = if (meta.exists()) meta.getLong(FIELD_VERSION) ?: 0L else 0L
+        write(transaction, ingredientRef)
+        val fields = mapOf(
+            FIELD_VERSION to previousVersion + 1,
+            FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+            FIELD_UPDATED_BY to userId,
+        )
+        if (meta.exists()) transaction.update(metaRef, fields) else transaction.set(metaRef, fields)
+        previousVersion
+    }.await()
+
+    // El catálogo común solo lo escribe el admin; las reglas lo vuelven a exigir.
+    private fun requireAdmin(): AuthUser {
         val user = authRepository.currentUser.value
             ?: throw IngredientRepositoryException(IngredientFailure.NotAuthenticated)
-        if (!user.isEmailVerified) {
-            throw IngredientRepositoryException(IngredientFailure.EmailNotVerified)
+        val failure = when {
+            !user.isEmailVerified -> IngredientFailure.EmailNotVerified
+            user.id !in RecipeAdmins.uids -> IngredientFailure.PermissionDenied
+            else -> null
         }
+        if (failure != null) throw IngredientRepositoryException(failure)
         return user
-    }
-
-    private fun validate(name: String, category: String?, defaultUnit: String?): IngredientValues {
-        val normalizedName = name.trim()
-        val normalizedCategory = category?.trim()?.takeIf(String::isNotEmpty)
-        val normalizedUnit = defaultUnit?.trim()?.takeIf(String::isNotEmpty)
-        when {
-            normalizedName.isEmpty() -> throw IngredientRepositoryException(IngredientFailure.NameRequired)
-            normalizedName.length > MAX_NAME_LENGTH -> throw IngredientRepositoryException(
-                IngredientFailure.NameTooLong,
-            )
-            normalizedCategory != null && normalizedCategory.length > MAX_CATEGORY_LENGTH ->
-                throw IngredientRepositoryException(IngredientFailure.CategoryTooLong)
-            normalizedUnit != null && normalizedUnit.length > MAX_UNIT_LENGTH ->
-                throw IngredientRepositoryException(IngredientFailure.UnitTooLong)
-        }
-        return IngredientValues(normalizedName, normalizedCategory, normalizedUnit)
     }
 
     private suspend inline fun <T> runOperation(crossinline operation: suspend () -> T): T {
@@ -149,46 +152,15 @@ class FirestoreIngredientRepository @Inject constructor(
         }
     }
 
-    private data class IngredientValues(val name: String, val category: String?, val unit: String?)
-
     private companion object {
+        const val REFRESH_TIMEOUT_MILLIS = 5_000L
         const val INGREDIENTS = "ingredients"
-        const val SCOPE = "ingredients:catalog"
-        const val FIELD_NAME = "name"
-        const val FIELD_NAME_LOWER = "nameLower"
-        const val FIELD_CATEGORY = "category"
-        const val FIELD_DEFAULT_UNIT = "defaultUnit"
-        const val FIELD_OWNER_UID = "ownerUid"
-        const val FIELD_CREATED_BY = "createdBy"
-        const val FIELD_CREATED_BY_NAME = "createdByName"
+        const val CATALOG_META = "catalogMeta"
+        const val FIELD_VERSION = "version"
         const val FIELD_CREATED_AT = "createdAt"
         const val FIELD_UPDATED_BY = "updatedBy"
         const val FIELD_UPDATED_AT = "updatedAt"
-        const val MAX_NAME_LENGTH = 120
-        const val MAX_CATEGORY_LENGTH = 60
-        const val MAX_UNIT_LENGTH = 24
-        const val MAX_VISIBLE_INGREDIENTS = 500L
     }
-}
-
-private val AuthUser.catalogDisplayName: String
-    get() = displayName.ifBlank { email.substringBefore('@') }.take(60)
-
-private fun DocumentSnapshot.toCatalogIngredient(): CatalogIngredient? {
-    val createdAt = getTimestamp("createdAt")?.toDate()?.toInstant() ?: return null
-    val updatedAt = getTimestamp("updatedAt")?.toDate()?.toInstant() ?: createdAt
-    return CatalogIngredient(
-        id = id,
-        name = getString("name") ?: return null,
-        category = getString("category"),
-        defaultUnit = getString("defaultUnit"),
-        ownerUid = getString("ownerUid") ?: return null,
-        createdBy = getString("createdBy") ?: return null,
-        createdByName = getString("createdByName") ?: getString("createdBy") ?: return null,
-        createdAt = createdAt,
-        updatedBy = getString("updatedBy") ?: getString("createdBy") ?: return null,
-        updatedAt = updatedAt,
-    )
 }
 
 private fun Throwable.toIngredientRepositoryException(): IngredientRepositoryException = IngredientRepositoryException(

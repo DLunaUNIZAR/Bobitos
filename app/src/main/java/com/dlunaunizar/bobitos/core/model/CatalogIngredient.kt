@@ -1,26 +1,19 @@
 package com.dlunaunizar.bobitos.core.model
 
 import java.text.Normalizer
-import java.time.Instant
 
 /**
- * Ficha de ingrediente del catálogo global compartido por todos los usuarios (colección top-level
- * `ingredients`). Es distinta del [Ingredient] embebido en una receta (texto libre): aquí cada
- * ingrediente es una entidad con identidad estable. El `id` es el [slug] de su nombre, para
- * deduplicar y poder resolverlo por nombre. La personalización por usuario (supermercado/marca por
- * defecto) vive aparte, en las preferencias del usuario.
+ * Ficha de ingrediente del catálogo: común (colección top-level `ingredients`, solo la edita el admin)
+ * o personal del usuario (`personal = true`). Es distinta del [Ingredient] embebido en una receta
+ * (texto libre): aquí cada ingrediente es una entidad con identidad estable. El `id` es el [slug] de
+ * su nombre, para deduplicar y poder resolverlo por nombre.
  */
 data class CatalogIngredient(
     val id: String,
     val name: String,
     val category: String? = null,
     val defaultUnit: String? = null,
-    val ownerUid: String,
-    val createdBy: String,
-    val createdByName: String,
-    val createdAt: Instant,
-    val updatedBy: String,
-    val updatedAt: Instant,
+    val personal: Boolean = false,
 )
 
 /**

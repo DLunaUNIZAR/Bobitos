@@ -118,15 +118,13 @@ class ShoppingViewModel @Inject constructor(
     fun createIngredientFromItem(item: ShoppingItem) {
         if (mutableUiState.value.isSaving) return
         val name = item.name.trim()
-        viewModelScope.launch {
-            val existing = ingredientRepository.ingredientById(slug(name))
-            if (existing != null) {
-                showNotice(ShoppingUiMessage.IngredientExists)
-                return@launch
-            }
-            runAction(ShoppingUiMessage.IngredientCreated) {
-                ingredientRepository.createIngredient(name, null, null)
-            }
+        // Se comprueba contra el catálogo ya cargado; si falta alguno, el alta lo rechaza con AlreadyExists.
+        if (mutableUiState.value.catalog.any { it.id == slug(name) }) {
+            showNotice(ShoppingUiMessage.IngredientExists)
+            return
+        }
+        runAction(ShoppingUiMessage.IngredientCreated) {
+            ingredientRepository.createIngredient(name, null, null)
         }
     }
 

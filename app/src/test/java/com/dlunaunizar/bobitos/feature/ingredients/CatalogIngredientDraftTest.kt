@@ -3,13 +3,10 @@ package com.dlunaunizar.bobitos.feature.ingredients
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import java.time.Instant
 
 class CatalogIngredientDraftTest {
-    private fun ingredient(category: String?, unit: String?) = CatalogIngredient(
-        id = "i1", name = "Arroz", category = category, defaultUnit = unit, ownerUid = "u",
-        createdBy = "u", createdByName = "U", createdAt = Instant.EPOCH, updatedBy = "u", updatedAt = Instant.EPOCH,
-    )
+    private fun ingredient(category: String?, unit: String?) =
+        CatalogIngredient(id = "i1", name = "Arroz", category = category, defaultUnit = unit)
 
     @Test
     fun unIngredienteNuevoEmpiezaVacio() {

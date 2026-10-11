@@ -34,5 +34,5 @@ data class IngredientsUiState(
     val error: IngredientUiMessage? = null,
     val notice: IngredientUiMessage? = null,
 ) {
-    fun canEdit(ingredient: CatalogIngredient): Boolean = isAdmin || ingredient.ownerUid == currentUid
+    fun canEdit(@Suppress("UNUSED_PARAMETER") ingredient: CatalogIngredient): Boolean = isAdmin
 }

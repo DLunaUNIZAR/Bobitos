@@ -119,8 +119,6 @@ class ShoppingViewModelTest {
 
     @Test
     fun `creating an ingredient from a new item writes it`() = runTest(mainDispatcherRule.testDispatcher) {
-        ingredientRepository.existing = null
-
         viewModel.createIngredientFromItem(shoppingItem())
         advanceUntilIdle()
 
@@ -132,7 +130,9 @@ class ShoppingViewModelTest {
     @Test
     fun `creating an ingredient that already exists shows a notice and does not write`() =
         runTest(mainDispatcherRule.testDispatcher) {
-            ingredientRepository.existing = catalogIngredient()
+            ingredientRepository.catalogState.value = listOf(catalogIngredient())
+            viewModel.startIngredientAssist()
+            advanceUntilIdle()
 
             viewModel.createIngredientFromItem(shoppingItem())
             advanceUntilIdle()
@@ -322,14 +322,12 @@ private class FakeShoppingRepository : ShoppingRepository {
 
 private class ShoppingFakeIngredientRepo : IngredientRepository {
     val catalogState = MutableStateFlow<List<CatalogIngredient>>(emptyList())
-    var existing: CatalogIngredient? = null
     var createCount = 0
     var lastCreatedName: String? = null
 
     override fun catalog(): Flow<List<CatalogIngredient>> = catalogState
     override fun isCurrentUserCatalogAdmin(): Boolean = false
     override fun currentUserId(): String? = null
-    override suspend fun ingredientById(id: String): CatalogIngredient? = existing
     override suspend fun createIngredient(name: String, category: String?, defaultUnit: String?) {
         createCount++
         lastCreatedName = name
@@ -371,13 +369,4 @@ private fun shoppingItem() = ShoppingItem(
     purchasedAt = null,
 )
 
-private fun catalogIngredient() = CatalogIngredient(
-    id = "leche",
-    name = "Leche",
-    ownerUid = "owner",
-    createdBy = "owner",
-    createdByName = "David",
-    createdAt = Instant.EPOCH,
-    updatedBy = "owner",
-    updatedAt = Instant.EPOCH,
-)
+private fun catalogIngredient() = CatalogIngredient(id = "leche", name = "Leche")

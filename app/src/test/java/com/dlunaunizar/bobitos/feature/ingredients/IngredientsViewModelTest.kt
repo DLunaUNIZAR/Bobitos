@@ -29,7 +29,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class IngredientsViewModelTest {
@@ -158,14 +157,21 @@ class IngredientsViewModelTest {
         }
 
     @Test
-    fun `canEdit is true for own ingredients and admins`() = runTest(mainDispatcherRule.testDispatcher) {
-        repository.uid = "me"
+    fun `canEdit a common ingredient is false for non-admins`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.admin = false
         viewModel.observe()
         advanceUntilIdle()
 
-        val state = viewModel.uiState.value
-        assertEquals(true, state.canEdit(ingredient("a", "A", ownerUid = "me")))
-        assertEquals(false, state.canEdit(ingredient("b", "B", ownerUid = "other")))
+        assertEquals(false, viewModel.uiState.value.canEdit(ingredient("a", "A")))
+    }
+
+    @Test
+    fun `canEdit a common ingredient is true for admins`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.admin = true
+        viewModel.observe()
+        advanceUntilIdle()
+
+        assertEquals(true, viewModel.uiState.value.canEdit(ingredient("a", "A")))
     }
 
     @Test
@@ -225,16 +231,7 @@ class IngredientsViewModelTest {
     }
 }
 
-private fun ingredient(id: String, name: String, ownerUid: String = "owner") = CatalogIngredient(
-    id = id,
-    name = name,
-    ownerUid = ownerUid,
-    createdBy = ownerUid,
-    createdByName = ownerUid,
-    createdAt = Instant.EPOCH,
-    updatedBy = ownerUid,
-    updatedAt = Instant.EPOCH,
-)
+private fun ingredient(id: String, name: String) = CatalogIngredient(id = id, name = name)
 
 private class FakeIngredientRepository : IngredientRepository {
     val catalogState = MutableStateFlow<List<CatalogIngredient>>(emptyList())
@@ -250,7 +247,6 @@ private class FakeIngredientRepository : IngredientRepository {
     override fun catalog(): Flow<List<CatalogIngredient>> = catalogState
     override fun isCurrentUserCatalogAdmin(): Boolean = admin
     override fun currentUserId(): String? = uid
-    override suspend fun ingredientById(id: String): CatalogIngredient? = catalogState.value.firstOrNull { it.id == id }
     override suspend fun createIngredient(name: String, category: String?, defaultUnit: String?) {
         if (hang) {
             try {
