@@ -20,6 +20,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -27,6 +29,9 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.foldForSearch
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.ExerciseType
+
+internal const val EXERCISE_FILTER_TYPE_TAG = "exercise-filter-type"
+internal const val EXERCISE_FILTER_GROUP_TAG = "exercise-filter-group"
 
 // Desplegables de tipo y de grupo muscular, uno al lado del otro, compartidos por la pantalla Ejercicios y el
 // selector. «Todos los …» quita el filtro. Si el grupo elegido ya no está en el catálogo, se sigue ofreciendo
@@ -50,6 +55,7 @@ internal fun ExerciseFilterMenus(
             ) + ExerciseType.entries.map { type ->
                 FilterOption(stringResource(type.labelRes), filter.type == type) { onTypeChange(type) }
             },
+            tag = EXERCISE_FILTER_TYPE_TAG,
             modifier = Modifier.weight(1f),
         )
         FilterDropdown(
@@ -62,6 +68,7 @@ internal fun ExerciseFilterMenus(
             ) + groupOptions.map { group ->
                 FilterOption(group, isSelectedGroup(group, selectedGroup)) { onGroupChange(group) }
             },
+            tag = EXERCISE_FILTER_GROUP_TAG,
             enabled = groupOptions.isNotEmpty(),
             modifier = Modifier.weight(1f),
         )
@@ -76,13 +83,21 @@ private fun FilterDropdown(
     label: String,
     value: String,
     options: List<FilterOption>,
+    tag: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+
+    // Al cerrar el menú la casilla no debe quedarse enfocada (borde y etiqueta en color primario).
+    fun close() {
+        expanded = false
+        focusManager.clearFocus()
+    }
     ExposedDropdownMenuBox(
         expanded = expanded && enabled,
-        onExpandedChange = { expanded = it && enabled },
+        onExpandedChange = { if (it && enabled) expanded = true else close() },
         modifier = modifier,
     ) {
         OutlinedTextField(
@@ -95,14 +110,15 @@ private fun FilterDropdown(
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded && enabled) },
             modifier = Modifier
                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled)
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .testTag(tag),
         )
-        ExposedDropdownMenu(expanded = expanded && enabled, onDismissRequest = { expanded = false }) {
+        ExposedDropdownMenu(expanded = expanded && enabled, onDismissRequest = ::close) {
             options.forEach { option ->
                 DropdownMenuItem(
                     text = { Text(option.text) },
                     onClick = {
-                        expanded = false
+                        close()
                         option.onSelect()
                     },
                     trailingIcon = if (option.selected) {
