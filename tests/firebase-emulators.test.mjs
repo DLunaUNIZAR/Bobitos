@@ -8,6 +8,7 @@ import {
 } from "@firebase/rules-unit-testing";
 import { deleteApp, initializeApp } from "firebase/app";
 import { toFirestoreDoc } from "../scripts/catalog/import-plan.mjs";
+import { routineToFirestoreDoc } from "../scripts/catalog/routine-import-plan.mjs";
 import {
   applyActionCode,
   confirmPasswordReset,
@@ -2067,6 +2068,56 @@ test("la rutina valida la forma y rechaza campos ajenos o una lista de ejercicio
   await assertFails(
     setDoc(doc(trainer, "routines", "bad-exercises"), routineData("routine-schema", { exercises: "press, curl" })),
   );
+});
+
+const importedRoutine = {
+  id: "torso",
+  title: "Torso",
+  description: "Intermedio · 60 min · barra · descansa 90 s entre series · 2 veces por semana.",
+  exercises: [{ name: "Press de banca", exerciseId: "press-de-banca", type: "PESO_LIBRE",
+    sets: [{ reps: 8, weight: null }], durationMinutes: null, level: null, notes: null }],
+};
+
+async function seedImportedRoutine(id) {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "routines", id),
+      routineToFirestoreDoc({ ...importedRoutine, id }, { now: Timestamp.now(), create: true }));
+  });
+}
+
+test("el admin edita una rutina importada pero no su fuente, y cualquiera la lee", async () => {
+  await seedImportedRoutine("torso-importada");
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  const ref = doc(admin, "routines", "torso-importada");
+  await assertSucceeds(updateDoc(ref, {
+    title: "Torso (editada)", description: "Otra", exercises: [], updatedBy: RECIPE_ADMIN_UID, updatedAt: serverTimestamp(),
+  }));
+  await assertFails(updateDoc(ref, {
+    source: { provider: "bobitos", importedAt: Timestamp.now() }, updatedBy: RECIPE_ADMIN_UID, updatedAt: serverTimestamp(),
+  }));
+  await assertSucceeds(getDoc(doc(verifiedFirestore("routine-imported-reader"), "routines", "torso-importada")));
+});
+
+test("ningún cliente crea una rutina con la fuente del catálogo", async () => {
+  const source = { provider: "bobitos", importedAt: Timestamp.now() };
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  await assertFails(setDoc(doc(admin, "routines", "falsa-global"),
+    routineData(RECIPE_ADMIN_UID, { visibility: "GLOBAL", source })));
+  const user = verifiedFirestore("routine-fake-source");
+  await assertFails(setDoc(doc(user, "routines", "falsa"), routineData("routine-fake-source", { source })));
+});
+
+test("una copia guarda el id de la común, válido e inmutable", async () => {
+  const user = verifiedFirestore("routine-forker");
+  const ref = doc(user, "routines", "copia");
+  await assertSucceeds(setDoc(ref, routineData("routine-forker", { sourceRoutineId: "torso" })));
+  await assertSucceeds(updateDoc(ref, { title: "Mi torso", updatedBy: "routine-forker", updatedAt: serverTimestamp() }));
+  await assertFails(updateDoc(ref, { sourceRoutineId: "otra", updatedBy: "routine-forker", updatedAt: serverTimestamp() }));
+  await assertSucceeds(setDoc(doc(user, "routines", "origen-nulo"), routineData("routine-forker", { sourceRoutineId: null })));
+  await assertFails(setDoc(doc(user, "routines", "origen-numero"), routineData("routine-forker", { sourceRoutineId: 123 })));
+  await assertFails(setDoc(doc(user, "routines", "origen-vacio"), routineData("routine-forker", { sourceRoutineId: "" })));
+  await assertFails(setDoc(doc(user, "routines", "origen-largo"),
+    routineData("routine-forker", { sourceRoutineId: "x".repeat(129) })));
 });
 
 test("un usuario puede anonimizar el autor de su rutina pero no el de otra", async () => {

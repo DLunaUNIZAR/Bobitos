@@ -1019,11 +1019,20 @@ service cloud.firestore {
         ])
         && request.resource.data.keys().hasOnly([
           "ownerUid", "visibility", "title", "description",
-          "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt", "exercises"
+          "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt", "exercises",
+          "source", "sourceRoutineId"
         ])
         && (!request.resource.data.keys().hasAny(["exercises"])
           || (request.resource.data.exercises is list
             && request.resource.data.exercises.size() <= 30))
+        // Rutinas del catálogo: `source` lo escribe solo el importador (Admin SDK), con la forma de ingredientes.
+        && (!request.resource.data.keys().hasAny(["source"]) || validIngredientSource(request.resource.data.source))
+        // Copia de una común («Guardar como mía»): id de la original.
+        && (!request.resource.data.keys().hasAny(["sourceRoutineId"])
+          || request.resource.data.sourceRoutineId == null
+          || (request.resource.data.sourceRoutineId is string
+            && request.resource.data.sourceRoutineId.size() > 0
+            && request.resource.data.sourceRoutineId.size() <= 128))
         && request.resource.data.ownerUid is string
         && request.resource.data.visibility in ["GLOBAL", "PRIVATE"]
         && request.resource.data.title is string
@@ -1042,6 +1051,7 @@ service cloud.firestore {
 
     function validNewRoutine() {
       return verifiedUser() && validRoutineShape()
+        && !request.resource.data.keys().hasAny(["source"])
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time
         && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time

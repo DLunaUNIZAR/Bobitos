@@ -459,6 +459,30 @@ Valores de `equipment`: `BARRA`, `BARRA_Z`, `MANCUERNAS`, `KETTLEBELL`, `DISCO`,
 - Sin `get()`/`exists()` en las reglas y sin índices compuestos.
 - La app lista el catálogo con `limit(1000)` y sin `orderBy` (ordena en el cliente), para no perder las fichas sin `nameLower`.
 
+### Rutinas (colección `routines`)
+
+```text
+ownerUid: string
+visibility: "GLOBAL" | "PRIVATE"
+title: string                          # 1-120
+description: string?                   # ≤1000
+exercises: list?                       # ≤30 (ver «Ejercicios embebidos»)
+source: map?                           # solo en las comunes del catálogo: { provider: "bobitos", importedAt: timestamp }
+sourceRoutineId: string?               # id de la común de la que es copia; ausente, null o 1-128; inmutable
+createdBy: string
+createdByName: string                  # 1-60
+createdAt: timestamp
+updatedBy: string
+updatedAt: timestamp
+```
+
+`source` lo escribe solo el importador con el Admin SDK (ver `ROUTINE_CATALOG.md`) y tiene la misma forma que en ingredientes. `sourceRoutineId` lo guarda «Guardar como mía» al copiar una común.
+
+- **Lectura:** cualquier usuario verificado.
+- **Creación:** el propio usuario (`ownerUid == uid`, marcas de tiempo = `request.time`); `GLOBAL` solo el admin. Ningún cliente puede crear `source`.
+- **Edición:** el dueño o el admin (en las `GLOBAL`). Solo cambian `title`, `description`, `exercises`, `updatedBy` y `updatedAt`; `source`, `sourceRoutineId` y la autoría son inmutables.
+- **Borrado:** el dueño o el admin.
+
 #### Ejercicios embebidos en `routines` y `activities.session`
 
 La lista de ejercicios de una rutina (`routines.exercises`) y la de una sesión de gimnasio (`activities.session`) comparten contrato y las mismas guardas de reglas (la app acota a 30 ejercicios y 20 series por ejercicio):
