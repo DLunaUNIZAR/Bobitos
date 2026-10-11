@@ -20,6 +20,7 @@ interface RoutineRepository {
         title: String,
         description: String?,
         exercises: List<RoutineExercise>,
+        sourceRoutineId: String? = null,
     )
 
     suspend fun updateRoutine(routineId: String, title: String, description: String?, exercises: List<RoutineExercise>)

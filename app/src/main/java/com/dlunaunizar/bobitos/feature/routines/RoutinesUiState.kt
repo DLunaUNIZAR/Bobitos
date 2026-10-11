@@ -31,6 +31,7 @@ enum class RoutineUiMessage {
     SaveTimeout,
     Saved,
     Deleted,
+    Forked,
 }
 
 object RoutinesValidation {

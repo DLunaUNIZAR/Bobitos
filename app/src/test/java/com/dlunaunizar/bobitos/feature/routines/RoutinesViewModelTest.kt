@@ -157,6 +157,57 @@ class RoutinesViewModelTest {
     }
 
     @Test
+    fun `fork saves a private copy linked to the common routine`() = runTest(mainDispatcherRule.testDispatcher) {
+        val exercises = listOf(
+            RoutineExercise(
+                name = "Press de banca",
+                exerciseId = "press-de-banca",
+                type = ExerciseType.PESO_LIBRE,
+                sets = listOf(ExerciseSet(reps = 8)),
+            ),
+        )
+        val common = routine("torso", RoutineVisibility.GLOBAL, "Torso")
+            .copy(description = "Intermedio · 60 min", exercises = exercises)
+
+        viewModel.fork(common)
+        advanceUntilIdle()
+
+        assertEquals(1, repository.createCount)
+        assertEquals(RoutineVisibility.PRIVATE, repository.lastVisibility)
+        assertEquals("Torso", repository.lastTitle)
+        assertEquals("Intermedio · 60 min", repository.lastDescription)
+        assertEquals(exercises, repository.lastExercises)
+        assertEquals("torso", repository.lastSourceRoutineId)
+        assertEquals(RoutineUiMessage.Forked, viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun `a double tap on fork saves a single copy`() = runTest(mainDispatcherRule.testDispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        repository.addGate = gate
+        val common = routine("torso", RoutineVisibility.GLOBAL, "Torso")
+
+        viewModel.fork(common)
+        runCurrent()
+        viewModel.fork(common)
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(1, repository.createCount)
+    }
+
+    @Test
+    fun `fork shows a permission error`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.failure = RoutineFailure.PermissionDenied
+
+        viewModel.fork(routine("torso", RoutineVisibility.GLOBAL, "Torso"))
+        advanceUntilIdle()
+
+        assertEquals(RoutineUiMessage.PermissionDenied, viewModel.uiState.value.error)
+        assertEquals(0, repository.createCount)
+    }
+
+    @Test
     fun `a repository failure maps to its message`() = runTest(mainDispatcherRule.testDispatcher) {
         repository.failure = RoutineFailure.RoutineNotFound
 
@@ -245,6 +296,7 @@ private class FakeRoutineRepository : RoutineRepository {
     var lastTitle: String? = null
     var lastDescription: String? = null
     var lastExercises: List<RoutineExercise> = emptyList()
+    var lastSourceRoutineId: String? = null
     var lastUpdatedId: String? = null
     var lastDeletedId: String? = null
     var admin = false
@@ -259,6 +311,7 @@ private class FakeRoutineRepository : RoutineRepository {
         title: String,
         description: String?,
         exercises: List<RoutineExercise>,
+        sourceRoutineId: String?,
     ) {
         failure?.let { throw RoutineRepositoryException(it) }
         if (hang) {
@@ -270,6 +323,7 @@ private class FakeRoutineRepository : RoutineRepository {
         }
         addGate?.await()
         createCount++
+        lastSourceRoutineId = sourceRoutineId
         lastVisibility = visibility
         lastTitle = title
         lastDescription = description

@@ -9,6 +9,7 @@ import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
+import com.dlunaunizar.bobitos.core.model.Routine
 import com.dlunaunizar.bobitos.core.model.RoutineExercise
 import com.dlunaunizar.bobitos.core.model.RoutineVisibility
 import com.dlunaunizar.bobitos.data.repository.ExerciseRepository
@@ -99,6 +100,19 @@ class RoutinesViewModel @Inject constructor(
 
     fun deleteRoutine(routineId: String) {
         runAction(RoutineUiMessage.Deleted) { repository.deleteRoutine(routineId) }
+    }
+
+    // Copia privada de una común («Guardar como mía»), enlazada con la original por sourceRoutineId.
+    fun fork(source: Routine) {
+        runAction(RoutineUiMessage.Forked) {
+            repository.createRoutine(
+                visibility = RoutineVisibility.PRIVATE,
+                title = source.title,
+                description = source.description,
+                exercises = source.exercises.orEmpty(),
+                sourceRoutineId = source.id,
+            )
+        }
     }
 
     fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }

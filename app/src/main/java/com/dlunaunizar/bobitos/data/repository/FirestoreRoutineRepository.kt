@@ -45,22 +45,25 @@ class FirestoreRoutineRepository @Inject constructor(
         title: String,
         description: String?,
         exercises: List<RoutineExercise>,
+        sourceRoutineId: String?,
     ) = runRoutineOperation {
         val user = requireVerifiedUser()
         val values = validate(title, description)
         routinesCollection().document().set(
-            mapOf(
-                FIELD_OWNER_UID to user.id,
-                FIELD_VISIBILITY to visibility.name,
-                FIELD_TITLE to values.title,
-                FIELD_DESCRIPTION to values.description,
-                FIELD_EXERCISES to exercises.toFirestoreExercises(),
-                FIELD_CREATED_BY to user.id,
-                FIELD_CREATED_BY_NAME to user.routineDisplayName,
-                FIELD_CREATED_AT to FieldValue.serverTimestamp(),
-                FIELD_UPDATED_BY to user.id,
-                FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
-            ),
+            buildMap {
+                put(FIELD_OWNER_UID, user.id)
+                put(FIELD_VISIBILITY, visibility.name)
+                put(FIELD_TITLE, values.title)
+                put(FIELD_DESCRIPTION, values.description)
+                put(FIELD_EXERCISES, exercises.toFirestoreExercises())
+                put(FIELD_CREATED_BY, user.id)
+                put(FIELD_CREATED_BY_NAME, user.routineDisplayName)
+                put(FIELD_CREATED_AT, FieldValue.serverTimestamp())
+                put(FIELD_UPDATED_BY, user.id)
+                put(FIELD_UPDATED_AT, FieldValue.serverTimestamp())
+                // Solo si hay valor: las reglas aceptan el campo ausente.
+                sourceRoutineId?.let { put(FIELD_SOURCE_ROUTINE_ID, it) }
+            },
         ).await()
         Unit
     }
@@ -168,6 +171,7 @@ class FirestoreRoutineRepository @Inject constructor(
         const val FIELD_TITLE = "title"
         const val FIELD_DESCRIPTION = "description"
         const val FIELD_EXERCISES = "exercises"
+        const val FIELD_SOURCE_ROUTINE_ID = "sourceRoutineId"
         const val FIELD_CREATED_BY = "createdBy"
         const val FIELD_CREATED_BY_NAME = "createdByName"
         const val FIELD_CREATED_AT = "createdAt"
@@ -195,6 +199,7 @@ private fun DocumentSnapshot.toRoutine(): Routine? {
         title = getString("title") ?: return null,
         description = getString("description"),
         exercises = parseRoutineExercises(get("exercises")),
+        sourceRoutineId = getString("sourceRoutineId"),
         createdBy = getString("createdBy") ?: return null,
         createdByName = getString("createdByName") ?: getString("createdBy") ?: return null,
         createdAt = createdAt,

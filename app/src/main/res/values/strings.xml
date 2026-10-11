@@ -553,6 +553,8 @@
     <string name="routines_error_not_found">La rutina ya no existe.</string>
     <string name="routines_notice_saved">Rutina guardada</string>
     <string name="routines_notice_deleted">Rutina eliminada</string>
+    <string name="routines_fork">Guardar como mía</string>
+    <string name="routines_notice_forked">Guardada en «Mis rutinas»</string>
     <string name="exercises_title">Ejercicios</string>
     <string name="exercises_open">Ejercicios</string>
     <string name="exercises_add">Nuevo ejercicio</string>

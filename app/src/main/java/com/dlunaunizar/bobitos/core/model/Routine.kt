@@ -12,6 +12,7 @@ data class Routine(
     val title: String,
     val description: String? = null,
     val exercises: List<RoutineExercise>? = null,
+    val sourceRoutineId: String? = null, // común de la que es copia («Guardar como mía»)
     val createdBy: String,
     val createdByName: String,
     val createdAt: Instant,

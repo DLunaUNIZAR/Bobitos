@@ -143,6 +143,10 @@ fun RoutinesScreen(
         editorOpen = editorOpen,
         editorRoutineId = editorRoutineId,
         onCloseDetail = { detailRoutineId = null },
+        onFork = { routine ->
+            viewModel.fork(routine)
+            detailRoutineId = null
+        },
         onCloseEditor = {
             editorOpen = false
             editorRoutineId = null
@@ -176,18 +180,15 @@ private fun RoutinesCatalog(
     onEdit: (Routine) -> Unit,
     onDelete: (Routine) -> Unit,
 ) {
-    // Las comunes ya publicadas por el propio usuario aparecen en «Mis rutinas»; se excluyen de aquí.
-    val mineIds = (state.mine as? UiState.Content)?.value.orEmpty().map(Routine::id).toSet()
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         contentPadding = PaddingValues(bottom = 88.dp),
     ) {
         routinesSection(
             titleRes = R.string.routines_mine,
-            routines = state.mine,
+            routines = state.mine.let { m -> if (m is UiState.Content) UiState.Content(m.value.personalOnly()) else m },
             query = state.query,
             canEdit = canWrite,
-            excludeIds = emptySet(),
             onOpen = onOpen,
             onEdit = onEdit,
             onDelete = onDelete,
@@ -197,7 +198,6 @@ private fun RoutinesCatalog(
             routines = state.global,
             query = state.query,
             canEdit = canWrite && state.isAdmin,
-            excludeIds = mineIds,
             onOpen = onOpen,
             onEdit = onEdit,
             onDelete = onDelete,
@@ -210,7 +210,6 @@ private fun LazyListScope.routinesSection(
     routines: UiState<List<Routine>>,
     query: String,
     canEdit: Boolean,
-    excludeIds: Set<String>,
     onOpen: (Routine) -> Unit,
     onEdit: (Routine) -> Unit,
     onDelete: (Routine) -> Unit,
@@ -228,7 +227,7 @@ private fun LazyListScope.routinesSection(
             ErrorState(Modifier.fillMaxWidth(), message = routines.message)
         }
         is UiState.Content -> {
-            val visible = routines.value.filter { it.id !in excludeIds }
+            val visible = routines.value
             val filtered = visible.filter { it.matches(query) }
             if (filtered.isEmpty()) {
                 val noResults = query.isNotBlank() && visible.isNotEmpty()
@@ -327,6 +326,7 @@ private fun RoutineSheetsHost(
     editorRoutineId: String?,
     onCloseDetail: () -> Unit,
     onCloseEditor: () -> Unit,
+    onFork: (Routine) -> Unit,
     onSave: (Routine?, RoutineVisibility, String, String?, List<RoutineExercise>) -> Unit,
 ) {
     val global = state.global as? UiState.Content
@@ -347,7 +347,14 @@ private fun RoutineSheetsHost(
         idOf = Routine::id,
         onGone = onCloseEditor,
     )
-    detail?.let { RoutineDetailSheet(routine = it, onDismiss = onCloseDetail) }
+    detail?.let {
+        RoutineDetailSheet(
+            routine = it,
+            canFork = canForkRoutine(it, canWrite),
+            onFork = { onFork(it) },
+            onDismiss = onCloseDetail,
+        )
+    }
     editor?.let { slot ->
         val editing = slot.item
         RoutineEditor(
@@ -368,8 +375,12 @@ private fun RoutineSheetsHost(
 }
 
 @Composable
-private fun RoutineDetailSheet(routine: Routine, onDismiss: () -> Unit) {
-    BobitosInfoSheet(title = routine.title, onDismiss = onDismiss) {
+private fun RoutineDetailSheet(routine: Routine, canFork: Boolean, onFork: () -> Unit, onDismiss: () -> Unit) {
+    BobitosInfoSheet(
+        title = routine.title,
+        onDismiss = onDismiss,
+        actions = { if (canFork) TextButton(onClick = onFork) { Text(stringResource(R.string.routines_fork)) } },
+    ) {
         routine.description?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         val exercises = routine.exercises.orEmpty()
         if (exercises.isEmpty()) {
@@ -445,4 +456,5 @@ private val RoutineUiMessage.stringResourceId: Int
         RoutineUiMessage.SaveTimeout -> R.string.write_timeout
         RoutineUiMessage.Saved -> R.string.routines_notice_saved
         RoutineUiMessage.Deleted -> R.string.routines_notice_deleted
+        RoutineUiMessage.Forked -> R.string.routines_notice_forked
     }
