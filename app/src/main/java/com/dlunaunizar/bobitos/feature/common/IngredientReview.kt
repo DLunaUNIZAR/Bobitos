@@ -52,6 +52,15 @@ internal fun IngredientReviewRow.initialState(): ReviewRowState = ReviewRowState
     freeBrand = "",
 )
 
+// Cada cambio parte del estado vigente de la fila, no de uno capturado en una composición anterior.
+internal fun ReviewRowState.withBrand(context: IngredientShoppingContext, brandId: String?): ReviewRowState =
+    copy(selection = context.selectBrand(selection, brandId))
+
+internal fun ReviewRowState.withStore(store: Supermarket?): ReviewRowState =
+    copy(selection = selection.copy(store = store))
+
+internal fun ReviewRowState.withFreeBrand(text: String): ReviewRowState = copy(freeBrand = text)
+
 internal fun ReviewRowState.toChoice(row: IngredientReviewRow): IngredientReviewChoice {
     val trimmed = quantity.trim().ifEmpty { null }
     val existing = row.existing
@@ -177,18 +186,13 @@ fun IngredientReviewDialog(
                         )
                         val context = row.context
                         if (context != null) {
-                            val state = states[index]
                             BrandStorePicker(
                                 context = context,
-                                selection = state.selection,
-                                freeBrand = state.freeBrand,
-                                onBrandSelected = {
-                                    states[index] = state.copy(selection = context.selectBrand(state.selection, it))
-                                },
-                                onStoreSelected = {
-                                    states[index] = state.copy(selection = state.selection.copy(store = it))
-                                },
-                                onFreeBrandChange = { states[index] = state.copy(freeBrand = it) },
+                                selection = states[index].selection,
+                                freeBrand = states[index].freeBrand,
+                                onBrandSelected = { states[index] = states[index].withBrand(context, it) },
+                                onStoreSelected = { states[index] = states[index].withStore(it) },
+                                onFreeBrandChange = { states[index] = states[index].withFreeBrand(it) },
                             )
                         }
                     }

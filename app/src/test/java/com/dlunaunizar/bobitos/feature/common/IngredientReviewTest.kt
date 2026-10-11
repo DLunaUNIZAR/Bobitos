@@ -14,6 +14,19 @@ import org.junit.Test
 import java.time.Instant
 
 class IngredientReviewTest {
+    @Test
+    fun `consecutive brand and store changes on a row are both kept`() {
+        val context = IngredientShoppingContext(arroz, data.brands, listOf(Supermarket.MERCADONA, Supermarket.DIA))
+        val start = ReviewRowState("1", BrandStoreSelection.None, "")
+
+        val result = start.withBrand(context, "b2").withStore(Supermarket.MERCADONA)
+
+        assertEquals("b2", result.selection.brandId)
+        assertEquals(Supermarket.MERCADONA, result.selection.store)
+        assertEquals("7", start.copy(quantity = "7").withFreeBrand("X").quantity)
+        assertEquals("X", start.withFreeBrand("X").freeBrand)
+    }
+
     private val arroz = CatalogIngredient("arroz", "Arroz")
     private val data = IngredientShoppingData(
         ingredients = listOf(arroz),
