@@ -156,6 +156,7 @@ class IngredientsViewModelTest {
     @Test
     fun `scanning a barcode already in my brands opens it without calling Open Food Facts`() =
         runTest(mainDispatcherRule.testDispatcher) {
+            repository.catalogState.value = listOf(ingredient("tomate", "Tomate"))
             brandRepository.brandsState.value =
                 listOf(IngredientBrand(id = "b1", ingredientId = "tomate", name = "Hida", barcode = "8410000000000"))
             viewModel.observe()
@@ -170,6 +171,23 @@ class IngredientsViewModelTest {
 
             viewModel.consumeOpenBrand()
             assertNull(viewModel.uiState.value.openBrand)
+        }
+
+    @Test
+    fun `a barcode of an orphan brand is treated as new and goes to Open Food Facts`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.catalogState.value = listOf(ingredient("sal", "Sal"))
+            brandRepository.brandsState.value =
+                listOf(IngredientBrand(id = "b1", ingredientId = "borrado", name = "Hida", barcode = "8410000000000"))
+            viewModel.observe()
+            advanceUntilIdle()
+
+            viewModel.lookupBarcode("8410000000000")
+            advanceUntilIdle()
+
+            assertNull(viewModel.uiState.value.openBrand)
+            assertEquals(1, offClient.calls)
+            assertEquals("8410000000000", viewModel.uiState.value.scanPick?.barcode)
         }
 
     @Test

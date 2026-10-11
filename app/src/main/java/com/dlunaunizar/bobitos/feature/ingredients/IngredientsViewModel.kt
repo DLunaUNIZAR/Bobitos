@@ -153,7 +153,10 @@ class IngredientsViewModel @Inject constructor(
     /** Un código ya guardado abre su marca; si no, consulta Open Food Facts y deja la elección de ingrediente. */
     fun lookupBarcode(barcode: String) {
         if (mutableUiState.value.isLookingUp) return
-        findBrandByBarcode(mutableUiState.value.brands, barcode)?.let { brand ->
+        // Una marca huérfana (su ingrediente común ya no existe) se trata como código nuevo.
+        val visibleIds = currentIngredients().mapTo(HashSet(), CatalogIngredient::id)
+        val known = mutableUiState.value.brands.filter { it.ingredientId in visibleIds }
+        findBrandByBarcode(known, barcode)?.let { brand ->
             mutableUiState.update { it.copy(openBrand = OpenBrand(brand.ingredientId, brand.id)) }
             return
         }
