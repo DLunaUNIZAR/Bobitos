@@ -652,6 +652,11 @@ private fun NavHostController.openFromMore(destination: BobitosDestination) {
 // Entra en la Compra del espacio activo y le pasa el nombre a rellenar por el estado de su entrada
 // (la ruta "shopping" no cambia: se compara como cadena en varios sitios).
 private fun NavHostController.openShoppingWithName(name: String) {
+    // Desde fuera del espacio (p. ej. Ingredientes del menú principal) se ancla antes el hub del espacio:
+    // sin él, popUpTo(SpaceHome) se ignora y «Hoy» y las pestañas no funcionan.
+    if (needsSpaceHomeAnchor(currentBackStack.value.map { it.destination.route })) {
+        navigate(BobitosDestination.SpaceHome.route) { launchSingleTop = true }
+    }
     navigateToWorkspace(BobitosDestination.Shopping)
     getBackStackEntry(BobitosDestination.Shopping.route).savedStateHandle[SHOPPING_PREFILL_KEY] = name
 }
@@ -677,3 +682,7 @@ private fun NavHostController.navigateToProfile() {
 }
 
 private const val NAV_ANIM_MS = 220
+
+/** Falta el hub del espacio en la pila: hay que apilarlo antes de entrar en un módulo del espacio. */
+internal fun needsSpaceHomeAnchor(backStackRoutes: List<String?>): Boolean =
+    BobitosDestination.SpaceHome.route !in backStackRoutes
