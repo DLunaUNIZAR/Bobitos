@@ -5,8 +5,8 @@
 | Campo | Valor |
 | --- | --- |
 | Estado | Modelo multiusuario y módulos compartidos implementados (incluye el planificador de comidas, Fase 1) |
-| Versión | 0.8.0 |
-| Fecha | 10 de octubre de 2026 |
+| Versión | 0.9.0 |
+| Fecha | 11 de octubre de 2026 |
 
 ## 1. Objetivos
 
@@ -22,6 +22,8 @@
 
 ```text
 users/{userId}
+users/{userId}/ingredients/{slug}
+users/{userId}/brands/{brandId}
 spaces/{spaceId}
 memberships/{spaceId_userId}
 spaces/{spaceId}/shoppingItems/{itemId}
@@ -34,10 +36,11 @@ ingredients/{ingredientId}
 exercises/{exerciseId}
 ingredientPrefs/{userId}
 catalogMeta/exercises
+catalogMeta/ingredients
 invitations/{inviteToken}
 ```
 
-Las colecciones **top-level globales** (no cuelgan de un espacio) son `recipes`, `routines`, `ingredients`, `exercises`, `catalogMeta` e `ingredientPrefs`. `recipes` agrupa el catálogo común y las recetas personales de todos los usuarios (ver sección 11 · Recetario); `exercises` es el catálogo común de ejercicios (ver la sección «Ejercicios» tras el Recetario).
+Las colecciones **top-level globales** (no cuelgan de un espacio) son `recipes`, `routines`, `ingredients`, `exercises`, `catalogMeta` e `ingredientPrefs`. `recipes` agrupa el catálogo común y las recetas personales de todos los usuarios (ver sección 11 · Recetario); `exercises` es el catálogo común de ejercicios (ver la sección «Ejercicios» tras el Recetario). Los ingredientes personales y las marcas cuelgan de `users/{userId}` (ver «Ingredientes» tras el Recetario).
 
 ## 3. Convenciones
 
@@ -204,7 +207,11 @@ updatedAt: timestamp
 purchasedBy: string | null
 purchasedByName: string | null
 purchasedAt: timestamp | null
+supermarket: string | ausente         # DIA | EROSKI | MERCADONA | CARREFOUR | ALCAMPO | OTROS | INDIFERENTE
+brand: string | ausente               # texto libre, ≤60
 ```
+
+`supermarket` y `brand` son opcionales: un producto sin ellos se lee como «sin tienda» y «sin marca». La marca se guarda **como texto** (el nombre de la marca en el momento de añadir el producto), no como referencia a `users/{uid}/brands`: la lista es compartida y las marcas son personales, así que los demás miembros no pueden leerlas ni se rompe el producto si se borra la marca.
 
 ### Decisión importante
 
@@ -513,6 +520,92 @@ updatedBy: string                      # uid de quien lo sube (la cuenta admin e
 - Lo suben el importador (una vez por lote) y cada guardado de un ejercicio desde la app, en la misma transacción que la ficha. Las reglas de `exercises` no exigen subirla, para no romper las escrituras de la app antigua; a cambio, la caché de la app caduca a los 7 días.
 - Cada guardado cuesta +2 lecturas y +1 escritura; abrir el catálogo sin cambios, 1 lectura.
 
+### Ingredientes
+
+Tres piezas: el catálogo común (top-level, solo lo escribe el admin), y los ingredientes y las marcas personales (bajo `users/{userId}`, solo del dueño). El diseño completo está en [`superpowers/specs/2026-10-11-catalogo-ingredientes-design.md`](superpowers/specs/2026-10-11-catalogo-ingredientes-design.md) y el flujo de edición e importación del catálogo en [`INGREDIENT_CATALOG.md`](INGREDIENT_CATALOG.md).
+
+#### Catálogo común (colección `ingredients`)
+
+```text
+ingredients/{slug}
+name: string                           # 1–120
+nameLower: string                      # ≤120
+category: string?                      # ≤60
+defaultUnit: string?                   # ≤24 (g | ml | ud en el catálogo sembrado)
+source: map?                           # { provider: "bobitos", importedAt: timestamp } (solo lo pone el importador)
+createdAt: timestamp
+updatedAt: timestamp
+updatedBy: string                      # uid del admin
+```
+
+- El id es el *slug* del nombre (`slug()`, igual en la app y en `scripts/catalog/normalize.mjs`). Sin campos de dueño ni subcolecciones: las marcas ya no cuelgan de aquí.
+- **Lectura:** `get` y `list` para cualquier usuario verificado.
+- **Escritura:** solo el admin del catálogo (la misma allowlist que las recetas, `RECIPES_ADMIN.md`). La app solo ofrece editar a esos uid; las reglas lo vuelven a exigir.
+- **`source`:** lo añade el importador (Admin SDK, salta las reglas). Los clientes no lo crean (`create` rechaza el campo) ni lo modifican (`update` solo cambia `name`, `nameLower`, `category`, `defaultUnit`, `updatedBy` y `updatedAt`).
+- **Versión y caché:** `catalogMeta/ingredients` guarda la versión del catálogo (`version`, `updatedAt`, `updatedBy`). Se crea con `version == 1` y cada cambio sube `+1`; solo la escribe el admin, de uno en uno, sin `list` ni borrado. La lee cualquier verificado con `get`. El importador la sube una vez por lote con cambios; cada alta, edición o borrado del admin en la app va en la **misma transacción** que la ficha. Las reglas de `ingredients` no exigen subirla, para no romper a la beta 18.
+- La app carga el catálogo con `VersionedCatalogLoader` (clave `"ingredients"`): lee la versión (1 lectura) y, si coincide con la guardada, usa la caché local; si no, relee la colección entera (unos 356 documentos). La caché caduca a los 7 días. Los cambios de otros dispositivos llegan en la siguiente apertura, no en directo.
+
+#### Ingredientes personales (`users/{userId}/ingredients/{slug}`)
+
+```text
+name: string                           # 1–120
+nameLower: string                      # ≤120
+category: string?                      # ≤60
+defaultUnit: string?                   # ≤24
+createdAt: timestamp
+updatedAt: timestamp
+```
+
+- El id es el *slug* del nombre y el dueño es la ruta: no hay `ownerUid`, `source` ni `updatedBy`.
+- **Sin choque con un común:** al crear, las reglas comprueban con `exists()` que no haya `ingredients/{slug}`. La app lo detecta antes, por la clave tolerante (ver más abajo), y lleva al ingrediente existente; si el alta falla por permisos y ese común existe, lo trata como «ya existe».
+- **Si el común aparece después:** el personal sigue existiendo (las reglas solo miran al crear). La app fusiona la lista y **oculta el personal cuyo id ya es común**: prevalece el común, y el personal queda en Firestore (sus marcas siguen colgando de ese mismo slug).
+- **Actualizar:** solo `name`, `nameLower`, `category`, `defaultUnit` y `updatedAt`. **Borrar:** el dueño, que en la app borra también sus marcas y su entrada de `ingredientPrefs` en el mismo lote.
+- La app lee hasta 500 con un listener en tiempo real.
+
+#### Marcas personales (`users/{userId}/brands/{brandId}`)
+
+```text
+ingredientId: string                   # slug del ingrediente (común o personal) al que pertenece; inmutable
+name: string                           # 1–60
+barcode: string?                       # ≤32
+favorite: boolean
+stores: array<string>                  # ≤6, sin repetidos, del enum de supermercados sin INDIFERENTE
+energyKcal, fat, carbohydrates,
+sugars, protein, salt: number?         # por 100 g/ml, opcionales
+createdAt: timestamp
+updatedAt: timestamp
+```
+
+- Id aleatorio. `ingredientId` no cambia tras crear la marca (`update` no lo admite entre los campos modificables, que son el resto menos `createdAt`).
+- `stores` usa los valores `DIA`, `EROSKI`, `MERCADONA`, `CARREFOUR`, `ALCAMPO` y `OTROS`; el orden es el que eligió el usuario. Al leer, la app ignora nombres desconocidos, `INDIFERENTE` y repetidos.
+- `favorite`: marca preferida del ingrediente; se muestra en la lista como «★ Marca · Tienda». Las favoritas se ordenan primero.
+- Al editar, un código de barras o un nutriente vacío se borra del documento.
+- Un ingrediente puede tener varias marcas. La app las lee (hasta 1000) con un listener en tiempo real.
+
+#### Dónde lo compro (`ingredientPrefs/{userId}`)
+
+```text
+ingredientPrefs/{userId}
+entries: map<slug, { stores: array<string> }>
+```
+
+- Un documento por usuario con un único campo, `entries`, de ≤2000 entradas. La forma vigente es `slug → { stores }`; cada escritura usa `merge` y borra la entrada con `FieldValue.delete()` si se queda sin tiendas.
+- Las entradas con la forma antigua (`supermarket`/`brand`), las malformadas y las que quedan sin tiendas **se ignoran al leer**; no se migran ni se borran.
+- Son las tiendas del **ingrediente**; las de cada marca van en la marca (`stores`).
+
+#### Clave tolerante (`ingredientKey`)
+
+Para detectar casi duplicados («Limón» y «Limones», «Nuez» y «Nueces») se usa `ingredientKey(name)`: el *slug* sin palabras vacías (artículos, «de», «con»…), con cada palabra en singular aproximado (quita `-s` y `-e` finales y cambia `-z` por `-c`) y en orden alfabético. Está duplicada en Kotlin (`CatalogIngredient.kt`) y en `scripts/catalog/ingredients.mjs`; ambas implementaciones se comprueban contra la misma tabla, `tests/fixtures/ingredient-keys.json` (pares nombre → clave). La app la usa para encontrar el ingrediente existente al crear uno parecido, al escanear una marca y al añadir un ingrediente desde la Compra; el validador del catálogo, para rechazar casi duplicados.
+
+#### Reglas
+
+- `ingredients/{id}`: `get` y `list` a verificados; `create`, `update` y `delete` solo el admin, con forma validada y `updatedBy`/`updatedAt` del servidor.
+- `catalogMeta/{id}`: `get` solo de `exercises` e `ingredients`; la escritura de `ingredients` solo el admin, con `version` 1 al crear y `+1` al actualizar; sin `list` ni borrado.
+- `users/{uid}/ingredients/{slug}`: lectura (`get` y `list`) y escritura solo el dueño verificado; `create` con `slug` válido (`^[a-z0-9]+(-[a-z0-9]+)*$`, ≤120), `createdAt`/`updatedAt` del servidor y sin ingrediente común homónimo; `update` limitado a los campos editables.
+- `users/{uid}/brands/{id}`: lectura y escritura solo el dueño verificado; forma validada (nombre ≤60, ≤6 tiendas del enum sin repetidos, nutrientes numéricos); `ingredientId` inmutable.
+- `ingredientPrefs/{uid}`: lectura y escritura solo el dueño verificado; solo el campo `entries`, un mapa de ≤2000 entradas.
+- `ingredients/{id}/brands/**` (ruta antigua) queda cerrado por la regla final de denegación.
+
 ## 12. Acceso desde Security Rules
 
 Conceptualmente, para acceder a un documento del espacio se comprobará una membresía determinista:
@@ -553,6 +646,7 @@ La regla deberá verificar:
 - Se eliminan sus membresías y perfil.
 - Las referencias personales necesarias (nombres en compra, tareas, eventos y comidas) se sustituyen por `null` o por «Usuario eliminado».
 - Recetas: sus recetas `PRIVATE` (`ownerUid == me`) se **borran**; en las `GLOBAL` que haya publicado se **anonimiza** `createdByName` («Usuario eliminado»), conservando el catálogo. Se hace desde el cliente (las reglas permiten al dueño ambas operaciones).
+- Ingredientes: se borran sus `users/{uid}/ingredients`, sus `users/{uid}/brands` y su documento `ingredientPrefs/{uid}` (son datos personales). El catálogo común no contiene datos personales y no se toca. Se hace desde el cliente, repetible: si algo falla la cuenta no se borra.
 - La estrategia de actualización por lotes se probará con los límites reales de Firestore.
 
 ### Eliminación de espacio

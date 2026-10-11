@@ -1,6 +1,6 @@
 # Política de privacidad de Bobitos
 
-Última actualización: 10 de octubre de 2026.
+Última actualización: 11 de octubre de 2026.
 
 ## Responsable y finalidad
 
@@ -11,6 +11,7 @@ Bobitos es una aplicación privada en desarrollo gestionada por DLunaUNIZAR. Uti
 - Correo electrónico y nombre visible.
 - Identificador técnico de la cuenta y pertenencia a espacios.
 - Productos, tareas, eventos y participantes introducidos por los usuarios.
+- Ingredientes personales, marcas (con su código de barras y su información nutricional) y tiendas donde compra cada usuario: solo los ve ese usuario, no se comparten con los miembros de sus espacios. El catálogo común de ingredientes no contiene datos personales.
 - Datos técnicos mínimos de seguridad, sincronización y funcionamiento proporcionados por Firebase.
 - Informes de fallos y diagnóstico de estabilidad, únicamente en las compilaciones de distribución (release), mediante Firebase Crashlytics.
 - Imágenes de ejercicios: se almacenan en la infraestructura de Bobitos (Firebase), copiadas de wger.de con su autoría y licencia; la aplicación no hace peticiones a wger.de.
@@ -20,7 +21,7 @@ Bobitos no vende datos, no muestra publicidad y no contiene perfiles públicos n
 
 ## Infraestructura y conservación
 
-La autenticación y los datos compartidos se gestionan con Firebase. Firestore está configurado en la región `europe-southwest1` (Madrid). Los datos de un espacio se conservan hasta que su propietario lo elimina. Al borrar una cuenta se eliminan sus credenciales y perfil, se abandonan sus espacios y su nombre se sustituye por “Usuario eliminado” en el contenido histórico necesario para mantener la coherencia compartida.
+La autenticación y los datos compartidos se gestionan con Firebase. Firestore está configurado en la región `europe-southwest1` (Madrid). Los datos de un espacio se conservan hasta que su propietario lo elimina. Al borrar una cuenta se eliminan sus credenciales y perfil, sus ingredientes personales, marcas y tiendas, se abandonan sus espacios y su nombre se sustituye por “Usuario eliminado” en el contenido histórico necesario para mantener la coherencia compartida.
 
 ## Acceso y seguridad
 

@@ -5,7 +5,7 @@ El catálogo común de ingredientes (`ingredients/{slug}`, colección top-level 
 ## Qué es
 
 - Los **genéricos comunes** («Tomate», «Leche entera», «Garbanzos»…) los crea **solo el admin**, con el importador. No llevan marca, ni nutrición, ni dueño.
-- Las **marcas**, las **tiendas** y los **ingredientes personales** son de cada usuario (`users/{uid}/…`). Son los planes 2 y 3; este documento no los cubre.
+- Las **marcas**, las **tiendas** y los **ingredientes personales** son de cada usuario (`users/{uid}/…`, `ingredientPrefs/{uid}`); este documento no los cubre (ver [`DATA_MODEL.md`](DATA_MODEL.md), sección «Ingredientes»).
 - El diseño completo está en [`superpowers/specs/2026-10-11-catalogo-ingredientes-design.md`](superpowers/specs/2026-10-11-catalogo-ingredientes-design.md).
 
 ## Fuente y licencia
@@ -158,12 +158,13 @@ Cada acción contra `bobitos-dev` la confirma el usuario una a una, y solo se de
 1. **Reglas:** `npx firebase deploy --only firestore:rules --project dev`.
 2. **Borrado:** `catalog:reset-ingredients`, primero la simulación y después `--apply`. Con el catálogo ya importado y `--repetir`, el borrado sube además la versión de `catalogMeta/ingredients` para invalidar las cachés; si no existía, no la crea.
 3. **Importación:** `catalog:import-ingredients`, primero la simulación y después `--apply`. Se espera la versión 1 con unos 356 ingredientes.
-4. **Beta 19**, justo después: la beta 18 deja de poder crear ingredientes comunes, marcas y preferencias con las reglas nuevas.
+4. **Beta 19**, justo después. Hasta entonces la beta 18 verá Ingredientes **vacío** tras la importación. Las reglas nuevas no le impiden crear preferencias.
 
 ## Versión del catálogo y caché
 
 - El documento `catalogMeta/ingredients` (`version`, `updatedAt`, `updatedBy`) sube con **cada lote que escribe algo**, y se crea en 1 si no existe. Una importación sin cambios no lo toca, y la simulación tampoco.
-- La app (plan 2) lee ese documento con `VersionedCatalogLoader` y la clave `"ingredients"`: si la versión coincide con la guardada, usa la caché local y no relee el catálogo.
+- En la app, el catálogo se carga con `VersionedCatalogLoader` y la clave `"ingredients"`: si la versión coincide con la guardada, usa la caché local y no relee el catálogo.
+- Cuando el admin crea, edita o borra un ingrediente común desde la app, lo escribe en una transacción que sube también `catalogMeta/ingredients` (`version + 1`), de modo que el resto de dispositivos relee el catálogo en su siguiente apertura.
 
 ## Coste en Firestore (plan Spark)
 
