@@ -546,6 +546,8 @@
     <string name="routines_pick_exercise">Elegir ejercicio</string>
     <string name="routines_custom_exercise">Personalizado…</string>
     <string name="routines_summary_strength">%1$s · %2$d series</string>
+    <string name="routines_summary_strength_reps">%1$s · %2$d × %3$d</string>
+    <string name="routines_summary_strength_seconds">%1$s · %2$d × %3$d s</string>
     <string name="routines_summary_minutes">%1$d min</string>
     <string name="routines_error_title_required">Introduce un título.</string>
     <string name="routines_error_title_too_long">El título no puede superar 120 caracteres.</string>

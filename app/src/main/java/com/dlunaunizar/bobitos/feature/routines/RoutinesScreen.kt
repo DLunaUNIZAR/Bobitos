@@ -426,8 +426,13 @@ private fun RoutinesFeedback(message: RoutineUiMessage, isError: Boolean, onDism
 private fun RoutineExercise.summary(): String {
     val label = stringResource(type.labelRes)
     return if (type.isStrength) {
-        val sets = sets.size
-        stringResource(R.string.routines_summary_strength, label, sets)
+        val pattern = setsPattern()
+        when {
+            pattern == null -> stringResource(R.string.routines_summary_strength, label, sets.size)
+            pattern.timed ->
+                stringResource(R.string.routines_summary_strength_seconds, label, pattern.count, pattern.value)
+            else -> stringResource(R.string.routines_summary_strength_reps, label, pattern.count, pattern.value)
+        }
     } else {
         val parts = listOfNotNull(
             durationMinutes?.let { stringResource(R.string.routines_summary_minutes, it) },
