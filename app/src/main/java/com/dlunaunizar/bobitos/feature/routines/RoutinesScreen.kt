@@ -186,7 +186,7 @@ private fun RoutinesCatalog(
     ) {
         routinesSection(
             titleRes = R.string.routines_mine,
-            routines = state.mine.let { m -> if (m is UiState.Content) UiState.Content(m.value.personalOnly()) else m },
+            routines = state.mine,
             query = state.query,
             canEdit = canWrite,
             onOpen = onOpen,

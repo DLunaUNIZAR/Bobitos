@@ -52,7 +52,8 @@ class RoutinesViewModel @Inject constructor(
         mineJob = viewModelScope.launch {
             repository.myRoutines()
                 .catch { error -> mutableUiState.update { it.copy(mine = UiState.Error(error.message)) } }
-                .collect { list -> mutableUiState.update { it.copy(mine = UiState.Content(list)) } }
+                // «Mis rutinas» = solo privadas; las GLOBAL (también las del admin) llegan por `global`.
+                .collect { list -> mutableUiState.update { it.copy(mine = UiState.Content(list.personalOnly())) } }
         }
     }
 

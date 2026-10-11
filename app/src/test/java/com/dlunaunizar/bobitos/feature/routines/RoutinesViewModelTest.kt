@@ -57,6 +57,23 @@ class RoutinesViewModelTest {
         }
 
     @Test
+    fun `my routines keep only the private ones while the common ones arrive through global`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.mineState.value = listOf(
+                routine("torso", RoutineVisibility.GLOBAL, "Torso"),
+                routine("p1", RoutineVisibility.PRIVATE, "Mi torso"),
+            )
+            repository.globalState.value = listOf(routine("torso", RoutineVisibility.GLOBAL, "Torso"))
+
+            viewModel.observe()
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertEquals(listOf("p1"), (state.mine as UiState.Content).value.map(Routine::id))
+            assertEquals(listOf("torso"), (state.global as UiState.Content).value.map(Routine::id))
+        }
+
+    @Test
     fun `does not subscribe to the exercise catalog until the editor needs it`() =
         runTest(mainDispatcherRule.testDispatcher) {
             exerciseRepository.catalogState.value = listOf(exercise("press-banca", "Press banca"))

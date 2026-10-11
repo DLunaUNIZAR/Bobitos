@@ -7,8 +7,8 @@ import com.dlunaunizar.bobitos.core.model.RoutineExercise
 import com.dlunaunizar.bobitos.core.model.RoutineVisibility
 import com.dlunaunizar.bobitos.core.model.SetMeasure
 
-// «Mis rutinas» enseña solo las privadas del usuario: las GLOBAL (también las del catálogo, cuyo dueño es
-// el admin) van siempre a «Comunes».
+// «Mis rutinas» (y el selector de la sesión) toman solo las privadas del usuario: las GLOBAL (también las
+// del catálogo, cuyo dueño es el admin) llegan siempre por la lista de comunes.
 internal fun List<Routine>.personalOnly(): List<Routine> = filter { it.visibility == RoutineVisibility.PRIVATE }
 
 // «Guardar como mía» sale en cualquier común, también para el admin, si se puede escribir.
