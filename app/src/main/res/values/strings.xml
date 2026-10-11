@@ -633,6 +633,7 @@
     <string name="ingredients_name_label">Nombre</string>
     <string name="ingredients_category_label">Categoría (opcional)</string>
     <string name="ingredients_unit_label">Unidad por defecto (opcional)</string>
+    <string name="ingredients_add_to_shopping">Añadir a la compra</string>
     <string name="ingredients_edit">Editar ficha</string>
     <string name="ingredients_delete">Borrar</string>
     <string name="ingredients_delete_title">Borrar ingrediente</string>

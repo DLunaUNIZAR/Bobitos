@@ -213,6 +213,8 @@ brand: string | ausente               # texto libre, ≤60
 
 `supermarket` y `brand` son opcionales: un producto sin ellos se lee como «sin tienda» y «sin marca». La marca se guarda **como texto** (el nombre de la marca en el momento de añadir el producto), no como referencia a `users/{uid}/brands`: la lista es compartida y las marcas son personales, así que los demás miembros no pueden leerlas ni se rompe el producto si se borra la marca.
 
+`brand` es el nombre de la marca elegida en el selector de marca y tienda (o el texto libre cuando el producto no es un ingrediente reconocido); «Indiferente» se guarda como ausente (`null`).
+
 ### Decisión importante
 
 No existirá `assigneeId`. La lista es compartida y no se asigna a nadie.

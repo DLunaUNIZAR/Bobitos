@@ -30,6 +30,19 @@ class ShoppingDraftTest {
     }
 
     @Test
+    fun `a prefilled draft has only the name`() {
+        assertEquals(ShoppingDraft("Tomate", "", "", null, ""), ShoppingDraft.prefilled("Tomate"))
+    }
+
+    @Test
+    fun `a prefilled draft is not dirty once the ingredient defaults apply`() {
+        val initial = ShoppingDraft.prefilled("Tomate")
+        val edited = initial.withContext(context)
+
+        assertEquals(initial.withContext(context), edited)
+    }
+
+    @Test
     fun `recognizing an ingredient applies its default brand and store once`() {
         val draft = ShoppingDraft.of(null).withContext(context)
 

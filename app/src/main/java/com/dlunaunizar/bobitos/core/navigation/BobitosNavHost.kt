@@ -303,7 +303,9 @@ fun BobitosNavHost(
             }
         }
 
-        composable(BobitosDestination.Shopping.route) {
+        composable(BobitosDestination.Shopping.route) { entry ->
+            val prefill by entry.savedStateHandle.getStateFlow<String?>(SHOPPING_PREFILL_KEY, null)
+                .collectAsStateWithLifecycle()
             SpaceScaffold(
                 navController = navController,
                 selectedTab = workspaceTabFor(BobitosDestination.Shopping.route) ?: BobitosDestination.Shopping,
@@ -318,6 +320,8 @@ fun BobitosNavHost(
                     ShoppingScreen(
                         spaceId = space.id,
                         canWrite = uiState.syncStatus.canWrite,
+                        prefillName = prefill,
+                        onPrefillConsumed = { entry.savedStateHandle[SHOPPING_PREFILL_KEY] = null },
                     )
                 }
             }
@@ -501,6 +505,7 @@ fun BobitosNavHost(
                 ingredientId = backStackEntry.arguments?.getString("ingredientId").orEmpty(),
                 brandId = backStackEntry.arguments?.getString("brandId"),
                 onBack = { navController.popBackStack() },
+                onAddToShopping = uiState.selectedSpace?.let { { name -> navController.openShoppingWithName(name) } },
             )
         }
 
@@ -610,6 +615,8 @@ private fun SpaceScaffold(
     )
 }
 
+internal const val SHOPPING_PREFILL_KEY = "shoppingPrefillName"
+
 private fun NavHostController.navigateToWorkspace(destination: BobitosDestination) {
     navigate(destination.route) {
         popUpTo(BobitosDestination.SpaceHome.route) {
@@ -640,6 +647,13 @@ private fun NavHostController.navigateToTab(tab: BobitosDestination) {
 // Comidas, Deporte y Notas se apilan sobre «Más» para que atrás vuelva a «Más».
 private fun NavHostController.openFromMore(destination: BobitosDestination) {
     navigate(destination.route) { launchSingleTop = true }
+}
+
+// Entra en la Compra del espacio activo y le pasa el nombre a rellenar por el estado de su entrada
+// (la ruta "shopping" no cambia: se compara como cadena en varios sitios).
+private fun NavHostController.openShoppingWithName(name: String) {
+    navigateToWorkspace(BobitosDestination.Shopping)
+    getBackStackEntry(BobitosDestination.Shopping.route).savedStateHandle[SHOPPING_PREFILL_KEY] = name
 }
 
 private fun NavHostController.navigateToHome() {

@@ -61,3 +61,6 @@ internal fun ShoppingDraft.withBrandChoice(context: IngredientShoppingContext, b
         brand = context.brandName(selection).orEmpty(),
     )
 }
+
+/** Borrador de alta con solo el nombre puesto (p. ej. desde la ficha de un ingrediente). */
+internal fun ShoppingDraft.Companion.prefilled(name: String): ShoppingDraft = ShoppingDraft.of(null).copy(name = name)

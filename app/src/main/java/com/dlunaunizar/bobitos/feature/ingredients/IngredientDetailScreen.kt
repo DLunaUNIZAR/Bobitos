@@ -5,15 +5,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.QrCodeScanner
+import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material3.Card
@@ -67,6 +71,7 @@ fun IngredientDetailScreen(
     brandId: String?,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onAddToShopping: ((String) -> Unit)? = null,
     viewModel: IngredientDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -109,13 +114,7 @@ fun IngredientDetailScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            IngredientsFeedback(
-                state.error,
-                state.notice,
-                state.isSaving,
-                viewModel::clearFeedback,
-                barcodeConflict = state.barcodeConflict,
-            )
+            DetailFeedback(state, viewModel)
             IngredientContent(
                 state = state,
                 ingredient = ingredient,
@@ -124,6 +123,7 @@ fun IngredientDetailScreen(
                 onDeleteIngredient = { confirmDeleteIngredient = true },
                 onOpenBrandEditor = openBrandEditor,
                 onDeleteBrand = { brandToDelete = it },
+                onAddToShopping = onAddToShopping,
             )
         }
     }
@@ -230,6 +230,17 @@ private fun DetailEditors(
 }
 
 @Composable
+private fun DetailFeedback(state: IngredientDetailUiState, viewModel: IngredientDetailViewModel) {
+    IngredientsFeedback(
+        state.error,
+        state.notice,
+        state.isSaving,
+        viewModel::clearFeedback,
+        barcodeConflict = state.barcodeConflict,
+    )
+}
+
+@Composable
 private fun IngredientContent(
     state: IngredientDetailUiState,
     ingredient: CatalogIngredient?,
@@ -238,6 +249,7 @@ private fun IngredientContent(
     onDeleteIngredient: () -> Unit,
     onOpenBrandEditor: (String?, BrandDraft) -> Unit,
     onDeleteBrand: (IngredientBrand) -> Unit,
+    onAddToShopping: ((String) -> Unit)?,
 ) {
     if (ingredient == null) {
         Text(
@@ -254,6 +266,13 @@ private fun IngredientContent(
         onEdit = onEditFicha,
         onDelete = onDeleteIngredient,
     )
+    if (onAddToShopping != null) {
+        OutlinedButton(onClick = { onAddToShopping(ingredient.name) }, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Rounded.ShoppingCart, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.ingredients_add_to_shopping))
+        }
+    }
     StoresSection(stores = state.stores, onToggle = viewModel::toggleStore)
     BrandsSection(
         state = state,

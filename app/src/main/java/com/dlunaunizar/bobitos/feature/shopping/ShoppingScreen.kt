@@ -88,6 +88,8 @@ fun ShoppingScreen(
     spaceId: String,
     canWrite: Boolean,
     modifier: Modifier = Modifier,
+    prefillName: String? = null,
+    onPrefillConsumed: () -> Unit = {},
     viewModel: ShoppingViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -100,6 +102,19 @@ fun ShoppingScreen(
     // El editor sobrevive a una rotación: se guarda el id del ítem, no el objeto.
     var editedItemId by rememberSaveable { mutableStateOf<String?>(null) }
     var editorVisible by rememberSaveable { mutableStateOf(false) }
+    // Borrador inicial del alta (nombre traído desde la ficha de un ingrediente); null = alta vacía.
+    var initialDraft by rememberSaveable { mutableStateOf<ShoppingDraft?>(null) }
+    // Se abre una sola vez: se consume siempre para que no reaparezca al volver más tarde.
+    LaunchedEffect(prefillName) {
+        if (prefillName != null) {
+            if (canWrite) {
+                editedItemId = null
+                initialDraft = ShoppingDraft.prefilled(prefillName)
+                editorVisible = true
+            }
+            onPrefillConsumed()
+        }
+    }
     // Ingredientes, marcas y preferencias solo mientras el editor está abierto (listeners acotados y perezosos).
     LaunchedEffect(editorVisible) {
         if (editorVisible) viewModel.startIngredientAssist() else viewModel.stopIngredientAssist()
@@ -222,6 +237,7 @@ fun ShoppingScreen(
                                         onEdit = {
                                             if (actionsEnabled) {
                                                 editedItemId = item.id
+                                                initialDraft = null
                                                 editorVisible = true
                                             }
                                         },
@@ -278,6 +294,7 @@ fun ShoppingScreen(
                                             onEdit = {
                                                 if (actionsEnabled) {
                                                     editedItemId = item.id
+                                                    initialDraft = null
                                                     editorVisible = true
                                                 }
                                             },
@@ -297,6 +314,7 @@ fun ShoppingScreen(
             ExtendedFloatingActionButton(
                 onClick = {
                     editedItemId = null
+                    initialDraft = null
                     editorVisible = true
                 },
                 icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
@@ -324,6 +342,7 @@ fun ShoppingScreen(
         val editedItem = slot.item
         ShoppingItemEditor(
             item = editedItem,
+            initialDraft = initialDraft,
             saving = state.isSaving,
             errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
                 ?.let { stringResource(it.stringResourceId) },
@@ -596,6 +615,7 @@ private fun ShoppingItemMenu(
 @Composable
 private fun ShoppingItemEditor(
     item: ShoppingItem?,
+    initialDraft: ShoppingDraft?,
     saving: Boolean,
     errorMessage: String?,
     resolveDuplicate: (String) -> ShoppingItem?,
@@ -604,7 +624,7 @@ private fun ShoppingItemEditor(
     onDismiss: () -> Unit,
     onSave: (String, String?, String?, Supermarket?, String?) -> Unit,
 ) {
-    val initial = ShoppingDraft.of(item)
+    val initial = initialDraft?.takeIf { item == null } ?: ShoppingDraft.of(item)
     var draft by rememberSaveable(item?.id) { mutableStateOf(initial) }
     val name = draft.name
     val quantity = draft.quantity

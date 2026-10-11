@@ -166,6 +166,16 @@ Cada acción contra `bobitos-dev` la confirma el usuario una a una, y solo se de
 - En la app, el catálogo se carga con `VersionedCatalogLoader` y la clave `"ingredients"`: si la versión coincide con la guardada, usa la caché local y no relee el catálogo.
 - Cuando el admin crea, edita o borra un ingrediente común desde la app, lo escribe en una transacción que sube también `catalogMeta/ingredients` (`version + 1`), de modo que el resto de dispositivos relee el catálogo en su siguiente apertura.
 
+## En la app
+
+Cuando el nombre de un producto coincide con un ingrediente del catálogo, aparece un selector de marca y tienda con los valores por defecto del ingrediente (marca favorita y su primera tienda; «Indiferente» si no hay favorita). Se ofrece en tres sitios:
+
+- **Compra → Añadir** (y editar): al reconocer el nombre escrito.
+- **Revisión de recetas y comidas → Añadir a la Compra**: una fila por ingrediente, con su marca y tienda; una fila que ya está en la lista conserva su marca.
+- **Ficha del ingrediente → «Añadir a la compra»**: abre la Compra con el formulario relleno con el nombre y los valores por defecto (solo si hay un espacio activo).
+
+La marca se guarda en la compra como texto (el nombre de la marca); «Indiferente» no guarda marca.
+
 ## Coste en Firestore (plan Spark)
 
 - Primera importación: unas 356 escrituras de ingredientes más 1 de la versión, y una lectura de la colección (vacía tras el borrado).
