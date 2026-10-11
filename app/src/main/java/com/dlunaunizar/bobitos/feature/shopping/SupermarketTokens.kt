@@ -50,5 +50,12 @@ internal fun Supermarket.icon(): ImageVector = when (this) {
     Supermarket.PESCADERIA -> Icons.Rounded.SetMeal
     Supermarket.FRUTERIA -> Icons.Rounded.Eco
     Supermarket.PANADERIA -> Icons.Rounded.BakeryDining
-    else -> Icons.Rounded.Storefront
+    Supermarket.DIA,
+    Supermarket.EROSKI,
+    Supermarket.MERCADONA,
+    Supermarket.CARREFOUR,
+    Supermarket.ALCAMPO,
+    Supermarket.OTROS,
+    Supermarket.INDIFERENTE,
+    -> Icons.Rounded.Storefront
 }

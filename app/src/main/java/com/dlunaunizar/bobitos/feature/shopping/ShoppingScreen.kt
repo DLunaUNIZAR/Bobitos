@@ -135,7 +135,7 @@ fun ShoppingScreen(
     }
     var query by rememberSaveable { mutableStateOf("") }
     var selectedSupermarket by remember { mutableStateOf<Supermarket?>(null) }
-    val presentSupermarkets = allItems.mapNotNull(ShoppingItem::supermarket).distinct()
+    val presentSupermarkets = allItems.presentSupermarkets()
     val activeSupermarket = resolveSupermarket(selectedSupermarket, presentSupermarkets)
     val filteredItems = allItems.filter { it.matchesQuery(query) }.forSupermarket(activeSupermarket)
     val pending = filteredItems.filterNot(ShoppingItem::purchased)
@@ -793,19 +793,6 @@ private fun ShoppingItem.matchesQuery(query: String): Boolean {
         brand?.contains(trimmed, ignoreCase = true) == true ||
         notes?.contains(trimmed, ignoreCase = true) == true
 }
-
-private fun List<ShoppingItem>.forSupermarket(supermarket: Supermarket?): List<ShoppingItem> =
-    if (supermarket == null) {
-        this
-    } else {
-        // Al filtrar por un supermercado también aparecen los productos sin supermercado y los
-        // marcados como "Indiferente" (valen para cualquier supermercado).
-        filter {
-            it.supermarket == supermarket ||
-                it.supermarket == null ||
-                it.supermarket == Supermarket.INDIFERENTE
-        }
-    }
 
 @Composable
 internal fun SupermarketDropdown(
