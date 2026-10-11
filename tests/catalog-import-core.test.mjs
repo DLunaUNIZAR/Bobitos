@@ -92,3 +92,10 @@ test("parseImportArgs y parseResetArgs rechazan claves heredadas como argumentos
     assert.throws(() => parseResetArgs([clave]), esperado);
   }
 });
+
+test("formatImportPlan sin metaPath no habla de la versión del catálogo", () => {
+  const p = planCatalogImport({ entries: [{ id: "a", name: "A" }], existing: [], managedFields: (e) => ({ name: e.name }) });
+  const lines = formatImportPlan(p, { title: "Plan de importación de rutinas", metaPath: null });
+  assert.equal(lines[0], "Plan de importación de rutinas");
+  assert.ok(lines.every((l) => !l.includes("versión")));
+});

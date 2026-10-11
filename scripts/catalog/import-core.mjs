@@ -100,14 +100,17 @@ export function planCatalogImport({ entries, existing, managedFields, isForeign 
 
 /** Líneas comunes del texto del plan (sin las de imágenes). */
 export function formatImportPlan(plan, { title, metaPath }) {
+  const writes = plan.create.length + plan.update.length > 0;
+  // Sin metaPath (rutinas: se leen en vivo, sin catálogo versionado) no hay versión que mencionar.
+  const version = metaPath == null
+    ? []
+    : [writes ? `La versión del catálogo subirá (${metaPath}).` : "La versión del catálogo no cambia."];
   return [
     title,
     `Crear: ${plan.create.length}`,
     `Actualizar: ${plan.update.length}`,
     `Sin cambios: ${plan.unchanged.length}`,
-    plan.create.length + plan.update.length > 0
-      ? `La versión del catálogo subirá (${metaPath}).`
-      : "La versión del catálogo no cambia.",
+    ...version,
     ...section("Omitidas (ficha de usuario con el mismo id)", plan.skippedUserOwned, (x) => `${x.id} (dueño ${x.ownerUid})`),
     ...section("Omitidas (ficha manual del admin, sin fuente)", plan.skippedAdminManual),
     ...section("Omitidas (editadas en la app tras importarse)", plan.skippedEditedInApp),
@@ -119,7 +122,7 @@ export function formatImportPlan(plan, { title, metaPath }) {
 /**
  * Escribe en lotes las altas (`plan.create`) y las actualizaciones (`plan.update`). `FieldValue` es el de
  * firebase-admin/firestore. Cada lote con operaciones sube la `version` de `metaPath` (se crea en 1 si no
- * existe). Devuelve cuántas operaciones escribió.
+ * existe). Con `metaPath` nulo no toca ninguna versión (rutinas). Devuelve cuántas operaciones escribió.
  */
 export async function commitCatalogOps({ db, FieldValue, collection, plan, toDoc, updateTimes, metaPath, adminUid, now, batchSize = 400 }) {
   const ops = [
@@ -134,11 +137,13 @@ export async function commitCatalogOps({ db, FieldValue, collection, plan, toDoc
       else batch.update(ref, toDoc(e, { now, create: false }), { lastUpdateTime: updateTimes.get(e.id) });
     }
     // Cada lote con operaciones sube la versión del catálogo (se crea en 1 si no existe).
-    batch.set(
-      db.doc(metaPath),
-      { version: FieldValue.increment(1), updatedAt: now, updatedBy: adminUid },
-      { merge: true },
-    );
+    if (metaPath) {
+      batch.set(
+        db.doc(metaPath),
+        { version: FieldValue.increment(1), updatedAt: now, updatedBy: adminUid },
+        { merge: true },
+      );
+    }
     await batch.commit();
   }
   return ops.length;

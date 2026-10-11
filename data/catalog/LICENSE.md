@@ -28,3 +28,7 @@ Las imágenes de las fichas de wger se redistribuyen como **adaptaciones** (redi
 ## Ingredientes
 
 `ingredients.json` es una lista propia de Bobitos. No deriva de wger ni de ninguna otra base de datos, y la licencia CC BY-SA del principio de este fichero se refiere solo a los ejercicios.
+
+## Rutinas
+
+`routines.json` es una lista propia de Bobitos: la selección de ejercicios, las series, las repeticiones, los tiempos y los textos se han redactado para este catálogo y no derivan de ninguna base de datos. Cada rutina enlaza fichas del catálogo de ejercicios por su id y repite su nombre; la licencia CC BY-SA del principio de este fichero se refiere a las fichas de ejercicios, no a las rutinas.
