@@ -170,7 +170,7 @@ class IngredientDetailViewModelTest {
         advanceUntilIdle()
 
         assertEquals(six, viewModel.uiState.value.stores)
-        assertEquals("tomate" to six, prefsRepository.lastSet)
+        assertTrue(prefsRepository.calls.isEmpty())
     }
 
     @Test

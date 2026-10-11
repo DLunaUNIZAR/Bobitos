@@ -169,7 +169,9 @@ class IngredientDetailViewModel @Inject constructor(
      * si falla, se avisa y el siguiente snapshot del listener restaura el estado real.
      */
     fun toggleStore(store: Supermarket) {
-        val stores = toggleStore(mutableUiState.value.stores, store)
+        val current = mutableUiState.value.stores
+        val stores = toggleStore(current, store)
+        if (stores == current) return
         mutableUiState.update { it.copy(stores = stores) }
         val id = ingredientId
         writeOptimistically { prefsRepository.setStores(id, stores) }
