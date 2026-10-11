@@ -4,6 +4,15 @@ Menores que las revisiones de cada rama dejaron sin arreglar. Cada línea dice s
 
 Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalogo-ejercicios-wger`) se cerraron en la rama `agent/menores-aplazados` (plan `docs/superpowers/plans/2026-10-10-menores-aplazados.md`).
 
+## 2026-10-11 — `agent/catalogo-rutinas`
+
+- **Efecto visible:** en el selector de ejercicios (diálogo estrecho), el valor «Peso corporal» del filtro de tipo se corta en seco («Peso corp»), sin puntos suspensivos; en el menú se lee entero (visto en el emulador; el corte ya se aceptó en el plan de filtros, la elipsis no).
+- **Interno:** `docs/DATA_MODEL.md` («Rutinas») dice que cualquier verificado lee `routines`; las PRIVATE solo las lee su dueño, y el admin solo borra las GLOBAL ajenas.
+- **Interno:** a `docs/ROUTINE_CATALOG.md` le faltan avisos: borrar una común solo en la app no basta (la reimportación la recrea mientras siga en `routines.json`); guardarla en el editor sin cambios la congela para el importador; qué hacer si una rutina de usuario ocupa el mismo slug; las reglas se despliegan antes de importar.
+- **Interno:** los tests de la tabla compartida (`RoutineExerciseFixtureTest`, «expande cada caso…» en `catalog-routines.test.mjs`) pasarían con el fixture vacío; falta comprobar los 4 casos y que coincida con `exercises.json`.
+- **Interno:** `formatImportPlan` comprueba `metaPath == null` y `commitCatalogOps` `if (metaPath)` (divergen con `""`); `val visible = routines.value` en `routinesSection` es un alias de más.
+- **Interno (ya pasaba en main):** `ProfileScreenTest` (androidTest) falla: usa `ComponentActivity` y `ProfileScreen` crea un `hiltViewModel`; necesita `HiltAndroidRule`/`HiltTestActivity` o no crear el ViewModel en el test.
+
 ## 2026-10-11 — `agent/tiendas-de-barrio`
 
 - **Efecto visible:** contraste de los colores de tienda: Carrefour en oscuro (2,25 sobre el fondo, 2,12 sobre su tarjeta); Eroski, Frutería e Indiferente sobre su tarjeta en claro (2,7-2,9); y los iconos sobre las tarjetas por defecto de Ingredientes y sobre los chips seleccionados en oscuro quedan por debajo de 3:1 (llevan etiqueta de texto). DIA y Carnicería ya se arreglaron (plan `2026-10-11-contraste-dia-carniceria.md`); si se aborda, ampliar `SupermarketContrastTest` a `Supermarket.entries`.
