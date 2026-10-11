@@ -4,6 +4,21 @@ Menores que las revisiones de cada rama dejaron sin arreglar. Cada línea dice s
 
 Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalogo-ejercicios-wger`) se cerraron en la rama `agent/menores-aplazados` (plan `docs/superpowers/plans/2026-10-10-menores-aplazados.md`).
 
+## 2026-10-11 — `agent/marca-al-anadir-a-la-compra`
+
+- **Efecto visible:** en el diálogo de revisión, la tienda «Mercadona» se parte en dos líneas («Mercado/na») por el ancho del desplegable; en `SupermarketDropdown` falta `maxLines = 1` con elipsis, y la marca se corta sin elipsis (visto en el emulador).
+- **Efecto visible:** reconocer un ingrediente pisa la tienda (y la marca escrita) que el usuario ya había puesto; salir y volver al ingrediente devuelve los valores por defecto; al reabrir el editor el selector tarda un instante y una tienda elegida en ese instante se pisa.
+- **Efecto visible:** una elección manual igual al valor por defecto se pisa si llegan datos nuevos con el formulario abierto; si el ingrediente pasa a tener marcas con el formulario abierto, la marca escrita a mano no se guarda.
+- **Efecto visible:** `selectBrand` trata como «de la marca anterior» una tienda elegida a mano que esté entre las de esa marca, y la cambia al pasar a una marca sin tiendas.
+- **Efecto visible:** si se pide la revisión de una receta o comida antes de que lleguen los datos de ingredientes, las filas salen sin selector ni tienda (antes las tiendas se leían al confirmar).
+- **Efecto visible:** un ingrediente personal con la misma clave que uno común (p. ej. «Tomates» y «tomate») queda tapado en el selector; desde su ficha salen las marcas del otro.
+- **Efecto visible:** accesibilidad del selector: las dos columnas no son grupos de recorrido (TalkBack lee «Marca», «Tienda», valor, valor), «Toca para cambiarla» sobra y «★» se lee «estrella negra».
+- **Efecto visible:** sin conexión, la ficha muestra «Añadir a la compra»; ahora el formulario espera a poder escribir, pero no se avisa de por qué no se abre.
+- **Efecto visible:** el diálogo de revisión pierde al girar la cantidad, la marca y la tienda elegidas; y si el proceso muere, el borrador de la Compra vuelve a los valores por defecto.
+- **Efecto visible (ya pasaba antes):** la revisión lee los artículos de la Compra de la caché: uno borrado en otro dispositivo sigue saliendo como «Ya en la lista» hasta abrir la Compra.
+- **Interno:** Comidas y Recetario mantienen 4 escuchas (hasta 1000 marcas) mientras están abiertas; se podría cargar al pedir la revisión.
+- **Interno:** `INGREDIENT_CATALOG.md` dice que el selector sale al crear «(y editar)» y omite el caso de dos favoritas; los comentarios de `MealsViewModel` y `RecipesViewModel` hablan solo de «Dónde lo compro».
+
 ## 2026-10-11 — `agent/tema-oscuro-por-defecto`
 
 - **Efecto visible:** quien elige Claro (o Sistema con el móvil en claro) ve un destello oscuro breve al abrir la app (aceptado). Se podría quitar para todos con la pantalla de arranque esperando a leer la preferencia (`installSplashScreen().setKeepOnScreenCondition`).
