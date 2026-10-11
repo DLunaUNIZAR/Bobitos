@@ -600,6 +600,9 @@
     <string name="exercises_empty">Aún no hay ejercicios. Añade el primero.</string>
     <string name="exercises_filter_all">Todos los tipos</string>
     <string name="exercises_filter_all_groups">Todos los grupos</string>
+    <string name="exercises_filter_type_label">Tipo</string>
+    <string name="exercises_filter_group_label">Grupo muscular</string>
+    <string name="exercises_filter_any">Todos</string>
     <string name="exercises_no_results">Ningún ejercicio coincide.</string>
     <string name="exercise_type_machine">Máquina</string>
     <string name="exercise_type_free_weight">Peso libre</string>

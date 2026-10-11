@@ -214,7 +214,7 @@ private fun ExerciseCatalog(
             val groups = remember(catalog.value) { catalog.value.muscleGroups() }
             val filtered = remember(catalog.value, filter) { catalog.value.filterExercises(filter) }
             if (catalog.value.isNotEmpty()) {
-                ExerciseFilterChips(
+                ExerciseFilterMenus(
                     groups = groups,
                     filter = filter,
                     onTypeChange = onTypeChange,

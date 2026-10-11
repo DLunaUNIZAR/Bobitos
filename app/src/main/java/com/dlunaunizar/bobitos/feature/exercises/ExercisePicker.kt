@@ -52,7 +52,7 @@ internal fun ExercisePickerDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 SearchField(query = query, onQueryChange = { query = it }, visible = true)
-                ExerciseFilterChips(
+                ExerciseFilterMenus(
                     groups = groups,
                     filter = filter,
                     onTypeChange = { type = it },
