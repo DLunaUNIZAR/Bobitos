@@ -4,6 +4,16 @@ Menores que las revisiones de cada rama dejaron sin arreglar. Cada línea dice s
 
 Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalogo-ejercicios-wger`) se cerraron en la rama `agent/menores-aplazados` (plan `docs/superpowers/plans/2026-10-10-menores-aplazados.md`).
 
+## 2026-10-11 — `agent/tema-oscuro-por-defecto`
+
+- **Efecto visible:** quien elige Claro (o Sistema con el móvil en claro) ve un destello oscuro breve al abrir la app (aceptado). Se podría quitar para todos con la pantalla de arranque esperando a leer la preferencia (`installSplashScreen().setKeepOnScreenCondition`).
+- **Efecto visible:** el selector de tema de Perfil marca «Oscuro» uno o dos fotogramas antes de pasar al valor guardado (`ProfileScreen.kt`: el `ThemeViewModel` de la pantalla es otra instancia y arranca en el valor por defecto).
+- **Efecto visible:** con Claro elegido, la barra flotante de copiar y pegar sale oscura, porque toma el tema XML (`themes.xml`); antes pasaba al revés con Oscuro.
+- **Interno:** `ProfileScreenTest` (instrumentado) falla desde 566294d: `ProfileScreen` usa `hiltViewModel()` y el test lo monta en una `ComponentActivity` sin Hilt. La CI no ejecuta los instrumentados.
+- **Interno:** en frío, el `DisposableEffect` de `MainActivity` se ejecuta dos veces para quien tiene Claro o Sistema (primero con el oscuro provisional).
+- **Interno:** `parseThemeMode` vive en `designsystem` como función suelta; el patrón del proyecto es un `fromName` en el companion del enum (`ReminderLeadTime`).
+- **Interno:** el color de la ventana (`colors.xml`) duplica `backgroundDark` de `Color.kt` sin avisarlo en el comentario.
+
 ## 2026-10-11 — `agent/marcas-personales-ingredientes`
 
 - **Efecto visible:** mientras el catálogo común carga, o si dio error, «Añadir ingrediente» se salta la comprobación por clave y puede crear un duplicado («Tomates» junto a «Tomate») (`IngredientsViewModel.kt`).
