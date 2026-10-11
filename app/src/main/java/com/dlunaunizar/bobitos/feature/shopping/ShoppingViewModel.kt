@@ -13,7 +13,9 @@ import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.core.model.ingredientKey
+import com.dlunaunizar.bobitos.data.repository.IngredientFailure
 import com.dlunaunizar.bobitos.data.repository.IngredientRepository
+import com.dlunaunizar.bobitos.data.repository.IngredientRepositoryException
 import com.dlunaunizar.bobitos.data.repository.PersonalIngredientRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
@@ -26,8 +28,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 @HiltViewModel
@@ -89,23 +93,27 @@ class ShoppingViewModel @Inject constructor(
 
     /** Crea una ficha de ingrediente a partir del ítem (si aún no existe en el catálogo). */
     fun createIngredientFromItem(item: ShoppingItem) {
-        if (mutableUiState.value.isSaving) return
         val name = item.name.trim()
-        // Se comprueba contra comunes y personales ya cargados; si falta alguno, el alta lo rechaza con AlreadyExists.
         val key = ingredientKey(name)
-        if (mutableUiState.value.catalog.any { it.matchesKey(key) }) {
-            showNotice(ShoppingUiMessage.IngredientExists)
-            return
-        }
         runAction(ShoppingUiMessage.IngredientCreated) {
+            // El catálogo solo está cargado con el editor abierto: se carga bajo demanda (comunes y
+            // personales). Si no se puede, no se escribe: sin la lista no se puede detectar el duplicado.
+            if (loadIngredientsOnDemand().any { it.matchesKey(key) }) throw IngredientAlreadyKnown()
             personalIngredients.create(name, null, null)
         }
     }
 
-    private fun showNotice(message: ShoppingUiMessage) {
-        mutableUiState.update {
-            it.copy(writeStatus = ShoppingWriteStatus.SAVED, notice = message, error = null)
+    private suspend fun loadIngredientsOnDemand(): List<CatalogIngredient> {
+        val loaded = try {
+            withTimeoutOrNull(INGREDIENT_LOAD_TIMEOUT_MILLIS) {
+                ingredientRepository.catalog().first() + personalIngredients.ingredients().first()
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (@Suppress("TooGenericExceptionCaught") _: Exception) {
+            null
         }
+        return loaded ?: throw IngredientRepositoryException(IngredientFailure.Network)
     }
 
     fun addItem(
@@ -258,10 +266,37 @@ class ShoppingViewModel @Inject constructor(
                 }
                 .onFailure { error ->
                     if (error is CancellationException) throw error
+                    if (error.isIngredientDuplicate()) {
+                        mutableUiState.update {
+                            it.copy(
+                                isSaving = false,
+                                writeStatus = ShoppingWriteStatus.SAVED,
+                                notice = ShoppingUiMessage.IngredientExists,
+                            )
+                        }
+                        return@onFailure
+                    }
                     showError(error.toUiMessage(), editor)
                 }
         }
     }
+}
+
+private const val INGREDIENT_LOAD_TIMEOUT_MILLIS = 10_000L
+
+private class IngredientAlreadyKnown : Exception()
+
+private fun Throwable.isIngredientDuplicate() = this is IngredientAlreadyKnown ||
+    (this as? IngredientRepositoryException)?.failure == IngredientFailure.AlreadyExists
+
+private fun IngredientFailure?.toShoppingUiMessage() = when (this) {
+    IngredientFailure.NameRequired -> ShoppingUiMessage.NameRequired
+    IngredientFailure.NameTooLong -> ShoppingUiMessage.NameTooLong
+    IngredientFailure.NotAuthenticated -> ShoppingUiMessage.NotAuthenticated
+    IngredientFailure.EmailNotVerified -> ShoppingUiMessage.EmailNotVerified
+    IngredientFailure.PermissionDenied -> ShoppingUiMessage.PermissionDenied
+    IngredientFailure.Network -> ShoppingUiMessage.NetworkError
+    else -> ShoppingUiMessage.UnexpectedError
 }
 
 private fun CatalogIngredient.matchesKey(key: String) = ingredientKey(name) == key
@@ -274,7 +309,12 @@ private fun Throwable.toUiMessage(): ShoppingUiMessage = if (this is SaveTimeout
     toRepositoryUiMessage()
 }
 
-private fun Throwable.toRepositoryUiMessage() = when ((this as? ShoppingRepositoryException)?.failure) {
+private fun Throwable.toRepositoryUiMessage(): ShoppingUiMessage {
+    if (this is IngredientRepositoryException) return failure.toShoppingUiMessage()
+    return toShoppingRepositoryUiMessage()
+}
+
+private fun Throwable.toShoppingRepositoryUiMessage() = when ((this as? ShoppingRepositoryException)?.failure) {
     ShoppingFailure.NameRequired -> ShoppingUiMessage.NameRequired
     ShoppingFailure.NameTooLong -> ShoppingUiMessage.NameTooLong
     ShoppingFailure.QuantityTooLong -> ShoppingUiMessage.QuantityTooLong

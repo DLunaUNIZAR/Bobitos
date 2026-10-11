@@ -7,7 +7,9 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.dlunaunizar.bobitos.data.repository.IngredientFailure
 import com.dlunaunizar.bobitos.data.repository.IngredientRepository
+import com.dlunaunizar.bobitos.data.repository.IngredientRepositoryException
 import com.dlunaunizar.bobitos.data.repository.PersonalIngredientRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
@@ -18,6 +20,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -92,10 +95,21 @@ class ShoppingViewModelTest {
     fun `creating an ingredient that already exists shows a notice and does not write`() =
         runTest(mainDispatcherRule.testDispatcher) {
             ingredientRepository.catalogState.value = listOf(catalogIngredient())
-            viewModel.startIngredientAssist()
-            advanceUntilIdle()
 
             viewModel.createIngredientFromItem(shoppingItem())
+            advanceUntilIdle()
+
+            assertEquals(0, personalRepository.createCount)
+            assertEquals(ShoppingUiMessage.IngredientExists, viewModel.uiState.value.notice)
+            assertFalse(viewModel.uiState.value.isSaving)
+        }
+
+    @Test
+    fun `creating an ingredient whose key matches a common one shows a notice and does not write`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            ingredientRepository.catalogState.value = listOf(CatalogIngredient(id = "tomate", name = "Tomate"))
+
+            viewModel.createIngredientFromItem(shoppingItem().copy(name = "Tomates"))
             advanceUntilIdle()
 
             assertEquals(0, personalRepository.createCount)
@@ -103,17 +117,66 @@ class ShoppingViewModelTest {
         }
 
     @Test
-    fun `creating an ingredient whose key matches a common one shows a notice and does not write`() =
+    fun `creating an ingredient whose key matches a personal one shows a notice and does not write`() =
         runTest(mainDispatcherRule.testDispatcher) {
-            ingredientRepository.catalogState.value = listOf(CatalogIngredient(id = "tomate", name = "Tomate"))
-            viewModel.startIngredientAssist()
-            advanceUntilIdle()
+            personalRepository.state.value = listOf(CatalogIngredient(id = "salsa", name = "Salsa"))
 
-            viewModel.createIngredientFromItem(shoppingItem().copy(name = "Tomates"))
+            viewModel.createIngredientFromItem(shoppingItem().copy(name = "Salsas"))
             advanceUntilIdle()
 
             assertEquals(0, personalRepository.createCount)
             assertEquals(ShoppingUiMessage.IngredientExists, viewModel.uiState.value.notice)
+        }
+
+    @Test
+    fun `creating an ingredient rejected as already existing shows the exists notice`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            personalRepository.createError = IngredientRepositoryException(IngredientFailure.AlreadyExists)
+
+            viewModel.createIngredientFromItem(shoppingItem())
+            advanceUntilIdle()
+
+            assertEquals(ShoppingUiMessage.IngredientExists, viewModel.uiState.value.notice)
+            assertNull(viewModel.uiState.value.error)
+            assertFalse(viewModel.uiState.value.isSaving)
+        }
+
+    @Test
+    fun `creating an ingredient with a network failure shows the shopping network error`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            personalRepository.createError = IngredientRepositoryException(IngredientFailure.Network)
+
+            viewModel.createIngredientFromItem(shoppingItem())
+            advanceUntilIdle()
+
+            assertEquals(ShoppingUiMessage.NetworkError, viewModel.uiState.value.error)
+        }
+
+    @Test
+    fun `creating an ingredient when the common catalog fails does not write and reports network`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            ingredientRepository.catalogOverride = flow { throw IllegalStateException("sin red") }
+
+            viewModel.createIngredientFromItem(shoppingItem())
+            advanceUntilIdle()
+
+            assertEquals(0, personalRepository.createCount)
+            assertEquals(ShoppingUiMessage.NetworkError, viewModel.uiState.value.error)
+            assertFalse(viewModel.uiState.value.isSaving)
+        }
+
+    @Test
+    fun `creating an ingredient when the common catalog never emits times out without writing`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            ingredientRepository.catalogOverride = flow { awaitCancellation() }
+
+            viewModel.createIngredientFromItem(shoppingItem())
+            advanceTimeBy(30_000)
+            runCurrent()
+
+            assertEquals(0, personalRepository.createCount)
+            assertEquals(ShoppingUiMessage.NetworkError, viewModel.uiState.value.error)
+            assertFalse(viewModel.uiState.value.isSaving)
         }
 
     @Test
@@ -300,7 +363,9 @@ private class ShoppingFakeIngredientRepo : IngredientRepository {
     var createCount = 0
     var lastCreatedName: String? = null
 
-    override fun catalog(): Flow<List<CatalogIngredient>> = catalogState
+    var catalogOverride: Flow<List<CatalogIngredient>>? = null
+
+    override fun catalog(): Flow<List<CatalogIngredient>> = catalogOverride ?: catalogState
     override fun isCurrentUserCatalogAdmin(): Boolean = false
     override fun currentUserId(): String? = null
     override suspend fun createIngredient(name: String, category: String?, defaultUnit: String?) {
@@ -316,9 +381,11 @@ private class ShoppingFakePersonalRepo : PersonalIngredientRepository {
     val state = MutableStateFlow<List<CatalogIngredient>>(emptyList())
     var createCount = 0
     var lastCreatedName: String? = null
+    var createError: Throwable? = null
 
     override fun ingredients(): Flow<List<CatalogIngredient>> = state
     override suspend fun create(name: String, category: String?, defaultUnit: String?): String {
+        createError?.let { throw it }
         createCount++
         lastCreatedName = name
         return "id"
