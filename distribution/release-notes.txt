@@ -1,23 +1,27 @@
-Beta de Bobitos — catálogo de ejercicios, formularios que esperan a guardar y créditos.
+Beta de Bobitos — catálogo de ingredientes, tus marcas al hacer la compra, tiendas de barrio y tema oscuro.
 
-IMPORTANTE: actualizad todos los miembros de cada espacio. Las versiones anteriores no reconocen el tipo «Peso corporal» y, si editan una rutina o una sesión de gimnasio que lo use, pierden sus series.
+IMPORTANTE: actualizad todos los miembros de cada espacio. Los ingredientes, marcas y preferencias de tienda de las versiones anteriores se han borrado para empezar con el catálogo nuevo. Las versiones anteriores no ven las marcas y no reconocen las tiendas nuevas: si editan un producto de la compra marcado como «Carnicería» o similar, pierden la tienda.
 
 Novedades desde la beta anterior:
 
-Ejercicios
-- Catálogo común con 214 ejercicios en español (de wger.de y propios), con descripción, material y, en muchos casos, imagen.
-- Nuevo tipo «Peso corporal»: series con repeticiones y lastre opcional.
-- Los isométricos (plancha, L-sit…) se registran por series en segundos; cualquier ejercicio de fuerza puede pasar de repeticiones a segundos.
-- Toca un ejercicio para ver su ficha: técnica, material, imagen y autoría.
-- Buscador sin tildes y filtros por grupo muscular y tipo, también al añadir ejercicios a una rutina o a una sesión de gimnasio.
-- «Personalizado…» rellena el nombre con lo que estabas buscando.
+Ingredientes
+- Catálogo común con 356 ingredientes genéricos en español (aceite de oliva, chocolate negro, tomate…).
+- Puedes crear tus propios ingredientes; salen con la etiqueta «Personal» y solo los ves tú.
+- Tus marcas de cada ingrediente, con favorita (★), las tiendas donde las compras y su información nutricional. Son privadas: solo las ves tú.
+- «Dónde lo compro»: hasta 6 tiendas por ingrediente, en tu orden de preferencia.
+- Al escanear un código: si ya es una de tus marcas, se abre; si no, te pregunta «¿De qué ingrediente es?» con sugerencias.
+- Botón «Añadir a la compra» en la ficha de cada ingrediente.
 
-Formularios
-- Al pulsar Guardar, el formulario muestra «Guardando…» y solo se cierra cuando el servidor lo confirma. Si falla, se queda abierto con el error y lo que escribiste, para reintentar.
-- Al deshacer un borrado ya no se cierra el formulario que tengas abierto.
+Compra
+- Al añadir un ingrediente eliges marca (tus marcas o «Indiferente») y tienda. Por defecto sale tu favorita y su tienda.
+- Al pasar los ingredientes de una receta o de las comidas a la compra, cada uno lleva su marca y su tienda.
+- Tiendas nuevas: Carnicería, Pescadería, Frutería y Panadería. Al filtrar por una de ellas solo ves lo que se compra allí.
+- Desaparecen «Sugerido… Aplicar» y «Guardar como preferencia»: ahora se usan tus marcas y «Dónde lo compro».
 
-Otros
-- «Créditos y licencias» en Perfil: wger, Open Food Facts y la fuente Nunito.
-- La política de privacidad explica el uso de Open Food Facts al escanear códigos de barras.
+Apariencia
+- El tema oscuro es el de por defecto. Puedes cambiarlo a Claro o Sistema en Perfil; si ya lo habías elegido, se respeta.
+
+Cuenta y privacidad
+- Al borrar la cuenta se borran también tus ingredientes, marcas y tiendas.
 
 Comunica cualquier error indicando el modelo del dispositivo, la versión de Android y los pasos para reproducirlo.
