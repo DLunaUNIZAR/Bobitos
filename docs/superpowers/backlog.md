@@ -6,7 +6,8 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 
 ## 2026-10-11 — `agent/tiendas-de-barrio`
 
-- **Efecto visible:** el icono de Carnicería (`0xFFA33B3B`) tiene poco contraste en tema oscuro (2,8:1, como DIA y Carrefour); `0xFFB84A4A` daría 3,3:1.
+- **Efecto visible:** contraste de los colores de tienda: Carrefour en oscuro (2,25 sobre el fondo, 2,12 sobre su tarjeta); Eroski, Frutería e Indiferente sobre su tarjeta en claro (2,7-2,9); y los iconos sobre las tarjetas por defecto de Ingredientes y sobre los chips seleccionados en oscuro quedan por debajo de 3:1 (llevan etiqueta de texto). DIA y Carnicería ya se arreglaron (plan `2026-10-11-contraste-dia-carniceria.md`); si se aborda, ampliar `SupermarketContrastTest` a `Supermarket.entries`.
+- **Interno:** `SupermarketContrastTest` copia el alfa del tinte (0.12f) en vez de usar `CATEGORY_TINT_ALPHA`, duplica los cálculos WCAG de `ModuleColorsTest`, mezcla el tinte a mano en vez de `compositeOver` y usa el umbral 0.03928 en vez de 0.04045.
 - **Interno:** los comentarios de `firestore.rules` junto a las listas de tiendas citan `APP/core/model/ShoppingItem.kt` (abreviatura del plan); deberían citar la ruta real y `SupermarketRulesSyncTest`.
 - **Interno:** falta un test de reglas que acepte justo 6 tiendas incluyendo las nuevas.
 - **Interno:** quedan menciones a «supermercado(s)» en `docs/DATA_MODEL.md:574` y en comentarios (`ShoppingScreen`, `SupermarketTokens`, `IngredientPrefsRepository`).
