@@ -8,11 +8,11 @@ enum class Supermarket {
     MERCADONA,
     CARREFOUR,
     ALCAMPO,
-    OTROS,
     CARNICERIA,
     PESCADERIA,
     FRUTERIA,
     PANADERIA,
+    OTROS,
     INDIFERENTE,
 }
 

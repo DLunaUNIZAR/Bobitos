@@ -203,7 +203,7 @@ service cloud.firestore {
         && (!request.resource.data.keys().hasAny(["supermarket"])
           || request.resource.data.supermarket == null
           // Esta lista debe coincidir con el enum Supermarket (APP/core/model/ShoppingItem.kt).
-          || request.resource.data.supermarket in ["DIA", "EROSKI", "MERCADONA", "CARREFOUR", "ALCAMPO", "OTROS", "CARNICERIA", "PESCADERIA", "FRUTERIA", "PANADERIA", "INDIFERENTE"])
+          || request.resource.data.supermarket in ["DIA", "EROSKI", "MERCADONA", "CARREFOUR", "ALCAMPO", "CARNICERIA", "PESCADERIA", "FRUTERIA", "PANADERIA", "OTROS", "INDIFERENTE"])
         && (!request.resource.data.keys().hasAny(["brand"])
           || validOptionalShoppingText(request.resource.data.brand, 60));
     }
@@ -1246,7 +1246,7 @@ service cloud.firestore {
     // Los valores deben coincidir con el enum Supermarket (APP/core/model/ShoppingItem.kt).
     function validStoreList(stores) {
       return stores is list && stores.size() <= 6
-        && stores.hasOnly(["DIA", "EROSKI", "MERCADONA", "CARREFOUR", "ALCAMPO", "OTROS", "CARNICERIA", "PESCADERIA", "FRUTERIA", "PANADERIA"])
+        && stores.hasOnly(["DIA", "EROSKI", "MERCADONA", "CARREFOUR", "ALCAMPO", "CARNICERIA", "PESCADERIA", "FRUTERIA", "PANADERIA", "OTROS"])
         && stores.toSet().size() == stores.size();
     }
 

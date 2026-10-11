@@ -35,6 +35,17 @@ class SupermarketRulesSyncTest {
     }
 
     @Test
+    fun `the Supermarket order is supermarkets, local shops, others and indifferent`() {
+        assertEquals(
+            listOf(
+                "DIA", "EROSKI", "MERCADONA", "CARREFOUR", "ALCAMPO",
+                "CARNICERIA", "PESCADERIA", "FRUTERIA", "PANADERIA", "OTROS", "INDIFERENTE",
+            ),
+            Supermarket.entries.map { it.name },
+        )
+    }
+
+    @Test
     fun `every Supermarket has a label, a color and an icon`() {
         Supermarket.entries.forEach {
             assertTrue(it.labelRes != 0)
