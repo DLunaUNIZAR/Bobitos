@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.core.designsystem.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -92,7 +93,12 @@ fun BobitosTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composabl
             colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
             typography = BobitosTypography,
             shapes = BobitosShapes,
-            content = content,
-        )
+        ) {
+            // Las pantallas sin Surface/Scaffold (bienvenida, login) heredarían el negro por defecto.
+            CompositionLocalProvider(
+                LocalContentColor provides MaterialTheme.colorScheme.onBackground,
+                content = content,
+            )
+        }
     }
 }
