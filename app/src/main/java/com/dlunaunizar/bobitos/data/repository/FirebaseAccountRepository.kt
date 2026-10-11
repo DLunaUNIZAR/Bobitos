@@ -48,6 +48,7 @@ class FirebaseAccountRepository @Inject constructor(
                 spaces.leaveSpace(spaceId)
             }
             anonymizeOrDeleteOwnedRecipes(user.uid)
+            deletePersonalData(user.uid)
             user.delete().await()
         } catch (error: AccountRepositoryException) {
             throw error
@@ -91,7 +92,22 @@ class FirebaseAccountRepository @Inject constructor(
         }
     }
 
+    // Repetible: si algo falla la cuenta no se borra y el usuario vuelve a intentarlo.
+    private suspend fun deletePersonalData(userId: String) {
+        val user = firestore.collection(USERS).document(userId)
+        PERSONAL_USER_COLLECTIONS.forEach { name ->
+            val documents = user.collection(name).get(Source.SERVER).await().documents
+            documents.chunked(400).forEach { chunk ->
+                val batch = firestore.batch()
+                chunk.forEach { batch.delete(it.reference) }
+                batch.commit().await()
+            }
+        }
+        firestore.collection(INGREDIENT_PREFS_COLLECTION).document(userId).delete().await()
+    }
+
     private companion object {
+        const val USERS = "users"
         const val MEMBERSHIPS = "memberships"
         const val SPACES = "spaces"
         const val RECIPES = "recipes"
@@ -147,3 +163,8 @@ private const val ANONYMOUS_NAME = "Usuario eliminado"
 // Colecciones de cada espacio donde se anonimiza el nombre al borrar la cuenta. Deben coincidir con las
 // que tienen regla de anonimización en firestore.rules (lo comprueba AccountAnonymizationTest).
 internal val ANONYMIZED_SPACE_COLLECTIONS = listOf("shoppingItems", "tasks", "events", "meals", "notes", "activities")
+
+// Colecciones personales de users/{uid} que se borran con la cuenta; deben ser las que las reglas dan al dueño
+// (lo comprueba PersonalDataPathsTest). Las preferencias viven aparte, en `ingredientPrefs/{uid}`.
+internal val PERSONAL_USER_COLLECTIONS = listOf("ingredients", "brands")
+internal const val INGREDIENT_PREFS_COLLECTION = "ingredientPrefs"

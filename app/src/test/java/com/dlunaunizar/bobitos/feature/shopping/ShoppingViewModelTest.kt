@@ -8,6 +8,7 @@ import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.repository.IngredientRepository
+import com.dlunaunizar.bobitos.data.repository.PersonalIngredientRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
@@ -36,7 +37,8 @@ class ShoppingViewModelTest {
 
     private val repository = FakeShoppingRepository()
     private val ingredientRepository = ShoppingFakeIngredientRepo()
-    private val viewModel = ShoppingViewModel(repository, ingredientRepository)
+    private val personalRepository = ShoppingFakePersonalRepo()
+    private val viewModel = ShoppingViewModel(repository, ingredientRepository, personalRepository)
 
     @Test
     fun `observes items for active space`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -76,12 +78,13 @@ class ShoppingViewModelTest {
     }
 
     @Test
-    fun `creating an ingredient from a new item writes it`() = runTest(mainDispatcherRule.testDispatcher) {
+    fun `creating an ingredient from an item creates it as personal`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.createIngredientFromItem(shoppingItem())
         advanceUntilIdle()
 
-        assertEquals(1, ingredientRepository.createCount)
-        assertEquals("Leche", ingredientRepository.lastCreatedName)
+        assertEquals(0, ingredientRepository.createCount)
+        assertEquals(1, personalRepository.createCount)
+        assertEquals("Leche", personalRepository.lastCreatedName)
         assertEquals(ShoppingUiMessage.IngredientCreated, viewModel.uiState.value.notice)
     }
 
@@ -95,7 +98,21 @@ class ShoppingViewModelTest {
             viewModel.createIngredientFromItem(shoppingItem())
             advanceUntilIdle()
 
-            assertEquals(0, ingredientRepository.createCount)
+            assertEquals(0, personalRepository.createCount)
+            assertEquals(ShoppingUiMessage.IngredientExists, viewModel.uiState.value.notice)
+        }
+
+    @Test
+    fun `creating an ingredient whose key matches a common one shows a notice and does not write`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            ingredientRepository.catalogState.value = listOf(CatalogIngredient(id = "tomate", name = "Tomate"))
+            viewModel.startIngredientAssist()
+            advanceUntilIdle()
+
+            viewModel.createIngredientFromItem(shoppingItem().copy(name = "Tomates"))
+            advanceUntilIdle()
+
+            assertEquals(0, personalRepository.createCount)
             assertEquals(ShoppingUiMessage.IngredientExists, viewModel.uiState.value.notice)
         }
 
@@ -293,6 +310,22 @@ private class ShoppingFakeIngredientRepo : IngredientRepository {
 
     override suspend fun updateIngredient(id: String, name: String, category: String?, defaultUnit: String?) = Unit
     override suspend fun deleteIngredient(id: String) = Unit
+}
+
+private class ShoppingFakePersonalRepo : PersonalIngredientRepository {
+    val state = MutableStateFlow<List<CatalogIngredient>>(emptyList())
+    var createCount = 0
+    var lastCreatedName: String? = null
+
+    override fun ingredients(): Flow<List<CatalogIngredient>> = state
+    override suspend fun create(name: String, category: String?, defaultUnit: String?): String {
+        createCount++
+        lastCreatedName = name
+        return "id"
+    }
+
+    override suspend fun update(id: String, name: String, category: String?, defaultUnit: String?) = Unit
+    override suspend fun delete(id: String) = Unit
 }
 
 private fun shoppingItem() = ShoppingItem(

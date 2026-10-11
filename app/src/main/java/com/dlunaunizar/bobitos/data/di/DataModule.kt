@@ -36,6 +36,7 @@ import com.dlunaunizar.bobitos.data.repository.FirestoreIngredientPrefsRepositor
 import com.dlunaunizar.bobitos.data.repository.FirestoreIngredientRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreMealRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreNoteRepository
+import com.dlunaunizar.bobitos.data.repository.FirestorePersonalIngredientRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreRecipeRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreRoutineRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreShoppingRepository
@@ -49,6 +50,7 @@ import com.dlunaunizar.bobitos.data.repository.IngredientRepository
 import com.dlunaunizar.bobitos.data.repository.MealRepository
 import com.dlunaunizar.bobitos.data.repository.NoteRepository
 import com.dlunaunizar.bobitos.data.repository.OnboardingPreferenceRepository
+import com.dlunaunizar.bobitos.data.repository.PersonalIngredientRepository
 import com.dlunaunizar.bobitos.data.repository.RecipeRepository
 import com.dlunaunizar.bobitos.data.repository.ReminderPreferenceRepository
 import com.dlunaunizar.bobitos.data.repository.RoutineRepository
@@ -121,6 +123,11 @@ abstract class DataModule {
     abstract fun bindIngredientPrefsRepository(
         repository: FirestoreIngredientPrefsRepository,
     ): IngredientPrefsRepository
+
+    @Binds @Singleton
+    abstract fun bindPersonalIngredientRepository(
+        repository: FirestorePersonalIngredientRepository,
+    ): PersonalIngredientRepository
 
     @Binds @Singleton
     abstract fun bindIngredientBrandRepository(

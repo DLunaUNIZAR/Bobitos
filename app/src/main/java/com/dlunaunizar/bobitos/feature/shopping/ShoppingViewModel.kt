@@ -9,10 +9,12 @@ import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
+import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
-import com.dlunaunizar.bobitos.core.model.slug
+import com.dlunaunizar.bobitos.core.model.ingredientKey
 import com.dlunaunizar.bobitos.data.repository.IngredientRepository
+import com.dlunaunizar.bobitos.data.repository.PersonalIngredientRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
@@ -23,6 +25,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -31,6 +34,7 @@ import javax.inject.Inject
 class ShoppingViewModel @Inject constructor(
     private val repository: ShoppingRepository,
     private val ingredientRepository: IngredientRepository,
+    private val personalIngredients: PersonalIngredientRepository,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(ShoppingUiState())
     val uiState: StateFlow<ShoppingUiState> = mutableUiState.asStateFlow()
@@ -69,8 +73,10 @@ class ShoppingViewModel @Inject constructor(
     fun startIngredientAssist() {
         if (catalogJob?.isActive == true) return
         catalogJob = viewModelScope.launch {
-            ingredientRepository.catalog()
-                .catch { mutableUiState.update { it.copy(catalog = emptyList()) } }
+            // Comunes y personales juntos: sirven para sugerir nombres y para detectar duplicados.
+            val common = ingredientRepository.catalog().catch { emit(emptyList()) }
+            val personal = personalIngredients.ingredients().catch { emit(emptyList()) }
+            combine(common, personal) { shared, own -> shared + own }
                 .collect { list -> mutableUiState.update { it.copy(catalog = list) } }
         }
     }
@@ -85,13 +91,14 @@ class ShoppingViewModel @Inject constructor(
     fun createIngredientFromItem(item: ShoppingItem) {
         if (mutableUiState.value.isSaving) return
         val name = item.name.trim()
-        // Se comprueba contra el catálogo ya cargado; si falta alguno, el alta lo rechaza con AlreadyExists.
-        if (mutableUiState.value.catalog.any { it.id == slug(name) }) {
+        // Se comprueba contra comunes y personales ya cargados; si falta alguno, el alta lo rechaza con AlreadyExists.
+        val key = ingredientKey(name)
+        if (mutableUiState.value.catalog.any { it.matchesKey(key) }) {
             showNotice(ShoppingUiMessage.IngredientExists)
             return
         }
         runAction(ShoppingUiMessage.IngredientCreated) {
-            ingredientRepository.createIngredient(name, null, null)
+            personalIngredients.create(name, null, null)
         }
     }
 
@@ -256,6 +263,8 @@ class ShoppingViewModel @Inject constructor(
         }
     }
 }
+
+private fun CatalogIngredient.matchesKey(key: String) = ingredientKey(name) == key
 
 private fun String?.normalized(): String? = this?.trim()?.takeIf(String::isNotEmpty)
 
