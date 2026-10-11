@@ -24,6 +24,7 @@ Las secciones «Comunes» de Rutinas y «Recetas comunes» del Recetario están 
 5. **«Guardar como mía»** en rutinas, como en recetas.
 6. Enfoque **A**: `routines.json` en el repo + validación contra `exercises.json` + revisión + importador.
 7. Despliegue propio (la beta 19 ya salió): reglas → importación → **beta 20**.
+8. **Comunes siempre en «Comunes»:** el admin del catálogo es la cuenta del usuario y las importadas son suyas (`ownerUid`). «Mis rutinas» muestra solo las privadas del usuario; todas las GLOBAL van a «Comunes» (el admin conserva ahí Editar/Eliminar) y «Guardar como mía» sale en cualquier común, también para el admin.
 
 ## 1. Contenido y formato
 
@@ -74,8 +75,8 @@ Sin estiramientos ni movilidad (el catálogo no tiene esos ejercicios). La descr
 
 - `Routine.sourceRoutineId: String?`, leído/escrito en `FirestoreRoutineRepository` (`toRoutine`, `createRoutine(..., sourceRoutineId)`); la interfaz `RoutineRepository` y los fakes de test se actualizan.
 - `RoutinesViewModel.fork(source)` calcado de `RecipesViewModel.fork()`: copia PRIVATE con título, descripción, ejercicios y `sourceRoutineId`; aviso «Guardada en «Mis rutinas»» (nuevo `RoutineUiMessage`).
-- Botón «Guardar como mía» en `RoutineDetailSheet` (`RoutinesScreen.kt` ~l.371) para comunes que no son del usuario y si `canWrite`; reutilizar el estilo de `RecipeSheets.kt:133`. Cadenas en `strings.xml`.
-- Nada más en UI: «Comunes» y el selector de sesión ya muestran las GLOBAL.
+- Botón «Guardar como mía» en `RoutineDetailSheet` (`RoutinesScreen.kt` ~l.371) para **cualquier** rutina GLOBAL si `canWrite` (decisión 8); reutilizar el estilo de `RecipeSheets.kt:133`. Cadenas en `strings.xml`.
+- Secciones (decisión 8): «Mis rutinas» = solo las PRIVATE del usuario; «Comunes» = todas las GLOBAL, sin excluir las del propio usuario. El selector de la sesión de gimnasio no cambia.
 
 ## 4. Documentación
 
@@ -101,9 +102,9 @@ Sin estiramientos ni movilidad (el catálogo no tiene esos ejercicios). La descr
 
 ## Fuera de alcance
 
-Programas de varios días o campo «programa»; estiramientos/movilidad; nivel, descanso o etiquetas como campos del modelo; filtros nuevos en Rutinas; abrir la ficha del ejercicio desde la rutina; recetas (subproyecto 2).
+Programas de varios días o campo «programa»; estiramientos/movilidad; nivel, descanso o etiquetas como campos del modelo; filtros nuevos en Rutinas; abrir la ficha del ejercicio desde la rutina; recetas (subproyecto 2, que tendrá el mismo problema de «Mis recetas» del admin).
 
 ## Verificación de esta spec
 
-Cada decisión (1–7) tiene sección: 1→§6, 2→Contexto, 3–4→§1, 5→§3, 6→§1–2, 7→§6. Piezas reutilizadas: `planCatalogImport`, `commitCatalogOps`, `resolveTarget`, `parseImportArgs`, `slug`, `toFirestoreExercises`, `RecipesViewModel.fork()`, `CATALOG_ADMIN_UID`/`RecipeAdmins`.
+Cada decisión (1–8) tiene sección: 1→§6, 2→Contexto, 3–4→§1, 5→§3, 6→§1–2, 7→§6, 8→§3. Piezas reutilizadas: `planCatalogImport`, `commitCatalogOps`, `resolveTarget`, `parseImportArgs`, `slug`, `toFirestoreExercises`, `RecipesViewModel.fork()`, `CATALOG_ADMIN_UID`/`RecipeAdmins`.
 
