@@ -6,6 +6,7 @@ import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.feature.common.BrandStoreSelection
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingContext
 import com.dlunaunizar.bobitos.feature.common.brandName
+import com.dlunaunizar.bobitos.feature.common.brandToSave
 import com.dlunaunizar.bobitos.feature.common.defaultSelection
 import com.dlunaunizar.bobitos.feature.common.selectBrand
 import kotlinx.parcelize.Parcelize
@@ -33,6 +34,9 @@ internal data class ShoppingDraft(
             supermarket = item?.supermarket,
             brand = item?.brand.orEmpty(),
         )
+
+        /** Borrador de alta con solo el nombre puesto (p. ej. desde la ficha de un ingrediente). */
+        fun prefilled(name: String) = of(null).copy(name = name)
     }
 }
 
@@ -85,19 +89,12 @@ internal fun ShoppingDraft.withBrandChoice(context: IngredientShoppingContext, b
     )
 }
 
-/** Borrador de alta con solo el nombre puesto (p. ej. desde la ficha de un ingrediente). */
-internal fun ShoppingDraft.Companion.prefilled(name: String): ShoppingDraft = ShoppingDraft.of(null).copy(name = name)
-
 /** Hay cambios sin guardar: distinto del borrador inicial tras aplicar los valores por defecto. */
 internal fun ShoppingDraft.isDirty(initial: ShoppingDraft, context: IngredientShoppingContext?): Boolean =
     this != initial.withContext(context)
 
 /** Marca a guardar: con selector, el nombre vigente de la marca elegida; si no, el texto escrito. */
-internal fun ShoppingDraft.savedBrand(context: IngredientShoppingContext?): String? {
-    val text = if (context != null && context.brands.isNotEmpty()) {
-        context.brandName(BrandStoreSelection(brandId, supermarket)).orEmpty()
-    } else {
-        brand
-    }
-    return text.trim().ifEmpty { null }
+internal fun ShoppingDraft.savedBrand(context: IngredientShoppingContext?): String? = when (context) {
+    null -> brand.trim().ifEmpty { null }
+    else -> context.brandToSave(BrandStoreSelection(brandId, supermarket), brand)
 }

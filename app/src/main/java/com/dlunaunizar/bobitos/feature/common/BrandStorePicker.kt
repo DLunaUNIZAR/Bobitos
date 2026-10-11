@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.common
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,14 +61,14 @@ internal fun BrandStorePicker(
             SupermarketDropdown(
                 selected = selection.store,
                 onSelect = onStoreSelected,
-                options = context.storeOptions(selection),
+                options = remember(context, selection.brandId) { context.storeOptions(selection) },
             )
         }
     }
 }
 
 @Composable
-private fun PickerLabel(label: Int) {
+private fun PickerLabel(@StringRes label: Int) {
     Text(
         text = stringResource(label),
         style = MaterialTheme.typography.labelMedium,
@@ -79,7 +80,7 @@ private fun PickerLabel(label: Int) {
 private fun BrandDropdown(brands: List<IngredientBrand>, selectedId: String?, onSelect: (String?) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val indifferent = stringResource(R.string.shopping_brand_indifferent)
-    val current = brands.firstOrNull { it.id == selectedId }?.name ?: indifferent
+    val current = remember(brands, selectedId) { brands.firstOrNull { it.id == selectedId }?.name } ?: indifferent
     val description = stringResource(R.string.shopping_brand_picker_description, current)
     Box(modifier = Modifier.fillMaxWidth()) {
         OutlinedButton(

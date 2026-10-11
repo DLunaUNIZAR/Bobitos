@@ -78,6 +78,7 @@ import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.dlunaunizar.bobitos.core.model.ingredientKey
 import com.dlunaunizar.bobitos.feature.common.BrandStorePicker
 import com.dlunaunizar.bobitos.feature.common.BrandStoreSelection
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
@@ -633,9 +634,12 @@ private fun ShoppingItemEditor(
     val validation = ShoppingValidation.validate(name, quantity, notes)
     // Solo al crear: avisa si ya hay un producto con ese nombre en la lista.
     val duplicate = if (item == null) resolveDuplicate(name) else null
-    val nameError = validation == ShoppingUiMessage.NameRequired || validation == ShoppingUiMessage.NameTooLong
+    val nameErrorMessage = validation?.takeIf {
+        it == ShoppingUiMessage.NameRequired || it == ShoppingUiMessage.NameTooLong
+    }
+    val nameError = nameErrorMessage != null
     // Solo al crear: un ingrediente reconocido propone marca y tienda (§5).
-    val context = remember(name, ingredientData) {
+    val context = remember(ingredientKey(name), ingredientData) {
         if (item == null) ingredientData.contextFor(name) else null
     }
     LaunchedEffect(context) { draft = draft.withContext(context) }
@@ -656,7 +660,7 @@ private fun ShoppingItemEditor(
             label = { Text(stringResource(R.string.shopping_name_label)) },
             supportingText = {
                 when {
-                    nameError -> Text(stringResource(validation!!.stringResourceId))
+                    nameErrorMessage != null -> Text(stringResource(nameErrorMessage.stringResourceId))
                     duplicate != null -> Text(
                         stringResource(R.string.shopping_already_in_list) +
                             (duplicate.quantity?.let { " · $it" } ?: ""),

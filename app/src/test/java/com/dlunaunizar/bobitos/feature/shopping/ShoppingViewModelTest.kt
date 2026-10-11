@@ -14,7 +14,7 @@ import com.dlunaunizar.bobitos.data.repository.IngredientRepositoryException
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
-import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
+import com.dlunaunizar.bobitos.feature.common.ingredientShoppingSource
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientBrandRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientPrefsRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientRepository
@@ -52,7 +52,7 @@ class ShoppingViewModelTest {
         repository,
         ingredientRepository,
         personalRepository,
-        IngredientShoppingSource(ingredientRepository, personalRepository, brandRepository, prefsRepository),
+        ingredientShoppingSource(ingredientRepository, brandRepository, prefsRepository, personalRepository),
     )
 
     @Test

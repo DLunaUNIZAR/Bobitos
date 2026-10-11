@@ -10,7 +10,6 @@ import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
-import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.recipeimport.ImportFailure
 import com.dlunaunizar.bobitos.data.recipeimport.ImportedRecipe
@@ -19,13 +18,12 @@ import com.dlunaunizar.bobitos.data.recipeimport.RecipeImporter
 import com.dlunaunizar.bobitos.data.repository.RecipeFailure
 import com.dlunaunizar.bobitos.data.repository.RecipeRepository
 import com.dlunaunizar.bobitos.data.repository.RecipeRepositoryException
-import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewChoice
-import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
+import com.dlunaunizar.bobitos.feature.common.RecordingShoppingRepository
+import com.dlunaunizar.bobitos.feature.common.ingredientShoppingSource
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientBrandRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientPrefsRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientRepository
-import com.dlunaunizar.bobitos.feature.ingredients.FakePersonalIngredientRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -50,7 +48,7 @@ class RecipesViewModelTest {
 
     private val repository = FakeRecipeRepository()
     private val importer = FakeRecipeImporter()
-    private val shoppingRepository = RecipesFakeShoppingRepository()
+    private val shoppingRepository = RecordingShoppingRepository()
     private val ingredientRepository = FakeIngredientRepository()
     private val brandRepository = FakeIngredientBrandRepository()
     private val prefsRepository = FakeIngredientPrefsRepository()
@@ -58,12 +56,7 @@ class RecipesViewModelTest {
         repository,
         importer,
         shoppingRepository,
-        IngredientShoppingSource(
-            ingredientRepository,
-            FakePersonalIngredientRepository(),
-            brandRepository,
-            prefsRepository,
-        ),
+        ingredientShoppingSource(ingredientRepository, brandRepository, prefsRepository),
     )
 
     @Test
@@ -311,40 +304,6 @@ class RecipesViewModelTest {
         assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
         assertEquals(RecipeUiMessage.RecipeSaved, viewModel.uiState.value.notice)
     }
-}
-
-private class RecipesFakeShoppingRepository : ShoppingRepository {
-    val addedNames = mutableListOf<String>()
-    val addedSupermarkets = mutableListOf<Supermarket?>()
-    val addedBrands = mutableListOf<String?>()
-
-    override fun items(spaceId: String): Flow<List<ShoppingItem>> = MutableStateFlow(emptyList())
-    override suspend fun addItem(
-        spaceId: String,
-        name: String,
-        quantity: String?,
-        notes: String?,
-        supermarket: Supermarket?,
-        brand: String?,
-    ) {
-        addedNames += name
-        addedSupermarkets += supermarket
-        addedBrands += brand
-    }
-
-    override suspend fun updateItem(
-        spaceId: String,
-        itemId: String,
-        name: String,
-        quantity: String?,
-        notes: String?,
-        supermarket: Supermarket?,
-        brand: String?,
-    ) = Unit
-
-    override suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean) = Unit
-    override suspend fun deleteItem(spaceId: String, itemId: String) = Unit
-    override suspend fun clearPurchased(spaceId: String): Int = 0
 }
 
 private class FakeRecipeRepository : RecipeRepository {

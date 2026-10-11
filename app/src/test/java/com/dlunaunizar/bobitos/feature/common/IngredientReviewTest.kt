@@ -6,9 +6,6 @@ import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
-import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -132,49 +129,4 @@ class IngredientReviewTest {
         supermarket = supermarket,
         brand = brand,
     )
-}
-
-private class RecordingShoppingRepository : ShoppingRepository {
-    val addedNames = mutableListOf<String>()
-    val addedNotes = mutableListOf<String?>()
-    val addedSupermarkets = mutableListOf<Supermarket?>()
-    val addedBrands = mutableListOf<String?>()
-    val updatedIds = mutableListOf<String>()
-    val updatedQuantities = mutableListOf<String?>()
-    val updatedSupermarkets = mutableListOf<Supermarket?>()
-    val updatedBrands = mutableListOf<String?>()
-
-    override fun items(spaceId: String): Flow<List<ShoppingItem>> = MutableStateFlow(emptyList())
-    override suspend fun addItem(
-        spaceId: String,
-        name: String,
-        quantity: String?,
-        notes: String?,
-        supermarket: Supermarket?,
-        brand: String?,
-    ) {
-        addedNames += name
-        addedNotes += notes
-        addedSupermarkets += supermarket
-        addedBrands += brand
-    }
-
-    override suspend fun updateItem(
-        spaceId: String,
-        itemId: String,
-        name: String,
-        quantity: String?,
-        notes: String?,
-        supermarket: Supermarket?,
-        brand: String?,
-    ) {
-        updatedIds += itemId
-        updatedQuantities += quantity
-        updatedSupermarkets += supermarket
-        updatedBrands += brand
-    }
-
-    override suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean) = Unit
-    override suspend fun deleteItem(spaceId: String, itemId: String) = Unit
-    override suspend fun clearPurchased(spaceId: String): Int = 0
 }

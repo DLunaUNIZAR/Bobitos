@@ -48,7 +48,7 @@ internal data class ReviewRowState(val quantity: String, val selection: BrandSto
 
 internal fun IngredientReviewRow.initialState(): ReviewRowState = ReviewRowState(
     quantity = (existing?.quantity ?: recipeQuantity).orEmpty(),
-    selection = context?.defaultSelection() ?: BrandStoreSelection(null, null),
+    selection = context?.defaultSelection() ?: BrandStoreSelection.None,
     freeBrand = "",
 )
 
@@ -62,7 +62,7 @@ internal fun ReviewRowState.toChoice(row: IngredientReviewRow): IngredientReview
         else -> IngredientReviewChoice(
             quantity = trimmed,
             supermarket = selection.store,
-            brand = if (context.brands.isEmpty()) freeBrand.trim().ifEmpty { null } else context.brandName(selection),
+            brand = context.brandToSave(selection, freeBrand),
         )
     }
 }

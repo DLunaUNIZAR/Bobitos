@@ -5,7 +5,7 @@ import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Supermarket
-import com.dlunaunizar.bobitos.core.model.findByKey
+import com.dlunaunizar.bobitos.core.model.ingredientKey
 import com.dlunaunizar.bobitos.data.repository.sortedForBrands
 import kotlinx.parcelize.Parcelize
 
@@ -14,7 +14,12 @@ import kotlinx.parcelize.Parcelize
 
 /** Marca elegida (`null` = «Indiferente») y tienda elegida (`null` = sin especificar). */
 @Parcelize
-internal data class BrandStoreSelection(val brandId: String?, val store: Supermarket?) : Parcelable
+internal data class BrandStoreSelection(val brandId: String?, val store: Supermarket?) : Parcelable {
+    companion object {
+        /** «Indiferente» y sin tienda. */
+        val None = BrandStoreSelection(null, null)
+    }
+}
 
 /** Todo lo necesario para reconocer ingredientes y proponer marca y tienda. */
 data class IngredientShoppingData(
@@ -24,7 +29,19 @@ data class IngredientShoppingData(
     val brands: List<IngredientBrand> = emptyList(),
     /** «Dónde lo compro» por id de ingrediente. */
     val prefs: Map<String, IngredientPref> = emptyMap(),
-)
+) {
+    // Índice por clave tolerante: gana el primero de la lista, como `findByKey`; la clave vacía no entra.
+    private val byKey: Map<String, CatalogIngredient> by lazy {
+        val index = HashMap<String, CatalogIngredient>()
+        for (ingredient in ingredients) {
+            val key = ingredientKey(ingredient.name)
+            if (key.isNotEmpty()) index.putIfAbsent(key, ingredient)
+        }
+        index
+    }
+
+    internal fun findIngredient(name: String): CatalogIngredient? = byKey[ingredientKey(name)]
+}
 
 /** El ingrediente reconocido y sus opciones. Público porque viaja en `IngredientReviewRow` (pública). */
 data class IngredientShoppingContext(
@@ -37,7 +54,7 @@ data class IngredientShoppingContext(
 
 /** Reconoce [name] por clave tolerante (§5); `null` si no coincide con ningún ingrediente. */
 internal fun IngredientShoppingData.contextFor(name: String): IngredientShoppingContext? {
-    val ingredient = findByKey(ingredients, name) ?: return null
+    val ingredient = findIngredient(name) ?: return null
     return IngredientShoppingContext(
         ingredient = ingredient,
         brands = brands.filter { it.ingredientId == ingredient.id }.sortedForBrands(),
@@ -87,3 +104,12 @@ internal fun IngredientShoppingContext.storeOptions(selection: BrandStoreSelecti
 /** Nombre de la marca elegida; `null` si es «Indiferente» o el id ya no existe. */
 internal fun IngredientShoppingContext.brandName(selection: BrandStoreSelection): String? =
     brands.firstOrNull { it.id == selection.brandId }?.name
+
+/**
+ * Marca a guardar: con marcas registradas, el nombre de la elegida; sin ellas, el texto libre
+ * recortado (`null` si queda vacío).
+ */
+internal fun IngredientShoppingContext.brandToSave(selection: BrandStoreSelection, freeText: String): String? {
+    val text = if (brands.isEmpty()) freeText else brandName(selection).orEmpty()
+    return text.trim().ifEmpty { null }
+}

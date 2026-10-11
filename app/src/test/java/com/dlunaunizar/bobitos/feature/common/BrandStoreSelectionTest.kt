@@ -44,6 +44,17 @@ class BrandStoreSelectionTest {
     }
 
     @Test
+    fun `with two ingredients of the same key the first in the list wins`() {
+        val data = IngredientShoppingData(
+            ingredients = listOf(
+                CatalogIngredient(id = "first", name = "Tomate"),
+                CatalogIngredient(id = "second", name = "Tomates"),
+            ),
+        )
+        assertEquals("first", data.contextFor("tomate")!!.ingredient.id)
+    }
+
+    @Test
     fun `a name matching nothing has no context`() {
         assertNull(IngredientShoppingData(ingredients = listOf(tomate)).contextFor("Lechuga"))
     }
