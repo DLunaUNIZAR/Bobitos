@@ -149,14 +149,37 @@ class IngredientDetailViewModel @Inject constructor(
 
     private fun isPersonal() = mutableUiState.value.ingredient?.personal == true
 
-    /** Añade o quita [store] de «Dónde lo compro»; la lista guardada conserva el orden de elección. */
+    /**
+     * Añade o quita [store] de «Dónde lo compro»; la lista guardada conserva el orden de elección.
+     * Escritura optimista: la lista cambia al instante y no pasa por `isSaving` (cada toque es independiente);
+     * si falla, se avisa y el siguiente snapshot del listener restaura el estado real.
+     */
     fun toggleStore(store: Supermarket) {
         val stores = toggleStore(mutableUiState.value.stores, store)
-        runAction(notice = null) { prefsRepository.setStores(ingredientId, stores) }
+        mutableUiState.update { it.copy(stores = stores) }
+        val id = ingredientId
+        writeOptimistically { prefsRepository.setStores(id, stores) }
     }
 
+    /** Igual que [toggleStore]: la estrella cambia al instante y la escritura no usa `isSaving`. */
     fun setFavorite(brandId: String, favorite: Boolean) {
-        runAction(notice = null) { brandRepository.setFavorite(brandId, favorite) }
+        mutableUiState.update { state ->
+            state.copy(
+                brands = state.brands
+                    .map { if (it.id == brandId) it.copy(favorite = favorite) else it }
+                    .sortedForBrands(),
+            )
+        }
+        writeOptimistically { brandRepository.setFavorite(brandId, favorite) }
+    }
+
+    private fun writeOptimistically(action: suspend () -> Unit) {
+        viewModelScope.launch {
+            runCatching { action() }.onFailure { error ->
+                if (error is CancellationException) throw error
+                mutableUiState.update { it.copy(error = error.toUiMessage(), notice = null) }
+            }
+        }
     }
 
     /** Alta ([brandId] nulo) o edición de una marca desde el editor. */

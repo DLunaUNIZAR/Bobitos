@@ -16,6 +16,8 @@ import com.dlunaunizar.bobitos.data.repository.BrandFailure
 import com.dlunaunizar.bobitos.data.repository.BrandInput
 import com.dlunaunizar.bobitos.data.repository.BrandRepositoryException
 import com.dlunaunizar.bobitos.data.repository.IngredientBrandRepository
+import com.dlunaunizar.bobitos.data.repository.IngredientPrefFailure
+import com.dlunaunizar.bobitos.data.repository.IngredientPrefsException
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientRepository
 import com.dlunaunizar.bobitos.data.repository.PersonalIngredientRepository
@@ -122,6 +124,76 @@ class IngredientDetailViewModelTest {
             advanceUntilIdle()
             assertEquals("tomate" to listOf(Supermarket.MERCADONA), prefsRepository.lastSet)
         }
+
+    @Test
+    fun `two quick store toggles with the first write pending both reach the repository`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            prefsRepository.gate = CompletableDeferred()
+            viewModel.observe("tomate")
+            advanceUntilIdle()
+
+            viewModel.toggleStore(Supermarket.MERCADONA)
+            viewModel.toggleStore(Supermarket.DIA)
+            advanceUntilIdle()
+
+            assertEquals(
+                listOf(listOf(Supermarket.MERCADONA), listOf(Supermarket.MERCADONA, Supermarket.DIA)),
+                prefsRepository.calls,
+            )
+            assertEquals(listOf(Supermarket.MERCADONA, Supermarket.DIA), viewModel.uiState.value.stores)
+            assertFalse(viewModel.uiState.value.isSaving)
+        }
+
+    @Test
+    fun `a pending store toggle leaves editorSave alone and does not block a brand editor save`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            prefsRepository.gate = CompletableDeferred()
+            viewModel.observe("tomate")
+            advanceUntilIdle()
+
+            viewModel.toggleStore(Supermarket.MERCADONA)
+            advanceUntilIdle()
+            assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+
+            viewModel.saveBrand("b1", BrandDraft.of("Otra", "", null))
+            advanceUntilIdle()
+
+            assertEquals("b1", brandRepository.lastUpdateId)
+            assertEquals(IngredientUiMessage.BrandSaved, viewModel.uiState.value.notice)
+        }
+
+    @Test
+    fun `setting favorite with a pending write updates the brand at once without isSaving`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            brandRepository.favoriteGate = CompletableDeferred()
+            brandRepository.brandsState.value = listOf(
+                detailBrand("b1", "tomate", "Alfa"),
+                detailBrand("b2", "tomate", "Beta"),
+            )
+            viewModel.observe("tomate")
+            advanceUntilIdle()
+
+            viewModel.setFavorite("b2", true)
+            advanceUntilIdle()
+
+            val brands = viewModel.uiState.value.brands
+            assertEquals(listOf("b2", "b1"), brands.map { it.id })
+            assertTrue(brands.first().favorite)
+            assertFalse(viewModel.uiState.value.isSaving)
+        }
+
+    @Test
+    fun `a failing store write shows the error`() = runTest(mainDispatcherRule.testDispatcher) {
+        prefsRepository.error = IngredientPrefsException(IngredientPrefFailure.Network)
+        viewModel.observe("tomate")
+        advanceUntilIdle()
+
+        viewModel.toggleStore(Supermarket.MERCADONA)
+        advanceUntilIdle()
+
+        assertEquals(IngredientUiMessage.NetworkError, viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.isSaving)
+    }
 
     @Test
     fun `setting favorite forwards it`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -461,7 +533,14 @@ private class DetailFakePrefsRepo : IngredientPrefsRepository {
     var lastSet: Pair<String, List<Supermarket>>? = null
 
     override fun prefs(): Flow<Map<String, IngredientPref>> = state
+    var gate: CompletableDeferred<Unit>? = null
+    var error: Throwable? = null
+    val calls = mutableListOf<List<Supermarket>>()
+
     override suspend fun setStores(ingredientId: String, stores: List<Supermarket>) {
+        calls += stores
+        gate?.await()
+        error?.let { throw it }
         lastSet = ingredientId to stores
         state.value = state.value + (ingredientId to IngredientPref(stores))
     }
@@ -493,7 +572,10 @@ private class DetailFakeBrandRepo : IngredientBrandRepository {
         lastUpdate = input
     }
 
+    var favoriteGate: CompletableDeferred<Unit>? = null
+
     override suspend fun setFavorite(brandId: String, favorite: Boolean) {
+        favoriteGate?.await()
         lastFavorite = brandId to favorite
     }
     override suspend fun deleteBrand(brandId: String) = Unit

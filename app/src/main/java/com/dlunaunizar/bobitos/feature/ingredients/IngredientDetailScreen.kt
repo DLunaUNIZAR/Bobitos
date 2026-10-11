@@ -256,7 +256,7 @@ private fun IngredientContent(
         onEdit = onEditFicha,
         onDelete = onDeleteIngredient,
     )
-    StoresSection(stores = state.stores, enabled = !state.isSaving, onToggle = viewModel::toggleStore)
+    StoresSection(stores = state.stores, onToggle = viewModel::toggleStore)
     BrandsSection(
         state = state,
         onFavorite = viewModel::setFavorite,
@@ -320,7 +320,7 @@ private fun FichaSection(ingredient: CatalogIngredient, canEdit: Boolean, onEdit
 }
 
 @Composable
-private fun StoresSection(stores: List<Supermarket>, enabled: Boolean, onToggle: (Supermarket) -> Unit) {
+private fun StoresSection(stores: List<Supermarket>, onToggle: (Supermarket) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(stringResource(R.string.ingredients_stores_title), style = MaterialTheme.typography.titleMedium)
         Text(
@@ -328,7 +328,7 @@ private fun StoresSection(stores: List<Supermarket>, enabled: Boolean, onToggle:
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        StoreChips(selected = stores, onToggle = onToggle, enabled = enabled)
+        StoreChips(selected = stores, onToggle = onToggle)
     }
 }
 
