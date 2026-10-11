@@ -10,8 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.model.MAX_STORES
 import com.dlunaunizar.bobitos.core.model.Supermarket
-import com.dlunaunizar.bobitos.data.repository.MAX_STORES
 import com.dlunaunizar.bobitos.feature.shopping.SupermarketIcon
 import com.dlunaunizar.bobitos.feature.shopping.labelRes
 
@@ -38,7 +38,7 @@ internal fun StoreChips(
             FilterChip(
                 selected = position > 0,
                 onClick = { onToggle(store) },
-                enabled = enabled && (position > 0 || selected.size < MAX_STORES),
+                enabled = enabled && toggleStore(selected, store) != selected,
                 label = {
                     Text(
                         if (position > 0) {

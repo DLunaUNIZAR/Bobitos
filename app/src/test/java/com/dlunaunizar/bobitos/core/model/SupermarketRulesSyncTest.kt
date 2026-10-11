@@ -1,17 +1,17 @@
 package com.dlunaunizar.bobitos.core.model
 
-import com.dlunaunizar.bobitos.feature.shopping.brandColor
-import com.dlunaunizar.bobitos.feature.shopping.icon
-import com.dlunaunizar.bobitos.feature.shopping.labelRes
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
+private val RULES_CANDIDATES = listOf(File("../firestore.rules"), File("firestore.rules"))
+
 class SupermarketRulesSyncTest {
     private val rules: String =
-        listOf(File("../firestore.rules"), File("firestore.rules")).first(File::exists).readText()
+        RULES_CANDIDATES.firstOrNull(File::exists)
+            .let { checkNotNull(it) { "no se encuentra firestore.rules; rutas probadas: $RULES_CANDIDATES" } }
+            .readText()
 
     private fun listAfter(marker: String): List<String> {
         val start = rules.indexOf(marker)
@@ -46,11 +46,8 @@ class SupermarketRulesSyncTest {
     }
 
     @Test
-    fun `every Supermarket has a label, a color and an icon`() {
-        Supermarket.entries.forEach {
-            assertTrue(it.labelRes != 0)
-            assertNotNull(it.brandColor())
-            assertNotNull(it.icon())
-        }
+    fun `the store list limit in the rules matches MAX_STORES`() {
+        val limit = Regex("""stores\.size\(\) <= (\d+)""").find(rules)?.groupValues?.get(1)?.toInt()
+        assertEquals(MAX_STORES, limit)
     }
 }

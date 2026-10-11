@@ -1,7 +1,7 @@
 package com.dlunaunizar.bobitos.feature.ingredients
 
+import com.dlunaunizar.bobitos.core.model.MAX_STORES
 import com.dlunaunizar.bobitos.core.model.Supermarket
-import com.dlunaunizar.bobitos.data.repository.MAX_STORES
 
 /** Tiendas que se pueden elegir: todas salvo `INDIFERENTE`, que no tiene sentido como preferencia. */
 internal val SELECTABLE_STORES: List<Supermarket> = Supermarket.entries - Supermarket.INDIFERENTE
