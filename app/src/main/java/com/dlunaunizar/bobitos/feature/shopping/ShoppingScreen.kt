@@ -105,20 +105,24 @@ fun ShoppingScreen(
     var editorVisible by rememberSaveable { mutableStateOf(false) }
     // Borrador inicial del alta (nombre traído desde la ficha de un ingrediente); null = alta vacía.
     var initialDraft by rememberSaveable { mutableStateOf<ShoppingDraft?>(null) }
-    // Se abre una sola vez: se consume siempre para que no reaparezca al volver más tarde.
-    LaunchedEffect(prefillName) {
-        if (prefillName != null) {
-            if (canWrite) {
-                editedItemId = null
-                initialDraft = ShoppingDraft.prefilled(prefillName)
-                editorVisible = true
-            }
+    // Se abre una sola vez y solo cuando se puede escribir: hasta entonces queda pendiente.
+    LaunchedEffect(prefillName, canWrite) {
+        val action = prefillAction(prefillName, canWrite)
+        if (action is PrefillAction.Open) {
+            editedItemId = null
+            initialDraft = ShoppingDraft.prefilled(action.name)
+            editorVisible = true
             onPrefillConsumed()
         }
     }
     // Ingredientes, marcas y preferencias solo mientras el editor está abierto (listeners acotados y perezosos).
     LaunchedEffect(editorVisible) {
-        if (editorVisible) viewModel.startIngredientAssist() else viewModel.stopIngredientAssist()
+        if (editorVisible) {
+            viewModel.startIngredientAssist()
+        } else {
+            viewModel.stopIngredientAssist()
+            initialDraft = null
+        }
     }
     var itemToDelete by remember { mutableStateOf<ShoppingItem?>(null) }
     var clearConfirmationVisible by remember { mutableStateOf(false) }
@@ -626,7 +630,7 @@ private fun ShoppingItemEditor(
     onSave: (String, String?, String?, Supermarket?, String?) -> Unit,
 ) {
     val initial = initialDraft?.takeIf { item == null } ?: ShoppingDraft.of(item)
-    var draft by rememberSaveable(item?.id) { mutableStateOf(initial) }
+    var draft by rememberSaveable(item?.id, initialDraft) { mutableStateOf(initial) }
     val name = draft.name
     val quantity = draft.quantity
     val notes = draft.notes

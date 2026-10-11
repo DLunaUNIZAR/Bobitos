@@ -105,3 +105,19 @@ internal fun ShoppingDraft.savedBrand(context: IngredientShoppingContext?): Stri
     null -> brand.trim().ifEmpty { null }
     else -> context.brandToSave(BrandStoreSelection(brandId, supermarket), brand)
 }
+
+/** Qué hacer con el nombre traído desde la ficha de un ingrediente. */
+internal sealed interface PrefillAction {
+    data object None : PrefillAction
+
+    /** Aún no se puede escribir: la petición queda pendiente hasta que se pueda. */
+    data object Wait : PrefillAction
+
+    data class Open(val name: String) : PrefillAction
+}
+
+internal fun prefillAction(prefillName: String?, canWrite: Boolean): PrefillAction = when {
+    prefillName == null -> PrefillAction.None
+    !canWrite -> PrefillAction.Wait
+    else -> PrefillAction.Open(prefillName)
+}
