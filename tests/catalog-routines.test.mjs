@@ -106,3 +106,14 @@ test("la revisión enseña cada rutina con su pauta legible", () => {
   assert.match(md, /\| Plancha \| 3 × 30 s \| Espalda recta \|/);
   assert.match(md, /\| Cinta de correr \| 10 min · Suave \|  \|/);
 });
+
+test("el routines.json real es válido: 29 rutinas, sin pesos ni ids repetidos", async () => {
+  const real = JSON.parse(await readFile(new URL("../data/catalog/routines.json", import.meta.url), "utf8"));
+  const byId = indexExercises(JSON.parse(await readFile(new URL("../data/catalog/exercises.json", import.meta.url), "utf8")));
+  assert.deepEqual(validateRoutineCatalog(real, byId), []);
+  const built = buildRoutines(real, byId);
+  assert.equal(built.length, 29);
+  assert.equal(new Set(built.map((r) => r.id)).size, 29);
+  assert.equal(built.reduce((n, r) => n + r.exercises.length, 0), 162);
+  assert.ok(built.every((r) => r.exercises.every((e) => e.sets.every((s) => s.weight === null))));
+});

@@ -1,0 +1,1036 @@
+{
+  "schemaVersion": 1,
+  "routines": [
+    {
+      "title": "Cuerpo completo para empezar",
+      "description": "Principiante · 45 min · máquinas · descansa 90 s entre series · 2 o 3 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "prensa-de-piernas",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "press-de-pecho-en-maquina",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "jalon-al-pecho",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "remo-en-maquina",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "press-de-hombros-en-maquina",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "curl-femoral-sentado",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "plancha",
+          "series": 3,
+          "seconds": 30
+        }
+      ]
+    },
+    {
+      "title": "Cuerpo completo intermedio",
+      "description": "Intermedio · 60 min · barra, mancuernas y barra de dominadas · descansa 2 min en los básicos y 90 s en el resto · 3 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "sentadilla-trasera-con-barra",
+          "series": 4,
+          "reps": 8
+        },
+        {
+          "exerciseId": "press-de-banca",
+          "series": 4,
+          "reps": 8
+        },
+        {
+          "exerciseId": "remo-con-barra",
+          "series": 4,
+          "reps": 8
+        },
+        {
+          "exerciseId": "peso-muerto-rumano-con-barra",
+          "series": 3,
+          "reps": 10
+        },
+        {
+          "exerciseId": "press-de-hombros-con-mancuernas",
+          "series": 3,
+          "reps": 10
+        },
+        {
+          "exerciseId": "dominadas",
+          "series": 3,
+          "reps": 8,
+          "notes": "Si aún no llegas, hazlas asistidas con banda"
+        },
+        {
+          "exerciseId": "plancha-lateral",
+          "series": 3,
+          "seconds": 30,
+          "notes": "Por lado"
+        }
+      ]
+    },
+    {
+      "title": "Circuito de máquinas",
+      "description": "Principiante · 40 min · solo máquinas · descansa 60 s entre series · 2 o 3 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "extension-de-cuadriceps-en-maquina",
+          "series": 3,
+          "reps": 15
+        },
+        {
+          "exerciseId": "curl-femoral-tumbado",
+          "series": 3,
+          "reps": 15
+        },
+        {
+          "exerciseId": "press-de-pecho-en-maquina",
+          "series": 3,
+          "reps": 15
+        },
+        {
+          "exerciseId": "remo-en-maquina",
+          "series": 3,
+          "reps": 15
+        },
+        {
+          "exerciseId": "elevacion-lateral-en-maquina",
+          "series": 3,
+          "reps": 15
+        },
+        {
+          "exerciseId": "extension-de-triceps-en-maquina",
+          "series": 3,
+          "reps": 15
+        },
+        {
+          "exerciseId": "crunch-en-maquina",
+          "series": 3,
+          "reps": 15
+        }
+      ]
+    },
+    {
+      "title": "Torso",
+      "description": "Intermedio · 60 min · barra, mancuernas y polea · descansa 90 s entre series · 2 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "press-de-banca",
+          "series": 4,
+          "reps": 8
+        },
+        {
+          "exerciseId": "remo-con-barra",
+          "series": 4,
+          "reps": 8
+        },
+        {
+          "exerciseId": "press-militar-con-barra",
+          "series": 3,
+          "reps": 8
+        },
+        {
+          "exerciseId": "jalon-al-pecho",
+          "series": 3,
+          "reps": 10
+        },
+        {
+          "exerciseId": "aperturas-con-mancuernas",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "curl-con-barra",
+          "series": 3,
+          "reps": 10
+        },
+        {
+          "exerciseId": "extension-de-triceps-con-cuerda",
+          "series": 3,
+          "reps": 12
+        }
+      ]
+    },
+    {
+      "title": "Pierna",
+      "description": "Intermedio · 60 min · barra y máquinas · descansa 2 min en la sentadilla y 90 s en el resto · 2 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "sentadilla-trasera-con-barra",
+          "series": 4,
+          "reps": 8
+        },
+        {
+          "exerciseId": "peso-muerto-rumano-con-barra",
+          "series": 3,
+          "reps": 10
+        },
+        {
+          "exerciseId": "prensa-de-piernas",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "curl-femoral-sentado",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "extension-de-cuadriceps-en-maquina",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "elevacion-de-gemelos-de-pie-en-maquina",
+          "series": 4,
+          "reps": 15
+        }
+      ]
+    },
+    {
+      "title": "Empuje",
+      "description": "Intermedio · 60 min · barra, mancuernas, paralelas y polea · descansa 90 s entre series · 1 o 2 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "press-de-banca",
+          "series": 4,
+          "reps": 8
+        },
+        {
+          "exerciseId": "press-de-banca-inclinado-con-mancuernas",
+          "series": 3,
+          "reps": 10
+        },
+        {
+          "exerciseId": "press-de-hombros-con-mancuernas",
+          "series": 3,
+          "reps": 10
+        },
+        {
+          "exerciseId": "elevacion-lateral-con-mancuernas",
+          "series": 3,
+          "reps": 15
+        },
+        {
+          "exerciseId": "fondos-en-paralelas",
+          "series": 3,
+          "reps": 10
+        },
+        {
+          "exerciseId": "extension-de-triceps-en-polea",
+          "series": 3,
+          "reps": 12
+        }
+      ]
+    },
+    {
+      "title": "Tirón",
+      "description": "Intermedio · 60 min · barra de dominadas, barra, polea y mancuernas · descansa 90 s entre series · 1 o 2 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "dominadas",
+          "series": 4,
+          "reps": 8,
+          "notes": "Si aún no llegas, hazlas asistidas con banda"
+        },
+        {
+          "exerciseId": "remo-con-barra",
+          "series": 4,
+          "reps": 8
+        },
+        {
+          "exerciseId": "jalon-al-pecho-con-agarre-neutro",
+          "series": 3,
+          "reps": 10
+        },
+        {
+          "exerciseId": "remo-en-polea-baja",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "face-pull",
+          "series": 3,
+          "reps": 15
+        },
+        {
+          "exerciseId": "curl-con-barra",
+          "series": 3,
+          "reps": 10
+        },
+        {
+          "exerciseId": "curl-martillo-con-mancuernas",
+          "series": 3,
+          "reps": 12
+        }
+      ]
+    },
+    {
+      "title": "Pierna y glúteo",
+      "description": "Intermedio · 55 min · barra, mancuernas, polea y máquinas · descansa 90 s entre series · 1 o 2 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "hip-thrust-con-barra",
+          "series": 4,
+          "reps": 10
+        },
+        {
+          "exerciseId": "sentadilla-bulgara-con-mancuernas",
+          "series": 3,
+          "reps": 10,
+          "notes": "Por pierna"
+        },
+        {
+          "exerciseId": "peso-muerto-rumano-con-mancuernas",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "abduccion-de-cadera-en-maquina",
+          "series": 3,
+          "reps": 15
+        },
+        {
+          "exerciseId": "patada-de-gluteo-en-polea",
+          "series": 3,
+          "reps": 12,
+          "notes": "Por pierna"
+        },
+        {
+          "exerciseId": "prensa-de-piernas",
+          "series": 3,
+          "reps": 12
+        }
+      ]
+    },
+    {
+      "title": "Espalda y bíceps",
+      "description": "Intermedio · 50 min · polea, mancuernas y barra Z · descansa 75 s entre series · 1 o 2 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "jalon-al-pecho",
+          "series": 4,
+          "reps": 10
+        },
+        {
+          "exerciseId": "remo-con-mancuerna-a-una-mano",
+          "series": 3,
+          "reps": 10,
+          "notes": "Por brazo"
+        },
+        {
+          "exerciseId": "remo-en-polea-baja-con-agarre-estrecho",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "jalon-con-brazos-rectos",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "curl-con-barra-z",
+          "series": 3,
+          "reps": 10
+        },
+        {
+          "exerciseId": "curl-inclinado-con-mancuernas",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "curl-en-polea",
+          "series": 3,
+          "reps": 12
+        }
+      ]
+    },
+    {
+      "title": "Pecho y tríceps",
+      "description": "Intermedio · 50 min · barra, mancuernas, máquinas y polea · descansa 75 s entre series · 1 o 2 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "press-de-banca-con-mancuernas",
+          "series": 4,
+          "reps": 10
+        },
+        {
+          "exerciseId": "press-de-banca-inclinado",
+          "series": 3,
+          "reps": 8
+        },
+        {
+          "exerciseId": "aperturas-en-maquina-pec-deck",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "cruce-de-poleas",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "press-frances-con-barra-sz",
+          "series": 3,
+          "reps": 10
+        },
+        {
+          "exerciseId": "extension-de-triceps-con-cuerda",
+          "series": 3,
+          "reps": 12
+        }
+      ]
+    },
+    {
+      "title": "Hombros",
+      "description": "Intermedio · 45 min · barra, mancuernas, máquina y polea · descansa 75 s entre series · 1 o 2 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "press-militar-con-barra",
+          "series": 4,
+          "reps": 8
+        },
+        {
+          "exerciseId": "press-arnold",
+          "series": 3,
+          "reps": 10
+        },
+        {
+          "exerciseId": "elevacion-lateral-con-mancuernas",
+          "series": 4,
+          "reps": 12
+        },
+        {
+          "exerciseId": "pajaro-en-maquina",
+          "series": 3,
+          "reps": 15
+        },
+        {
+          "exerciseId": "face-pull",
+          "series": 3,
+          "reps": 15
+        },
+        {
+          "exerciseId": "encogimientos-de-hombros-con-mancuernas",
+          "series": 3,
+          "reps": 12
+        }
+      ]
+    },
+    {
+      "title": "Fuerza con básicos",
+      "description": "Intermedio o avanzado · 60 min · barra y banco · descansa 3 min entre series · 2 o 3 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "sentadilla-trasera-con-barra",
+          "series": 5,
+          "reps": 5
+        },
+        {
+          "exerciseId": "press-de-banca",
+          "series": 5,
+          "reps": 5
+        },
+        {
+          "exerciseId": "remo-pendlay",
+          "series": 5,
+          "reps": 5
+        },
+        {
+          "exerciseId": "peso-muerto-convencional",
+          "series": 3,
+          "reps": 5
+        },
+        {
+          "exerciseId": "press-militar-con-barra",
+          "series": 3,
+          "reps": 5
+        }
+      ]
+    },
+    {
+      "title": "Peso corporal para empezar",
+      "description": "Principiante · 25 min · sin material, solo una silla · descansa 60 s entre series · 3 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "sentadilla-con-peso-corporal",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "flexiones-inclinadas",
+          "series": 3,
+          "reps": 10,
+          "notes": "Con las manos en una silla estable o en el banco"
+        },
+        {
+          "exerciseId": "puente-de-gluteos",
+          "series": 3,
+          "reps": 15
+        },
+        {
+          "exerciseId": "zancada-con-peso-corporal",
+          "series": 3,
+          "reps": 10,
+          "notes": "Por pierna"
+        },
+        {
+          "exerciseId": "bird-dog",
+          "series": 3,
+          "reps": 10,
+          "notes": "Por lado"
+        },
+        {
+          "exerciseId": "plancha",
+          "series": 3,
+          "seconds": 20
+        }
+      ]
+    },
+    {
+      "title": "Peso corporal intermedio",
+      "description": "Intermedio · 35 min · sin material, solo una silla y una barra baja · descansa 60 s entre series · 3 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "sentadilla-pistol",
+          "series": 3,
+          "reps": 6,
+          "notes": "Por pierna; agárrate a algo si lo necesitas"
+        },
+        {
+          "exerciseId": "flexiones",
+          "series": 4,
+          "reps": 15
+        },
+        {
+          "exerciseId": "remo-invertido",
+          "series": 3,
+          "reps": 10,
+          "notes": "Con una barra baja y firme"
+        },
+        {
+          "exerciseId": "sentadilla-cosaca",
+          "series": 3,
+          "reps": 8,
+          "notes": "Por lado"
+        },
+        {
+          "exerciseId": "fondos-en-banco",
+          "series": 3,
+          "reps": 12,
+          "notes": "Con las manos en una silla estable o en el banco"
+        },
+        {
+          "exerciseId": "curl-nordico",
+          "series": 3,
+          "reps": 5,
+          "notes": "Sujeta los pies bajo algo firme"
+        },
+        {
+          "exerciseId": "hollow-hold",
+          "series": 3,
+          "seconds": 30
+        }
+      ]
+    },
+    {
+      "title": "Mancuernas cuerpo completo",
+      "description": "Principiante o intermedio · 40 min · un par de mancuernas y un banco o una silla · descansa 75 s entre series · 2 o 3 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "zancadas-con-mancuernas",
+          "series": 3,
+          "reps": 10,
+          "notes": "Por pierna"
+        },
+        {
+          "exerciseId": "press-de-suelo-con-mancuernas",
+          "series": 3,
+          "reps": 10
+        },
+        {
+          "exerciseId": "remo-con-mancuerna-a-una-mano",
+          "series": 3,
+          "reps": 10,
+          "notes": "Por brazo"
+        },
+        {
+          "exerciseId": "peso-muerto-rumano-con-mancuernas",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "press-de-hombros-con-mancuernas",
+          "series": 3,
+          "reps": 10
+        },
+        {
+          "exerciseId": "curl-alterno-con-mancuernas",
+          "series": 2,
+          "reps": 12
+        },
+        {
+          "exerciseId": "crunch-con-peso",
+          "series": 3,
+          "reps": 15
+        }
+      ]
+    },
+    {
+      "title": "Mancuernas torso",
+      "description": "Intermedio · 40 min · un par de mancuernas y un banco o una silla · descansa 75 s entre series · 2 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "press-de-suelo-con-mancuernas",
+          "series": 4,
+          "reps": 10
+        },
+        {
+          "exerciseId": "remo-con-mancuerna-a-una-mano",
+          "series": 4,
+          "reps": 10,
+          "notes": "Por brazo"
+        },
+        {
+          "exerciseId": "press-de-hombros-con-mancuernas",
+          "series": 3,
+          "reps": 10
+        },
+        {
+          "exerciseId": "elevacion-lateral-con-mancuernas",
+          "series": 3,
+          "reps": 15
+        },
+        {
+          "exerciseId": "pullover-con-mancuerna",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "curl-martillo-con-mancuernas",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "extension-de-triceps-por-encima-de-la-cabeza-con-mancuerna",
+          "series": 3,
+          "reps": 12
+        }
+      ]
+    },
+    {
+      "title": "Mancuernas pierna",
+      "description": "Intermedio · 40 min · un par de mancuernas y un banco o una silla · descansa 75 s entre series · 2 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "sentadilla-frontal-con-mancuernas",
+          "series": 4,
+          "reps": 10
+        },
+        {
+          "exerciseId": "sentadilla-bulgara-con-mancuernas",
+          "series": 3,
+          "reps": 10,
+          "notes": "Por pierna"
+        },
+        {
+          "exerciseId": "peso-muerto-rumano-con-mancuernas",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "hip-thrust-con-mancuerna",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "zancada-hacia-atras-con-mancuernas",
+          "series": 3,
+          "reps": 10,
+          "notes": "Por pierna"
+        },
+        {
+          "exerciseId": "elevacion-de-gemelos-sentado-con-mancuerna",
+          "series": 3,
+          "reps": 15
+        }
+      ]
+    },
+    {
+      "title": "Kettlebell y peso corporal",
+      "description": "Intermedio · 30 min · una kettlebell · descansa 60 s entre series · 2 o 3 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "swing-con-kettlebell",
+          "series": 5,
+          "reps": 15
+        },
+        {
+          "exerciseId": "flexiones",
+          "series": 4,
+          "reps": 12
+        },
+        {
+          "exerciseId": "zancada-con-peso-corporal",
+          "series": 3,
+          "reps": 12,
+          "notes": "Por pierna"
+        },
+        {
+          "exerciseId": "giro-ruso-con-pesa-rusa",
+          "series": 3,
+          "reps": 20
+        },
+        {
+          "exerciseId": "puente-de-gluteos",
+          "series": 3,
+          "reps": 15
+        },
+        {
+          "exerciseId": "plancha",
+          "series": 3,
+          "seconds": 40
+        }
+      ]
+    },
+    {
+      "title": "Abdomen exprés 10 min",
+      "description": "Todos los niveles · 10 min · esterilla · descansa 30 s entre series · 3 o 4 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "crunch-abdominal",
+          "series": 2,
+          "reps": 20
+        },
+        {
+          "exerciseId": "crunch-inverso",
+          "series": 2,
+          "reps": 15
+        },
+        {
+          "exerciseId": "crunch-bicicleta",
+          "series": 2,
+          "reps": 20
+        },
+        {
+          "exerciseId": "toques-de-talon",
+          "series": 2,
+          "reps": 20
+        },
+        {
+          "exerciseId": "plancha",
+          "series": 2,
+          "seconds": 40
+        }
+      ]
+    },
+    {
+      "title": "Core con planchas",
+      "description": "Principiante o intermedio · 20 min · esterilla · descansa 45 s entre series · 2 o 3 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "plancha",
+          "series": 3,
+          "seconds": 45
+        },
+        {
+          "exerciseId": "plancha-lateral",
+          "series": 3,
+          "seconds": 30,
+          "notes": "Por lado"
+        },
+        {
+          "exerciseId": "hollow-hold",
+          "series": 3,
+          "seconds": 30
+        },
+        {
+          "exerciseId": "bicho-muerto",
+          "series": 3,
+          "reps": 10,
+          "notes": "Por lado"
+        },
+        {
+          "exerciseId": "bird-dog",
+          "series": 3,
+          "reps": 10,
+          "notes": "Por lado"
+        }
+      ]
+    },
+    {
+      "title": "Abdomen en polea y máquina",
+      "description": "Intermedio · 25 min · polea, máquina y barra de dominadas · descansa 60 s entre series · 2 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "crunch-en-polea",
+          "series": 3,
+          "reps": 15
+        },
+        {
+          "exerciseId": "crunch-en-maquina",
+          "series": 3,
+          "reps": 15
+        },
+        {
+          "exerciseId": "lenador-en-polea",
+          "series": 3,
+          "reps": 12,
+          "notes": "Por lado"
+        },
+        {
+          "exerciseId": "pallof-press",
+          "series": 3,
+          "reps": 12,
+          "notes": "Por lado"
+        },
+        {
+          "exerciseId": "elevaciones-de-rodillas-colgado",
+          "series": 3,
+          "reps": 12
+        }
+      ]
+    },
+    {
+      "title": "Core avanzado",
+      "description": "Avanzado · 25 min · barra de dominadas, rueda abdominal y banco · descansa 60 s entre series · 2 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "toes-to-bar",
+          "series": 3,
+          "reps": 8
+        },
+        {
+          "exerciseId": "rueda-abdominal",
+          "series": 3,
+          "reps": 10
+        },
+        {
+          "exerciseId": "dragon-flag",
+          "series": 3,
+          "reps": 5
+        },
+        {
+          "exerciseId": "l-sit",
+          "series": 3,
+          "seconds": 15
+        },
+        {
+          "exerciseId": "limpiaparabrisas-colgado",
+          "series": 3,
+          "reps": 8,
+          "notes": "Por lado"
+        }
+      ]
+    },
+    {
+      "title": "Core suave en casa",
+      "description": "Principiante · 15 min · esterilla · descansa 45 s entre series · 3 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "bird-dog",
+          "series": 3,
+          "reps": 10,
+          "notes": "Por lado"
+        },
+        {
+          "exerciseId": "bicho-muerto",
+          "series": 3,
+          "reps": 10,
+          "notes": "Por lado"
+        },
+        {
+          "exerciseId": "puente-de-gluteos",
+          "series": 3,
+          "reps": 15
+        },
+        {
+          "exerciseId": "superman",
+          "series": 3,
+          "reps": 12
+        },
+        {
+          "exerciseId": "plancha-lateral",
+          "series": 2,
+          "seconds": 20,
+          "notes": "Por lado"
+        }
+      ]
+    },
+    {
+      "title": "Cinta suave",
+      "description": "Principiante · 30 min · cinta de correr · sin pausas · 2 a 4 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "cinta-de-correr",
+          "durationMinutes": 5,
+          "level": "Suave",
+          "notes": "Calentamiento caminando"
+        },
+        {
+          "exerciseId": "cinta-de-correr",
+          "durationMinutes": 20,
+          "level": "Moderado",
+          "notes": "A un ritmo que te deje hablar"
+        },
+        {
+          "exerciseId": "cinta-de-correr",
+          "durationMinutes": 5,
+          "level": "Suave",
+          "notes": "Vuelta a la calma"
+        }
+      ]
+    },
+    {
+      "title": "Elíptica moderada",
+      "description": "Principiante o intermedio · 30 min · elíptica · sin pausas · 2 a 4 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "eliptica",
+          "durationMinutes": 5,
+          "level": "Suave",
+          "notes": "Calentamiento"
+        },
+        {
+          "exerciseId": "eliptica",
+          "durationMinutes": 25,
+          "level": "Moderado",
+          "notes": "Ritmo constante; sube la resistencia si se hace fácil"
+        }
+      ]
+    },
+    {
+      "title": "Intervalos en remo",
+      "description": "Intermedio · 25 min · remo ergómetro · pausas activas · 2 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "remo-ergometro",
+          "durationMinutes": 5,
+          "level": "Suave",
+          "notes": "Calentamiento"
+        },
+        {
+          "exerciseId": "remo-ergometro",
+          "durationMinutes": 16,
+          "level": "Intenso",
+          "notes": "8 rondas: 1 min fuerte y 1 min suave"
+        },
+        {
+          "exerciseId": "remo-ergometro",
+          "durationMinutes": 4,
+          "level": "Suave",
+          "notes": "Vuelta a la calma"
+        }
+      ]
+    },
+    {
+      "title": "HIIT con comba",
+      "description": "Intermedio · 20 min · comba · pausas dentro de cada bloque · 2 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "saltar-a-la-comba",
+          "durationMinutes": 3,
+          "level": "Suave",
+          "notes": "Calentamiento"
+        },
+        {
+          "exerciseId": "saltar-a-la-comba",
+          "durationMinutes": 10,
+          "level": "Intenso",
+          "notes": "10 rondas: 30 s rápido y 30 s de descanso"
+        },
+        {
+          "exerciseId": "montaneros",
+          "durationMinutes": 4,
+          "level": "Intenso",
+          "notes": "8 rondas: 20 s de trabajo y 10 s de descanso"
+        },
+        {
+          "exerciseId": "caminata",
+          "durationMinutes": 3,
+          "level": "Suave",
+          "notes": "Vuelta a la calma"
+        }
+      ]
+    },
+    {
+      "title": "HIIT con peso corporal",
+      "description": "Intermedio · 20 min · sin material · pausas dentro de cada bloque · 2 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "jumping-jacks",
+          "durationMinutes": 3,
+          "level": "Suave",
+          "notes": "Calentamiento"
+        },
+        {
+          "exerciseId": "burpees",
+          "durationMinutes": 4,
+          "level": "Intenso",
+          "notes": "8 rondas: 20 s de trabajo y 10 s de descanso"
+        },
+        {
+          "exerciseId": "montaneros",
+          "durationMinutes": 4,
+          "level": "Intenso",
+          "notes": "8 rondas: 20 s de trabajo y 10 s de descanso"
+        },
+        {
+          "exerciseId": "rodillas-elevadas",
+          "durationMinutes": 4,
+          "level": "Intenso",
+          "notes": "8 rondas: 20 s de trabajo y 10 s de descanso"
+        },
+        {
+          "exerciseId": "jumping-jacks",
+          "durationMinutes": 3,
+          "level": "Suave",
+          "notes": "Vuelta a la calma"
+        }
+      ]
+    },
+    {
+      "title": "Cardio variado en el gimnasio",
+      "description": "Principiante o intermedio · 35 min · elíptica, bicicleta estática y remo ergómetro · sin pausas entre máquinas · 2 o 3 veces por semana.",
+      "exercises": [
+        {
+          "exerciseId": "eliptica",
+          "durationMinutes": 10,
+          "level": "Moderado"
+        },
+        {
+          "exerciseId": "bicicleta-estatica",
+          "durationMinutes": 10,
+          "level": "Moderado"
+        },
+        {
+          "exerciseId": "remo-ergometro",
+          "durationMinutes": 10,
+          "level": "Moderado"
+        },
+        {
+          "exerciseId": "caminata",
+          "durationMinutes": 5,
+          "level": "Suave",
+          "notes": "Vuelta a la calma, en la cinta o fuera"
+        }
+      ]
+    }
+  ]
+}
