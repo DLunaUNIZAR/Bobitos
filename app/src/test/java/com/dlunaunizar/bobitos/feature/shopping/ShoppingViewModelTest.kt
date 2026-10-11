@@ -155,7 +155,8 @@ class ShoppingViewModelTest {
     @Test
     fun `creating an ingredient when the common catalog fails does not write and reports network`() =
         runTest(mainDispatcherRule.testDispatcher) {
-            ingredientRepository.catalogOverride = flow { throw IllegalStateException("sin red") }
+            ingredientRepository.catalogOverride =
+                flow { throw IngredientRepositoryException(IngredientFailure.Network) }
 
             viewModel.createIngredientFromItem(shoppingItem())
             advanceUntilIdle()
@@ -166,12 +167,41 @@ class ShoppingViewModelTest {
         }
 
     @Test
+    fun `a permission error loading ingredients is not reported as network`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            personalRepository.personalOverride =
+                flow { throw IngredientRepositoryException(IngredientFailure.PermissionDenied) }
+
+            viewModel.createIngredientFromItem(shoppingItem())
+            advanceUntilIdle()
+
+            assertEquals(0, personalRepository.createCount)
+            assertEquals(ShoppingUiMessage.PermissionDenied, viewModel.uiState.value.error)
+        }
+
+    @Test
+    fun `a personal ingredient shadowed by a common one with the same id is suggested once`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            ingredientRepository.catalogState.value = listOf(CatalogIngredient(id = "tomate", name = "Tomate"))
+            personalRepository.state.value = listOf(CatalogIngredient(id = "tomate", name = "Tomate", personal = true))
+
+            viewModel.startIngredientAssist()
+            advanceUntilIdle()
+
+            assertEquals(listOf("Tomate"), viewModel.uiState.value.catalog.map(CatalogIngredient::name))
+            assertFalse(viewModel.uiState.value.catalog.single().personal)
+        }
+
+    @Test
     fun `creating an ingredient when the common catalog never emits times out without writing`() =
         runTest(mainDispatcherRule.testDispatcher) {
             ingredientRepository.catalogOverride = flow { awaitCancellation() }
 
             viewModel.createIngredientFromItem(shoppingItem())
-            advanceTimeBy(30_000)
+            advanceTimeBy(29_999)
+            runCurrent()
+            assertNull(viewModel.uiState.value.error)
+            advanceTimeBy(1)
             runCurrent()
 
             assertEquals(0, personalRepository.createCount)

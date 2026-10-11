@@ -20,6 +20,8 @@ import com.dlunaunizar.bobitos.data.repository.PersonalIngredientRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
+import com.dlunaunizar.bobitos.data.repository.toIngredientRepositoryException
+import com.dlunaunizar.bobitos.feature.ingredients.mergeIngredients
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -80,7 +82,7 @@ class ShoppingViewModel @Inject constructor(
             // Comunes y personales juntos: sirven para sugerir nombres y para detectar duplicados.
             val common = ingredientRepository.catalog().catch { emit(emptyList()) }
             val personal = personalIngredients.ingredients().catch { emit(emptyList()) }
-            combine(common, personal) { shared, own -> shared + own }
+            combine(common, personal) { shared, own -> mergeIngredients(shared, own) }
                 .collect { list -> mutableUiState.update { it.copy(catalog = list) } }
         }
     }
@@ -105,13 +107,14 @@ class ShoppingViewModel @Inject constructor(
     private suspend fun loadIngredientsOnDemand(): List<CatalogIngredient> {
         val loaded = try {
             withTimeoutOrNull(INGREDIENT_LOAD_TIMEOUT_MILLIS) {
-                ingredientRepository.catalog().first() + personalIngredients.ingredients().first()
+                mergeIngredients(ingredientRepository.catalog().first(), personalIngredients.ingredients().first())
             }
         } catch (cancelled: CancellationException) {
             throw cancelled
-        } catch (@Suppress("TooGenericExceptionCaught") _: Exception) {
-            null
+        } catch (@Suppress("TooGenericExceptionCaught") error: Exception) {
+            throw error as? IngredientRepositoryException ?: error.toIngredientRepositoryException()
         }
+        // Solo el tiempo agotado se cuenta como falta de conexión.
         return loaded ?: throw IngredientRepositoryException(IngredientFailure.Network)
     }
 
@@ -281,7 +284,9 @@ class ShoppingViewModel @Inject constructor(
     }
 }
 
-private const val INGREDIENT_LOAD_TIMEOUT_MILLIS = 10_000L
+// Con la caché del catálogo vacía, su primera emisión puede esperar hasta 10 s la metainformación
+// (META_TIMEOUT_MILLIS) y después leer del servidor; el margen cubre las dos esperas.
+private const val INGREDIENT_LOAD_TIMEOUT_MILLIS = 30_000L
 
 private class IngredientAlreadyKnown : Exception()
 
