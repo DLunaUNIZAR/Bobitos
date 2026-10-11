@@ -76,10 +76,8 @@ import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
-import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
-import com.dlunaunizar.bobitos.core.model.slug
 
 @Composable
 fun ShoppingScreen(
@@ -215,9 +213,6 @@ fun ShoppingScreen(
                                     ShoppingItemCard(
                                         item = item,
                                         enabled = actionsEnabled,
-                                        suggestion = suggestedPref(item, state.ingredientPrefs),
-                                        onApplySuggestion = { viewModel.applyIngredientPref(spaceId, item) },
-                                        onSaveAsPref = { viewModel.saveItemAsPreference(item) },
                                         onCreateIngredient = { viewModel.createIngredientFromItem(item) },
                                         onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
                                         onEdit = {
@@ -274,9 +269,6 @@ fun ShoppingScreen(
                                         ShoppingItemCard(
                                             item = item,
                                             enabled = actionsEnabled,
-                                            suggestion = null,
-                                            onApplySuggestion = {},
-                                            onSaveAsPref = { viewModel.saveItemAsPreference(item) },
                                             onCreateIngredient = { viewModel.createIngredientFromItem(item) },
                                             onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
                                             onEdit = {
@@ -333,7 +325,6 @@ fun ShoppingScreen(
                 ?.let { stringResource(it.stringResourceId) },
             resolveDuplicate = findByName,
             suggestions = { queryText -> catalogSuggestions(state.catalog, queryText) },
-            prefFor = { name -> state.ingredientPrefs[slug(name)] },
             onDismiss = { editorVisible = false },
             onSave = { name, quantity, notes, supermarket, brand ->
                 val item = editedItem
@@ -494,16 +485,12 @@ private fun ShoppingSectionTitle(title: String, count: Int) {
 private fun ShoppingItemCard(
     item: ShoppingItem,
     enabled: Boolean,
-    suggestion: IngredientPref?,
-    onApplySuggestion: () -> Unit,
-    onSaveAsPref: () -> Unit,
     onCreateIngredient: () -> Unit,
     onSetPurchased: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var menuExpanded by remember { mutableStateOf(false) }
     Card(
         // No se usa `enabled` de la Card (la atenuaría y la anunciaría «desactivada»): quien la usa
         // pasa un `onEdit` que no hace nada si no se puede editar.
@@ -538,23 +525,6 @@ private fun ShoppingItemCard(
                 if (item.supermarket != null || !item.brand.isNullOrBlank()) {
                     SupermarketBrandLine(supermarket = item.supermarket, brand = item.brand)
                 }
-                if (suggestion != null) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        val label = listOfNotNull(
-                            suggestion.supermarket?.let { stringResource(it.labelRes) },
-                            suggestion.brand,
-                        ).joinToString(" · ")
-                        Text(
-                            text = stringResource(R.string.shopping_suggested, label),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(1f),
-                        )
-                        TextButton(enabled = enabled, onClick = onApplySuggestion) {
-                            Text(stringResource(R.string.shopping_apply))
-                        }
-                    }
-                }
                 item.notes?.let {
                     Text(
                         text = it,
@@ -575,43 +545,45 @@ private fun ShoppingItemCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Box {
-                IconButton(enabled = enabled, onClick = { menuExpanded = true }) {
-                    Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.more_options))
-                }
-                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.shopping_edit)) },
-                        onClick = {
-                            menuExpanded = false
-                            onEdit()
-                        },
-                    )
-                    if (item.supermarket != null || !item.brand.isNullOrBlank()) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.shopping_save_as_pref)) },
-                            onClick = {
-                                menuExpanded = false
-                                onSaveAsPref()
-                            },
-                        )
-                    }
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.shopping_create_ingredient)) },
-                        onClick = {
-                            menuExpanded = false
-                            onCreateIngredient()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.shopping_delete)) },
-                        onClick = {
-                            menuExpanded = false
-                            onDelete()
-                        },
-                    )
-                }
-            }
+            ShoppingItemMenu(enabled, onEdit, onCreateIngredient, onDelete)
+        }
+    }
+}
+
+@Composable
+private fun ShoppingItemMenu(
+    enabled: Boolean,
+    onEdit: () -> Unit,
+    onCreateIngredient: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(enabled = enabled, onClick = { menuExpanded = true }) {
+            Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.more_options))
+        }
+        DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.shopping_edit)) },
+                onClick = {
+                    menuExpanded = false
+                    onEdit()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.shopping_create_ingredient)) },
+                onClick = {
+                    menuExpanded = false
+                    onCreateIngredient()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.shopping_delete)) },
+                onClick = {
+                    menuExpanded = false
+                    onDelete()
+                },
+            )
         }
     }
 }
@@ -623,7 +595,6 @@ private fun ShoppingItemEditor(
     errorMessage: String?,
     resolveDuplicate: (String) -> ShoppingItem?,
     suggestions: (String) -> List<String>,
-    prefFor: (String) -> IngredientPref?,
     onDismiss: () -> Unit,
     onSave: (String, String?, String?, Supermarket?, String?) -> Unit,
 ) {
@@ -666,12 +637,7 @@ private fun ShoppingItemEditor(
             modifier = Modifier.fillMaxWidth(),
         )
         NameSuggestionChips(if (item == null) suggestions(name) else emptyList()) { suggestion ->
-            val pref = prefFor(suggestion)
-            draft = draft.copy(
-                name = suggestion,
-                supermarket = pref?.supermarket ?: draft.supermarket,
-                brand = pref?.brand ?: draft.brand,
-            )
+            draft = draft.copy(name = suggestion)
         }
         QuantityAndNotesFields(
             quantity = quantity,
@@ -912,7 +878,6 @@ private val ShoppingUiMessage.stringResourceId: Int
         ShoppingUiMessage.ItemUnmarked -> R.string.shopping_notice_unmarked
         ShoppingUiMessage.ItemDeleted -> R.string.shopping_notice_deleted
         ShoppingUiMessage.PurchasedCleared -> R.string.shopping_notice_deleted
-        ShoppingUiMessage.PrefSaved -> R.string.shopping_notice_pref_saved
         ShoppingUiMessage.IngredientCreated -> R.string.shopping_notice_ingredient_created
         ShoppingUiMessage.IngredientExists -> R.string.shopping_notice_ingredient_exists
     }
@@ -925,10 +890,4 @@ private fun catalogSuggestions(catalog: List<CatalogIngredient>, query: String):
         .filter { it.contains(trimmed, ignoreCase = true) && !it.equals(trimmed, ignoreCase = true) }
         .distinct()
         .take(6)
-}
-
-// Preferencia a sugerir para un ítem sin super ni marca (o null si ya tiene alguno o no hay pref).
-private fun suggestedPref(item: ShoppingItem, prefs: Map<String, IngredientPref>): IngredientPref? {
-    if (item.supermarket != null || !item.brand.isNullOrBlank()) return null
-    return prefs[slug(item.name)]
 }

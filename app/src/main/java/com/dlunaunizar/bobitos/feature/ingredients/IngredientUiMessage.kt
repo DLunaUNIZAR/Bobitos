@@ -23,8 +23,6 @@ enum class IngredientUiMessage {
     SaveTimeout,
     Saved,
     Deleted,
-    PrefSaved,
-    PrefCleared,
     BrandSaved,
     BrandDeleted,
     ScanNotFound,
@@ -52,8 +50,6 @@ internal val IngredientUiMessage.stringResourceId: Int
         IngredientUiMessage.SaveTimeout -> R.string.write_timeout
         IngredientUiMessage.Saved -> R.string.ingredients_notice_saved
         IngredientUiMessage.Deleted -> R.string.ingredients_notice_deleted
-        IngredientUiMessage.PrefSaved -> R.string.ingredients_notice_pref_saved
-        IngredientUiMessage.PrefCleared -> R.string.ingredients_notice_pref_cleared
         IngredientUiMessage.BrandSaved -> R.string.ingredients_brand_notice_saved
         IngredientUiMessage.BrandDeleted -> R.string.ingredients_brand_notice_deleted
         IngredientUiMessage.ScanNotFound -> R.string.ingredients_brand_scan_not_found

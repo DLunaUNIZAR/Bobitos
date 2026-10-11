@@ -3,7 +3,6 @@ package com.dlunaunizar.bobitos.feature.ingredients
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
-import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Nutrition
 
 /** Borrador de marca prerrellenado tras escanear un código (nombre/nutrición de Open Food Facts). */
@@ -15,7 +14,6 @@ data class IngredientDetailUiState(
     // El catálogo ya emitió (para distinguir «cargando» de «no existe»).
     val loaded: Boolean = false,
     val brands: List<IngredientBrand> = emptyList(),
-    val pref: IngredientPref? = null,
     val isAdmin: Boolean = false,
     val currentUid: String? = null,
     val isSaving: Boolean = false,
@@ -31,6 +29,4 @@ data class IngredientDetailUiState(
 ) {
     val canEditIngredient: Boolean
         get() = ingredient != null && isAdmin
-
-    fun canEditBrand(brand: IngredientBrand): Boolean = isAdmin || brand.ownerUid == currentUid
 }

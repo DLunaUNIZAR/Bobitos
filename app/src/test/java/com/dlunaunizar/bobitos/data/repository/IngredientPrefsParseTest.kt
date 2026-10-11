@@ -7,40 +7,41 @@ import org.junit.Test
 
 class IngredientPrefsParseTest {
     @Test
-    fun `parses valid entries`() {
+    fun `parses stores in order`() {
         val raw = mapOf<String, Any?>(
-            "tomate" to mapOf("supermarket" to "MERCADONA", "brand" to "Hacendado"),
-            "sal" to mapOf("supermarket" to null, "brand" to "Marca"),
-            "arroz" to mapOf("supermarket" to "DIA", "brand" to null),
+            "tomate" to mapOf("stores" to listOf("MERCADONA", "DIA")),
+            "sal" to mapOf("stores" to listOf("EROSKI")),
         )
 
         val result = parseIngredientPrefs(raw)
 
-        assertEquals(IngredientPref(Supermarket.MERCADONA, "Hacendado"), result["tomate"])
-        assertEquals(IngredientPref(null, "Marca"), result["sal"])
-        assertEquals(IngredientPref(Supermarket.DIA, null), result["arroz"])
+        assertEquals(IngredientPref(listOf(Supermarket.MERCADONA, Supermarket.DIA)), result["tomate"])
+        assertEquals(IngredientPref(listOf(Supermarket.EROSKI)), result["sal"])
     }
 
     @Test
-    fun `null map yields empty`() {
-        assertEquals(emptyMap<String, IngredientPref>(), parseIngredientPrefs(null))
-    }
-
-    @Test
-    fun `empty, malformed and unknown-only entries are dropped`() {
+    fun `old supermarket and brand entries are ignored`() {
         val raw = mapOf<String, Any?>(
-            "empty" to mapOf("supermarket" to null, "brand" to null),
+            "tomate" to mapOf("supermarket" to "MERCADONA", "brand" to "Hacendado"),
             "bad" to "not a map",
-            "unknownSuper" to mapOf("supermarket" to "PLUTO", "brand" to null),
         )
 
         assertEquals(emptyMap<String, IngredientPref>(), parseIngredientPrefs(raw))
     }
 
     @Test
-    fun `blank brand is dropped but a valid supermarket is kept`() {
-        val raw = mapOf<String, Any?>("x" to mapOf("supermarket" to "EROSKI", "brand" to "  "))
+    fun `unknown, INDIFERENTE and duplicate stores are dropped and empty entries removed`() {
+        val raw = mapOf<String, Any?>(
+            "a" to mapOf("stores" to listOf("PLUTO", "DIA", "INDIFERENTE", "DIA", 7)),
+            "empty" to mapOf("stores" to emptyList<String>()),
+            "onlyBad" to mapOf("stores" to listOf("PLUTO", "INDIFERENTE")),
+        )
 
-        assertEquals(IngredientPref(Supermarket.EROSKI, null), parseIngredientPrefs(raw)["x"])
+        assertEquals(mapOf("a" to IngredientPref(listOf(Supermarket.DIA))), parseIngredientPrefs(raw))
+    }
+
+    @Test
+    fun `null map yields empty`() {
+        assertEquals(emptyMap<String, IngredientPref>(), parseIngredientPrefs(null))
     }
 }

@@ -10,12 +10,12 @@ import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.Nutrition
-import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.core.model.slug
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffException
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffFailure
 import com.dlunaunizar.bobitos.data.openfoodfacts.OpenFoodFactsClient
 import com.dlunaunizar.bobitos.data.repository.BrandFailure
+import com.dlunaunizar.bobitos.data.repository.BrandInput
 import com.dlunaunizar.bobitos.data.repository.BrandRepositoryException
 import com.dlunaunizar.bobitos.data.repository.IngredientBrandRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientFailure
@@ -111,14 +111,6 @@ class IngredientsViewModel @Inject constructor(
         runAction(IngredientUiMessage.Deleted) { repository.deleteIngredient(id) }
     }
 
-    fun setPref(ingredientId: String, supermarket: Supermarket?, brand: String?) {
-        runAction(IngredientUiMessage.PrefSaved) { prefsRepository.setPref(ingredientId, supermarket, brand) }
-    }
-
-    fun clearPref(ingredientId: String) {
-        runAction(IngredientUiMessage.PrefCleared) { prefsRepository.clearPref(ingredientId) }
-    }
-
     /** Consulta Open Food Facts por el código escaneado y deja un producto pendiente de convertir. */
     fun lookupBarcode(barcode: String) {
         if (mutableUiState.value.isLookingUp) return
@@ -166,7 +158,16 @@ class IngredientsViewModel @Inject constructor(
         val id = slug(trimmed)
         runAction(IngredientUiMessage.Saved, editor = true) {
             if (!catalogContains(id)) repository.createIngredient(trimmed, category, defaultUnit)
-            brandRepository.addBrand(id, brandName.ifBlank { trimmed }, barcode.takeIf(String::isNotBlank), nutrition)
+            brandRepository.addBrand(
+                BrandInput(
+                    ingredientId = id,
+                    name = brandName.ifBlank { trimmed },
+                    barcode = barcode.takeIf(String::isNotBlank),
+                    nutrition = nutrition,
+                    favorite = false,
+                    stores = emptyList(),
+                ),
+            )
         }
     }
 

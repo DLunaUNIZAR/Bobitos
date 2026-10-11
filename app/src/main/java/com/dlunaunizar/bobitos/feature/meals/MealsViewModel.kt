@@ -56,7 +56,7 @@ class MealsViewModel @Inject constructor(
     private var recipesJob: Job? = null
     private var prefsJob: Job? = null
 
-    // Preferencias del usuario (super/marca por defecto por ingrediente), para prerrellenar la compra.
+    // «Dónde lo compro» del usuario (tiendas por ingrediente), para prerrellenar la compra.
     private var ingredientPrefs: Map<String, IngredientPref> = emptyMap()
 
     fun observe(spaceId: String) {

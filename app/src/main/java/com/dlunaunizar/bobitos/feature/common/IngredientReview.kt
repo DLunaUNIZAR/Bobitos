@@ -66,7 +66,7 @@ fun buildIngredientReviewRows(
 
 /**
  * Aplica la revisión: actualiza la cantidad de los ítems ya existentes y añade el resto, prerrellenando
- * supermercado y marca desde las preferencias del usuario ([prefs], por `slug` del nombre).
+ * el supermercado con la primera tienda del ingrediente ([prefs], por `slug` del nombre) y sin marca.
  */
 suspend fun applyIngredientReview(
     spaceId: String,
@@ -89,8 +89,8 @@ suspend fun applyIngredientReview(
                 existing.brand,
             )
         } else {
-            val pref = prefs[slug(row.name)]
-            shoppingRepository.addItem(spaceId, row.name, quantity, row.unit, pref?.supermarket, pref?.brand)
+            val store = prefs[slug(row.name)]?.stores?.firstOrNull()
+            shoppingRepository.addItem(spaceId, row.name, quantity, row.unit, store, null)
         }
     }
 }

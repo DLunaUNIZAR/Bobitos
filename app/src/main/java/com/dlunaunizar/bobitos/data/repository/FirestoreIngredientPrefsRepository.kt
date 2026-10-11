@@ -51,21 +51,15 @@ class FirestoreIngredientPrefsRepository @Inject constructor(
         }
     }
 
-    override suspend fun setPref(ingredientId: String, supermarket: Supermarket?, brand: String?) = runOperation {
+    override suspend fun setStores(ingredientId: String, stores: List<Supermarket>) = runOperation {
         val uid = requireVerifiedUid()
-        val entry = mapOf(
-            FIELD_SUPERMARKET to supermarket?.name,
-            FIELD_BRAND to brand?.trim()?.takeIf(String::isNotEmpty)?.take(MAX_BRAND_LENGTH),
-        )
+        val normalized = normalizeStores(stores)
+        val entry: Any = if (normalized.isEmpty()) {
+            FieldValue.delete()
+        } else {
+            mapOf(FIELD_STORES to normalized.map(Supermarket::name))
+        }
         prefsDoc(uid).set(mapOf(FIELD_ENTRIES to mapOf(ingredientId to entry)), SetOptions.merge()).await()
-        Unit
-    }
-
-    override suspend fun clearPref(ingredientId: String) = runOperation {
-        val uid = requireVerifiedUid()
-        prefsDoc(uid)
-            .set(mapOf(FIELD_ENTRIES to mapOf(ingredientId to FieldValue.delete())), SetOptions.merge())
-            .await()
         Unit
     }
 
@@ -101,22 +95,18 @@ class FirestoreIngredientPrefsRepository @Inject constructor(
         const val INGREDIENT_PREFS = "ingredientPrefs"
         const val SCOPE = "ingredientPrefs"
         const val FIELD_ENTRIES = "entries"
-        const val FIELD_SUPERMARKET = "supermarket"
-        const val FIELD_BRAND = "brand"
-        const val MAX_BRAND_LENGTH = 60
+        const val FIELD_STORES = "stores"
     }
 }
 
-// Convierte el mapa crudo de Firestore (`entries`) en preferencias tipadas; descarta entradas
-// malformadas o vacías y los supermercados desconocidos (retro-compatibilidad).
+// Convierte el mapa crudo de Firestore (`entries`) en tiendas tipadas; ignora las entradas con la forma
+// antigua (supermercado/marca), las malformadas y las que se quedan sin tiendas.
 internal fun parseIngredientPrefs(entries: Map<String, Any?>?): Map<String, IngredientPref> {
     if (entries == null) return emptyMap()
     return entries.mapNotNull { (id, raw) ->
         val map = raw as? Map<*, *> ?: return@mapNotNull null
-        val supermarket = (map["supermarket"] as? String)
-            ?.let { value -> runCatching { Supermarket.valueOf(value) }.getOrNull() }
-        val brand = (map["brand"] as? String)?.takeIf(String::isNotBlank)
-        if (supermarket == null && brand == null) null else id to IngredientPref(supermarket, brand)
+        val stores = parseStores(map["stores"])
+        if (stores.isEmpty()) null else id to IngredientPref(stores)
     }.toMap()
 }
 

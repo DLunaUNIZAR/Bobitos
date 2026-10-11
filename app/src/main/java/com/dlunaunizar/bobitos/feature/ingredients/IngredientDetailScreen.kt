@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -16,7 +14,6 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -50,8 +47,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.Nutrition
-import com.dlunaunizar.bobitos.core.model.Supermarket
-import com.dlunaunizar.bobitos.feature.shopping.SupermarketDropdown
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -122,14 +117,6 @@ fun IngredientDetailScreen(
                     canEdit = state.canEditIngredient,
                     onEdit = { showFichaEditor = true },
                     onDelete = { confirmDeleteIngredient = true },
-                )
-                PreferenceSection(
-                    pref = state.pref,
-                    // Únicos y sin vacíos: son la clave de los chips (nombres repetidos harían crashear la LazyRow).
-                    brandNames = state.brands.map(IngredientBrand::name).filter(String::isNotBlank).distinct(),
-                    saving = state.isSaving,
-                    onSave = viewModel::setPref,
-                    onClear = viewModel::clearPref,
                 )
                 BrandsSection(
                     state = state,
@@ -228,54 +215,6 @@ private fun FichaSection(ingredient: CatalogIngredient, canEdit: Boolean, onEdit
 }
 
 @Composable
-private fun PreferenceSection(
-    pref: com.dlunaunizar.bobitos.core.model.IngredientPref?,
-    brandNames: List<String>,
-    saving: Boolean,
-    onSave: (Supermarket?, String?) -> Unit,
-    onClear: () -> Unit,
-) {
-    var supermarket by remember(pref) { mutableStateOf(pref?.supermarket) }
-    var brand by remember(pref) { mutableStateOf(pref?.brand.orEmpty()) }
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.ingredients_pref_title), style = MaterialTheme.typography.titleSmall)
-            Text(
-                text = stringResource(R.string.ingredients_pref_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            SupermarketDropdown(selected = supermarket, onSelect = { supermarket = it })
-            OutlinedTextField(
-                value = brand,
-                onValueChange = { brand = it },
-                label = { Text(stringResource(R.string.shopping_brand_label)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            if (brandNames.isNotEmpty()) {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(brandNames, key = { it }) { name ->
-                        FilterChip(selected = brand == name, onClick = { brand = name }, label = { Text(name) })
-                    }
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(
-                    enabled = !saving,
-                    onClick = { onSave(supermarket, brand.trim().ifBlank { null }) },
-                ) { Text(stringResource(R.string.ingredients_pref_save)) }
-                if (pref != null) {
-                    TextButton(enabled = !saving, onClick = onClear) {
-                        Text(stringResource(R.string.ingredients_pref_clear))
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun BrandsSection(
     state: IngredientDetailUiState,
     onAdd: () -> Unit,
@@ -307,7 +246,6 @@ private fun BrandsSection(
         state.brands.forEach { brand ->
             BrandCard(
                 brand = brand,
-                canEdit = state.canEditBrand(brand),
                 onEdit = { onEdit(brand) },
                 onDelete = { onDelete(brand) },
             )
@@ -316,16 +254,14 @@ private fun BrandsSection(
 }
 
 @Composable
-private fun BrandCard(brand: IngredientBrand, canEdit: Boolean, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun BrandCard(brand: IngredientBrand, onEdit: () -> Unit, onDelete: () -> Unit) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(brand.name, style = MaterialTheme.typography.titleSmall)
             brand.nutrition?.let { NutritionSummary(it) }
-            if (canEdit) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = onEdit) { Text(stringResource(R.string.ingredients_edit)) }
-                    TextButton(onClick = onDelete) { Text(stringResource(R.string.ingredients_delete)) }
-                }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onEdit) { Text(stringResource(R.string.ingredients_edit)) }
+                TextButton(onClick = onDelete) { Text(stringResource(R.string.ingredients_delete)) }
             }
         }
     }

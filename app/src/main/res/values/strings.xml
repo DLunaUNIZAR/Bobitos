@@ -188,11 +188,7 @@
     <string name="shopping_quantity_label">Cantidad (opcional)</string>
     <string name="shopping_notes_label">Observaciones (opcionales)</string>
     <string name="shopping_added_by">Añadido por %1$s</string>
-    <string name="shopping_suggested">Sugerido: %1$s</string>
-    <string name="shopping_apply">Aplicar</string>
-    <string name="shopping_save_as_pref">Guardar como preferencia</string>
     <string name="shopping_create_ingredient">Crear ficha de ingrediente</string>
-    <string name="shopping_notice_pref_saved">Preferencia guardada</string>
     <string name="shopping_notice_ingredient_created">Ingrediente creado</string>
     <string name="shopping_notice_ingredient_exists">Ese ingrediente ya está en el catálogo</string>
     <string name="shopping_marked_by">Marcado por %1$s</string>
@@ -633,10 +629,6 @@
     <string name="ingredients_name_label">Nombre</string>
     <string name="ingredients_category_label">Categoría (opcional)</string>
     <string name="ingredients_unit_label">Unidad por defecto (opcional)</string>
-    <string name="ingredients_pref_title">Tu preferencia</string>
-    <string name="ingredients_pref_hint">Se aplicará al añadir este ingrediente a la lista de la compra.</string>
-    <string name="ingredients_pref_save">Guardar preferencia</string>
-    <string name="ingredients_pref_clear">Quitar preferencia</string>
     <string name="ingredients_edit">Editar ficha</string>
     <string name="ingredients_delete">Borrar</string>
     <string name="ingredients_delete_title">Borrar ingrediente</string>
@@ -649,8 +641,6 @@
     <string name="ingredients_error_not_found">No se encontró el ingrediente.</string>
     <string name="ingredients_notice_saved">Ingrediente guardado</string>
     <string name="ingredients_notice_deleted">Ingrediente borrado</string>
-    <string name="ingredients_notice_pref_saved">Preferencia guardada</string>
-    <string name="ingredients_notice_pref_cleared">Preferencia quitada</string>
     <string name="ingredients_default_unit">Unidad por defecto: %1$s</string>
     <string name="ingredients_brands_section">Marcas</string>
     <string name="ingredients_brands_empty">Aún no hay marcas para este ingrediente.</string>

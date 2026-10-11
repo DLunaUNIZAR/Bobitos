@@ -206,8 +206,8 @@ class RecipesViewModelTest {
     }
 
     @Test
-    fun `confirming the review writes to shopping applying prefs`() = runTest(mainDispatcherRule.testDispatcher) {
-        prefsRepository.prefsState.value = mapOf("huevo" to IngredientPref(Supermarket.DIA, "Marca"))
+    fun `confirming the review uses the first store and no brand`() = runTest(mainDispatcherRule.testDispatcher) {
+        prefsRepository.prefsState.value = mapOf("huevo" to IngredientPref(listOf(Supermarket.DIA, Supermarket.EROSKI)))
         viewModel.observe()
         advanceUntilIdle()
         viewModel.addToShopping(
@@ -323,8 +323,7 @@ private class RecipesFakeShoppingRepository : ShoppingRepository {
 private class RecipesFakePrefsRepository : IngredientPrefsRepository {
     val prefsState = MutableStateFlow<Map<String, IngredientPref>>(emptyMap())
     override fun prefs(): Flow<Map<String, IngredientPref>> = prefsState
-    override suspend fun setPref(ingredientId: String, supermarket: Supermarket?, brand: String?) = Unit
-    override suspend fun clearPref(ingredientId: String) = Unit
+    override suspend fun setStores(ingredientId: String, stores: List<Supermarket>) = Unit
 }
 
 private class FakeRecipeRepository : RecipeRepository {

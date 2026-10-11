@@ -54,7 +54,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.feature.shopping.SupermarketIcon
-import com.dlunaunizar.bobitos.feature.shopping.labelRes
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -250,11 +249,7 @@ private fun IngredientRow(
 private fun PrefSummary(pref: IngredientPref?) {
     if (pref == null) return
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        pref.supermarket?.let { SupermarketIcon(it) }
-        val label = pref.brand ?: pref.supermarket?.let { stringResource(it.labelRes) }
-        label?.let {
-            Text(text = it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-        }
+        pref.stores.forEach { SupermarketIcon(it) }
     }
 }
 

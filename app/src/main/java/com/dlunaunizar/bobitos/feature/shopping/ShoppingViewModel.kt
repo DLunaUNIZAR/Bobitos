@@ -12,7 +12,6 @@ import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.core.model.slug
-import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
@@ -32,17 +31,14 @@ import javax.inject.Inject
 class ShoppingViewModel @Inject constructor(
     private val repository: ShoppingRepository,
     private val ingredientRepository: IngredientRepository,
-    private val ingredientPrefsRepository: IngredientPrefsRepository,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(ShoppingUiState())
     val uiState: StateFlow<ShoppingUiState> = mutableUiState.asStateFlow()
     private var itemsJob: Job? = null
     private var observedSpaceId: String? = null
     private var catalogJob: Job? = null
-    private var prefsJob: Job? = null
 
     fun observe(spaceId: String) {
-        observePrefs()
         if (spaceId == observedSpaceId && itemsJob?.isActive == true) return
         itemsJob?.cancel()
         observedSpaceId = spaceId
@@ -63,23 +59,10 @@ class ShoppingViewModel @Inject constructor(
     }
     fun stopObserving() {
         itemsJob?.cancel()
-        prefsJob?.cancel()
         catalogJob?.cancel()
         itemsJob = null
-        prefsJob = null
         catalogJob = null
         observedSpaceId = null
-    }
-
-    // Preferencias del usuario: se observan mientras se ve la lista (1 doc), para sugerir super/marca
-    // en las tarjetas y prerrellenar el editor.
-    private fun observePrefs() {
-        if (prefsJob?.isActive == true) return
-        prefsJob = viewModelScope.launch {
-            ingredientPrefsRepository.prefs()
-                .catch { mutableUiState.update { it.copy(ingredientPrefs = emptyMap()) } }
-                .collect { prefs -> mutableUiState.update { it.copy(ingredientPrefs = prefs) } }
-        }
     }
 
     /** Catálogo (acotado): solo mientras el editor de ítem está abierto (autocompletado del nombre). */
@@ -96,22 +79,6 @@ class ShoppingViewModel @Inject constructor(
     fun stopIngredientAssist() {
         catalogJob?.cancel()
         catalogJob = null
-    }
-
-    /** Aplica al ítem el supermercado/marca de la preferencia del usuario para ese ingrediente. */
-    fun applyIngredientPref(spaceId: String, item: ShoppingItem) {
-        val pref = mutableUiState.value.ingredientPrefs[slug(item.name)] ?: return
-        runAction(ShoppingUiMessage.ItemUpdated) {
-            repository.updateItem(spaceId, item.id, item.name, item.quantity, item.notes, pref.supermarket, pref.brand)
-        }
-    }
-
-    /** Guarda el supermercado/marca del ítem como tu preferencia por defecto para ese ingrediente. */
-    fun saveItemAsPreference(item: ShoppingItem) {
-        if (item.supermarket == null && item.brand.isNullOrBlank()) return
-        runAction(ShoppingUiMessage.PrefSaved) {
-            ingredientPrefsRepository.setPref(slug(item.name), item.supermarket, item.brand)
-        }
     }
 
     /** Crea una ficha de ingrediente a partir del ítem (si aún no existe en el catálogo). */
@@ -143,20 +110,14 @@ class ShoppingViewModel @Inject constructor(
         brand: String?,
     ) {
         if (!validate(name, quantity, notes)) return
-        // Si el usuario no fijó super ni marca, aplicamos su preferencia para ese ingrediente (por slug).
-        val pref = if (supermarket == null && brand == null) {
-            mutableUiState.value.ingredientPrefs[slug(name)]
-        } else {
-            null
-        }
         runAction(ShoppingUiMessage.ItemAdded, editor = true) {
             repository.addItem(
                 spaceId,
                 name.trim(),
                 quantity.normalized(),
                 notes.normalized(),
-                supermarket ?: pref?.supermarket,
-                brand ?: pref?.brand,
+                supermarket,
+                brand,
             )
         }
     }

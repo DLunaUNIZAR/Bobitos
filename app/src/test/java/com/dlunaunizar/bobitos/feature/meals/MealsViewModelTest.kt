@@ -176,14 +176,14 @@ class MealsViewModelTest {
         }
 
     @Test
-    fun `dumping ingredients applies the user's default supermarket and brand`() =
+    fun `dumping ingredients uses the ingredient's first store and no brand`() =
         runTest(mainDispatcherRule.testDispatcher) {
             recipeRepository.mineState.value = listOf(
                 recipe("r1", listOf(Ingredient("Arroz", "300", "g"), Ingredient("Sal"))),
             )
             // slug("Arroz") == "arroz"; slug("Sal") == "sal" (sin preferencia).
             ingredientPrefsRepository.prefsState.value = mapOf(
-                "arroz" to IngredientPref(Supermarket.MERCADONA, "Hacendado"),
+                "arroz" to IngredientPref(listOf(Supermarket.MERCADONA, Supermarket.DIA)),
             )
             viewModel.observe("home")
             advanceUntilIdle()
@@ -197,7 +197,7 @@ class MealsViewModelTest {
 
             assertEquals(listOf("Arroz", "Sal"), shoppingRepository.addedNames)
             assertEquals(listOf(Supermarket.MERCADONA, null), shoppingRepository.addedSupermarkets)
-            assertEquals(listOf("Hacendado", null), shoppingRepository.addedBrands)
+            assertEquals(listOf<String?>(null, null), shoppingRepository.addedBrands)
         }
 
     @Test
@@ -565,8 +565,7 @@ private class FakeShoppingRepository : ShoppingRepository {
 private class FakeIngredientPrefsRepository : IngredientPrefsRepository {
     val prefsState = MutableStateFlow<Map<String, IngredientPref>>(emptyMap())
     override fun prefs(): Flow<Map<String, IngredientPref>> = prefsState
-    override suspend fun setPref(ingredientId: String, supermarket: Supermarket?, brand: String?) = Unit
-    override suspend fun clearPref(ingredientId: String) = Unit
+    override suspend fun setStores(ingredientId: String, stores: List<Supermarket>) = Unit
 }
 
 private fun recipe(id: String, ingredients: List<Ingredient>) = Recipe(

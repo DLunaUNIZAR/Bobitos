@@ -11,6 +11,7 @@ import com.dlunaunizar.bobitos.core.model.Nutrition
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffProduct
 import com.dlunaunizar.bobitos.data.openfoodfacts.OpenFoodFactsClient
+import com.dlunaunizar.bobitos.data.repository.BrandInput
 import com.dlunaunizar.bobitos.data.repository.IngredientBrandRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientRepository
@@ -44,14 +45,14 @@ class IngredientsViewModelTest {
     @Test
     fun `observes the catalog and prefs`() = runTest(mainDispatcherRule.testDispatcher) {
         repository.catalogState.value = listOf(ingredient("tomate", "Tomate"))
-        prefsRepository.prefsState.value = mapOf("tomate" to IngredientPref(Supermarket.DIA, "Marca"))
+        prefsRepository.prefsState.value = mapOf("tomate" to IngredientPref(listOf(Supermarket.DIA)))
 
         viewModel.observe()
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
         assertEquals(listOf("Tomate"), (state.catalog as UiState.Content).value.map(CatalogIngredient::name))
-        assertEquals(IngredientPref(Supermarket.DIA, "Marca"), state.prefs["tomate"])
+        assertEquals(IngredientPref(listOf(Supermarket.DIA)), state.prefs["tomate"])
     }
 
     @Test
@@ -85,17 +86,6 @@ class IngredientsViewModelTest {
 
         assertEquals(0, repository.createCount)
         assertEquals(IngredientUiMessage.AlreadyExists, viewModel.uiState.value.error)
-    }
-
-    @Test
-    fun `setting a preference forwards it`() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.setPref("tomate", Supermarket.MERCADONA, "Hacendado")
-        advanceUntilIdle()
-
-        assertEquals("tomate", prefsRepository.lastId)
-        assertEquals(Supermarket.MERCADONA, prefsRepository.lastSupermarket)
-        assertEquals("Hacendado", prefsRepository.lastBrand)
-        assertEquals(IngredientUiMessage.PrefSaved, viewModel.uiState.value.notice)
     }
 
     @Test
@@ -221,9 +211,6 @@ class IngredientsViewModelTest {
 
     @Test
     fun `non-editor actions never touch editorSave`() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.setPref("tomate", Supermarket.DIA, null)
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
-        advanceUntilIdle()
         viewModel.deleteIngredient("tomate")
         advanceUntilIdle()
         assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
@@ -266,41 +253,25 @@ private class FakeIngredientRepository : IngredientRepository {
 
 private class FakeIngredientPrefsRepository : IngredientPrefsRepository {
     val prefsState = MutableStateFlow<Map<String, IngredientPref>>(emptyMap())
-    var lastId: String? = null
-    var lastSupermarket: Supermarket? = null
-    var lastBrand: String? = null
 
     override fun prefs(): Flow<Map<String, IngredientPref>> = prefsState
-    override suspend fun setPref(ingredientId: String, supermarket: Supermarket?, brand: String?) {
-        lastId = ingredientId
-        lastSupermarket = supermarket
-        lastBrand = brand
-    }
-
-    override suspend fun clearPref(ingredientId: String) {
-        lastId = ingredientId
-    }
+    override suspend fun setStores(ingredientId: String, stores: List<Supermarket>) = Unit
 }
 
 private class FakeListBrandRepository : IngredientBrandRepository {
     var lastIngredientId: String? = null
     var lastName: String? = null
 
-    override fun brands(ingredientId: String): Flow<List<IngredientBrand>> = MutableStateFlow(emptyList())
-    override suspend fun addBrand(ingredientId: String, name: String, barcode: String?, nutrition: Nutrition?) {
-        lastIngredientId = ingredientId
-        lastName = name
+    override fun brands(): Flow<List<IngredientBrand>> = MutableStateFlow(emptyList())
+    override suspend fun addBrand(input: BrandInput): String {
+        lastIngredientId = input.ingredientId
+        lastName = input.name
+        return "new"
     }
 
-    override suspend fun updateBrand(
-        ingredientId: String,
-        brandId: String,
-        name: String,
-        barcode: String?,
-        nutrition: Nutrition?,
-    ) = Unit
-
-    override suspend fun deleteBrand(ingredientId: String, brandId: String) = Unit
+    override suspend fun updateBrand(brandId: String, input: BrandInput) = Unit
+    override suspend fun setFavorite(brandId: String, favorite: Boolean) = Unit
+    override suspend fun deleteBrand(brandId: String) = Unit
 }
 
 private class FakeListOffClient : OpenFoodFactsClient {

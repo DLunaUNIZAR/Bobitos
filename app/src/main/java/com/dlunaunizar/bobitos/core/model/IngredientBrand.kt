@@ -1,7 +1,5 @@
 package com.dlunaunizar.bobitos.core.model
 
-import java.time.Instant
-
 /**
  * Valores nutricionales de una marca, **por 100 g/ml**. Todos opcionales (una marca puede tener solo
  * algunos). Se guardan planos en el documento de la marca para poder validarlos en las reglas.
@@ -24,9 +22,8 @@ data class Nutrition(
 }
 
 /**
- * Marca concreta de un ingrediente del catálogo (subcolección `ingredients/{ingredientId}/brands`),
- * con sus valores nutricionales. Colaborativa: la crea cualquier usuario; la edita/borra su autor o
- * un admin del catálogo.
+ * Marca personal de un ingrediente (`users/{uid}/brands/{id}`), con sus valores nutricionales y las
+ * tiendas donde se compra. Solo la ve y la edita su dueño.
  */
 data class IngredientBrand(
     val id: String,
@@ -34,10 +31,6 @@ data class IngredientBrand(
     val name: String,
     val barcode: String? = null,
     val nutrition: Nutrition? = null,
-    val ownerUid: String,
-    val createdBy: String,
-    val createdByName: String,
-    val createdAt: Instant,
-    val updatedBy: String,
-    val updatedAt: Instant,
+    val favorite: Boolean = false,
+    val stores: List<Supermarket> = emptyList(),
 )
