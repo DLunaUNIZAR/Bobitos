@@ -27,6 +27,7 @@ enum class IngredientUiMessage {
     BrandDeleted,
     ScanNotFound,
     ScanFailed,
+    BarcodeInOtherIngredient,
     CatalogUnavailable,
 }
 
@@ -55,5 +56,6 @@ internal val IngredientUiMessage.stringResourceId: Int
         IngredientUiMessage.BrandDeleted -> R.string.ingredients_brand_notice_deleted
         IngredientUiMessage.ScanNotFound -> R.string.ingredients_brand_scan_not_found
         IngredientUiMessage.ScanFailed -> R.string.ingredients_brand_scan_error
+        IngredientUiMessage.BarcodeInOtherIngredient -> R.string.ingredients_brand_barcode_elsewhere_generic
         IngredientUiMessage.CatalogUnavailable -> R.string.ingredients_catalog_unavailable
     }

@@ -9,6 +9,7 @@ import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
+import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffException
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffFailure
@@ -57,6 +58,9 @@ class IngredientDetailViewModel @Inject constructor(
     private var common: List<CatalogIngredient> = emptyList()
     private var personal: List<CatalogIngredient> = emptyList()
 
+    // Las marcas de todos los ingredientes, para reconocer un código escaneado que ya está en otro.
+    private var allBrands: List<IngredientBrand> = emptyList()
+
     fun observe(id: String) {
         if (id == ingredientId && catalogJob?.isActive == true) return
         ingredientId = id
@@ -90,9 +94,15 @@ class IngredientDetailViewModel @Inject constructor(
         brandsJob?.cancel()
         brandsJob = viewModelScope.launch {
             brandRepository.brands()
-                .map { all -> all.filter { it.ingredientId == id }.sortedForBrands() }
-                .catch { mutableUiState.update { it.copy(brands = emptyList()) } }
-                .collect { brands -> mutableUiState.update { it.copy(brands = brands) } }
+                .catch {
+                    allBrands = emptyList()
+                    mutableUiState.update { it.copy(brands = emptyList()) }
+                }
+                .collect { all ->
+                    allBrands = all
+                    val brands = all.filter { it.ingredientId == id }.sortedForBrands()
+                    mutableUiState.update { it.copy(brands = brands) }
+                }
         }
         prefsJob?.cancel()
         prefsJob = viewModelScope.launch {
@@ -165,9 +175,16 @@ class IngredientDetailViewModel @Inject constructor(
         runAction(IngredientUiMessage.BrandDeleted) { brandRepository.deleteBrand(brandId) }
     }
 
-    /** Consulta Open Food Facts por el código escaneado y deja un borrador de marca prerrellenado. */
+    /**
+     * Un código que ya es de una marca abre esa marca (o avisa si es de otro ingrediente); si no, consulta
+     * Open Food Facts y deja un borrador de marca prerrellenado.
+     */
     fun lookupBarcode(barcode: String) {
         if (mutableUiState.value.isLookingUp) return
+        findBrandByBarcode(allBrands, barcode)?.let { brand ->
+            showKnownBrand(brand)
+            return
+        }
         mutableUiState.update { it.copy(isLookingUp = true, error = null, notice = null) }
         viewModelScope.launch {
             try {
@@ -192,6 +209,25 @@ class IngredientDetailViewModel @Inject constructor(
         }
     }
 
+    private fun showKnownBrand(brand: IngredientBrand) {
+        if (brand.ingredientId == ingredientId) {
+            mutableUiState.update { it.copy(openBrandId = brand.id) }
+            return
+        }
+        val owner = (common + personal).firstOrNull { it.id == brand.ingredientId }
+        mutableUiState.update {
+            it.copy(
+                error = null,
+                notice = IngredientUiMessage.BarcodeInOtherIngredient,
+                barcodeConflict = BarcodeConflict(brand.name, owner?.name ?: brand.ingredientId),
+            )
+        }
+    }
+
+    fun consumeOpenBrand() {
+        mutableUiState.update { it.copy(openBrandId = null) }
+    }
+
     fun consumeScannedBrand() {
         mutableUiState.update { it.copy(scannedBrand = null) }
     }
@@ -199,7 +235,7 @@ class IngredientDetailViewModel @Inject constructor(
     fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
 
     fun clearFeedback() {
-        mutableUiState.update { it.copy(error = null, notice = null) }
+        mutableUiState.update { it.copy(error = null, notice = null, barcodeConflict = null) }
     }
 
     private fun showError(message: IngredientUiMessage, editor: Boolean = false) {

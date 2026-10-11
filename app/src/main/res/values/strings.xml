@@ -679,6 +679,11 @@
         <item quantity="other">%1$d marcas</item>
     </plurals>
     <string name="ingredients_brand_scan_error">No se pudo consultar Open Food Facts. Revisa tu conexión.</string>
+    <string name="ingredients_scan_pick_title">¿De qué ingrediente es?</string>
+    <string name="ingredients_scan_suggestions">Sugerencias</string>
+    <string name="ingredients_scan_create_personal">Crear ingrediente personal</string>
+    <string name="ingredients_brand_barcode_elsewhere">Ese código ya está en tu marca «%1$s» de «%2$s».</string>
+    <string name="ingredients_brand_barcode_elsewhere_generic">Ese código ya está en una marca de otro ingrediente.</string>
     <string name="nutrition_section">Valores nutricionales (por 100 g/ml)</string>
     <string name="nutrition_energy_label">Energía (kcal)</string>
     <string name="nutrition_fat_label">Grasas (g)</string>

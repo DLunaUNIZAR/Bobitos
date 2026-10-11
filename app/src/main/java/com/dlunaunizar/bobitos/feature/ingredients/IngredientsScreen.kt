@@ -67,6 +67,7 @@ import kotlinx.coroutines.launch
 fun IngredientsScreen(
     onBack: () -> Unit,
     onOpenIngredient: (String) -> Unit,
+    onOpenBrand: (ingredientId: String, brandId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: IngredientsViewModel = hiltViewModel(),
 ) {
@@ -75,30 +76,13 @@ fun IngredientsScreen(
         viewModel.observe()
         onDispose { viewModel.stopObserving() }
     }
-    // Crear a mano sobrevive a una rotación; el flujo desde escaneo (scanCreate) lleva la nutrición y no.
+    // Crear a mano sobrevive a una rotación; el resto del flujo de escaneo vive en el ViewModel.
     var showEditor by rememberSaveable { mutableStateOf(false) }
-    var scanCreate by remember { mutableStateOf<ScannedProduct?>(null) }
+    var showScanCreate by rememberSaveable { mutableStateOf(false) }
     var createCommon by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
     LaunchedEffect(query) { viewModel.setQuery(query) }
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-
-    // Un alta duplicada lleva a la ficha existente.
-    LaunchedEffect(state.openIngredientId) {
-        state.openIngredientId?.let {
-            onOpenIngredient(it)
-            viewModel.consumeOpenIngredient()
-        }
-    }
-
-    // Un escaneo abre el editor de «nuevo ingrediente» prerrellenado con el producto.
-    LaunchedEffect(state.scannedProduct) {
-        state.scannedProduct?.let {
-            scanCreate = it
-            viewModel.consumeScannedProduct()
-        }
-    }
+    IngredientsEvents(state, viewModel, onOpenIngredient, onOpenBrand) { showScanCreate = false }
 
     Scaffold(
         modifier = modifier,
@@ -106,17 +90,7 @@ fun IngredientsScreen(
             BobitosTopBar(
                 title = stringResource(R.string.ingredients_title),
                 onBack = onBack,
-                actions = {
-                    IconButton(
-                        enabled = !state.isLookingUp,
-                        onClick = { scope.launch { scanBarcode(context)?.let(viewModel::lookupBarcode) } },
-                    ) {
-                        Icon(
-                            Icons.Rounded.QrCodeScanner,
-                            contentDescription = stringResource(R.string.ingredients_brand_scan),
-                        )
-                    }
-                },
+                actions = { ScanButton(enabled = !state.isLookingUp, onScanned = viewModel::lookupBarcode) },
             )
         },
         floatingActionButton = {
@@ -155,10 +129,10 @@ fun IngredientsScreen(
 
     EditorSaveEffect(
         status = state.editorSave,
-        editorOpen = showEditor || scanCreate != null,
+        editorOpen = showEditor || showScanCreate || state.scanBrandTarget != null,
         onClose = {
             showEditor = false
-            scanCreate = null
+            showScanCreate = false
         },
         onConsume = viewModel::consumeEditorSave,
     )
@@ -176,23 +150,79 @@ fun IngredientsScreen(
         )
     }
 
-    scanCreate?.let { product ->
-        IngredientEditorDialog(
-            ingredient = null,
-            initialName = product.suggestedName,
+    ScanFlow(state, viewModel, showScanCreate, editorError) { showScanCreate = it }
+}
+
+@Composable
+private fun ScanButton(enabled: Boolean, onScanned: (String) -> Unit) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    IconButton(enabled = enabled, onClick = { scope.launch { scanBarcode(context)?.let(onScanned) } }) {
+        Icon(Icons.Rounded.QrCodeScanner, contentDescription = stringResource(R.string.ingredients_brand_scan))
+    }
+}
+
+/** Eventos de una sola vez del ViewModel: navegar a una ficha o marca y reiniciar el flujo de escaneo. */
+@Composable
+private fun IngredientsEvents(
+    state: IngredientsUiState,
+    viewModel: IngredientsViewModel,
+    onOpenIngredient: (String) -> Unit,
+    onOpenBrand: (ingredientId: String, brandId: String) -> Unit,
+    onScanEnded: () -> Unit,
+) {
+    // Un alta duplicada lleva a la ficha existente.
+    LaunchedEffect(state.openIngredientId) {
+        state.openIngredientId?.let {
+            onOpenIngredient(it)
+            viewModel.consumeOpenIngredient()
+        }
+    }
+    // Al terminar o cancelar el escaneo, el siguiente empieza otra vez por la elección de ingrediente.
+    LaunchedEffect(state.scanPick == null) { if (state.scanPick == null) onScanEnded() }
+    // Un código ya guardado lleva a su marca en la ficha del ingrediente.
+    LaunchedEffect(state.openBrand) {
+        state.openBrand?.let {
+            onOpenBrand(it.ingredientId, it.brandId)
+            viewModel.consumeOpenBrand()
+        }
+    }
+}
+
+/** Escaneo desde la lista: elegir ingrediente (o crear uno personal) y revisar la marca. */
+@Composable
+private fun ScanFlow(
+    state: IngredientsUiState,
+    viewModel: IngredientsViewModel,
+    showCreate: Boolean,
+    editorError: String?,
+    setShowCreate: (Boolean) -> Unit,
+) {
+    val pick = state.scanPick ?: return
+    val ingredients = (state.ingredients as? UiState.Content)?.value.orEmpty()
+    when {
+        state.scanBrandTarget != null -> BrandEditorDialog(
+            brandId = null,
+            initial = BrandDraft.of(pick.brandName, pick.barcode, pick.nutrition),
             saving = state.isSaving,
             errorMessage = editorError,
-            onDismiss = { scanCreate = null },
-            onSave = { name, category, unit ->
-                viewModel.createIngredientFromScan(
-                    name,
-                    category,
-                    unit,
-                    product.brandName,
-                    product.barcode,
-                    product.nutrition,
-                )
-            },
+            onDismiss = viewModel::cancelScan,
+            onSave = viewModel::saveScannedBrand,
+        )
+        showCreate -> IngredientEditorDialog(
+            ingredient = null,
+            initialName = pick.productName,
+            saving = state.isSaving,
+            errorMessage = editorError,
+            onDismiss = { setShowCreate(false) },
+            onSave = viewModel::createPersonalForScan,
+        )
+        else -> ScanPickDialog(
+            ingredients = ingredients,
+            productName = pick.productName,
+            onPick = { viewModel.pickIngredientForScan(it.id) },
+            onCreatePersonal = { setShowCreate(true) },
+            onDismiss = viewModel::cancelScan,
         )
     }
 }
@@ -389,6 +419,7 @@ internal fun IngredientsFeedback(
     saving: Boolean,
     onDismiss: () -> Unit,
     existingName: String? = null,
+    barcodeConflict: BarcodeConflict? = null,
 ) {
     val message = error ?: notice
     if (message == null && !saving) return
@@ -408,7 +439,7 @@ internal fun IngredientsFeedback(
                         R.string.write_saving,
                     )
                 } else {
-                    ingredientMessageText(message!!, existingName)
+                    ingredientMessageText(message!!, existingName, barcodeConflict)
                 },
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyMedium,
@@ -430,9 +461,18 @@ internal fun editorErrorMessage(
 
 /** Texto del mensaje; «ya existe» nombra la ficha encontrada si se conoce. */
 @Composable
-private fun ingredientMessageText(message: IngredientUiMessage, existingName: String?): String =
-    if (message == IngredientUiMessage.AlreadyExists && existingName != null) {
+private fun ingredientMessageText(
+    message: IngredientUiMessage,
+    existingName: String?,
+    barcodeConflict: BarcodeConflict? = null,
+): String = when {
+    message == IngredientUiMessage.AlreadyExists && existingName != null ->
         stringResource(R.string.ingredients_error_already_exists, existingName)
-    } else {
-        stringResource(message.stringResourceId)
-    }
+    message == IngredientUiMessage.BarcodeInOtherIngredient && barcodeConflict != null ->
+        stringResource(
+            R.string.ingredients_brand_barcode_elsewhere,
+            barcodeConflict.brandName,
+            barcodeConflict.ingredientName,
+        )
+    else -> stringResource(message.stringResourceId)
+}

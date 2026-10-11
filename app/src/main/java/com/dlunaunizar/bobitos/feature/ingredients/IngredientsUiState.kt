@@ -7,16 +7,11 @@ import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Nutrition
 
-/**
- * Producto escaneado desde la lista, pendiente de convertir en ingrediente + marca. `suggestedName`
- * es editable por el usuario (nombre genérico del ingrediente); `brandName` es la marca concreta.
- */
-data class ScannedProduct(
-    val suggestedName: String,
-    val brandName: String,
-    val barcode: String,
-    val nutrition: Nutrition?,
-)
+/** Producto escaneado en la lista, pendiente de decidir de qué ingrediente es la marca. */
+data class ScanPick(val barcode: String, val productName: String, val brandName: String, val nutrition: Nutrition?)
+
+/** Marca ya conocida a la que navegar tras escanear su código. */
+data class OpenBrand(val ingredientId: String, val brandId: String)
 
 data class IngredientsUiState(
     val query: String = "",
@@ -32,8 +27,11 @@ data class IngredientsUiState(
     val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
     // Consulta a Open Food Facts en curso tras escanear desde la lista.
     val isLookingUp: Boolean = false,
-    // Producto escaneado pendiente de abrir en el editor de «nuevo ingrediente».
-    val scannedProduct: ScannedProduct? = null,
+    // Producto escaneado pendiente de elegir ingrediente, y el ingrediente elegido (editor de marca).
+    val scanPick: ScanPick? = null,
+    val scanBrandTarget: String? = null,
+    // Evento: marca conocida a la que navegar.
+    val openBrand: OpenBrand? = null,
     val error: IngredientUiMessage? = null,
     val notice: IngredientUiMessage? = null,
     // Evento: ficha existente a la que navegar tras un alta duplicada, y su nombre para el aviso.

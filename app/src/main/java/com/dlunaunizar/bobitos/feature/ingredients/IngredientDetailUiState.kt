@@ -9,6 +9,9 @@ import com.dlunaunizar.bobitos.core.model.Supermarket
 /** Borrador de marca prerrellenado tras escanear un código (nombre/nutrición de Open Food Facts). */
 data class ScannedBrand(val name: String, val barcode: String, val nutrition: Nutrition?)
 
+/** Marca de otro ingrediente que ya tiene el código escaneado. */
+data class BarcodeConflict(val brandName: String, val ingredientName: String)
+
 data class IngredientDetailUiState(
     val ingredientId: String = "",
     val ingredient: CatalogIngredient? = null,
@@ -25,6 +28,9 @@ data class IngredientDetailUiState(
     val isLookingUp: Boolean = false,
     // Borrador pendiente de abrir en el editor de marca tras un escaneo.
     val scannedBrand: ScannedBrand? = null,
+    // Evento: marca de este ingrediente cuyo código se acaba de escanear, para abrir su editor.
+    val openBrandId: String? = null,
+    val barcodeConflict: BarcodeConflict? = null,
     val error: IngredientUiMessage? = null,
     val notice: IngredientUiMessage? = null,
     // El ingrediente se borró: la pantalla debe cerrarse.

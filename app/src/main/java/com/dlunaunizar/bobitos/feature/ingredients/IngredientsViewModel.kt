@@ -10,13 +10,10 @@ import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
-import com.dlunaunizar.bobitos.core.model.Nutrition
-import com.dlunaunizar.bobitos.core.model.slug
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffException
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffFailure
 import com.dlunaunizar.bobitos.data.openfoodfacts.OpenFoodFactsClient
 import com.dlunaunizar.bobitos.data.repository.BrandFailure
-import com.dlunaunizar.bobitos.data.repository.BrandInput
 import com.dlunaunizar.bobitos.data.repository.BrandRepositoryException
 import com.dlunaunizar.bobitos.data.repository.IngredientBrandRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientFailure
@@ -162,64 +159,79 @@ class IngredientsViewModel @Inject constructor(
         mutableUiState.update { it.copy(openIngredientId = null) }
     }
 
-    /** Consulta Open Food Facts por el código escaneado y deja un producto pendiente de convertir. */
+    /** Un código ya guardado abre su marca; si no, consulta Open Food Facts y deja la elección de ingrediente. */
     fun lookupBarcode(barcode: String) {
         if (mutableUiState.value.isLookingUp) return
+        findBrandByBarcode(mutableUiState.value.brands, barcode)?.let { brand ->
+            mutableUiState.update { it.copy(openBrand = OpenBrand(brand.ingredientId, brand.id)) }
+            return
+        }
         mutableUiState.update { it.copy(isLookingUp = true, error = null, notice = null, existingName = null) }
         viewModelScope.launch {
             try {
                 val product = openFoodFactsClient.lookup(barcode)
-                val suggested = product?.productName ?: product?.brand.orEmpty()
+                val productName = product?.productName ?: product?.brand.orEmpty()
                 mutableUiState.update {
                     it.copy(
                         isLookingUp = false,
-                        scannedProduct = ScannedProduct(
-                            suggestedName = suggested,
-                            brandName = product?.brand ?: suggested,
-                            barcode = barcode,
-                            nutrition = product?.nutrition,
-                        ),
+                        scanPick = ScanPick(barcode, productName, product?.brand ?: productName, product?.nutrition),
                         notice = if (product == null) IngredientUiMessage.ScanNotFound else null,
                     )
                 }
             } catch (error: OffException) {
-                mutableUiState.update { it.copy(isLookingUp = false, error = error.failure.toUiMessage()) }
+                // Sin red se sigue a mano: solo se conoce el código.
+                mutableUiState.update {
+                    it.copy(
+                        isLookingUp = false,
+                        scanPick = ScanPick(barcode, "", "", null),
+                        error = error.failure.toUiMessage(),
+                    )
+                }
             }
         }
     }
 
-    fun consumeScannedProduct() {
-        mutableUiState.update { it.copy(scannedProduct = null) }
+    fun consumeOpenBrand() {
+        mutableUiState.update { it.copy(openBrand = null) }
     }
 
-    /** Crea el ingrediente (si no existe ya) y le añade la marca escaneada con su nutrición. */
-    fun createIngredientFromScan(
-        name: String,
-        category: String?,
-        defaultUnit: String?,
-        brandName: String,
-        barcode: String,
-        nutrition: Nutrition?,
-    ) {
+    fun pickIngredientForScan(ingredientId: String) {
+        mutableUiState.update { it.copy(scanBrandTarget = ingredientId) }
+    }
+
+    /** Crea el ingrediente personal del escaneo; si su clave ya existe, usa el existente. */
+    fun createPersonalForScan(name: String, category: String?, defaultUnit: String?) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) {
             showError(IngredientUiMessage.NameRequired, editor = true)
             return
         }
-        val id = slug(trimmed)
-        runAction(IngredientUiMessage.Saved, editor = true) {
-            if (!catalogContains(id)) repository.createIngredient(trimmed, category, defaultUnit)
-            brandRepository.addBrand(
-                BrandInput(
-                    ingredientId = id,
-                    name = brandName.ifBlank { trimmed },
-                    barcode = barcode.takeIf(String::isNotBlank),
-                    nutrition = nutrition,
-                    favorite = false,
-                    stores = emptyList(),
-                ),
-            )
+        val existing = findByKey(currentIngredients(), trimmed)
+        if (existing != null) {
+            pickIngredientForScan(existing.id)
+            return
         }
+        runAction(IngredientUiMessage.Saved, editor = true) {
+            val id = personalRepository.create(trimmed, category, defaultUnit)
+            mutableUiState.update { it.copy(scanBrandTarget = id) }
+        }
+    }
+
+    /** Guarda la marca escaneada en el ingrediente elegido y termina el flujo. */
+    internal fun saveScannedBrand(draft: BrandDraft) {
+        val target = mutableUiState.value.scanBrandTarget ?: return
+        if (draft.name.trim().isEmpty()) {
+            showError(IngredientUiMessage.BrandNameRequired, editor = true)
+            return
+        }
+        runAction(IngredientUiMessage.BrandSaved, editor = true) {
+            brandRepository.addBrand(draft.toInput(target))
+            mutableUiState.update { it.copy(scanPick = null, scanBrandTarget = null) }
+        }
+    }
+
+    fun cancelScan() {
+        mutableUiState.update { it.copy(scanPick = null, scanBrandTarget = null) }
     }
 
     fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
@@ -230,8 +242,6 @@ class IngredientsViewModel @Inject constructor(
 
     private fun currentIngredients(): List<CatalogIngredient> =
         (mutableUiState.value.ingredients as? UiState.Content)?.value.orEmpty()
-
-    private fun catalogContains(id: String): Boolean = currentIngredients().any { it.id == id }
 
     private fun showError(message: IngredientUiMessage, editor: Boolean = false) {
         mutableUiState.update {

@@ -280,6 +280,43 @@ class IngredientDetailViewModelTest {
     }
 
     @Test
+    fun `scanning a barcode of this ingredient's brand opens its editor`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            brandRepository.brandsState.value = listOf(detailBrand("b1", "tomate", "Hacendado").copy(barcode = "841"))
+            viewModel.observe("tomate")
+            advanceUntilIdle()
+
+            viewModel.lookupBarcode("841")
+            advanceUntilIdle()
+
+            assertEquals("b1", viewModel.uiState.value.openBrandId)
+            assertNull(viewModel.uiState.value.scannedBrand)
+            assertEquals(0, offClient.calls)
+
+            viewModel.consumeOpenBrand()
+            assertNull(viewModel.uiState.value.openBrandId)
+        }
+
+    @Test
+    fun `scanning a barcode of another ingredient's brand shows a notice`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.catalogState.value = listOf(detailIngredient("tomate", "Tomate"), detailIngredient("sal", "Sal"))
+            brandRepository.brandsState.value = listOf(detailBrand("b2", "sal", "Ajena").copy(barcode = "842"))
+            viewModel.observe("tomate")
+            advanceUntilIdle()
+
+            viewModel.lookupBarcode("842")
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertEquals(IngredientUiMessage.BarcodeInOtherIngredient, state.notice)
+            assertEquals(BarcodeConflict(brandName = "Ajena", ingredientName = "Sal"), state.barcodeConflict)
+            assertNull(state.openBrandId)
+            assertNull(state.scannedBrand)
+            assertEquals(0, offClient.calls)
+        }
+
+    @Test
     fun `parseNutritionValue accepts comma and dot and rejects blanks`() {
         assertEquals(1.5, parseNutritionValue("1,5"))
         assertEquals(30.0, parseNutritionValue("30"))
@@ -465,8 +502,10 @@ private class DetailFakeBrandRepo : IngredientBrandRepository {
 private class DetailFakeOffClient : OpenFoodFactsClient {
     var result: OffProduct? = null
     var failure: OffException? = null
+    var calls = 0
 
     override suspend fun lookup(barcode: String): OffProduct? {
+        calls++
         failure?.let { throw it }
         return result
     }

@@ -10,6 +10,8 @@ import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Nutrition
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.core.model.slug
+import com.dlunaunizar.bobitos.data.openfoodfacts.OffException
+import com.dlunaunizar.bobitos.data.openfoodfacts.OffFailure
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffProduct
 import com.dlunaunizar.bobitos.data.openfoodfacts.OpenFoodFactsClient
 import com.dlunaunizar.bobitos.data.repository.BrandInput
@@ -164,7 +166,26 @@ class IngredientsViewModelTest {
     }
 
     @Test
-    fun `scanning from the list leaves a product draft`() = runTest(mainDispatcherRule.testDispatcher) {
+    fun `scanning a barcode already in my brands opens it without calling Open Food Facts`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            brandRepository.brandsState.value =
+                listOf(IngredientBrand(id = "b1", ingredientId = "tomate", name = "Hida", barcode = "8410000000000"))
+            viewModel.observe()
+            advanceUntilIdle()
+
+            viewModel.lookupBarcode("8410 0000 00000")
+            advanceUntilIdle()
+
+            assertEquals(OpenBrand("tomate", "b1"), viewModel.uiState.value.openBrand)
+            assertEquals(0, offClient.calls)
+            assertNull(viewModel.uiState.value.scanPick)
+
+            viewModel.consumeOpenBrand()
+            assertNull(viewModel.uiState.value.openBrand)
+        }
+
+    @Test
+    fun `scanning a new barcode leaves a pick with the product data`() = runTest(mainDispatcherRule.testDispatcher) {
         offClient.result = OffProduct("Tomate frito", "Hacendado", Nutrition(energyKcal = 80.0))
         viewModel.observe()
         advanceUntilIdle()
@@ -172,54 +193,108 @@ class IngredientsViewModelTest {
         viewModel.lookupBarcode("8410000000000")
         advanceUntilIdle()
 
-        val product = viewModel.uiState.value.scannedProduct
-        assertEquals("Tomate frito", product?.suggestedName)
-        assertEquals("Hacendado", product?.brandName)
-        assertEquals("8410000000000", product?.barcode)
+        assertEquals(
+            ScanPick("8410000000000", "Tomate frito", "Hacendado", Nutrition(energyKcal = 80.0)),
+            viewModel.uiState.value.scanPick,
+        )
+        assertNull(viewModel.uiState.value.scanBrandTarget)
     }
 
     @Test
-    fun `creating from scan creates the ingredient and its brand`() = runTest(mainDispatcherRule.testDispatcher) {
+    fun `a network error still leaves a pick with only the barcode`() = runTest(mainDispatcherRule.testDispatcher) {
+        offClient.failure = OffException(OffFailure.Network)
         viewModel.observe()
         advanceUntilIdle()
 
-        viewModel.createIngredientFromScan(
-            "Tomate frito",
-            null,
-            null,
-            "Hacendado",
-            "8410000000000",
-            Nutrition(energyKcal = 80.0),
-        )
+        viewModel.lookupBarcode("8410000000000")
         advanceUntilIdle()
 
-        assertEquals(1, repository.createCount)
-        assertEquals("Tomate frito", repository.lastCreatedName)
-        assertEquals("tomate-frito", brandRepository.lastIngredientId)
-        assertEquals("Hacendado", brandRepository.lastName)
-        assertEquals(IngredientUiMessage.Saved, viewModel.uiState.value.notice)
+        assertEquals(ScanPick("8410000000000", "", "", null), viewModel.uiState.value.scanPick)
+        assertEquals(IngredientUiMessage.ScanFailed, viewModel.uiState.value.error)
     }
 
     @Test
-    fun `creating from scan for an existing ingredient only adds the brand`() =
+    fun `picking an ingredient and saving the brand adds it to that ingredient`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            offClient.result = OffProduct("Tomate frito", "Hacendado", Nutrition(energyKcal = 80.0))
+            viewModel.observe()
+            advanceUntilIdle()
+            viewModel.lookupBarcode("8410000000000")
+            advanceUntilIdle()
+
+            viewModel.pickIngredientForScan("tomate")
+            assertEquals("tomate", viewModel.uiState.value.scanBrandTarget)
+            viewModel.saveScannedBrand(
+                BrandDraft.of("Hacendado", "8410000000000", Nutrition(energyKcal = 80.0)).copy(favorite = true),
+            )
+            advanceUntilIdle()
+
+            assertEquals("tomate", brandRepository.lastIngredientId)
+            assertEquals("Hacendado", brandRepository.lastName)
+            assertEquals("8410000000000", brandRepository.lastBarcode)
+            assertEquals(Nutrition(energyKcal = 80.0), brandRepository.lastNutrition)
+            assertTrue(brandRepository.lastFavorite)
+            val state = viewModel.uiState.value
+            assertNull(state.scanPick)
+            assertNull(state.scanBrandTarget)
+            assertEquals(EditorSaveStatus.SAVED, state.editorSave)
+            assertEquals(IngredientUiMessage.BrandSaved, state.notice)
+        }
+
+    @Test
+    fun `creating a personal ingredient from a scan then saving adds the brand to it`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            offClient.result = OffProduct("Tomate frito", "Hacendado", Nutrition())
+            viewModel.observe()
+            advanceUntilIdle()
+            viewModel.lookupBarcode("841")
+            advanceUntilIdle()
+
+            viewModel.createPersonalForScan("Tomate frito", null, null)
+            advanceUntilIdle()
+
+            assertEquals(1, personalRepository.createCount)
+            assertEquals(0, repository.createCount)
+            assertEquals("tomate-frito", viewModel.uiState.value.scanBrandTarget)
+
+            viewModel.saveScannedBrand(BrandDraft.of("Hacendado", "841", null))
+            advanceUntilIdle()
+
+            assertEquals("tomate-frito", brandRepository.lastIngredientId)
+            assertNull(viewModel.uiState.value.scanPick)
+        }
+
+    @Test
+    fun `creating from a scan with a name that already exists uses the existing ingredient`() =
         runTest(mainDispatcherRule.testDispatcher) {
             repository.catalogState.value = listOf(ingredient("tomate-frito", "Tomate frito"))
             viewModel.observe()
             advanceUntilIdle()
-
-            viewModel.createIngredientFromScan(
-                "Tomate frito",
-                null,
-                null,
-                "Hacendado",
-                "841",
-                Nutrition(energyKcal = 80.0),
-            )
+            viewModel.lookupBarcode("841")
             advanceUntilIdle()
 
+            viewModel.createPersonalForScan("tomates fritos", null, null)
+            advanceUntilIdle()
+
+            assertEquals(0, personalRepository.createCount)
             assertEquals(0, repository.createCount)
-            assertEquals("tomate-frito", brandRepository.lastIngredientId)
+            assertEquals("tomate-frito", viewModel.uiState.value.scanBrandTarget)
+            assertNull(viewModel.uiState.value.error)
         }
+
+    @Test
+    fun `cancelling the scan clears the pick`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe()
+        advanceUntilIdle()
+        viewModel.lookupBarcode("841")
+        advanceUntilIdle()
+        viewModel.pickIngredientForScan("tomate")
+
+        viewModel.cancelScan()
+
+        assertNull(viewModel.uiState.value.scanPick)
+        assertNull(viewModel.uiState.value.scanBrandTarget)
+    }
 
     @Test
     fun `create is SAVED only after the repository answers`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -236,14 +311,6 @@ class IngredientsViewModelTest {
         assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
         viewModel.consumeEditorSave()
         assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
-
-        val scanGate = CompletableDeferred<Unit>()
-        repository.createGate = scanGate
-        viewModel.createIngredientFromScan("Tomate frito", null, null, "Hacendado", "841", null)
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
-        scanGate.complete(Unit)
-        advanceUntilIdle()
-        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
     }
 
     @Test
@@ -343,6 +410,9 @@ private class FakeIngredientPrefsRepository : IngredientPrefsRepository {
 private class FakeListBrandRepository : IngredientBrandRepository {
     var lastIngredientId: String? = null
     var lastName: String? = null
+    var lastBarcode: String? = null
+    var lastNutrition: Nutrition? = null
+    var lastFavorite = false
 
     val brandsState = MutableStateFlow<List<IngredientBrand>>(emptyList())
 
@@ -350,6 +420,9 @@ private class FakeListBrandRepository : IngredientBrandRepository {
     override suspend fun addBrand(input: BrandInput): String {
         lastIngredientId = input.ingredientId
         lastName = input.name
+        lastBarcode = input.barcode
+        lastNutrition = input.nutrition
+        lastFavorite = input.favorite
         return "new"
     }
 
@@ -360,5 +433,12 @@ private class FakeListBrandRepository : IngredientBrandRepository {
 
 private class FakeListOffClient : OpenFoodFactsClient {
     var result: OffProduct? = null
-    override suspend fun lookup(barcode: String): OffProduct? = result
+    var failure: OffException? = null
+    var calls = 0
+
+    override suspend fun lookup(barcode: String): OffProduct? {
+        calls++
+        failure?.let { throw it }
+        return result
+    }
 }

@@ -461,6 +461,9 @@ fun BobitosNavHost(
             IngredientsScreen(
                 onBack = { navController.popBackStack() },
                 onOpenIngredient = { id -> navController.navigate("ingredient-detail/${Uri.encode(id)}") },
+                onOpenBrand = { id, brandId ->
+                    navController.navigate("ingredient-detail/${Uri.encode(id)}?brandId=${Uri.encode(brandId)}")
+                },
             )
         }
 
@@ -485,10 +488,18 @@ fun BobitosNavHost(
 
         composable(
             route = INGREDIENT_DETAIL_ROUTE,
-            arguments = listOf(navArgument("ingredientId") { type = NavType.StringType }),
+            arguments = listOf(
+                navArgument("ingredientId") { type = NavType.StringType },
+                navArgument("brandId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
         ) { backStackEntry ->
             IngredientDetailScreen(
                 ingredientId = backStackEntry.arguments?.getString("ingredientId").orEmpty(),
+                brandId = backStackEntry.arguments?.getString("brandId"),
                 onBack = { navController.popBackStack() },
             )
         }

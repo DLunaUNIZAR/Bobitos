@@ -66,6 +66,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun IngredientDetailScreen(
     ingredientId: String,
+    brandId: String?,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: IngredientDetailViewModel = hiltViewModel(),
@@ -90,16 +91,8 @@ fun IngredientDetailScreen(
     val ingredient = state.ingredient
     // Se mantiene la ficha mientras el catálogo recarga (p. ej. al girar), para no perder el borrador.
     val editorIngredient = rememberEditorItem(ingredientId, ingredient, state.loaded)
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
-    // Un escaneo con éxito abre el editor de marca prerrellenado.
-    LaunchedEffect(state.scannedBrand) {
-        state.scannedBrand?.let { draft ->
-            openBrandEditor(null, BrandDraft.of(draft.name, draft.barcode, draft.nutrition))
-            viewModel.consumeScannedBrand()
-        }
-    }
+    BrandEvents(brandId, state, viewModel, openBrandEditor)
 
     Scaffold(
         modifier = modifier,
@@ -118,95 +111,191 @@ fun IngredientDetailScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            IngredientsFeedback(state.error, state.notice, state.isSaving, viewModel::clearFeedback)
-            if (ingredient == null) {
-                Text(
-                    stringResource(if (state.loaded) R.string.ingredients_error_not_found else R.string.write_saving),
-                    modifier = Modifier.padding(top = 16.dp),
-                )
-            } else {
-                FichaSection(
-                    ingredient = ingredient,
-                    canEdit = state.canEditIngredient,
-                    onEdit = { showFichaEditor = true },
-                    onDelete = { confirmDeleteIngredient = true },
-                )
-                StoresSection(
-                    stores = state.stores,
-                    enabled = !state.isSaving,
-                    onToggle = viewModel::toggleStore,
-                )
-                BrandsSection(
-                    state = state,
-                    onFavorite = viewModel::setFavorite,
-                    onAdd = { openBrandEditor(null, BrandDraft.of("", "", null)) },
-                    onScan = { scope.launch { scanBarcode(context)?.let(viewModel::lookupBarcode) } },
-                    onEdit = { openBrandEditor(it.id, BrandDraft.of(it)) },
-                    onDelete = { brandToDelete = it },
-                )
-            }
+            IngredientsFeedback(
+                state.error,
+                state.notice,
+                state.isSaving,
+                viewModel::clearFeedback,
+                barcodeConflict = state.barcodeConflict,
+            )
+            IngredientContent(
+                state = state,
+                ingredient = ingredient,
+                viewModel = viewModel,
+                onEditFicha = { showFichaEditor = true },
+                onDeleteIngredient = { confirmDeleteIngredient = true },
+                onOpenBrandEditor = openBrandEditor,
+                onDeleteBrand = { brandToDelete = it },
+            )
         }
     }
 
-    val fichaOpen = showFichaEditor && editorIngredient != null
-    EditorSaveEffect(
-        status = state.editorSave,
-        editorOpen = fichaOpen || brandInitial != null,
-        onClose = {
-            showFichaEditor = false
-            brandInitial = null
-        },
-        onConsume = viewModel::consumeEditorSave,
-    )
-    val editorError = editorErrorMessage(state.error, state.editorSave)
-
-    if (fichaOpen) {
-        IngredientEditorDialog(
-            ingredient = editorIngredient,
-            saving = state.isSaving,
-            errorMessage = editorError,
-            onDismiss = { showFichaEditor = false },
-            onSave = viewModel::updateIngredient,
-        )
-    }
-
-    BrandEditorHost(
+    DetailEditors(
+        state = state,
+        viewModel = viewModel,
+        fichaIngredient = editorIngredient.takeIf { showFichaEditor },
         brandId = brandEditorId,
-        initial = brandInitial,
-        saving = state.isSaving,
-        errorMessage = editorError,
-        onClose = { brandInitial = null },
-        onSave = viewModel::saveBrand,
+        brandInitial = brandInitial,
+        onCloseFicha = { showFichaEditor = false },
+        onCloseBrand = { brandInitial = null },
     )
 
-    if (confirmDeleteIngredient && ingredient != null) {
+    DeleteConfirmations(
+        ingredient = ingredient.takeIf { confirmDeleteIngredient },
+        brand = brandToDelete,
+        saving = state.isSaving,
+        onDeleteIngredient = {
+            viewModel.deleteIngredient()
+            confirmDeleteIngredient = false
+        },
+        onDeleteBrand = {
+            viewModel.deleteBrand(it.id)
+            brandToDelete = null
+        },
+        onDismissIngredient = { confirmDeleteIngredient = false },
+        onDismissBrand = { brandToDelete = null },
+    )
+}
+
+@Composable
+private fun DeleteConfirmations(
+    ingredient: CatalogIngredient?,
+    brand: IngredientBrand?,
+    saving: Boolean,
+    onDeleteIngredient: () -> Unit,
+    onDeleteBrand: (IngredientBrand) -> Unit,
+    onDismissIngredient: () -> Unit,
+    onDismissBrand: () -> Unit,
+) {
+    if (ingredient != null) {
         BobitosDialog(
             title = stringResource(R.string.ingredients_delete_title),
             message = stringResource(deleteBodyRes(ingredient), ingredient.name),
             confirmLabel = stringResource(R.string.ingredients_delete),
             destructive = true,
-            confirmEnabled = !state.isSaving,
-            onConfirm = {
-                viewModel.deleteIngredient()
-                confirmDeleteIngredient = false
-            },
-            onDismiss = { confirmDeleteIngredient = false },
+            confirmEnabled = !saving,
+            onConfirm = onDeleteIngredient,
+            onDismiss = onDismissIngredient,
         )
     }
-
-    brandToDelete?.let { brand ->
+    if (brand != null) {
         BobitosDialog(
             title = stringResource(R.string.ingredients_brand_delete_title),
             message = stringResource(R.string.ingredients_brand_delete_body, brand.name),
             confirmLabel = stringResource(R.string.ingredients_delete),
             destructive = true,
-            confirmEnabled = !state.isSaving,
-            onConfirm = {
-                viewModel.deleteBrand(brand.id)
-                brandToDelete = null
-            },
-            onDismiss = { brandToDelete = null },
+            confirmEnabled = !saving,
+            onConfirm = { onDeleteBrand(brand) },
+            onDismiss = onDismissBrand,
         )
+    }
+}
+
+/** Editores de la ficha y de la marca; el guardado confirmado por el servidor cierra el que esté abierto. */
+@Composable
+private fun DetailEditors(
+    state: IngredientDetailUiState,
+    viewModel: IngredientDetailViewModel,
+    fichaIngredient: CatalogIngredient?,
+    brandId: String?,
+    brandInitial: BrandDraft?,
+    onCloseFicha: () -> Unit,
+    onCloseBrand: () -> Unit,
+) {
+    EditorSaveEffect(
+        status = state.editorSave,
+        editorOpen = fichaIngredient != null || brandInitial != null,
+        onClose = {
+            onCloseFicha()
+            onCloseBrand()
+        },
+        onConsume = viewModel::consumeEditorSave,
+    )
+    val editorError = editorErrorMessage(state.error, state.editorSave)
+    if (fichaIngredient != null) {
+        IngredientEditorDialog(
+            ingredient = fichaIngredient,
+            saving = state.isSaving,
+            errorMessage = editorError,
+            onDismiss = onCloseFicha,
+            onSave = viewModel::updateIngredient,
+        )
+    }
+    BrandEditorHost(
+        brandId = brandId,
+        initial = brandInitial,
+        saving = state.isSaving,
+        errorMessage = editorError,
+        onClose = onCloseBrand,
+        onSave = viewModel::saveBrand,
+    )
+}
+
+@Composable
+private fun IngredientContent(
+    state: IngredientDetailUiState,
+    ingredient: CatalogIngredient?,
+    viewModel: IngredientDetailViewModel,
+    onEditFicha: () -> Unit,
+    onDeleteIngredient: () -> Unit,
+    onOpenBrandEditor: (String?, BrandDraft) -> Unit,
+    onDeleteBrand: (IngredientBrand) -> Unit,
+) {
+    if (ingredient == null) {
+        Text(
+            stringResource(if (state.loaded) R.string.ingredients_error_not_found else R.string.write_saving),
+            modifier = Modifier.padding(top = 16.dp),
+        )
+        return
+    }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    FichaSection(
+        ingredient = ingredient,
+        canEdit = state.canEditIngredient,
+        onEdit = onEditFicha,
+        onDelete = onDeleteIngredient,
+    )
+    StoresSection(stores = state.stores, enabled = !state.isSaving, onToggle = viewModel::toggleStore)
+    BrandsSection(
+        state = state,
+        onFavorite = viewModel::setFavorite,
+        onAdd = { onOpenBrandEditor(null, BrandDraft.of("", "", null)) },
+        onScan = { scope.launch { scanBarcode(context)?.let(viewModel::lookupBarcode) } },
+        onEdit = { onOpenBrandEditor(it.id, BrandDraft.of(it)) },
+        onDelete = onDeleteBrand,
+    )
+}
+
+/** Abre el editor de una marca: la del argumento de navegación, la de un código escaneado o una nueva. */
+@Composable
+private fun BrandEvents(
+    brandId: String?,
+    state: IngredientDetailUiState,
+    viewModel: IngredientDetailViewModel,
+    openBrandEditor: (String?, BrandDraft) -> Unit,
+) {
+    // La marca del argumento de navegación (llegada desde un escaneo en la lista) se abre una sola vez.
+    var brandArgHandled by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(brandId, state.brands) {
+        if (brandId == null || brandArgHandled) return@LaunchedEffect
+        state.brands.firstOrNull { it.id == brandId }?.let {
+            brandArgHandled = true
+            openBrandEditor(it.id, BrandDraft.of(it))
+        }
+    }
+    // Un escaneo de una marca de este ingrediente abre su editor.
+    LaunchedEffect(state.openBrandId) {
+        val id = state.openBrandId ?: return@LaunchedEffect
+        state.brands.firstOrNull { it.id == id }?.let { openBrandEditor(it.id, BrandDraft.of(it)) }
+        viewModel.consumeOpenBrand()
+    }
+    // Un escaneo nuevo con éxito abre el editor de marca prerrellenado.
+    LaunchedEffect(state.scannedBrand) {
+        state.scannedBrand?.let { draft ->
+            openBrandEditor(null, BrandDraft.of(draft.name, draft.barcode, draft.nutrition))
+            viewModel.consumeScannedBrand()
+        }
     }
 }
 
@@ -368,7 +457,7 @@ private fun BrandEditorHost(
 }
 
 @Composable
-private fun BrandEditorDialog(
+internal fun BrandEditorDialog(
     brandId: String?,
     initial: BrandDraft,
     saving: Boolean,
