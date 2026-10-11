@@ -1,0 +1,40 @@
+[
+  {
+    "caso": "repeticiones",
+    "entry": { "exerciseId": "prensa-de-piernas", "series": 2, "reps": 12 },
+    "exercise": { "name": "Prensa de piernas", "type": "MAQUINA", "measure": "REPS" },
+    "firestore": {
+      "name": "Prensa de piernas", "exerciseId": "prensa-de-piernas", "type": "MAQUINA",
+      "sets": [{ "reps": 12, "weight": null }, { "reps": 12, "weight": null }],
+      "durationMinutes": null, "level": null, "notes": null
+    }
+  },
+  {
+    "caso": "segundos",
+    "entry": { "exerciseId": "plancha", "series": 2, "seconds": 30, "notes": "Espalda recta" },
+    "exercise": { "name": "Plancha", "type": "PESO_CORPORAL", "measure": "SECONDS" },
+    "firestore": {
+      "name": "Plancha", "exerciseId": "plancha", "type": "PESO_CORPORAL",
+      "sets": [{ "reps": null, "weight": null, "seconds": 30 }, { "reps": null, "weight": null, "seconds": 30 }],
+      "durationMinutes": null, "level": null, "notes": "Espalda recta", "measure": "SECONDS"
+    }
+  },
+  {
+    "caso": "cardio",
+    "entry": { "exerciseId": "cinta-de-correr", "durationMinutes": 10, "level": "Suave" },
+    "exercise": { "name": "Cinta de correr", "type": "CARDIO", "measure": "REPS" },
+    "firestore": {
+      "name": "Cinta de correr", "exerciseId": "cinta-de-correr", "type": "CARDIO",
+      "sets": [], "durationMinutes": 10, "level": "Suave", "notes": null
+    }
+  },
+  {
+    "caso": "otros",
+    "entry": { "exerciseId": "patada-de-gluteo-con-banda-elastica", "durationMinutes": 5 },
+    "exercise": { "name": "Patada de glúteo con banda elástica", "type": "OTROS", "measure": "REPS" },
+    "firestore": {
+      "name": "Patada de glúteo con banda elástica", "exerciseId": "patada-de-gluteo-con-banda-elastica", "type": "OTROS",
+      "sets": [], "durationMinutes": 5, "level": null, "notes": null
+    }
+  }
+]
