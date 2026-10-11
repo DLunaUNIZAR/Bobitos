@@ -31,12 +31,12 @@ internal val Supermarket.labelRes: Int
 // Color de marca por supermercado (identidad visual sin usar logotipos, por marca registrada).
 // Se usa para tintar un icono de tienda genérico; tonos medios legibles en claro y oscuro.
 internal fun Supermarket.brandColor(): Color = when (this) {
-    Supermarket.DIA -> Color(0xFFC8102E)
+    Supermarket.DIA -> Color(0xFFE02947)
     Supermarket.EROSKI -> Color(0xFFEC6608)
     Supermarket.MERCADONA -> Color(0xFF00843D)
     Supermarket.CARREFOUR -> Color(0xFF004E9E)
     Supermarket.ALCAMPO -> Color(0xFFE30613)
-    Supermarket.CARNICERIA -> Color(0xFFA33B3B)
+    Supermarket.CARNICERIA -> Color(0xFFBE5A55)
     Supermarket.PESCADERIA -> Color(0xFF2F7DA8)
     Supermarket.FRUTERIA -> Color(0xFF5E9A2F)
     Supermarket.PANADERIA -> Color(0xFFB07A2A)
