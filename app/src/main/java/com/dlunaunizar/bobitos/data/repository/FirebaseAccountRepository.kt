@@ -23,41 +23,42 @@ class FirebaseAccountRepository @Inject constructor(
     private val auth = firebaseInitializer.auth()
     private val firestore = FirebaseFirestore.getInstance()
 
-    override suspend fun deleteAccount(password: String) {
-        try {
-            if (password.isBlank()) {
-                throw AccountRepositoryException(AccountFailure.PasswordRequired)
-            }
-            syncRepository.requireWritable()
-            val user = auth.currentUser
-                ?: throw AccountRepositoryException(AccountFailure.NotAuthenticated)
-            user.reauthenticate(
-                EmailAuthProvider.getCredential(user.email.orEmpty(), password),
-            ).await()
-            // Lo que puede fallar por permisos va antes de lo irreversible (salir de espacios,
-            // anonimizar recetas, borrar el usuario); además es repetible.
-            deletePersonalData(user.uid)
-            val memberships = firestore.collection(MEMBERSHIPS)
-                .whereEqualTo(FIELD_USER_ID, user.uid)
-                .whereEqualTo(FIELD_STATUS, ACTIVE)
-                .get(Source.SERVER).await().documents
-            if (memberships.any { it.getString(FIELD_ROLE) == OWNER }) {
-                throw AccountRepositoryException(AccountFailure.OwnerSpacesRemaining)
-            }
-            memberships.forEach { membership ->
-                val spaceId = membership.getString(FIELD_SPACE_ID)
+    override suspend fun deleteAccount(password: String) = deleteAccountWith(steps, password)
+
+    private val steps = object : AccountDeletionSteps {
+        override suspend fun requireWritable() = syncRepository.requireWritable()
+
+        override suspend fun reauthenticate(password: String) {
+            val user = currentUser()
+            user.reauthenticate(EmailAuthProvider.getCredential(user.email.orEmpty(), password)).await()
+        }
+
+        override suspend fun activeMemberships(): List<ActiveMembership> = firestore.collection(MEMBERSHIPS)
+            .whereEqualTo(FIELD_USER_ID, currentUser().uid)
+            .whereEqualTo(FIELD_STATUS, ACTIVE)
+            .get(Source.SERVER).await().documents
+            .map {
+                val spaceId = it.getString(FIELD_SPACE_ID)
                     ?: throw AccountRepositoryException(AccountFailure.Unknown)
-                anonymizeDisplayNames(spaceId, user.uid)
-                spaces.leaveSpace(spaceId)
+                ActiveMembership(spaceId, it.getString(FIELD_ROLE) == OWNER)
             }
-            anonymizeOrDeleteOwnedRecipes(user.uid)
-            user.delete().await()
-        } catch (error: AccountRepositoryException) {
-            throw error
-        } catch (error: Throwable) {
-            throw AccountRepositoryException(error.failure(), error)
+
+        override suspend fun deletePersonalData() = deletePersonalData(currentUser().uid)
+
+        override suspend fun leaveSpace(spaceId: String) {
+            anonymizeDisplayNames(spaceId, currentUser().uid)
+            spaces.leaveSpace(spaceId)
+        }
+
+        override suspend fun anonymizeOrDeleteOwnedRecipes() = anonymizeOrDeleteOwnedRecipes(currentUser().uid)
+
+        override suspend fun deleteUser() {
+            currentUser().delete().await()
         }
     }
+
+    private fun currentUser() = auth.currentUser
+        ?: throw AccountRepositoryException(AccountFailure.NotAuthenticated)
 
     private suspend fun anonymizeDisplayNames(spaceId: String, userId: String) {
         val space = firestore.collection(SPACES).document(spaceId)
@@ -148,7 +149,7 @@ private fun DocumentSnapshot.anonymousNameUpdates(userId: String): Map<String, A
     return updates
 }
 
-private fun Throwable.failure() = when (this) {
+internal fun Throwable.failure() = when (this) {
     is WriteNotAllowedException -> AccountFailure.Network
     is FirebaseAuthInvalidCredentialsException -> AccountFailure.InvalidCredentials
     is FirebaseNetworkException -> AccountFailure.Network
