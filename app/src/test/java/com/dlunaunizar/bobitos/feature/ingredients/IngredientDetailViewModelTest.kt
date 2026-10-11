@@ -5,15 +5,20 @@ import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
+import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Nutrition
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffException
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffFailure
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffProduct
 import com.dlunaunizar.bobitos.data.openfoodfacts.OpenFoodFactsClient
+import com.dlunaunizar.bobitos.data.repository.BrandFailure
 import com.dlunaunizar.bobitos.data.repository.BrandInput
+import com.dlunaunizar.bobitos.data.repository.BrandRepositoryException
 import com.dlunaunizar.bobitos.data.repository.IngredientBrandRepository
+import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientRepository
+import com.dlunaunizar.bobitos.data.repository.PersonalIngredientRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -37,57 +42,132 @@ class IngredientDetailViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val repository = DetailFakeIngredientRepo()
+    private val personalRepository = DetailFakePersonalRepo()
+    private val prefsRepository = DetailFakePrefsRepo()
     private val brandRepository = DetailFakeBrandRepo()
     private val offClient = DetailFakeOffClient()
-    private val viewModel = IngredientDetailViewModel(repository, brandRepository, offClient)
+    private val viewModel =
+        IngredientDetailViewModel(repository, personalRepository, prefsRepository, brandRepository, offClient)
 
     @Test
-    fun `observe loads only its own brands, favorites first`() = runTest(mainDispatcherRule.testDispatcher) {
+    fun `observe resolves a common ingredient before a personal one with the same id`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.catalogState.value = listOf(detailIngredient("tomate", "Tomate común"))
+            personalRepository.state.value = listOf(detailIngredient("tomate", "Tomate mío", personal = true))
+
+            viewModel.observe("tomate")
+            advanceUntilIdle()
+
+            assertEquals("Tomate común", viewModel.uiState.value.ingredient?.name)
+
+            repository.catalogState.value = emptyList()
+            advanceUntilIdle()
+            assertEquals("Tomate mío", viewModel.uiState.value.ingredient?.name)
+        }
+
+    @Test
+    fun `observe shows only this ingredient's brands, favorites first`() = runTest(mainDispatcherRule.testDispatcher) {
         repository.catalogState.value = listOf(detailIngredient("tomate", "Tomate"), detailIngredient("sal", "Sal"))
         brandRepository.brandsState.value = listOf(
             detailBrand("b1", "tomate", "Hacendado"),
             detailBrand("b2", "sal", "Ajena"),
             detailBrand("b3", "tomate", "Zeta").copy(favorite = true),
         )
+        prefsRepository.state.value = mapOf("tomate" to IngredientPref(listOf(Supermarket.DIA)))
 
         viewModel.observe("tomate")
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
-        assertEquals("Tomate", state.ingredient?.name)
         assertEquals(listOf("Zeta", "Hacendado"), state.brands.map(IngredientBrand::name))
+        assertEquals(listOf(Supermarket.DIA), state.stores)
     }
 
     @Test
-    fun `updating a brand keeps its favorite and stores`() = runTest(mainDispatcherRule.testDispatcher) {
-        brandRepository.brandsState.value = listOf(
-            detailBrand("b1", "tomate", "Hacendado").copy(favorite = true, stores = listOf(Supermarket.DIA)),
-        )
+    fun `canEditIngredient is true for personal and for admins on common`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.catalogState.value = listOf(detailIngredient("tomate", "Tomate"))
+            personalRepository.state.value = listOf(detailIngredient("mio", "Mío", personal = true))
+
+            viewModel.observe("tomate")
+            advanceUntilIdle()
+            assertFalse(viewModel.uiState.value.canEditIngredient)
+            viewModel.stopObserving()
+
+            viewModel.observe("mio")
+            advanceUntilIdle()
+            assertTrue(viewModel.uiState.value.canEditIngredient)
+            viewModel.stopObserving()
+
+            repository.admin = true
+            viewModel.observe("tomate")
+            advanceUntilIdle()
+            assertTrue(viewModel.uiState.value.canEditIngredient)
+        }
+
+    @Test
+    fun `toggling a store saves the new ordered list and is not an editor action`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            prefsRepository.state.value = mapOf("tomate" to IngredientPref(listOf(Supermarket.DIA)))
+            viewModel.observe("tomate")
+            advanceUntilIdle()
+
+            viewModel.toggleStore(Supermarket.MERCADONA)
+            advanceUntilIdle()
+
+            assertEquals("tomate" to listOf(Supermarket.DIA, Supermarket.MERCADONA), prefsRepository.lastSet)
+            assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+
+            viewModel.toggleStore(Supermarket.DIA)
+            advanceUntilIdle()
+            assertEquals("tomate" to listOf(Supermarket.MERCADONA), prefsRepository.lastSet)
+        }
+
+    @Test
+    fun `setting favorite forwards it`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("tomate")
         advanceUntilIdle()
 
-        viewModel.updateBrand("b1", "Otra", null, null)
+        viewModel.setFavorite("b1", true)
         advanceUntilIdle()
 
-        val input = brandRepository.lastUpdate
-        assertEquals("Otra", input?.name)
+        assertEquals("b1" to true, brandRepository.lastFavorite)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+    }
+
+    @Test
+    fun `saving a new brand sends favorite and stores`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("tomate")
+        advanceUntilIdle()
+        val draft = BrandDraft.of("Hacendado", "8410000000000", null)
+            .copy(favorite = true, stores = listOf(Supermarket.ALCAMPO, Supermarket.DIA))
+            .withNutrition(0, "30")
+
+        viewModel.saveBrand(null, draft)
+        advanceUntilIdle()
+
+        val input = brandRepository.lastAdd
         assertEquals("tomate", input?.ingredientId)
+        assertEquals("Hacendado", input?.name)
+        assertEquals("8410000000000", input?.barcode)
+        assertEquals(Nutrition(energyKcal = 30.0), input?.nutrition)
         assertEquals(true, input?.favorite)
-        assertEquals(listOf(Supermarket.DIA), input?.stores)
+        assertEquals(listOf(Supermarket.ALCAMPO, Supermarket.DIA), input?.stores)
+        assertEquals(IngredientUiMessage.BrandSaved, viewModel.uiState.value.notice)
     }
 
     @Test
-    fun `adding a brand forwards name and nutrition`() = runTest(mainDispatcherRule.testDispatcher) {
+    fun `editing a brand never changes its ingredient`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("tomate")
         advanceUntilIdle()
 
-        viewModel.addBrand("Hacendado", "8410000000000", Nutrition(energyKcal = 30.0, salt = 0.1))
+        viewModel.saveBrand("b1", BrandDraft.of("Otra", "", null).copy(stores = listOf(Supermarket.DIA)))
         advanceUntilIdle()
 
-        assertEquals("tomate", brandRepository.lastIngredientId)
-        assertEquals("Hacendado", brandRepository.lastName)
-        assertEquals(Nutrition(energyKcal = 30.0, salt = 0.1), brandRepository.lastNutrition)
-        assertEquals(IngredientUiMessage.BrandSaved, viewModel.uiState.value.notice)
+        assertEquals("b1", brandRepository.lastUpdateId)
+        assertEquals("tomate", brandRepository.lastUpdate?.ingredientId)
+        assertEquals("Otra", brandRepository.lastUpdate?.name)
+        assertEquals(listOf(Supermarket.DIA), brandRepository.lastUpdate?.stores)
     }
 
     @Test
@@ -95,21 +175,67 @@ class IngredientDetailViewModelTest {
         viewModel.observe("tomate")
         advanceUntilIdle()
 
-        viewModel.addBrand("  ", null, null)
+        viewModel.saveBrand(null, BrandDraft.of("  ", "", null))
 
         assertEquals(0, brandRepository.addCount)
         assertEquals(IngredientUiMessage.BrandNameRequired, viewModel.uiState.value.error)
     }
 
     @Test
-    fun `deleting the ingredient marks the screen finished`() = runTest(mainDispatcherRule.testDispatcher) {
+    fun `a repository validation error is shown`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("tomate")
         advanceUntilIdle()
+        brandRepository.addError = BrandRepositoryException(BrandFailure.NameTooLong)
 
-        viewModel.deleteIngredient()
+        viewModel.saveBrand(null, BrandDraft.of("x".repeat(61), "", null))
         advanceUntilIdle()
 
-        assertTrue(viewModel.uiState.value.finished)
+        assertEquals(IngredientUiMessage.BrandNameTooLong, viewModel.uiState.value.error)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+    }
+
+    @Test
+    fun `deleting a personal ingredient uses the personal repository and finishes`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            personalRepository.state.value = listOf(detailIngredient("mio", "Mío", personal = true))
+            viewModel.observe("mio")
+            advanceUntilIdle()
+
+            viewModel.deleteIngredient()
+            advanceUntilIdle()
+
+            assertEquals("mio", personalRepository.deletedId)
+            assertNull(repository.deletedId)
+            assertTrue(viewModel.uiState.value.finished)
+        }
+
+    @Test
+    fun `deleting a common ingredient as admin uses the catalog repository`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.admin = true
+            repository.catalogState.value = listOf(detailIngredient("tomate", "Tomate"))
+            viewModel.observe("tomate")
+            advanceUntilIdle()
+
+            viewModel.deleteIngredient()
+            advanceUntilIdle()
+
+            assertEquals("tomate", repository.deletedId)
+            assertNull(personalRepository.deletedId)
+            assertTrue(viewModel.uiState.value.finished)
+        }
+
+    @Test
+    fun `updating a personal ingredient uses the personal repository`() = runTest(mainDispatcherRule.testDispatcher) {
+        personalRepository.state.value = listOf(detailIngredient("mio", "Mío", personal = true))
+        viewModel.observe("mio")
+        advanceUntilIdle()
+
+        viewModel.updateIngredient("Mío 2", "Verdura", "kg")
+        advanceUntilIdle()
+
+        assertEquals("mio", personalRepository.updatedId)
+        assertNull(repository.updatedId)
     }
 
     @Test
@@ -163,6 +289,7 @@ class IngredientDetailViewModelTest {
 
     @Test
     fun `ficha save is SAVED only after the repository answers`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.catalogState.value = listOf(detailIngredient("tomate", "Tomate"))
         viewModel.observe("tomate")
         advanceUntilIdle()
         val gate = CompletableDeferred<Unit>()
@@ -185,7 +312,7 @@ class IngredientDetailViewModelTest {
         val gate = CompletableDeferred<Unit>()
         brandRepository.addGate = gate
 
-        viewModel.addBrand("Hacendado", null, null)
+        viewModel.saveBrand(null, BrandDraft.of("Hacendado", "", null))
         assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
         gate.complete(Unit)
         advanceUntilIdle()
@@ -194,7 +321,7 @@ class IngredientDetailViewModelTest {
 
         val updateGate = CompletableDeferred<Unit>()
         brandRepository.updateGate = updateGate
-        viewModel.updateBrand("b1", "Otra", null, null)
+        viewModel.saveBrand("b1", BrandDraft.of("Otra", "", null))
         assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
         updateGate.complete(Unit)
         advanceUntilIdle()
@@ -203,9 +330,10 @@ class IngredientDetailViewModelTest {
 
     @Test
     fun `ficha and brand saves with timeout or validation leave FAILED`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.catalogState.value = listOf(detailIngredient("tomate", "Tomate"))
         viewModel.observe("tomate")
         advanceUntilIdle()
-        viewModel.addBrand("  ", null, null)
+        viewModel.saveBrand(null, BrandDraft.of("  ", "", null))
         assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
         viewModel.consumeEditorSave()
 
@@ -222,6 +350,8 @@ class IngredientDetailViewModelTest {
 
     @Test
     fun `delete never touches editorSave`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.admin = true
+        repository.catalogState.value = listOf(detailIngredient("tomate", "Tomate"))
         viewModel.observe("tomate")
         advanceUntilIdle()
 
@@ -235,7 +365,8 @@ class IngredientDetailViewModelTest {
     }
 }
 
-private fun detailIngredient(id: String, name: String) = CatalogIngredient(id = id, name = name)
+private fun detailIngredient(id: String, name: String, personal: Boolean = false) =
+    CatalogIngredient(id = id, name = name, personal = personal)
 
 private fun detailBrand(id: String, ingredientId: String, name: String) =
     IngredientBrand(id = id, ingredientId = ingredientId, name = name)
@@ -245,6 +376,8 @@ private class DetailFakeIngredientRepo : IngredientRepository {
     var admin = false
     var uid: String? = null
     var updateGate: CompletableDeferred<Unit>? = null
+    var deletedId: String? = null
+    var updatedId: String? = null
 
     // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
     var hang = false
@@ -254,6 +387,7 @@ private class DetailFakeIngredientRepo : IngredientRepository {
     override fun currentUserId(): String? = uid
     override suspend fun createIngredient(name: String, category: String?, defaultUnit: String?) = Unit
     override suspend fun updateIngredient(id: String, name: String, category: String?, defaultUnit: String?) {
+        updatedId = id
         if (hang) {
             try {
                 awaitCancellation()
@@ -264,7 +398,36 @@ private class DetailFakeIngredientRepo : IngredientRepository {
         updateGate?.await()
     }
 
-    override suspend fun deleteIngredient(id: String) = Unit
+    override suspend fun deleteIngredient(id: String) {
+        deletedId = id
+    }
+}
+
+private class DetailFakePersonalRepo : PersonalIngredientRepository {
+    val state = MutableStateFlow<List<CatalogIngredient>>(emptyList())
+    var deletedId: String? = null
+    var updatedId: String? = null
+
+    override fun ingredients(): Flow<List<CatalogIngredient>> = state
+    override suspend fun create(name: String, category: String?, defaultUnit: String?): String = "new"
+    override suspend fun update(id: String, name: String, category: String?, defaultUnit: String?) {
+        updatedId = id
+    }
+
+    override suspend fun delete(id: String) {
+        deletedId = id
+    }
+}
+
+private class DetailFakePrefsRepo : IngredientPrefsRepository {
+    val state = MutableStateFlow<Map<String, IngredientPref>>(emptyMap())
+    var lastSet: Pair<String, List<Supermarket>>? = null
+
+    override fun prefs(): Flow<Map<String, IngredientPref>> = state
+    override suspend fun setStores(ingredientId: String, stores: List<Supermarket>) {
+        lastSet = ingredientId to stores
+        state.value = state.value + (ingredientId to IngredientPref(stores))
+    }
 }
 
 private class DetailFakeBrandRepo : IngredientBrandRepository {
@@ -272,28 +435,30 @@ private class DetailFakeBrandRepo : IngredientBrandRepository {
     var addCount = 0
     var addGate: CompletableDeferred<Unit>? = null
     var updateGate: CompletableDeferred<Unit>? = null
-    var lastIngredientId: String? = null
-    var lastName: String? = null
-    var lastNutrition: Nutrition? = null
-
+    var addError: Throwable? = null
+    var lastAdd: BrandInput? = null
     var lastUpdate: BrandInput? = null
+    var lastUpdateId: String? = null
+    var lastFavorite: Pair<String, Boolean>? = null
 
     override fun brands(): Flow<List<IngredientBrand>> = brandsState
     override suspend fun addBrand(input: BrandInput): String {
         addGate?.await()
+        addError?.let { throw it }
         addCount++
-        lastIngredientId = input.ingredientId
-        lastName = input.name
-        lastNutrition = input.nutrition
+        lastAdd = input
         return "new"
     }
 
     override suspend fun updateBrand(brandId: String, input: BrandInput) {
         updateGate?.await()
+        lastUpdateId = brandId
         lastUpdate = input
     }
 
-    override suspend fun setFavorite(brandId: String, favorite: Boolean) = Unit
+    override suspend fun setFavorite(brandId: String, favorite: Boolean) {
+        lastFavorite = brandId to favorite
+    }
     override suspend fun deleteBrand(brandId: String) = Unit
 }
 

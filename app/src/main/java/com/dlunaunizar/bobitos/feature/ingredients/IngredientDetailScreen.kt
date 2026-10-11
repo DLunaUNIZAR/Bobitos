@@ -2,23 +2,30 @@ package com.dlunaunizar.bobitos.feature.ingredients
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.QrCodeScanner
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -30,9 +37,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -43,10 +52,14 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.InfoChip
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.Nutrition
+import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.dlunaunizar.bobitos.feature.shopping.SupermarketIcon
+import com.dlunaunizar.bobitos.feature.shopping.labelRes
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -118,11 +131,17 @@ fun IngredientDetailScreen(
                     onEdit = { showFichaEditor = true },
                     onDelete = { confirmDeleteIngredient = true },
                 )
+                StoresSection(
+                    stores = state.stores,
+                    enabled = !state.isSaving,
+                    onToggle = viewModel::toggleStore,
+                )
                 BrandsSection(
                     state = state,
+                    onFavorite = viewModel::setFavorite,
                     onAdd = { openBrandEditor(null, BrandDraft.of("", "", null)) },
                     onScan = { scope.launch { scanBarcode(context)?.let(viewModel::lookupBarcode) } },
-                    onEdit = { openBrandEditor(it.id, BrandDraft.of(it.name, it.barcode.orEmpty(), it.nutrition)) },
+                    onEdit = { openBrandEditor(it.id, BrandDraft.of(it)) },
                     onDelete = { brandToDelete = it },
                 )
             }
@@ -157,16 +176,13 @@ fun IngredientDetailScreen(
         saving = state.isSaving,
         errorMessage = editorError,
         onClose = { brandInitial = null },
-        onSave = { brandId, name, barcode, nutrition ->
-            brandId?.let { viewModel.updateBrand(it, name, barcode, nutrition) }
-                ?: viewModel.addBrand(name, barcode, nutrition)
-        },
+        onSave = viewModel::saveBrand,
     )
 
     if (confirmDeleteIngredient && ingredient != null) {
         BobitosDialog(
             title = stringResource(R.string.ingredients_delete_title),
-            message = stringResource(R.string.ingredients_delete_body, ingredient.name),
+            message = stringResource(deleteBodyRes(ingredient), ingredient.name),
             confirmLabel = stringResource(R.string.ingredients_delete),
             destructive = true,
             confirmEnabled = !state.isSaving,
@@ -215,8 +231,22 @@ private fun FichaSection(ingredient: CatalogIngredient, canEdit: Boolean, onEdit
 }
 
 @Composable
+private fun StoresSection(stores: List<Supermarket>, enabled: Boolean, onToggle: (Supermarket) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(stringResource(R.string.ingredients_stores_title), style = MaterialTheme.typography.titleMedium)
+        Text(
+            stringResource(R.string.ingredients_stores_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        StoreChips(selected = stores, onToggle = onToggle, enabled = enabled)
+    }
+}
+
+@Composable
 private fun BrandsSection(
     state: IngredientDetailUiState,
+    onFavorite: (String, Boolean) -> Unit,
     onAdd: () -> Unit,
     onScan: () -> Unit,
     onEdit: (IngredientBrand) -> Unit,
@@ -246,6 +276,7 @@ private fun BrandsSection(
         state.brands.forEach { brand ->
             BrandCard(
                 brand = brand,
+                onFavorite = { onFavorite(brand.id, it) },
                 onEdit = { onEdit(brand) },
                 onDelete = { onDelete(brand) },
             )
@@ -253,12 +284,42 @@ private fun BrandsSection(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun BrandCard(brand: IngredientBrand, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun BrandCard(
+    brand: IngredientBrand,
+    onFavorite: (Boolean) -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var showNutrition by rememberSaveable(brand.id) { mutableStateOf(false) }
     Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(brand.name, style = MaterialTheme.typography.titleSmall)
-            brand.nutrition?.let { NutritionSummary(it) }
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(brand.name, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                IconToggleButton(checked = brand.favorite, onCheckedChange = onFavorite) {
+                    Icon(
+                        imageVector = if (brand.favorite) Icons.Rounded.Star else Icons.Rounded.StarBorder,
+                        contentDescription = stringResource(favoriteDescriptionRes(brand.favorite), brand.name),
+                    )
+                }
+            }
+            if (brand.stores.isNotEmpty()) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    brand.stores.forEach { store ->
+                        InfoChip(label = stringResource(store.labelRes), icon = { SupermarketIcon(store) })
+                    }
+                }
+            }
+            brand.nutrition?.let { nutrition ->
+                TextButton(onClick = { showNutrition = !showNutrition }) {
+                    Text(stringResource(nutritionToggleRes(showNutrition)))
+                }
+                if (showNutrition) NutritionSummary(nutrition)
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = onEdit) { Text(stringResource(R.string.ingredients_edit)) }
                 TextButton(onClick = onDelete) { Text(stringResource(R.string.ingredients_delete)) }
@@ -293,7 +354,7 @@ private fun BrandEditorHost(
     saving: Boolean,
     errorMessage: String?,
     onClose: () -> Unit,
-    onSave: (String?, String, String?, Nutrition?) -> Unit,
+    onSave: (String?, BrandDraft) -> Unit,
 ) {
     if (initial == null) return
     BrandEditorDialog(
@@ -302,7 +363,7 @@ private fun BrandEditorHost(
         saving = saving,
         errorMessage = errorMessage,
         onDismiss = onClose,
-        onSave = { name, barcode, nutrition -> onSave(brandId, name, barcode, nutrition) },
+        onSave = { draft -> onSave(brandId, draft) },
     )
 }
 
@@ -313,7 +374,7 @@ private fun BrandEditorDialog(
     saving: Boolean,
     errorMessage: String?,
     onDismiss: () -> Unit,
-    onSave: (String, String?, Nutrition?) -> Unit,
+    onSave: (BrandDraft) -> Unit,
 ) {
     var draft by rememberSaveable(brandId, initial) { mutableStateOf(initial) }
     BobitosFormSheet(
@@ -326,7 +387,7 @@ private fun BrandEditorDialog(
         dirty = { draft != initial },
         errorMessage = errorMessage,
         onDismiss = onDismiss,
-        onConfirm = { onSave(draft.name, draft.barcode.trim().ifBlank { null }, draft.toNutrition()) },
+        onConfirm = { onSave(draft) },
     ) {
         OutlinedTextField(
             value = draft.name,
@@ -342,6 +403,25 @@ private fun BrandEditorDialog(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
+        Text(stringResource(R.string.ingredients_brand_stores_label), style = MaterialTheme.typography.titleSmall)
+        StoreChips(
+            selected = draft.stores,
+            onToggle = { draft = draft.copy(stores = toggleStore(draft.stores, it)) },
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .toggleable(
+                    value = draft.favorite,
+                    role = Role.Switch,
+                    onValueChange = { draft = draft.copy(favorite = it) },
+                ),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(stringResource(R.string.ingredients_brand_favorite_switch), modifier = Modifier.weight(1f))
+            Switch(checked = draft.favorite, onCheckedChange = null)
+        }
         Text(
             stringResource(R.string.nutrition_section),
             style = MaterialTheme.typography.titleSmall,
@@ -369,3 +449,12 @@ private val NUTRITION_LABELS = listOf(
     R.string.nutrition_protein_label,
     R.string.nutrition_salt_label,
 )
+
+private fun deleteBodyRes(ingredient: CatalogIngredient) =
+    if (ingredient.personal) R.string.ingredients_delete_personal_body else R.string.ingredients_delete_body
+
+private fun favoriteDescriptionRes(favorite: Boolean) =
+    if (favorite) R.string.ingredients_brand_unfavorite else R.string.ingredients_brand_favorite
+
+private fun nutritionToggleRes(shown: Boolean) =
+    if (shown) R.string.ingredients_nutrition_hide else R.string.ingredients_nutrition_show

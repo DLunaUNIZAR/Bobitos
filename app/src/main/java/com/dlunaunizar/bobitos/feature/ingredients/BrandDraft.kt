@@ -2,14 +2,23 @@ package com.dlunaunizar.bobitos.feature.ingredients
 
 import android.os.Parcelable
 import com.dlunaunizar.bobitos.core.common.formatDecimal
+import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.Nutrition
+import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.dlunaunizar.bobitos.data.repository.BrandInput
 import kotlinx.parcelize.Parcelize
 
-// Borrador del editor de marca: nombre, código de barras y los 6 valores nutricionales como texto
+// Borrador del editor de marca: nombre, código de barras, favorita, tiendas y los 6 valores nutricionales como texto
 // (el teclado decimal emite coma o punto). Parcelable para que sobreviva a una rotación.
 // Orden de `nutrition`: energía, grasas, carbohidratos, azúcares, proteínas, sal.
 @Parcelize
-internal data class BrandDraft(val name: String, val barcode: String, val nutrition: List<String>) : Parcelable {
+internal data class BrandDraft(
+    val name: String,
+    val barcode: String,
+    val nutrition: List<String>,
+    val favorite: Boolean = false,
+    val stores: List<Supermarket> = emptyList(),
+) : Parcelable {
     fun withNutrition(index: Int, value: String) = copy(
         nutrition = nutrition.mapIndexed { i, current -> if (i == index) value else current },
     )
@@ -24,6 +33,16 @@ internal data class BrandDraft(val name: String, val barcode: String, val nutrit
         salt = parseNutritionValue(nutrition[SALT]),
     ).takeUnless(Nutrition::isEmpty)
 
+    /** Datos para guardar la marca de [ingredientId]. */
+    fun toInput(ingredientId: String) = BrandInput(
+        ingredientId = ingredientId,
+        name = name.trim(),
+        barcode = barcode.trim().ifBlank { null },
+        nutrition = toNutrition(),
+        favorite = favorite,
+        stores = stores,
+    )
+
     companion object {
         private const val ENERGY = 0
         private const val FAT = 1
@@ -31,6 +50,9 @@ internal data class BrandDraft(val name: String, val barcode: String, val nutrit
         private const val SUGARS = 3
         private const val PROTEIN = 4
         private const val SALT = 5
+
+        fun of(brand: IngredientBrand) = of(brand.name, brand.barcode.orEmpty(), brand.nutrition)
+            .copy(favorite = brand.favorite, stores = brand.stores)
 
         fun of(name: String, barcode: String, nutrition: Nutrition?) = BrandDraft(
             name = name,

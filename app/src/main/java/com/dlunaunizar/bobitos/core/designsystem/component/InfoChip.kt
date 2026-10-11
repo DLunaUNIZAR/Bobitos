@@ -1,11 +1,14 @@
 package com.dlunaunizar.bobitos.core.designsystem.component
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -13,12 +16,14 @@ import androidx.compose.ui.unit.dp
 /**
  * Etiqueta informativa con aspecto de chip pero sin acción: no es clicable ni se anuncia como botón
  * desactivado (a diferencia de `AssistChip(enabled = false)`), así TalkBack solo lee su texto.
+ * El [icon] opcional es decorativo.
  */
 @Composable
 fun InfoChip(
     label: String,
     modifier: Modifier = Modifier,
     contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    icon: (@Composable () -> Unit)? = null,
 ) {
     Surface(
         modifier = modifier,
@@ -27,10 +32,13 @@ fun InfoChip(
         contentColor = contentColor,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
+        Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-        )
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            icon?.invoke()
+            Text(text = label, style = MaterialTheme.typography.labelLarge)
+        }
     }
 }

@@ -4,6 +4,7 @@ import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.Nutrition
+import com.dlunaunizar.bobitos.core.model.Supermarket
 
 /** Borrador de marca prerrellenado tras escanear un código (nombre/nutrición de Open Food Facts). */
 data class ScannedBrand(val name: String, val barcode: String, val nutrition: Nutrition?)
@@ -14,6 +15,8 @@ data class IngredientDetailUiState(
     // El catálogo ya emitió (para distinguir «cargando» de «no existe»).
     val loaded: Boolean = false,
     val brands: List<IngredientBrand> = emptyList(),
+    // Tiendas del ingrediente en orden de preferencia (de las preferencias del usuario).
+    val stores: List<Supermarket> = emptyList(),
     val isAdmin: Boolean = false,
     val currentUid: String? = null,
     val isSaving: Boolean = false,
@@ -28,5 +31,5 @@ data class IngredientDetailUiState(
     val finished: Boolean = false,
 ) {
     val canEditIngredient: Boolean
-        get() = ingredient != null && isAdmin
+        get() = ingredient != null && (ingredient.personal || isAdmin)
 }

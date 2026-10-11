@@ -8,17 +8,21 @@ import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
-import com.dlunaunizar.bobitos.core.model.Nutrition
+import com.dlunaunizar.bobitos.core.model.CatalogIngredient
+import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffException
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffFailure
 import com.dlunaunizar.bobitos.data.openfoodfacts.OpenFoodFactsClient
 import com.dlunaunizar.bobitos.data.repository.BrandFailure
-import com.dlunaunizar.bobitos.data.repository.BrandInput
 import com.dlunaunizar.bobitos.data.repository.BrandRepositoryException
 import com.dlunaunizar.bobitos.data.repository.IngredientBrandRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientFailure
+import com.dlunaunizar.bobitos.data.repository.IngredientPrefFailure
+import com.dlunaunizar.bobitos.data.repository.IngredientPrefsException
+import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientRepositoryException
+import com.dlunaunizar.bobitos.data.repository.PersonalIngredientRepository
 import com.dlunaunizar.bobitos.data.repository.sortedForBrands
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -35,6 +39,8 @@ import javax.inject.Inject
 @HiltViewModel
 class IngredientDetailViewModel @Inject constructor(
     private val repository: IngredientRepository,
+    private val personalRepository: PersonalIngredientRepository,
+    private val prefsRepository: IngredientPrefsRepository,
     private val brandRepository: IngredientBrandRepository,
     private val openFoodFactsClient: OpenFoodFactsClient,
 ) : ViewModel() {
@@ -43,7 +49,13 @@ class IngredientDetailViewModel @Inject constructor(
 
     private var ingredientId: String = ""
     private var catalogJob: Job? = null
+    private var personalJob: Job? = null
     private var brandsJob: Job? = null
+    private var prefsJob: Job? = null
+
+    // Comunes y personales por separado; el ingrediente de la ficha es el común y, si no, el personal.
+    private var common: List<CatalogIngredient> = emptyList()
+    private var personal: List<CatalogIngredient> = emptyList()
 
     fun observe(id: String) {
         if (id == ingredientId && catalogJob?.isActive == true) return
@@ -55,12 +67,24 @@ class IngredientDetailViewModel @Inject constructor(
                 currentUid = repository.currentUserId(),
             )
         }
+        common = emptyList()
+        personal = emptyList()
         catalogJob?.cancel()
         catalogJob = viewModelScope.launch {
             repository.catalog()
                 .catch { /* el error del catálogo se refleja como ingrediente ausente */ }
                 .collect { list ->
-                    mutableUiState.update { it.copy(ingredient = list.firstOrNull { i -> i.id == id }, loaded = true) }
+                    common = list
+                    publishIngredient(id, loaded = true)
+                }
+        }
+        personalJob?.cancel()
+        personalJob = viewModelScope.launch {
+            personalRepository.ingredients()
+                .catch { personal = emptyList() }
+                .collect { list ->
+                    personal = list
+                    publishIngredient(id)
                 }
         }
         brandsJob?.cancel()
@@ -70,13 +94,26 @@ class IngredientDetailViewModel @Inject constructor(
                 .catch { mutableUiState.update { it.copy(brands = emptyList()) } }
                 .collect { brands -> mutableUiState.update { it.copy(brands = brands) } }
         }
+        prefsJob?.cancel()
+        prefsJob = viewModelScope.launch {
+            prefsRepository.prefs()
+                .map { it[id]?.stores.orEmpty() }
+                .catch { mutableUiState.update { it.copy(stores = emptyList()) } }
+                .collect { stores -> mutableUiState.update { it.copy(stores = stores) } }
+        }
+    }
+
+    private fun publishIngredient(id: String, loaded: Boolean = false) {
+        val found = common.firstOrNull { it.id == id } ?: personal.firstOrNull { it.id == id }
+        mutableUiState.update { it.copy(ingredient = found, loaded = it.loaded || loaded) }
     }
 
     fun stopObserving() {
-        catalogJob?.cancel()
-        brandsJob?.cancel()
+        listOf(catalogJob, personalJob, brandsJob, prefsJob).forEach { it?.cancel() }
         catalogJob = null
+        personalJob = null
         brandsJob = null
+        prefsJob = null
         ingredientId = ""
     }
 
@@ -86,45 +123,41 @@ class IngredientDetailViewModel @Inject constructor(
             return
         }
         runAction(IngredientUiMessage.Saved, editor = true) {
-            repository.updateIngredient(ingredientId, name.trim(), category, defaultUnit)
+            if (isPersonal()) {
+                personalRepository.update(ingredientId, name.trim(), category, defaultUnit)
+            } else {
+                repository.updateIngredient(ingredientId, name.trim(), category, defaultUnit)
+            }
         }
     }
 
     fun deleteIngredient() {
-        runAction(IngredientUiMessage.Deleted, finishOnSuccess = true) { repository.deleteIngredient(ingredientId) }
-    }
-
-    fun addBrand(name: String, barcode: String?, nutrition: Nutrition?) {
-        if (name.trim().isEmpty()) {
-            showError(IngredientUiMessage.BrandNameRequired, editor = true)
-            return
-        }
-        runAction(IngredientUiMessage.BrandSaved, editor = true) {
-            brandRepository.addBrand(
-                BrandInput(ingredientId, name.trim(), barcode, nutrition, favorite = false, stores = emptyList()),
-            )
+        runAction(IngredientUiMessage.Deleted, finishOnSuccess = true) {
+            if (isPersonal()) personalRepository.delete(ingredientId) else repository.deleteIngredient(ingredientId)
         }
     }
 
-    fun updateBrand(brandId: String, name: String, barcode: String?, nutrition: Nutrition?) {
-        if (name.trim().isEmpty()) {
+    private fun isPersonal() = mutableUiState.value.ingredient?.personal == true
+
+    /** Añade o quita [store] de «Dónde lo compro»; la lista guardada conserva el orden de elección. */
+    fun toggleStore(store: Supermarket) {
+        val stores = toggleStore(mutableUiState.value.stores, store)
+        runAction(notice = null) { prefsRepository.setStores(ingredientId, stores) }
+    }
+
+    fun setFavorite(brandId: String, favorite: Boolean) {
+        runAction(notice = null) { brandRepository.setFavorite(brandId, favorite) }
+    }
+
+    /** Alta ([brandId] nulo) o edición de una marca desde el editor. */
+    internal fun saveBrand(brandId: String?, draft: BrandDraft) {
+        if (draft.name.trim().isEmpty()) {
             showError(IngredientUiMessage.BrandNameRequired, editor = true)
             return
         }
+        val input = draft.toInput(ingredientId)
         runAction(IngredientUiMessage.BrandSaved, editor = true) {
-            // Favorita y tiendas se conservan: este editor aún no las toca.
-            val current = mutableUiState.value.brands.firstOrNull { it.id == brandId }
-            brandRepository.updateBrand(
-                brandId,
-                BrandInput(
-                    ingredientId,
-                    name.trim(),
-                    barcode,
-                    nutrition,
-                    favorite = current?.favorite ?: false,
-                    stores = current?.stores.orEmpty(),
-                ),
-            )
+            if (brandId == null) brandRepository.addBrand(input) else brandRepository.updateBrand(brandId, input)
         }
     }
 
@@ -176,7 +209,7 @@ class IngredientDetailViewModel @Inject constructor(
     }
 
     private fun runAction(
-        notice: IngredientUiMessage,
+        notice: IngredientUiMessage?,
         finishOnSuccess: Boolean = false,
         editor: Boolean = false,
         action: suspend () -> Unit,
@@ -211,6 +244,7 @@ internal fun parseNutritionValue(raw: String): Double? = raw.trim().replace(',',
 private fun Throwable.toUiMessage(): IngredientUiMessage = when (this) {
     is IngredientRepositoryException -> failure.toUiMessage()
     is BrandRepositoryException -> failure.toUiMessage()
+    is IngredientPrefsException -> failure.toUiMessage()
     is SaveTimeoutException -> IngredientUiMessage.SaveTimeout
     else -> IngredientUiMessage.UnexpectedError
 }
@@ -244,4 +278,12 @@ private fun BrandFailure.toUiMessage(): IngredientUiMessage = when (this) {
     BrandFailure.PermissionDenied -> IngredientUiMessage.PermissionDenied
     BrandFailure.Network -> IngredientUiMessage.NetworkError
     BrandFailure.Unknown -> IngredientUiMessage.UnexpectedError
+}
+
+private fun IngredientPrefFailure.toUiMessage(): IngredientUiMessage = when (this) {
+    IngredientPrefFailure.NotAuthenticated -> IngredientUiMessage.NotAuthenticated
+    IngredientPrefFailure.EmailNotVerified -> IngredientUiMessage.EmailNotVerified
+    IngredientPrefFailure.Network -> IngredientUiMessage.NetworkError
+    IngredientPrefFailure.PermissionDenied -> IngredientUiMessage.PermissionDenied
+    IngredientPrefFailure.Unknown -> IngredientUiMessage.UnexpectedError
 }
