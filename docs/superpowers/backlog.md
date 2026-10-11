@@ -4,6 +4,14 @@ Menores que las revisiones de cada rama dejaron sin arreglar. Cada línea dice s
 
 Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalogo-ejercicios-wger`) se cerraron en la rama `agent/menores-aplazados` (plan `docs/superpowers/plans/2026-10-10-menores-aplazados.md`).
 
+## 2026-10-11 — `agent/tiendas-de-barrio`
+
+- **Efecto visible:** el icono de Carnicería (`0xFFA33B3B`) tiene poco contraste en tema oscuro (2,8:1, como DIA y Carrefour); `0xFFB84A4A` daría 3,3:1.
+- **Interno:** los comentarios de `firestore.rules` junto a las listas de tiendas citan `APP/core/model/ShoppingItem.kt` (abreviatura del plan); deberían citar la ruta real y `SupermarketRulesSyncTest`.
+- **Interno:** falta un test de reglas que acepte justo 6 tiendas incluyendo las nuevas.
+- **Interno:** quedan menciones a «supermercado(s)» en `docs/DATA_MODEL.md:574` y en comentarios (`ShoppingScreen`, `SupermarketTokens`, `IngredientPrefsRepository`).
+- **Interno:** el «6» de las pistas está escrito a mano en `strings.xml` (no sale de `MAX_STORES`).
+
 ## 2026-10-11 — `agent/marca-al-anadir-a-la-compra`
 
 - **Efecto visible:** en el diálogo de revisión, la tienda «Mercadona» se parte en dos líneas («Mercado/na») por el ancho del desplegable; en `SupermarketDropdown` falta `maxLines = 1` con elipsis, y la marca se corta sin elipsis (visto en el emulador).
