@@ -603,7 +603,7 @@ Para detectar casi duplicados («Limón» y «Limones», «Nuez» y «Nueces») 
 - `catalogMeta/{id}`: `get` solo de `exercises` e `ingredients`; la escritura de `ingredients` solo el admin, con `version` 1 al crear y `+1` al actualizar; sin `list` ni borrado.
 - `users/{uid}/ingredients/{slug}`: lectura (`get` y `list`) y escritura solo el dueño verificado; `create` con `slug` válido (`^[a-z0-9]+(-[a-z0-9]+)*$`, ≤120), `createdAt`/`updatedAt` del servidor y sin ingrediente común homónimo; `update` limitado a los campos editables.
 - `users/{uid}/brands/{id}`: lectura y escritura solo el dueño verificado; forma validada (nombre ≤60, ≤6 tiendas del enum sin repetidos, nutrientes numéricos); `ingredientId` inmutable.
-- `ingredientPrefs/{uid}`: lectura y escritura solo el dueño verificado; solo el campo `entries`, un mapa de ≤2000 entradas.
+- `ingredientPrefs/{uid}`: lectura, escritura y borrado solo el dueño verificado; al escribir, solo el campo `entries` (puede faltar, p. ej. `{}`), un mapa de ≤2000 entradas.
 - `ingredients/{id}/brands/**` (ruta antigua) queda cerrado por la regla final de denegación.
 
 ## 12. Acceso desde Security Rules
@@ -646,7 +646,7 @@ La regla deberá verificar:
 - Se eliminan sus membresías y perfil.
 - Las referencias personales necesarias (nombres en compra, tareas, eventos y comidas) se sustituyen por `null` o por «Usuario eliminado».
 - Recetas: sus recetas `PRIVATE` (`ownerUid == me`) se **borran**; en las `GLOBAL` que haya publicado se **anonimiza** `createdByName` («Usuario eliminado»), conservando el catálogo. Se hace desde el cliente (las reglas permiten al dueño ambas operaciones).
-- Ingredientes: se borran sus `users/{uid}/ingredients`, sus `users/{uid}/brands` y su documento `ingredientPrefs/{uid}` (son datos personales). El catálogo común no contiene datos personales y no se toca. Se hace desde el cliente, repetible: si algo falla la cuenta no se borra.
+- Ingredientes (es lo primero que se borra, justo tras reautenticar, antes de abandonar espacios y de anonimizar recetas): se borran sus `users/{uid}/ingredients`, sus `users/{uid}/brands` y su documento `ingredientPrefs/{uid}` (son datos personales). El catálogo común no contiene datos personales y no se toca. Se hace desde el cliente, repetible: si algo falla la cuenta no se borra.
 - La estrategia de actualización por lotes se probará con los límites reales de Firestore.
 
 ### Eliminación de espacio

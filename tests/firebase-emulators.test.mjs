@@ -2079,6 +2079,26 @@ test("las preferencias de ingredientes solo las lee y escribe su dueño", async 
   );
 });
 
+test("borrar la cuenta: el dueño borra sus ingredientes, marcas y preferencias; otro no borra las ajenas", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const admin = context.firestore();
+    await setDoc(doc(admin, "users", "pref-del", "ingredients", "salsa-casera"), personalIngredient());
+    await setDoc(doc(admin, "users", "pref-del", "brands", "b1"), personalBrand({ ingredientId: "salsa-casera" }));
+    await setDoc(doc(admin, "ingredientPrefs", "pref-del"), { entries: { tomate: { stores: ["DIA"] } } });
+  });
+  const owner = verifiedFirestore("pref-del");
+  const other = verifiedFirestore("pref-del-otro");
+
+  await assertFails(deleteDoc(doc(other, "ingredientPrefs", "pref-del")));
+  await assertSucceeds(
+    writeBatch(owner)
+      .delete(doc(owner, "users", "pref-del", "ingredients", "salsa-casera"))
+      .commit(),
+  );
+  await assertSucceeds(writeBatch(owner).delete(doc(owner, "users", "pref-del", "brands", "b1")).commit());
+  await assertSucceeds(deleteDoc(doc(owner, "ingredientPrefs", "pref-del")));
+});
+
 function exerciseData(userId, overrides = {}) {
   return {
     name: "Press banca",

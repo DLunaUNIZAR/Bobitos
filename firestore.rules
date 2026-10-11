@@ -1384,10 +1384,12 @@ service cloud.firestore {
     // el dueño lee/escribe. Sin get()/exists().
     match /ingredientPrefs/{userId} {
       allow read: if verifiedUser() && userId == request.auth.uid;
-      allow write: if verifiedUser() && userId == request.auth.uid
+      allow create, update: if verifiedUser() && userId == request.auth.uid
         && request.resource.data.keys().hasOnly(["entries"])
         && request.resource.data.entries is map
         && request.resource.data.entries.size() <= 2000;
+      // En un borrado `request.resource` es nulo: no se puede exigir la forma (borrar la cuenta).
+      allow delete: if verifiedUser() && userId == request.auth.uid;
     }
 
     match /{document=**} {

@@ -34,6 +34,9 @@ class FirebaseAccountRepository @Inject constructor(
             user.reauthenticate(
                 EmailAuthProvider.getCredential(user.email.orEmpty(), password),
             ).await()
+            // Lo que puede fallar por permisos va antes de lo irreversible (salir de espacios,
+            // anonimizar recetas, borrar el usuario); además es repetible.
+            deletePersonalData(user.uid)
             val memberships = firestore.collection(MEMBERSHIPS)
                 .whereEqualTo(FIELD_USER_ID, user.uid)
                 .whereEqualTo(FIELD_STATUS, ACTIVE)
@@ -48,7 +51,6 @@ class FirebaseAccountRepository @Inject constructor(
                 spaces.leaveSpace(spaceId)
             }
             anonymizeOrDeleteOwnedRecipes(user.uid)
-            deletePersonalData(user.uid)
             user.delete().await()
         } catch (error: AccountRepositoryException) {
             throw error
