@@ -11,11 +11,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.dlunaunizar.bobitos.data.repository.MAX_STORES
 import com.dlunaunizar.bobitos.feature.shopping.SupermarketIcon
 import com.dlunaunizar.bobitos.feature.shopping.labelRes
 
 /**
  * Una chip por tienda elegible; las elegidas llevan delante su número de orden («1 · Mercadona»).
+ * Con [MAX_STORES] elegidas, las demás se desactivan; las elegidas siguen activas para poder quitarlas.
  * Lo comparten «Dónde lo compro» de la ficha y el editor de marca.
  */
 @OptIn(ExperimentalLayoutApi::class)
@@ -36,7 +38,7 @@ internal fun StoreChips(
             FilterChip(
                 selected = position > 0,
                 onClick = { onToggle(store) },
-                enabled = enabled,
+                enabled = enabled && (position > 0 || selected.size < MAX_STORES),
                 label = {
                     Text(
                         if (position > 0) {

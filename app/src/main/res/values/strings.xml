@@ -654,9 +654,9 @@
     <string name="ingredients_default_unit">Unidad por defecto: %1$s</string>
     <string name="ingredients_brands_section">Mis marcas</string>
     <string name="ingredients_stores_title">Dónde lo compro</string>
-    <string name="ingredients_stores_hint">Tus tiendas, en tu orden de preferencia</string>
+    <string name="ingredients_stores_hint">Hasta 6 tiendas, en tu orden de preferencia</string>
     <string name="ingredients_store_ordered">%1$d · %2$s</string>
-    <string name="ingredients_brand_stores_label">Tiendas de esta marca</string>
+    <string name="ingredients_brand_stores_label">Tiendas de esta marca (hasta 6)</string>
     <string name="ingredients_brand_favorite_switch">Favorita</string>
     <string name="ingredients_brand_favorite">Marcar %1$s como favorita</string>
     <string name="ingredients_brand_unfavorite">Quitar %1$s de favoritas</string>

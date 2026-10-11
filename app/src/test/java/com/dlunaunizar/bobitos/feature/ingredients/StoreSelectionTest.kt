@@ -24,4 +24,12 @@ class StoreSelectionTest {
         assertEquals(listOf(Supermarket.DIA), toggleStore(listOf(Supermarket.DIA), Supermarket.INDIFERENTE))
         assertEquals(emptyList<Supermarket>(), toggleStore(emptyList(), Supermarket.INDIFERENTE))
     }
+
+    @Test
+    fun `a seventh store is not added but removing still works`() {
+        val six = SELECTABLE_STORES.take(6)
+        val seventh = SELECTABLE_STORES[6]
+        assertEquals(six, toggleStore(six, seventh))
+        assertEquals(six - six[2], toggleStore(six, six[2]))
+    }
 }

@@ -160,6 +160,20 @@ class IngredientDetailViewModelTest {
         }
 
     @Test
+    fun `toggling a seventh store does not change the saved stores`() = runTest(mainDispatcherRule.testDispatcher) {
+        val six = SELECTABLE_STORES.take(6)
+        prefsRepository.state.value = mapOf("tomate" to IngredientPref(six))
+        viewModel.observe("tomate")
+        advanceUntilIdle()
+
+        viewModel.toggleStore(SELECTABLE_STORES[6])
+        advanceUntilIdle()
+
+        assertEquals(six, viewModel.uiState.value.stores)
+        assertEquals("tomate" to six, prefsRepository.lastSet)
+    }
+
+    @Test
     fun `two quick store toggles with the first write pending both reach the repository`() =
         runTest(mainDispatcherRule.testDispatcher) {
             prefsRepository.gate = CompletableDeferred()

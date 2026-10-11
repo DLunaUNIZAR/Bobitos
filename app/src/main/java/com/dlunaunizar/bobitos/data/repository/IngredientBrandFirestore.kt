@@ -9,7 +9,9 @@ import java.util.Locale
 
 private const val MAX_NAME_LENGTH = 60
 private const val MAX_BARCODE_LENGTH = 32
-private const val MAX_STORES = 6
+
+/** Máximo de tiendas por marca o ingrediente (también lo exigen las reglas). */
+internal const val MAX_STORES = 6
 
 internal val NUTRITION_FIELDS = listOf("energyKcal", "fat", "carbohydrates", "sugars", "protein", "salt")
 
