@@ -1,27 +1,17 @@
-Beta de Bobitos — catálogo de ingredientes, tus marcas al hacer la compra, tiendas de barrio y tema oscuro.
+Beta de Bobitos — rutinas comunes listas para usar, «Guardar como mía» y filtros desplegables en Ejercicios.
 
-IMPORTANTE: actualizad todos los miembros de cada espacio. Los ingredientes, marcas y preferencias de tienda de las versiones anteriores se han borrado para empezar con el catálogo nuevo. Las versiones anteriores no ven las marcas y no reconocen las tiendas nuevas: si editan un producto de la compra marcado como «Carnicería» o similar, pierden la tienda.
+IMPORTANTE: actualizad todos los miembros de cada espacio. Las versiones anteriores ven las rutinas comunes, pero no pueden copiarlas con «Guardar como mía» y en el detalle solo enseñan el número de series.
 
 Novedades desde la beta anterior:
 
-Ingredientes
-- Catálogo común con 356 ingredientes genéricos en español (aceite de oliva, chocolate negro, tomate…).
-- Puedes crear tus propios ingredientes; salen con la etiqueta «Personal» y solo los ves tú.
-- Tus marcas de cada ingrediente, con favorita (★), las tiendas donde las compras y su información nutricional. Son privadas: solo las ves tú.
-- «Dónde lo compro»: hasta 6 tiendas por ingrediente, en tu orden de preferencia.
-- Al escanear un código: si ya es una de tus marcas, se abre; si no, te pregunta «¿De qué ingrediente es?» con sugerencias.
-- Botón «Añadir a la compra» en la ficha de cada ingrediente.
+Rutinas
+- 29 rutinas comunes listas para usar, hechas con los ejercicios del catálogo: gimnasio (cuerpo completo, torso, pierna, empuje, tirón, fuerza con básicos…), en casa (peso corporal, mancuernas, kettlebell), abdomen y core, y cardio / HIIT.
+- Cada rutina indica su nivel, duración, material, descanso y frecuencia. El detalle muestra la pauta de cada ejercicio: 3 × 12, 3 × 30 s, 20 min · Moderado.
+- «Guardar como mía»: copia una rutina común a «Mis rutinas» para ponerle tus pesos o cambiarla sin tocar la común.
+- «Mis rutinas» muestra solo las tuyas; las comunes están siempre en «Comunes».
+- Al elegir rutina para una sesión de gimnasio salen primero las tuyas, y cada una indica si es «Mía» o «Común».
 
-Compra
-- Al añadir un ingrediente eliges marca (tus marcas o «Indiferente») y tienda. Por defecto sale tu favorita y su tienda.
-- Al pasar los ingredientes de una receta o de las comidas a la compra, cada uno lleva su marca y su tienda.
-- Tiendas nuevas: Carnicería, Pescadería, Frutería y Panadería. Al filtrar por una de ellas solo ves lo que se compra allí.
-- Desaparecen «Sugerido… Aplicar» y «Guardar como preferencia»: ahora se usan tus marcas y «Dónde lo compro».
-
-Apariencia
-- El tema oscuro es el de por defecto. Puedes cambiarlo a Claro o Sistema en Perfil; si ya lo habías elegido, se respeta.
-
-Cuenta y privacidad
-- Al borrar la cuenta se borran también tus ingredientes, marcas y tiendas.
+Ejercicios
+- Los filtros de tipo y de grupo muscular son ahora dos desplegables, uno al lado del otro, debajo del buscador. También al añadir ejercicios a una rutina o a una sesión.
 
 Comunica cualquier error indicando el modelo del dispositivo, la versión de Android y los pasos para reproducirlo.
