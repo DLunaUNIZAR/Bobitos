@@ -46,7 +46,14 @@ internal data class ShoppingDraft(
  */
 internal fun ShoppingDraft.withContext(context: IngredientShoppingContext?): ShoppingDraft = when {
     context == null -> if (pickerFor != null) {
-        copy(pickerFor = null, brandId = null, brand = pickerBrand(), appliedDefault = null)
+        // La tienda que puso el valor por defecto se va con el ingrediente; la que eligió el usuario se queda.
+        copy(
+            pickerFor = null,
+            brandId = null,
+            brand = pickerBrand(),
+            supermarket = if (supermarket == appliedDefault?.store) null else supermarket,
+            appliedDefault = null,
+        )
     } else {
         this
     }

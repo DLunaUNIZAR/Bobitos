@@ -55,13 +55,13 @@ class ShoppingDraftTest {
     }
 
     @Test
-    fun `leaving the ingredient drops the picker brand but keeps the store`() {
+    fun `leaving the ingredient drops the picker brand and the default store`() {
         val draft = ShoppingDraft.of(null).withContext(context).withContext(null)
 
         assertNull(draft.pickerFor)
         assertNull(draft.brandId)
         assertEquals("", draft.brand)
-        assertEquals(Supermarket.MERCADONA, draft.supermarket)
+        assertNull(draft.supermarket)
     }
 
     @Test
@@ -177,5 +177,37 @@ class ShoppingDraftTest {
 
         assertEquals("b2", draft.brandId)
         assertEquals("Hacendado", draft.brand)
+    }
+
+    @Test
+    fun `leaving the ingredient drops the default store`() {
+        val recognized = ShoppingDraft.prefilled("sal").withContext(context)
+        assertEquals(Supermarket.MERCADONA, recognized.supermarket)
+
+        val left = recognized.copy(name = "salmón ahumado").withContext(null)
+
+        assertNull(left.supermarket)
+        assertNull(left.appliedDefault)
+        assertNull(left.pickerFor)
+    }
+
+    @Test
+    fun `leaving the ingredient keeps a store the user picked`() {
+        val recognized = ShoppingDraft.prefilled("leche").withContext(context)
+        val picked = recognized.copy(supermarket = Supermarket.CARREFOUR)
+
+        val left = picked.withContext(null)
+
+        assertEquals(Supermarket.CARREFOUR, left.supermarket)
+    }
+
+    @Test
+    fun `going back to an empty name after a recognized one is not dirty`() {
+        val initial = ShoppingDraft.of(null)
+        val recognized = initial.copy(name = "leche").withContext(context)
+
+        val cleared = recognized.copy(name = "").withContext(null)
+
+        assertFalse(cleared.isDirty(initial, null))
     }
 }
