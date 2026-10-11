@@ -4,7 +4,9 @@ import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.Ingredient
+import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
@@ -16,14 +18,19 @@ import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceRole
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.core.model.Supermarket
-import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.MealFailure
 import com.dlunaunizar.bobitos.data.repository.MealRepository
 import com.dlunaunizar.bobitos.data.repository.MealRepositoryException
 import com.dlunaunizar.bobitos.data.repository.RecipeRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
+import com.dlunaunizar.bobitos.feature.common.IngredientReviewChoice
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewRow
+import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
+import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientBrandRepository
+import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientPrefsRepository
+import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientRepository
+import com.dlunaunizar.bobitos.feature.ingredients.FakePersonalIngredientRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -52,13 +59,20 @@ class MealsViewModelTest {
     private val spaceRepository = FakeSpaceRepository()
     private val recipeRepository = FakeRecipeRepository()
     private val shoppingRepository = FakeShoppingRepository()
+    private val ingredientRepository = FakeIngredientRepository()
+    private val brandRepository = FakeIngredientBrandRepository()
     private val ingredientPrefsRepository = FakeIngredientPrefsRepository()
     private val viewModel = MealsViewModel(
         mealRepository,
         spaceRepository,
         recipeRepository,
         shoppingRepository,
-        ingredientPrefsRepository,
+        IngredientShoppingSource(
+            ingredientRepository,
+            FakePersonalIngredientRepository(),
+            brandRepository,
+            ingredientPrefsRepository,
+        ),
     )
 
     @Test
@@ -167,7 +181,7 @@ class MealsViewModelTest {
             val review = viewModel.uiState.value.ingredientReview
             assertEquals(listOf("Arroz", "Sal"), review?.map(IngredientReviewRow::name))
 
-            viewModel.confirmIngredientReview(listOf("300", null))
+            viewModel.confirmIngredientReview(listOf(choice("300"), choice(null)))
             advanceUntilIdle()
 
             assertEquals(listOf("Arroz", "Sal"), shoppingRepository.addedNames)
@@ -176,14 +190,17 @@ class MealsViewModelTest {
         }
 
     @Test
-    fun `dumping ingredients uses the ingredient's first store and no brand`() =
+    fun `confirming the review adds each new row with its chosen brand and store`() =
         runTest(mainDispatcherRule.testDispatcher) {
             recipeRepository.mineState.value = listOf(
                 recipe("r1", listOf(Ingredient("Arroz", "300", "g"), Ingredient("Sal"))),
             )
-            // slug("Arroz") == "arroz"; slug("Sal") == "sal" (sin preferencia).
-            ingredientPrefsRepository.prefsState.value = mapOf(
-                "arroz" to IngredientPref(listOf(Supermarket.MERCADONA, Supermarket.DIA)),
+            ingredientRepository.catalogState.value = listOf(CatalogIngredient("arroz", "Arroz"))
+            brandRepository.brandsState.value = listOf(
+                IngredientBrand("b1", "arroz", "Brillante", favorite = true, stores = listOf(Supermarket.DIA)),
+            )
+            ingredientPrefsRepository.state.value = mapOf(
+                "arroz" to IngredientPref(listOf(Supermarket.MERCADONA)),
             )
             viewModel.observe("home")
             advanceUntilIdle()
@@ -192,12 +209,21 @@ class MealsViewModelTest {
                 meal("m1", LocalDate.now(), MealSlot.COMIDA, "Paella").copy(recipeId = "r1"),
             )
             advanceUntilIdle()
-            viewModel.confirmIngredientReview(listOf("300", null))
+            val review = viewModel.uiState.value.ingredientReview!!
+            assertEquals("arroz", review[0].context?.ingredient?.id)
+            assertEquals(null, review[1].context)
+
+            viewModel.confirmIngredientReview(
+                listOf(
+                    IngredientReviewChoice("300", Supermarket.DIA, "Brillante"),
+                    IngredientReviewChoice(null, null, null),
+                ),
+            )
             advanceUntilIdle()
 
             assertEquals(listOf("Arroz", "Sal"), shoppingRepository.addedNames)
-            assertEquals(listOf(Supermarket.MERCADONA, null), shoppingRepository.addedSupermarkets)
-            assertEquals(listOf<String?>(null, null), shoppingRepository.addedBrands)
+            assertEquals(listOf(Supermarket.DIA, null), shoppingRepository.addedSupermarkets)
+            assertEquals(listOf<String?>("Brillante", null), shoppingRepository.addedBrands)
         }
 
     @Test
@@ -262,7 +288,7 @@ class MealsViewModelTest {
         val review = viewModel.uiState.value.ingredientReview
         assertEquals(listOf("Arroz", "Sal", "Aceite"), review?.map(IngredientReviewRow::name))
 
-        viewModel.confirmIngredientReview(review!!.map(IngredientReviewRow::recipeQuantity))
+        viewModel.confirmIngredientReview(review!!.map { choice(it.recipeQuantity) })
         advanceUntilIdle()
 
         assertEquals(listOf("Arroz", "Sal", "Aceite"), shoppingRepository.addedNames)
@@ -528,6 +554,8 @@ private class FakeShoppingRepository : ShoppingRepository {
     val addedBrands = mutableListOf<String?>()
     val itemsState = MutableStateFlow<List<ShoppingItem>>(emptyList())
     val purchasedIds = mutableListOf<String>()
+    val updatedIds = mutableListOf<String>()
+    val updatedQuantities = mutableListOf<String?>()
 
     override fun items(spaceId: String): Flow<List<ShoppingItem>> = itemsState
     override suspend fun addItem(
@@ -552,7 +580,10 @@ private class FakeShoppingRepository : ShoppingRepository {
         notes: String?,
         supermarket: Supermarket?,
         brand: String?,
-    ) = Unit
+    ) {
+        updatedIds += itemId
+        updatedQuantities += quantity
+    }
 
     override suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean) {
         if (purchased) purchasedIds += itemId
@@ -562,11 +593,7 @@ private class FakeShoppingRepository : ShoppingRepository {
     override suspend fun clearPurchased(spaceId: String): Int = 0
 }
 
-private class FakeIngredientPrefsRepository : IngredientPrefsRepository {
-    val prefsState = MutableStateFlow<Map<String, IngredientPref>>(emptyMap())
-    override fun prefs(): Flow<Map<String, IngredientPref>> = prefsState
-    override suspend fun setStores(ingredientId: String, stores: List<Supermarket>) = Unit
-}
+private fun choice(quantity: String?) = IngredientReviewChoice(quantity, null, null)
 
 private fun recipe(id: String, ingredients: List<Ingredient>) = Recipe(
     id = id,

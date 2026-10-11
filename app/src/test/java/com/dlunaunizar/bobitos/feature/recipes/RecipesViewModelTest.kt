@@ -4,7 +4,9 @@ import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.Ingredient
+import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
@@ -14,11 +16,16 @@ import com.dlunaunizar.bobitos.data.recipeimport.ImportFailure
 import com.dlunaunizar.bobitos.data.recipeimport.ImportedRecipe
 import com.dlunaunizar.bobitos.data.recipeimport.RecipeImportException
 import com.dlunaunizar.bobitos.data.recipeimport.RecipeImporter
-import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.RecipeFailure
 import com.dlunaunizar.bobitos.data.repository.RecipeRepository
 import com.dlunaunizar.bobitos.data.repository.RecipeRepositoryException
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
+import com.dlunaunizar.bobitos.feature.common.IngredientReviewChoice
+import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
+import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientBrandRepository
+import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientPrefsRepository
+import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientRepository
+import com.dlunaunizar.bobitos.feature.ingredients.FakePersonalIngredientRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -44,8 +51,20 @@ class RecipesViewModelTest {
     private val repository = FakeRecipeRepository()
     private val importer = FakeRecipeImporter()
     private val shoppingRepository = RecipesFakeShoppingRepository()
-    private val prefsRepository = RecipesFakePrefsRepository()
-    private val viewModel = RecipesViewModel(repository, importer, shoppingRepository, prefsRepository)
+    private val ingredientRepository = FakeIngredientRepository()
+    private val brandRepository = FakeIngredientBrandRepository()
+    private val prefsRepository = FakeIngredientPrefsRepository()
+    private val viewModel = RecipesViewModel(
+        repository,
+        importer,
+        shoppingRepository,
+        IngredientShoppingSource(
+            ingredientRepository,
+            FakePersonalIngredientRepository(),
+            brandRepository,
+            prefsRepository,
+        ),
+    )
 
     @Test
     fun `observes global and personal recipes`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -206,8 +225,12 @@ class RecipesViewModelTest {
     }
 
     @Test
-    fun `confirming the review uses the first store and no brand`() = runTest(mainDispatcherRule.testDispatcher) {
-        prefsRepository.prefsState.value = mapOf("huevo" to IngredientPref(listOf(Supermarket.DIA, Supermarket.EROSKI)))
+    fun `confirming the review uses the chosen brand and store`() = runTest(mainDispatcherRule.testDispatcher) {
+        ingredientRepository.catalogState.value = listOf(CatalogIngredient("huevo", "Huevo"))
+        brandRepository.brandsState.value = listOf(
+            IngredientBrand("b1", "huevo", "Camperos", favorite = true, stores = listOf(Supermarket.EROSKI)),
+        )
+        prefsRepository.state.value = mapOf("huevo" to IngredientPref(listOf(Supermarket.DIA)))
         viewModel.observe()
         advanceUntilIdle()
         viewModel.addToShopping(
@@ -215,12 +238,14 @@ class RecipesViewModelTest {
             recipe("r1", RecipeVisibility.PRIVATE, "Tortilla", listOf(Ingredient("Huevo", "4", "uds"))),
         )
         advanceUntilIdle()
+        assertEquals("huevo", viewModel.uiState.value.ingredientReview?.single()?.context?.ingredient?.id)
 
-        viewModel.confirmShoppingReview("home", listOf("4"))
+        viewModel.confirmShoppingReview("home", listOf(IngredientReviewChoice("4", Supermarket.EROSKI, "Camperos")))
         advanceUntilIdle()
 
         assertEquals(listOf("Huevo"), shoppingRepository.addedNames)
-        assertEquals(listOf(Supermarket.DIA), shoppingRepository.addedSupermarkets)
+        assertEquals(listOf(Supermarket.EROSKI), shoppingRepository.addedSupermarkets)
+        assertEquals(listOf<String?>("Camperos"), shoppingRepository.addedBrands)
         assertEquals(RecipeUiMessage.AddedToShopping, viewModel.uiState.value.notice)
         assertEquals(null, viewModel.uiState.value.ingredientReview)
     }
@@ -291,6 +316,7 @@ class RecipesViewModelTest {
 private class RecipesFakeShoppingRepository : ShoppingRepository {
     val addedNames = mutableListOf<String>()
     val addedSupermarkets = mutableListOf<Supermarket?>()
+    val addedBrands = mutableListOf<String?>()
 
     override fun items(spaceId: String): Flow<List<ShoppingItem>> = MutableStateFlow(emptyList())
     override suspend fun addItem(
@@ -303,6 +329,7 @@ private class RecipesFakeShoppingRepository : ShoppingRepository {
     ) {
         addedNames += name
         addedSupermarkets += supermarket
+        addedBrands += brand
     }
 
     override suspend fun updateItem(
@@ -318,12 +345,6 @@ private class RecipesFakeShoppingRepository : ShoppingRepository {
     override suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean) = Unit
     override suspend fun deleteItem(spaceId: String, itemId: String) = Unit
     override suspend fun clearPurchased(spaceId: String): Int = 0
-}
-
-private class RecipesFakePrefsRepository : IngredientPrefsRepository {
-    val prefsState = MutableStateFlow<Map<String, IngredientPref>>(emptyMap())
-    override fun prefs(): Flow<Map<String, IngredientPref>> = prefsState
-    override suspend fun setStores(ingredientId: String, stores: List<Supermarket>) = Unit
 }
 
 private class FakeRecipeRepository : RecipeRepository {

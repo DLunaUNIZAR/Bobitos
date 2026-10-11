@@ -21,9 +21,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.model.Ingredient
-import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
-import com.dlunaunizar.bobitos.core.model.slug
+import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 
 /**
@@ -37,7 +36,36 @@ data class IngredientReviewRow(
     val recipeQuantity: String?,
     val existing: ShoppingItem?,
     val quantities: List<String> = emptyList(),
+    /** Solo en filas nuevas con ingrediente reconocido: da pie a elegir marca y tienda. */
+    val context: IngredientShoppingContext? = null,
 )
+
+/** Lo que el usuario confirma en cada fila. */
+data class IngredientReviewChoice(val quantity: String?, val supermarket: Supermarket?, val brand: String?)
+
+/** Estado editable de una fila en el diálogo. */
+internal data class ReviewRowState(val quantity: String, val selection: BrandStoreSelection, val freeBrand: String)
+
+internal fun IngredientReviewRow.initialState(): ReviewRowState = ReviewRowState(
+    quantity = (existing?.quantity ?: recipeQuantity).orEmpty(),
+    selection = context?.defaultSelection() ?: BrandStoreSelection(null, null),
+    freeBrand = "",
+)
+
+internal fun ReviewRowState.toChoice(row: IngredientReviewRow): IngredientReviewChoice {
+    val trimmed = quantity.trim().ifEmpty { null }
+    val existing = row.existing
+    val context = row.context
+    return when {
+        existing != null -> IngredientReviewChoice(trimmed, existing.supermarket, existing.brand)
+        context == null -> IngredientReviewChoice(trimmed, null, null)
+        else -> IngredientReviewChoice(
+            quantity = trimmed,
+            supermarket = selection.store,
+            brand = if (context.brands.isEmpty()) freeBrand.trim().ifEmpty { null } else context.brandName(selection),
+        )
+    }
+}
 
 /**
  * Agrupa [ingredients] por nombre (conservando todas las apariciones) y los cruza con la lista de la
@@ -47,36 +75,39 @@ data class IngredientReviewRow(
 fun buildIngredientReviewRows(
     ingredients: List<Ingredient>,
     currentItems: List<ShoppingItem>,
+    data: IngredientShoppingData = IngredientShoppingData(),
 ): List<IngredientReviewRow> {
     val byName = currentItems.associateBy { it.name.trim().lowercase() }
     return ingredients.groupBy { it.name.trim().lowercase() }.map { (key, occurrences) ->
         val first = occurrences.first()
         val contributions = occurrences.mapNotNull(Ingredient::formattedQuantity)
         val single = contributions.size <= 1
+        val existing = byName[key]
         IngredientReviewRow(
             name = first.name,
             // Con varias aportaciones, la unidad ya va dentro de cada cantidad formateada.
             unit = if (single) first.unit else null,
             recipeQuantity = if (single) first.quantity else contributions.joinToString(" + "),
-            existing = byName[key],
+            existing = existing,
             quantities = contributions,
+            context = if (existing == null) data.contextFor(first.name) else null,
         )
     }
 }
 
 /**
- * Aplica la revisión: actualiza la cantidad de los ítems ya existentes y añade el resto, prerrellenando
- * el supermercado con la primera tienda del ingrediente ([prefs], por `slug` del nombre) y sin marca.
+ * Aplica la revisión: actualiza solo la cantidad de los ítems ya existentes (conservan notas, súper y
+ * marca) y añade el resto con el supermercado y la marca elegidos en [choices].
  */
 suspend fun applyIngredientReview(
     spaceId: String,
     rows: List<IngredientReviewRow>,
-    finalQuantities: List<String?>,
-    prefs: Map<String, IngredientPref>,
+    choices: List<IngredientReviewChoice>,
     shoppingRepository: ShoppingRepository,
 ) {
     rows.forEachIndexed { index, row ->
-        val quantity = finalQuantities.getOrNull(index)?.trim()?.takeIf(String::isNotEmpty)
+        val choice = choices.getOrNull(index)
+        val quantity = choice?.quantity?.trim()?.takeIf(String::isNotEmpty)
         val existing = row.existing
         if (existing != null) {
             shoppingRepository.updateItem(
@@ -89,8 +120,7 @@ suspend fun applyIngredientReview(
                 existing.brand,
             )
         } else {
-            val store = prefs[slug(row.name)]?.stores?.firstOrNull()
-            shoppingRepository.addItem(spaceId, row.name, quantity, row.unit, store, null)
+            shoppingRepository.addItem(spaceId, row.name, quantity, row.unit, choice?.supermarket, choice?.brand)
         }
     }
 }
@@ -104,12 +134,10 @@ private fun Ingredient.formattedQuantity(): String? {
 @Composable
 fun IngredientReviewDialog(
     rows: List<IngredientReviewRow>,
-    onConfirm: (List<String?>) -> Unit,
+    onConfirm: (List<IngredientReviewChoice>) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val quantities = remember(rows) {
-        rows.map { (it.existing?.quantity ?: it.recipeQuantity).orEmpty() }.toMutableStateList()
-    }
+    val states = remember(rows) { rows.map { it.initialState() }.toMutableStateList() }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.meals_review_title)) },
@@ -141,18 +169,34 @@ fun IngredientReviewDialog(
                             )
                         }
                         OutlinedTextField(
-                            value = quantities[index],
-                            onValueChange = { quantities[index] = it },
+                            value = states[index].quantity,
+                            onValueChange = { states[index] = states[index].copy(quantity = it) },
                             label = { Text(stringResource(R.string.recipes_ingredient_quantity)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                         )
+                        val context = row.context
+                        if (context != null) {
+                            val state = states[index]
+                            BrandStorePicker(
+                                context = context,
+                                selection = state.selection,
+                                freeBrand = state.freeBrand,
+                                onBrandSelected = {
+                                    states[index] = state.copy(selection = context.selectBrand(state.selection, it))
+                                },
+                                onStoreSelected = {
+                                    states[index] = state.copy(selection = state.selection.copy(store = it))
+                                },
+                                onFreeBrandChange = { states[index] = state.copy(freeBrand = it) },
+                            )
+                        }
                     }
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(quantities.map { it.trim().ifEmpty { null } }) }) {
+            TextButton(onClick = { onConfirm(rows.mapIndexed { i, row -> states[i].toChoice(row) }) }) {
                 Text(stringResource(R.string.confirm))
             }
         },

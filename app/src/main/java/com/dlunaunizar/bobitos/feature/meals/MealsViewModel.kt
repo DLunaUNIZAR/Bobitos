@@ -9,11 +9,9 @@ import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
-import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
 import com.dlunaunizar.bobitos.core.model.slug
-import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.MealFailure
 import com.dlunaunizar.bobitos.data.repository.MealRepository
 import com.dlunaunizar.bobitos.data.repository.MealRepositoryException
@@ -22,6 +20,9 @@ import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
+import com.dlunaunizar.bobitos.feature.common.IngredientReviewChoice
+import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
+import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
 import com.dlunaunizar.bobitos.feature.common.applyIngredientReview
 import com.dlunaunizar.bobitos.feature.common.buildIngredientReviewRows
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -44,7 +45,7 @@ class MealsViewModel @Inject constructor(
     private val spaces: SpaceRepository,
     private val recipeRepository: RecipeRepository,
     private val shoppingRepository: ShoppingRepository,
-    private val ingredientPrefsRepository: IngredientPrefsRepository,
+    private val ingredientShoppingSource: IngredientShoppingSource,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(MealsUiState())
     val uiState: StateFlow<MealsUiState> = mutableUiState.asStateFlow()
@@ -57,7 +58,7 @@ class MealsViewModel @Inject constructor(
     private var prefsJob: Job? = null
 
     // «Dónde lo compro» del usuario (tiendas por ingrediente), para prerrellenar la compra.
-    private var ingredientPrefs: Map<String, IngredientPref> = emptyMap()
+    private var shoppingData: IngredientShoppingData = IngredientShoppingData()
 
     fun observe(spaceId: String) {
         observePrefs()
@@ -84,9 +85,9 @@ class MealsViewModel @Inject constructor(
     private fun observePrefs() {
         if (prefsJob?.isActive == true) return
         prefsJob = viewModelScope.launch {
-            ingredientPrefsRepository.prefs()
-                .catch { ingredientPrefs = emptyMap() }
-                .collect { prefs -> ingredientPrefs = prefs }
+            ingredientShoppingSource.data()
+                .catch { shoppingData = IngredientShoppingData() }
+                .collect { data -> shoppingData = data }
         }
     }
 
@@ -215,7 +216,7 @@ class MealsViewModel @Inject constructor(
         if (ingredients.isEmpty()) return
         viewModelScope.launch {
             val current = runCatching { shoppingRepository.items(spaceId).first() }.getOrDefault(emptyList())
-            val rows = buildIngredientReviewRows(ingredients, current)
+            val rows = buildIngredientReviewRows(ingredients, current, shoppingData)
             mutableUiState.update { it.copy(ingredientReview = rows) }
         }
     }
@@ -272,12 +273,12 @@ class MealsViewModel @Inject constructor(
     fun dismissCookedCrossOff() = mutableUiState.update { it.copy(cookedCrossOff = null) }
 
     // Aplica la revisión: actualiza la cantidad de los que ya existen y añade el resto.
-    fun confirmIngredientReview(finalQuantities: List<String?>) {
+    fun confirmIngredientReview(choices: List<IngredientReviewChoice>) {
         val spaceId = observedSpaceId ?: return
         val rows = mutableUiState.value.ingredientReview ?: return
         mutableUiState.update { it.copy(ingredientReview = null) }
         runAction(MealUiMessage.IngredientsAddedToShopping) {
-            applyIngredientReview(spaceId, rows, finalQuantities, ingredientPrefs, shoppingRepository)
+            applyIngredientReview(spaceId, rows, choices, shoppingRepository)
         }
     }
 

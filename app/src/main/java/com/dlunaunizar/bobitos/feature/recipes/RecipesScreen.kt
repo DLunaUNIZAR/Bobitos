@@ -273,7 +273,7 @@ fun RecipesScreen(
         if (spaceId != null) {
             IngredientReviewDialog(
                 rows = reviewRows,
-                onConfirm = { quantities -> viewModel.confirmShoppingReview(spaceId, quantities) },
+                onConfirm = { choices -> viewModel.confirmShoppingReview(spaceId, choices) },
                 onDismiss = viewModel::dismissShoppingReview,
             )
         }

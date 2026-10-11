@@ -10,19 +10,20 @@ import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.Ingredient
-import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
 import com.dlunaunizar.bobitos.data.recipeimport.ImportFailure
 import com.dlunaunizar.bobitos.data.recipeimport.RecipeImportException
 import com.dlunaunizar.bobitos.data.recipeimport.RecipeImporter
-import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.RecipeFailure
 import com.dlunaunizar.bobitos.data.repository.RecipeRepository
 import com.dlunaunizar.bobitos.data.repository.RecipeRepositoryException
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
+import com.dlunaunizar.bobitos.feature.common.IngredientReviewChoice
+import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
+import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
 import com.dlunaunizar.bobitos.feature.common.applyIngredientReview
 import com.dlunaunizar.bobitos.feature.common.buildIngredientReviewRows
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -42,7 +43,7 @@ class RecipesViewModel @Inject constructor(
     private val repository: RecipeRepository,
     private val importer: RecipeImporter,
     private val shoppingRepository: ShoppingRepository,
-    private val ingredientPrefsRepository: IngredientPrefsRepository,
+    private val ingredientShoppingSource: IngredientShoppingSource,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(RecipesUiState())
     val uiState: StateFlow<RecipesUiState> = mutableUiState.asStateFlow()
@@ -53,16 +54,16 @@ class RecipesViewModel @Inject constructor(
     private var observing = false
 
     // «Dónde lo compro» del usuario (tiendas por ingrediente), para prerrellenar al añadir a la compra.
-    private var ingredientPrefs: Map<String, IngredientPref> = emptyMap()
+    private var shoppingData: IngredientShoppingData = IngredientShoppingData()
 
     fun observe() {
         if (observing) return
         observing = true
         mutableUiState.update { it.copy(isAdmin = repository.isCurrentUserRecipeAdmin()) }
         prefsJob = viewModelScope.launch {
-            ingredientPrefsRepository.prefs()
-                .catch { ingredientPrefs = emptyMap() }
-                .collect { prefs -> ingredientPrefs = prefs }
+            ingredientShoppingSource.data()
+                .catch { shoppingData = IngredientShoppingData() }
+                .collect { data -> shoppingData = data }
         }
         globalJob = viewModelScope.launch {
             repository.globalRecipes()
@@ -95,15 +96,16 @@ class RecipesViewModel @Inject constructor(
         }
         viewModelScope.launch {
             val current = runCatching { shoppingRepository.items(spaceId).first() }.getOrDefault(emptyList())
-            mutableUiState.update { it.copy(ingredientReview = buildIngredientReviewRows(ingredients, current)) }
+            val rows = buildIngredientReviewRows(ingredients, current, shoppingData)
+            mutableUiState.update { it.copy(ingredientReview = rows) }
         }
     }
 
-    fun confirmShoppingReview(spaceId: String, finalQuantities: List<String?>) {
+    fun confirmShoppingReview(spaceId: String, choices: List<IngredientReviewChoice>) {
         val rows = mutableUiState.value.ingredientReview ?: return
         mutableUiState.update { it.copy(ingredientReview = null) }
         runAction(RecipeUiMessage.AddedToShopping) {
-            applyIngredientReview(spaceId, rows, finalQuantities, ingredientPrefs, shoppingRepository)
+            applyIngredientReview(spaceId, rows, choices, shoppingRepository)
         }
     }
 
