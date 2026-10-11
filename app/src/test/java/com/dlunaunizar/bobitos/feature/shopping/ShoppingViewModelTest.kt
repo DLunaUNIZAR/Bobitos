@@ -208,6 +208,21 @@ class ShoppingViewModelTest {
     }
 
     @Test
+    fun `restarting the ingredient assist drops stale data`() = runTest(mainDispatcherRule.testDispatcher) {
+        ingredientRepository.catalogState.value = listOf(catalogIngredient())
+        viewModel.startIngredientAssist()
+        advanceUntilIdle()
+        viewModel.stopIngredientAssist()
+        // La nueva recogida aún no ha emitido: no debe verse lo viejo.
+        ingredientRepository.catalogOverride = flow { awaitCancellation() }
+
+        viewModel.startIngredientAssist()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.ingredientData.ingredients.isEmpty())
+    }
+
+    @Test
     fun `a personal ingredient shadowed by a common one with the same id is suggested once`() =
         runTest(mainDispatcherRule.testDispatcher) {
             ingredientRepository.catalogState.value = listOf(CatalogIngredient(id = "tomate", name = "Tomate"))

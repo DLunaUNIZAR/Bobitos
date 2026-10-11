@@ -22,6 +22,8 @@ internal data class ShoppingDraft(
     val brandId: String? = null,
     // Id del ingrediente cuyos valores por defecto ya se aplicaron.
     val pickerFor: String? = null,
+    // Selección por defecto aplicada; si el borrador sigue igual, se puede refrescar con datos nuevos.
+    val appliedDefault: BrandStoreSelection? = null,
 ) : Parcelable {
     companion object {
         fun of(item: ShoppingItem?) = ShoppingDraft(
@@ -39,16 +41,34 @@ internal data class ShoppingDraft(
  * ingrediente y sin ingrediente se conservan marca y tienda como texto y tienda normales.
  */
 internal fun ShoppingDraft.withContext(context: IngredientShoppingContext?): ShoppingDraft = when {
-    context == null -> if (pickerFor != null) copy(pickerFor = null, brandId = null, brand = pickerBrand()) else this
-    context.ingredient.id == pickerFor -> this
-    else -> {
-        val selection = context.defaultSelection()
-        copy(
-            pickerFor = context.ingredient.id,
-            brandId = selection.brandId,
-            supermarket = selection.store,
-            brand = if (context.brands.isEmpty()) pickerBrand() else context.brandName(selection).orEmpty(),
-        )
+    context == null -> if (pickerFor != null) {
+        copy(pickerFor = null, brandId = null, brand = pickerBrand(), appliedDefault = null)
+    } else {
+        this
+    }
+    context.ingredient.id == pickerFor -> refreshed(context)
+    else -> withDefault(context)
+}
+
+private fun ShoppingDraft.withDefault(context: IngredientShoppingContext): ShoppingDraft {
+    val selection = context.defaultSelection()
+    return copy(
+        pickerFor = context.ingredient.id,
+        brandId = selection.brandId,
+        supermarket = selection.store,
+        brand = if (context.brands.isEmpty()) pickerBrand() else context.brandName(selection).orEmpty(),
+        appliedDefault = selection,
+    )
+}
+
+// Mismo ingrediente con datos nuevos: lo que el usuario no tocó se recalcula; lo que eligió se respeta.
+private fun ShoppingDraft.refreshed(context: IngredientShoppingContext): ShoppingDraft {
+    val current = BrandStoreSelection(brandId, supermarket)
+    return when {
+        current == appliedDefault -> withDefault(context)
+        brandId != null && context.brands.none { it.id == brandId } -> copy(brandId = null, brand = "")
+        brandId != null -> copy(brand = context.brandName(current).orEmpty())
+        else -> this
     }
 }
 
@@ -67,3 +87,17 @@ internal fun ShoppingDraft.withBrandChoice(context: IngredientShoppingContext, b
 
 /** Borrador de alta con solo el nombre puesto (p. ej. desde la ficha de un ingrediente). */
 internal fun ShoppingDraft.Companion.prefilled(name: String): ShoppingDraft = ShoppingDraft.of(null).copy(name = name)
+
+/** Hay cambios sin guardar: distinto del borrador inicial tras aplicar los valores por defecto. */
+internal fun ShoppingDraft.isDirty(initial: ShoppingDraft, context: IngredientShoppingContext?): Boolean =
+    this != initial.withContext(context)
+
+/** Marca a guardar: con selector, el nombre vigente de la marca elegida; si no, el texto escrito. */
+internal fun ShoppingDraft.savedBrand(context: IngredientShoppingContext?): String? {
+    val text = if (context != null && context.brands.isNotEmpty()) {
+        context.brandName(BrandStoreSelection(brandId, supermarket)).orEmpty()
+    } else {
+        brand
+    }
+    return text.trim().ifEmpty { null }
+}

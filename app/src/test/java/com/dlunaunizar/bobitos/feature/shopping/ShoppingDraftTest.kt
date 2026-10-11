@@ -5,7 +5,9 @@ import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingContext
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ShoppingDraftTest {
@@ -90,6 +92,65 @@ class ShoppingDraftTest {
         assertEquals("Mi marca", typed.withContext(null).brand)
         assertEquals("Mi marca", typed.withContext(context.copy(brands = emptyList())).brand)
         assertEquals("Mi marca", typed.withContext(context.copy(brands = emptyList())).withContext(null).brand)
+    }
+
+    @Test
+    fun `defaults are refreshed when brands arrive later for an untouched draft`() {
+        val early = ShoppingDraft.of(null).withContext(context.copy(brands = emptyList()))
+        val refreshed = early.withContext(context)
+
+        assertEquals("b1", refreshed.brandId)
+        assertEquals("Pascual", refreshed.brand)
+        assertEquals(Supermarket.MERCADONA, refreshed.supermarket)
+    }
+
+    @Test
+    fun `a user choice is kept when brands change`() {
+        val chosen = ShoppingDraft.of(null).withContext(context).withBrandChoice(context, "b2")
+        val other = context.copy(brands = listOf(hacendado, pascual.copy(name = "Pascual 2")))
+        val after = chosen.withContext(other)
+
+        assertEquals("b2", after.brandId)
+        assertEquals("Hacendado", after.brand)
+    }
+
+    @Test
+    fun `a renamed brand updates the text of an untouched default`() {
+        val first = ShoppingDraft.of(null).withContext(context)
+        val after = first.withContext(context.copy(brands = listOf(pascual.copy(name = "Pascual 2"), hacendado)))
+
+        assertEquals("Pascual 2", after.brand)
+    }
+
+    @Test
+    fun `a deleted brand falls back to indifferent`() {
+        val chosen = ShoppingDraft.of(null).withContext(context).withBrandChoice(context, "b2")
+        val after = chosen.withContext(context.copy(brands = listOf(pascual)))
+
+        assertNull(after.brandId)
+        assertEquals("", after.brand)
+    }
+
+    @Test
+    fun `a prefilled draft is not dirty after defaults apply or refresh`() {
+        val initial = ShoppingDraft.prefilled("Leche")
+        val noBrands = context.copy(brands = emptyList())
+        val applied = initial.withContext(noBrands)
+        val refreshed = applied.withContext(context)
+
+        assertFalse(applied.isDirty(initial, noBrands))
+        assertFalse(refreshed.isDirty(initial, context))
+        assertFalse(initial.isDirty(initial, null))
+        assertTrue(refreshed.withBrandChoice(context, "b2").isDirty(initial, context))
+    }
+
+    @Test
+    fun `the saved brand comes from the picker when there are brands`() {
+        val draft = ShoppingDraft.of(null).withContext(context).copy(brand = "texto viejo")
+
+        assertEquals("Pascual", draft.savedBrand(context))
+        assertEquals("texto viejo", draft.savedBrand(null))
+        assertNull(draft.withBrandChoice(context, null).savedBrand(context))
     }
 
     @Test

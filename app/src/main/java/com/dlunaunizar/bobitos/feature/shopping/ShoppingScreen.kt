@@ -638,17 +638,17 @@ private fun ShoppingItemEditor(
     val context = remember(name, ingredientData) {
         if (item == null) ingredientData.contextFor(name) else null
     }
-    LaunchedEffect(context?.ingredient?.id) { draft = draft.withContext(context) }
+    LaunchedEffect(context) { draft = draft.withContext(context) }
 
     BobitosFormSheet(
         title = stringResource(if (item == null) R.string.shopping_add_title else R.string.shopping_edit_title),
         confirmLabel = stringResource(R.string.save),
         confirmEnabled = validation == null,
         saving = saving,
-        dirty = { draft != initial.withContext(context) },
+        dirty = { draft.isDirty(initial, context) },
         errorMessage = errorMessage,
         onDismiss = onDismiss,
-        onConfirm = { onSave(name, quantity, notes, draft.supermarket, brand.trim().ifEmpty { null }) },
+        onConfirm = { onSave(name, quantity, notes, draft.supermarket, draft.savedBrand(context)) },
     ) {
         OutlinedTextField(
             value = name,

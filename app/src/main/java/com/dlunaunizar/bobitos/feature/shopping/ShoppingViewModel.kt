@@ -21,6 +21,7 @@ import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
 import com.dlunaunizar.bobitos.data.repository.toIngredientRepositoryException
+import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
 import com.dlunaunizar.bobitos.feature.ingredients.mergeIngredients
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -79,6 +80,8 @@ class ShoppingViewModel @Inject constructor(
     /** Ingredientes, marcas y preferencias: solo mientras el editor de ítem está abierto. */
     fun startIngredientAssist() {
         if (catalogJob?.isActive == true) return
+        // Sin datos viejos de un ViewModel restaurado: los valores por defecto parten de lo recién leído.
+        mutableUiState.update { it.copy(ingredientData = IngredientShoppingData()) }
         catalogJob = viewModelScope.launch {
             ingredientSource.data().collect { data -> mutableUiState.update { it.copy(ingredientData = data) } }
         }
