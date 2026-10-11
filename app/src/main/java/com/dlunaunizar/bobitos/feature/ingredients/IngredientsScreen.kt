@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Kitchen
@@ -24,7 +23,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,7 +39,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -56,6 +53,8 @@ import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.InfoChip
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
+import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
+import com.dlunaunizar.bobitos.core.designsystem.component.SwitchRow
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.feature.shopping.SupermarketIcon
@@ -81,7 +80,6 @@ fun IngredientsScreen(
     var showScanCreate by rememberSaveable { mutableStateOf(false) }
     var createCommon by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
-    LaunchedEffect(query) { viewModel.setQuery(query) }
     IngredientsEvents(state, viewModel, onOpenIngredient, onOpenBrand) { showScanCreate = false }
 
     Scaffold(
@@ -114,16 +112,14 @@ fun IngredientsScreen(
                 viewModel::clearFeedback,
                 existingName = state.existingName,
             )
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                label = { Text(stringResource(R.string.ingredients_search_label)) },
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+            SearchField(
+                query = query,
+                onQueryChange = { query = it },
+                visible = true,
+                modifier = Modifier.padding(vertical = 8.dp),
+                label = stringResource(R.string.ingredients_search_label),
             )
-            IngredientCatalog(state, onOpen = { onOpenIngredient(it.id) }, onRetry = viewModel::retryCatalog)
+            IngredientCatalog(state, query, onOpen = { onOpenIngredient(it.id) }, onRetry = viewModel::retryCatalog)
         }
     }
 
@@ -145,8 +141,7 @@ fun IngredientsScreen(
             errorMessage = editorError,
             onDismiss = { showEditor = false },
             onSave = { name, category, unit -> viewModel.createIngredient(name, category, unit, createCommon) },
-            commonChecked = createCommon.takeIf { state.isAdmin },
-            onCommonChange = if (state.isAdmin) ({ createCommon = it }) else null,
+            commonToggle = if (state.isAdmin) CommonToggle(createCommon) { createCommon = it } else null,
         )
     }
 
@@ -228,7 +223,12 @@ private fun ScanFlow(
 }
 
 @Composable
-private fun IngredientCatalog(state: IngredientsUiState, onOpen: (CatalogIngredient) -> Unit, onRetry: () -> Unit) {
+private fun IngredientCatalog(
+    state: IngredientsUiState,
+    query: String,
+    onOpen: (CatalogIngredient) -> Unit,
+    onRetry: () -> Unit,
+) {
     when (val catalog = state.ingredients) {
         UiState.Loading -> LoadingState(Modifier.fillMaxWidth())
         is UiState.Error -> ErrorState(
@@ -237,14 +237,14 @@ private fun IngredientCatalog(state: IngredientsUiState, onOpen: (CatalogIngredi
             onRetry = onRetry,
         )
         is UiState.Content -> {
-            val filtered = catalog.value.matching(state.query)
-            val brandsByIngredient = remember(state.brands) { state.brands.groupBy { it.ingredientId } }
+            val filtered = remember(catalog.value, query) { catalog.value.matching(query) }
+            val lines = remember(state.brands, state.prefs) { ingredientRowLines(state.brands, state.prefs) }
             if (filtered.isEmpty()) {
                 EmptyState(
                     modifier = Modifier.fillMaxWidth(),
                     icon = Icons.Rounded.Kitchen,
                     title = stringResource(
-                        if (state.query.isNotBlank() && catalog.value.isNotEmpty()) {
+                        if (query.isNotBlank() && catalog.value.isNotEmpty()) {
                             R.string.ingredients_no_results
                         } else {
                             R.string.ingredients_empty
@@ -259,10 +259,7 @@ private fun IngredientCatalog(state: IngredientsUiState, onOpen: (CatalogIngredi
                     items(filtered, key = CatalogIngredient::id) { ingredient ->
                         IngredientRow(
                             ingredient = ingredient,
-                            line = ingredientRowLine(
-                                brandsByIngredient[ingredient.id].orEmpty(),
-                                state.prefs[ingredient.id],
-                            ),
+                            line = lines[ingredient.id] ?: IngredientRowLine.None,
                             onClick = { onOpen(ingredient) },
                             modifier = Modifier.animateItem(),
                         )
@@ -355,8 +352,7 @@ internal fun IngredientEditorDialog(
     initialName: String = "",
     errorMessage: String? = null,
     // Interruptor «Común (catálogo)»: solo se pasa al admin al crear.
-    commonChecked: Boolean? = null,
-    onCommonChange: ((Boolean) -> Unit)? = null,
+    commonToggle: CommonToggle? = null,
 ) {
     val initial = CatalogIngredientDraft.of(ingredient, initialName)
     var draft by rememberSaveable(ingredient?.id, initialName) {
@@ -397,20 +393,18 @@ internal fun IngredientEditorDialog(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        if (commonChecked != null && onCommonChange != null) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .toggleable(value = commonChecked, role = Role.Switch, onValueChange = onCommonChange),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(stringResource(R.string.ingredients_common_switch), modifier = Modifier.weight(1f))
-                Switch(checked = commonChecked, onCheckedChange = null)
-            }
+        if (commonToggle != null) {
+            SwitchRow(
+                label = stringResource(R.string.ingredients_common_switch),
+                checked = commonToggle.checked,
+                onCheckedChange = commonToggle.onChange,
+            )
         }
     }
 }
+
+/** Estado del interruptor «Común (catálogo)» del editor de ingredientes. */
+internal class CommonToggle(val checked: Boolean, val onChange: (Boolean) -> Unit)
 
 @Composable
 internal fun IngredientsFeedback(
@@ -422,7 +416,11 @@ internal fun IngredientsFeedback(
     barcodeConflict: BarcodeConflict? = null,
 ) {
     val message = error ?: notice
-    if (message == null && !saving) return
+    val text = when {
+        saving -> stringResource(R.string.write_saving)
+        message != null -> ingredientMessageText(message, existingName, barcodeConflict)
+        else -> return
+    }
     Surface(
         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         color = if (error != null) {
@@ -434,13 +432,7 @@ internal fun IngredientsFeedback(
     ) {
         Row(modifier = Modifier.padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = if (saving) {
-                    stringResource(
-                        R.string.write_saving,
-                    )
-                } else {
-                    ingredientMessageText(message!!, existingName, barcodeConflict)
-                },
+                text = text,
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyMedium,
             )

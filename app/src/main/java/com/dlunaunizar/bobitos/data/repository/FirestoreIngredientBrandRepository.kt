@@ -3,14 +3,11 @@ package com.dlunaunizar.bobitos.data.repository
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.data.sync.RealtimeMetrics
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
-import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -26,31 +23,14 @@ class FirestoreIngredientBrandRepository @Inject constructor(
 
     override fun brands(): Flow<List<IngredientBrand>> {
         val uid = authRepository.currentUser.value?.id ?: return flowOf(emptyList())
-        return callbackFlow {
-            val metricId = realtimeMetrics.listenerStarted(SCOPE)
-            val registration = brandsCollection(uid)
-                .limit(MAX_BRANDS)
-                .addSnapshotListener { snapshot, error ->
-                    when {
-                        error != null -> close(error.toBrandRepositoryException())
-                        snapshot != null -> {
-                            realtimeMetrics.snapshotReceived(
-                                SCOPE,
-                                snapshot.documentChanges.size,
-                                snapshot.metadata.isFromCache,
-                            )
-                            trySend(
-                                snapshot.documents
-                                    .mapNotNull { doc -> doc.data?.let { parseIngredientBrand(doc.id, it) } }
-                                    .sortedForBrands(),
-                            )
-                        }
-                    }
-                }
-            awaitClose {
-                registration.remove()
-                realtimeMetrics.listenerStopped(metricId)
-            }
+        return brandsCollection(uid).limit(MAX_BRANDS).documentsFlow(
+            metrics = realtimeMetrics,
+            scope = SCOPE,
+            toException = Throwable::toBrandRepositoryException,
+        ) { documents ->
+            documents
+                .mapNotNull { doc -> doc.data?.let { parseIngredientBrand(doc.id, it) } }
+                .sortedForBrands()
         }
     }
 
@@ -98,20 +78,13 @@ class FirestoreIngredientBrandRepository @Inject constructor(
         return user.id
     }
 
-    private suspend inline fun <T> runOperation(crossinline operation: suspend () -> T): T {
-        try {
-            syncRepository.requireWritable()
-            return operation()
-        } catch (error: BrandRepositoryException) {
-            if (error.failure == BrandFailure.Network) syncRepository.reportWriteFailure(error.cause ?: error)
-            throw error
-        } catch (error: WriteNotAllowedException) {
-            throw BrandRepositoryException(BrandFailure.Network, error)
-        } catch (error: Throwable) {
-            syncRepository.reportWriteFailure(error)
-            throw error.toBrandRepositoryException()
-        }
-    }
+    private suspend inline fun <T> runOperation(crossinline operation: suspend () -> T): T =
+        syncRepository.runWriteOperation(
+            isNetworkFailure = { it.failure == BrandFailure.Network },
+            networkException = { BrandRepositoryException(BrandFailure.Network, it) },
+            toException = Throwable::toBrandRepositoryException,
+            operation = operation,
+        )
 
     private companion object {
         const val USERS = "users"

@@ -1,11 +1,10 @@
 package com.dlunaunizar.bobitos.feature.ingredients
 
-import com.dlunaunizar.bobitos.core.common.matchesQuery
+import com.dlunaunizar.bobitos.core.common.prepareQuery
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Supermarket
-import com.dlunaunizar.bobitos.core.model.ingredientKey
 import com.dlunaunizar.bobitos.data.repository.sortedForBrands
 import com.dlunaunizar.bobitos.data.repository.sortedForIngredientCatalog
 
@@ -16,13 +15,6 @@ internal fun mergeIngredients(
 ): List<CatalogIngredient> {
     val commonIds = common.mapTo(HashSet(), CatalogIngredient::id)
     return (common + personal.filterNot { it.id in commonIds }).sortedForIngredientCatalog()
-}
-
-/** El primer ingrediente con la misma clave tolerante que [name]; `null` si la clave es vacía. */
-internal fun findByKey(ingredients: List<CatalogIngredient>, name: String): CatalogIngredient? {
-    val key = ingredientKey(name)
-    if (key.isEmpty()) return null
-    return ingredients.firstOrNull { ingredientKey(it.name) == key }
 }
 
 /** Línea de marca y tienda bajo el nombre del ingrediente en la lista. */
@@ -45,5 +37,18 @@ internal fun ingredientRowLine(brands: List<IngredientBrand>, pref: IngredientPr
     }
 }
 
-internal fun List<CatalogIngredient>.matching(query: String): List<CatalogIngredient> =
-    filter { matchesQuery(query, it.name, it.category) }
+internal fun List<CatalogIngredient>.matching(query: String): List<CatalogIngredient> {
+    val search = prepareQuery(query)
+    return filter { search.matches(it.name, it.category) }
+}
+
+/** La línea de cada ingrediente con marcas o tiendas; el resto (sin entrada) es [IngredientRowLine.None]. */
+internal fun ingredientRowLines(
+    brands: List<IngredientBrand>,
+    prefs: Map<String, IngredientPref>,
+): Map<String, IngredientRowLine> {
+    val brandsByIngredient = brands.groupBy { it.ingredientId }
+    return (brandsByIngredient.keys + prefs.keys).associateWith {
+        ingredientRowLine(brandsByIngredient[it].orEmpty(), prefs[it])
+    }
+}

@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -25,6 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 
@@ -42,18 +42,19 @@ internal fun ScanPickDialog(
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     val suggestions = remember(ingredients, productName) { suggestIngredients(ingredients, productName) }
-    val shown = if (query.isBlank()) suggestions else ingredients.matching(query)
+    val shown = remember(ingredients, query, suggestions) {
+        if (query.isBlank()) suggestions else ingredients.matching(query)
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.ingredients_scan_pick_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    label = { Text(stringResource(R.string.ingredients_search_label)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                SearchField(
+                    query = query,
+                    onQueryChange = { query = it },
+                    visible = true,
+                    label = stringResource(R.string.ingredients_search_label),
                 )
                 if (query.isBlank() && suggestions.isNotEmpty()) {
                     Text(

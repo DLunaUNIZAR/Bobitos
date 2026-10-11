@@ -14,7 +14,6 @@ data class ScanPick(val barcode: String, val productName: String, val brandName:
 data class OpenBrand(val ingredientId: String, val brandId: String)
 
 data class IngredientsUiState(
-    val query: String = "",
     // Comunes y personales mezclados.
     val ingredients: UiState<List<CatalogIngredient>> = UiState.Loading,
     val brands: List<IngredientBrand> = emptyList(),

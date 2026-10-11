@@ -9,23 +9,11 @@ import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Nutrition
 import com.dlunaunizar.bobitos.core.model.Supermarket
-import com.dlunaunizar.bobitos.core.model.slug
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffException
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffFailure
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffProduct
-import com.dlunaunizar.bobitos.data.openfoodfacts.OpenFoodFactsClient
-import com.dlunaunizar.bobitos.data.repository.BrandInput
-import com.dlunaunizar.bobitos.data.repository.IngredientBrandRepository
-import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
-import com.dlunaunizar.bobitos.data.repository.IngredientRepository
-import com.dlunaunizar.bobitos.data.repository.PersonalIngredientRepository
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -45,8 +33,8 @@ class IngredientsViewModelTest {
     private val repository = FakeIngredientRepository()
     private val personalRepository = FakePersonalIngredientRepository()
     private val prefsRepository = FakeIngredientPrefsRepository()
-    private val brandRepository = FakeListBrandRepository()
-    private val offClient = FakeListOffClient()
+    private val brandRepository = FakeIngredientBrandRepository()
+    private val offClient = FakeOffClient()
     private val viewModel =
         IngredientsViewModel(repository, personalRepository, prefsRepository, brandRepository, offClient)
 
@@ -58,7 +46,7 @@ class IngredientsViewModelTest {
             personalRepository.state.value = listOf(CatalogIngredient("canela", "Canela", personal = true))
             val brand = IngredientBrand(id = "b", ingredientId = "tomate", name = "Hida")
             brandRepository.brandsState.value = listOf(brand)
-            prefsRepository.prefsState.value = mapOf("tomate" to IngredientPref(listOf(Supermarket.DIA)))
+            prefsRepository.state.value = mapOf("tomate" to IngredientPref(listOf(Supermarket.DIA)))
 
             viewModel.observe()
             advanceUntilIdle()
@@ -229,11 +217,11 @@ class IngredientsViewModelTest {
             )
             advanceUntilIdle()
 
-            assertEquals("tomate", brandRepository.lastIngredientId)
-            assertEquals("Hacendado", brandRepository.lastName)
-            assertEquals("8410000000000", brandRepository.lastBarcode)
-            assertEquals(Nutrition(energyKcal = 80.0), brandRepository.lastNutrition)
-            assertTrue(brandRepository.lastFavorite)
+            assertEquals("tomate", brandRepository.lastAddedIngredientId)
+            assertEquals("Hacendado", brandRepository.lastAddedName)
+            assertEquals("8410000000000", brandRepository.lastAddedBarcode)
+            assertEquals(Nutrition(energyKcal = 80.0), brandRepository.lastAddedNutrition)
+            assertTrue(brandRepository.lastAddedFavorite)
             val state = viewModel.uiState.value
             assertNull(state.scanPick)
             assertNull(state.scanBrandTarget)
@@ -260,7 +248,7 @@ class IngredientsViewModelTest {
             viewModel.saveScannedBrand(BrandDraft.of("Hacendado", "841", null))
             advanceUntilIdle()
 
-            assertEquals("tomate-frito", brandRepository.lastIngredientId)
+            assertEquals("tomate-frito", brandRepository.lastAddedIngredientId)
             assertNull(viewModel.uiState.value.scanPick)
         }
 
@@ -334,111 +322,3 @@ class IngredientsViewModelTest {
 }
 
 private fun ingredient(id: String, name: String) = CatalogIngredient(id = id, name = name)
-
-private class FakeIngredientRepository : IngredientRepository {
-    val catalogState = MutableStateFlow<List<CatalogIngredient>>(emptyList())
-    var admin = false
-    var uid: String? = null
-    var createCount = 0
-    var lastCreatedName: String? = null
-    var createGate: CompletableDeferred<Unit>? = null
-
-    // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
-    var hang = false
-
-    var failCatalog = false
-
-    override fun catalog(): Flow<List<CatalogIngredient>> = if (failCatalog) {
-        flow { error("offline") }
-    } else {
-        catalogState
-    }
-    override fun isCurrentUserCatalogAdmin(): Boolean = admin
-    override fun currentUserId(): String? = uid
-    override suspend fun createIngredient(name: String, category: String?, defaultUnit: String?) {
-        if (hang) {
-            try {
-                awaitCancellation()
-            } catch (_: CancellationException) {
-                error("cancelled")
-            }
-        }
-        createGate?.await()
-        createCount++
-        lastCreatedName = name
-    }
-
-    override suspend fun updateIngredient(id: String, name: String, category: String?, defaultUnit: String?) = Unit
-    override suspend fun deleteIngredient(id: String) = Unit
-}
-
-private class FakePersonalIngredientRepository : PersonalIngredientRepository {
-    val state = MutableStateFlow<List<CatalogIngredient>>(emptyList())
-    var createCount = 0
-    var lastCreatedName: String? = null
-    var createGate: CompletableDeferred<Unit>? = null
-
-    // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
-    var hang = false
-
-    override fun ingredients(): Flow<List<CatalogIngredient>> = state
-    override suspend fun create(name: String, category: String?, defaultUnit: String?): String {
-        if (hang) {
-            try {
-                awaitCancellation()
-            } catch (_: CancellationException) {
-                error("cancelled")
-            }
-        }
-        createGate?.await()
-        createCount++
-        lastCreatedName = name
-        return slug(name)
-    }
-
-    override suspend fun update(id: String, name: String, category: String?, defaultUnit: String?) = Unit
-    override suspend fun delete(id: String) = Unit
-}
-
-private class FakeIngredientPrefsRepository : IngredientPrefsRepository {
-    val prefsState = MutableStateFlow<Map<String, IngredientPref>>(emptyMap())
-
-    override fun prefs(): Flow<Map<String, IngredientPref>> = prefsState
-    override suspend fun setStores(ingredientId: String, stores: List<Supermarket>) = Unit
-}
-
-private class FakeListBrandRepository : IngredientBrandRepository {
-    var lastIngredientId: String? = null
-    var lastName: String? = null
-    var lastBarcode: String? = null
-    var lastNutrition: Nutrition? = null
-    var lastFavorite = false
-
-    val brandsState = MutableStateFlow<List<IngredientBrand>>(emptyList())
-
-    override fun brands(): Flow<List<IngredientBrand>> = brandsState
-    override suspend fun addBrand(input: BrandInput): String {
-        lastIngredientId = input.ingredientId
-        lastName = input.name
-        lastBarcode = input.barcode
-        lastNutrition = input.nutrition
-        lastFavorite = input.favorite
-        return "new"
-    }
-
-    override suspend fun updateBrand(brandId: String, input: BrandInput) = Unit
-    override suspend fun setFavorite(brandId: String, favorite: Boolean) = Unit
-    override suspend fun deleteBrand(brandId: String) = Unit
-}
-
-private class FakeListOffClient : OpenFoodFactsClient {
-    var result: OffProduct? = null
-    var failure: OffException? = null
-    var calls = 0
-
-    override suspend fun lookup(barcode: String): OffProduct? {
-        calls++
-        failure?.let { throw it }
-        return result
-    }
-}

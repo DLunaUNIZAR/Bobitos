@@ -3,23 +3,18 @@ package com.dlunaunizar.bobitos.feature.ingredients
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
-import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
+import com.dlunaunizar.bobitos.core.model.findByKey
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffException
-import com.dlunaunizar.bobitos.data.openfoodfacts.OffFailure
 import com.dlunaunizar.bobitos.data.openfoodfacts.OpenFoodFactsClient
-import com.dlunaunizar.bobitos.data.repository.BrandFailure
-import com.dlunaunizar.bobitos.data.repository.BrandRepositoryException
 import com.dlunaunizar.bobitos.data.repository.IngredientBrandRepository
-import com.dlunaunizar.bobitos.data.repository.IngredientFailure
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientRepository
-import com.dlunaunizar.bobitos.data.repository.IngredientRepositoryException
 import com.dlunaunizar.bobitos.data.repository.PersonalIngredientRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -120,10 +115,6 @@ class IngredientsViewModel @Inject constructor(
         observing = false
     }
 
-    fun setQuery(query: String) {
-        mutableUiState.update { it.copy(query = query) }
-    }
-
     /** Alta de ingrediente: común solo si [common] y la cuenta es admin; si no, personal. */
     fun createIngredient(name: String, category: String?, defaultUnit: String?, common: Boolean) {
         val trimmed = name.trim()
@@ -178,13 +169,13 @@ class IngredientsViewModel @Inject constructor(
                         notice = if (product == null) IngredientUiMessage.ScanNotFound else null,
                     )
                 }
-            } catch (error: OffException) {
+            } catch (_: OffException) {
                 // Sin red se sigue a mano: solo se conoce el código.
                 mutableUiState.update {
                     it.copy(
                         isLookingUp = false,
                         scanPick = ScanPick(barcode, "", "", null),
-                        error = error.failure.toUiMessage(),
+                        error = IngredientUiMessage.ScanFailed,
                     )
                 }
             }
@@ -273,42 +264,4 @@ class IngredientsViewModel @Inject constructor(
                 }
         }
     }
-}
-
-private fun Throwable.toUiMessage(): IngredientUiMessage = when (this) {
-    is IngredientRepositoryException -> failure.toUiMessage()
-    is BrandRepositoryException -> failure.toUiMessage()
-    is SaveTimeoutException -> IngredientUiMessage.SaveTimeout
-    else -> IngredientUiMessage.UnexpectedError
-}
-
-private fun OffFailure.toUiMessage(): IngredientUiMessage = when (this) {
-    OffFailure.Network -> IngredientUiMessage.ScanFailed
-    OffFailure.Unknown -> IngredientUiMessage.ScanFailed
-}
-
-private fun BrandFailure.toUiMessage(): IngredientUiMessage = when (this) {
-    BrandFailure.NameRequired -> IngredientUiMessage.BrandNameRequired
-    BrandFailure.NameTooLong -> IngredientUiMessage.BrandNameTooLong
-    BrandFailure.BarcodeTooLong -> IngredientUiMessage.BarcodeTooLong
-    BrandFailure.BrandNotFound -> IngredientUiMessage.BrandNotFound
-    BrandFailure.NotAuthenticated -> IngredientUiMessage.NotAuthenticated
-    BrandFailure.EmailNotVerified -> IngredientUiMessage.EmailNotVerified
-    BrandFailure.PermissionDenied -> IngredientUiMessage.PermissionDenied
-    BrandFailure.Network -> IngredientUiMessage.NetworkError
-    BrandFailure.Unknown -> IngredientUiMessage.UnexpectedError
-}
-
-private fun IngredientFailure.toUiMessage(): IngredientUiMessage = when (this) {
-    IngredientFailure.NameRequired -> IngredientUiMessage.NameRequired
-    IngredientFailure.NameTooLong -> IngredientUiMessage.NameTooLong
-    IngredientFailure.CategoryTooLong -> IngredientUiMessage.CategoryTooLong
-    IngredientFailure.UnitTooLong -> IngredientUiMessage.UnitTooLong
-    IngredientFailure.AlreadyExists -> IngredientUiMessage.AlreadyExists
-    IngredientFailure.NotAuthenticated -> IngredientUiMessage.NotAuthenticated
-    IngredientFailure.EmailNotVerified -> IngredientUiMessage.EmailNotVerified
-    IngredientFailure.IngredientNotFound -> IngredientUiMessage.NotFound
-    IngredientFailure.PermissionDenied -> IngredientUiMessage.PermissionDenied
-    IngredientFailure.Network -> IngredientUiMessage.NetworkError
-    IngredientFailure.Unknown -> IngredientUiMessage.UnexpectedError
 }

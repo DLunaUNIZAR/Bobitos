@@ -3,7 +3,6 @@ package com.dlunaunizar.bobitos.feature.ingredients
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
-import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
@@ -12,17 +11,12 @@ import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffException
-import com.dlunaunizar.bobitos.data.openfoodfacts.OffFailure
 import com.dlunaunizar.bobitos.data.openfoodfacts.OpenFoodFactsClient
-import com.dlunaunizar.bobitos.data.repository.BrandFailure
-import com.dlunaunizar.bobitos.data.repository.BrandRepositoryException
 import com.dlunaunizar.bobitos.data.repository.IngredientBrandRepository
-import com.dlunaunizar.bobitos.data.repository.IngredientFailure
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefFailure
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefsException
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientRepository
-import com.dlunaunizar.bobitos.data.repository.IngredientRepositoryException
 import com.dlunaunizar.bobitos.data.repository.PersonalIngredientRepository
 import com.dlunaunizar.bobitos.data.repository.sortedForBrands
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -68,7 +62,6 @@ class IngredientDetailViewModel @Inject constructor(
             it.copy(
                 ingredientId = id,
                 isAdmin = repository.isCurrentUserCatalogAdmin(),
-                currentUid = repository.currentUserId(),
             )
         }
         common = emptyList()
@@ -114,9 +107,11 @@ class IngredientDetailViewModel @Inject constructor(
     }
 
     private fun publishIngredient(id: String, loaded: Boolean = false) {
-        val found = common.firstOrNull { it.id == id } ?: personal.firstOrNull { it.id == id }
+        val found = findIngredient(id)
         mutableUiState.update { it.copy(ingredient = found, loaded = it.loaded || loaded) }
     }
+
+    private fun findIngredient(id: String) = mergeIngredients(common, personal).firstOrNull { it.id == id }
 
     fun stopObserving() {
         listOf(catalogJob, personalJob, brandsJob, prefsJob).forEach { it?.cancel() }
@@ -177,7 +172,7 @@ class IngredientDetailViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { action() }.onFailure { error ->
                 if (error is CancellationException) throw error
-                mutableUiState.update { it.copy(error = error.toUiMessage(), notice = null) }
+                mutableUiState.update { it.copy(error = error.toDetailUiMessage(), notice = null) }
             }
         }
     }
@@ -224,9 +219,9 @@ class IngredientDetailViewModel @Inject constructor(
                         notice = if (product == null) IngredientUiMessage.ScanNotFound else null,
                     )
                 }
-            } catch (error: OffException) {
+            } catch (_: OffException) {
                 mutableUiState.update {
-                    it.copy(isLookingUp = false, error = error.failure.toUiMessage())
+                    it.copy(isLookingUp = false, error = IngredientUiMessage.ScanFailed)
                 }
             }
         }
@@ -237,7 +232,7 @@ class IngredientDetailViewModel @Inject constructor(
             mutableUiState.update { it.copy(openBrandId = brand.id) }
             return
         }
-        val owner = (common + personal).firstOrNull { it.id == brand.ingredientId }
+        val owner = findIngredient(brand.ingredientId)
         mutableUiState.update {
             it.copy(
                 error = null,
@@ -291,7 +286,7 @@ class IngredientDetailViewModel @Inject constructor(
                 }
                 .onFailure { error ->
                     if (error is CancellationException) throw error
-                    showError(error.toUiMessage(), editor)
+                    showError(error.toDetailUiMessage(), editor)
                 }
         }
     }
@@ -300,44 +295,9 @@ class IngredientDetailViewModel @Inject constructor(
 // Utilidad para el formulario de nutrición: acepta coma o punto decimal; vacío → null.
 internal fun parseNutritionValue(raw: String): Double? = raw.trim().replace(',', '.').toDoubleOrNull()
 
-private fun Throwable.toUiMessage(): IngredientUiMessage = when (this) {
-    is IngredientRepositoryException -> failure.toUiMessage()
-    is BrandRepositoryException -> failure.toUiMessage()
-    is IngredientPrefsException -> failure.toUiMessage()
-    is SaveTimeoutException -> IngredientUiMessage.SaveTimeout
-    else -> IngredientUiMessage.UnexpectedError
-}
-
-private fun IngredientFailure.toUiMessage(): IngredientUiMessage = when (this) {
-    IngredientFailure.NameRequired -> IngredientUiMessage.NameRequired
-    IngredientFailure.NameTooLong -> IngredientUiMessage.NameTooLong
-    IngredientFailure.CategoryTooLong -> IngredientUiMessage.CategoryTooLong
-    IngredientFailure.UnitTooLong -> IngredientUiMessage.UnitTooLong
-    IngredientFailure.AlreadyExists -> IngredientUiMessage.AlreadyExists
-    IngredientFailure.NotAuthenticated -> IngredientUiMessage.NotAuthenticated
-    IngredientFailure.EmailNotVerified -> IngredientUiMessage.EmailNotVerified
-    IngredientFailure.IngredientNotFound -> IngredientUiMessage.NotFound
-    IngredientFailure.PermissionDenied -> IngredientUiMessage.PermissionDenied
-    IngredientFailure.Network -> IngredientUiMessage.NetworkError
-    IngredientFailure.Unknown -> IngredientUiMessage.UnexpectedError
-}
-
-private fun OffFailure.toUiMessage(): IngredientUiMessage = when (this) {
-    OffFailure.Network -> IngredientUiMessage.ScanFailed
-    OffFailure.Unknown -> IngredientUiMessage.ScanFailed
-}
-
-private fun BrandFailure.toUiMessage(): IngredientUiMessage = when (this) {
-    BrandFailure.NameRequired -> IngredientUiMessage.BrandNameRequired
-    BrandFailure.NameTooLong -> IngredientUiMessage.BrandNameTooLong
-    BrandFailure.BarcodeTooLong -> IngredientUiMessage.BarcodeTooLong
-    BrandFailure.BrandNotFound -> IngredientUiMessage.BrandNotFound
-    BrandFailure.NotAuthenticated -> IngredientUiMessage.NotAuthenticated
-    BrandFailure.EmailNotVerified -> IngredientUiMessage.EmailNotVerified
-    BrandFailure.PermissionDenied -> IngredientUiMessage.PermissionDenied
-    BrandFailure.Network -> IngredientUiMessage.NetworkError
-    BrandFailure.Unknown -> IngredientUiMessage.UnexpectedError
-}
+// Los fallos de preferencias solo se dan en el detalle (tiendas de «Dónde lo compro»).
+private fun Throwable.toDetailUiMessage(): IngredientUiMessage =
+    if (this is IngredientPrefsException) failure.toUiMessage() else toUiMessage()
 
 private fun IngredientPrefFailure.toUiMessage(): IngredientUiMessage = when (this) {
     IngredientPrefFailure.NotAuthenticated -> IngredientUiMessage.NotAuthenticated

@@ -21,7 +21,6 @@ data class IngredientDetailUiState(
     // Tiendas del ingrediente en orden de preferencia (de las preferencias del usuario).
     val stores: List<Supermarket> = emptyList(),
     val isAdmin: Boolean = false,
-    val currentUid: String? = null,
     val isSaving: Boolean = false,
     val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
     // Consulta a Open Food Facts en curso tras escanear.

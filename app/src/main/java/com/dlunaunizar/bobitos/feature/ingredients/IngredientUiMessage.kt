@@ -2,6 +2,11 @@ package com.dlunaunizar.bobitos.feature.ingredients
 
 import androidx.annotation.StringRes
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
+import com.dlunaunizar.bobitos.data.repository.BrandFailure
+import com.dlunaunizar.bobitos.data.repository.BrandRepositoryException
+import com.dlunaunizar.bobitos.data.repository.IngredientFailure
+import com.dlunaunizar.bobitos.data.repository.IngredientRepositoryException
 
 // Mensajes de UI del catálogo de ingredientes y sus marcas (mismo patrón que RecipeUiMessage).
 enum class IngredientUiMessage {
@@ -59,3 +64,36 @@ internal val IngredientUiMessage.stringResourceId: Int
         IngredientUiMessage.BarcodeInOtherIngredient -> R.string.ingredients_brand_barcode_elsewhere_generic
         IngredientUiMessage.CatalogUnavailable -> R.string.ingredients_catalog_unavailable
     }
+
+internal fun Throwable.toUiMessage(): IngredientUiMessage = when (this) {
+    is IngredientRepositoryException -> failure.toUiMessage()
+    is BrandRepositoryException -> failure.toUiMessage()
+    is SaveTimeoutException -> IngredientUiMessage.SaveTimeout
+    else -> IngredientUiMessage.UnexpectedError
+}
+
+internal fun BrandFailure.toUiMessage(): IngredientUiMessage = when (this) {
+    BrandFailure.NameRequired -> IngredientUiMessage.BrandNameRequired
+    BrandFailure.NameTooLong -> IngredientUiMessage.BrandNameTooLong
+    BrandFailure.BarcodeTooLong -> IngredientUiMessage.BarcodeTooLong
+    BrandFailure.BrandNotFound -> IngredientUiMessage.BrandNotFound
+    BrandFailure.NotAuthenticated -> IngredientUiMessage.NotAuthenticated
+    BrandFailure.EmailNotVerified -> IngredientUiMessage.EmailNotVerified
+    BrandFailure.PermissionDenied -> IngredientUiMessage.PermissionDenied
+    BrandFailure.Network -> IngredientUiMessage.NetworkError
+    BrandFailure.Unknown -> IngredientUiMessage.UnexpectedError
+}
+
+internal fun IngredientFailure.toUiMessage(): IngredientUiMessage = when (this) {
+    IngredientFailure.NameRequired -> IngredientUiMessage.NameRequired
+    IngredientFailure.NameTooLong -> IngredientUiMessage.NameTooLong
+    IngredientFailure.CategoryTooLong -> IngredientUiMessage.CategoryTooLong
+    IngredientFailure.UnitTooLong -> IngredientUiMessage.UnitTooLong
+    IngredientFailure.AlreadyExists -> IngredientUiMessage.AlreadyExists
+    IngredientFailure.NotAuthenticated -> IngredientUiMessage.NotAuthenticated
+    IngredientFailure.EmailNotVerified -> IngredientUiMessage.EmailNotVerified
+    IngredientFailure.IngredientNotFound -> IngredientUiMessage.NotFound
+    IngredientFailure.PermissionDenied -> IngredientUiMessage.PermissionDenied
+    IngredientFailure.Network -> IngredientUiMessage.NetworkError
+    IngredientFailure.Unknown -> IngredientUiMessage.UnexpectedError
+}

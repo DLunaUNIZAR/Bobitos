@@ -10,12 +10,18 @@ import com.dlunaunizar.bobitos.R
 
 /** Campo de búsqueda de texto reutilizable; no se pinta si [visible] es false. */
 @Composable
-fun SearchField(query: String, onQueryChange: (String) -> Unit, visible: Boolean, modifier: Modifier = Modifier) {
+fun SearchField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    visible: Boolean,
+    modifier: Modifier = Modifier,
+    label: String = stringResource(R.string.search_label),
+) {
     if (!visible) return
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
-        label = { Text(stringResource(R.string.search_label)) },
+        label = { Text(label) },
         singleLine = true,
         modifier = modifier.fillMaxWidth(),
     )

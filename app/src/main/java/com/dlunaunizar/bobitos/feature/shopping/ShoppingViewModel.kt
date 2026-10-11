@@ -12,7 +12,7 @@ import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
-import com.dlunaunizar.bobitos.core.model.ingredientKey
+import com.dlunaunizar.bobitos.core.model.findByKey
 import com.dlunaunizar.bobitos.data.repository.IngredientFailure
 import com.dlunaunizar.bobitos.data.repository.IngredientRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientRepositoryException
@@ -94,11 +94,10 @@ class ShoppingViewModel @Inject constructor(
     /** Crea una ficha de ingrediente a partir del ítem (si aún no existe en el catálogo). */
     fun createIngredientFromItem(item: ShoppingItem) {
         val name = item.name.trim()
-        val key = ingredientKey(name)
         runAction(ShoppingUiMessage.IngredientCreated) {
             // El catálogo solo está cargado con el editor abierto: se carga bajo demanda (comunes y
             // personales). Si no se puede, no se escribe: sin la lista no se puede detectar el duplicado.
-            if (loadIngredientsOnDemand().any { it.matchesKey(key) }) throw IngredientAlreadyKnown()
+            if (findByKey(loadIngredientsOnDemand(), name) != null) throw IngredientAlreadyKnown()
             personalIngredients.create(name, null, null)
         }
     }
@@ -298,8 +297,6 @@ private fun IngredientFailure?.toShoppingUiMessage() = when (this) {
     IngredientFailure.Network -> ShoppingUiMessage.NetworkError
     else -> ShoppingUiMessage.UnexpectedError
 }
-
-private fun CatalogIngredient.matchesKey(key: String) = ingredientKey(name) == key
 
 private fun String?.normalized(): String? = this?.trim()?.takeIf(String::isNotEmpty)
 

@@ -3,8 +3,10 @@ package com.dlunaunizar.bobitos.data.repository
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.slug
+import com.dlunaunizar.bobitos.data.repository.FirestoreIngredientCatalogSource.Companion.CATALOG_META
+import com.dlunaunizar.bobitos.data.repository.FirestoreIngredientCatalogSource.Companion.FIELD_VERSION
+import com.dlunaunizar.bobitos.data.repository.FirestoreIngredientCatalogSource.Companion.INGREDIENTS
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
-import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -47,8 +49,6 @@ class FirestoreIngredientRepository @Inject constructor(
 
     override fun isCurrentUserCatalogAdmin(): Boolean =
         authRepository.currentUser.value?.id?.let(RecipeAdmins.uids::contains) == true
-
-    override fun currentUserId(): String? = authRepository.currentUser.value?.id
 
     override suspend fun createIngredient(name: String, category: String?, defaultUnit: String?) = runOperation {
         val user = requireAdmin()
@@ -135,35 +135,23 @@ class FirestoreIngredientRepository @Inject constructor(
         return user
     }
 
-    private suspend inline fun <T> runOperation(crossinline operation: suspend () -> T): T {
-        try {
-            syncRepository.requireWritable()
-            return operation()
-        } catch (error: IngredientRepositoryException) {
-            if (error.failure == IngredientFailure.Network) {
-                syncRepository.reportWriteFailure(error.cause ?: error)
-            }
-            throw error
-        } catch (error: WriteNotAllowedException) {
-            throw IngredientRepositoryException(IngredientFailure.Network, error)
-        } catch (error: Throwable) {
-            syncRepository.reportWriteFailure(error)
-            throw error.toIngredientRepositoryException()
-        }
-    }
+    private suspend inline fun <T> runOperation(crossinline operation: suspend () -> T): T =
+        syncRepository.runWriteOperation(
+            isNetworkFailure = { it.failure == IngredientFailure.Network },
+            networkException = { IngredientRepositoryException(IngredientFailure.Network, it) },
+            toException = Throwable::toIngredientRepositoryException,
+            operation = operation,
+        )
 
     private companion object {
         const val REFRESH_TIMEOUT_MILLIS = 5_000L
-        const val INGREDIENTS = "ingredients"
-        const val CATALOG_META = "catalogMeta"
-        const val FIELD_VERSION = "version"
         const val FIELD_CREATED_AT = "createdAt"
         const val FIELD_UPDATED_BY = "updatedBy"
         const val FIELD_UPDATED_AT = "updatedAt"
     }
 }
 
-private fun Throwable.toIngredientRepositoryException(): IngredientRepositoryException = IngredientRepositoryException(
+internal fun Throwable.toIngredientRepositoryException(): IngredientRepositoryException = IngredientRepositoryException(
     failure = when ((this as? FirebaseFirestoreException)?.code) {
         FirebaseFirestoreException.Code.PERMISSION_DENIED -> IngredientFailure.PermissionDenied
         FirebaseFirestoreException.Code.NOT_FOUND -> IngredientFailure.IngredientNotFound

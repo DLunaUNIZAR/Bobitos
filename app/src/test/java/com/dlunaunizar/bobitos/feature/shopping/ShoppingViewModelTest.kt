@@ -8,12 +8,12 @@ import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.repository.IngredientFailure
-import com.dlunaunizar.bobitos.data.repository.IngredientRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientRepositoryException
-import com.dlunaunizar.bobitos.data.repository.PersonalIngredientRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
+import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientRepository
+import com.dlunaunizar.bobitos.feature.ingredients.FakePersonalIngredientRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -39,8 +39,8 @@ class ShoppingViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val repository = FakeShoppingRepository()
-    private val ingredientRepository = ShoppingFakeIngredientRepo()
-    private val personalRepository = ShoppingFakePersonalRepo()
+    private val ingredientRepository = FakeIngredientRepository()
+    private val personalRepository = FakePersonalIngredientRepository()
     private val viewModel = ShoppingViewModel(repository, ingredientRepository, personalRepository)
 
     @Test
@@ -356,43 +356,6 @@ private class FakeShoppingRepository : ShoppingRepository {
     private fun throwNextFailure() {
         nextFailure?.let { throw it }
     }
-}
-
-private class ShoppingFakeIngredientRepo : IngredientRepository {
-    val catalogState = MutableStateFlow<List<CatalogIngredient>>(emptyList())
-    var createCount = 0
-    var lastCreatedName: String? = null
-
-    var catalogOverride: Flow<List<CatalogIngredient>>? = null
-
-    override fun catalog(): Flow<List<CatalogIngredient>> = catalogOverride ?: catalogState
-    override fun isCurrentUserCatalogAdmin(): Boolean = false
-    override fun currentUserId(): String? = null
-    override suspend fun createIngredient(name: String, category: String?, defaultUnit: String?) {
-        createCount++
-        lastCreatedName = name
-    }
-
-    override suspend fun updateIngredient(id: String, name: String, category: String?, defaultUnit: String?) = Unit
-    override suspend fun deleteIngredient(id: String) = Unit
-}
-
-private class ShoppingFakePersonalRepo : PersonalIngredientRepository {
-    val state = MutableStateFlow<List<CatalogIngredient>>(emptyList())
-    var createCount = 0
-    var lastCreatedName: String? = null
-    var createError: Throwable? = null
-
-    override fun ingredients(): Flow<List<CatalogIngredient>> = state
-    override suspend fun create(name: String, category: String?, defaultUnit: String?): String {
-        createError?.let { throw it }
-        createCount++
-        lastCreatedName = name
-        return "id"
-    }
-
-    override suspend fun update(id: String, name: String, category: String?, defaultUnit: String?) = Unit
-    override suspend fun delete(id: String) = Unit
 }
 
 private fun shoppingItem() = ShoppingItem(

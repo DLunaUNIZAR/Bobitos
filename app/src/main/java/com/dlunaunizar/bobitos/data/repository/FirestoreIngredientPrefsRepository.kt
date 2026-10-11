@@ -5,7 +5,6 @@ import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.sync.RealtimeMetrics
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
-import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
@@ -63,7 +62,7 @@ class FirestoreIngredientPrefsRepository @Inject constructor(
         Unit
     }
 
-    private fun prefsDoc(uid: String) = firestore.collection(INGREDIENT_PREFS).document(uid)
+    private fun prefsDoc(uid: String) = firestore.collection(INGREDIENT_PREFS_COLLECTION).document(uid)
 
     private fun requireVerifiedUid(): String {
         val user: AuthUser = authRepository.currentUser.value
@@ -74,25 +73,15 @@ class FirestoreIngredientPrefsRepository @Inject constructor(
         return user.id
     }
 
-    private suspend inline fun <T> runOperation(crossinline operation: suspend () -> T): T {
-        try {
-            syncRepository.requireWritable()
-            return operation()
-        } catch (error: IngredientPrefsException) {
-            if (error.failure == IngredientPrefFailure.Network) {
-                syncRepository.reportWriteFailure(error.cause ?: error)
-            }
-            throw error
-        } catch (error: WriteNotAllowedException) {
-            throw IngredientPrefsException(IngredientPrefFailure.Network, error)
-        } catch (error: Throwable) {
-            syncRepository.reportWriteFailure(error)
-            throw error.toPrefsException()
-        }
-    }
+    private suspend inline fun <T> runOperation(crossinline operation: suspend () -> T): T =
+        syncRepository.runWriteOperation(
+            isNetworkFailure = { it.failure == IngredientPrefFailure.Network },
+            networkException = { IngredientPrefsException(IngredientPrefFailure.Network, it) },
+            toException = Throwable::toPrefsException,
+            operation = operation,
+        )
 
     private companion object {
-        const val INGREDIENT_PREFS = "ingredientPrefs"
         const val SCOPE = "ingredientPrefs"
         const val FIELD_ENTRIES = "entries"
         const val FIELD_STORES = "stores"

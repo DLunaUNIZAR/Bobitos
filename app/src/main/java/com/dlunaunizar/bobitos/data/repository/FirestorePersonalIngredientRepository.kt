@@ -4,16 +4,13 @@ import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.slug
 import com.dlunaunizar.bobitos.data.sync.RealtimeMetrics
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
-import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.Source
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -29,29 +26,14 @@ class FirestorePersonalIngredientRepository @Inject constructor(
 
     override fun ingredients(): Flow<List<CatalogIngredient>> {
         val uid = authRepository.currentUser.value?.id ?: return flowOf(emptyList())
-        return callbackFlow {
-            val metricId = realtimeMetrics.listenerStarted(SCOPE)
-            val registration = collection(uid).limit(MAX_INGREDIENTS).addSnapshotListener { snapshot, error ->
-                when {
-                    error != null -> close(error.toIngredientRepositoryException())
-                    snapshot != null -> {
-                        realtimeMetrics.snapshotReceived(
-                            SCOPE,
-                            snapshot.documentChanges.size,
-                            snapshot.metadata.isFromCache,
-                        )
-                        trySend(
-                            snapshot.documents
-                                .mapNotNull { doc -> doc.data?.let { parseCatalogIngredient(doc.id, it, true) } }
-                                .sortedForIngredientCatalog(),
-                        )
-                    }
-                }
-            }
-            awaitClose {
-                registration.remove()
-                realtimeMetrics.listenerStopped(metricId)
-            }
+        return collection(uid).limit(MAX_INGREDIENTS).documentsFlow(
+            metrics = realtimeMetrics,
+            scope = SCOPE,
+            toException = Throwable::toIngredientRepositoryException,
+        ) { documents ->
+            documents
+                .mapNotNull { doc -> doc.data?.let { parseCatalogIngredient(doc.id, it, true) } }
+                .sortedForIngredientCatalog()
         }
     }
 
@@ -106,7 +88,7 @@ class FirestorePersonalIngredientRepository @Inject constructor(
     }
 
     private suspend fun commonExists(id: String): Boolean = try {
-        firestore.collection(COMMON_INGREDIENTS).document(id).get(Source.SERVER).await().exists()
+        firestore.collection(INGREDIENTS).document(id).get(Source.SERVER).await().exists()
     } catch (_: FirebaseFirestoreException) {
         false
     }
@@ -121,23 +103,17 @@ class FirestorePersonalIngredientRepository @Inject constructor(
         return user.id
     }
 
-    private suspend inline fun <T> runOperation(crossinline operation: suspend () -> T): T = try {
-        syncRepository.requireWritable()
-        operation()
-    } catch (error: IngredientRepositoryException) {
-        if (error.failure == IngredientFailure.Network) syncRepository.reportWriteFailure(error.cause ?: error)
-        throw error
-    } catch (error: WriteNotAllowedException) {
-        throw IngredientRepositoryException(IngredientFailure.Network, error)
-    } catch (@Suppress("TooGenericExceptionCaught") error: Throwable) {
-        syncRepository.reportWriteFailure(error)
-        throw error.toIngredientRepositoryException()
-    }
+    private suspend inline fun <T> runOperation(crossinline operation: suspend () -> T): T =
+        syncRepository.runWriteOperation(
+            isNetworkFailure = { it.failure == IngredientFailure.Network },
+            networkException = { IngredientRepositoryException(IngredientFailure.Network, it) },
+            toException = Throwable::toIngredientRepositoryException,
+            operation = operation,
+        )
 
     private companion object {
         const val USERS = "users"
         const val INGREDIENTS = "ingredients"
-        const val COMMON_INGREDIENTS = "ingredients"
         const val BRANDS = "brands"
         const val SCOPE = "ingredients:personal"
         const val FIELD_INGREDIENT_ID = "ingredientId"
@@ -147,13 +123,3 @@ class FirestorePersonalIngredientRepository @Inject constructor(
         const val MAX_INGREDIENTS = 500L
     }
 }
-
-private fun Throwable.toIngredientRepositoryException(): IngredientRepositoryException = IngredientRepositoryException(
-    failure = when ((this as? FirebaseFirestoreException)?.code) {
-        FirebaseFirestoreException.Code.PERMISSION_DENIED -> IngredientFailure.PermissionDenied
-        FirebaseFirestoreException.Code.NOT_FOUND -> IngredientFailure.IngredientNotFound
-        FirebaseFirestoreException.Code.UNAVAILABLE -> IngredientFailure.Network
-        else -> IngredientFailure.Unknown
-    },
-    cause = this,
-)

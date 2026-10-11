@@ -53,3 +53,10 @@ fun ingredientKey(name: String): String = slug(name)
     }
     .sorted()
     .joinToString(" ")
+
+/** El primer ingrediente con la misma clave tolerante que [name]; `null` si la clave es vacía. */
+internal fun findByKey(ingredients: List<CatalogIngredient>, name: String): CatalogIngredient? {
+    val key = ingredientKey(name)
+    if (key.isEmpty()) return null
+    return ingredients.firstOrNull { ingredientKey(it.name) == key }
+}
