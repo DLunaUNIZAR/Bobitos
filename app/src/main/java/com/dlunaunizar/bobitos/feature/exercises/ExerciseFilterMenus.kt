@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.foldForSearch
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
@@ -106,7 +107,7 @@ private fun FilterDropdown(
             readOnly = true,
             enabled = enabled,
             singleLine = true,
-            label = { Text(label) },
+            label = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded && enabled) },
             modifier = Modifier
                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled)
