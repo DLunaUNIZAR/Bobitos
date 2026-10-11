@@ -116,6 +116,24 @@ class SportViewModelTest {
     }
 
     @Test
+    fun `the picker lists my private routines first and then every common one`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            routineRepository.mineState.value = listOf(
+                routine("a-comun", "A común", RoutineVisibility.GLOBAL),
+                routine("z-mia", "Z mía"),
+            )
+            routineRepository.globalState.value = listOf(
+                routine("a-comun", "A común", RoutineVisibility.GLOBAL),
+                routine("b-comun", "B común", RoutineVisibility.GLOBAL),
+            )
+
+            viewModel.observe("home")
+            advanceUntilIdle()
+
+            assertEquals(listOf("z-mia", "a-comun", "b-comun"), viewModel.uiState.value.routines.map(Routine::id))
+        }
+
+    @Test
     fun `does not subscribe to the exercise catalog until the session editor needs it`() =
         runTest(mainDispatcherRule.testDispatcher) {
             exerciseRepository.catalogState.value = listOf(catalogExercise("press-banca", "Press banca"))
@@ -396,10 +414,10 @@ private fun catalogExercise(id: String, name: String) = CatalogExercise(
     updatedAt = Instant.EPOCH,
 )
 
-private fun routine(id: String, title: String) = Routine(
+private fun routine(id: String, title: String, visibility: RoutineVisibility = RoutineVisibility.PRIVATE) = Routine(
     id = id,
     ownerUid = "u",
-    visibility = RoutineVisibility.PRIVATE,
+    visibility = visibility,
     title = title,
     description = null,
     exercises = null,

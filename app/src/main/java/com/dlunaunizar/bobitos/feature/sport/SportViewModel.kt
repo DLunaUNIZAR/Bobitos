@@ -9,7 +9,6 @@ import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
-import com.dlunaunizar.bobitos.core.model.Routine
 import com.dlunaunizar.bobitos.core.model.RoutineExercise
 import com.dlunaunizar.bobitos.core.model.SportActivity
 import com.dlunaunizar.bobitos.core.model.SportType
@@ -19,6 +18,7 @@ import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.SportActivityRepository
 import com.dlunaunizar.bobitos.data.repository.SportFailure
 import com.dlunaunizar.bobitos.data.repository.SportRepositoryException
+import com.dlunaunizar.bobitos.feature.routines.personalOnly
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -65,15 +65,13 @@ class SportViewModel @Inject constructor(
         if (catalogRequested) observeExerciseCatalog()
     }
 
-    // Catálogo de rutinas (comunes + mías, deduplicado) para el picker de la sesión de gimnasio. Es
-    // global (independiente del espacio); un fallo se ignora (el picker aparecerá vacío).
+    // Catálogo de rutinas para el picker de la sesión de gimnasio: primero las privadas del usuario y después
+    // todas las comunes (`global` ya las trae todas, también las del admin). Es global
+    // (independiente del espacio); un fallo se ignora (el picker aparecerá vacío).
     private fun observeRoutines() {
         if (routinesJob?.isActive == true) return
         routinesJob = viewModelScope.launch {
-            combine(routines.globalRoutines(), routines.myRoutines()) { global, mine ->
-                val mineIds = mine.map(Routine::id).toSet()
-                mine + global.filter { it.id !in mineIds }
-            }
+            combine(routines.globalRoutines(), routines.myRoutines()) { global, mine -> mine.personalOnly() + global }
                 .catch { mutableUiState.update { it.copy(routines = emptyList()) } }
                 .collect { list -> mutableUiState.update { it.copy(routines = list) } }
         }
