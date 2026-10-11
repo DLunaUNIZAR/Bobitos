@@ -39,7 +39,7 @@ internal data class ShoppingDraft(
  * ingrediente y sin ingrediente se conservan marca y tienda como texto y tienda normales.
  */
 internal fun ShoppingDraft.withContext(context: IngredientShoppingContext?): ShoppingDraft = when {
-    context == null -> if (pickerFor != null) copy(pickerFor = null, brandId = null) else this
+    context == null -> if (pickerFor != null) copy(pickerFor = null, brandId = null, brand = pickerBrand()) else this
     context.ingredient.id == pickerFor -> this
     else -> {
         val selection = context.defaultSelection()
@@ -47,10 +47,13 @@ internal fun ShoppingDraft.withContext(context: IngredientShoppingContext?): Sho
             pickerFor = context.ingredient.id,
             brandId = selection.brandId,
             supermarket = selection.store,
-            brand = if (context.brands.isEmpty()) brand else context.brandName(selection).orEmpty(),
+            brand = if (context.brands.isEmpty()) pickerBrand() else context.brandName(selection).orEmpty(),
         )
     }
 }
+
+// El texto de marca puesto por el selector no pasa a otro ingrediente; el escrito a mano se conserva.
+private fun ShoppingDraft.pickerBrand(): String = if (brandId != null) "" else brand
 
 /** Cambia de marca en el selector: ajusta la tienda y escribe el nombre como texto de marca. */
 internal fun ShoppingDraft.withBrandChoice(context: IngredientShoppingContext, brandId: String?): ShoppingDraft {

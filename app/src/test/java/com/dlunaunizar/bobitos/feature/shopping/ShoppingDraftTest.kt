@@ -35,14 +35,6 @@ class ShoppingDraftTest {
     }
 
     @Test
-    fun `a prefilled draft is not dirty once the ingredient defaults apply`() {
-        val initial = ShoppingDraft.prefilled("Tomate")
-        val edited = initial.withContext(context)
-
-        assertEquals(initial.withContext(context), edited)
-    }
-
-    @Test
     fun `recognizing an ingredient applies its default brand and store once`() {
         val draft = ShoppingDraft.of(null).withContext(context)
 
@@ -61,13 +53,43 @@ class ShoppingDraftTest {
     }
 
     @Test
-    fun `leaving the ingredient keeps the text brand and store but drops the picker`() {
+    fun `leaving the ingredient drops the picker brand but keeps the store`() {
         val draft = ShoppingDraft.of(null).withContext(context).withContext(null)
 
         assertNull(draft.pickerFor)
         assertNull(draft.brandId)
-        assertEquals("Pascual", draft.brand)
+        assertEquals("", draft.brand)
         assertEquals(Supermarket.MERCADONA, draft.supermarket)
+    }
+
+    @Test
+    fun `typing past an ingredient into another does not carry its brand`() {
+        val tomate = IngredientShoppingContext(
+            ingredient = CatalogIngredient(id = "tomate", name = "Tomate"),
+            brands = listOf(
+                IngredientBrand(id = "v", ingredientId = "tomate", name = "Valor", favorite = true),
+            ),
+            stores = emptyList(),
+        )
+        val frito = IngredientShoppingContext(
+            ingredient = CatalogIngredient(id = "frito", name = "Tomate frito"),
+            brands = emptyList(),
+            stores = emptyList(),
+        )
+        val draft = ShoppingDraft.of(null).withContext(tomate).withContext(null).withContext(frito)
+
+        assertEquals("", draft.brand)
+        assertNull(draft.brandId)
+        assertEquals("", ShoppingDraft.of(null).withContext(tomate).withContext(frito).brand)
+    }
+
+    @Test
+    fun `a hand-typed brand survives leaving and entering ingredients`() {
+        val typed = ShoppingDraft.of(null).copy(brand = "Mi marca")
+
+        assertEquals("Mi marca", typed.withContext(null).brand)
+        assertEquals("Mi marca", typed.withContext(context.copy(brands = emptyList())).brand)
+        assertEquals("Mi marca", typed.withContext(context.copy(brands = emptyList())).withContext(null).brand)
     }
 
     @Test
