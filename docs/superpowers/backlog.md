@@ -4,10 +4,24 @@ Menores que las revisiones de cada rama dejaron sin arreglar. Cada línea dice s
 
 Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalogo-ejercicios-wger`) se cerraron en la rama `agent/menores-aplazados` (plan `docs/superpowers/plans/2026-10-10-menores-aplazados.md`).
 
+## 2026-10-11 — `agent/marcas-personales-ingredientes`
+
+- **Efecto visible:** mientras el catálogo común carga, o si dio error, «Añadir ingrediente» se salta la comprobación por clave y puede crear un duplicado («Tomates» junto a «Tomate») (`IngredientsViewModel.kt`).
+- **Efecto visible:** tras un alta duplicada se navega a la ficha existente, pero el formulario sigue abierto con el error y reaparece al volver a la lista, con el aviso rojo arriba (`IngredientsScreen.kt`; visto en el emulador).
+- **Efecto visible:** el interruptor «Común (catálogo)» del admin se queda encendido para la siguiente alta (`IngredientsScreen.kt`, `rememberSaveable`).
+- **Efecto visible:** al escanear desde la ficha, si Open Food Facts falla solo sale un error y no se abre el editor de marca con el código ya puesto, como sí hace la lista (`IngredientDetailViewModel.kt`).
+- **Efecto visible:** el escaneo desde la ficha no ignora las marcas huérfanas (común borrado por el admin): avisa «ya está en tu marca X de <slug>» y no deja archivar el código en este ingrediente.
+- **Efecto visible:** si la escritura optimista de tiendas o favorita falla antes de llegar a Firestore (sin red, sin sesión), el chip o la estrella se quedan en el estado nuevo junto al aviso hasta volver a entrar (`IngredientDetailViewModel.kt`).
+- **Efecto visible:** renombrar un ingrediente a un nombre que coincide por clave con otro no se comprueba (la spec solo lo exige al crear): pueden quedar dos fichas con la misma clave.
+- **Efecto visible:** mientras «Crear ficha de ingrediente» carga el catálogo en la Compra (hasta 30 s, normalmente al instante desde la caché), `isSaving` bloquea las demás acciones de la Compra.
+- **Efecto visible:** el botón de editar de cada tarjeta de marca dice «Editar ficha» (`ingredients_edit`), igual que el del ingrediente; ya pasaba antes de esta rama.
+- **Interno:** `BrandInput.toUpdateFields()` (no escribe `ingredientId`, borra código y nutrientes ausentes) no tiene test JVM.
+- **Interno:** borrar un ingrediente personal con 499 marcas o más supera las 500 operaciones del lote (`FirestorePersonalIngredientRepository.delete` no trocea como `deletePersonalData`).
+- **Interno:** hay tres `Collator` es-ES iguales (marcas, ingredientes, ejercicios) y `requireVerifiedUid` está copiado en los repositorios de personales, marcas y preferencias.
+
 ## 2026-10-11 — `agent/catalogo-ingredientes`
 
 - **Interno:** el borrado inicial reutiliza el texto del importador: dice «no se importa a bobitos-dev» (`admin-cli.mjs` y la tabla de problemas de `INGREDIENT_CATALOG.md`).
-- **Interno:** `INGREDIENT_CATALOG.md` dice que la beta 18 dejará de poder crear preferencias (sí podrá) y no avisa de que verá Ingredientes vacío tras importar, porque descarta los documentos sin `ownerUid` ni `createdBy`.
 - **Interno:** el test del borrado no siembra `recipes` ni `exerciseImages` para comprobar que no se tocan.
 - **Interno:** `validateIngredient` admite tabuladores y «|» en el nombre; una «|» rompería la tabla de `ingredients-review.md`.
 - **Interno:** `commitCatalogOps` no pone tope a `batchSize`: con más de 499, la escritura de la versión supera el límite de 500 por lote.
