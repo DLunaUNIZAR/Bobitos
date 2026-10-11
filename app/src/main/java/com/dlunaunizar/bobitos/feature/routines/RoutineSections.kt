@@ -1,5 +1,7 @@
 package com.dlunaunizar.bobitos.feature.routines
 
+import androidx.annotation.StringRes
+import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.model.Routine
 import com.dlunaunizar.bobitos.core.model.RoutineExercise
 import com.dlunaunizar.bobitos.core.model.RoutineVisibility
@@ -22,4 +24,12 @@ internal fun RoutineExercise.setsPattern(): SetsPattern? {
     val values = sets.map { if (timed) it.seconds else it.reps }
     val first = values.firstOrNull() ?: return null
     return if (values.all { it == first }) SetsPattern(values.size, first, timed) else null
+}
+
+// Etiqueta del origen de una rutina en el selector de la sesión: las privadas son del usuario; las GLOBAL,
+// comunes (también las que publica el admin).
+@StringRes
+internal fun routineOriginRes(routine: Routine): Int = when (routine.visibility) {
+    RoutineVisibility.PRIVATE -> R.string.sport_routine_origin_mine
+    else -> R.string.sport_routine_origin_common
 }

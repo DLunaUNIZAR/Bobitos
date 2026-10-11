@@ -365,6 +365,8 @@
     <string name="sport_session_label">Ejercicios de la sesión</string>
     <string name="sport_routine_label">Rutina</string>
     <string name="sport_routine_pick">Elegir rutina</string>
+    <string name="sport_routine_origin_mine">Mía</string>
+    <string name="sport_routine_origin_common">Común</string>
     <string name="sport_routine_none">Sin rutina</string>
     <string name="sport_routine_clear">Sin rutina (vaciar)</string>
     <string name="sport_no_routines">Aún no hay rutinas guardadas.</string>

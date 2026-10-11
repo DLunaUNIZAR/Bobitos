@@ -81,6 +81,7 @@ import com.dlunaunizar.bobitos.feature.exercises.ExerciseDraftListSaver
 import com.dlunaunizar.bobitos.feature.exercises.ExerciseListEditor
 import com.dlunaunizar.bobitos.feature.exercises.toExerciseDrafts
 import com.dlunaunizar.bobitos.feature.exercises.toRoutineExercises
+import com.dlunaunizar.bobitos.feature.routines.routineOriginRes
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -595,7 +596,14 @@ private fun RoutinePickerDialog(
                 } else {
                     routines.forEach { routine ->
                         TextButton(onClick = { onPick(routine) }, modifier = Modifier.fillMaxWidth()) {
-                            Box(Modifier.fillMaxWidth()) { Text(routine.title) }
+                            Column(Modifier.fillMaxWidth()) {
+                                Text(routine.title)
+                                Text(
+                                    stringResource(routineOriginRes(routine)),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
                     }
                 }

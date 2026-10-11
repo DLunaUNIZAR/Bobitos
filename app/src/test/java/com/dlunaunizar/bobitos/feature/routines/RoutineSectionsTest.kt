@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.routines
 
+import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.model.ExerciseSet
 import com.dlunaunizar.bobitos.core.model.ExerciseType
 import com.dlunaunizar.bobitos.core.model.Routine
@@ -44,6 +45,12 @@ class RoutineSectionsTest {
         assertNull(strength(listOf(ExerciseSet(reps = 12), ExerciseSet(reps = 10))).setsPattern())
         assertNull(strength(listOf(ExerciseSet(reps = 12), ExerciseSet())).setsPattern())
         assertNull(strength(emptyList()).setsPattern())
+    }
+
+    @Test
+    fun `picker labels private routines as mine and global ones as common`() {
+        assertEquals(R.string.sport_routine_origin_mine, routineOriginRes(routine("p1", RoutineVisibility.PRIVATE)))
+        assertEquals(R.string.sport_routine_origin_common, routineOriginRes(routine("torso", RoutineVisibility.GLOBAL)))
     }
 
     private fun strength(sets: List<ExerciseSet>, measure: SetMeasure = SetMeasure.REPS) = RoutineExercise(
