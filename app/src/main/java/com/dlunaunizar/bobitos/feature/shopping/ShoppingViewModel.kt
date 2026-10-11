@@ -21,6 +21,7 @@ import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
 import com.dlunaunizar.bobitos.data.repository.toIngredientRepositoryException
+import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
 import com.dlunaunizar.bobitos.feature.ingredients.mergeIngredients
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -29,7 +30,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -41,6 +41,7 @@ class ShoppingViewModel @Inject constructor(
     private val repository: ShoppingRepository,
     private val ingredientRepository: IngredientRepository,
     private val personalIngredients: PersonalIngredientRepository,
+    private val ingredientSource: IngredientShoppingSource,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(ShoppingUiState())
     val uiState: StateFlow<ShoppingUiState> = mutableUiState.asStateFlow()
@@ -75,15 +76,11 @@ class ShoppingViewModel @Inject constructor(
         observedSpaceId = null
     }
 
-    /** Catálogo (acotado): solo mientras el editor de ítem está abierto (autocompletado del nombre). */
+    /** Ingredientes, marcas y preferencias: solo mientras el editor de ítem está abierto. */
     fun startIngredientAssist() {
         if (catalogJob?.isActive == true) return
         catalogJob = viewModelScope.launch {
-            // Comunes y personales juntos: sirven para sugerir nombres y para detectar duplicados.
-            val common = ingredientRepository.catalog().catch { emit(emptyList()) }
-            val personal = personalIngredients.ingredients().catch { emit(emptyList()) }
-            combine(common, personal) { shared, own -> mergeIngredients(shared, own) }
-                .collect { list -> mutableUiState.update { it.copy(catalog = list) } }
+            ingredientSource.data().collect { data -> mutableUiState.update { it.copy(ingredientData = data) } }
         }
     }
 

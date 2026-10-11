@@ -2,8 +2,8 @@ package com.dlunaunizar.bobitos.feature.shopping
 
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
-import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
+import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
 
 data class ShoppingUiState(
     val items: UiState<List<ShoppingItem>> = UiState.Loading,
@@ -13,9 +13,9 @@ data class ShoppingUiState(
     val error: ShoppingUiMessage? = null,
     val notice: ShoppingUiMessage? = null,
     val lastClearedCount: Int = 0,
-    // Catálogo de ingredientes, cargado de forma perezosa mientras el editor de ítem está abierto:
-    // autocompleta el nombre.
-    val catalog: List<CatalogIngredient> = emptyList(),
+    // Ingredientes, marcas y preferencias, cargados de forma perezosa mientras el editor de ítem está
+    // abierto: autocompletan el nombre y proponen marca y tienda.
+    val ingredientData: IngredientShoppingData = IngredientShoppingData(),
 )
 
 enum class ShoppingWriteStatus {

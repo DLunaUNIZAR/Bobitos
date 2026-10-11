@@ -206,6 +206,10 @@
     <string name="shopping_supermarket_label">Supermercado (opcional)</string>
     <string name="shopping_supermarket_none">Sin especificar</string>
     <string name="shopping_brand_label">Marca (opcional)</string>
+    <string name="shopping_brand_picker_label">Marca</string>
+    <string name="shopping_store_picker_label">Tienda</string>
+    <string name="shopping_brand_indifferent">Indiferente</string>
+    <string name="shopping_brand_picker_description">Marca: %1$s. Toca para cambiarla.</string>
     <string name="shopping_filter_all">Todos</string>
     <string name="supermarket_dia">DIA</string>
     <string name="supermarket_eroski">Eroski</string>

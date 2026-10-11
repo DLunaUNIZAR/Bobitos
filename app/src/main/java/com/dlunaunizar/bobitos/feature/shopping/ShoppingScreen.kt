@@ -78,6 +78,10 @@ import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.dlunaunizar.bobitos.feature.common.BrandStorePicker
+import com.dlunaunizar.bobitos.feature.common.BrandStoreSelection
+import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
+import com.dlunaunizar.bobitos.feature.common.contextFor
 
 @Composable
 fun ShoppingScreen(
@@ -96,7 +100,7 @@ fun ShoppingScreen(
     // El editor sobrevive a una rotación: se guarda el id del ítem, no el objeto.
     var editedItemId by rememberSaveable { mutableStateOf<String?>(null) }
     var editorVisible by rememberSaveable { mutableStateOf(false) }
-    // Catálogo + preferencias solo mientras el editor está abierto (listener acotado y perezoso).
+    // Ingredientes, marcas y preferencias solo mientras el editor está abierto (listeners acotados y perezosos).
     LaunchedEffect(editorVisible) {
         if (editorVisible) viewModel.startIngredientAssist() else viewModel.stopIngredientAssist()
     }
@@ -324,7 +328,8 @@ fun ShoppingScreen(
             errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
                 ?.let { stringResource(it.stringResourceId) },
             resolveDuplicate = findByName,
-            suggestions = { queryText -> catalogSuggestions(state.catalog, queryText) },
+            ingredientData = state.ingredientData,
+            suggestions = { queryText -> catalogSuggestions(state.ingredientData.ingredients, queryText) },
             onDismiss = { editorVisible = false },
             onSave = { name, quantity, notes, supermarket, brand ->
                 val item = editedItem
@@ -594,6 +599,7 @@ private fun ShoppingItemEditor(
     saving: Boolean,
     errorMessage: String?,
     resolveDuplicate: (String) -> ShoppingItem?,
+    ingredientData: IngredientShoppingData,
     suggestions: (String) -> List<String>,
     onDismiss: () -> Unit,
     onSave: (String, String?, String?, Supermarket?, String?) -> Unit,
@@ -608,13 +614,18 @@ private fun ShoppingItemEditor(
     // Solo al crear: avisa si ya hay un producto con ese nombre en la lista.
     val duplicate = if (item == null) resolveDuplicate(name) else null
     val nameError = validation == ShoppingUiMessage.NameRequired || validation == ShoppingUiMessage.NameTooLong
+    // Solo al crear: un ingrediente reconocido propone marca y tienda (§5).
+    val context = remember(name, ingredientData) {
+        if (item == null) ingredientData.contextFor(name) else null
+    }
+    LaunchedEffect(context?.ingredient?.id) { draft = draft.withContext(context) }
 
     BobitosFormSheet(
         title = stringResource(if (item == null) R.string.shopping_add_title else R.string.shopping_edit_title),
         confirmLabel = stringResource(R.string.save),
         confirmEnabled = validation == null,
         saving = saving,
-        dirty = { draft != initial },
+        dirty = { draft != initial.withContext(context) },
         errorMessage = errorMessage,
         onDismiss = onDismiss,
         onConfirm = { onSave(name, quantity, notes, draft.supermarket, brand.trim().ifEmpty { null }) },
@@ -646,12 +657,23 @@ private fun ShoppingItemEditor(
             onNotes = { draft = draft.copy(notes = it) },
             validation = validation,
         )
-        SupermarketAndBrandFields(
-            supermarket = draft.supermarket,
-            onSupermarket = { draft = draft.copy(supermarket = it) },
-            brand = brand,
-            onBrand = { draft = draft.copy(brand = it) },
-        )
+        if (context != null) {
+            BrandStorePicker(
+                context = context,
+                selection = BrandStoreSelection(draft.brandId, draft.supermarket),
+                freeBrand = brand,
+                onBrandSelected = { draft = draft.withBrandChoice(context, it) },
+                onStoreSelected = { draft = draft.copy(supermarket = it) },
+                onFreeBrandChange = { draft = draft.copy(brand = it) },
+            )
+        } else {
+            SupermarketAndBrandFields(
+                supermarket = draft.supermarket,
+                onSupermarket = { draft = draft.copy(supermarket = it) },
+                brand = brand,
+                onBrand = { draft = draft.copy(brand = it) },
+            )
+        }
     }
 }
 
@@ -759,9 +781,14 @@ private fun List<ShoppingItem>.forSupermarket(supermarket: Supermarket?): List<S
     }
 
 @Composable
-internal fun SupermarketDropdown(selected: Supermarket?, onSelect: (Supermarket?) -> Unit) {
+internal fun SupermarketDropdown(
+    selected: Supermarket?,
+    onSelect: (Supermarket?) -> Unit,
+    modifier: Modifier = Modifier,
+    options: List<Supermarket> = Supermarket.entries,
+) {
     var expanded by remember { mutableStateOf(false) }
-    Box(modifier = Modifier.fillMaxWidth()) {
+    Box(modifier = modifier.fillMaxWidth()) {
         OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
             if (selected != null) {
                 SupermarketIcon(selected, Modifier.padding(end = 8.dp))
@@ -780,7 +807,7 @@ internal fun SupermarketDropdown(selected: Supermarket?, onSelect: (Supermarket?
                     expanded = false
                 },
             )
-            Supermarket.entries.forEach { option ->
+            options.forEach { option ->
                 DropdownMenuItem(
                     text = { Text(stringResource(option.labelRes)) },
                     leadingIcon = { SupermarketIcon(option) },

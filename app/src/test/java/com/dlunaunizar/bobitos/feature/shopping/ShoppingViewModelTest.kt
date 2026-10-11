@@ -5,6 +5,8 @@ import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
+import com.dlunaunizar.bobitos.core.model.IngredientBrand
+import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.repository.IngredientFailure
@@ -12,6 +14,9 @@ import com.dlunaunizar.bobitos.data.repository.IngredientRepositoryException
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
+import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
+import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientBrandRepository
+import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientPrefsRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakePersonalIngredientRepository
 import kotlinx.coroutines.CancellationException
@@ -41,7 +46,14 @@ class ShoppingViewModelTest {
     private val repository = FakeShoppingRepository()
     private val ingredientRepository = FakeIngredientRepository()
     private val personalRepository = FakePersonalIngredientRepository()
-    private val viewModel = ShoppingViewModel(repository, ingredientRepository, personalRepository)
+    private val brandRepository = FakeIngredientBrandRepository()
+    private val prefsRepository = FakeIngredientPrefsRepository()
+    private val viewModel = ShoppingViewModel(
+        repository,
+        ingredientRepository,
+        personalRepository,
+        IngredientShoppingSource(ingredientRepository, personalRepository, brandRepository, prefsRepository),
+    )
 
     @Test
     fun `observes items for active space`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -180,16 +192,36 @@ class ShoppingViewModelTest {
         }
 
     @Test
+    fun `ingredient assist exposes ingredients, brands and prefs`() = runTest(mainDispatcherRule.testDispatcher) {
+        ingredientRepository.catalogState.value = listOf(catalogIngredient())
+        val brand = IngredientBrand(id = "b1", ingredientId = "leche", name = "Pascual")
+        brandRepository.brandsState.value = listOf(brand)
+        prefsRepository.state.value = mapOf("leche" to IngredientPref(listOf(Supermarket.MERCADONA)))
+
+        viewModel.startIngredientAssist()
+        advanceUntilIdle()
+
+        val data = viewModel.uiState.value.ingredientData
+        assertEquals(listOf("Leche"), data.ingredients.map(CatalogIngredient::name))
+        assertEquals(listOf(brand), data.brands)
+        assertEquals(listOf(Supermarket.MERCADONA), data.prefs["leche"]?.stores)
+    }
+
+    @Test
     fun `a personal ingredient shadowed by a common one with the same id is suggested once`() =
         runTest(mainDispatcherRule.testDispatcher) {
             ingredientRepository.catalogState.value = listOf(CatalogIngredient(id = "tomate", name = "Tomate"))
-            personalRepository.state.value = listOf(CatalogIngredient(id = "tomate", name = "Tomate", personal = true))
+            personalRepository.state.value =
+                listOf(CatalogIngredient(id = "tomate", name = "Tomate", personal = true))
 
             viewModel.startIngredientAssist()
             advanceUntilIdle()
 
-            assertEquals(listOf("Tomate"), viewModel.uiState.value.catalog.map(CatalogIngredient::name))
-            assertFalse(viewModel.uiState.value.catalog.single().personal)
+            assertEquals(
+                listOf("Tomate"),
+                viewModel.uiState.value.ingredientData.ingredients.map(CatalogIngredient::name),
+            )
+            assertFalse(viewModel.uiState.value.ingredientData.ingredients.single().personal)
         }
 
     @Test
