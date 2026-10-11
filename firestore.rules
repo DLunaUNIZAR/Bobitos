@@ -1094,15 +1094,20 @@ service cloud.firestore {
       allow delete: if ownsOrCuratesRoutine();
     }
 
-    // Catálogo global de ingredientes: compartido por todos (cualquiera lee y crea); solo el autor o
-    // un admin del catálogo (misma allowlist que recetas) puede editar/borrar. Sin get()/exists().
+    // Catálogo común de ingredientes: lo lee cualquier verificado y solo lo escribe el admin del catálogo
+    // (misma allowlist que recetas). El importador (Admin SDK) añade `source`; los clientes nunca lo
+    // crean ni lo tocan. Sin campos de dueño. Los ingredientes personales viven en users/{uid}/ingredients.
+    function validIngredientSource(s) {
+      return s is map && s.keys().hasAll(["provider", "importedAt"])
+        && s.keys().hasOnly(["provider", "importedAt"])
+        && s.provider == "bobitos"
+        && s.importedAt is timestamp;
+    }
+
     function validIngredientShape() {
-      return request.resource.data.keys().hasAll([
-          "name", "nameLower", "ownerUid", "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt"
-        ])
+      return request.resource.data.keys().hasAll(["name", "nameLower", "createdAt", "updatedAt", "updatedBy"])
         && request.resource.data.keys().hasOnly([
-          "name", "nameLower", "ownerUid", "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt",
-          "category", "defaultUnit"
+          "name", "nameLower", "createdAt", "updatedAt", "updatedBy", "category", "defaultUnit", "source"
         ])
         && (!request.resource.data.keys().hasAny(["category"])
           || request.resource.data.category == null
@@ -1110,43 +1115,31 @@ service cloud.firestore {
         && (!request.resource.data.keys().hasAny(["defaultUnit"])
           || request.resource.data.defaultUnit == null
           || (request.resource.data.defaultUnit is string && request.resource.data.defaultUnit.size() <= 24))
+        && (!request.resource.data.keys().hasAny(["source"]) || validIngredientSource(request.resource.data.source))
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 120
         && request.resource.data.nameLower is string
         && request.resource.data.nameLower.size() <= 120
-        && request.resource.data.ownerUid is string
-        && request.resource.data.createdBy is string
-        && request.resource.data.createdByName is string
-        && request.resource.data.createdByName.size() > 0
-        && request.resource.data.createdByName.size() <= 60
         && request.resource.data.createdAt is timestamp
         && request.resource.data.updatedBy is string
         && request.resource.data.updatedAt is timestamp;
     }
 
     function validNewIngredient() {
-      return verifiedUser() && validIngredientShape()
-        && request.resource.data.ownerUid == request.auth.uid
-        && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time
+      return verifiedUser() && isRecipeAdmin() && validIngredientShape()
+        && !request.resource.data.keys().hasAny(["source"])
+        && request.resource.data.createdAt == request.time
         && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
-    }
-
-    function ownsOrCuratesIngredient() {
-      return verifiedUser()
-        && (resource.data.ownerUid == request.auth.uid || isRecipeAdmin());
     }
 
     function validIngredientUpdate() {
-      return ownsOrCuratesIngredient() && validIngredientShape()
+      return verifiedUser() && isRecipeAdmin() && validIngredientShape()
         && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(["name", "nameLower", "category", "defaultUnit", "updatedBy", "updatedAt"])
-        && request.resource.data.ownerUid == resource.data.ownerUid
-        && request.resource.data.createdBy == resource.data.createdBy
-        && request.resource.data.createdByName == resource.data.createdByName
-        && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
     }
+
 
     function validExerciseShape() {
       return request.resource.data.keys().hasAll([
@@ -1241,79 +1234,109 @@ service cloud.firestore {
         && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
     }
 
-    // Marca del catálogo con nutrición (por 100 g/ml). `barcode` opcional (≤32) y los 6 valores
-    // nutricionales opcionales de tipo number. Ninguna clave fuera del contrato.
+    // Valor nutricional opcional (por 100 g/ml): ausente, null o number.
     function optionalNumberField(key) {
       return !request.resource.data.keys().hasAny([key])
         || request.resource.data[key] == null
         || request.resource.data[key] is number;
     }
 
-    function validBrandShape() {
-      return request.resource.data.keys().hasAll([
-          "name", "ownerUid", "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt"
-        ])
-        && request.resource.data.keys().hasOnly([
-          "name", "ownerUid", "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt",
-          "barcode", "energyKcal", "fat", "carbohydrates", "sugars", "protein", "salt"
-        ])
-        && (!request.resource.data.keys().hasAny(["barcode"])
-          || request.resource.data.barcode == null
-          || (request.resource.data.barcode is string && request.resource.data.barcode.size() <= 32))
-        && optionalNumberField("energyKcal") && optionalNumberField("fat")
-        && optionalNumberField("carbohydrates") && optionalNumberField("sugars")
-        && optionalNumberField("protein") && optionalNumberField("salt")
+    // Lista de supermercados de una marca personal: como mucho los 6 del enum, sin repetidos.
+    function validStoreList(stores) {
+      return stores is list && stores.size() <= 6
+        && stores.hasOnly(["DIA", "EROSKI", "MERCADONA", "CARREFOUR", "ALCAMPO", "OTROS"])
+        && stores.toSet().size() == stores.size();
+    }
+
+    // Ingrediente personal (users/{uid}/ingredients/{slug}): mismos límites que el común, sin dueño,
+    // source ni updatedBy (el dueño es la ruta).
+    function validPersonalIngredientShape() {
+      return request.resource.data.keys().hasAll(["name", "nameLower", "createdAt", "updatedAt"])
+        && request.resource.data.keys().hasOnly(["name", "nameLower", "createdAt", "updatedAt", "category", "defaultUnit"])
+        && (!request.resource.data.keys().hasAny(["category"])
+          || request.resource.data.category == null
+          || (request.resource.data.category is string && request.resource.data.category.size() <= 60))
+        && (!request.resource.data.keys().hasAny(["defaultUnit"])
+          || request.resource.data.defaultUnit == null
+          || (request.resource.data.defaultUnit is string && request.resource.data.defaultUnit.size() <= 24))
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 120
-        && request.resource.data.ownerUid is string
-        && request.resource.data.createdBy is string
-        && request.resource.data.createdByName is string
-        && request.resource.data.createdByName.size() > 0
-        && request.resource.data.createdByName.size() <= 60
+        && request.resource.data.nameLower is string
+        && request.resource.data.nameLower.size() <= 120
         && request.resource.data.createdAt is timestamp
-        && request.resource.data.updatedBy is string
         && request.resource.data.updatedAt is timestamp;
     }
 
-    function validNewBrand() {
-      return verifiedUser() && validBrandShape()
-        && request.resource.data.ownerUid == request.auth.uid
-        && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time
-        && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
-    }
-
-    function ownsOrCuratesBrand() {
-      return verifiedUser()
-        && (resource.data.ownerUid == request.auth.uid || isRecipeAdmin());
-    }
-
-    function validBrandUpdate() {
-      return ownsOrCuratesBrand() && validBrandShape()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          "name", "barcode", "energyKcal", "fat", "carbohydrates", "sugars", "protein", "salt",
-          "updatedBy", "updatedAt"
+    // Marca personal con nutrición (por 100 g/ml) y tiendas donde se compra; `ingredientId` es el slug
+    // del ingrediente (común o personal) al que pertenece y no cambia después de crearla.
+    function validPersonalBrandShape() {
+      return request.resource.data.keys().hasAll(["ingredientId", "name", "favorite", "stores", "createdAt", "updatedAt"])
+        && request.resource.data.keys().hasOnly([
+          "ingredientId", "name", "favorite", "stores", "createdAt", "updatedAt",
+          "barcode", "energyKcal", "fat", "carbohydrates", "sugars", "protein", "salt"
         ])
-        && request.resource.data.ownerUid == resource.data.ownerUid
-        && request.resource.data.createdBy == resource.data.createdBy
-        && request.resource.data.createdByName == resource.data.createdByName
-        && request.resource.data.createdAt == resource.data.createdAt
-        && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
+        && request.resource.data.ingredientId is string
+        && request.resource.data.ingredientId.matches('^[a-z0-9]+(-[a-z0-9]+)*$')
+        && request.resource.data.ingredientId.size() <= 120
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 60
+        && (!request.resource.data.keys().hasAny(["barcode"])
+          || request.resource.data.barcode == null
+          || (request.resource.data.barcode is string && request.resource.data.barcode.size() <= 32))
+        && request.resource.data.favorite is bool
+        && validStoreList(request.resource.data.stores)
+        && optionalNumberField("energyKcal") && optionalNumberField("fat")
+        && optionalNumberField("carbohydrates") && optionalNumberField("sugars")
+        && optionalNumberField("protein") && optionalNumberField("salt")
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
     }
 
+
+    // Ingredientes comunes: leen los verificados, escribe solo el admin. Las marcas ya no cuelgan de aquí
+    // (son personales), así que ingredients/{id}/brands/** queda cerrado por el catch-all final.
     match /ingredients/{ingredientId} {
       allow get, list: if verifiedUser();
       allow create: if validNewIngredient();
       allow update: if validIngredientUpdate();
-      allow delete: if ownsOrCuratesIngredient();
-
-      match /brands/{brandId} {
-        allow get, list: if verifiedUser();
-        allow create: if validNewBrand();
-        allow update: if validBrandUpdate();
-        allow delete: if ownsOrCuratesBrand();
-      }
+      allow delete: if verifiedUser() && isRecipeAdmin();
     }
+
+    // Datos personales del catálogo de ingredientes: solo el dueño verificado (la ruta lleva su uid).
+    match /users/{userId}/ingredients/{ingredientId} {
+      allow get, list: if verifiedUser() && userId == request.auth.uid;
+      // El id es un slug y no puede coincidir con un ingrediente común.
+      allow create: if verifiedUser() && userId == request.auth.uid
+        && validPersonalIngredientShape()
+        && ingredientId.matches('^[a-z0-9]+(-[a-z0-9]+)*$') && ingredientId.size() <= 120
+        && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time
+        && !exists(/databases/$(database)/documents/ingredients/$(ingredientId));
+      allow update: if verifiedUser() && userId == request.auth.uid
+        && validPersonalIngredientShape()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["name", "nameLower", "category", "defaultUnit", "updatedAt"])
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if verifiedUser() && userId == request.auth.uid;
+    }
+
+    // Marcas personales: solo el dueño verificado. `ingredientId` queda fijo tras crearla.
+    match /users/{userId}/brands/{brandId} {
+      allow get, list: if verifiedUser() && userId == request.auth.uid;
+      allow create: if verifiedUser() && userId == request.auth.uid
+        && validPersonalBrandShape()
+        && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time;
+      allow update: if verifiedUser() && userId == request.auth.uid
+        && validPersonalBrandShape()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "name", "barcode", "energyKcal", "fat", "carbohydrates", "sugars", "protein", "salt",
+          "favorite", "stores", "updatedAt"
+        ])
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if verifiedUser() && userId == request.auth.uid;
+    }
+
 
     // Catálogo global de ejercicios (≈ ingredientes): lo lee cualquier verificado; crea/edita el dueño
     // o un admin. Sin subcolecciones. Sin get()/exists().
@@ -1324,9 +1347,10 @@ service cloud.firestore {
       allow delete: if ownsOrCuratesExercise();
     }
 
-    // Versión del catálogo de ejercicios (caché del cliente). La sube el importador (Admin SDK) en cada lote
-    // con cambios y el cliente en la misma transacción que escribe un ejercicio. Solo `exercises`, de uno en
-    // uno. Sin list ni delete. Las reglas de `exercises` NO exigen subirla (compatibilidad con la beta 17).
+    // Versión de los catálogos (caché del cliente). `exercises`: la sube el importador (Admin SDK) en cada
+    // lote con cambios y el cliente en la misma transacción que escribe un ejercicio. `ingredients`: igual,
+    // pero solo el admin (único que escribe ingredientes comunes). De uno en uno, sin list ni delete. Las
+    // reglas de `exercises` e `ingredients` NO exigen subirla (compatibilidad con la beta 17).
     function validCatalogMeta() {
       return verifiedUser()
         && request.resource.data.keys().hasOnly(["version", "updatedAt", "updatedBy"])
@@ -1336,13 +1360,18 @@ service cloud.firestore {
         && request.resource.data.updatedBy == request.auth.uid;
     }
 
+    function canWriteCatalogMeta(catalogId) {
+      return catalogId == "exercises" || (catalogId == "ingredients" && isRecipeAdmin());
+    }
+
     match /catalogMeta/{catalogId} {
-      allow get: if catalogId == "exercises" && verifiedUser();
-      allow create: if catalogId == "exercises" && validCatalogMeta()
+      allow get: if catalogId in ["exercises", "ingredients"] && verifiedUser();
+      allow create: if canWriteCatalogMeta(catalogId) && validCatalogMeta()
         && request.resource.data.version == 1;
-      allow update: if catalogId == "exercises" && validCatalogMeta()
+      allow update: if canWriteCatalogMeta(catalogId) && validCatalogMeta()
         && request.resource.data.version == resource.data.version + 1;
     }
+
 
     // Miniaturas de los ejercicios del catálogo: las sube el importador (Admin SDK). Los verificados
     // leen una por id (get); no hay list ni escrituras de clientes.
@@ -1350,8 +1379,8 @@ service cloud.firestore {
       allow get: if verifiedUser();
     }
 
-    // Preferencias de ingredientes por usuario (supermercado/marca por defecto): documento privado del
-    // propio usuario, con un único campo `entries` (mapa ingredienteId → {supermarket?, brand?}). Solo
+    // Preferencias de ingredientes por usuario (tiendas por ingrediente): documento privado del
+    // propio usuario, con un único campo `entries` (mapa slug → {stores: [...]}). Solo
     // el dueño lee/escribe. Sin get()/exists().
     match /ingredientPrefs/{userId} {
       allow read: if verifiedUser() && userId == request.auth.uid;

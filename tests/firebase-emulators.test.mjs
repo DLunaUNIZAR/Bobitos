@@ -1243,69 +1243,287 @@ test("una receta guarda su lista de ingredientes pero rechaza un ingredients no-
   );
 });
 
-test("cualquier usuario crea un ingrediente del catálogo y todos lo leen, pero no a nombre de otro", async () => {
-  const alice = verifiedFirestore("ing-alice");
-  const bob = verifiedFirestore("ing-bob");
+// --- Catálogo común de ingredientes (solo el admin escribe) y datos personales ---
 
-  await assertSucceeds(setDoc(doc(alice, "ingredients", "tomate"), ingredientData("ing-alice")));
-  await assertSucceeds(getDoc(doc(bob, "ingredients", "tomate")));
-  await assertFails(setDoc(doc(bob, "ingredients", "cebolla"), ingredientData("ing-alice")));
+const commonIngredient = (uid, overrides = {}) => ({
+  name: "Tomate",
+  nameLower: "tomate",
+  category: "Verduras",
+  defaultUnit: "g",
+  createdAt: serverTimestamp(),
+  updatedAt: serverTimestamp(),
+  updatedBy: uid,
+  ...overrides,
 });
 
-test("solo el autor o un admin editan/borran una ficha del catálogo", async () => {
+// Forma que escribe el importador (Admin SDK): con source y sin campos de dueño.
+const importedIngredient = () => ({
+  name: "Arroz",
+  nameLower: "arroz",
+  category: "Cereales",
+  defaultUnit: "g",
+  source: { provider: "bobitos", importedAt: Timestamp.now() },
+  createdAt: Timestamp.now(),
+  updatedAt: Timestamp.now(),
+  updatedBy: RECIPE_ADMIN_UID,
+});
+
+test("ingredientes comunes: todos los verificados los leen; solo el admin los crea, edita y borra", async () => {
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  const user = verifiedFirestore("ing-user");
+
+  await assertSucceeds(setDoc(doc(admin, "ingredients", "tomate"), commonIngredient(RECIPE_ADMIN_UID)));
+  await assertFails(setDoc(doc(user, "ingredients", "cebolla"), commonIngredient("ing-user")));
+  await assertFails(setDoc(doc(unverifiedFirestore(RECIPE_ADMIN_UID), "ingredients", "ajo"), commonIngredient(RECIPE_ADMIN_UID)));
+
+  await assertSucceeds(getDoc(doc(user, "ingredients", "tomate")));
+  await assertSucceeds(getDocs(collection(user, "ingredients")));
+  await assertFails(getDoc(doc(unverifiedFirestore("ing-unverified"), "ingredients", "tomate")));
+
+  await assertFails(
+    updateDoc(doc(user, "ingredients", "tomate"), {
+      name: "Manipulado", nameLower: "manipulado", updatedBy: "ing-user", updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertFails(writeBatch(user).delete(doc(user, "ingredients", "tomate")).commit());
+  await assertSucceeds(
+    updateDoc(doc(admin, "ingredients", "tomate"), {
+      name: "Tomate pera", nameLower: "tomate pera", updatedBy: RECIPE_ADMIN_UID, updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertSucceeds(writeBatch(admin).delete(doc(admin, "ingredients", "tomate")).commit());
+});
+
+test("un ingrediente común rechaza source desde el cliente y campos ajenos; el admin edita uno importado sin tocar su source", async () => {
   await testEnvironment.withSecurityRulesDisabled(async (context) => {
-    const timestamp = Timestamp.now();
-    await setDoc(doc(context.firestore(), "ingredients", "arroz"), {
-      ...ingredientData("ing-owner"),
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    });
+    await setDoc(doc(context.firestore(), "ingredients", "arroz"), importedIngredient());
   });
-  const owner = verifiedFirestore("ing-owner");
-  const other = verifiedFirestore("ing-other");
   const admin = verifiedFirestore(RECIPE_ADMIN_UID);
 
-  await assertSucceeds(
-    updateDoc(doc(owner, "ingredients", "arroz"), {
-      name: "Arroz redondo",
-      nameLower: "arroz redondo",
-      updatedBy: "ing-owner",
-      updatedAt: serverTimestamp(),
-    }),
-  );
   await assertFails(
-    updateDoc(doc(other, "ingredients", "arroz"), {
-      name: "Manipulado",
-      nameLower: "manipulado",
-      updatedBy: "ing-other",
-      updatedAt: serverTimestamp(),
-    }),
+    setDoc(doc(admin, "ingredients", "con-source"),
+      commonIngredient(RECIPE_ADMIN_UID, { source: { provider: "bobitos", importedAt: Timestamp.now() } })),
   );
-  await assertFails(writeBatch(other).delete(doc(other, "ingredients", "arroz")).commit());
+  await assertFails(setDoc(doc(admin, "ingredients", "ajeno"), commonIngredient(RECIPE_ADMIN_UID, { ownerUid: "x" })));
+  await assertFails(setDoc(doc(admin, "ingredients", "vacio"), commonIngredient(RECIPE_ADMIN_UID, { name: "" })));
+  await assertFails(setDoc(doc(admin, "ingredients", "otro-uid"), commonIngredient("otro")));
+
   await assertSucceeds(
     updateDoc(doc(admin, "ingredients", "arroz"), {
-      name: "Arroz basmati",
-      nameLower: "arroz basmati",
-      updatedBy: RECIPE_ADMIN_UID,
-      updatedAt: serverTimestamp(),
+      name: "Arroz redondo", nameLower: "arroz redondo", updatedBy: RECIPE_ADMIN_UID, updatedAt: serverTimestamp(),
     }),
   );
-  await assertSucceeds(writeBatch(admin).delete(doc(admin, "ingredients", "arroz")).commit());
+  const source = (await getDoc(doc(admin, "ingredients", "arroz"))).data().source;
+  assert.equal(source.provider, "bobitos");
+  await assertFails(
+    updateDoc(doc(admin, "ingredients", "arroz"), {
+      source: { provider: "bobitos", importedAt: Timestamp.now() },
+      updatedBy: RECIPE_ADMIN_UID, updatedAt: serverTimestamp(),
+    }),
+  );
+  await assertFails(
+    updateDoc(doc(admin, "ingredients", "arroz"), { createdAt: Timestamp.now(), updatedBy: RECIPE_ADMIN_UID, updatedAt: serverTimestamp() }),
+  );
 });
 
-test("una ficha del catálogo congela su ownerUid y rechaza campos ajenos al contrato", async () => {
-  const chef = verifiedFirestore("ing-shape");
-  await assertSucceeds(setDoc(doc(chef, "ingredients", "harina"), ingredientData("ing-shape")));
+test("las marcas bajo ingredients están cerradas para todos", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "ingredients", "arroz", "brands", "b1"), { name: "SOS" });
+  });
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  const user = verifiedFirestore("brand-closed");
+  for (const db of [admin, user]) {
+    await assertFails(getDoc(doc(db, "ingredients", "arroz", "brands", "b1")));
+    await assertFails(getDocs(collection(db, "ingredients", "arroz", "brands")));
+    await assertFails(setDoc(doc(db, "ingredients", "arroz", "brands", "b2"), { name: "Nueva" }));
+    await assertFails(writeBatch(db).delete(doc(db, "ingredients", "arroz", "brands", "b1")).commit());
+  }
+});
 
+test("catalogMeta/ingredients: un verificado la lee; solo el admin la crea y la sube de uno en uno", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await deleteDoc(doc(context.firestore(), "catalogMeta", "ingredients"));
+  });
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  const user = verifiedFirestore("meta-ing-user");
+  const ref = (db) => doc(db, "catalogMeta", "ingredients");
+
+  await assertFails(setDoc(ref(user), metaData("meta-ing-user", 1)));
+  await assertFails(setDoc(ref(admin), metaData(RECIPE_ADMIN_UID, 2)));
+  await assertSucceeds(setDoc(ref(admin), metaData(RECIPE_ADMIN_UID, 1)));
+
+  await assertSucceeds(getDoc(ref(user)));
+  await assertFails(getDoc(ref(unverifiedFirestore("meta-ing-unverified"))));
+
+  await assertFails(updateDoc(ref(user), { version: 2, updatedAt: serverTimestamp(), updatedBy: "meta-ing-user" }));
+  await assertFails(updateDoc(ref(admin), { version: 3, updatedAt: serverTimestamp(), updatedBy: RECIPE_ADMIN_UID }));
+  await assertFails(updateDoc(ref(admin), { version: 1, updatedAt: serverTimestamp(), updatedBy: RECIPE_ADMIN_UID }));
+  await assertSucceeds(updateDoc(ref(admin), { version: 2, updatedAt: serverTimestamp(), updatedBy: RECIPE_ADMIN_UID }));
+  await assertFails(deleteDoc(ref(admin)));
+});
+
+test("una transacción del admin crea un ingrediente común y sube catalogMeta/ingredients", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await deleteDoc(doc(context.firestore(), "catalogMeta", "ingredients"));
+  });
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  const metaRef = doc(admin, "catalogMeta", "ingredients");
+  const alta = (id) =>
+    runTransaction(admin, async (tx) => {
+      const snap = await tx.get(metaRef);
+      tx.set(doc(admin, "ingredients", id), commonIngredient(RECIPE_ADMIN_UID));
+      if (snap.exists()) tx.update(metaRef, metaData(RECIPE_ADMIN_UID, snap.data().version + 1));
+      else tx.set(metaRef, metaData(RECIPE_ADMIN_UID, 1));
+    });
+  await assertSucceeds(alta("tx-uno"));
+  assert.equal((await getDoc(metaRef)).data().version, 1);
+  await assertSucceeds(alta("tx-dos"));
+  assert.equal((await getDoc(metaRef)).data().version, 2);
+});
+
+const personalIngredient = (overrides = {}) => ({
+  name: "Tomate frito casero",
+  nameLower: "tomate frito casero",
+  category: "Salsas",
+  defaultUnit: "g",
+  createdAt: serverTimestamp(),
+  updatedAt: serverTimestamp(),
+  ...overrides,
+});
+
+const personalBrand = (overrides = {}) => ({
+  ingredientId: "tomate",
+  name: "Hacendado",
+  favorite: false,
+  stores: ["MERCADONA"],
+  createdAt: serverTimestamp(),
+  updatedAt: serverTimestamp(),
+  ...overrides,
+});
+
+test("ingredientes personales: solo su dueño los lee, lista y escribe", async () => {
+  const alice = verifiedFirestore("pi-alice");
+  const bob = verifiedFirestore("pi-bob");
+  const path = (db, uid, id) => doc(db, "users", uid, "ingredients", id);
+
+  await assertSucceeds(setDoc(path(alice, "pi-alice", "salsa-casera"), personalIngredient()));
+  await assertSucceeds(getDoc(path(alice, "pi-alice", "salsa-casera")));
+  await assertSucceeds(getDocs(collection(alice, "users", "pi-alice", "ingredients")));
+  await assertFails(getDoc(path(bob, "pi-alice", "salsa-casera")));
+  await assertFails(getDocs(collection(bob, "users", "pi-alice", "ingredients")));
+  await assertFails(setDoc(path(bob, "pi-alice", "otra"), personalIngredient()));
+  await assertFails(setDoc(path(unverifiedFirestore("pi-un"), "pi-un", "otra"), personalIngredient()));
   await assertFails(
-    updateDoc(doc(chef, "ingredients", "harina"), {
-      ownerUid: "otro",
-      updatedBy: "ing-shape",
-      updatedAt: serverTimestamp(),
+    updateDoc(path(bob, "pi-alice", "salsa-casera"), { name: "X", nameLower: "x", updatedAt: serverTimestamp() }),
+  );
+  await assertSucceeds(
+    updateDoc(path(alice, "pi-alice", "salsa-casera"), {
+      name: "Salsa", nameLower: "salsa", updatedAt: serverTimestamp(),
     }),
   );
-  await assertFails(setDoc(doc(chef, "ingredients", "sal"), ingredientData("ing-shape", { spaceId: "x" })));
-  await assertFails(setDoc(doc(chef, "ingredients", "vacio"), ingredientData("ing-shape", { name: "" })));
+  await assertFails(writeBatch(bob).delete(path(bob, "pi-alice", "salsa-casera")).commit());
+  await assertSucceeds(writeBatch(alice).delete(path(alice, "pi-alice", "salsa-casera")).commit());
+});
+
+test("un ingrediente personal no puede tener el id de uno común ni un id que no sea slug", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "ingredients", "arroz"), importedIngredient());
+  });
+  const alice = verifiedFirestore("pi-slug");
+  const path = (id) => doc(alice, "users", "pi-slug", "ingredients", id);
+
+  await assertFails(setDoc(path("arroz"), personalIngredient()));
+  await assertSucceeds(setDoc(path("arroz-integral"), personalIngredient()));
+  await assertFails(setDoc(path("Arroz"), personalIngredient()));
+  await assertFails(setDoc(path("con_guion_bajo"), personalIngredient()));
+  await assertFails(setDoc(path("doble--guion"), personalIngredient()));
+  await assertFails(setDoc(path("-empieza"), personalIngredient()));
+  await assertFails(setDoc(path("a".repeat(121)), personalIngredient()));
+  await assertSucceeds(setDoc(path("a".repeat(120)), personalIngredient()));
+});
+
+test("un ingrediente personal valida límites y no cambia createdAt", async () => {
+  const alice = verifiedFirestore("pi-limits");
+  const path = (id) => doc(alice, "users", "pi-limits", "ingredients", id);
+
+  await assertFails(setDoc(path("vacio"), personalIngredient({ name: "" })));
+  await assertFails(setDoc(path("largo"), personalIngredient({ name: "a".repeat(121) })));
+  await assertFails(setDoc(path("nl-largo"), personalIngredient({ nameLower: "a".repeat(121) })));
+  await assertFails(setDoc(path("cat-larga"), personalIngredient({ category: "a".repeat(61) })));
+  await assertFails(setDoc(path("unit-larga"), personalIngredient({ defaultUnit: "a".repeat(25) })));
+  await assertFails(setDoc(path("ajeno"), personalIngredient({ ownerUid: "pi-limits" })));
+  await assertFails(setDoc(path("sin-nl"), { name: "X", createdAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+  await assertFails(setDoc(path("fecha-falsa"), personalIngredient({ createdAt: Timestamp.fromMillis(1000) })));
+  await assertSucceeds(setDoc(path("nulos"), personalIngredient({ category: null, defaultUnit: null })));
+  await assertSucceeds(setDoc(path("minimo"), {
+    name: "Mínimo", nameLower: "minimo", createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+  }));
+
+  await assertFails(updateDoc(path("nulos"), { createdAt: Timestamp.fromMillis(1000), updatedAt: serverTimestamp() }));
+  await assertFails(updateDoc(path("nulos"), { name: "Y", nameLower: "y", updatedAt: Timestamp.fromMillis(1000) }));
+  await assertFails(updateDoc(path("nulos"), { name: "Y", nameLower: "y", extra: 1, updatedAt: serverTimestamp() }));
+  await assertSucceeds(updateDoc(path("nulos"), { name: "Y", nameLower: "y", updatedAt: serverTimestamp() }));
+});
+
+test("marcas personales: solo su dueño las lee, lista y escribe", async () => {
+  const alice = verifiedFirestore("pb-alice");
+  const bob = verifiedFirestore("pb-bob");
+  const path = (db, uid, id) => doc(db, "users", uid, "brands", id);
+
+  await assertSucceeds(setDoc(path(alice, "pb-alice", "b1"), personalBrand({ energyKcal: 30, salt: 0.1, barcode: "8480000" })));
+  await assertSucceeds(getDoc(path(alice, "pb-alice", "b1")));
+  await assertSucceeds(getDocs(collection(alice, "users", "pb-alice", "brands")));
+  await assertFails(getDoc(path(bob, "pb-alice", "b1")));
+  await assertFails(getDocs(collection(bob, "users", "pb-alice", "brands")));
+  await assertFails(setDoc(path(bob, "pb-alice", "b2"), personalBrand()));
+  await assertFails(setDoc(path(unverifiedFirestore("pb-un"), "pb-un", "b2"), personalBrand()));
+  await assertFails(updateDoc(path(bob, "pb-alice", "b1"), { name: "X", updatedAt: serverTimestamp() }));
+  await assertSucceeds(updateDoc(path(alice, "pb-alice", "b1"), { name: "SOS", favorite: true, updatedAt: serverTimestamp() }));
+  await assertFails(writeBatch(bob).delete(path(bob, "pb-alice", "b1")).commit());
+  await assertSucceeds(writeBatch(alice).delete(path(alice, "pb-alice", "b1")).commit());
+});
+
+test("una marca personal valida tiendas (enum, sin INDIFERENTE, sin repetidos, como mucho 6), favorita y nutrición", async () => {
+  const alice = verifiedFirestore("pb-shape");
+  const path = (id) => doc(alice, "users", "pb-shape", "brands", id);
+
+  await assertSucceeds(setDoc(path("ok"), personalBrand({ stores: [], fat: 1.2, sugars: null })));
+  await assertSucceeds(setDoc(path("seis"), personalBrand({
+    stores: ["DIA", "EROSKI", "MERCADONA", "CARREFOUR", "ALCAMPO", "OTROS"],
+  })));
+  await assertFails(setDoc(path("indif"), personalBrand({ stores: ["INDIFERENTE"] })));
+  await assertFails(setDoc(path("desconocida"), personalBrand({ stores: ["LIDL"] })));
+  await assertFails(setDoc(path("repetida"), personalBrand({ stores: ["DIA", "DIA"] })));
+  await assertFails(setDoc(path("siete"), personalBrand({
+    stores: ["DIA", "EROSKI", "MERCADONA", "CARREFOUR", "ALCAMPO", "OTROS", "DIA"],
+  })));
+  await assertFails(setDoc(path("no-lista"), personalBrand({ stores: "DIA" })));
+  await assertFails(setDoc(path("sin-stores"), (({ stores, ...rest }) => rest)(personalBrand())));
+  await assertFails(setDoc(path("fav-texto"), personalBrand({ favorite: "si" })));
+  await assertFails(setDoc(path("sin-fav"), (({ favorite, ...rest }) => rest)(personalBrand())));
+  await assertFails(setDoc(path("fat-texto"), personalBrand({ fat: "mucha" })));
+  await assertFails(setDoc(path("nombre-vacio"), personalBrand({ name: "" })));
+  await assertFails(setDoc(path("nombre-largo"), personalBrand({ name: "a".repeat(61) })));
+  await assertFails(setDoc(path("barcode-largo"), personalBrand({ barcode: "1".repeat(33) })));
+  await assertFails(setDoc(path("ing-no-slug"), personalBrand({ ingredientId: "No Slug" })));
+  await assertFails(setDoc(path("ing-largo"), personalBrand({ ingredientId: "a".repeat(121) })));
+  await assertFails(setDoc(path("ajeno"), personalBrand({ ownerUid: "pb-shape" })));
+  await assertFails(setDoc(path("fecha-falsa"), personalBrand({ createdAt: Timestamp.fromMillis(1000) })));
+
+  await assertFails(updateDoc(path("ok"), { stores: ["INDIFERENTE"], updatedAt: serverTimestamp() }));
+  await assertSucceeds(updateDoc(path("ok"), { stores: ["DIA", "OTROS"], updatedAt: serverTimestamp() }));
+});
+
+test("una marca personal no cambia de ingrediente al editarla", async () => {
+  const alice = verifiedFirestore("pb-fixed");
+  const ref = doc(alice, "users", "pb-fixed", "brands", "b1");
+  await assertSucceeds(setDoc(ref, personalBrand()));
+
+  await assertFails(updateDoc(ref, { ingredientId: "cebolla", updatedAt: serverTimestamp() }));
+  await assertFails(updateDoc(ref, { createdAt: Timestamp.fromMillis(1000), updatedAt: serverTimestamp() }));
+  await assertFails(updateDoc(ref, { name: "Otra", updatedAt: Timestamp.fromMillis(1000) }));
+  await assertSucceeds(updateDoc(ref, { name: "Otra", updatedAt: serverTimestamp() }));
+  assert.equal((await getDoc(ref)).data().ingredientId, "tomate");
 });
 
 test("cualquier usuario crea un ejercicio del catálogo y todos lo leen, pero no a nombre de otro", async () => {
@@ -1847,107 +2065,19 @@ test("las preferencias de ingredientes solo las lee y escribe su dueño", async 
   await assertSucceeds(
     setDoc(
       doc(alice, "ingredientPrefs", "pref-alice"),
-      { entries: { tomate: { supermarket: "MERCADONA", brand: "Hacendado" } } },
+      { entries: { tomate: { stores: ["MERCADONA", "DIA"] } } },
       { merge: true },
     ),
   );
   await assertSucceeds(getDoc(doc(alice, "ingredientPrefs", "pref-alice")));
   await assertFails(getDoc(doc(bob, "ingredientPrefs", "pref-alice")));
   await assertFails(
-    setDoc(doc(bob, "ingredientPrefs", "pref-alice"), { entries: { tomate: { supermarket: "DIA" } } }, { merge: true }),
+    setDoc(doc(bob, "ingredientPrefs", "pref-alice"), { entries: { tomate: { stores: ["DIA"] } } }, { merge: true }),
   );
   await assertFails(
     setDoc(doc(alice, "ingredientPrefs", "pref-alice"), { entries: {}, hacked: true }, { merge: true }),
   );
 });
-
-test("cualquiera añade una marca a un ingrediente y todos la leen, pero no a nombre de otro", async () => {
-  const alice = verifiedFirestore("brand-alice");
-  const bob = verifiedFirestore("brand-bob");
-
-  await assertSucceeds(
-    setDoc(doc(alice, "ingredients", "tomate", "brands", "b1"), brandData("brand-alice", { energyKcal: 30, salt: 0.1 })),
-  );
-  await assertSucceeds(getDoc(doc(bob, "ingredients", "tomate", "brands", "b1")));
-  await assertFails(
-    setDoc(doc(bob, "ingredients", "tomate", "brands", "b2"), brandData("brand-alice")),
-  );
-});
-
-test("solo el autor o un admin editan/borran una marca", async () => {
-  await testEnvironment.withSecurityRulesDisabled(async (context) => {
-    const timestamp = Timestamp.now();
-    await setDoc(doc(context.firestore(), "ingredients", "arroz", "brands", "b1"), {
-      ...brandData("brand-owner"),
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    });
-  });
-  const owner = verifiedFirestore("brand-owner");
-  const other = verifiedFirestore("brand-other");
-  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
-
-  await assertSucceeds(
-    updateDoc(doc(owner, "ingredients", "arroz", "brands", "b1"), {
-      name: "SOS",
-      updatedBy: "brand-owner",
-      updatedAt: serverTimestamp(),
-    }),
-  );
-  await assertFails(
-    updateDoc(doc(other, "ingredients", "arroz", "brands", "b1"), {
-      name: "Manipulada",
-      updatedBy: "brand-other",
-      updatedAt: serverTimestamp(),
-    }),
-  );
-  await assertFails(writeBatch(other).delete(doc(other, "ingredients", "arroz", "brands", "b1")).commit());
-  await assertSucceeds(writeBatch(admin).delete(doc(admin, "ingredients", "arroz", "brands", "b1")).commit());
-});
-
-test("una marca rechaza campos ajenos, nutrición no numérica y nombre vacío", async () => {
-  const chef = verifiedFirestore("brand-shape");
-
-  await assertSucceeds(
-    setDoc(doc(chef, "ingredients", "harina", "brands", "b1"), brandData("brand-shape", { fat: 1.2 })),
-  );
-  await assertFails(
-    setDoc(doc(chef, "ingredients", "harina", "brands", "bad1"), brandData("brand-shape", { spaceId: "x" })),
-  );
-  await assertFails(
-    setDoc(doc(chef, "ingredients", "harina", "brands", "bad2"), brandData("brand-shape", { fat: "mucha" })),
-  );
-  await assertFails(
-    setDoc(doc(chef, "ingredients", "harina", "brands", "bad3"), brandData("brand-shape", { name: "" })),
-  );
-});
-
-function brandData(userId, overrides = {}) {
-  return {
-    name: "Hacendado",
-    ownerUid: userId,
-    createdBy: userId,
-    createdByName: userId,
-    createdAt: serverTimestamp(),
-    updatedBy: userId,
-    updatedAt: serverTimestamp(),
-    ...overrides,
-  };
-}
-
-function ingredientData(userId, overrides = {}) {
-  return {
-    name: "Tomate",
-    nameLower: "tomate",
-    ownerUid: userId,
-    createdBy: userId,
-    createdByName: userId,
-    createdAt: serverTimestamp(),
-    updatedBy: userId,
-    updatedAt: serverTimestamp(),
-    ...overrides,
-  };
-}
 
 function exerciseData(userId, overrides = {}) {
   return {
