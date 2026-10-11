@@ -27,6 +27,7 @@ enum class IngredientUiMessage {
     BrandDeleted,
     ScanNotFound,
     ScanFailed,
+    CatalogUnavailable,
 }
 
 @get:StringRes
@@ -36,7 +37,7 @@ internal val IngredientUiMessage.stringResourceId: Int
         IngredientUiMessage.NameTooLong -> R.string.ingredients_error_name_too_long
         IngredientUiMessage.CategoryTooLong -> R.string.ingredients_error_category_too_long
         IngredientUiMessage.UnitTooLong -> R.string.ingredients_error_unit_too_long
-        IngredientUiMessage.AlreadyExists -> R.string.ingredients_error_already_exists
+        IngredientUiMessage.AlreadyExists -> R.string.ingredients_error_already_exists_generic
         IngredientUiMessage.BrandNameRequired -> R.string.ingredients_brand_error_name_required
         IngredientUiMessage.BrandNameTooLong -> R.string.ingredients_brand_error_name_too_long
         IngredientUiMessage.BarcodeTooLong -> R.string.ingredients_brand_error_barcode_too_long
@@ -54,4 +55,5 @@ internal val IngredientUiMessage.stringResourceId: Int
         IngredientUiMessage.BrandDeleted -> R.string.ingredients_brand_notice_deleted
         IngredientUiMessage.ScanNotFound -> R.string.ingredients_brand_scan_not_found
         IngredientUiMessage.ScanFailed -> R.string.ingredients_brand_scan_error
+        IngredientUiMessage.CatalogUnavailable -> R.string.ingredients_catalog_unavailable
     }

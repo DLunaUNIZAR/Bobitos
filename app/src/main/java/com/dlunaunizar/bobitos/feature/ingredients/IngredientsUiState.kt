@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.feature.ingredients
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
+import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Nutrition
 
@@ -19,12 +20,14 @@ data class ScannedProduct(
 
 data class IngredientsUiState(
     val query: String = "",
-    val catalog: UiState<List<CatalogIngredient>> = UiState.Loading,
-    // Preferencias del usuario activo (ingredientId → super/marca por defecto).
+    // Comunes y personales mezclados.
+    val ingredients: UiState<List<CatalogIngredient>> = UiState.Loading,
+    val brands: List<IngredientBrand> = emptyList(),
+    // Tiendas por ingrediente del usuario activo (ingredientId → tiendas).
     val prefs: Map<String, IngredientPref> = emptyMap(),
-    // Cuenta activa: puede curar (editar/borrar) fichas ajenas.
+    val catalogError: IngredientUiMessage? = null,
+    // La cuenta activa puede crear ingredientes comunes.
     val isAdmin: Boolean = false,
-    val currentUid: String? = null,
     val isSaving: Boolean = false,
     val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
     // Consulta a Open Food Facts en curso tras escanear desde la lista.
@@ -33,6 +36,7 @@ data class IngredientsUiState(
     val scannedProduct: ScannedProduct? = null,
     val error: IngredientUiMessage? = null,
     val notice: IngredientUiMessage? = null,
-) {
-    fun canEdit(@Suppress("UNUSED_PARAMETER") ingredient: CatalogIngredient): Boolean = isAdmin
-}
+    // Evento: ficha existente a la que navegar tras un alta duplicada, y su nombre para el aviso.
+    val openIngredientId: String? = null,
+    val existingName: String? = null,
+)

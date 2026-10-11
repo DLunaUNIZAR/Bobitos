@@ -9,24 +9,28 @@ import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Nutrition
 import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.dlunaunizar.bobitos.core.model.slug
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffProduct
 import com.dlunaunizar.bobitos.data.openfoodfacts.OpenFoodFactsClient
 import com.dlunaunizar.bobitos.data.repository.BrandInput
 import com.dlunaunizar.bobitos.data.repository.IngredientBrandRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientRepository
+import com.dlunaunizar.bobitos.data.repository.PersonalIngredientRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -37,55 +41,126 @@ class IngredientsViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val repository = FakeIngredientRepository()
+    private val personalRepository = FakePersonalIngredientRepository()
     private val prefsRepository = FakeIngredientPrefsRepository()
     private val brandRepository = FakeListBrandRepository()
     private val offClient = FakeListOffClient()
-    private val viewModel = IngredientsViewModel(repository, prefsRepository, brandRepository, offClient)
+    private val viewModel =
+        IngredientsViewModel(repository, personalRepository, prefsRepository, brandRepository, offClient)
 
     @Test
-    fun `observes the catalog and prefs`() = runTest(mainDispatcherRule.testDispatcher) {
-        repository.catalogState.value = listOf(ingredient("tomate", "Tomate"))
-        prefsRepository.prefsState.value = mapOf("tomate" to IngredientPref(listOf(Supermarket.DIA)))
+    fun `observe merges common and personal and carries brands and prefs`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.admin = true
+            repository.catalogState.value = listOf(ingredient("tomate", "Tomate"))
+            personalRepository.state.value = listOf(CatalogIngredient("canela", "Canela", personal = true))
+            val brand = IngredientBrand(id = "b", ingredientId = "tomate", name = "Hida")
+            brandRepository.brandsState.value = listOf(brand)
+            prefsRepository.prefsState.value = mapOf("tomate" to IngredientPref(listOf(Supermarket.DIA)))
 
+            viewModel.observe()
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertEquals(
+                listOf("Canela", "Tomate"),
+                (state.ingredients as UiState.Content).value.map(CatalogIngredient::name),
+            )
+            assertEquals(listOf(brand), state.brands)
+            assertEquals(IngredientPref(listOf(Supermarket.DIA)), state.prefs["tomate"])
+            assertTrue(state.isAdmin)
+        }
+
+    @Test
+    fun `a catalog error shows CatalogUnavailable and retry reloads it`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.failCatalog = true
         viewModel.observe()
         advanceUntilIdle()
 
-        val state = viewModel.uiState.value
-        assertEquals(listOf("Tomate"), (state.catalog as UiState.Content).value.map(CatalogIngredient::name))
-        assertEquals(IngredientPref(listOf(Supermarket.DIA)), state.prefs["tomate"])
+        assertTrue(viewModel.uiState.value.ingredients is UiState.Error)
+        assertEquals(IngredientUiMessage.CatalogUnavailable, viewModel.uiState.value.catalogError)
+
+        repository.failCatalog = false
+        repository.catalogState.value = listOf(ingredient("tomate", "Tomate"))
+        viewModel.retryCatalog()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("Tomate"),
+            (viewModel.uiState.value.ingredients as UiState.Content).value.map(CatalogIngredient::name),
+        )
+        assertNull(viewModel.uiState.value.catalogError)
     }
 
     @Test
-    fun `creating a new ingredient forwards it`() = runTest(mainDispatcherRule.testDispatcher) {
+    fun `creating a new ingredient creates it as personal`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe()
         advanceUntilIdle()
 
-        viewModel.createIngredient("  Cebolla  ", null, "ud")
+        viewModel.createIngredient("  Cebolla  ", null, "ud", common = false)
         advanceUntilIdle()
 
-        assertEquals(1, repository.createCount)
-        assertEquals("Cebolla", repository.lastCreatedName)
+        assertEquals(1, personalRepository.createCount)
+        assertEquals("Cebolla", personalRepository.lastCreatedName)
+        assertEquals(0, repository.createCount)
         assertEquals(IngredientUiMessage.Saved, viewModel.uiState.value.notice)
     }
 
     @Test
-    fun `a blank name never reaches the repository`() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.createIngredient("   ", null, null)
-
-        assertEquals(0, repository.createCount)
-        assertEquals(IngredientUiMessage.NameRequired, viewModel.uiState.value.error)
-    }
-
-    @Test
-    fun `a duplicate name is rejected before writing`() = runTest(mainDispatcherRule.testDispatcher) {
-        repository.catalogState.value = listOf(ingredient("tomate", "Tomate"))
+    fun `an admin can create a common ingredient`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.admin = true
         viewModel.observe()
         advanceUntilIdle()
 
-        viewModel.createIngredient("tomate", null, null)
+        viewModel.createIngredient("Cebolla", null, null, common = true)
+        advanceUntilIdle()
 
-        assertEquals(0, repository.createCount)
-        assertEquals(IngredientUiMessage.AlreadyExists, viewModel.uiState.value.error)
+        assertEquals(1, repository.createCount)
+        assertEquals(0, personalRepository.createCount)
+    }
+
+    @Test
+    fun `a non-admin asking for common still creates a personal ingredient`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.admin = false
+            viewModel.observe()
+            advanceUntilIdle()
+
+            viewModel.createIngredient("Cebolla", null, null, common = true)
+            advanceUntilIdle()
+
+            assertEquals(0, repository.createCount)
+            assertEquals(1, personalRepository.createCount)
+        }
+
+    @Test
+    fun `a name matching an existing ingredient by key opens it and does not write`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.catalogState.value = listOf(ingredient("limon", "Limón"))
+            viewModel.observe()
+            advanceUntilIdle()
+
+            viewModel.createIngredient("limones", null, null, common = false)
+            advanceUntilIdle()
+
+            assertEquals(0, repository.createCount)
+            assertEquals(0, personalRepository.createCount)
+            val state = viewModel.uiState.value
+            assertEquals("limon", state.openIngredientId)
+            assertEquals(IngredientUiMessage.AlreadyExists, state.error)
+            assertEquals("Limón", state.existingName)
+            assertEquals(EditorSaveStatus.FAILED, state.editorSave)
+
+            viewModel.consumeOpenIngredient()
+            assertNull(viewModel.uiState.value.openIngredientId)
+        }
+
+    @Test
+    fun `a blank name never reaches the repository`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.createIngredient("   ", null, null, common = false)
+
+        assertEquals(0, personalRepository.createCount)
+        assertEquals(IngredientUiMessage.NameRequired, viewModel.uiState.value.error)
     }
 
     @Test
@@ -147,59 +222,40 @@ class IngredientsViewModelTest {
         }
 
     @Test
-    fun `canEdit a common ingredient is false for non-admins`() = runTest(mainDispatcherRule.testDispatcher) {
-        repository.admin = false
+    fun `create is SAVED only after the repository answers`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe()
         advanceUntilIdle()
+        val gate = CompletableDeferred<Unit>()
+        personalRepository.createGate = gate
 
-        assertEquals(false, viewModel.uiState.value.canEdit(ingredient("a", "A")))
-    }
-
-    @Test
-    fun `canEdit a common ingredient is true for admins`() = runTest(mainDispatcherRule.testDispatcher) {
-        repository.admin = true
-        viewModel.observe()
+        viewModel.createIngredient("Cebolla", null, null, common = false)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertTrue(viewModel.uiState.value.isSaving)
+        gate.complete(Unit)
         advanceUntilIdle()
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+        viewModel.consumeEditorSave()
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
 
-        assertEquals(true, viewModel.uiState.value.canEdit(ingredient("a", "A")))
+        val scanGate = CompletableDeferred<Unit>()
+        repository.createGate = scanGate
+        viewModel.createIngredientFromScan("Tomate frito", null, null, "Hacendado", "841", null)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        scanGate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
     }
-
-    @Test
-    fun `create and create-from-scan are SAVED only after the repository answers`() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            viewModel.observe()
-            advanceUntilIdle()
-            val gate = CompletableDeferred<Unit>()
-            repository.createGate = gate
-
-            viewModel.createIngredient("Cebolla", null, null)
-            assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
-            assertTrue(viewModel.uiState.value.isSaving)
-            gate.complete(Unit)
-            advanceUntilIdle()
-            assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
-            viewModel.consumeEditorSave()
-            assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
-
-            val scanGate = CompletableDeferred<Unit>()
-            repository.createGate = scanGate
-            viewModel.createIngredientFromScan("Tomate frito", null, null, "Hacendado", "841", null)
-            assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
-            scanGate.complete(Unit)
-            advanceUntilIdle()
-            assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
-        }
 
     @Test
     fun `editor validation errors and timeouts leave FAILED`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe()
         advanceUntilIdle()
-        viewModel.createIngredient("  ", null, null)
+        viewModel.createIngredient("  ", null, null, common = false)
         assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
         viewModel.consumeEditorSave()
 
-        repository.hang = true
-        viewModel.createIngredient("Cebolla", null, null)
+        personalRepository.hang = true
+        viewModel.createIngredient("Cebolla", null, null, common = false)
         assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
         advanceTimeBy(EDITOR_SAVE_TIMEOUT_MILLIS + 1)
         runCurrent()
@@ -207,14 +263,6 @@ class IngredientsViewModelTest {
         assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
         assertEquals(IngredientUiMessage.SaveTimeout, viewModel.uiState.value.error)
         assertFalse(viewModel.uiState.value.isSaving)
-    }
-
-    @Test
-    fun `non-editor actions never touch editorSave`() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.deleteIngredient("tomate")
-        advanceUntilIdle()
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
-        assertEquals(IngredientUiMessage.Deleted, viewModel.uiState.value.notice)
     }
 }
 
@@ -231,7 +279,13 @@ private class FakeIngredientRepository : IngredientRepository {
     // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
     var hang = false
 
-    override fun catalog(): Flow<List<CatalogIngredient>> = catalogState
+    var failCatalog = false
+
+    override fun catalog(): Flow<List<CatalogIngredient>> = if (failCatalog) {
+        flow { error("offline") }
+    } else {
+        catalogState
+    }
     override fun isCurrentUserCatalogAdmin(): Boolean = admin
     override fun currentUserId(): String? = uid
     override suspend fun createIngredient(name: String, category: String?, defaultUnit: String?) {
@@ -251,6 +305,34 @@ private class FakeIngredientRepository : IngredientRepository {
     override suspend fun deleteIngredient(id: String) = Unit
 }
 
+private class FakePersonalIngredientRepository : PersonalIngredientRepository {
+    val state = MutableStateFlow<List<CatalogIngredient>>(emptyList())
+    var createCount = 0
+    var lastCreatedName: String? = null
+    var createGate: CompletableDeferred<Unit>? = null
+
+    // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
+    var hang = false
+
+    override fun ingredients(): Flow<List<CatalogIngredient>> = state
+    override suspend fun create(name: String, category: String?, defaultUnit: String?): String {
+        if (hang) {
+            try {
+                awaitCancellation()
+            } catch (_: CancellationException) {
+                error("cancelled")
+            }
+        }
+        createGate?.await()
+        createCount++
+        lastCreatedName = name
+        return slug(name)
+    }
+
+    override suspend fun update(id: String, name: String, category: String?, defaultUnit: String?) = Unit
+    override suspend fun delete(id: String) = Unit
+}
+
 private class FakeIngredientPrefsRepository : IngredientPrefsRepository {
     val prefsState = MutableStateFlow<Map<String, IngredientPref>>(emptyMap())
 
@@ -262,7 +344,9 @@ private class FakeListBrandRepository : IngredientBrandRepository {
     var lastIngredientId: String? = null
     var lastName: String? = null
 
-    override fun brands(): Flow<List<IngredientBrand>> = MutableStateFlow(emptyList())
+    val brandsState = MutableStateFlow<List<IngredientBrand>>(emptyList())
+
+    override fun brands(): Flow<List<IngredientBrand>> = brandsState
     override suspend fun addBrand(input: BrandInput): String {
         lastIngredientId = input.ingredientId
         lastName = input.name

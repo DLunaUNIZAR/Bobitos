@@ -637,7 +637,8 @@
     <string name="ingredients_error_name_too_long">El nombre es demasiado largo.</string>
     <string name="ingredients_error_category_too_long">La categoría es demasiado larga.</string>
     <string name="ingredients_error_unit_too_long">La unidad es demasiado larga.</string>
-    <string name="ingredients_error_already_exists">Ese ingrediente ya está en el catálogo.</string>
+    <string name="ingredients_error_already_exists_generic">Ese ingrediente ya existe.</string>
+    <string name="ingredients_error_already_exists">Ya existe «%1$s» en tus ingredientes o en el catálogo.</string>
     <string name="ingredients_error_not_found">No se encontró el ingrediente.</string>
     <string name="ingredients_notice_saved">Ingrediente guardado</string>
     <string name="ingredients_notice_deleted">Ingrediente borrado</string>
@@ -659,6 +660,14 @@
     <string name="ingredients_brand_notice_deleted">Marca borrada</string>
     <string name="ingredients_brand_scan">Escanear código</string>
     <string name="ingredients_brand_scan_not_found">No encontramos el producto en Open Food Facts. Rellena la marca a mano.</string>
+    <string name="ingredients_catalog_unavailable">No se pudo cargar el catálogo. Comprueba la conexión.</string>
+    <string name="ingredients_personal">Personal</string>
+    <string name="ingredients_common_switch">Común (catálogo)</string>
+    <string name="ingredients_favorite_brand">★ %1$s</string>
+    <plurals name="ingredients_brand_count">
+        <item quantity="one">%1$d marca</item>
+        <item quantity="other">%1$d marcas</item>
+    </plurals>
     <string name="ingredients_brand_scan_error">No se pudo consultar Open Food Facts. Revisa tu conexión.</string>
     <string name="nutrition_section">Valores nutricionales (por 100 g/ml)</string>
     <string name="nutrition_energy_label">Energía (kcal)</string>

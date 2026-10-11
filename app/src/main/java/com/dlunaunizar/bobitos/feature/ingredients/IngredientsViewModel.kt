@@ -9,6 +9,7 @@ import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
+import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.Nutrition
 import com.dlunaunizar.bobitos.core.model.slug
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffException
@@ -19,11 +20,10 @@ import com.dlunaunizar.bobitos.data.repository.BrandInput
 import com.dlunaunizar.bobitos.data.repository.BrandRepositoryException
 import com.dlunaunizar.bobitos.data.repository.IngredientBrandRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientFailure
-import com.dlunaunizar.bobitos.data.repository.IngredientPrefFailure
-import com.dlunaunizar.bobitos.data.repository.IngredientPrefsException
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientRepositoryException
+import com.dlunaunizar.bobitos.data.repository.PersonalIngredientRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -38,6 +38,7 @@ import javax.inject.Inject
 @HiltViewModel
 class IngredientsViewModel @Inject constructor(
     private val repository: IngredientRepository,
+    private val personalRepository: PersonalIngredientRepository,
     private val prefsRepository: IngredientPrefsRepository,
     private val brandRepository: IngredientBrandRepository,
     private val openFoodFactsClient: OpenFoodFactsClient,
@@ -46,22 +47,32 @@ class IngredientsViewModel @Inject constructor(
     val uiState: StateFlow<IngredientsUiState> = mutableUiState.asStateFlow()
 
     private var catalogJob: Job? = null
+    private var personalJob: Job? = null
+    private var brandsJob: Job? = null
     private var prefsJob: Job? = null
     private var observing = false
+
+    // Comunes (null mientras cargan) y personales; la lista de la pantalla es su mezcla.
+    private var commonIngredients: List<CatalogIngredient>? = null
+    private var personalIngredients: List<CatalogIngredient> = emptyList()
 
     fun observe() {
         if (observing) return
         observing = true
-        mutableUiState.update {
-            it.copy(
-                isAdmin = repository.isCurrentUserCatalogAdmin(),
-                currentUid = repository.currentUserId(),
-            )
+        mutableUiState.update { it.copy(isAdmin = repository.isCurrentUserCatalogAdmin()) }
+        startCatalog()
+        personalJob = viewModelScope.launch {
+            personalRepository.ingredients()
+                .catch { personalIngredients = emptyList() }
+                .collect {
+                    personalIngredients = it
+                    publishIngredients()
+                }
         }
-        catalogJob = viewModelScope.launch {
-            repository.catalog()
-                .catch { error -> mutableUiState.update { it.copy(catalog = UiState.Error(error.message)) } }
-                .collect { list -> mutableUiState.update { it.copy(catalog = UiState.Content(list)) } }
+        brandsJob = viewModelScope.launch {
+            brandRepository.brands()
+                .catch { mutableUiState.update { it.copy(brands = emptyList()) } }
+                .collect { brands -> mutableUiState.update { it.copy(brands = brands) } }
         }
         prefsJob = viewModelScope.launch {
             prefsRepository.prefs()
@@ -70,10 +81,44 @@ class IngredientsViewModel @Inject constructor(
         }
     }
 
-    fun stopObserving() {
+    private fun startCatalog() {
+        catalogJob = viewModelScope.launch {
+            repository.catalog()
+                .catch {
+                    // Sin red y sin caché: mensaje propio, no el texto técnico de Firebase.
+                    commonIngredients = null
+                    mutableUiState.update {
+                        it.copy(
+                            ingredients = UiState.Error(),
+                            catalogError = IngredientUiMessage.CatalogUnavailable,
+                        )
+                    }
+                }
+                .collect {
+                    commonIngredients = it
+                    publishIngredients()
+                }
+        }
+    }
+
+    private fun publishIngredients() {
+        val commonList = commonIngredients ?: return
+        val merged = mergeIngredients(commonList, personalIngredients)
+        mutableUiState.update { it.copy(ingredients = UiState.Content(merged), catalogError = null) }
+    }
+
+    fun retryCatalog() {
+        if (!observing) return
         catalogJob?.cancel()
-        prefsJob?.cancel()
+        mutableUiState.update { it.copy(ingredients = UiState.Loading, catalogError = null) }
+        startCatalog()
+    }
+
+    fun stopObserving() {
+        listOf(catalogJob, personalJob, brandsJob, prefsJob).forEach { it?.cancel() }
         catalogJob = null
+        personalJob = null
+        brandsJob = null
         prefsJob = null
         observing = false
     }
@@ -82,39 +127,45 @@ class IngredientsViewModel @Inject constructor(
         mutableUiState.update { it.copy(query = query) }
     }
 
-    fun createIngredient(name: String, category: String?, defaultUnit: String?) {
+    /** Alta de ingrediente: común solo si [common] y la cuenta es admin; si no, personal. */
+    fun createIngredient(name: String, category: String?, defaultUnit: String?, common: Boolean) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) {
             showError(IngredientUiMessage.NameRequired, editor = true)
             return
         }
-        if (catalogContains(slug(trimmed))) {
-            showError(IngredientUiMessage.AlreadyExists, editor = true)
+        val existing = findByKey(currentIngredients(), trimmed)
+        if (existing != null) {
+            mutableUiState.update {
+                it.copy(
+                    isSaving = false,
+                    error = IngredientUiMessage.AlreadyExists,
+                    notice = null,
+                    editorSave = it.editorSave.failed(true),
+                    openIngredientId = existing.id,
+                    existingName = existing.name,
+                )
+            }
             return
         }
+        val asCommon = common && mutableUiState.value.isAdmin
         runAction(IngredientUiMessage.Saved, editor = true) {
-            repository.createIngredient(trimmed, category, defaultUnit)
+            if (asCommon) {
+                repository.createIngredient(trimmed, category, defaultUnit)
+            } else {
+                personalRepository.create(trimmed, category, defaultUnit)
+            }
         }
     }
 
-    fun updateIngredient(id: String, name: String, category: String?, defaultUnit: String?) {
-        if (name.trim().isEmpty()) {
-            showError(IngredientUiMessage.NameRequired, editor = true)
-            return
-        }
-        runAction(IngredientUiMessage.Saved, editor = true) {
-            repository.updateIngredient(id, name.trim(), category, defaultUnit)
-        }
-    }
-
-    fun deleteIngredient(id: String) {
-        runAction(IngredientUiMessage.Deleted) { repository.deleteIngredient(id) }
+    fun consumeOpenIngredient() {
+        mutableUiState.update { it.copy(openIngredientId = null) }
     }
 
     /** Consulta Open Food Facts por el código escaneado y deja un producto pendiente de convertir. */
     fun lookupBarcode(barcode: String) {
         if (mutableUiState.value.isLookingUp) return
-        mutableUiState.update { it.copy(isLookingUp = true, error = null, notice = null) }
+        mutableUiState.update { it.copy(isLookingUp = true, error = null, notice = null, existingName = null) }
         viewModelScope.launch {
             try {
                 val product = openFoodFactsClient.lookup(barcode)
@@ -177,8 +228,10 @@ class IngredientsViewModel @Inject constructor(
         mutableUiState.update { it.copy(error = null, notice = null) }
     }
 
-    private fun catalogContains(id: String): Boolean =
-        (mutableUiState.value.catalog as? UiState.Content)?.value?.any { it.id == id } == true
+    private fun currentIngredients(): List<CatalogIngredient> =
+        (mutableUiState.value.ingredients as? UiState.Content)?.value.orEmpty()
+
+    private fun catalogContains(id: String): Boolean = currentIngredients().any { it.id == id }
 
     private fun showError(message: IngredientUiMessage, editor: Boolean = false) {
         mutableUiState.update {
@@ -189,7 +242,13 @@ class IngredientsViewModel @Inject constructor(
     private fun runAction(successNotice: IngredientUiMessage, editor: Boolean = false, action: suspend () -> Unit) {
         if (mutableUiState.value.isSaving) return
         mutableUiState.update {
-            it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
+            it.copy(
+                isSaving = true,
+                error = null,
+                notice = null,
+                existingName = null,
+                editorSave = it.editorSave.started(editor),
+            )
         }
         viewModelScope.launch {
             runCatching { withEditorSaveTimeout(editor) { action() } }
@@ -208,7 +267,6 @@ class IngredientsViewModel @Inject constructor(
 
 private fun Throwable.toUiMessage(): IngredientUiMessage = when (this) {
     is IngredientRepositoryException -> failure.toUiMessage()
-    is IngredientPrefsException -> failure.toUiMessage()
     is BrandRepositoryException -> failure.toUiMessage()
     is SaveTimeoutException -> IngredientUiMessage.SaveTimeout
     else -> IngredientUiMessage.UnexpectedError
@@ -243,12 +301,4 @@ private fun IngredientFailure.toUiMessage(): IngredientUiMessage = when (this) {
     IngredientFailure.PermissionDenied -> IngredientUiMessage.PermissionDenied
     IngredientFailure.Network -> IngredientUiMessage.NetworkError
     IngredientFailure.Unknown -> IngredientUiMessage.UnexpectedError
-}
-
-private fun IngredientPrefFailure.toUiMessage(): IngredientUiMessage = when (this) {
-    IngredientPrefFailure.NotAuthenticated -> IngredientUiMessage.NotAuthenticated
-    IngredientPrefFailure.EmailNotVerified -> IngredientUiMessage.EmailNotVerified
-    IngredientPrefFailure.PermissionDenied -> IngredientUiMessage.PermissionDenied
-    IngredientPrefFailure.Network -> IngredientUiMessage.NetworkError
-    IngredientPrefFailure.Unknown -> IngredientUiMessage.UnexpectedError
 }
