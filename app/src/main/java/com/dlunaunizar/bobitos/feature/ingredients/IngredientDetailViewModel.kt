@@ -130,8 +130,7 @@ class IngredientDetailViewModel @Inject constructor(
     }
 
     // El común gana al personal con el mismo id; sin ordenar todo el catálogo.
-    private fun findIngredient(id: String) =
-        common.firstOrNull { it.id == id } ?: personal.firstOrNull { it.id == id }
+    private fun findIngredient(id: String) = common.firstOrNull { it.id == id } ?: personal.firstOrNull { it.id == id }
 
     fun stopObserving() {
         listOf(catalogJob, personalJob, brandsJob, prefsJob).forEach { it?.cancel() }

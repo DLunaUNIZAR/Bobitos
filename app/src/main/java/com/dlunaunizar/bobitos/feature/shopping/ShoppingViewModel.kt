@@ -104,18 +104,18 @@ class ShoppingViewModel @Inject constructor(
         }
     }
 
-    private suspend fun loadIngredientsOnDemand(): List<CatalogIngredient> {
-        val loaded = try {
-            withTimeoutOrNull(INGREDIENT_LOAD_TIMEOUT_MILLIS) {
-                mergeIngredients(ingredientRepository.catalog().first(), personalIngredients.ingredients().first())
-            }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (@Suppress("TooGenericExceptionCaught") error: Exception) {
-            throw error as? IngredientRepositoryException ?: error.toIngredientRepositoryException()
-        }
+    private suspend fun loadIngredientsOnDemand(): List<CatalogIngredient> =
         // Solo el tiempo agotado se cuenta como falta de conexión.
-        return loaded ?: throw IngredientRepositoryException(IngredientFailure.Network)
+        loadIngredientsWithTimeout() ?: throw IngredientRepositoryException(IngredientFailure.Network)
+
+    private suspend fun loadIngredientsWithTimeout(): List<CatalogIngredient>? = try {
+        withTimeoutOrNull(INGREDIENT_LOAD_TIMEOUT_MILLIS) {
+            mergeIngredients(ingredientRepository.catalog().first(), personalIngredients.ingredients().first())
+        }
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (@Suppress("TooGenericExceptionCaught") error: Exception) {
+        throw error as? IngredientRepositoryException ?: error.toIngredientRepositoryException()
     }
 
     fun addItem(
