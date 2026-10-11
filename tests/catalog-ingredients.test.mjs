@@ -85,3 +85,8 @@ test("data/catalog/ingredients-review.md está al día", async () => {
   const md = await readFile(new URL("../data/catalog/ingredients-review.md", import.meta.url), "utf8");
   assert.equal(md, renderIngredientReview(data));
 });
+
+test("ingredientKey cumple la tabla compartida con Kotlin", async () => {
+  const cases = JSON.parse(await readFile(new URL("./fixtures/ingredient-keys.json", import.meta.url), "utf8"));
+  for (const [name, key] of cases) assert.equal(ingredientKey(name), key, name);
+});

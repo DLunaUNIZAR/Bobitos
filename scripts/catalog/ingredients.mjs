@@ -23,13 +23,16 @@ export const INGREDIENT_UNITS = ["g", "ml", "ud"];
 export const INGREDIENT_NAME_MAX = 120;
 const KEYS = ["id", "name", "category", "defaultUnit"];
 
-// Clave de casi duplicado: `nearDuplicateKey` deja «Limones» como `limone`, así que se recorta
-// además la «e» final de las palabras de más de 3 letras (limone → limon, pane → pan).
+// Clave tolerante de un nombre de ingrediente: sin tildes ni mayúsculas, sin palabras vacías, con las
+// palabras en singular aproximado (-s, -e final, -z → -c: nuez/nueces) y en orden alfabético. Sirve para
+// detectar casi duplicados. Está duplicada en Kotlin (`core/model/CatalogIngredient.kt`) y las dos
+// versiones están vigiladas por `tests/fixtures/ingredient-keys.json`.
 export function ingredientKey(name) {
   return nearDuplicateKey(name)
     .split(" ")
     .filter(Boolean)
     .map((w) => (w.length > 3 && w.endsWith("e") ? w.slice(0, -1) : w))
+    .map((w) => (w.endsWith("z") ? `${w.slice(0, -1)}c` : w))
     .sort()
     .join(" ");
 }

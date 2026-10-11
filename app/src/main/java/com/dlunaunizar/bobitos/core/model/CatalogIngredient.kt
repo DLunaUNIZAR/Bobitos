@@ -36,3 +36,27 @@ fun slug(name: String): String {
         .replace(Regex("[^a-z0-9]+"), "-")
         .trim('-')
 }
+
+// Palabras vacías de la clave tolerante; la misma lista que `nearDuplicateKey` en scripts/catalog.
+private val INGREDIENT_STOP_WORDS = setOf(
+    "a", "al", "con", "de", "del", "e", "el", "en", "la", "las", "lo", "los", "o", "para", "por", "u", "un", "una", "y",
+)
+
+/**
+ * Clave tolerante de un nombre de ingrediente: [slug] sin palabras vacías, con cada palabra en singular
+ * aproximado (-s, -e final, -z → -c) y en orden alfabético. «Limones» y «limón» comparten clave, y también
+ * «Nuez» y «Nueces». Duplica `ingredientKey` de scripts/catalog/ingredients.mjs; las dos las vigila
+ * tests/fixtures/ingredient-keys.json.
+ */
+fun ingredientKey(name: String): String = slug(name)
+    .split('-')
+    .filter { it.isNotEmpty() && it !in INGREDIENT_STOP_WORDS }
+    .map { word ->
+        var w = word
+        if (w.length > 3 && w.endsWith("s") && !w.endsWith("ss")) w = w.dropLast(1)
+        if (w.length > 3 && w.endsWith("e")) w = w.dropLast(1)
+        if (w.endsWith("z")) w = w.dropLast(1) + "c"
+        w
+    }
+    .sorted()
+    .joinToString(" ")
