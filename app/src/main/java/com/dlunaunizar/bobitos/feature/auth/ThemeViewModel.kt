@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.feature.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.designsystem.theme.DEFAULT_THEME_MODE
 import com.dlunaunizar.bobitos.core.designsystem.theme.ThemeMode
 import com.dlunaunizar.bobitos.data.repository.ThemePreferenceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,7 +21,7 @@ class ThemeViewModel @Inject constructor(private val repository: ThemePreference
     val themeMode: StateFlow<ThemeMode> = repository.themeMode.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
-        initialValue = ThemeMode.LIGHT,
+        initialValue = DEFAULT_THEME_MODE,
     )
 
     fun setThemeMode(mode: ThemeMode) {

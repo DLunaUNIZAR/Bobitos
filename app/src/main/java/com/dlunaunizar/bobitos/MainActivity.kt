@@ -56,7 +56,7 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
             }
             DisposableEffect(darkTheme) {
-                // La ventana previa a Compose sigue al sistema; si la app fuerza otro tema, se alinea aquí
+                // La ventana previa a Compose es oscura (tema por defecto); si el tema elegido es otro, se alinea aquí
                 // para que rotaciones y reaperturas no dejen ver un fondo de otro tema.
                 window.setBackgroundDrawable(
                     ColorDrawable((if (darkTheme) backgroundDark else backgroundLight).toArgb()),

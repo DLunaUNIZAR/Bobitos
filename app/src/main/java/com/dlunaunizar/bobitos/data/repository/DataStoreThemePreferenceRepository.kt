@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.dlunaunizar.bobitos.core.designsystem.theme.ThemeMode
+import com.dlunaunizar.bobitos.core.designsystem.theme.parseThemeMode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -17,9 +18,7 @@ private val Context.settingsDataStore by preferencesDataStore(name = "settings")
 class DataStoreThemePreferenceRepository @Inject constructor(@param:ApplicationContext private val context: Context) :
     ThemePreferenceRepository {
     override val themeMode: Flow<ThemeMode> = context.settingsDataStore.data.map { preferences ->
-        preferences[THEME_MODE_KEY]
-            ?.let { stored -> runCatching { ThemeMode.valueOf(stored) }.getOrNull() }
-            ?: ThemeMode.LIGHT
+        parseThemeMode(preferences[THEME_MODE_KEY])
     }
 
     override suspend fun setThemeMode(mode: ThemeMode) {

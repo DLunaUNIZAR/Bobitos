@@ -4,7 +4,7 @@ import com.dlunaunizar.bobitos.core.designsystem.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
 
 interface ThemePreferenceRepository {
-    /** Modo de tema persistido. Por defecto [ThemeMode.LIGHT]. */
+    /** Modo de tema persistido. Por defecto [ThemeMode.DARK]. */
     val themeMode: Flow<ThemeMode>
 
     suspend fun setThemeMode(mode: ThemeMode)

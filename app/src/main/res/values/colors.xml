@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Fondo de la ventana previa a Compose (fondo del tema claro). -->
-    <color name="bobitos_window">#FFFBFAF8</color>
+    <!-- Fondo de la ventana previa a Compose (fondo del tema oscuro). -->
+    <color name="bobitos_window">#FF141513</color>
 </resources>
