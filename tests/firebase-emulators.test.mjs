@@ -2099,6 +2099,35 @@ test("borrar la cuenta: el dueño borra sus ingredientes, marcas y preferencias;
   await assertSucceeds(deleteDoc(doc(owner, "ingredientPrefs", "pref-del")));
 });
 
+test("borrar un ingrediente personal se acepta con y sin documento de preferencias previo", async () => {
+  const deleteBatch = (db, uid, id) =>
+    writeBatch(db)
+      .delete(doc(db, "users", uid, "brands", "b1"))
+      .delete(doc(db, "users", uid, "ingredients", id))
+      .set(doc(db, "ingredientPrefs", uid), { entries: { [id]: deleteField() } }, { merge: true });
+
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const admin = context.firestore();
+    for (const uid of ["pref-nodoc", "pref-condoc"]) {
+      await setDoc(doc(admin, "users", uid, "ingredients", "salsa"), personalIngredient());
+      await setDoc(doc(admin, "users", uid, "brands", "b1"), personalBrand({ ingredientId: "salsa" }));
+    }
+  });
+  const sinPrefs = verifiedFirestore("pref-nodoc");
+  await assertSucceeds(deleteBatch(sinPrefs, "pref-nodoc", "salsa").commit());
+
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "ingredientPrefs", "pref-condoc"), {
+      entries: { salsa: { stores: ["DIA"] }, otro: { stores: ["MERCADONA"] } },
+    });
+  });
+  const conPrefs = verifiedFirestore("pref-condoc");
+  await assertSucceeds(deleteBatch(conPrefs, "pref-condoc", "salsa").commit());
+  const entries = (await getDoc(doc(conPrefs, "ingredientPrefs", "pref-condoc"))).data().entries;
+  assert.equal("salsa" in entries, false);
+  assert.equal("otro" in entries, true);
+});
+
 function exerciseData(userId, overrides = {}) {
   return {
     name: "Press banca",

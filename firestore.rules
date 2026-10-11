@@ -1384,10 +1384,12 @@ service cloud.firestore {
     // el dueño lee/escribe. Sin get()/exists().
     match /ingredientPrefs/{userId} {
       allow read: if verifiedUser() && userId == request.auth.uid;
+      // `entries` puede faltar: al borrar la última entrada de un documento inexistente, el merge
+      // con FieldValue.delete() deja `{}`, que es válido.
       allow create, update: if verifiedUser() && userId == request.auth.uid
         && request.resource.data.keys().hasOnly(["entries"])
-        && request.resource.data.entries is map
-        && request.resource.data.entries.size() <= 2000;
+        && request.resource.data.get("entries", {}) is map
+        && request.resource.data.get("entries", {}).size() <= 2000;
       // En un borrado `request.resource` es nulo: no se puede exigir la forma (borrar la cuenta).
       allow delete: if verifiedUser() && userId == request.auth.uid;
     }
