@@ -23,7 +23,6 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.Storefront
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
@@ -852,7 +851,7 @@ internal fun SupermarketDropdown(
 @Composable
 internal fun SupermarketIcon(supermarket: Supermarket, modifier: Modifier = Modifier) {
     Icon(
-        imageVector = Icons.Rounded.Storefront,
+        imageVector = supermarket.icon(),
         contentDescription = null,
         tint = supermarket.brandColor(),
         modifier = modifier.size(16.dp),

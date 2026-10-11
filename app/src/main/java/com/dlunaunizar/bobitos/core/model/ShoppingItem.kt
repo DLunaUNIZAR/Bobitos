@@ -9,6 +9,10 @@ enum class Supermarket {
     CARREFOUR,
     ALCAMPO,
     OTROS,
+    CARNICERIA,
+    PESCADERIA,
+    FRUTERIA,
+    PANADERIA,
     INDIFERENTE,
 }
 
