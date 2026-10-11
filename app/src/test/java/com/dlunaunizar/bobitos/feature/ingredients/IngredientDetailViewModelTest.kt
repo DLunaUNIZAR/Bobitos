@@ -17,6 +17,7 @@ import com.dlunaunizar.bobitos.data.repository.IngredientPrefFailure
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefsException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -55,6 +56,49 @@ class IngredientDetailViewModelTest {
             repository.catalogState.value = emptyList()
             advanceUntilIdle()
             assertEquals("Tomate mío", viewModel.uiState.value.ingredient?.name)
+        }
+
+    @Test
+    fun `a catalog failure still resolves a personal ingredient and stops loading`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.failCatalog = true
+            personalRepository.state.value = listOf(detailIngredient("mio", "Mío", personal = true))
+
+            viewModel.observe("mio")
+            advanceUntilIdle()
+
+            assertEquals("Mío", viewModel.uiState.value.ingredient?.name)
+            assertTrue(viewModel.uiState.value.loaded)
+        }
+
+    @Test
+    fun `a catalog failure on a common id ends in not found instead of loading forever`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.failCatalog = true
+
+            viewModel.observe("tomate")
+            advanceUntilIdle()
+
+            assertNull(viewModel.uiState.value.ingredient)
+            assertTrue(viewModel.uiState.value.loaded)
+        }
+
+    @Test
+    fun `a personal ingredient is not reported missing before the personal listener emits`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val personalFlow = MutableSharedFlow<List<CatalogIngredient>>()
+            personalRepository.personalOverride = personalFlow
+            repository.catalogState.value = listOf(detailIngredient("tomate", "Tomate"))
+
+            viewModel.observe("mio")
+            advanceUntilIdle()
+            assertFalse(viewModel.uiState.value.loaded)
+
+            personalFlow.emit(listOf(detailIngredient("mio", "Mío", personal = true)))
+            advanceUntilIdle()
+
+            assertTrue(viewModel.uiState.value.loaded)
+            assertEquals("Mío", viewModel.uiState.value.ingredient?.name)
         }
 
     @Test

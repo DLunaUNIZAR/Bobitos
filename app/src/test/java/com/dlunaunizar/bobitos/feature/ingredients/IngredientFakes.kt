@@ -76,8 +76,9 @@ internal class FakePersonalIngredientRepository : PersonalIngredientRepository {
     var deletedId: String? = null
     var updatedId: String? = null
     var hang = false
+    var personalOverride: Flow<List<CatalogIngredient>>? = null
 
-    override fun ingredients(): Flow<List<CatalogIngredient>> = state
+    override fun ingredients(): Flow<List<CatalogIngredient>> = personalOverride ?: state
     override suspend fun create(name: String, category: String?, defaultUnit: String?): String {
         if (hang) hangUntilCancelled()
         createGate?.await()

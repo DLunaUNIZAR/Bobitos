@@ -52,6 +52,10 @@ class IngredientDetailViewModel @Inject constructor(
     private var common: List<CatalogIngredient> = emptyList()
     private var personal: List<CatalogIngredient> = emptyList()
 
+    // La ficha está cargada cuando las dos fuentes han emitido o han fallado.
+    private var catalogDone = false
+    private var personalDone = false
+
     // Las marcas de todos los ingredientes, para reconocer un código escaneado que ya está en otro.
     private var allBrands: List<IngredientBrand> = emptyList()
 
@@ -66,21 +70,34 @@ class IngredientDetailViewModel @Inject constructor(
         }
         common = emptyList()
         personal = emptyList()
+        catalogDone = false
+        personalDone = false
         catalogJob?.cancel()
         catalogJob = viewModelScope.launch {
             repository.catalog()
-                .catch { /* el error del catálogo se refleja como ingrediente ausente */ }
+                .catch {
+                    // Un fallo del catálogo cuenta como catálogo vacío: se resuelve con los personales.
+                    common = emptyList()
+                    catalogDone = true
+                    publishIngredient(id)
+                }
                 .collect { list ->
                     common = list
-                    publishIngredient(id, loaded = true)
+                    catalogDone = true
+                    publishIngredient(id)
                 }
         }
         personalJob?.cancel()
         personalJob = viewModelScope.launch {
             personalRepository.ingredients()
-                .catch { personal = emptyList() }
+                .catch {
+                    personal = emptyList()
+                    personalDone = true
+                    publishIngredient(id)
+                }
                 .collect { list ->
                     personal = list
+                    personalDone = true
                     publishIngredient(id)
                 }
         }
@@ -106,12 +123,15 @@ class IngredientDetailViewModel @Inject constructor(
         }
     }
 
-    private fun publishIngredient(id: String, loaded: Boolean = false) {
+    private fun publishIngredient(id: String) {
         val found = findIngredient(id)
+        val loaded = catalogDone && personalDone
         mutableUiState.update { it.copy(ingredient = found, loaded = it.loaded || loaded) }
     }
 
-    private fun findIngredient(id: String) = mergeIngredients(common, personal).firstOrNull { it.id == id }
+    // El común gana al personal con el mismo id; sin ordenar todo el catálogo.
+    private fun findIngredient(id: String) =
+        common.firstOrNull { it.id == id } ?: personal.firstOrNull { it.id == id }
 
     fun stopObserving() {
         listOf(catalogJob, personalJob, brandsJob, prefsJob).forEach { it?.cancel() }
