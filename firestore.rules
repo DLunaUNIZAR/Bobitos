@@ -202,7 +202,8 @@ service cloud.firestore {
         && request.resource.data.updatedAt is timestamp
         && (!request.resource.data.keys().hasAny(["supermarket"])
           || request.resource.data.supermarket == null
-          || request.resource.data.supermarket in ["DIA", "EROSKI", "MERCADONA", "CARREFOUR", "ALCAMPO", "OTROS", "INDIFERENTE"])
+          // Esta lista debe coincidir con el enum Supermarket (APP/core/model/ShoppingItem.kt).
+          || request.resource.data.supermarket in ["DIA", "EROSKI", "MERCADONA", "CARREFOUR", "ALCAMPO", "OTROS", "CARNICERIA", "PESCADERIA", "FRUTERIA", "PANADERIA", "INDIFERENTE"])
         && (!request.resource.data.keys().hasAny(["brand"])
           || validOptionalShoppingText(request.resource.data.brand, 60));
     }
@@ -1241,10 +1242,11 @@ service cloud.firestore {
         || request.resource.data[key] is number;
     }
 
-    // Lista de supermercados de una marca personal: como mucho los 6 del enum, sin repetidos.
+    // Lista de tiendas de una marca personal: como mucho 6, sin repetidos y sin INDIFERENTE.
+    // Los valores deben coincidir con el enum Supermarket (APP/core/model/ShoppingItem.kt).
     function validStoreList(stores) {
       return stores is list && stores.size() <= 6
-        && stores.hasOnly(["DIA", "EROSKI", "MERCADONA", "CARREFOUR", "ALCAMPO", "OTROS"])
+        && stores.hasOnly(["DIA", "EROSKI", "MERCADONA", "CARREFOUR", "ALCAMPO", "OTROS", "CARNICERIA", "PESCADERIA", "FRUTERIA", "PANADERIA"])
         && stores.toSet().size() == stores.size();
     }
 

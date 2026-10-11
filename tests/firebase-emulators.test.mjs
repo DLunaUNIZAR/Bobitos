@@ -679,6 +679,26 @@ test("los productos aceptan supermercado y marca opcionales y validan el enum", 
   );
 });
 
+test("un artículo de la compra admite las tiendas de barrio", async () => {
+  await seedSpace("shopping-barrio", "barrio-owner");
+  const owner = verifiedFirestore("barrio-owner");
+
+  for (const store of ["CARNICERIA", "PESCADERIA", "FRUTERIA", "PANADERIA"]) {
+    await assertSucceeds(
+      setDoc(
+        doc(owner, "spaces", "shopping-barrio", "shoppingItems", store),
+        shoppingItem("barrio-owner", { supermarket: store }),
+      ),
+    );
+  }
+  await assertFails(
+    setDoc(
+      doc(owner, "spaces", "shopping-barrio", "shoppingItems", "lidl"),
+      shoppingItem("barrio-owner", { supermarket: "LIDL" }),
+    ),
+  );
+});
+
 test("las tareas aceptan tipo opcional y validan el enum", async () => {
   await seedSpace("task-type", "task-type-owner");
   const owner = verifiedFirestore("task-type-owner");
@@ -1481,6 +1501,17 @@ test("marcas personales: solo su dueño las lee, lista y escribe", async () => {
   await assertSucceeds(updateDoc(path(alice, "pb-alice", "b1"), { name: "SOS", favorite: true, updatedAt: serverTimestamp() }));
   await assertFails(writeBatch(bob).delete(path(bob, "pb-alice", "b1")).commit());
   await assertSucceeds(writeBatch(alice).delete(path(alice, "pb-alice", "b1")).commit());
+});
+
+test("una marca personal admite tiendas de barrio y sigue limitada a 6", async () => {
+  const alice = verifiedFirestore("pb-barrio");
+  const path = (id) => doc(alice, "users", "pb-barrio", "brands", id);
+
+  await assertSucceeds(setDoc(path("barrio"), personalBrand({ stores: ["CARNICERIA", "MERCADONA"] })));
+  await assertFails(setDoc(path("siete"), personalBrand({
+    stores: ["DIA", "EROSKI", "MERCADONA", "CARNICERIA", "PESCADERIA", "FRUTERIA", "PANADERIA"],
+  })));
+  await assertFails(setDoc(path("indif"), personalBrand({ stores: ["FRUTERIA", "INDIFERENTE"] })));
 });
 
 test("una marca personal valida tiendas (enum, sin INDIFERENTE, sin repetidos, como mucho 6), favorita y nutrición", async () => {

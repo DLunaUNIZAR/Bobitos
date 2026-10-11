@@ -207,7 +207,7 @@ updatedAt: timestamp
 purchasedBy: string | null
 purchasedByName: string | null
 purchasedAt: timestamp | null
-supermarket: string | ausente         # DIA | EROSKI | MERCADONA | CARREFOUR | ALCAMPO | OTROS | INDIFERENTE
+supermarket: string | ausente         # DIA | EROSKI | MERCADONA | CARREFOUR | ALCAMPO | OTROS | CARNICERIA | PESCADERIA | FRUTERIA | PANADERIA | INDIFERENTE
 brand: string | ausente               # texto libre, ≤60
 ```
 
@@ -579,7 +579,7 @@ updatedAt: timestamp
 ```
 
 - Id aleatorio. `ingredientId` no cambia tras crear la marca (`update` no lo admite entre los campos modificables, que son el resto menos `createdAt`).
-- `stores` usa los valores `DIA`, `EROSKI`, `MERCADONA`, `CARREFOUR`, `ALCAMPO` y `OTROS`; el orden es el que eligió el usuario. Al leer, la app ignora nombres desconocidos, `INDIFERENTE` y repetidos.
+- `stores` usa los valores `DIA`, `EROSKI`, `MERCADONA`, `CARREFOUR`, `ALCAMPO`, `OTROS`, `CARNICERIA`, `PESCADERIA`, `FRUTERIA` y `PANADERIA`; el orden es el que eligió el usuario. Al leer, la app ignora nombres desconocidos, `INDIFERENTE` y repetidos.
 - `favorite`: marca preferida del ingrediente; se muestra en la lista como «★ Marca · Tienda». Las favoritas se ordenan primero.
 - Al editar, un código de barras o un nutriente vacío se borra del documento.
 - Un ingrediente puede tener varias marcas. La app las lee (hasta 1000) con un listener en tiempo real.
