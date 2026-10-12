@@ -626,6 +626,12 @@
       "defaultUnit": "g"
     },
     {
+      "id": "ternera-para-guisar",
+      "name": "Ternera para guisar",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
       "id": "ternera-picada",
       "name": "Ternera picada",
       "category": "Carnes",
@@ -922,6 +928,12 @@
     {
       "id": "queso",
       "name": "Queso",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "queso-crema",
+      "name": "Queso crema",
       "category": "Lácteos y huevos",
       "defaultUnit": "g"
     },

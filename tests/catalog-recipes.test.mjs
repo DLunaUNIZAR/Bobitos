@@ -147,3 +147,20 @@ test("la revisión enseña las recetas por categorías, con raciones, tiempo, in
   assert.match(md, /`tortilla` · 1 ración · 20 min/);
   assert.equal(RECIPE_CATEGORIES.length, 11);
 });
+
+test("el recipes.json real es válido: 60 recetas en las 11 categorías y cantidades como texto", async () => {
+  const real = JSON.parse(await readFile(new URL("../data/catalog/recipes.json", import.meta.url), "utf8"));
+  const realIndex = indexIngredients(JSON.parse(await readFile(new URL("../data/catalog/ingredients.json", import.meta.url), "utf8")));
+  assert.deepEqual(validateRecipeCatalog(real, realIndex), []);
+  const built = buildRecipes(real, realIndex);
+  assert.equal(built.length, 60);
+  assert.deepEqual(
+    Object.fromEntries(RECIPE_CATEGORIES.map((c) => [c, built.filter((r) => r.category === c).length])),
+    {
+      Legumbres: 5, Arroces: 4, Pasta: 4, Carnes: 6, Pescados: 5, Verduras: 5, Ensaladas: 4, Huevos: 4,
+      "Sopas y cremas": 5, "Desayunos y meriendas": 9, Postres: 9,
+    },
+  );
+  assert.equal(built.reduce((n, r) => n + r.ingredients.length, 0), 503);
+  assert.ok(built.every((r) => r.ingredients.every((i) => i.quantity === null || typeof i.quantity === "string")));
+});

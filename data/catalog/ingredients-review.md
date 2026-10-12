@@ -2,15 +2,15 @@
 
 Generado con `npm run catalog:ingredients` a partir de `data/catalog/ingredients.json`; no se edita a mano.
 
-Total: 356
+Total: 358
 
 | Categoría | Ingredientes |
 |---|---|
 | Frutas | 28 |
 | Verduras y hortalizas | 45 |
-| Carnes | 32 |
+| Carnes | 33 |
 | Pescados y mariscos | 31 |
-| Lácteos y huevos | 32 |
+| Lácteos y huevos | 33 |
 | Legumbres | 10 |
 | Cereales, pasta y arroz | 33 |
 | Panadería | 17 |
@@ -139,6 +139,7 @@ Total: 356
 | Sobrasada | g | sobrasada |
 | Solomillo de cerdo | g | solomillo-de-cerdo |
 | Solomillo de ternera | g | solomillo-de-ternera |
+| Ternera para guisar | g | ternera-para-guisar |
 | Ternera picada | g | ternera-picada |
 
 ## Pescados y mariscos
@@ -199,6 +200,7 @@ Total: 356
 | Nata para montar | ml | nata-para-montar |
 | Natillas | ud | natillas |
 | Queso | g | queso |
+| Queso crema | g | queso-crema |
 | Queso curado | g | queso-curado |
 | Queso de cabra | g | queso-de-cabra |
 | Queso en lonchas | g | queso-en-lonchas |
