@@ -426,6 +426,7 @@
     <string name="meals_notice_cooked">Comida marcada como cocinada</string>
     <string name="meals_notice_crossed_off">Ingredientes tachados de la compra</string>
     <string name="meals_notice_ingredients_added">Ingredientes añadidos a la Compra</string>
+    <string name="meals_notice_nothing_to_add">Ya estaba todo en la lista</string>
     <string name="meals_duplicate_day">Duplicar día…</string>
     <string name="meals_duplicate_week">Duplicar semana en la siguiente</string>
     <string name="meals_add_day_to_shopping">Añadir ingredientes del día a la Compra</string>
@@ -435,6 +436,9 @@
     <string name="meals_review_existing">Ya en la lista: %1$s · receta: %2$s</string>
     <string name="meals_review_recipe">Receta: %1$s</string>
     <string name="meals_review_multi">De varias comidas: %1$s</string>
+    <string name="meals_review_purchased">Ya comprado: se vuelve a apuntar</string>
+    <string name="meals_review_skip">Omitir</string>
+    <string name="meals_review_sum">Sumar</string>
     <string name="meals_choose_recipe">Elegir de una receta</string>
     <string name="meals_recipe_picker_title">Elegir receta</string>
     <string name="recipes_title">Recetario</string>
@@ -477,6 +481,7 @@
     <string name="recipes_notice_forked">Guardada en «Mis recetas»</string>
     <string name="recipes_add_to_shopping">Añadir a la compra</string>
     <string name="recipes_notice_added_to_shopping">Añadido a la compra</string>
+    <string name="recipes_notice_nothing_to_add">Ya estaba todo en la lista</string>
     <string name="recipes_error_no_ingredients">Esta receta no tiene ingredientes.</string>
     <string name="recipes_import_title">Importar de una web</string>
     <string name="recipes_import_body">Pega el enlace de una receta. Funciona con webs que publican sus recetas en formato estándar; después podrás revisarla antes de guardar.</string>

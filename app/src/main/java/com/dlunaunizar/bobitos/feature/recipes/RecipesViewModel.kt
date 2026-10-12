@@ -26,6 +26,7 @@ import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
 import com.dlunaunizar.bobitos.feature.common.applyIngredientReview
 import com.dlunaunizar.bobitos.feature.common.buildIngredientReviewRows
+import com.dlunaunizar.bobitos.feature.common.writesNothing
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -103,6 +104,12 @@ class RecipesViewModel @Inject constructor(
 
     fun confirmShoppingReview(spaceId: String, choices: List<IngredientReviewChoice>) {
         val rows = mutableUiState.value.ingredientReview ?: return
+        if (choices.writesNothing()) {
+            mutableUiState.update {
+                it.copy(ingredientReview = null, error = null, notice = RecipeUiMessage.NothingToAddToShopping)
+            }
+            return
+        }
         mutableUiState.update { it.copy(ingredientReview = null) }
         runAction(RecipeUiMessage.AddedToShopping) {
             applyIngredientReview(spaceId, rows, choices, shoppingRepository)

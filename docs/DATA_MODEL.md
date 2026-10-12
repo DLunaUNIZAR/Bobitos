@@ -405,7 +405,7 @@ Cada `Ingredient` es un mapa embebido `{ name: string, quantity: string?, unit: 
 
 #### Integración con la Compra (Fase 3)
 
-Desde una comida enlazada a una receta (`Meal.recipeId`) se pueden **volcar sus ingredientes a la lista de la Compra** del espacio activo: se crea un `ShoppingItem` por ingrediente reutilizando `ShoppingRepository.addItem` (`name`=nombre, `quantity`=cantidad, `notes`=unidad). No hay lecturas extra (la receta ya está observada) ni dedupe: el usuario ajusta en la Compra. La acción respeta `canWrite`.
+Desde la ficha de una receta o desde una comida enlazada a una receta (`Meal.recipeId`) se pueden **volcar sus ingredientes a la lista de la Compra** del espacio activo, tras una revisión (`IngredientReviewDialog`). Los ingredientes se agrupan con `shoppingMatchKey` («Tomate» y «tomates» van juntos) y sus cantidades se suman (`ShoppingQuantity.sum`). Cada fila nueva crea un `ShoppingItem` (`name`=nombre, `quantity`=cantidad con su unidad, p. ej. «200 g»; sin `notes`). Una fila que ya está pendiente en la lista sale con «Omitir» (por defecto) o «Sumar» (solo cambia la cantidad); una que está comprada se vuelve a apuntar (`relistItem`). Si todo queda en «Omitir», no se escribe nada. La acción respeta `canWrite`.
 
 #### Consultas previstas
 

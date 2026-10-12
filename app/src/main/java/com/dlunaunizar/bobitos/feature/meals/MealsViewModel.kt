@@ -11,7 +11,7 @@ import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
-import com.dlunaunizar.bobitos.core.model.slug
+import com.dlunaunizar.bobitos.core.model.shoppingMatchKey
 import com.dlunaunizar.bobitos.data.repository.MealFailure
 import com.dlunaunizar.bobitos.data.repository.MealRepository
 import com.dlunaunizar.bobitos.data.repository.MealRepositoryException
@@ -25,6 +25,7 @@ import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
 import com.dlunaunizar.bobitos.feature.common.applyIngredientReview
 import com.dlunaunizar.bobitos.feature.common.buildIngredientReviewRows
+import com.dlunaunizar.bobitos.feature.common.writesNothing
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -224,7 +225,7 @@ class MealsViewModel @Inject constructor(
     fun dismissIngredientReview() = mutableUiState.update { it.copy(ingredientReview = null) }
 
     // Marca la comida como cocinada y, si su receta tiene ingredientes en la compra sin comprar,
-    // ofrece tacharlos (setPurchased) en un diálogo. Match por slug del nombre.
+    // ofrece tacharlos (setPurchased) en un diálogo. Cruce por shoppingMatchKey («Tomates» = «tomate»).
     fun markCooked(meal: Meal) {
         val spaceId = observedSpaceId ?: return
         if (mutableUiState.value.isSaving) return
@@ -233,12 +234,12 @@ class MealsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 repository.setCooked(spaceId, meal.id, true)
-                val slugs = recipe?.ingredients.orEmpty().map { slug(it.name) }.toSet()
-                val candidates = if (slugs.isEmpty()) {
+                val keys = recipe?.ingredients.orEmpty().map { shoppingMatchKey(it.name) }.toSet()
+                val candidates = if (keys.isEmpty()) {
                     emptyList()
                 } else {
                     val current = runCatching { shoppingRepository.items(spaceId).first() }.getOrDefault(emptyList())
-                    current.filter { !it.purchased && slug(it.name) in slugs }
+                    current.filter { !it.purchased && shoppingMatchKey(it.name) in keys }
                 }
                 mutableUiState.update {
                     it.copy(
@@ -272,10 +273,16 @@ class MealsViewModel @Inject constructor(
 
     fun dismissCookedCrossOff() = mutableUiState.update { it.copy(cookedCrossOff = null) }
 
-    // Aplica la revisión: actualiza la cantidad de los que ya existen y añade el resto.
+    // Aplica la revisión: omite, suma, vuelve a apuntar o añade cada fila (ver applyIngredientReview).
     fun confirmIngredientReview(choices: List<IngredientReviewChoice>) {
         val spaceId = observedSpaceId ?: return
         val rows = mutableUiState.value.ingredientReview ?: return
+        if (choices.writesNothing()) {
+            mutableUiState.update {
+                it.copy(ingredientReview = null, error = null, notice = MealUiMessage.NothingToAddToShopping)
+            }
+            return
+        }
         mutableUiState.update { it.copy(ingredientReview = null) }
         runAction(MealUiMessage.IngredientsAddedToShopping) {
             applyIngredientReview(spaceId, rows, choices, shoppingRepository)

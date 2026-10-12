@@ -806,6 +806,7 @@ private val MealUiMessage.stringResourceId: Int
         MealUiMessage.MealDeleted -> R.string.meals_notice_deleted
         MealUiMessage.MealsDuplicated -> R.string.meals_notice_duplicated
         MealUiMessage.IngredientsAddedToShopping -> R.string.meals_notice_ingredients_added
+        MealUiMessage.NothingToAddToShopping -> R.string.meals_notice_nothing_to_add
         MealUiMessage.MealCooked -> R.string.meals_notice_cooked
         MealUiMessage.IngredientsCrossedOff -> R.string.meals_notice_crossed_off
     }

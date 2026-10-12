@@ -10,6 +10,7 @@ import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
+import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.recipeimport.ImportFailure
 import com.dlunaunizar.bobitos.data.recipeimport.ImportedRecipe
@@ -244,6 +245,27 @@ class RecipesViewModelTest {
     }
 
     @Test
+    fun `confirming with every row omitted writes nothing and says it was all in the list`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            shoppingRepository.itemsState.value = listOf(pendingItem("s1", "Huevos"))
+            viewModel.observe()
+            advanceUntilIdle()
+            viewModel.addToShopping(
+                "home",
+                recipe("r1", RecipeVisibility.PRIVATE, "Tortilla", listOf(Ingredient("Huevo", "4", "uds"))),
+            )
+            advanceUntilIdle()
+
+            viewModel.confirmShoppingReview("home", listOf(IngredientReviewChoice(null, null, null, skip = true)))
+            advanceUntilIdle()
+
+            assertTrue(shoppingRepository.addedNames.isEmpty())
+            assertTrue(shoppingRepository.updatedIds.isEmpty())
+            assertEquals(RecipeUiMessage.NothingToAddToShopping, viewModel.uiState.value.notice)
+            assertEquals(null, viewModel.uiState.value.ingredientReview)
+        }
+
+    @Test
     fun `adding a recipe without ingredients shows a message`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe()
         advanceUntilIdle()
@@ -398,3 +420,19 @@ private fun recipe(id: String, visibility: RecipeVisibility, title: String, ingr
         updatedBy = "u",
         updatedAt = Instant.EPOCH,
     )
+
+private fun pendingItem(id: String, name: String) = ShoppingItem(
+    id = id,
+    name = name,
+    quantity = null,
+    notes = null,
+    purchased = false,
+    createdBy = "owner",
+    createdByName = "David",
+    createdAt = Instant.EPOCH,
+    updatedBy = "owner",
+    updatedAt = Instant.EPOCH,
+    purchasedBy = null,
+    purchasedByName = null,
+    purchasedAt = null,
+)

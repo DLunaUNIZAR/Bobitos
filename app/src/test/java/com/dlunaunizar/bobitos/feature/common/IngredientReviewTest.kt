@@ -8,8 +8,10 @@ import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 
@@ -62,7 +64,7 @@ class IngredientReviewTest {
         assertNull(row.context)
 
         val choice = row.initialState().toChoice(row)
-        assertEquals(IngredientReviewChoice("1", null, null), choice)
+        assertEquals(IngredientReviewChoice("1 kg", null, null), choice)
 
         val shopping = RecordingShoppingRepository()
         applyIngredientReview("home", rows, listOf(choice), shopping)
@@ -76,7 +78,7 @@ class IngredientReviewTest {
         val row = buildIngredientReviewRows(listOf(Ingredient("Arroz", "300", "g")), emptyList(), data).single()
         val state = row.initialState()
 
-        assertEquals("300", state.quantity)
+        assertEquals("300 g", state.quantity)
         assertEquals(BrandStoreSelection("b1", Supermarket.DIA), state.selection)
         assertEquals("", state.freeBrand)
     }
@@ -116,7 +118,8 @@ class IngredientReviewTest {
         applyIngredientReview("home", rows, choices, shopping)
 
         assertEquals(listOf("Arroz"), shopping.addedNames)
-        assertEquals(listOf("g"), shopping.addedNotes)
+        assertEquals(listOf<String?>(null), shopping.addedNotes)
+        assertEquals(listOf<String?>("300"), shopping.addedQuantities)
         assertEquals(listOf<Supermarket?>(Supermarket.DIA), shopping.addedSupermarkets)
         assertEquals(listOf<String?>("Brillante"), shopping.addedBrands)
         assertEquals(listOf("s1"), shopping.updatedIds)
@@ -125,12 +128,146 @@ class IngredientReviewTest {
         assertEquals(listOf<String?>("Costa"), shopping.updatedBrands)
     }
 
-    private fun item(id: String, name: String, supermarket: Supermarket? = null, brand: String? = null) = ShoppingItem(
+    @Test
+    fun `a pending item is omitted by default with the sum ready in case of Sumar`() = runTest {
+        val rows = buildIngredientReviewRows(
+            listOf(Ingredient("Arroz", "300", "g")),
+            listOf(item("s1", "arroz", quantity = "200 g")),
+            data,
+        )
+        val row = rows.single()
+        val state = row.initialState()
+
+        assertEquals(ReviewRowKind.PENDING, row.kind)
+        assertFalse(state.include)
+        assertEquals("500 g", state.quantity)
+        val choices = listOf(state.toChoice(row))
+        assertTrue(choices.writesNothing())
+
+        val shopping = RecordingShoppingRepository()
+        applyIngredientReview("home", rows, choices, shopping)
+        assertTrue(shopping.updatedIds.isEmpty())
+        assertTrue(shopping.addedNames.isEmpty())
+        assertTrue(shopping.relistedIds.isEmpty())
+    }
+
+    @Test
+    fun `choosing Sumar updates only the quantity of the pending item`() = runTest {
+        val existing = item("s1", "Arroz", quantity = "200 g", supermarket = Supermarket.DIA, brand = "Sos")
+        val rows = buildIngredientReviewRows(listOf(Ingredient("Arroz", "300", "g")), listOf(existing), data)
+        val row = rows.single()
+        val choice = row.initialState().withInclude(true).toChoice(row)
+
+        assertFalse(choice.skip)
+        val shopping = RecordingShoppingRepository()
+        applyIngredientReview("home", rows, listOf(choice), shopping)
+
+        assertEquals(listOf("s1"), shopping.updatedIds)
+        assertEquals(listOf<String?>("500 g"), shopping.updatedQuantities)
+        assertEquals(listOf<Supermarket?>(Supermarket.DIA), shopping.updatedSupermarkets)
+        assertEquals(listOf<String?>("Sos"), shopping.updatedBrands)
+        assertTrue(shopping.addedNames.isEmpty())
+    }
+
+    @Test
+    fun `a purchased item is relisted with the recipe quantity keeping its brand and store`() = runTest {
+        val bought = item(
+            "s2",
+            "Leche",
+            quantity = "6 l",
+            supermarket = Supermarket.DIA,
+            brand = "Pascual",
+            purchased = true,
+        )
+        val rows = buildIngredientReviewRows(listOf(Ingredient("Leche", "1", "l")), listOf(bought), data)
+        val row = rows.single()
+        val state = row.initialState()
+
+        assertEquals(ReviewRowKind.PURCHASED, row.kind)
+        assertTrue(state.include)
+        assertEquals("1 l", state.quantity)
+
+        val shopping = RecordingShoppingRepository()
+        applyIngredientReview("home", rows, listOf(state.toChoice(row)), shopping)
+        assertEquals(listOf("s2"), shopping.relistedIds)
+        assertEquals(listOf<String?>("1 l"), shopping.relistedQuantities)
+        assertEquals(listOf<Supermarket?>(Supermarket.DIA), shopping.relistedSupermarkets)
+        assertEquals(listOf<String?>("Pascual"), shopping.relistedBrands)
+        assertTrue(shopping.addedNames.isEmpty())
+        assertTrue(shopping.updatedIds.isEmpty())
+    }
+
+    @Test
+    fun `singular and plural spellings share one row with the quantities added`() {
+        val rows = buildIngredientReviewRows(
+            listOf(Ingredient("Tomate", "2", "ud"), Ingredient("tomates", "3", "ud")),
+            emptyList(),
+            data,
+        )
+
+        assertEquals(1, rows.size)
+        assertEquals("Tomate", rows.single().name)
+        assertEquals("5 ud", rows.single().recipeQuantity)
+        assertEquals(listOf("2 ud", "3 ud"), rows.single().quantities)
+    }
+
+    @Test
+    fun `a pending item wins over a purchased one with the same name`() {
+        val rows = buildIngredientReviewRows(
+            listOf(Ingredient("Tomate", "2", "ud")),
+            listOf(item("s1", "Tomates", purchased = true), item("s2", "tomate")),
+            data,
+        )
+
+        assertEquals("s2", rows.single().existing?.id)
+        assertEquals(ReviewRowKind.PENDING, rows.single().kind)
+    }
+
+    @Test
+    fun `an ingredient without quantity keeps the pending quantity when summing`() {
+        val row = buildIngredientReviewRows(
+            listOf(Ingredient("Sal")),
+            listOf(item("s1", "Sal", quantity = "1 kg")),
+            data,
+        ).single()
+
+        assertEquals("1 kg", row.initialState().quantity)
+    }
+
+    @Test
+    fun `a quantity over 40 characters blocks confirming only when it will be written`() {
+        val long = ReviewRowState("x".repeat(41), BrandStoreSelection.None, "")
+
+        assertTrue(long.quantityTooLong())
+        assertFalse(long.withInclude(false).quantityTooLong())
+        assertFalse(long.copy(quantity = "x".repeat(40)).quantityTooLong())
+    }
+
+    @Test
+    fun `new rows are added with the unit inside the quantity and without notes`() = runTest {
+        val rows = buildIngredientReviewRows(listOf(Ingredient("Sal", "1", "kg")), emptyList(), data)
+        val row = rows.single()
+        val shopping = RecordingShoppingRepository()
+
+        applyIngredientReview("home", rows, listOf(row.initialState().toChoice(row)), shopping)
+
+        assertEquals(listOf<String?>("1 kg"), shopping.addedQuantities)
+        assertEquals(listOf<String?>(null), shopping.addedNotes)
+    }
+
+    private fun item(
+        id: String,
+        name: String,
+        supermarket: Supermarket? = null,
+        brand: String? = null,
+        quantity: String? = null,
+        purchased: Boolean = false,
+    ) = ShoppingItem(
         id = id,
         name = name,
-        quantity = null,
+        quantity = quantity,
         notes = null,
-        purchased = false,
+        purchased = purchased,
         createdBy = "u",
         createdByName = "U",
         createdAt = Instant.EPOCH,

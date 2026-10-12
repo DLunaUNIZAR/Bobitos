@@ -498,5 +498,6 @@ internal val RecipeUiMessage.stringResourceId: Int
         RecipeUiMessage.ImportNoRecipe -> R.string.recipes_import_error_no_recipe
         RecipeUiMessage.ImportTooLarge -> R.string.recipes_import_error_too_large
         RecipeUiMessage.AddedToShopping -> R.string.recipes_notice_added_to_shopping
+        RecipeUiMessage.NothingToAddToShopping -> R.string.recipes_notice_nothing_to_add
         RecipeUiMessage.NoIngredients -> R.string.recipes_error_no_ingredients
     }

@@ -27,6 +27,8 @@ import com.dlunaunizar.bobitos.feature.common.IngredientReviewChoice
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewRow
 import com.dlunaunizar.bobitos.feature.common.RecordingShoppingRepository
 import com.dlunaunizar.bobitos.feature.common.ingredientShoppingSource
+import com.dlunaunizar.bobitos.feature.common.initialState
+import com.dlunaunizar.bobitos.feature.common.toChoice
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientBrandRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientPrefsRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientRepository
@@ -179,7 +181,8 @@ class MealsViewModelTest {
             advanceUntilIdle()
 
             assertEquals(listOf("Arroz", "Sal"), shoppingRepository.addedNames)
-            assertEquals(listOf("g", null), shoppingRepository.addedNotes)
+            assertEquals(listOf<String?>(null, null), shoppingRepository.addedNotes)
+            assertEquals(listOf<String?>("300", null), shoppingRepository.addedQuantities)
             assertEquals(MealUiMessage.IngredientsAddedToShopping, viewModel.uiState.value.notice)
         }
 
@@ -309,7 +312,41 @@ class MealsViewModelTest {
         val review = viewModel.uiState.value.ingredientReview!!
         assertEquals(1, review.size)
         assertEquals(listOf("200 g", "300 g"), review[0].quantities)
-        assertEquals("200 g + 300 g", review[0].recipeQuantity)
+        assertEquals("500 g", review[0].recipeQuantity)
+    }
+
+    @Test
+    fun `confirming with every row omitted writes nothing and says it was all in the list`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Arroz", "300", "g"))))
+            shoppingRepository.itemsState.value = listOf(shoppingItem("s1", "arroz", quantity = "1 kg"))
+            viewModel.observe("home")
+            advanceUntilIdle()
+
+            val meal = meal("m1", LocalDate.now(), MealSlot.COMIDA, "Paella").copy(recipeId = "r1")
+            viewModel.addIngredientsToShopping(meal)
+            advanceUntilIdle()
+            val review = viewModel.uiState.value.ingredientReview!!
+            viewModel.confirmIngredientReview(review.map { it.initialState().toChoice(it) })
+            advanceUntilIdle()
+
+            assertTrue(shoppingRepository.updatedIds.isEmpty())
+            assertTrue(shoppingRepository.addedNames.isEmpty())
+            assertEquals(MealUiMessage.NothingToAddToShopping, viewModel.uiState.value.notice)
+            assertEquals(null, viewModel.uiState.value.ingredientReview)
+        }
+
+    @Test
+    fun `marking cooked offers items whose name differs only in plural`() = runTest(mainDispatcherRule.testDispatcher) {
+        recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Tomates", "3", "ud"))))
+        shoppingRepository.itemsState.value = listOf(shoppingItem("s1", "Tomate"))
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.COMIDA, "Ensalada").copy(recipeId = "r1"))
+        advanceUntilIdle()
+
+        assertEquals(listOf("Tomate"), viewModel.uiState.value.cookedCrossOff?.map(ShoppingItem::name))
     }
 
     @Test
@@ -572,10 +609,10 @@ private fun meal(id: String, date: LocalDate, slot: MealSlot, name: String) = Me
     updatedAt = Instant.EPOCH,
 )
 
-private fun shoppingItem(id: String, name: String) = ShoppingItem(
+private fun shoppingItem(id: String, name: String, quantity: String? = null) = ShoppingItem(
     id = id,
     name = name,
-    quantity = null,
+    quantity = quantity,
     notes = null,
     purchased = false,
     createdBy = "owner",
