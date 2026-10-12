@@ -17,6 +17,7 @@ enum class RecipeUiMessage {
     PermissionDenied,
     NetworkError,
     UnexpectedError,
+    ShoppingChanged,
     SaveTimeout,
     RecipeSaved,
     RecipeDeleted,

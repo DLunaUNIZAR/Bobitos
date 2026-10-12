@@ -483,6 +483,7 @@ internal val RecipeUiMessage.stringResourceId: Int
         RecipeUiMessage.PermissionDenied -> R.string.space_error_permission_denied
         RecipeUiMessage.NetworkError -> R.string.space_error_network
         RecipeUiMessage.UnexpectedError -> R.string.space_error_unexpected
+        RecipeUiMessage.ShoppingChanged -> R.string.recipes_error_shopping_changed
         RecipeUiMessage.SaveTimeout -> R.string.write_timeout
         RecipeUiMessage.RecipeSaved -> R.string.recipes_notice_saved
         RecipeUiMessage.RecipeDeleted -> R.string.recipes_notice_deleted

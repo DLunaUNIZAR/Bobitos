@@ -6,6 +6,7 @@ import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.dlunaunizar.bobitos.data.repository.ShoppingWrite
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -290,4 +291,44 @@ class IngredientReviewTest {
         supermarket = supermarket,
         brand = brand,
     )
+
+    @Test
+    fun `the whole review is written in one batch in row order`() = runTest {
+        val pending = item("s1", "Arroz", supermarket = Supermarket.DIA, brand = "Sos", quantity = "200 g")
+        val bought = item("s2", "Leche", quantity = "6 l", purchased = true)
+        val rows = buildIngredientReviewRows(
+            listOf(Ingredient("Sal", "1", "kg"), Ingredient("Arroz", "300", "g"), Ingredient("Leche", "1", "l")),
+            listOf(pending, bought),
+            data,
+        )
+        val choices = rows.map { it.initialState().withInclude(true).toChoice(it) }
+        val shopping = RecordingShoppingRepository()
+
+        applyIngredientReview("home", rows, choices, shopping)
+
+        assertEquals(
+            listOf(
+                listOf(
+                    ShoppingWrite.Add("Sal", "1 kg", null, null, null),
+                    ShoppingWrite.Change(pending, "500 g", null, Supermarket.DIA, "Sos", relist = false),
+                    ShoppingWrite.Change(bought, "1 l", null, null, null, relist = true),
+                ),
+            ),
+            shopping.appliedBatches,
+        )
+    }
+
+    @Test
+    fun `a review with every row omitted writes no batch`() = runTest {
+        val rows = buildIngredientReviewRows(
+            listOf(Ingredient("Arroz", "300", "g")),
+            listOf(item("s1", "arroz", quantity = "200 g")),
+            data,
+        )
+        val shopping = RecordingShoppingRepository()
+
+        applyIngredientReview("home", rows, rows.map { it.initialState().toChoice(it) }, shopping)
+
+        assertTrue(shopping.appliedBatches.isEmpty())
+    }
 }

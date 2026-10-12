@@ -22,6 +22,7 @@ import com.dlunaunizar.bobitos.data.repository.PersonalIngredientRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
+import com.dlunaunizar.bobitos.data.repository.ShoppingWrite
 import com.dlunaunizar.bobitos.data.repository.toIngredientRepositoryException
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
@@ -145,15 +146,8 @@ class ShoppingViewModel @Inject constructor(
             if (match == null) {
                 repository.addItem(spaceId, name.trim(), normalizedQuantity, normalizedNotes, supermarket, brand)
             } else {
-                repository.relistItem(
-                    spaceId,
-                    match.id,
-                    match.name,
-                    normalizedQuantity,
-                    normalizedNotes,
-                    supermarket,
-                    brand,
-                )
+                val change = ShoppingWrite.Change(match, normalizedQuantity, normalizedNotes, supermarket, brand, true)
+                repository.applyWrites(spaceId, listOf(change))
             }
         }
     }
@@ -166,15 +160,15 @@ class ShoppingViewModel @Inject constructor(
         val quantity = ShoppingQuantity.sum(existing.quantity, duplicate.quantity)
         if (!validate(existing.name, quantity, existing.notes)) return
         runAction(ShoppingUiMessage.ItemUpdated, editor = true) {
-            repository.updateItem(
-                spaceId,
-                existing.id,
-                existing.name,
+            val change = ShoppingWrite.Change(
+                existing,
                 quantity,
                 existing.notes,
                 existing.supermarket,
                 existing.brand,
+                relist = false,
             )
+            repository.applyWrites(spaceId, listOf(change))
         }
     }
 
@@ -371,6 +365,7 @@ private fun Throwable.toShoppingRepositoryUiMessage() = when ((this as? Shopping
     ShoppingFailure.EmailNotVerified -> ShoppingUiMessage.EmailNotVerified
     ShoppingFailure.SpaceNotFound -> ShoppingUiMessage.SpaceNotFound
     ShoppingFailure.ItemNotFound -> ShoppingUiMessage.ItemNotFound
+    ShoppingFailure.ItemChanged -> ShoppingUiMessage.ItemChanged
     ShoppingFailure.PermissionDenied -> ShoppingUiMessage.PermissionDenied
     ShoppingFailure.Network -> ShoppingUiMessage.NetworkError
     ShoppingFailure.Unknown,

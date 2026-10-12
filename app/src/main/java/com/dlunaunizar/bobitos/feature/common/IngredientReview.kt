@@ -30,6 +30,7 @@ import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.core.model.findShoppingMatch
 import com.dlunaunizar.bobitos.core.model.shoppingMatchKey
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
+import com.dlunaunizar.bobitos.data.repository.ShoppingWrite
 
 /** Qué hace una fila de la revisión según la lista actual de la compra. */
 enum class ReviewRowKind {
@@ -151,9 +152,7 @@ fun buildIngredientReviewRows(
 }
 
 /**
- * Aplica la revisión: «Omitir» no escribe; un pendiente con «Sumar» cambia solo su cantidad; un
- * comprado se vuelve a apuntar ([ShoppingRepository.relistItem]); los dos conservan notas, tienda y
- * marca. El resto se añade con la cantidad (que ya lleva la unidad) y el súper y la marca elegidos.
+ * Aplica la revisión en una sola escritura ([ShoppingRepository.applyWrites]); ver [ingredientReviewWrites].
  */
 suspend fun applyIngredientReview(
     spaceId: String,
@@ -161,33 +160,28 @@ suspend fun applyIngredientReview(
     choices: List<IngredientReviewChoice>,
     shoppingRepository: ShoppingRepository,
 ) {
-    rows.forEachIndexed { index, row ->
-        val choice = choices.getOrNull(index)
-        if (choice?.skip == true) return@forEachIndexed
-        val quantity = choice?.quantity?.trim()?.takeIf(String::isNotEmpty)
-        val existing = row.existing
-        when {
-            existing == null ->
-                shoppingRepository.addItem(spaceId, row.name, quantity, null, choice?.supermarket, choice?.brand)
-            existing.purchased -> shoppingRepository.relistItem(
-                spaceId,
-                existing.id,
-                existing.name,
-                quantity,
-                existing.notes,
-                existing.supermarket,
-                existing.brand,
-            )
-            else -> shoppingRepository.updateItem(
-                spaceId,
-                existing.id,
-                existing.name,
-                quantity,
-                existing.notes,
-                existing.supermarket,
-                existing.brand,
-            )
-        }
+    val writes = ingredientReviewWrites(rows, choices)
+    if (writes.isNotEmpty()) shoppingRepository.applyWrites(spaceId, writes)
+}
+
+/**
+ * Lo que escribe la revisión, en el orden de las filas: «Omitir» no escribe; un pendiente con «Sumar» cambia solo su
+ * cantidad; un comprado se vuelve a apuntar; los dos conservan notas, tienda y marca y van con el artículo tal como
+ * se vio. El resto se añade con la cantidad (que ya lleva la unidad) y el súper y la marca elegidos.
+ */
+fun ingredientReviewWrites(
+    rows: List<IngredientReviewRow>,
+    choices: List<IngredientReviewChoice>,
+): List<ShoppingWrite> = rows.mapIndexedNotNull { index, row ->
+    val choice = choices.getOrNull(index)
+    if (choice?.skip == true) return@mapIndexedNotNull null
+    val quantity = choice?.quantity?.trim()?.takeIf(String::isNotEmpty)
+    val existing = row.existing
+    if (existing == null) {
+        ShoppingWrite.Add(row.name, quantity, null, choice?.supermarket, choice?.brand)
+    } else {
+        val relist = existing.purchased
+        ShoppingWrite.Change(existing, quantity, existing.notes, existing.supermarket, existing.brand, relist)
     }
 }
 

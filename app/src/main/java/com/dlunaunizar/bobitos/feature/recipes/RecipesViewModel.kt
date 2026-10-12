@@ -362,5 +362,6 @@ private fun ShoppingFailure.toUiMessage(): RecipeUiMessage = when (this) {
     ShoppingFailure.EmailNotVerified -> RecipeUiMessage.EmailNotVerified
     ShoppingFailure.PermissionDenied -> RecipeUiMessage.PermissionDenied
     ShoppingFailure.Network -> RecipeUiMessage.NetworkError
+    ShoppingFailure.ItemChanged -> RecipeUiMessage.ShoppingChanged
     else -> RecipeUiMessage.UnexpectedError
 }

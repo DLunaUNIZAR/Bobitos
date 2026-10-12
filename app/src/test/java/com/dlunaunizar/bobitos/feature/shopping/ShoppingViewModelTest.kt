@@ -14,6 +14,7 @@ import com.dlunaunizar.bobitos.data.repository.IngredientRepositoryException
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
+import com.dlunaunizar.bobitos.data.repository.ShoppingWrite
 import com.dlunaunizar.bobitos.feature.common.ingredientShoppingSource
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientBrandRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientPrefsRepository
@@ -440,6 +441,55 @@ class ShoppingViewModelTest {
         assertEquals(ShoppingUiMessage.QuantityTooLong, viewModel.uiState.value.error)
         assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
     }
+
+    @Test
+    fun `relisting a purchased product sends the item as it was seen`() = runTest(mainDispatcherRule.testDispatcher) {
+        val bought = listItem(quantity = "6 l", purchased = true)
+        repository.itemState.value = listOf(bought)
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.addItem("home", "Leche", "2", null, Supermarket.EROSKI, "Puleva")
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(ShoppingWrite.Change(bought, "2", null, Supermarket.EROSKI, "Puleva", relist = true)),
+            repository.applied,
+        )
+    }
+
+    @Test
+    fun `a product changed by another member meanwhile is reported and the editor stays open`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.itemState.value = listOf(listItem(quantity = "6 l", purchased = true))
+            viewModel.observe("home")
+            advanceUntilIdle()
+            repository.nextFailure = ShoppingRepositoryException(ShoppingFailure.ItemChanged)
+
+            viewModel.addItem("home", "Leche", "2", null, null, null)
+            advanceUntilIdle()
+
+            assertEquals(ShoppingUiMessage.ItemChanged, viewModel.uiState.value.error)
+            assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        }
+
+    @Test
+    fun `summing a duplicate sends the item as it was seen`() = runTest(mainDispatcherRule.testDispatcher) {
+        val pending = listItem(quantity = "1 l")
+        repository.itemState.value = listOf(pending)
+        viewModel.observe("home")
+        advanceUntilIdle()
+        viewModel.addItem("home", "Leche", "2 l", null, null, null)
+        advanceUntilIdle()
+
+        viewModel.sumDuplicate("home")
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(ShoppingWrite.Change(pending, "3 l", null, Supermarket.DIA, "Pascual", relist = false)),
+            repository.applied,
+        )
+    }
 }
 
 private class FakeShoppingRepository : ShoppingRepository {
@@ -509,17 +559,37 @@ private class FakeShoppingRepository : ShoppingRepository {
         updatedBrand = brand
     }
 
-    override suspend fun relistItem(
-        spaceId: String,
-        itemId: String,
-        name: String,
-        quantity: String?,
-        notes: String?,
-        supermarket: Supermarket?,
-        brand: String?,
-    ) {
+    var applied: List<ShoppingWrite>? = null
+
+    override suspend fun applyWrites(spaceId: String, writes: List<ShoppingWrite>) {
         throwNextFailure()
-        relisted = RelistCall(itemId, name, quantity, notes, supermarket, brand)
+        applied = writes
+        writes.forEach { write ->
+            when (write) {
+                is ShoppingWrite.Add -> {
+                    addedName = write.name
+                    addedQuantity = write.quantity
+                    addedNotes = write.notes
+                    addedSupermarket = write.supermarket
+                    addedBrand = write.brand
+                }
+                is ShoppingWrite.Change -> if (write.relist) {
+                    relisted = RelistCall(
+                        write.seen.id,
+                        write.seen.name,
+                        write.quantity,
+                        write.notes,
+                        write.supermarket,
+                        write.brand,
+                    )
+                } else {
+                    updatedItemId = write.seen.id
+                    updatedQuantity = write.quantity
+                    updatedSupermarket = write.supermarket
+                    updatedBrand = write.brand
+                }
+            }
+        }
     }
 
     override suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean) {

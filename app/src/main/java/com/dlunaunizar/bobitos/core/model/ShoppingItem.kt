@@ -33,3 +33,14 @@ data class ShoppingItem(
     val supermarket: Supermarket? = null,
     val brand: String? = null,
 )
+
+/**
+ * Mismo contenido visible en la lista: nombre, cantidad, notas, si está comprado, tienda y marca. No mira quién
+ * ni cuándo lo tocó. Sirve para no pisar el cambio de otro miembro hecho mientras tanto.
+ */
+fun ShoppingItem.sameContentAs(other: ShoppingItem): Boolean = name == other.name &&
+    quantity == other.quantity &&
+    notes == other.notes &&
+    purchased == other.purchased &&
+    supermarket == other.supermarket &&
+    brand == other.brand

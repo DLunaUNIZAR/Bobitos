@@ -879,6 +879,7 @@ private val ShoppingUiMessage.stringResourceId: Int
         ShoppingUiMessage.EmailNotVerified -> R.string.space_error_email_not_verified
         ShoppingUiMessage.SpaceNotFound -> R.string.space_error_not_found
         ShoppingUiMessage.ItemNotFound -> R.string.shopping_error_item_not_found
+        ShoppingUiMessage.ItemChanged -> R.string.shopping_error_item_changed
         ShoppingUiMessage.PermissionDenied -> R.string.space_error_permission_denied
         ShoppingUiMessage.NetworkError -> R.string.space_error_network
         ShoppingUiMessage.UnexpectedError -> R.string.space_error_unexpected

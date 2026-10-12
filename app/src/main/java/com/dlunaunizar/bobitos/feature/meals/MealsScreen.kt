@@ -775,6 +775,7 @@ private val MealUiMessage.stringResourceId: Int
         MealUiMessage.PermissionDenied -> R.string.space_error_permission_denied
         MealUiMessage.NetworkError -> R.string.space_error_network
         MealUiMessage.UnexpectedError -> R.string.space_error_unexpected
+        MealUiMessage.ShoppingChanged -> R.string.meals_error_shopping_changed
         MealUiMessage.SaveTimeout -> R.string.write_timeout
         MealUiMessage.MealAdded -> R.string.meals_notice_added
         MealUiMessage.MealUpdated -> R.string.meals_notice_updated

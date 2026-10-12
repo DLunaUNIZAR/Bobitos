@@ -223,6 +223,7 @@
     <string name="supermarket_otros">Otros</string>
     <string name="supermarket_indiferente">Indiferente</string>
     <string name="shopping_error_item_not_found">El producto ya no existe.</string>
+    <string name="shopping_error_item_changed">Ese producto ha cambiado en la lista mientras tanto. Vuelve a intentarlo.</string>
     <string name="shopping_notice_added">Producto añadido.</string>
     <string name="shopping_notice_updated">Producto actualizado.</string>
     <string name="shopping_notice_marked">Producto marcado como comprado.</string>
@@ -413,6 +414,7 @@
     <string name="meals_error_name_too_long">El nombre es demasiado largo.</string>
     <string name="meals_error_invalid_participants">La selección de comensales no es válida.</string>
     <string name="meals_error_not_found">No se encontró la comida.</string>
+    <string name="meals_error_shopping_changed">La lista de la compra ha cambiado mientras la revisabas. Vuelve a añadir los ingredientes.</string>
     <string name="meals_notice_added">Comida añadida</string>
     <string name="meals_notice_updated">Comida actualizada</string>
     <string name="meals_notice_deleted">Comida eliminada</string>
@@ -503,6 +505,7 @@
     <string name="recipes_notice_added_to_shopping">Añadido a la compra</string>
     <string name="recipes_notice_nothing_to_add">Ya estaba todo en la lista</string>
     <string name="recipes_error_no_ingredients">Esta receta no tiene ingredientes.</string>
+    <string name="recipes_error_shopping_changed">La lista de la compra ha cambiado mientras la revisabas. Vuelve a añadir los ingredientes.</string>
     <string name="recipes_import_title">Importar de una web</string>
     <string name="recipes_import_body">Pega el enlace de una receta. Funciona con webs que publican sus recetas en formato estándar; después podrás revisarla antes de guardar.</string>
     <string name="recipes_import_url_label">Enlace de la receta</string>

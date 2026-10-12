@@ -22,6 +22,8 @@ import com.dlunaunizar.bobitos.data.repository.MealFailure
 import com.dlunaunizar.bobitos.data.repository.MealRepository
 import com.dlunaunizar.bobitos.data.repository.MealRepositoryException
 import com.dlunaunizar.bobitos.data.repository.RecipeRepository
+import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
+import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewChoice
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewRow
@@ -438,6 +440,21 @@ class MealsViewModelTest {
         assertEquals("Lentejas", mealRepository.addedName)
         assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
         assertEquals(MealUiMessage.MealAdded, viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun `a shopping list changed while reviewing is reported`() = runTest(mainDispatcherRule.testDispatcher) {
+        recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Arroz", "300", "g"))))
+        viewModel.observe("home")
+        advanceUntilIdle()
+        viewModel.addIngredientsToShopping(meal("m1", LocalDate.now(), MealSlot.COMIDA, "Paella").copy(recipeId = "r1"))
+        advanceUntilIdle()
+        shoppingRepository.applyFailure = ShoppingRepositoryException(ShoppingFailure.ItemChanged)
+
+        viewModel.confirmIngredientReview(listOf(choice("300 g")))
+        advanceUntilIdle()
+
+        assertEquals(MealUiMessage.ShoppingChanged, viewModel.uiState.value.error)
     }
 }
 

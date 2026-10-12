@@ -39,6 +39,7 @@ enum class ShoppingUiMessage {
     EmailNotVerified,
     SpaceNotFound,
     ItemNotFound,
+    ItemChanged,
     PermissionDenied,
     NetworkError,
     UnexpectedError,

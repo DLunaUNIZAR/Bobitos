@@ -3,9 +3,11 @@ package com.dlunaunizar.bobitos.data.repository
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.dlunaunizar.bobitos.core.model.sameContentAs
 import com.dlunaunizar.bobitos.data.sync.RealtimeMetrics
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
 import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -76,25 +78,7 @@ class FirestoreShoppingRepository @Inject constructor(
             if (!transaction.get(spaceReference).exists()) {
                 throw ShoppingRepositoryException(ShoppingFailure.SpaceNotFound)
             }
-            transaction.set(
-                itemReference,
-                mapOf(
-                    FIELD_NAME to values.name,
-                    FIELD_QUANTITY to values.quantity,
-                    FIELD_NOTES to values.notes,
-                    FIELD_SUPERMARKET to values.supermarket,
-                    FIELD_BRAND to values.brand,
-                    FIELD_PURCHASED to false,
-                    FIELD_CREATED_BY to user.id,
-                    FIELD_CREATED_BY_NAME to user.shoppingDisplayName,
-                    FIELD_CREATED_AT to FieldValue.serverTimestamp(),
-                    FIELD_UPDATED_BY to user.id,
-                    FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
-                    FIELD_PURCHASED_BY to null,
-                    FIELD_PURCHASED_BY_NAME to null,
-                    FIELD_PURCHASED_AT to null,
-                ),
-            )
+            transaction.set(itemReference, newItemFields(user, values))
         }.await()
         Unit
     }
@@ -107,32 +91,6 @@ class FirestoreShoppingRepository @Inject constructor(
         notes: String?,
         supermarket: Supermarket?,
         brand: String?,
-    ) = writeItemFields(spaceId, itemId, name, quantity, notes, supermarket, brand, relist = false)
-
-    override suspend fun relistItem(
-        spaceId: String,
-        itemId: String,
-        name: String,
-        quantity: String?,
-        notes: String?,
-        supermarket: Supermarket?,
-        brand: String?,
-    ) = writeItemFields(spaceId, itemId, name, quantity, notes, supermarket, brand, relist = true)
-
-    /**
-     * Escritura común de [updateItem] y [relistItem]. Con `relist` no toca el nombre y deja el artículo
-     * como pendiente (sin quién ni cuándo lo compró); los `null` se escriben como `null`.
-     */
-    @Suppress("LongParameterList")
-    private suspend fun writeItemFields(
-        spaceId: String,
-        itemId: String,
-        name: String,
-        quantity: String?,
-        notes: String?,
-        supermarket: Supermarket?,
-        brand: String?,
-        relist: Boolean,
     ) = runShoppingOperation {
         val user = requireVerifiedUser()
         val values = validateItem(name, quantity, notes, supermarket, brand)
@@ -140,23 +98,98 @@ class FirestoreShoppingRepository @Inject constructor(
 
         firestore.runTransaction { transaction ->
             requireItem(transaction.get(reference))
-            val fields = mutableMapOf<String, Any?>()
-            if (!relist) fields[FIELD_NAME] = values.name
-            fields[FIELD_QUANTITY] = values.quantity
-            fields[FIELD_NOTES] = values.notes
-            fields[FIELD_SUPERMARKET] = values.supermarket
-            fields[FIELD_BRAND] = values.brand
-            if (relist) {
-                fields[FIELD_PURCHASED] = false
-                fields[FIELD_PURCHASED_BY] = null
-                fields[FIELD_PURCHASED_BY_NAME] = null
-                fields[FIELD_PURCHASED_AT] = null
-            }
-            fields[FIELD_UPDATED_BY] = user.id
-            fields[FIELD_UPDATED_AT] = FieldValue.serverTimestamp()
-            transaction.update(reference, fields)
+            transaction.update(reference, changedItemFields(user, values, rename = true, relist = false))
         }.await()
         Unit
+    }
+
+    override suspend fun applyWrites(spaceId: String, writes: List<ShoppingWrite>) = runShoppingOperation {
+        if (writes.isEmpty()) return@runShoppingOperation
+        val user = requireVerifiedUser()
+        val planned = writes.map { planWrite(spaceId, it) }
+        val spaceReference = firestore.collection(SPACES).document(spaceId)
+
+        firestore.runTransaction { transaction ->
+            // Firestore exige hacer todas las lecturas antes de la primera escritura.
+            if (!transaction.get(spaceReference).exists()) {
+                throw ShoppingRepositoryException(ShoppingFailure.SpaceNotFound)
+            }
+            planned.forEach { plan -> plan.seen?.let { requireUnchanged(transaction.get(plan.reference), it) } }
+            planned.forEach { plan ->
+                if (plan.seen == null) {
+                    transaction.set(plan.reference, newItemFields(user, plan.values))
+                } else {
+                    val fields = changedItemFields(user, plan.values, rename = false, relist = plan.relist)
+                    transaction.update(plan.reference, fields)
+                }
+            }
+        }.await()
+        Unit
+    }
+
+    // Valida cada escritura y le da su documento (uno nuevo para las altas) antes de abrir la transacción.
+    private fun planWrite(spaceId: String, write: ShoppingWrite): PlannedWrite = when (write) {
+        is ShoppingWrite.Add -> PlannedWrite(
+            reference = itemsCollection(spaceId).document(),
+            values = validateItem(write.name, write.quantity, write.notes, write.supermarket, write.brand),
+            seen = null,
+            relist = false,
+        )
+        is ShoppingWrite.Change -> PlannedWrite(
+            reference = itemsCollection(spaceId).document(write.seen.id),
+            values = validateItem(write.seen.name, write.quantity, write.notes, write.supermarket, write.brand),
+            seen = write.seen,
+            relist = write.relist,
+        )
+    }
+
+    // El artículo sigue como se vio; si otro miembro lo ha cambiado, no se escribe nada de la transacción.
+    private fun requireUnchanged(snapshot: DocumentSnapshot, seen: ShoppingItem) {
+        val current = requireItem(snapshot).toShoppingItem()
+            ?: throw ShoppingRepositoryException(ShoppingFailure.ItemNotFound)
+        if (!current.sameContentAs(seen)) throw ShoppingRepositoryException(ShoppingFailure.ItemChanged)
+    }
+
+    private fun newItemFields(user: AuthUser, values: ItemValues): Map<String, Any?> = mapOf(
+        FIELD_NAME to values.name,
+        FIELD_QUANTITY to values.quantity,
+        FIELD_NOTES to values.notes,
+        FIELD_SUPERMARKET to values.supermarket,
+        FIELD_BRAND to values.brand,
+        FIELD_PURCHASED to false,
+        FIELD_CREATED_BY to user.id,
+        FIELD_CREATED_BY_NAME to user.shoppingDisplayName,
+        FIELD_CREATED_AT to FieldValue.serverTimestamp(),
+        FIELD_UPDATED_BY to user.id,
+        FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+        FIELD_PURCHASED_BY to null,
+        FIELD_PURCHASED_BY_NAME to null,
+        FIELD_PURCHASED_AT to null,
+    )
+
+    // Campos de una edición: con `rename` cambia también el nombre; con `relist` deja el artículo pendiente, sin quién
+    // ni cuándo lo compró. Los `null` se escriben como `null`.
+    private fun changedItemFields(
+        user: AuthUser,
+        values: ItemValues,
+        rename: Boolean,
+        relist: Boolean,
+    ): Map<String, Any?> {
+        val fields = mutableMapOf<String, Any?>()
+        if (rename) fields[FIELD_NAME] = values.name
+        fields[FIELD_QUANTITY] = values.quantity
+        fields[FIELD_NOTES] = values.notes
+        fields[FIELD_SUPERMARKET] = values.supermarket
+        fields[FIELD_BRAND] = values.brand
+        if (relist) {
+            fields[FIELD_PURCHASED] = false
+            fields[FIELD_PURCHASED_BY] = null
+            fields[FIELD_PURCHASED_BY_NAME] = null
+            fields[FIELD_PURCHASED_AT] = null
+        }
+        fields[FIELD_UPDATED_BY] = user.id
+        fields[FIELD_UPDATED_AT] = FieldValue.serverTimestamp()
+        return fields
     }
 
     override suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean) = runShoppingOperation {
@@ -285,6 +318,13 @@ class FirestoreShoppingRepository @Inject constructor(
             throw error.toShoppingRepositoryException()
         }
     }
+
+    private data class PlannedWrite(
+        val reference: DocumentReference,
+        val values: ItemValues,
+        val seen: ShoppingItem?,
+        val relist: Boolean,
+    )
 
     private data class ItemValues(
         val name: String,

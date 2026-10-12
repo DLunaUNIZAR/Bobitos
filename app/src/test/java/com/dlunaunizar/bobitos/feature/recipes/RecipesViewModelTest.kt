@@ -19,9 +19,13 @@ import com.dlunaunizar.bobitos.data.recipeimport.RecipeImporter
 import com.dlunaunizar.bobitos.data.repository.RecipeFailure
 import com.dlunaunizar.bobitos.data.repository.RecipeRepository
 import com.dlunaunizar.bobitos.data.repository.RecipeRepositoryException
+import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
+import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewChoice
 import com.dlunaunizar.bobitos.feature.common.RecordingShoppingRepository
 import com.dlunaunizar.bobitos.feature.common.ingredientShoppingSource
+import com.dlunaunizar.bobitos.feature.common.initialState
+import com.dlunaunizar.bobitos.feature.common.toChoice
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientBrandRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientPrefsRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientRepository
@@ -468,6 +472,24 @@ class RecipesViewModelTest {
             assertEquals(RecipeVisibility.GLOBAL, repository.restored?.visibility)
             assertEquals("torrijas", repository.restored?.id)
         }
+
+    @Test
+    fun `a shopping list changed while reviewing is reported`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe()
+        advanceUntilIdle()
+        viewModel.addToShopping(
+            "home",
+            recipe("r1", RecipeVisibility.PRIVATE, "Tortilla", listOf(Ingredient("Huevo", "4", "uds"))),
+        )
+        advanceUntilIdle()
+        shoppingRepository.applyFailure = ShoppingRepositoryException(ShoppingFailure.ItemChanged)
+        val rows = viewModel.uiState.value.ingredientReview!!
+
+        viewModel.confirmShoppingReview("home", rows.map { it.initialState().toChoice(it) })
+        advanceUntilIdle()
+
+        assertEquals(RecipeUiMessage.ShoppingChanged, viewModel.uiState.value.error)
+    }
 }
 
 private class FakeRecipeRepository : RecipeRepository {

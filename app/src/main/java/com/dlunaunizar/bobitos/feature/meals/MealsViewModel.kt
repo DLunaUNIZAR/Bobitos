@@ -372,6 +372,7 @@ private fun ShoppingFailure.toUiMessage(): MealUiMessage = when (this) {
     ShoppingFailure.SpaceNotFound -> MealUiMessage.SpaceNotFound
     ShoppingFailure.PermissionDenied -> MealUiMessage.PermissionDenied
     ShoppingFailure.Network -> MealUiMessage.NetworkError
+    ShoppingFailure.ItemChanged -> MealUiMessage.ShoppingChanged
     ShoppingFailure.NameRequired,
     ShoppingFailure.NameTooLong,
     ShoppingFailure.QuantityTooLong,
