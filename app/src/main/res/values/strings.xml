@@ -441,6 +441,8 @@
     <string name="meals_review_sum">Sumar</string>
     <string name="meals_choose_recipe">Elegir de una receta</string>
     <string name="meals_recipe_picker_title">Elegir receta</string>
+    <string name="meals_recipe_origin_mine">Mía</string>
+    <string name="meals_recipe_origin_common">Común</string>
     <string name="recipes_title">Recetario</string>
     <string name="recipes_open">Recetario</string>
     <string name="recipes_search_label">Buscar receta</string>

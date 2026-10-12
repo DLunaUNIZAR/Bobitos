@@ -12,12 +12,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ChevronLeft
@@ -707,29 +705,6 @@ private fun DeleteMealDialog(meal: Meal, enabled: Boolean, onConfirm: () -> Unit
         confirmEnabled = enabled,
         onConfirm = onConfirm,
         onDismiss = onDismiss,
-    )
-}
-
-@Composable
-private fun RecipePickerDialog(recipes: List<Recipe>, onPick: (Recipe) -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.meals_recipe_picker_title)) },
-        text = {
-            LazyColumn(modifier = Modifier.heightIn(max = 320.dp)) {
-                items(recipes, key = Recipe::id) { recipe ->
-                    Text(
-                        text = recipe.title,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onPick(recipe) }
-                            .padding(vertical = 12.dp),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                }
-            }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }
 
