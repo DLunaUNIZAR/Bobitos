@@ -73,9 +73,8 @@ internal fun RecipeSheetsHost(
     detail?.let { recipe ->
         RecipeDetailSheet(
             recipe = recipe,
-            isMine = state.owns(recipe),
-            canWrite = canWrite,
-            canAddToShopping = canAddToShopping,
+            detailActions = recipeDetailActions(recipe, canWrite, state.isAdmin),
+            canAddToShopping = canWrite && canAddToShopping,
             actions = actions,
         )
     }
@@ -109,8 +108,7 @@ internal class RecipeSheetActions(
 @Composable
 private fun RecipeDetailSheet(
     recipe: Recipe,
-    isMine: Boolean,
-    canWrite: Boolean,
+    detailActions: RecipeDetailActions,
     canAddToShopping: Boolean,
     actions: RecipeSheetActions,
 ) {
@@ -118,16 +116,16 @@ private fun RecipeDetailSheet(
         title = recipe.title,
         onDismiss = actions.onCloseDetail,
         actions = {
-            if (canWrite && canAddToShopping) {
+            if (canAddToShopping) {
                 TextButton(onClick = { actions.onAddToShopping(recipe) }) {
                     Text(stringResource(R.string.recipes_add_to_shopping))
                 }
             }
-            if (canWrite && isMine) {
+            if (detailActions.canEdit) {
                 TextButton(onClick = { actions.onEdit(recipe) }) { Text(stringResource(R.string.recipes_edit)) }
                 TextButton(onClick = { actions.onDelete(recipe) }) { Text(stringResource(R.string.recipes_delete)) }
             }
-            if (canWrite && !isMine) {
+            if (detailActions.canFork) {
                 TextButton(onClick = { actions.onFork(recipe) }) { Text(stringResource(R.string.recipes_fork)) }
             }
         },

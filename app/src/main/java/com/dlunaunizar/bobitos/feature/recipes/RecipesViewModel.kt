@@ -75,7 +75,8 @@ class RecipesViewModel @Inject constructor(
         mineJob = viewModelScope.launch {
             repository.myRecipes()
                 .catch { error -> mutableUiState.update { it.copy(mine = UiState.Error(error.message)) } }
-                .collect { recipes -> mutableUiState.update { it.copy(mine = UiState.Content(recipes)) } }
+                // «Mis recetas» = solo privadas; las GLOBAL (también las del admin) llegan por `global`.
+                .collect { list -> mutableUiState.update { it.copy(mine = UiState.Content(list.personalOnly())) } }
         }
     }
 
@@ -238,6 +239,9 @@ class RecipesViewModel @Inject constructor(
             sourceRecipeId = null,
             ingredients = recipe.ingredients.orEmpty(),
             sourceUrl = null,
+            steps = recipe.steps.orEmpty(),
+            servings = recipe.servings,
+            totalMinutes = recipe.totalMinutes,
         )
     }
 
@@ -255,6 +259,9 @@ class RecipesViewModel @Inject constructor(
                 category = source.category,
                 sourceRecipeId = source.id,
                 ingredients = source.ingredients.orEmpty(),
+                steps = source.steps.orEmpty(),
+                servings = source.servings,
+                totalMinutes = source.totalMinutes,
             )
         }
     }

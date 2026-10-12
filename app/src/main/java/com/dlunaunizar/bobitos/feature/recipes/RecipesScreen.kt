@@ -447,9 +447,6 @@ private fun RecipesFeedback(state: RecipesUiState, onDismiss: () -> Unit) {
     }
 }
 
-internal fun RecipesUiState.owns(recipe: Recipe): Boolean =
-    (mine as? UiState.Content)?.value?.any { it.id == recipe.id } == true
-
 private fun UiState<List<Recipe>>.contentOrEmpty(): List<Recipe> = (this as? UiState.Content)?.value.orEmpty()
 
 private fun Recipe.matches(query: String): Boolean {

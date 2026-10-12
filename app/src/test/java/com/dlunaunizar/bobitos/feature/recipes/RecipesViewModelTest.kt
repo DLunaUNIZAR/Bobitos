@@ -396,6 +396,51 @@ class RecipesViewModelTest {
         assertEquals(RecipeUiMessage.ServingsInvalid, viewModel.uiState.value.error)
         assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
     }
+
+    @Test
+    fun `my recipes keep only the private ones while the common ones arrive through global`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.mineState.value = listOf(
+                recipe("lentejas", RecipeVisibility.GLOBAL, "Lentejas"),
+                recipe("p1", RecipeVisibility.PRIVATE, "Mis lentejas"),
+            )
+            repository.globalState.value = listOf(recipe("lentejas", RecipeVisibility.GLOBAL, "Lentejas"))
+
+            viewModel.observe()
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertEquals(listOf("p1"), (state.mine as UiState.Content).value.map(Recipe::id))
+            assertEquals(listOf("lentejas"), (state.global as UiState.Content).value.map(Recipe::id))
+        }
+
+    @Test
+    fun `fork copies steps, servings and minutes`() = runTest(mainDispatcherRule.testDispatcher) {
+        val common = recipe("lentejas", RecipeVisibility.GLOBAL, "Lentejas")
+            .copy(steps = listOf("Remoja.", "Cuece."), servings = 4, totalMinutes = 60)
+
+        viewModel.fork(common)
+        advanceUntilIdle()
+
+        assertEquals("lentejas", repository.lastSourceRecipeId)
+        assertEquals(listOf("Remoja.", "Cuece."), repository.lastSteps)
+        assertEquals(4, repository.lastServings)
+        assertEquals(60, repository.lastTotalMinutes)
+    }
+
+    @Test
+    fun `undoing a delete recreates the steps, servings and minutes`() = runTest(mainDispatcherRule.testDispatcher) {
+        val deleted = recipe("r1", RecipeVisibility.PRIVATE, "Tortilla", listOf(Ingredient("Huevo", "4", "ud")))
+            .copy(steps = listOf("Bate.", "Cuaja."), servings = 2, totalMinutes = 20)
+
+        viewModel.restoreRecipe(deleted)
+        advanceUntilIdle()
+
+        assertEquals(listOf(Ingredient("Huevo", "4", "ud")), repository.lastIngredients)
+        assertEquals(listOf("Bate.", "Cuaja."), repository.lastSteps)
+        assertEquals(2, repository.lastServings)
+        assertEquals(20, repository.lastTotalMinutes)
+    }
 }
 
 private class FakeRecipeRepository : RecipeRepository {
