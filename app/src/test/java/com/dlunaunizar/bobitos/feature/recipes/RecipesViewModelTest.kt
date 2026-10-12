@@ -490,6 +490,23 @@ class RecipesViewModelTest {
 
         assertEquals(RecipeUiMessage.ShoppingChanged, viewModel.uiState.value.error)
     }
+
+    @Test
+    fun `if the shopping list cannot be read the review does not open and the error is shown`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            shoppingRepository.itemsFailure = ShoppingRepositoryException(ShoppingFailure.Network)
+            viewModel.observe()
+            advanceUntilIdle()
+
+            viewModel.addToShopping(
+                "home",
+                recipe("r1", RecipeVisibility.PRIVATE, "Tortilla", listOf(Ingredient("Huevo", "4", "uds"))),
+            )
+            advanceUntilIdle()
+
+            assertEquals(null, viewModel.uiState.value.ingredientReview)
+            assertEquals(RecipeUiMessage.NetworkError, viewModel.uiState.value.error)
+        }
 }
 
 private class FakeRecipeRepository : RecipeRepository {

@@ -3,6 +3,7 @@
 
 package com.dlunaunizar.bobitos.feature.common
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -40,7 +41,7 @@ enum class ReviewRowKind {
     /** Ya está pendiente: «Omitir» (por defecto) o «Sumar». */
     PENDING,
 
-    /** Está, pero comprado: se vuelve a apuntar ese artículo (pendiente, con la cantidad nueva). */
+    /** Está, pero comprado: «Omitir» (por defecto) o «Volver a apuntar» ese artículo (pendiente, con la cantidad nueva). */
     PURCHASED,
 }
 
@@ -74,7 +75,7 @@ data class IngredientReviewChoice(
     val skip: Boolean = false,
 )
 
-/** Estado editable de una fila en el diálogo; `include` = false solo en una fila pendiente con «Omitir». */
+/** Estado editable de una fila en el diálogo; `include` = false en una fila ya en la lista (pendiente o comprada) con «Omitir». */
 internal data class ReviewRowState(
     val quantity: String,
     val selection: BrandStoreSelection,
@@ -82,7 +83,8 @@ internal data class ReviewRowState(
     val include: Boolean = true,
 )
 
-// Pendiente: «Omitir» marcado y la suma preparada por si elige «Sumar». Nueva o comprada: la de la receta.
+// Ya en la lista (pendiente o comprado): «Omitir» marcado; con «Sumar», la suma preparada; con «Volver a apuntar»,
+// la cantidad de la receta. Nueva: la de la receta, con la marca y la tienda por defecto.
 internal fun IngredientReviewRow.initialState(): ReviewRowState = when (kind) {
     ReviewRowKind.PENDING -> ReviewRowState(
         quantity = ShoppingQuantity.sum(existing?.quantity, recipeQuantity).orEmpty(),
@@ -90,7 +92,13 @@ internal fun IngredientReviewRow.initialState(): ReviewRowState = when (kind) {
         freeBrand = "",
         include = false,
     )
-    else -> ReviewRowState(
+    ReviewRowKind.PURCHASED -> ReviewRowState(
+        quantity = recipeQuantity.orEmpty(),
+        selection = BrandStoreSelection.None,
+        freeBrand = "",
+        include = false,
+    )
+    ReviewRowKind.NEW -> ReviewRowState(
         quantity = recipeQuantity.orEmpty(),
         selection = context?.defaultSelection() ?: BrandStoreSelection.None,
         freeBrand = "",
@@ -225,6 +233,8 @@ fun IngredientReviewDialog(
     )
 }
 
+// El spread copia un array de 0-2 textos: no importa.
+@Suppress("SpreadOperator")
 @Composable
 private fun ReviewRowContent(
     row: IngredientReviewRow,
@@ -235,13 +245,21 @@ private fun ReviewRowContent(
         Text(text = row.name, style = MaterialTheme.typography.titleSmall)
         row.hint()?.let { hint ->
             Text(
-                text = hint,
+                text = stringResource(hint.res, *hint.args.toTypedArray()),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (row.kind == ReviewRowKind.PENDING) {
-            SkipOrSumPicker(include = state.include, onChange = { value -> update { it.withInclude(value) } })
+        if (row.kind != ReviewRowKind.NEW) {
+            SkipOrIncludePicker(
+                include = state.include,
+                includeLabel = if (row.kind == ReviewRowKind.PENDING) {
+                    R.string.meals_review_sum
+                } else {
+                    R.string.meals_review_relist
+                },
+                onChange = { value -> update { it.withInclude(value) } },
+            )
         }
         if (state.include) {
             val tooLong = state.quantityTooLong()
@@ -273,20 +291,35 @@ private fun ReviewRowContent(
     }
 }
 
-@Composable
-private fun IngredientReviewRow.hint(): String? = when {
-    kind == ReviewRowKind.PENDING ->
-        stringResource(R.string.meals_review_existing, existing?.quantity ?: "—", recipeQuantity ?: "—")
-    kind == ReviewRowKind.PURCHASED -> stringResource(R.string.meals_review_purchased)
-    quantities.size >= 2 -> stringResource(R.string.meals_review_multi, quantities.joinToString(" + "))
-    recipeQuantity != null -> stringResource(R.string.meals_review_recipe, recipeQuantity)
-    else -> null
+/** Pista bajo el nombre de una fila: su texto y sus argumentos. Si falta una cantidad, no se nombra (sin «—»). */
+internal data class ReviewHint(@StringRes val res: Int, val args: List<String> = emptyList())
+
+internal fun IngredientReviewRow.hint(): ReviewHint? = when (kind) {
+    ReviewRowKind.PENDING -> pendingHint()
+    ReviewRowKind.PURCHASED -> recipeQuantity?.let { ReviewHint(R.string.meals_review_purchased_recipe, listOf(it)) }
+        ?: ReviewHint(R.string.meals_review_purchased)
+    ReviewRowKind.NEW -> when {
+        quantities.size >= 2 -> ReviewHint(R.string.meals_review_multi, listOf(quantities.joinToString(" + ")))
+        recipeQuantity != null -> ReviewHint(R.string.meals_review_recipe, listOf(recipeQuantity))
+        else -> null
+    }
 }
 
-// «Omitir» (no se toca el artículo de la lista) o «Sumar» (se edita la suma propuesta).
+private fun IngredientReviewRow.pendingHint(): ReviewHint {
+    val listed = existing?.quantity?.trim()?.takeIf(String::isNotEmpty)
+    val recipe = recipeQuantity
+    return when {
+        listed != null && recipe != null -> ReviewHint(R.string.meals_review_existing, listOf(listed, recipe))
+        listed != null -> ReviewHint(R.string.meals_review_existing_listed, listOf(listed))
+        recipe != null -> ReviewHint(R.string.meals_review_existing_recipe, listOf(recipe))
+        else -> ReviewHint(R.string.meals_review_existing_plain)
+    }
+}
+
+// «Omitir» (no se toca el artículo de la lista) o «Sumar» / «Volver a apuntar» (se edita la cantidad propuesta).
 @Composable
-private fun SkipOrSumPicker(include: Boolean, onChange: (Boolean) -> Unit) {
-    val options = listOf(false to R.string.meals_review_skip, true to R.string.meals_review_sum)
+private fun SkipOrIncludePicker(include: Boolean, @StringRes includeLabel: Int, onChange: (Boolean) -> Unit) {
+    val options = listOf(false to R.string.meals_review_skip, true to includeLabel)
     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
         options.forEachIndexed { index, (value, label) ->
             SegmentedButton(

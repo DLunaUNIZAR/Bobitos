@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.common
 
+import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
@@ -171,6 +172,83 @@ class IngredientReviewTest {
     }
 
     @Test
+    fun `a purchased item is omitted by default and relisted only when chosen`() {
+        val bought = item("s2", "Leche", quantity = "6 l", purchased = true)
+        val row = buildIngredientReviewRows(listOf(Ingredient("Leche", "1", "l")), listOf(bought), data).single()
+        val state = row.initialState()
+
+        assertFalse(state.include)
+        assertEquals("1 l", state.quantity)
+        assertTrue(listOf(state.toChoice(row)).writesNothing())
+        assertEquals(
+            listOf(ShoppingWrite.Change(bought, "1 l", null, null, null, relist = true)),
+            ingredientReviewWrites(listOf(row), listOf(state.withInclude(true).toChoice(row))),
+        )
+    }
+
+    @Test
+    fun `pending hints name only the quantities there are`() {
+        fun hintFor(listed: String?, ingredient: Ingredient) = buildIngredientReviewRows(
+            listOf(ingredient),
+            listOf(item("s1", "Sal", quantity = listed)),
+            data,
+        ).single().hint()
+
+        assertEquals(
+            ReviewHint(R.string.meals_review_existing, listOf("1 kg", "200 g")),
+            hintFor("1 kg", Ingredient("Sal", "200", "g")),
+        )
+        assertEquals(
+            ReviewHint(R.string.meals_review_existing_listed, listOf("1 kg")),
+            hintFor("1 kg", Ingredient("Sal")),
+        )
+        assertEquals(
+            ReviewHint(R.string.meals_review_existing_recipe, listOf("200 g")),
+            hintFor(null, Ingredient("Sal", "200", "g")),
+        )
+        assertEquals(ReviewHint(R.string.meals_review_existing_plain), hintFor(null, Ingredient("Sal")))
+    }
+
+    @Test
+    fun `purchased and new hints`() {
+        val bought = listOf(item("s2", "Leche", purchased = true))
+        assertEquals(
+            ReviewHint(R.string.meals_review_purchased_recipe, listOf("1 l")),
+            buildIngredientReviewRows(listOf(Ingredient("Leche", "1", "l")), bought, data).single().hint(),
+        )
+        assertEquals(
+            ReviewHint(R.string.meals_review_purchased),
+            buildIngredientReviewRows(listOf(Ingredient("Leche")), bought, data).single().hint(),
+        )
+        assertEquals(
+            ReviewHint(R.string.meals_review_multi, listOf("200 g + 1 ud")),
+            buildIngredientReviewRows(
+                listOf(Ingredient("Sal", "200", "g"), Ingredient("Sal", "1", "ud")),
+                emptyList(),
+                data,
+            )
+                .single().hint(),
+        )
+        assertEquals(null, buildIngredientReviewRows(listOf(Ingredient("Sal")), emptyList(), data).single().hint())
+    }
+
+    @Test
+    fun `rows without any quantity write no quantity when summed or relisted`() {
+        val pending = item("s1", "Sal")
+        val bought = item("s2", "Pimienta", purchased = true)
+        val rows =
+            buildIngredientReviewRows(listOf(Ingredient("Sal"), Ingredient("Pimienta")), listOf(pending, bought), data)
+
+        assertEquals(
+            listOf(
+                ShoppingWrite.Change(pending, null, null, null, null, relist = false),
+                ShoppingWrite.Change(bought, null, null, null, null, relist = true),
+            ),
+            ingredientReviewWrites(rows, rows.map { it.initialState().withInclude(true).toChoice(it) }),
+        )
+    }
+
+    @Test
     fun `a purchased item is relisted with the recipe quantity keeping its brand and store`() = runTest {
         val bought = item(
             "s2",
@@ -185,11 +263,12 @@ class IngredientReviewTest {
         val state = row.initialState()
 
         assertEquals(ReviewRowKind.PURCHASED, row.kind)
-        assertTrue(state.include)
+        assertFalse(state.include)
         assertEquals("1 l", state.quantity)
+        assertTrue(listOf(state.toChoice(row)).writesNothing())
 
         val shopping = RecordingShoppingRepository()
-        applyIngredientReview("home", rows, listOf(state.toChoice(row)), shopping)
+        applyIngredientReview("home", rows, listOf(state.withInclude(true).toChoice(row)), shopping)
         assertEquals(listOf("s2"), shopping.relistedIds)
         assertEquals(listOf<String?>("1 l"), shopping.relistedQuantities)
         assertEquals(listOf<Supermarket?>(Supermarket.DIA), shopping.relistedSupermarkets)

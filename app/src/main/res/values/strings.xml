@@ -438,7 +438,12 @@
     <string name="meals_review_existing">Ya en la lista: %1$s · receta: %2$s</string>
     <string name="meals_review_recipe">Receta: %1$s</string>
     <string name="meals_review_multi">De varias comidas: %1$s</string>
-    <string name="meals_review_purchased">Ya comprado: se vuelve a apuntar</string>
+    <string name="meals_review_purchased">Ya comprado</string>
+    <string name="meals_review_existing_listed">Ya en la lista: %1$s</string>
+    <string name="meals_review_existing_recipe">Ya en la lista · receta: %1$s</string>
+    <string name="meals_review_existing_plain">Ya en la lista</string>
+    <string name="meals_review_purchased_recipe">Ya comprado · receta: %1$s</string>
+    <string name="meals_review_relist">Volver a apuntar</string>
     <string name="meals_review_skip">Omitir</string>
     <string name="meals_review_sum">Sumar</string>
     <string name="meals_choose_recipe">Elegir de una receta</string>

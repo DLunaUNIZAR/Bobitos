@@ -216,7 +216,13 @@ class MealsViewModel @Inject constructor(
             .flatMap { it.ingredients.orEmpty() }
         if (ingredients.isEmpty()) return
         viewModelScope.launch {
-            val current = runCatching { shoppingRepository.items(spaceId).first() }.getOrDefault(emptyList())
+            // Sin la lista no se pueden buscar repetidos: si no se puede leer, no se abre la revisión.
+            val current = runCatching { shoppingRepository.items(spaceId).first() }
+                .onFailure { if (it is CancellationException) throw it }
+                .getOrElse { error ->
+                    showError(error.toUiMessage())
+                    return@launch
+                }
             val rows = buildIngredientReviewRows(ingredients, current, shoppingData)
             mutableUiState.update { it.copy(ingredientReview = rows) }
         }

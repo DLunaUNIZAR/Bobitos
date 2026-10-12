@@ -456,6 +456,44 @@ class MealsViewModelTest {
 
         assertEquals(MealUiMessage.ShoppingChanged, viewModel.uiState.value.error)
     }
+
+    @Test
+    fun `if the shopping list cannot be read the review does not open and the error is shown`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Arroz", "300", "g"))))
+            shoppingRepository.itemsFailure = ShoppingRepositoryException(ShoppingFailure.Network)
+            viewModel.observe("home")
+            advanceUntilIdle()
+
+            viewModel.addIngredientsToShopping(
+                meal("m1", LocalDate.now(), MealSlot.COMIDA, "Paella").copy(recipeId = "r1"),
+            )
+            advanceUntilIdle()
+
+            assertEquals(null, viewModel.uiState.value.ingredientReview)
+            assertEquals(MealUiMessage.NetworkError, viewModel.uiState.value.error)
+        }
+
+    @Test
+    fun `a recipe whose ingredients were all bought writes nothing by default`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Arroz", "300", "g"))))
+            shoppingRepository.itemsState.value =
+                listOf(shoppingItem("s1", "arroz", quantity = "1 kg").copy(purchased = true))
+            viewModel.observe("home")
+            advanceUntilIdle()
+            viewModel.addIngredientsToShopping(
+                meal("m1", LocalDate.now(), MealSlot.COMIDA, "Paella").copy(recipeId = "r1"),
+            )
+            advanceUntilIdle()
+            val review = viewModel.uiState.value.ingredientReview!!
+
+            viewModel.confirmIngredientReview(review.map { it.initialState().toChoice(it) })
+            advanceUntilIdle()
+
+            assertTrue(shoppingRepository.appliedBatches.isEmpty())
+            assertEquals(MealUiMessage.NothingToAddToShopping, viewModel.uiState.value.notice)
+        }
 }
 
 private class FakeMealRepository : MealRepository {

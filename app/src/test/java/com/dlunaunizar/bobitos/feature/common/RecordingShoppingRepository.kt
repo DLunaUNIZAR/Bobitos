@@ -10,6 +10,7 @@ import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakePersonalIngredientRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 
 /** Doble de [ShoppingRepository] que registra las altas, ediciones y compras en listas. */
 internal class RecordingShoppingRepository : ShoppingRepository {
@@ -30,8 +31,11 @@ internal class RecordingShoppingRepository : ShoppingRepository {
     val updatedBrands = mutableListOf<String?>()
     val appliedBatches = mutableListOf<List<ShoppingWrite>>()
     var applyFailure: Throwable? = null
+    var itemsFailure: Throwable? = null
 
-    override fun items(spaceId: String): Flow<List<ShoppingItem>> = itemsState
+    override fun items(spaceId: String): Flow<List<ShoppingItem>> =
+        itemsFailure?.let { failure -> flow { throw failure } } ?: itemsState
+
     override suspend fun addItem(
         spaceId: String,
         name: String,
