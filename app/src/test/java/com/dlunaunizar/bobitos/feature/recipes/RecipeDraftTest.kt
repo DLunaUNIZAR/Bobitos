@@ -130,4 +130,28 @@ class RecipeDraftTest {
         assertNull(draft.copy(steps = listOf("", "  ", "Cuece.")).validate())
         assertEquals(RecipeUiMessage.StepTooLong, draft.copy(steps = listOf("a".repeat(501))).validate())
     }
+
+    @Test
+    fun `servings and time errors are marked even when another field fails first`() {
+        val draft = RecipeDraft.of(null, null).copy(title = "", servings = "0", totalMinutes = "dos")
+
+        assertEquals(RecipeUiMessage.TitleRequired, draft.validate())
+        assertEquals(RecipeUiMessage.ServingsInvalid, draft.servingsError())
+        assertEquals(RecipeUiMessage.TotalMinutesInvalid, draft.totalMinutesError())
+
+        val fine = draft.copy(servings = " 4 ", totalMinutes = "")
+        assertNull(fine.servingsError())
+        assertNull(fine.totalMinutesError())
+        assertEquals(RecipeUiMessage.TotalMinutesInvalid, fine.copy(totalMinutes = "1441").totalMinutesError())
+    }
+
+    @Test
+    fun `a step that is too long is marked whatever fails first`() {
+        val draft = RecipeDraft.of(null, null).copy(
+            title = "",
+            steps = listOf("Corta.", "x".repeat(501), "  ${"y".repeat(500)}  "),
+        )
+
+        assertEquals(setOf(1), draft.tooLongSteps())
+    }
 }

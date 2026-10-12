@@ -65,6 +65,20 @@ internal fun RecipeDraft.validate(): RecipeUiMessage? = RecipesValidation.valida
     totalMinutes = totalMinutes.toRecipeCount(),
 )
 
+// Errores de cada campo, aparte de la validación general (que solo da el primero): raciones, tiempo y cada paso largo
+// se marcan aunque falle antes otro campo, como el título.
+internal fun RecipeDraft.servingsError(): RecipeUiMessage? =
+    RecipeUiMessage.ServingsInvalid.takeIf { servings.toRecipeCount().isOutside(RecipeLimits.SERVINGS) }
+
+internal fun RecipeDraft.totalMinutesError(): RecipeUiMessage? =
+    RecipeUiMessage.TotalMinutesInvalid.takeIf { totalMinutes.toRecipeCount().isOutside(RecipeLimits.TOTAL_MINUTES) }
+
+// Posiciones de los pasos que pasan de largo, medidos sin espacios en los extremos, como se guardan.
+internal fun RecipeDraft.tooLongSteps(): Set<Int> =
+    steps.indices.filter { steps[it].trim().length > RecipeLimits.MAX_STEP_LENGTH }.toSet()
+
+private fun Int?.isOutside(range: IntRange): Boolean = this != null && this !in range
+
 // Edición de la lista de pasos: cada cambio devuelve otro borrador.
 internal fun RecipeDraft.withStep(index: Int, text: String): RecipeDraft =
     copy(steps = steps.mapIndexed { i, step -> if (i == index) text else step })

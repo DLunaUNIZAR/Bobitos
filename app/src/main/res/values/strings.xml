@@ -489,9 +489,9 @@
     <string name="recipes_minutes_label">Tiempo (min)</string>
     <string name="recipes_step_label">Paso %1$d</string>
     <string name="recipes_step_add">Añadir paso</string>
-    <string name="recipes_step_remove">Quitar paso</string>
-    <string name="recipes_step_up">Subir paso</string>
-    <string name="recipes_step_down">Bajar paso</string>
+    <string name="recipes_step_remove">Quitar el paso %1$d</string>
+    <string name="recipes_step_up">Subir el paso %1$d</string>
+    <string name="recipes_step_down">Bajar el paso %1$d</string>
     <string name="recipes_edit">Editar</string>
     <string name="recipes_delete">Eliminar</string>
     <string name="recipes_delete_title">Eliminar receta</string>

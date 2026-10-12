@@ -28,19 +28,19 @@ import com.dlunaunizar.bobitos.core.model.RecipeLimits
 
 // Raciones y tiempo, en una fila, del editor de recetas.
 @Composable
-internal fun ServingsAndTimeFields(draft: RecipeDraft, validation: RecipeUiMessage?, onDraft: (RecipeDraft) -> Unit) {
+internal fun ServingsAndTimeFields(draft: RecipeDraft, onDraft: (RecipeDraft) -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         CountField(
             value = draft.servings,
             label = stringResource(R.string.recipes_servings_label),
-            error = RecipeUiMessage.ServingsInvalid.takeIf { validation == it },
+            error = draft.servingsError(),
             onValueChange = { onDraft(draft.copy(servings = it)) },
             modifier = Modifier.weight(1f),
         )
         CountField(
             value = draft.totalMinutes,
             label = stringResource(R.string.recipes_minutes_label),
-            error = RecipeUiMessage.TotalMinutesInvalid.takeIf { validation == it },
+            error = draft.totalMinutesError(),
             onValueChange = { onDraft(draft.copy(totalMinutes = it)) },
             modifier = Modifier.weight(1f),
         )
@@ -69,7 +69,7 @@ private fun CountField(
 
 // Pasos del editor: «Paso N» con texto de varias líneas, subir, bajar y quitar; «Añadir paso» hasta 30.
 @Composable
-internal fun StepsEditor(draft: RecipeDraft, validation: RecipeUiMessage?, onDraft: (RecipeDraft) -> Unit) {
+internal fun StepsEditor(draft: RecipeDraft, onDraft: (RecipeDraft) -> Unit) {
     // Las filas se pintan por posición: al reordenar o quitar, el foco no puede quedarse en otro paso.
     val focusManager = LocalFocusManager.current
     Text(
@@ -77,9 +77,10 @@ internal fun StepsEditor(draft: RecipeDraft, validation: RecipeUiMessage?, onDra
         style = MaterialTheme.typography.titleSmall,
         modifier = Modifier.padding(top = 8.dp),
     )
+    val tooLongSteps = draft.tooLongSteps()
     draft.steps.forEachIndexed { index, step ->
         // Solo se marca el paso que se pasa de largo.
-        val tooLong = validation == RecipeUiMessage.StepTooLong && step.trim().length > RecipeLimits.MAX_STEP_LENGTH
+        val tooLong = index in tooLongSteps
         Column {
             OutlinedTextField(
                 value = step,
@@ -101,7 +102,7 @@ internal fun StepsEditor(draft: RecipeDraft, validation: RecipeUiMessage?, onDra
                 ) {
                     Icon(
                         Icons.Rounded.KeyboardArrowUp,
-                        contentDescription = stringResource(R.string.recipes_step_up),
+                        contentDescription = stringResource(R.string.recipes_step_up, index + 1),
                     )
                 }
                 IconButton(
@@ -113,7 +114,7 @@ internal fun StepsEditor(draft: RecipeDraft, validation: RecipeUiMessage?, onDra
                 ) {
                     Icon(
                         Icons.Rounded.KeyboardArrowDown,
-                        contentDescription = stringResource(R.string.recipes_step_down),
+                        contentDescription = stringResource(R.string.recipes_step_down, index + 1),
                     )
                 }
                 IconButton(
@@ -122,7 +123,10 @@ internal fun StepsEditor(draft: RecipeDraft, validation: RecipeUiMessage?, onDra
                         onDraft(draft.withoutStep(index))
                     },
                 ) {
-                    Icon(Icons.Rounded.Delete, contentDescription = stringResource(R.string.recipes_step_remove))
+                    Icon(
+                        Icons.Rounded.Delete,
+                        contentDescription = stringResource(R.string.recipes_step_remove, index + 1),
+                    )
                 }
             }
         }

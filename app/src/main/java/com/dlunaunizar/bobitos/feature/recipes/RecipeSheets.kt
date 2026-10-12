@@ -22,6 +22,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -183,7 +184,7 @@ private fun RecipeEditor(
         onConfirm = { onSave(draft) },
     ) {
         RecipeTextFields(draft = draft, validation = validation, onDraft = { draft = it })
-        ServingsAndTimeFields(draft = draft, validation = validation, onDraft = { draft = it })
+        ServingsAndTimeFields(draft = draft, onDraft = { draft = it })
         if (canChooseGlobal) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -195,7 +196,7 @@ private fun RecipeEditor(
             }
         }
         IngredientsEditor(rows = draft.ingredients, onRowsChange = { draft = draft.copy(ingredients = it) })
-        StepsEditor(draft = draft, validation = validation, onDraft = { draft = it })
+        StepsEditor(draft = draft, onDraft = { draft = it })
     }
 }
 
@@ -292,6 +293,8 @@ private fun StepsList(steps: List<String>?) {
 
 @Composable
 private fun IngredientsEditor(rows: List<IngredientRow>, onRowsChange: (List<IngredientRow>) -> Unit) {
+    // Las filas se pintan por posición: al quitar una, el foco no puede quedarse en la siguiente.
+    val focusManager = LocalFocusManager.current
     Text(
         text = stringResource(R.string.recipes_ingredients_section),
         style = MaterialTheme.typography.titleSmall,
@@ -313,7 +316,12 @@ private fun IngredientsEditor(rows: List<IngredientRow>, onRowsChange: (List<Ing
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                 )
-                IconButton(onClick = { onRowsChange(rows.filterIndexed { i, _ -> i != index }) }) {
+                IconButton(
+                    onClick = {
+                        focusManager.clearFocus()
+                        onRowsChange(rows.filterIndexed { i, _ -> i != index })
+                    },
+                ) {
                     Icon(
                         Icons.Rounded.Delete,
                         contentDescription = stringResource(R.string.recipes_ingredient_remove),
