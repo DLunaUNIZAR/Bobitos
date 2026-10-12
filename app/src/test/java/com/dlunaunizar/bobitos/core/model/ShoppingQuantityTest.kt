@@ -106,4 +106,21 @@ class ShoppingQuantityTest {
         assertEquals("0,25 taza", ShoppingQuantity.sum("1/8 taza", "1/8 taza"))
         assertEquals("1", ShoppingQuantity.sum(ShoppingQuantity.sum("1/3", "1/3"), "1/3"))
     }
+
+    @Test
+    fun `units outside the basic ones follow the Spanish plural`() {
+        assertEquals("2 packs", ShoppingQuantity.sum("1 pack", "1 pack"))
+        assertEquals("2 nueces", ShoppingQuantity.sum("1 nuez", "1 nuez"))
+        assertEquals("2 limones", ShoppingQuantity.sum("1 limón", "1 limón"))
+        assertEquals("2 sobres", ShoppingQuantity.sum("1 sobre", "1 sobre"))
+        assertEquals("3 terrones", ShoppingQuantity.sum("1 terrón", "2 terrón"))
+    }
+
+    @Test
+    fun `a total of one or less goes back to the singular when only the plural was written`() {
+        assertEquals("1 cucharada", ShoppingQuantity.sum("1/2 cucharadas", "1/2 cucharadas"))
+        assertEquals("1 nuez", ShoppingQuantity.sum("1/2 nueces", "1/2 nueces"))
+        assertEquals("1 limón", ShoppingQuantity.sum("1/2 limones", "1/2 limones"))
+        assertEquals("1 sobre", ShoppingQuantity.sum("1/2 sobres", "1/2 sobres"))
+    }
 }

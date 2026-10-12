@@ -22,6 +22,8 @@ object ShoppingQuantity {
     private val QUANTITY = Regex("""^(\d+/\d+|\d+(?:[.,]\d+)?)\s*(\p{L}+(?:\s+\p{L}+)*)?\.?$""")
     private val THOUSANDS_LIKE = Regex("""\d+\.\d{3}""")
     private const val VOWELS = "aeiouáéíóú"
+    private const val ES_PLURAL_CONSONANTS = "lrndj"
+    private val PLAIN_VOWELS = mapOf('á' to 'a', 'é' to 'e', 'í' to 'i', 'ó' to 'o', 'ú' to 'u')
 
     // Unidades básicas: todas sus grafías cuentan como la misma y se escriben en su forma corta.
     private val BASIC_UNITS = mapOf(
@@ -92,15 +94,45 @@ object ShoppingQuantity {
         return numerator.divide(denominator, MathContext.DECIMAL64)
     }
 
-    // Básicas en forma corta; las demás, en singular si el total es 1 o menos y en plural si pasa de 1.
+    // Básicas en forma corta; las demás, en singular si el total es 1 o menos y en plural si pasa de 1. Sin grafía en
+    // singular, se saca de la del plural.
     private fun unitFor(total: BigDecimal, terms: List<Parsed>): String {
         val head = terms.first().unit
         if (head.isEmpty()) return ""
         BASIC_UNITS[head.lowercase()]?.let { return it }
         val spellings = terms.map { it.unit }
-        if (total <= BigDecimal.ONE) return spellings.firstOrNull { !it.endsWith("s") } ?: head
+        if (total <= BigDecimal.ONE) return spellings.firstOrNull { !it.endsWith("s") } ?: singularOf(head)
         return spellings.firstOrNull { it.endsWith("s") } ?: pluralOf(head)
     }
 
-    private fun pluralOf(unit: String): String = if (unit.last().lowercaseChar() in VOWELS) "${unit}s" else "${unit}es"
+    // Plural aproximado del español: tras vocal, «-s»; «-z» → «-ces»; tras l, r, n, d o j, «-es», y la aguda pierde la
+    // tilde («limón» → «limones»); tras otra consonante (palabras de fuera, como «pack»), «-s».
+    private fun pluralOf(unit: String): String {
+        val last = unit.last().lowercaseChar()
+        return when {
+            last in VOWELS -> "${unit}s"
+            last == 'z' -> "${unit.dropLast(1)}ces"
+            last in ES_PLURAL_CONSONANTS -> "${unit.withoutFinalAccent()}es"
+            else -> "${unit}s"
+        }
+    }
+
+    // Singular aproximado de una grafía en plural: «-ces» → «-z»; «-ones» → «-ón»; si no, sin la «-s» final. Falla en
+    // palabras raras como unidad («flores», «panes»).
+    private fun singularOf(unit: String): String {
+        val lower = unit.lowercase()
+        return when {
+            lower.endsWith("ces") -> "${unit.dropLast(3)}z"
+            lower.endsWith("ones") -> "${unit.dropLast(4)}ón"
+            lower.endsWith("s") -> unit.dropLast(1)
+            else -> unit
+        }
+    }
+
+    // Quita la tilde de la vocal que va justo antes de la consonante final («limón» → «limon»).
+    private fun String.withoutFinalAccent(): String {
+        if (length < 2) return this
+        val plain = PLAIN_VOWELS[this[length - 2]] ?: return this
+        return substring(0, length - 2) + plain + last()
+    }
 }
