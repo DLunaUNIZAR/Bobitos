@@ -52,6 +52,33 @@ class ShoppingQuantityTest {
     }
 
     @Test
+    fun `a rest that is not plain words is not a unit and is joined`() {
+        assertEquals("2-3 dientes + 2-3 dientes", ShoppingQuantity.sum("2-3 dientes", "2-3 dientes"))
+        assertEquals("1 taza + 1 ½ taza", ShoppingQuantity.sum("1 taza", "1 ½ taza"))
+        assertEquals("1 1/2 taza + 1 1/2 taza", ShoppingQuantity.sum("1 1/2 taza", "1 1/2 taza"))
+        assertEquals("1,2,3 + 1,2,3", ShoppingQuantity.sum("1,2,3", "1,2,3"))
+        assertEquals("2 x 200 g + 2 x 200 g", ShoppingQuantity.sum("2 x 200 g", "2 x 200 g"))
+    }
+
+    @Test
+    fun `a trailing dot on the unit is dropped`() {
+        assertEquals("500 g", ShoppingQuantity.sum("200 g.", "300 g"))
+        assertEquals("3 cdas", ShoppingQuantity.sum("1 cda.", "2 cdas."))
+    }
+
+    @Test
+    fun `a unit with no letters of its own key does not match no unit`() {
+        assertEquals("2 + 3 de", ShoppingQuantity.sum("2", "3 de"))
+    }
+
+    @Test
+    fun `a dot followed by exactly three digits is ambiguous and joined`() {
+        assertEquals("1.500 g + 500 g", ShoppingQuantity.sum("1.500 g", "500 g"))
+        assertEquals("0,5 kg", ShoppingQuantity.sum("0.25 kg", "0,25 kg"))
+        assertEquals("1,75 kg", ShoppingQuantity.sum("1,500 kg", "0,25 kg"))
+    }
+
+    @Test
     fun `malformed quantities never fail and are joined`() {
         assertEquals("1/0 + 1/0", ShoppingQuantity.sum("1/0", "1/0"))
         assertEquals("1,2,3 + 1", ShoppingQuantity.sum("1,2,3", "1"))

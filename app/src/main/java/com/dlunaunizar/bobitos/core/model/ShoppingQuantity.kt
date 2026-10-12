@@ -5,14 +5,18 @@ import java.math.RoundingMode
 
 /**
  * Cantidades de la lista de la compra, que son texto libre («200 g», «1/2», «2 dientes»). [sum] suma
- * dos cantidades si ambas son «número [unidad]» con la misma unidad; si no, las une con « + ».
+ * dos cantidades si ambas son «número [unidad]» con la misma unidad; si no, las une con « + ». El número es
+ * entero, decimal (coma o punto) o fracción «a/b»; la unidad, si la hay, son palabras de letras con un punto
+ * final opcional («g.», «cdas.»). Cualquier otro resto («2-3», «1 ½», «2 x 200 g») no se lee. Un número con
+ * punto y exactamente tres decimales («1.500») es ambiguo (en España el punto separa miles) y tampoco se lee.
  */
 object ShoppingQuantity {
     /** Máximo de caracteres de una cantidad (también lo exigen las reglas de Firestore). */
     const val MAX_LENGTH = 40
 
     private const val FRACTION_SCALE = 2
-    private val QUANTITY = Regex("""^(\d+/\d+|\d+(?:[.,]\d+)?)\s*(.*)$""")
+    private val QUANTITY = Regex("""^(\d+/\d+|\d+(?:[.,]\d+)?)\s*(\p{L}+(?:\s+\p{L}+)*)?\.?$""")
+    private val THOUSANDS_LIKE = Regex("""\d+\.\d{3}""")
     private const val VOWELS = "aeiouáéíóú"
 
     // Unidades básicas: todas sus grafías cuentan como la misma y se escriben en su forma corta.
@@ -44,10 +48,12 @@ object ShoppingQuantity {
     private fun parse(text: String): Parsed? {
         val match = QUANTITY.matchEntire(text) ?: return null
         val (number, rawUnit) = match.destructured
+        if (THOUSANDS_LIKE.matches(number)) return null
         val amount = amountOf(number) ?: return null
         val unit = rawUnit.trim()
         val lower = unit.lowercase()
-        return Parsed(amount, unit, BASIC_UNITS[lower] ?: ingredientKey(lower))
+        // Si la clave queda vacía («de»), cae al texto para no casar con «sin unidad».
+        return Parsed(amount, unit, BASIC_UNITS[lower] ?: ingredientKey(lower).ifEmpty { lower })
     }
 
     private fun amountOf(number: String): BigDecimal? {
