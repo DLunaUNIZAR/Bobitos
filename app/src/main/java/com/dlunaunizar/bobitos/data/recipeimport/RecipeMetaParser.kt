@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.data.recipeimport
 
 import com.dlunaunizar.bobitos.core.model.RecipeLimits
 import com.dlunaunizar.bobitos.core.model.cleanRecipeSteps
+import com.dlunaunizar.bobitos.core.model.toIntIn
 import org.json.JSONArray
 
 /**
@@ -23,8 +24,8 @@ internal object RecipeMetaParser {
 
     /** `recipeYield` (número, texto como «4 raciones» o «4-6», o array): su primer entero, si está en 1–50. */
     fun servings(raw: Any?): Int? = when (raw) {
-        is Number -> raw.toLong().inRange(RecipeLimits.SERVINGS)
-        is String -> FIRST_NUMBER.find(raw)?.value?.toLongOrNull()?.inRange(RecipeLimits.SERVINGS)
+        is Number -> raw.toLong().toIntIn(RecipeLimits.SERVINGS)
+        is String -> FIRST_NUMBER.find(raw)?.value?.toLongOrNull()?.toIntIn(RecipeLimits.SERVINGS)
         is JSONArray -> (0 until raw.length()).firstNotNullOfOrNull { servings(raw.opt(it)) }
         else -> null
     }
@@ -36,7 +37,7 @@ internal object RecipeMetaParser {
     fun totalMinutes(total: String?, prep: String?, cook: String?): Int? {
         val minutes = isoMinutes(total)?.takeIf { it > 0 }
             ?: listOfNotNull(isoMinutes(prep), isoMinutes(cook)).takeIf { it.isNotEmpty() }?.sum()
-        return minutes?.inRange(RecipeLimits.TOTAL_MINUTES)
+        return minutes?.toIntIn(RecipeLimits.TOTAL_MINUTES)
     }
 
     /** Duración ISO 8601 («PT1H30M», «P0DT1H») en minutos; null si no lo es o trae años, meses o semanas. */
@@ -76,6 +77,4 @@ internal object RecipeMetaParser {
         chunks += current
         return chunks
     }
-
-    private fun Long.inRange(range: IntRange): Int? = takeIf { it >= range.first && it <= range.last }?.toInt()
 }

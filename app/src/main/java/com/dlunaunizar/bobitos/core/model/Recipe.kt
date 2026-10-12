@@ -40,3 +40,6 @@ object RecipeLimits {
 
 // Pasos tal como se guardan: sin espacios en los extremos y sin los vacíos.
 fun cleanRecipeSteps(steps: List<String>): List<String> = steps.map(String::trim).filter(String::isNotEmpty)
+
+// Un Long como Int solo si cae dentro de [range] (raciones y minutos); si no, null.
+fun Long.toIntIn(range: IntRange): Int? = takeIf { it >= range.first && it <= range.last }?.toInt()

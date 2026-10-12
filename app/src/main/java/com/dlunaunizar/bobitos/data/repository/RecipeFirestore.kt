@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.data.repository
 
 import com.dlunaunizar.bobitos.core.model.RecipeLimits
+import com.dlunaunizar.bobitos.core.model.toIntIn
 
 // Pasos, raciones y tiempo de una receta tal como se guardan: `steps` es una lista de textos (vacía si no
 // hay) y `servings`/`totalMinutes`, enteros o null. El importador del catálogo (plan C) escribe lo mismo.
@@ -26,5 +27,5 @@ internal fun parseRecipeCount(raw: Any?, range: IntRange): Int? {
         is Int -> raw.toLong()
         else -> return null
     }
-    return value.takeIf { it >= range.first && it <= range.last }?.toInt()
+    return value.toIntIn(range)
 }

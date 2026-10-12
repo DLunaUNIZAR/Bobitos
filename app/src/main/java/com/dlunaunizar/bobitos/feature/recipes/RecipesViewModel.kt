@@ -362,7 +362,8 @@ private fun RecipeFailure.detailsMessage(): RecipeUiMessage = when (this) {
     RecipeFailure.TooManySteps -> RecipeUiMessage.TooManySteps
     RecipeFailure.StepTooLong -> RecipeUiMessage.StepTooLong
     RecipeFailure.ServingsOutOfRange -> RecipeUiMessage.ServingsInvalid
-    else -> RecipeUiMessage.TotalMinutesInvalid
+    RecipeFailure.TotalMinutesOutOfRange -> RecipeUiMessage.TotalMinutesInvalid
+    else -> RecipeUiMessage.UnexpectedError
 }
 
 private fun ShoppingFailure.toUiMessage(): RecipeUiMessage = when (this) {
