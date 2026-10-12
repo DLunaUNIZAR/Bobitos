@@ -368,10 +368,13 @@ private class FakeShoppingRepository : ShoppingRepository {
     var addedBrand: String? = null
     var updatedSupermarket: Supermarket? = null
     var updatedBrand: String? = null
+    var updatedItemId: String? = null
+    var updatedQuantity: String? = null
+    var relisted: RelistCall? = null
     var purchaseChange: Triple<String, String, Boolean>? = null
     var clearCount = 0
     var nextFailure: ShoppingRepositoryException? = null
-    private val itemState = MutableStateFlow(listOf(shoppingItem()))
+    val itemState = MutableStateFlow(listOf(shoppingItem()))
 
     override fun items(spaceId: String): Flow<List<ShoppingItem>> {
         observedSpaceId = spaceId
@@ -412,8 +415,23 @@ private class FakeShoppingRepository : ShoppingRepository {
         brand: String?,
     ) {
         throwNextFailure()
+        updatedItemId = itemId
+        updatedQuantity = quantity
         updatedSupermarket = supermarket
         updatedBrand = brand
+    }
+
+    override suspend fun relistItem(
+        spaceId: String,
+        itemId: String,
+        name: String,
+        quantity: String?,
+        notes: String?,
+        supermarket: Supermarket?,
+        brand: String?,
+    ) {
+        throwNextFailure()
+        relisted = RelistCall(itemId, name, quantity, notes, supermarket, brand)
     }
 
     override suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean) {
@@ -449,6 +467,15 @@ private fun shoppingItem() = ShoppingItem(
     purchasedBy = null,
     purchasedByName = null,
     purchasedAt = null,
+)
+
+private data class RelistCall(
+    val itemId: String,
+    val name: String,
+    val quantity: String?,
+    val notes: String?,
+    val supermarket: Supermarket?,
+    val brand: String?,
 )
 
 private fun catalogIngredient() = CatalogIngredient(id = "leche", name = "Leche")

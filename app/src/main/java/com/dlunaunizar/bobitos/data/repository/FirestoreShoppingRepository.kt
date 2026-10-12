@@ -135,6 +135,48 @@ class FirestoreShoppingRepository @Inject constructor(
         Unit
     }
 
+    override suspend fun relistItem(
+        spaceId: String,
+        itemId: String,
+        name: String,
+        quantity: String?,
+        notes: String?,
+        supermarket: Supermarket?,
+        brand: String?,
+    ) = runShoppingOperation {
+        val user = requireVerifiedUser()
+        val values = validateItem(name, quantity, notes, supermarket, brand)
+        val reference = itemsCollection(spaceId).document(itemId)
+
+        firestore.runTransaction { transaction ->
+            requireItem(transaction.get(reference))
+            transaction.update(
+                reference,
+                FIELD_QUANTITY,
+                values.quantity,
+                FIELD_NOTES,
+                values.notes,
+                FIELD_SUPERMARKET,
+                values.supermarket,
+                FIELD_BRAND,
+                values.brand,
+                FIELD_PURCHASED,
+                false,
+                FIELD_PURCHASED_BY,
+                null,
+                FIELD_PURCHASED_BY_NAME,
+                null,
+                FIELD_PURCHASED_AT,
+                null,
+                FIELD_UPDATED_BY,
+                user.id,
+                FIELD_UPDATED_AT,
+                FieldValue.serverTimestamp(),
+            )
+        }.await()
+        Unit
+    }
+
     override suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean) = runShoppingOperation {
         val user = requireVerifiedUser()
         val reference = itemsCollection(spaceId).document(itemId)

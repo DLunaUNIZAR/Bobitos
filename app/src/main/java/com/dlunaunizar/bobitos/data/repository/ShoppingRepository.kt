@@ -26,6 +26,20 @@ interface ShoppingRepository {
         brand: String?,
     )
 
+    /**
+     * Vuelve a apuntar un artículo comprado: lo deja pendiente (sin atribución de compra) y le pone
+     * cantidad, notas, tienda y marca, en una sola escritura. [name] es el del artículo (no cambia).
+     */
+    suspend fun relistItem(
+        spaceId: String,
+        itemId: String,
+        name: String,
+        quantity: String?,
+        notes: String?,
+        supermarket: Supermarket?,
+        brand: String?,
+    )
+
     suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean)
 
     suspend fun deleteItem(spaceId: String, itemId: String)

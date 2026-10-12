@@ -811,6 +811,36 @@ test("marcar y desmarcar conserva una atribución coherente", async () => {
   assert.equal(item.data().purchasedBy, null);
 });
 
+test("volver a apuntar un comprado lo deja pendiente con la cantidad nueva en una sola escritura", async () => {
+  await seedSpace("shopping-relist", "relist-owner", ["relist-member"]);
+  await seedShoppingItem("shopping-relist", "rice", "relist-owner", { purchased: true, quantity: "1 kg" });
+  const member = verifiedFirestore("relist-member");
+  const itemReference = doc(member, "spaces", "shopping-relist", "shoppingItems", "rice");
+
+  await assertSucceeds(
+    updateDoc(itemReference, {
+      name: "Producto",
+      quantity: "500 g",
+      notes: null,
+      supermarket: "DIA",
+      brand: "Brillante",
+      purchased: false,
+      purchasedBy: null,
+      purchasedByName: null,
+      purchasedAt: null,
+      updatedBy: "relist-member",
+      updatedAt: serverTimestamp(),
+    }),
+  );
+
+  const item = await getDoc(itemReference);
+  assert.equal(item.data().purchased, false);
+  assert.equal(item.data().quantity, "500 g");
+  assert.equal(item.data().purchasedBy, null);
+  assert.equal(item.data().purchasedAt, null);
+  assert.equal(item.data().brand, "Brillante");
+});
+
 test("dos clientes reciben la lista de la compra en tiempo real", async () => {
   await seedSpace("shopping-realtime", "shopping-live-owner", ["shopping-live-member"]);
   const owner = verifiedFirestore("shopping-live-owner");

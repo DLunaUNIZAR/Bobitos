@@ -16,6 +16,11 @@ internal class RecordingShoppingRepository : ShoppingRepository {
     val addedNotes = mutableListOf<String?>()
     val addedSupermarkets = mutableListOf<Supermarket?>()
     val addedBrands = mutableListOf<String?>()
+    val addedQuantities = mutableListOf<String?>()
+    val relistedIds = mutableListOf<String>()
+    val relistedQuantities = mutableListOf<String?>()
+    val relistedSupermarkets = mutableListOf<Supermarket?>()
+    val relistedBrands = mutableListOf<String?>()
     val itemsState = MutableStateFlow<List<ShoppingItem>>(emptyList())
     val purchasedIds = mutableListOf<String>()
     val updatedIds = mutableListOf<String>()
@@ -33,6 +38,7 @@ internal class RecordingShoppingRepository : ShoppingRepository {
         brand: String?,
     ) {
         addedNames += name
+        addedQuantities += quantity
         addedNotes += notes
         addedSupermarkets += supermarket
         addedBrands += brand
@@ -51,6 +57,21 @@ internal class RecordingShoppingRepository : ShoppingRepository {
         updatedQuantities += quantity
         updatedSupermarkets += supermarket
         updatedBrands += brand
+    }
+
+    override suspend fun relistItem(
+        spaceId: String,
+        itemId: String,
+        name: String,
+        quantity: String?,
+        notes: String?,
+        supermarket: Supermarket?,
+        brand: String?,
+    ) {
+        relistedIds += itemId
+        relistedQuantities += quantity
+        relistedSupermarkets += supermarket
+        relistedBrands += brand
     }
 
     override suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean) {
