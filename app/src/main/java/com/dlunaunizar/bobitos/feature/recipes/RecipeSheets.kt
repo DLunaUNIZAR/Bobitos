@@ -22,6 +22,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
@@ -32,7 +33,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosInfoSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
-import com.dlunaunizar.bobitos.core.model.RecipeVisibility
 import com.dlunaunizar.bobitos.feature.common.formatted
 
 private const val MAX_INGREDIENT_ROWS = 50
@@ -90,9 +90,7 @@ internal fun RecipeSheetsHost(
             canWrite = canWrite,
             isAdmin = state.isAdmin,
             onDismiss = actions.onCloseEditor,
-            onSave = { visibility, title, description, category, ingredients, sourceUrl ->
-                actions.onSave(editing, visibility, title, description, category, ingredients, sourceUrl)
-            },
+            onSave = { draft -> actions.onSave(editing, draft) },
         )
     }
 }
@@ -105,7 +103,7 @@ internal class RecipeSheetActions(
     val onEdit: (Recipe) -> Unit,
     val onDelete: (Recipe) -> Unit,
     val onFork: (Recipe) -> Unit,
-    val onSave: (Recipe?, RecipeVisibility, String, String?, String?, List<Ingredient>, String?) -> Unit,
+    val onSave: (Recipe?, RecipeDraft) -> Unit,
 )
 
 @Composable
@@ -134,9 +132,17 @@ private fun RecipeDetailSheet(
             }
         },
     ) {
-        Text(recipe.description ?: stringResource(R.string.recipes_no_description))
+        RecipeSummary(recipe)
+        // «Sin descripción.» solo si tampoco hay pasos: con pasos, la «Preparación» ya explica la receta.
+        val description = recipe.description
+        if (description != null) {
+            Text(description)
+        } else if (recipe.steps.isNullOrEmpty()) {
+            Text(stringResource(R.string.recipes_no_description))
+        }
         recipe.category?.let { Text(stringResource(R.string.recipes_category, it)) }
         IngredientsList(recipe.ingredients)
+        StepsList(recipe.steps)
         Text(
             text = stringResource(R.string.recipes_by, recipe.createdByName),
             style = MaterialTheme.typography.bodySmall,
@@ -154,14 +160,14 @@ private fun RecipeEditor(
     canWrite: Boolean,
     isAdmin: Boolean,
     onDismiss: () -> Unit,
-    onSave: (RecipeVisibility, String, String?, String?, List<Ingredient>, String?) -> Unit,
+    onSave: (RecipeDraft) -> Unit,
 ) {
     // Al crear a mano `recipe` e `imported` son null; al importar, los valores iniciales vienen de la web.
     val initial = imported ?: RecipeDraft.of(recipe, null)
     var draft by rememberSaveable(recipe?.id, imported?.sourceUrl) {
         mutableStateOf(initial)
     }
-    val validation = RecipesValidation.validate(draft.title, draft.description, draft.category)
+    val validation = draft.validate()
     // El toggle de catálogo común solo se ofrece al crear (la visibilidad de una receta existente está
     // congelada por las reglas) y solo a quien puede publicar GLOBAL.
     val canChooseGlobal = isAdmin && recipe == null
@@ -174,19 +180,10 @@ private fun RecipeEditor(
         dirty = { draft != initial },
         errorMessage = errorMessage,
         onDismiss = onDismiss,
-        onConfirm = {
-            val visibility = if (draft.global) RecipeVisibility.GLOBAL else RecipeVisibility.PRIVATE
-            onSave(
-                visibility,
-                draft.title,
-                draft.description,
-                draft.category,
-                draft.ingredients.toIngredients(),
-                draft.sourceUrl,
-            )
-        },
+        onConfirm = { onSave(draft) },
     ) {
         RecipeTextFields(draft = draft, validation = validation, onDraft = { draft = it })
+        ServingsAndTimeFields(draft = draft, validation = validation, onDraft = { draft = it })
         if (canChooseGlobal) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -198,6 +195,7 @@ private fun RecipeEditor(
             }
         }
         IngredientsEditor(rows = draft.ingredients, onRowsChange = { draft = draft.copy(ingredients = it) })
+        StepsEditor(draft = draft, validation = validation, onDraft = { draft = it })
     }
 }
 
@@ -254,6 +252,38 @@ private fun IngredientsList(ingredients: List<Ingredient>?) {
         ingredients.forEach { ingredient ->
             Text(
                 text = stringResource(R.string.recipes_ingredient_bullet, ingredient.formatted()),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+    }
+}
+
+// «4 raciones · 40 min» bajo el título; cada parte sale sola si falta la otra, y nada si faltan las dos.
+@Composable
+private fun RecipeSummary(recipe: Recipe) {
+    val parts = listOfNotNull(
+        recipe.servings?.let { pluralStringResource(R.plurals.recipes_servings, it, it) },
+        recipe.totalMinutes?.let { stringResource(R.string.recipes_minutes, it) },
+    )
+    if (parts.isEmpty()) return
+    Text(
+        text = parts.joinToString(" · "),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+@Composable
+private fun StepsList(steps: List<String>?) {
+    if (steps.isNullOrEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = stringResource(R.string.recipes_steps_section),
+            style = MaterialTheme.typography.titleSmall,
+        )
+        steps.forEachIndexed { index, step ->
+            Text(
+                text = stringResource(R.string.recipes_step_numbered, index + 1, step),
                 style = MaterialTheme.typography.bodyMedium,
             )
         }

@@ -228,13 +228,7 @@ fun RecipesScreen(
                     viewModel.fork(recipe)
                     detailRecipeId = null
                 },
-                onSave = { recipe, visibility, title, description, category, ingredients, sourceUrl ->
-                    if (recipe == null) {
-                        viewModel.createRecipe(visibility, title, description, category, ingredients, sourceUrl)
-                    } else {
-                        viewModel.updateRecipe(recipe.id, title, description, category, ingredients)
-                    }
-                },
+                onSave = { recipe, draft -> viewModel.saveDraft(recipe?.id, draft) },
             )
         },
     )

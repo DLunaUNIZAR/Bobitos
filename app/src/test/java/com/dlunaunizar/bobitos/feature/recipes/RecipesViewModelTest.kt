@@ -336,6 +336,66 @@ class RecipesViewModelTest {
         assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
         assertEquals(RecipeUiMessage.RecipeSaved, viewModel.uiState.value.notice)
     }
+
+    @Test
+    fun `saving a new draft creates the recipe with clean steps, servings and minutes`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val draft = RecipeDraft.of(null, null).copy(
+                title = " Lentejas ",
+                ingredients = listOf(IngredientRow("Lentejas", "300", "g"), IngredientRow(" ")),
+                steps = listOf("  Remoja. ", "", "Cuece."),
+                servings = " 4 ",
+                totalMinutes = "60",
+            )
+
+            viewModel.saveDraft(null, draft)
+            advanceUntilIdle()
+
+            assertEquals(1, repository.createCount)
+            assertEquals(RecipeVisibility.PRIVATE, repository.lastVisibility)
+            assertEquals("Lentejas", repository.lastTitle)
+            assertEquals(listOf(Ingredient("Lentejas", "300", "g")), repository.lastIngredients)
+            assertEquals(listOf("Remoja.", "Cuece."), repository.lastSteps)
+            assertEquals(4, repository.lastServings)
+            assertEquals(60, repository.lastTotalMinutes)
+            assertEquals(RecipeUiMessage.RecipeSaved, viewModel.uiState.value.notice)
+        }
+
+    @Test
+    fun `an admin saving a global draft publishes it`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.admin = true
+        viewModel.observe()
+        advanceUntilIdle()
+
+        viewModel.saveDraft(null, RecipeDraft.of(null, null).copy(title = "Lentejas", global = true))
+        advanceUntilIdle()
+
+        assertEquals(RecipeVisibility.GLOBAL, repository.lastVisibility)
+    }
+
+    @Test
+    fun `saving the draft of an existing recipe updates it and empty numbers clear the values`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel.saveDraft("r1", RecipeDraft.of(null, null).copy(title = "Lentejas", steps = listOf("Cuece.")))
+            advanceUntilIdle()
+
+            assertEquals(0, repository.createCount)
+            assertEquals(1, repository.updateCount)
+            assertEquals("r1", repository.lastUpdatedId)
+            assertEquals(listOf("Cuece."), repository.lastSteps)
+            assertEquals(null, repository.lastServings)
+            assertEquals(null, repository.lastTotalMinutes)
+        }
+
+    @Test
+    fun `a draft with invalid servings never reaches the repository`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.saveDraft(null, RecipeDraft.of(null, null).copy(title = "Lentejas", servings = "dos"))
+        advanceUntilIdle()
+
+        assertEquals(0, repository.createCount)
+        assertEquals(RecipeUiMessage.ServingsInvalid, viewModel.uiState.value.error)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+    }
 }
 
 private class FakeRecipeRepository : RecipeRepository {

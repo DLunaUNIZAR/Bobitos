@@ -12,6 +12,7 @@ import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
+import com.dlunaunizar.bobitos.core.model.cleanRecipeSteps
 import com.dlunaunizar.bobitos.data.recipeimport.ImportFailure
 import com.dlunaunizar.bobitos.data.recipeimport.RecipeImportException
 import com.dlunaunizar.bobitos.data.recipeimport.RecipeImporter
@@ -131,8 +132,11 @@ class RecipesViewModel @Inject constructor(
         category: String?,
         ingredients: List<Ingredient> = emptyList(),
         sourceUrl: String? = null,
+        steps: List<String> = emptyList(),
+        servings: Int? = null,
+        totalMinutes: Int? = null,
     ) {
-        if (!validate(title, description, category)) return
+        if (!validate(title, description, category, steps, servings, totalMinutes)) return
         runAction(RecipeUiMessage.RecipeSaved, editor = true) {
             repository.createRecipe(
                 visibility = safeVisibility(visibility),
@@ -142,6 +146,9 @@ class RecipesViewModel @Inject constructor(
                 sourceRecipeId = null,
                 ingredients = ingredients,
                 sourceUrl = sourceUrl,
+                steps = cleanRecipeSteps(steps),
+                servings = servings,
+                totalMinutes = totalMinutes,
             )
         }
     }
@@ -171,15 +178,52 @@ class RecipesViewModel @Inject constructor(
         description: String?,
         category: String?,
         ingredients: List<Ingredient> = emptyList(),
+        steps: List<String> = emptyList(),
+        servings: Int? = null,
+        totalMinutes: Int? = null,
     ) {
-        if (!validate(title, description, category)) return
+        if (!validate(title, description, category, steps, servings, totalMinutes)) return
         runAction(RecipeUiMessage.RecipeSaved, editor = true) {
             repository.updateRecipe(
-                recipeId,
-                title.trim(),
-                description.normalized(),
-                category.normalized(),
-                ingredients,
+                recipeId = recipeId,
+                title = title.trim(),
+                description = description.normalized(),
+                category = category.normalized(),
+                ingredients = ingredients,
+                steps = cleanRecipeSteps(steps),
+                servings = servings,
+                totalMinutes = totalMinutes,
+            )
+        }
+    }
+
+    /** Guarda el borrador del editor: crea una receta si [recipeId] es null y, si no, edita esa. */
+    internal fun saveDraft(recipeId: String?, draft: RecipeDraft) {
+        val ingredients = draft.ingredients.toIngredients()
+        val servings = draft.servings.toRecipeCount()
+        val totalMinutes = draft.totalMinutes.toRecipeCount()
+        if (recipeId == null) {
+            createRecipe(
+                visibility = if (draft.global) RecipeVisibility.GLOBAL else RecipeVisibility.PRIVATE,
+                title = draft.title,
+                description = draft.description,
+                category = draft.category,
+                ingredients = ingredients,
+                sourceUrl = draft.sourceUrl,
+                steps = draft.steps,
+                servings = servings,
+                totalMinutes = totalMinutes,
+            )
+        } else {
+            updateRecipe(
+                recipeId = recipeId,
+                title = draft.title,
+                description = draft.description,
+                category = draft.category,
+                ingredients = ingredients,
+                steps = draft.steps,
+                servings = servings,
+                totalMinutes = totalMinutes,
             )
         }
     }
@@ -231,8 +275,16 @@ class RecipesViewModel @Inject constructor(
             visibility
         }
 
-    private fun validate(title: String, description: String?, category: String?): Boolean {
-        val error = RecipesValidation.validate(title, description, category) ?: return true
+    private fun validate(
+        title: String,
+        description: String?,
+        category: String?,
+        steps: List<String>,
+        servings: Int?,
+        totalMinutes: Int?,
+    ): Boolean {
+        val error = RecipesValidation.validate(title, description, category, steps, servings, totalMinutes)
+            ?: return true
         showError(error, editor = true)
         return false
     }
