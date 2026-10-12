@@ -93,6 +93,14 @@ test("la cantidad es un entero, un decimal con coma o una fracción, mayor que c
   for (const bad of ["0", "1.5", "1/0", "1/1", "0/2", "dos", "1 1/2", "-1", "05", ""]) assert.notDeepEqual(ajo(bad, "g"), [], bad);
 });
 
+test("un null en quantity o en unit pide quitar la clave", () => {
+  const noQuantity = withIngredient({ name: "Ajo", quantity: null }).join("\n");
+  assert.match(noQuantity, /quantity no puede ser null: si va al gusto, quita la clave quantity/);
+  assert.doesNotMatch(noQuantity, /entre comillas/);
+  assert.match(withIngredient({ name: "Ajo", quantity: "2", unit: null }).join("\n"), /unit no puede ser null/);
+  assert.match(withIngredient({ name: "Ajo", unit: null }).join("\n"), /unit no puede ser null/);
+});
+
 test("respeta categorías y límites", () => {
   const L = RECIPE_LIMITS;
   const steps = (n) => Array.from({ length: n }, (_, i) => `Paso ${i + 1}.`);
@@ -163,4 +171,11 @@ test("el recipes.json real es válido: 60 recetas en las 11 categorías y cantid
   );
   assert.equal(built.reduce((n, r) => n + r.ingredients.length, 0), 503);
   assert.ok(built.every((r) => r.ingredients.every((i) => i.quantity === null || typeof i.quantity === "string")));
+});
+
+test("la lasaña del catálogo real salpimienta la carne", async () => {
+  const real = JSON.parse(await readFile(new URL("../data/catalog/recipes.json", import.meta.url), "utf8"));
+  const lasagna = real.recipes.find((r) => r.title === "Lasaña de carne");
+  assert.ok(lasagna.steps[1].endsWith("unos 5 minutos. Salpimienta."));
+  assert.ok(!JSON.stringify(real).includes("Sala y pimienta"));
 });

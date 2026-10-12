@@ -357,7 +357,7 @@ Lasaña con boloñesa casera y bechamel, gratinada al horno.
 **Preparación**
 
 1. Pica muy fino la cebolla, la zanahoria y el ajo. Rehógalos en una sartén grande con el aceite a fuego medio 10 minutos.
-2. Sube el fuego, añade la carne y desmenúzala mientras se dora, unos 5 minutos. Sala y pimienta.
+2. Sube el fuego, añade la carne y desmenúzala mientras se dora, unos 5 minutos. Salpimienta.
 3. Vierte el vino y deja que se evapore 2 minutos. Añade el tomate triturado y cuece a fuego suave 25 minutos, hasta que espese.
 4. Prepara la bechamel: derrite la mantequilla a fuego medio, añade la harina y remueve 2 minutos. Vierte la leche poco a poco, removiendo con unas varillas, y cuece 8 minutos hasta que espese. Sazona con sal, pimienta y nuez moscada.
 5. Precalienta el horno a 180 °C. Si las placas no son precocidas, cuécelas en agua con sal el tiempo del paquete, escúrrelas y sepáralas sobre un paño.

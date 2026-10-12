@@ -95,6 +95,8 @@ function quantityValue(text) {
 // Problema de cantidad y unidad de un ingrediente, o null. Sin cantidad («al gusto») no lleva unidad.
 function amountProblem(entry) {
   const { quantity, unit } = entry;
+  if (quantity === null) return "quantity no puede ser null: si va al gusto, quita la clave quantity (y unit).";
+  if (unit === null) return "unit no puede ser null: quita la clave unit o pon una unidad de la lista.";
   if (!("quantity" in entry)) return "unit" in entry ? "Una unidad sin cantidad: quita la unidad o pon la cantidad." : null;
   if (typeof quantity !== "string") return `quantity tiene que ser texto («${quantity}» entre comillas).`;
   const value = quantityValue(quantity);
