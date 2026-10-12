@@ -80,4 +80,17 @@ class RecipeMetaParserTest {
         assertEquals(30, steps.size)
         assertEquals(listOf("Uno", "Dos"), steps.take(2))
     }
+
+    @Test
+    fun `splitting long steps never pushes out the last steps of the recipe`() {
+        val short = List(26) { "Paso ${it + 1}." }
+        val long = List(4) { n -> "${"a".repeat(299)}$n. ${"b".repeat(299)}$n." }
+        val original = short + long
+
+        val steps = RecipeMetaParser.steps(original)
+
+        assertTrue(steps.size <= 30)
+        assertTrue(steps.all { it.length <= 500 })
+        assertEquals(original.joinToString(" "), steps.joinToString(" "))
+    }
 }

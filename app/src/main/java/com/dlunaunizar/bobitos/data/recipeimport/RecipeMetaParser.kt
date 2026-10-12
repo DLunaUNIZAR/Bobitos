@@ -54,10 +54,29 @@ internal object RecipeMetaParser {
 
     /**
      * Pasos para el editor: limpios, sin perder texto (un paso de más de 500 caracteres se parte por frases
-     * y, si una frase sola no cabe, en trozos de 500) y como mucho 30.
+     * y, si una frase sola no cabe, en trozos de 500) y como mucho 30. Si la web trae 30 pasos o menos y al
+     * partir salen más, se juntan trozos seguidos para que quepan todos; si trae más de 30, se queda con 30.
      */
-    fun steps(raw: List<String>): List<String> =
-        cleanRecipeSteps(raw).flatMap(::splitLongStep).take(RecipeLimits.MAX_STEPS)
+    fun steps(raw: List<String>): List<String> {
+        val cleaned = cleanRecipeSteps(raw)
+        val pieces = cleaned.flatMap(::splitLongStep)
+        val fitted = if (cleaned.size <= RecipeLimits.MAX_STEPS) mergeAdjacentPieces(pieces) else pieces
+        return fitted.take(RecipeLimits.MAX_STEPS)
+    }
+
+    // Une (con un espacio) la pareja contigua más corta que quepa en un paso, hasta llegar a 30 o no poder más.
+    private fun mergeAdjacentPieces(pieces: List<String>): List<String> {
+        val merged = pieces.toMutableList()
+        while (merged.size > RecipeLimits.MAX_STEPS) {
+            val index = (0 until merged.lastIndex)
+                .filter { merged[it].length + 1 + merged[it + 1].length <= RecipeLimits.MAX_STEP_LENGTH }
+                .minByOrNull { merged[it].length + merged[it + 1].length }
+                ?: break
+            merged[index] = "${merged[index]} ${merged[index + 1]}"
+            merged.removeAt(index + 1)
+        }
+        return merged
+    }
 
     private fun splitLongStep(step: String): List<String> {
         if (step.length <= RecipeLimits.MAX_STEP_LENGTH) return listOf(step)
