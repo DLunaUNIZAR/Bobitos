@@ -3,7 +3,9 @@ package com.dlunaunizar.bobitos.data.repository
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
+import com.dlunaunizar.bobitos.core.model.RecipeLimits
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
+import com.dlunaunizar.bobitos.core.model.cleanRecipeSteps
 import com.dlunaunizar.bobitos.data.sync.RealtimeMetrics
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
 import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
@@ -48,9 +50,13 @@ class FirestoreRecipeRepository @Inject constructor(
         sourceRecipeId: String?,
         ingredients: List<Ingredient>,
         sourceUrl: String?,
+        steps: List<String>,
+        servings: Int?,
+        totalMinutes: Int?,
     ) = runRecipeOperation {
         val user = requireVerifiedUser()
         val values = validate(title, description, category)
+        val cleanSteps = checkedSteps(steps, servings, totalMinutes)
         recipesCollection().document().set(
             mapOf(
                 FIELD_OWNER_UID to user.id,
@@ -61,6 +67,9 @@ class FirestoreRecipeRepository @Inject constructor(
                 FIELD_SOURCE_RECIPE_ID to sourceRecipeId,
                 FIELD_SOURCE_URL to sourceUrl?.trim()?.takeIf(String::isNotEmpty),
                 FIELD_INGREDIENTS to ingredients.toFirestore(),
+                FIELD_STEPS to cleanSteps,
+                FIELD_SERVINGS to servings,
+                FIELD_TOTAL_MINUTES to totalMinutes,
                 FIELD_CREATED_BY to user.id,
                 FIELD_CREATED_BY_NAME to user.recipeDisplayName,
                 FIELD_CREATED_AT to FieldValue.serverTimestamp(),
@@ -77,15 +86,22 @@ class FirestoreRecipeRepository @Inject constructor(
         description: String?,
         category: String?,
         ingredients: List<Ingredient>,
+        steps: List<String>,
+        servings: Int?,
+        totalMinutes: Int?,
     ) = runRecipeOperation {
         val user = requireVerifiedUser()
         val values = validate(title, description, category)
+        val cleanSteps = checkedSteps(steps, servings, totalMinutes)
         recipesCollection().document(recipeId).update(
             mapOf(
                 FIELD_TITLE to values.title,
                 FIELD_DESCRIPTION to values.description,
                 FIELD_CATEGORY to values.category,
                 FIELD_INGREDIENTS to ingredients.toFirestore(),
+                FIELD_STEPS to cleanSteps,
+                FIELD_SERVINGS to servings,
+                FIELD_TOTAL_MINUTES to totalMinutes,
                 FIELD_UPDATED_BY to user.id,
                 FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
             ),
@@ -135,6 +151,13 @@ class FirestoreRecipeRepository @Inject constructor(
             throw RecipeRepositoryException(RecipeFailure.EmailNotVerified)
         }
         return user
+    }
+
+    // Pasos limpios para guardar; falla si pasos, raciones o tiempo no caben en los límites de las reglas.
+    private fun checkedSteps(steps: List<String>, servings: Int?, totalMinutes: Int?): List<String> {
+        val clean = cleanRecipeSteps(steps)
+        recipeDetailsFailure(clean, servings, totalMinutes)?.let { throw RecipeRepositoryException(it) }
+        return clean
     }
 
     private fun validate(title: String, description: String?, category: String?): RecipeValues {
@@ -190,6 +213,9 @@ class FirestoreRecipeRepository @Inject constructor(
         const val FIELD_SOURCE_RECIPE_ID = "sourceRecipeId"
         const val FIELD_SOURCE_URL = "sourceUrl"
         const val FIELD_INGREDIENTS = "ingredients"
+        const val FIELD_STEPS = "steps"
+        const val FIELD_SERVINGS = "servings"
+        const val FIELD_TOTAL_MINUTES = "totalMinutes"
         const val FIELD_INGREDIENT_NAME = "name"
         const val FIELD_INGREDIENT_QUANTITY = "quantity"
         const val FIELD_INGREDIENT_UNIT = "unit"
@@ -225,6 +251,9 @@ private fun DocumentSnapshot.toRecipe(): Recipe? {
         sourceRecipeId = getString("sourceRecipeId"),
         sourceUrl = getString("sourceUrl"),
         ingredients = parseIngredients(),
+        steps = parseRecipeSteps(get("steps")),
+        servings = parseRecipeCount(get("servings"), RecipeLimits.SERVINGS),
+        totalMinutes = parseRecipeCount(get("totalMinutes"), RecipeLimits.TOTAL_MINUTES),
         createdBy = getString("createdBy") ?: return null,
         createdByName = getString("createdByName") ?: getString("createdBy") ?: return null,
         createdAt = createdAt,

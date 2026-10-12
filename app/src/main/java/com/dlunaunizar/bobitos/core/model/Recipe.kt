@@ -18,9 +18,25 @@ data class Recipe(
     // Enlace de la web de la que se importó (schema.org/Recipe). Null en recetas creadas a mano o forks.
     val sourceUrl: String? = null,
     val ingredients: List<Ingredient>? = null,
+    // Preparación paso a paso; null en las recetas antiguas, que llevan los pasos en la descripción.
+    val steps: List<String>? = null,
+    // Raciones (1–50) y tiempo total en minutos (1–1440); null si no se indican.
+    val servings: Int? = null,
+    val totalMinutes: Int? = null,
     val createdBy: String,
     val createdByName: String,
     val createdAt: Instant,
     val updatedBy: String,
     val updatedAt: Instant,
 )
+
+// Límites de pasos, raciones y tiempo: los mismos en las reglas, el editor, el repositorio y el importador web.
+object RecipeLimits {
+    const val MAX_STEPS = 30
+    const val MAX_STEP_LENGTH = 500
+    val SERVINGS = 1..50
+    val TOTAL_MINUTES = 1..1440
+}
+
+// Pasos tal como se guardan: sin espacios en los extremos y sin los vacíos.
+fun cleanRecipeSteps(steps: List<String>): List<String> = steps.map(String::trim).filter(String::isNotEmpty)

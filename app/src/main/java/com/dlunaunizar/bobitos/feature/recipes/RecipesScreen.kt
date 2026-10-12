@@ -482,6 +482,10 @@ internal val RecipeUiMessage.stringResourceId: Int
         RecipeUiMessage.TitleTooLong -> R.string.recipes_error_title_too_long
         RecipeUiMessage.DescriptionTooLong -> R.string.recipes_error_description_too_long
         RecipeUiMessage.CategoryTooLong -> R.string.recipes_error_category_too_long
+        RecipeUiMessage.TooManySteps -> R.string.recipes_error_too_many_steps
+        RecipeUiMessage.StepTooLong -> R.string.recipes_error_step_too_long
+        RecipeUiMessage.ServingsInvalid -> R.string.recipes_error_servings
+        RecipeUiMessage.TotalMinutesInvalid -> R.string.recipes_error_total_minutes
         RecipeUiMessage.NotAuthenticated -> R.string.space_error_not_authenticated
         RecipeUiMessage.EmailNotVerified -> R.string.space_error_email_not_verified
         RecipeUiMessage.RecipeNotFound -> R.string.recipes_error_not_found

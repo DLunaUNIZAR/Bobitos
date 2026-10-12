@@ -37,4 +37,47 @@ class RecipesValidationTest {
     fun `a valid recipe passes validation`() {
         assertNull(RecipesValidation.validate("Lentejas", "Con chorizo", "Legumbres"))
     }
+
+    @Test
+    fun `steps, servings and minutes are validated after the text fields`() {
+        assertEquals(
+            RecipeUiMessage.TooManySteps,
+            RecipesValidation.validate("Lentejas", null, null, steps = List(31) { "Paso" }),
+        )
+        assertEquals(
+            RecipeUiMessage.StepTooLong,
+            RecipesValidation.validate("Lentejas", null, null, steps = listOf("a".repeat(501))),
+        )
+        assertEquals(RecipeUiMessage.ServingsInvalid, RecipesValidation.validate("Lentejas", null, null, servings = 0))
+        assertEquals(RecipeUiMessage.ServingsInvalid, RecipesValidation.validate("Lentejas", null, null, servings = 51))
+        assertEquals(
+            RecipeUiMessage.TotalMinutesInvalid,
+            RecipesValidation.validate("Lentejas", null, null, totalMinutes = 1441),
+        )
+        assertEquals(RecipeUiMessage.TitleRequired, RecipesValidation.validate(" ", null, null, servings = 0))
+    }
+
+    @Test
+    fun `blank steps do not count and the limits themselves are valid`() {
+        assertNull(
+            RecipesValidation.validate(
+                title = "Lentejas",
+                description = null,
+                category = null,
+                steps = List(30) { "a".repeat(500) } + listOf("", "   "),
+                servings = 50,
+                totalMinutes = 1440,
+            ),
+        )
+        assertNull(
+            RecipesValidation.validate(
+                title = "Lentejas",
+                description = null,
+                category = null,
+                steps = listOf("  ${"a".repeat(500)}  "),
+                servings = 1,
+                totalMinutes = 1,
+            ),
+        )
+    }
 }

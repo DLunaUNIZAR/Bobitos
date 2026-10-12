@@ -565,6 +565,9 @@ private class FakeRecipeRepository : RecipeRepository {
         sourceRecipeId: String?,
         ingredients: List<Ingredient>,
         sourceUrl: String?,
+        steps: List<String>,
+        servings: Int?,
+        totalMinutes: Int?,
     ) = Unit
 
     override suspend fun updateRecipe(
@@ -573,6 +576,9 @@ private class FakeRecipeRepository : RecipeRepository {
         description: String?,
         category: String?,
         ingredients: List<Ingredient>,
+        steps: List<String>,
+        servings: Int?,
+        totalMinutes: Int?,
     ) = Unit
 
     override suspend fun deleteRecipe(recipeId: String) = Unit

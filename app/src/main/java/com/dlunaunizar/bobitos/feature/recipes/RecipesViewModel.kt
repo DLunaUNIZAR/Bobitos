@@ -285,12 +285,25 @@ private fun RecipeFailure.toUiMessage(): RecipeUiMessage = when (this) {
     RecipeFailure.TitleTooLong -> RecipeUiMessage.TitleTooLong
     RecipeFailure.DescriptionTooLong -> RecipeUiMessage.DescriptionTooLong
     RecipeFailure.CategoryTooLong -> RecipeUiMessage.CategoryTooLong
+    RecipeFailure.TooManySteps,
+    RecipeFailure.StepTooLong,
+    RecipeFailure.ServingsOutOfRange,
+    RecipeFailure.TotalMinutesOutOfRange,
+    -> detailsMessage()
     RecipeFailure.NotAuthenticated -> RecipeUiMessage.NotAuthenticated
     RecipeFailure.EmailNotVerified -> RecipeUiMessage.EmailNotVerified
     RecipeFailure.RecipeNotFound -> RecipeUiMessage.RecipeNotFound
     RecipeFailure.PermissionDenied -> RecipeUiMessage.PermissionDenied
     RecipeFailure.Network -> RecipeUiMessage.NetworkError
     RecipeFailure.Unknown -> RecipeUiMessage.UnexpectedError
+}
+
+// Pasos, raciones y tiempo fuera de los límites (aparte para no inflar la complejidad de toUiMessage).
+private fun RecipeFailure.detailsMessage(): RecipeUiMessage = when (this) {
+    RecipeFailure.TooManySteps -> RecipeUiMessage.TooManySteps
+    RecipeFailure.StepTooLong -> RecipeUiMessage.StepTooLong
+    RecipeFailure.ServingsOutOfRange -> RecipeUiMessage.ServingsInvalid
+    else -> RecipeUiMessage.TotalMinutesInvalid
 }
 
 private fun ShoppingFailure.toUiMessage(): RecipeUiMessage = when (this) {

@@ -21,6 +21,9 @@ interface RecipeRepository {
         sourceRecipeId: String?,
         ingredients: List<Ingredient> = emptyList(),
         sourceUrl: String? = null,
+        steps: List<String> = emptyList(),
+        servings: Int? = null,
+        totalMinutes: Int? = null,
     )
 
     suspend fun updateRecipe(
@@ -29,6 +32,9 @@ interface RecipeRepository {
         description: String?,
         category: String?,
         ingredients: List<Ingredient> = emptyList(),
+        steps: List<String> = emptyList(),
+        servings: Int? = null,
+        totalMinutes: Int? = null,
     )
 
     suspend fun deleteRecipe(recipeId: String)
@@ -39,6 +45,10 @@ enum class RecipeFailure {
     TitleTooLong,
     DescriptionTooLong,
     CategoryTooLong,
+    TooManySteps,
+    StepTooLong,
+    ServingsOutOfRange,
+    TotalMinutesOutOfRange,
     NotAuthenticated,
     EmailNotVerified,
     RecipeNotFound,

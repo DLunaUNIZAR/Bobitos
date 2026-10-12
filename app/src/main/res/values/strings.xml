@@ -475,6 +475,10 @@
     <string name="recipes_error_title_too_long">El nombre es demasiado largo.</string>
     <string name="recipes_error_description_too_long">La descripción es demasiado larga.</string>
     <string name="recipes_error_category_too_long">La categoría es demasiado larga.</string>
+    <string name="recipes_error_too_many_steps">Una receta admite hasta 30 pasos.</string>
+    <string name="recipes_error_step_too_long">Cada paso admite hasta 500 caracteres.</string>
+    <string name="recipes_error_servings">Las raciones van de 1 a 50.</string>
+    <string name="recipes_error_total_minutes">El tiempo va de 1 a 1440 minutos.</string>
     <string name="recipes_error_not_found">No se encontró la receta.</string>
     <string name="recipes_notice_saved">Receta guardada</string>
     <string name="recipes_notice_deleted">Receta eliminada</string>

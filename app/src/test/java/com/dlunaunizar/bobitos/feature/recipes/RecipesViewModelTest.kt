@@ -93,6 +93,16 @@ class RecipesViewModelTest {
     }
 
     @Test
+    fun `a repository limit failure shows its message`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.nextFailure = RecipeRepositoryException(RecipeFailure.ServingsOutOfRange)
+
+        viewModel.createRecipe(RecipeVisibility.PRIVATE, "Lentejas", null, null)
+        advanceUntilIdle()
+
+        assertEquals(RecipeUiMessage.ServingsInvalid, viewModel.uiState.value.error)
+    }
+
+    @Test
     fun `creating a recipe forwards its ingredients`() = runTest(mainDispatcherRule.testDispatcher) {
         val ingredients = listOf(Ingredient("Huevo", "2", "uds"), Ingredient("Sal"))
         viewModel.createRecipe(RecipeVisibility.PRIVATE, "Tortilla", null, null, ingredients)
@@ -343,6 +353,11 @@ private class FakeRecipeRepository : RecipeRepository {
     var lastSourceRecipeId: String? = null
     var lastSourceUrl: String? = null
     var lastIngredients: List<Ingredient> = emptyList()
+    var lastSteps: List<String> = emptyList()
+    var lastServings: Int? = null
+    var lastTotalMinutes: Int? = null
+    var updateCount = 0
+    var lastUpdatedId: String? = null
     var admin = false
 
     override fun globalRecipes(): Flow<List<Recipe>> = globalState
@@ -356,6 +371,9 @@ private class FakeRecipeRepository : RecipeRepository {
         sourceRecipeId: String?,
         ingredients: List<Ingredient>,
         sourceUrl: String?,
+        steps: List<String>,
+        servings: Int?,
+        totalMinutes: Int?,
     ) {
         nextFailure?.let { throw it }
         if (hang) {
@@ -372,6 +390,9 @@ private class FakeRecipeRepository : RecipeRepository {
         lastSourceRecipeId = sourceRecipeId
         lastSourceUrl = sourceUrl
         lastIngredients = ingredients
+        lastSteps = steps
+        lastServings = servings
+        lastTotalMinutes = totalMinutes
     }
 
     override suspend fun updateRecipe(
@@ -380,6 +401,9 @@ private class FakeRecipeRepository : RecipeRepository {
         description: String?,
         category: String?,
         ingredients: List<Ingredient>,
+        steps: List<String>,
+        servings: Int?,
+        totalMinutes: Int?,
     ) {
         nextFailure?.let { throw it }
         if (hang) {
@@ -390,6 +414,13 @@ private class FakeRecipeRepository : RecipeRepository {
             }
         }
         addGate?.await()
+        updateCount++
+        lastUpdatedId = recipeId
+        lastTitle = title
+        lastIngredients = ingredients
+        lastSteps = steps
+        lastServings = servings
+        lastTotalMinutes = totalMinutes
     }
 
     override suspend fun deleteRecipe(recipeId: String) = Unit
