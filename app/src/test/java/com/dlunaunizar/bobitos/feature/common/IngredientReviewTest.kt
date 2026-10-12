@@ -212,6 +212,17 @@ class IngredientReviewTest {
     }
 
     @Test
+    fun `contributions in different units are grouped by unit when folded`() {
+        val rows = buildIngredientReviewRows(
+            listOf(Ingredient("Tomate", "200", "g"), Ingredient("Tomate", "1", "ud"), Ingredient("Tomate", "300", "g")),
+            emptyList(),
+            data,
+        )
+
+        assertEquals("500 g + 1 ud", rows.single().recipeQuantity)
+    }
+
+    @Test
     fun `a pending item wins over a purchased one with the same name`() {
         val rows = buildIngredientReviewRows(
             listOf(Ingredient("Tomate", "2", "ud")),

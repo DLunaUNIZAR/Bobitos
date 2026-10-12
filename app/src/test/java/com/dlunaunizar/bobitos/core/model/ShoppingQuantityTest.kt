@@ -32,7 +32,7 @@ class ShoppingQuantityTest {
     @Test
     fun `fractions are added with two decimals`() {
         assertEquals("0,75", ShoppingQuantity.sum("1/2", "1/4"))
-        assertEquals("0,66", ShoppingQuantity.sum("1/3", "1/3"))
+        assertEquals("0,67", ShoppingQuantity.sum("1/3", "1/3"))
     }
 
     @Test
@@ -84,5 +84,26 @@ class ShoppingQuantityTest {
         assertEquals("1,2,3 + 1", ShoppingQuantity.sum("1,2,3", "1"))
         assertEquals("½ + 1", ShoppingQuantity.sum("½", "1"))
         assertEquals("un puñado + un puñado", ShoppingQuantity.sum("un puñado", "un puñado"))
+    }
+
+    @Test
+    fun `terms joined with plus are grouped by unit`() {
+        assertEquals("500 g + 1 ud", ShoppingQuantity.sum("200 g + 1 ud", "300 g"))
+    }
+
+    @Test
+    fun `unread terms keep their place while read ones are grouped`() {
+        assertEquals("2-3 dientes + 3 ud", ShoppingQuantity.sum("2-3 dientes + 1 ud", "2 ud"))
+    }
+
+    @Test
+    fun `a group of one term is written literally`() {
+        assertEquals("1/2 taza + 200 g", ShoppingQuantity.sum("1/2 taza", "200 g"))
+    }
+
+    @Test
+    fun `fractions are rounded only at the end`() {
+        assertEquals("0,25 taza", ShoppingQuantity.sum("1/8 taza", "1/8 taza"))
+        assertEquals("1", ShoppingQuantity.sum(ShoppingQuantity.sum("1/3", "1/3"), "1/3"))
     }
 }
