@@ -135,27 +135,22 @@ class ShoppingViewModel @Inject constructor(
     ) {
         if (!validate(name, quantity, notes)) return
         val match = findShoppingMatch(currentItems, name)
-        when {
-            match == null -> runAction(ShoppingUiMessage.ItemAdded, editor = true) {
-                repository.addItem(
-                    spaceId,
-                    name.trim(),
-                    quantity.normalized(),
-                    notes.normalized(),
-                    supermarket,
-                    brand,
-                )
-            }
-            !match.purchased -> mutableUiState.update {
-                it.copy(duplicate = ShoppingDuplicate(match, quantity.normalized()))
-            }
-            else -> runAction(ShoppingUiMessage.ItemAdded, editor = true) {
+        val normalizedQuantity = quantity.normalized()
+        if (match != null && !match.purchased) {
+            mutableUiState.update { it.copy(duplicate = ShoppingDuplicate(match, normalizedQuantity)) }
+            return
+        }
+        val normalizedNotes = notes.normalized()
+        runAction(ShoppingUiMessage.ItemAdded, editor = true) {
+            if (match == null) {
+                repository.addItem(spaceId, name.trim(), normalizedQuantity, normalizedNotes, supermarket, brand)
+            } else {
                 repository.relistItem(
                     spaceId,
                     match.id,
                     match.name,
-                    quantity.normalized(),
-                    notes.normalized(),
+                    normalizedQuantity,
+                    normalizedNotes,
                     supermarket,
                     brand,
                 )

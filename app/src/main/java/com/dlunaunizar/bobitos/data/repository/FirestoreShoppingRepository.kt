@@ -107,33 +107,7 @@ class FirestoreShoppingRepository @Inject constructor(
         notes: String?,
         supermarket: Supermarket?,
         brand: String?,
-    ) = runShoppingOperation {
-        val user = requireVerifiedUser()
-        val values = validateItem(name, quantity, notes, supermarket, brand)
-        val reference = itemsCollection(spaceId).document(itemId)
-
-        firestore.runTransaction { transaction ->
-            requireItem(transaction.get(reference))
-            transaction.update(
-                reference,
-                FIELD_NAME,
-                values.name,
-                FIELD_QUANTITY,
-                values.quantity,
-                FIELD_NOTES,
-                values.notes,
-                FIELD_SUPERMARKET,
-                values.supermarket,
-                FIELD_BRAND,
-                values.brand,
-                FIELD_UPDATED_BY,
-                user.id,
-                FIELD_UPDATED_AT,
-                FieldValue.serverTimestamp(),
-            )
-        }.await()
-        Unit
-    }
+    ) = writeItemFields(spaceId, itemId, name, quantity, notes, supermarket, brand, relist = false)
 
     override suspend fun relistItem(
         spaceId: String,
@@ -143,6 +117,22 @@ class FirestoreShoppingRepository @Inject constructor(
         notes: String?,
         supermarket: Supermarket?,
         brand: String?,
+    ) = writeItemFields(spaceId, itemId, name, quantity, notes, supermarket, brand, relist = true)
+
+    /**
+     * Escritura común de [updateItem] y [relistItem]. Con `relist` no toca el nombre y deja el artículo
+     * como pendiente (sin quién ni cuándo lo compró); los `null` se escriben como `null`.
+     */
+    @Suppress("LongParameterList")
+    private suspend fun writeItemFields(
+        spaceId: String,
+        itemId: String,
+        name: String,
+        quantity: String?,
+        notes: String?,
+        supermarket: Supermarket?,
+        brand: String?,
+        relist: Boolean,
     ) = runShoppingOperation {
         val user = requireVerifiedUser()
         val values = validateItem(name, quantity, notes, supermarket, brand)
@@ -150,29 +140,21 @@ class FirestoreShoppingRepository @Inject constructor(
 
         firestore.runTransaction { transaction ->
             requireItem(transaction.get(reference))
-            transaction.update(
-                reference,
-                FIELD_QUANTITY,
-                values.quantity,
-                FIELD_NOTES,
-                values.notes,
-                FIELD_SUPERMARKET,
-                values.supermarket,
-                FIELD_BRAND,
-                values.brand,
-                FIELD_PURCHASED,
-                false,
-                FIELD_PURCHASED_BY,
-                null,
-                FIELD_PURCHASED_BY_NAME,
-                null,
-                FIELD_PURCHASED_AT,
-                null,
-                FIELD_UPDATED_BY,
-                user.id,
-                FIELD_UPDATED_AT,
-                FieldValue.serverTimestamp(),
-            )
+            val fields = mutableMapOf<String, Any?>()
+            if (!relist) fields[FIELD_NAME] = values.name
+            fields[FIELD_QUANTITY] = values.quantity
+            fields[FIELD_NOTES] = values.notes
+            fields[FIELD_SUPERMARKET] = values.supermarket
+            fields[FIELD_BRAND] = values.brand
+            if (relist) {
+                fields[FIELD_PURCHASED] = false
+                fields[FIELD_PURCHASED_BY] = null
+                fields[FIELD_PURCHASED_BY_NAME] = null
+                fields[FIELD_PURCHASED_AT] = null
+            }
+            fields[FIELD_UPDATED_BY] = user.id
+            fields[FIELD_UPDATED_AT] = FieldValue.serverTimestamp()
+            transaction.update(reference, fields)
         }.await()
         Unit
     }
