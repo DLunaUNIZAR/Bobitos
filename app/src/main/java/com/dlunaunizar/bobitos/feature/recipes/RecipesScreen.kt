@@ -114,6 +114,13 @@ fun RecipesScreen(
     val deletedMessage = stringResource(R.string.recipes_undo_deleted)
     val undoLabel = stringResource(R.string.undo)
 
+    // «Deshacer» solo cuando el servidor ha confirmado el borrado: si falla, sale el error y no se ofrece.
+    LaunchedEffect(state.deletedRecipe) {
+        val deleted = state.deletedRecipe ?: return@LaunchedEffect
+        viewModel.consumeDeletedRecipe()
+        scope.launchUndo(snackbarHostState, deletedMessage, undoLabel) { viewModel.restoreRecipe(deleted) }
+    }
+
     Scaffold(
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -253,11 +260,8 @@ fun RecipesScreen(
             destructive = true,
             confirmEnabled = canWrite && !state.isSaving,
             onConfirm = {
-                viewModel.deleteRecipe(recipe.id)
+                viewModel.deleteRecipe(recipe)
                 recipeToDelete = null
-                scope.launchUndo(snackbarHostState, deletedMessage, undoLabel) {
-                    viewModel.restoreRecipe(recipe)
-                }
             },
             onDismiss = { recipeToDelete = null },
         )
@@ -294,7 +298,7 @@ private fun LazyListScope.recipesSection(
             ErrorState(Modifier.fillMaxWidth(), message = recipes.message)
         }
         is UiState.Content -> {
-            val filtered = recipes.value.filter { it.matches(query) && (category == null || it.category == category) }
+            val filtered = recipes.value.matching(query).filter { category == null || it.category == category }
             if (filtered.isEmpty()) {
                 val noResults = (query.isNotBlank() || category != null) && recipes.value.isNotEmpty()
                 item(key = "empty-$titleRes") {
@@ -352,12 +356,16 @@ private fun RecipeCard(recipe: Recipe, onClick: () -> Unit, modifier: Modifier =
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                text = listOfNotNull(recipe.category, stringResource(R.string.recipes_by, recipe.createdByName))
-                    .joinToString(" · "),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            listOfNotNull(
+                recipe.category,
+                recipe.createdByName.takeIf(String::isNotBlank)?.let { stringResource(R.string.recipes_by, it) },
+            ).joinToString(" · ").takeIf(String::isNotEmpty)?.let { line ->
+                Text(
+                    text = line,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
@@ -448,14 +456,6 @@ private fun RecipesFeedback(state: RecipesUiState, onDismiss: () -> Unit) {
 }
 
 private fun UiState<List<Recipe>>.contentOrEmpty(): List<Recipe> = (this as? UiState.Content)?.value.orEmpty()
-
-private fun Recipe.matches(query: String): Boolean {
-    if (query.isBlank()) return true
-    val trimmed = query.trim()
-    return title.contains(trimmed, ignoreCase = true) ||
-        category?.contains(trimmed, ignoreCase = true) == true ||
-        ingredients?.any { it.name.contains(trimmed, ignoreCase = true) } == true
-}
 
 private fun RecipeUiMessage.isImport(): Boolean = this in IMPORT_MESSAGES
 

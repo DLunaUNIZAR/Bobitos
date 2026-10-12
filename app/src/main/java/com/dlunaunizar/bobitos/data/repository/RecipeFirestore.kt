@@ -29,3 +29,7 @@ internal fun parseRecipeCount(raw: Any?, range: IntRange): Int? {
     }
     return value.toIntIn(range)
 }
+
+// Autor que se muestra («por …»): el guardado, sin espacios; vacío si la receta es antigua y no lo tiene. Nunca el uid:
+// al deshacer su borrado, el repositorio pone el nombre de quien la recrea.
+internal fun recipeAuthorName(raw: String?): String = raw?.trim().orEmpty()

@@ -41,6 +41,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -456,21 +457,48 @@ class RecipesViewModelTest {
     }
 
     @Test
-    fun `undoing the delete of a common keeps it common only for the admin`() =
+    fun `the undo is offered only once the delete is confirmed`() = runTest(mainDispatcherRule.testDispatcher) {
+        val tortilla = recipe("r1", RecipeVisibility.PRIVATE, "Tortilla")
+        val gate = CompletableDeferred<Unit>()
+        repository.deleteGate = gate
+
+        viewModel.deleteRecipe(tortilla)
+        runCurrent()
+        assertNull(viewModel.uiState.value.deletedRecipe)
+
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(listOf("r1"), repository.deletedIds)
+        assertEquals(tortilla, viewModel.uiState.value.deletedRecipe)
+
+        viewModel.consumeDeletedRecipe()
+        assertNull(viewModel.uiState.value.deletedRecipe)
+    }
+
+    @Test
+    fun `a failed delete offers no undo and shows the error`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.nextFailure = RecipeRepositoryException(RecipeFailure.Network)
+
+        viewModel.deleteRecipe(recipe("r1", RecipeVisibility.PRIVATE, "Tortilla"))
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.deletedRecipe)
+        assertEquals(RecipeUiMessage.NetworkError, viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `undoing the delete of a common recreates it common, and without admin rights the rules refuse it`() =
         runTest(mainDispatcherRule.testDispatcher) {
             val common = recipe("torrijas", RecipeVisibility.GLOBAL, "Torrijas")
 
             viewModel.restoreRecipe(common)
             advanceUntilIdle()
-            assertEquals(RecipeVisibility.PRIVATE, repository.restored?.visibility)
+            assertEquals(common, repository.restored)
 
-            repository.admin = true
-            viewModel.observe()
-            advanceUntilIdle()
+            repository.nextFailure = RecipeRepositoryException(RecipeFailure.PermissionDenied)
             viewModel.restoreRecipe(common)
             advanceUntilIdle()
-            assertEquals(RecipeVisibility.GLOBAL, repository.restored?.visibility)
-            assertEquals("torrijas", repository.restored?.id)
+            assertEquals(RecipeUiMessage.PermissionDenied, viewModel.uiState.value.error)
         }
 
     @Test
@@ -595,7 +623,14 @@ private class FakeRecipeRepository : RecipeRepository {
         lastTotalMinutes = totalMinutes
     }
 
-    override suspend fun deleteRecipe(recipeId: String) = Unit
+    var deleteGate: CompletableDeferred<Unit>? = null
+    val deletedIds = mutableListOf<String>()
+
+    override suspend fun deleteRecipe(recipeId: String) {
+        deleteGate?.await()
+        nextFailure?.let { throw it }
+        deletedIds += recipeId
+    }
 
     override suspend fun restoreRecipe(recipe: Recipe) {
         nextFailure?.let { throw it }

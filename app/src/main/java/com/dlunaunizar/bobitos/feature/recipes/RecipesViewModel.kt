@@ -235,17 +235,19 @@ class RecipesViewModel @Inject constructor(
         }
     }
 
-    // Recrea la receta borrada («Deshacer») con su mismo id: el importador del catálogo no duplica una común
-    // recuperada y las comidas que la enlazaban la vuelven a encontrar. No es un guardado del editor, no mueve
-    // su estado.
-    fun restoreRecipe(recipe: Recipe) = runAction(RecipeUiMessage.RecipeSaved) {
-        repository.restoreRecipe(recipe.copy(visibility = safeVisibility(recipe.visibility)))
+    // Recrea la receta borrada («Deshacer») tal como era, con su mismo id y su visibilidad: el importador del catálogo
+    // no duplica una común recuperada y las comidas que la enlazaban la vuelven a encontrar. Si quien deshace ya no
+    // puede publicar comunes, las reglas lo rechazan y sale el error (nunca se guarda como privada con el id del
+    // catálogo). No es un guardado del editor, no mueve su estado.
+    fun restoreRecipe(recipe: Recipe) = runAction(RecipeUiMessage.RecipeSaved) { repository.restoreRecipe(recipe) }
+
+    // Sin notice: el «Deshacer» lo ofrece la pantalla cuando el servidor confirma el borrado (deletedRecipe); si
+    // falla, sale el error y no se ofrece.
+    fun deleteRecipe(recipe: Recipe) {
+        runAction(null, onSuccess = { it.copy(deletedRecipe = recipe) }) { repository.deleteRecipe(recipe.id) }
     }
 
-    fun deleteRecipe(recipeId: String) {
-        // Sin notice: el feedback del borrado (con «Deshacer») lo da el Snackbar de la pantalla.
-        runAction(null) { repository.deleteRecipe(recipeId) }
-    }
+    fun consumeDeletedRecipe() = mutableUiState.update { it.copy(deletedRecipe = null) }
 
     fun fork(source: Recipe) {
         runAction(RecipeUiMessage.RecipeForked) {
@@ -299,7 +301,12 @@ class RecipesViewModel @Inject constructor(
         }
     }
 
-    private fun runAction(successNotice: RecipeUiMessage?, editor: Boolean = false, action: suspend () -> Unit) {
+    private fun runAction(
+        successNotice: RecipeUiMessage?,
+        editor: Boolean = false,
+        onSuccess: (RecipesUiState) -> RecipesUiState = { it },
+        action: suspend () -> Unit,
+    ) {
         if (mutableUiState.value.isSaving) return
         mutableUiState.update {
             it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
@@ -308,7 +315,8 @@ class RecipesViewModel @Inject constructor(
             runCatching { withEditorSaveTimeout(editor) { action() } }
                 .onSuccess {
                     mutableUiState.update {
-                        it.copy(isSaving = false, notice = successNotice, editorSave = it.editorSave.succeeded(editor))
+                        val saved = it.editorSave.succeeded(editor)
+                        onSuccess(it.copy(isSaving = false, notice = successNotice, editorSave = saved))
                     }
                 }
                 .onFailure { error ->

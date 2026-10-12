@@ -21,4 +21,6 @@ data class RecipesUiState(
     val importDraft: ImportedRecipe? = null,
     // Revisión de cantidades al añadir los ingredientes de una receta a la Compra (null = sin diálogo).
     val ingredientReview: List<IngredientReviewRow>? = null,
+    // Receta recién borrada, con el borrado ya confirmado: la pantalla ofrece «Deshacer» y la consume.
+    val deletedRecipe: Recipe? = null,
 )

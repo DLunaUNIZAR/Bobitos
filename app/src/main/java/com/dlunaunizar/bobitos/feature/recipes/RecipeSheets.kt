@@ -141,11 +141,13 @@ private fun RecipeDetailSheet(
         recipe.category?.let { Text(stringResource(R.string.recipes_category, it)) }
         IngredientsList(recipe.ingredients)
         StepsList(recipe.steps)
-        Text(
-            text = stringResource(R.string.recipes_by, recipe.createdByName),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (recipe.createdByName.isNotBlank()) {
+            Text(
+                text = stringResource(R.string.recipes_by, recipe.createdByName),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

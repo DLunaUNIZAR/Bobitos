@@ -309,7 +309,7 @@ private fun DocumentSnapshot.toRecipe(): Recipe? {
         servings = parseRecipeCount(get("servings"), RecipeLimits.SERVINGS),
         totalMinutes = parseRecipeCount(get("totalMinutes"), RecipeLimits.TOTAL_MINUTES),
         createdBy = getString("createdBy") ?: return null,
-        createdByName = getString("createdByName") ?: getString("createdBy") ?: return null,
+        createdByName = recipeAuthorName(getString("createdByName")),
         createdAt = createdAt,
         updatedBy = getString("updatedBy") ?: getString("createdBy") ?: return null,
         updatedAt = updatedAt,

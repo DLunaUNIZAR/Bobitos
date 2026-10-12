@@ -7,6 +7,13 @@ import org.junit.Test
 
 class RecipeFirestoreTest {
     @Test
+    fun `a missing author name stays empty instead of becoming the uid`() {
+        assertEquals("", recipeAuthorName(null))
+        assertEquals("", recipeAuthorName("   "))
+        assertEquals("Ana", recipeAuthorName(" Ana "))
+    }
+
+    @Test
     fun `steps are read as their non blank texts and a missing field stays null`() {
         assertEquals(listOf("Remoja.", "Cuece."), parseRecipeSteps(listOf("Remoja.", "  ", 3, null, "Cuece.")))
         assertEquals(emptyList<String>(), parseRecipeSteps(emptyList<String>()))
