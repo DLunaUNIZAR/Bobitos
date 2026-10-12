@@ -47,20 +47,20 @@ class JsonLdRecipeImporter @Inject constructor(private val fetcher: HtmlFetcher)
     }
 
     private fun JSONObject.toImportedRecipe(sourceUrl: String): ImportedRecipe {
-        val title = cleanText(optString("name")).take(MAX_TITLE)
+        val title = cleanText(optText("name")).take(MAX_TITLE)
         if (title.isBlank()) throw RecipeImportException(ImportFailure.NoRecipeFound)
         return ImportedRecipe(
             title = title,
-            description = cleanText(optString("description")).takeIf(String::isNotBlank)?.take(MAX_DESCRIPTION),
+            description = cleanText(optText("description")).takeIf(String::isNotBlank)?.take(MAX_DESCRIPTION),
             category = parseCategory()?.take(MAX_CATEGORY),
             ingredients = parseIngredients(),
             sourceUrl = sourceUrl,
             steps = RecipeMetaParser.steps(parseInstructions()),
             servings = RecipeMetaParser.servings(opt("recipeYield")),
             totalMinutes = RecipeMetaParser.totalMinutes(
-                optString("totalTime"),
-                optString("prepTime"),
-                optString("cookTime"),
+                optText("totalTime"),
+                optText("prepTime"),
+                optText("cookTime"),
             ),
         )
     }
@@ -68,7 +68,7 @@ class JsonLdRecipeImporter @Inject constructor(private val fetcher: HtmlFetcher)
     private fun JSONObject.parseCategory(): String? {
         val category = when (val raw = opt("recipeCategory")) {
             is String -> raw
-            is JSONArray -> raw.optString(0)
+            is JSONArray -> raw.optText(0)
             else -> ""
         }
         return cleanText(category).takeIf(String::isNotBlank)
@@ -92,7 +92,7 @@ class JsonLdRecipeImporter @Inject constructor(private val fetcher: HtmlFetcher)
                     if (section is JSONArray) {
                         steps += flattenInstructions(section)
                     } else {
-                        cleanText(item.optString("text").ifBlank { item.optString("name") })
+                        cleanText(item.optText("text").ifBlank { item.optText("name") })
                             .takeIf(String::isNotBlank)?.let(steps::add)
                     }
                 }
@@ -104,13 +104,13 @@ class JsonLdRecipeImporter @Inject constructor(private val fetcher: HtmlFetcher)
     private fun JSONObject.parseIngredients(): List<Ingredient> {
         val array = (opt("recipeIngredient") ?: opt("ingredients")) as? JSONArray ?: return emptyList()
         return (0 until array.length())
-            .mapNotNull { IngredientParser.parse(cleanText(array.optString(it))) }
+            .mapNotNull { IngredientParser.parse(cleanText(array.optText(it))) }
             .take(MAX_INGREDIENTS)
     }
 
     private fun JSONObject.hasType(type: String): Boolean = when (val raw = opt("@type")) {
         is String -> raw.equals(type, ignoreCase = true)
-        is JSONArray -> (0 until raw.length()).any { raw.optString(it).equals(type, ignoreCase = true) }
+        is JSONArray -> (0 until raw.length()).any { raw.optText(it).equals(type, ignoreCase = true) }
         else -> false
     }
 
@@ -128,3 +128,8 @@ class JsonLdRecipeImporter @Inject constructor(private val fetcher: HtmlFetcher)
         const val MAX_INGREDIENTS = 50
     }
 }
+
+// No se usa optString: en Android devuelve el texto "null" ante un null del JSON (el org.json de la JVM, "").
+internal fun JSONObject.optText(key: String): String = (opt(key) as? String).orEmpty()
+
+internal fun JSONArray.optText(index: Int): String = (opt(index) as? String).orEmpty()

@@ -2,6 +2,8 @@ package com.dlunaunizar.bobitos.data.recipeimport
 
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import kotlinx.coroutines.test.runTest
+import org.json.JSONArray
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
@@ -194,6 +196,45 @@ class JsonLdRecipeImporterTest {
             runTest { importer.import("   ") }
         }
         assertEquals(ImportFailure.InvalidUrl, error.failure)
+    }
+
+    @Test
+    fun `optText reads only real strings and never returns the text null`() {
+        val obj = JSONObject("""{"description": null, "name": "Lentejas", "yield": 4}""")
+        assertEquals("", obj.optText("description"))
+        assertEquals("Lentejas", obj.optText("name"))
+        assertEquals("", obj.optText("yield"))
+        assertEquals("", obj.optText("falta"))
+
+        val array = JSONArray("""[null, "Lentejas", 4]""")
+        assertEquals("", array.optText(0))
+        assertEquals("Lentejas", array.optText(1))
+        assertEquals("", array.optText(2))
+        assertEquals("", array.optText(5))
+    }
+
+    @Test
+    fun `a null in the page does not become the text null`() = runTest {
+        fetcher.html = pageWith(
+            """
+            {
+              "@type": "Recipe",
+              "name": "Lentejas",
+              "description": null,
+              "recipeIngredient": ["200 g de lentejas", null],
+              "recipeInstructions": [
+                { "@type": "HowToStep", "text": null },
+                { "@type": "HowToStep", "text": "Cocer las lentejas" }
+              ]
+            }
+            """.trimIndent(),
+        )
+
+        val recipe = importer.import("https://example.com/lentejas")
+
+        assertEquals(null, recipe.description)
+        assertEquals(listOf("Cocer las lentejas"), recipe.steps)
+        assertEquals(listOf(Ingredient("lentejas", "200", "g")), recipe.ingredients)
     }
 
     private fun pageWith(jsonLd: String): String =
