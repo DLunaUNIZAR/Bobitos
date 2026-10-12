@@ -215,6 +215,8 @@ brand: string | ausente               # texto libre, ≤60
 
 `brand` es el nombre de la marca elegida en el selector de marca y tienda (o el texto libre cuando el producto no es un ingrediente reconocido); «Indiferente» se guarda como ausente (`null`).
 
+**Artículos repetidos.** Al crear un artículo (a mano, desde la ficha de un ingrediente o desde la revisión de una receta o comida) se busca uno ya apuntado con `shoppingMatchKey` (la clave tolerante `ingredientKey`: «Tomates» = «tomate»; si queda vacía, el nombre en minúsculas), y manda el pendiente sobre el comprado. Si está **pendiente**, se pregunta: sumar la cantidad (`ShoppingQuantity.sum`: suma si las dos son número con la misma unidad; si no, las une con « + ») o no añadirlo. Si está **comprado**, se vuelve a apuntar ese mismo documento (`relistItem`: `purchased = false` y atribución de compra a `null`, en una sola escritura) con la cantidad nueva. No se crean duplicados.
+
 ### Decisión importante
 
 No existirá `assigneeId`. La lista es compartida y no se asigna a nadie.

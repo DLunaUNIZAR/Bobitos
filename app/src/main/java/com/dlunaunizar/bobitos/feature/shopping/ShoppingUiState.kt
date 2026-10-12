@@ -16,7 +16,12 @@ data class ShoppingUiState(
     // Ingredientes, marcas y preferencias, cargados de forma perezosa mientras el editor de ítem está
     // abierto: autocompletan el nombre y proponen marca y tienda.
     val ingredientData: IngredientShoppingData = IngredientShoppingData(),
+    // Aviso de artículo ya pendiente al crear uno («Sumar cantidad» / «No añadir»); null si no hay.
+    val duplicate: ShoppingDuplicate? = null,
 )
+
+/** Artículo ya pendiente en la lista ([existing]) y la cantidad que se quería añadir. */
+data class ShoppingDuplicate(val existing: ShoppingItem, val quantity: String?)
 
 enum class ShoppingWriteStatus {
     IDLE,

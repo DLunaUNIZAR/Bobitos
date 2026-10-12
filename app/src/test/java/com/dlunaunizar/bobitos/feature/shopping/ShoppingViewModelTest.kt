@@ -85,9 +85,10 @@ class ShoppingViewModelTest {
         viewModel.observe("home")
         advanceUntilIdle()
 
-        viewModel.addItem("home", "Leche", null, null, null, null)
+        viewModel.addItem("home", "Pan", null, null, null, null)
         advanceUntilIdle()
 
+        assertEquals("Pan", repository.addedName)
         assertNull(repository.addedSupermarket)
         assertNull(repository.addedBrand)
     }
@@ -352,6 +353,93 @@ class ShoppingViewModelTest {
         assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
         assertEquals(ShoppingUiMessage.ItemAdded, viewModel.uiState.value.notice)
     }
+
+    @Test
+    fun `adding a product already pending asks instead of writing`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.itemState.value = listOf(listItem(quantity = "1 l"))
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.addItem("home", " leches ", " 2 l ", null, null, null)
+        advanceUntilIdle()
+
+        assertEquals(ShoppingDuplicate(listItem(quantity = "1 l"), "2 l"), viewModel.uiState.value.duplicate)
+        assertNull(repository.addedName)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+    }
+
+    @Test
+    fun `summing a duplicate updates only the quantity of the existing item`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.itemState.value = listOf(listItem(quantity = "1 l"))
+            viewModel.observe("home")
+            advanceUntilIdle()
+            viewModel.addItem("home", "Leche", "2 l", null, Supermarket.EROSKI, "Otra")
+            advanceUntilIdle()
+
+            viewModel.sumDuplicate("home")
+            advanceUntilIdle()
+
+            assertEquals("milk", repository.updatedItemId)
+            assertEquals("3 l", repository.updatedQuantity)
+            assertEquals(Supermarket.DIA, repository.updatedSupermarket)
+            assertEquals("Pascual", repository.updatedBrand)
+            assertNull(viewModel.uiState.value.duplicate)
+            assertEquals(ShoppingUiMessage.ItemUpdated, viewModel.uiState.value.notice)
+            assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+        }
+
+    @Test
+    fun `dismissing a duplicate writes nothing`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.itemState.value = listOf(listItem(quantity = "1 l"))
+        viewModel.observe("home")
+        advanceUntilIdle()
+        viewModel.addItem("home", "Leche", "2 l", null, null, null)
+        advanceUntilIdle()
+
+        viewModel.dismissDuplicate()
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.duplicate)
+        assertNull(repository.addedName)
+        assertNull(repository.updatedItemId)
+    }
+
+    @Test
+    fun `adding a purchased product relists it with the editor values and keeps its name`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.itemState.value = listOf(listItem(quantity = "6 l", purchased = true))
+            viewModel.observe("home")
+            advanceUntilIdle()
+
+            viewModel.addItem("home", " leches ", " 2 ", " sin lactosa ", Supermarket.EROSKI, "Puleva")
+            advanceUntilIdle()
+
+            assertEquals(
+                RelistCall("milk", "Leche", "2", "sin lactosa", Supermarket.EROSKI, "Puleva"),
+                repository.relisted,
+            )
+            assertNull(repository.addedName)
+            assertNull(viewModel.uiState.value.duplicate)
+            assertEquals(ShoppingUiMessage.ItemAdded, viewModel.uiState.value.notice)
+            assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+        }
+
+    @Test
+    fun `a sum longer than 40 characters is reported and not written`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.itemState.value = listOf(listItem(quantity = "x".repeat(30)))
+        viewModel.observe("home")
+        advanceUntilIdle()
+        viewModel.addItem("home", "Leche", "y".repeat(10), null, null, null)
+        advanceUntilIdle()
+
+        viewModel.sumDuplicate("home")
+        advanceUntilIdle()
+
+        assertNull(repository.updatedItemId)
+        assertEquals(ShoppingUiMessage.QuantityTooLong, viewModel.uiState.value.error)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+    }
 }
 
 private class FakeShoppingRepository : ShoppingRepository {
@@ -467,6 +555,13 @@ private fun shoppingItem() = ShoppingItem(
     purchasedBy = null,
     purchasedByName = null,
     purchasedAt = null,
+)
+
+private fun listItem(quantity: String? = null, purchased: Boolean = false) = shoppingItem().copy(
+    quantity = quantity,
+    purchased = purchased,
+    supermarket = Supermarket.DIA,
+    brand = "Pascual",
 )
 
 private data class RelistCall(

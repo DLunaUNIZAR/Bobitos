@@ -176,9 +176,9 @@
     <string name="shopping_add_title">Añadir producto</string>
     <string name="shopping_already_in_list">Ya en la lista</string>
     <string name="shopping_duplicate_title">Ya en la lista</string>
-    <string name="shopping_duplicate_body">«%1$s» ya está en la lista (cantidad: %2$s). ¿Qué quieres hacer?</string>
-    <string name="shopping_duplicate_update">Actualizar cantidad</string>
-    <string name="shopping_duplicate_add">Añadir aparte</string>
+    <string name="shopping_duplicate_body">«%1$s» ya está en la lista (cantidad: %2$s). ¿Sumas la cantidad o no lo añades?</string>
+    <string name="shopping_duplicate_sum">Sumar cantidad</string>
+    <string name="shopping_duplicate_skip">No añadir</string>
     <string name="shopping_edit">Editar</string>
     <string name="shopping_edit_title">Editar producto</string>
     <string name="shopping_delete">Eliminar</string>
