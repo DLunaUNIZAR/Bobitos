@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -69,6 +70,8 @@ private fun CountField(
 // Pasos del editor: «Paso N» con texto de varias líneas, subir, bajar y quitar; «Añadir paso» hasta 30.
 @Composable
 internal fun StepsEditor(draft: RecipeDraft, validation: RecipeUiMessage?, onDraft: (RecipeDraft) -> Unit) {
+    // Las filas se pintan por posición: al reordenar o quitar, el foco no puede quedarse en otro paso.
+    val focusManager = LocalFocusManager.current
     Text(
         text = stringResource(R.string.recipes_steps_section),
         style = MaterialTheme.typography.titleSmall,
@@ -89,14 +92,23 @@ internal fun StepsEditor(draft: RecipeDraft, validation: RecipeUiMessage?, onDra
                 modifier = Modifier.fillMaxWidth(),
             )
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                IconButton(onClick = { onDraft(draft.withStepMoved(index, -1)) }, enabled = index > 0) {
+                IconButton(
+                    onClick = {
+                        focusManager.clearFocus()
+                        onDraft(draft.withStepMoved(index, -1))
+                    },
+                    enabled = index > 0,
+                ) {
                     Icon(
                         Icons.Rounded.KeyboardArrowUp,
                         contentDescription = stringResource(R.string.recipes_step_up),
                     )
                 }
                 IconButton(
-                    onClick = { onDraft(draft.withStepMoved(index, 1)) },
+                    onClick = {
+                        focusManager.clearFocus()
+                        onDraft(draft.withStepMoved(index, 1))
+                    },
                     enabled = index < draft.steps.lastIndex,
                 ) {
                     Icon(
@@ -104,7 +116,12 @@ internal fun StepsEditor(draft: RecipeDraft, validation: RecipeUiMessage?, onDra
                         contentDescription = stringResource(R.string.recipes_step_down),
                     )
                 }
-                IconButton(onClick = { onDraft(draft.withoutStep(index)) }) {
+                IconButton(
+                    onClick = {
+                        focusManager.clearFocus()
+                        onDraft(draft.withoutStep(index))
+                    },
+                ) {
                     Icon(Icons.Rounded.Delete, contentDescription = stringResource(R.string.recipes_step_remove))
                 }
             }
