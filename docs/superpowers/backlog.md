@@ -4,6 +4,23 @@ Menores que las revisiones de cada rama dejaron sin arreglar. Cada línea dice s
 
 Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalogo-ejercicios-wger`) se cerraron en la rama `agent/menores-aplazados` (plan `docs/superpowers/plans/2026-10-10-menores-aplazados.md`).
 
+## 2026-10-12 — `agent/compra-sin-duplicados`
+
+- **Efecto visible:** plural heurístico de las unidades no básicas al sumar: «pack» → «packes», «nuez» → «nuezes», «limón» → «limónes»; y «1/2 cucharadas» × 2 → «1 cucharadas», porque no hay grafía singular que elegir (`ShoppingQuantity.kt`).
+- **Efecto visible:** «Sumar» y «volver a apuntar» escriben los valores que tenía el artículo al abrir el diálogo. Si otro miembro lo marca como comprado mientras tanto, queda comprado con la cantidad nueva, y se pisan sus cambios de notas, tienda o marca. Posible arreglo: usar `relistItem` también para «Sumar», o comprobar el estado dentro de la transacción (`IngredientReview.kt`, `ShoppingViewModel.kt`).
+- **Efecto visible:** si la lista aún no se ha cargado o su lectura falla, no se buscan repetidos y se duplica. Pasa en el editor de la Compra antes de `UiState.Content` y en el `runCatching { items().first() }.getOrDefault(emptyList())` de Comidas y Recetario.
+- **Efecto visible:** si la suma pasa de 40 caracteres en el editor, el error «cantidad demasiado larga» sale sobre un campo que muestra una cantidad corta (`ShoppingViewModel.sumDuplicate`).
+- **Efecto visible:** `applyIngredientReview` no es atómica. Si una escritura falla a medias y el usuario vuelve a elegir «Sumar», esa cantidad se suma dos veces.
+- **Efecto visible:** «Sumar cantidad» en el editor descarta las notas, la tienda y la marca que se han tecleado. Lo fija la spec A4; queda por decidir si al menos se rellenan las que el artículo existente tiene vacías.
+- **Efecto visible:** la fila «Ya comprado» de la revisión no tiene «Omitir». Si se vuelve a añadir la semana después de comprar, todo lo comprado vuelve a quedar pendiente. Es decisión de producto (spec A3, decisión 7).
+- **Efecto visible:** el aviso «Ya en la lista» del editor parte «(cantidad: 5 / ud)» en dos líneas (visto en el emulador).
+- **Efecto visible:** si un ingrediente sin cantidad ya está pendiente, la revisión muestra «Ya en la lista: — · receta: —».
+- **Interno:** huecos de test del Review Focus. El punto 1 solo prueba el predicado sobre un `ReviewRowState` sintético y no recorre una fila PENDING larga → `withInclude(true)`. El punto 3 no tiene test del ViewModel del editor con el mismo producto comprado y pendiente.
+- **Interno:** `FirestoreShoppingRepository.MAX_QUANTITY_LENGTH = 40` no reutiliza `ShoppingQuantity.MAX_LENGTH`.
+- **Interno:** `relistItem` recibe un `name` que valida pero no escribe.
+- **Interno:** `findShoppingMatch` recalcula `shoppingMatchKey` de toda la lista en cada búsqueda: una vez por grupo de la revisión y otra por cada tecla del editor. Falta un índice clave → artículo.
+- **Interno:** `seed:emulators` no crea el usuario de Authentication ni lo liga al espacio sembrado; en el recorrido de punta a punta hubo que crear las dos cosas a mano.
+
 ## 2026-10-11 — `agent/catalogo-rutinas`
 
 - **Efecto visible:** en el selector de ejercicios (diálogo estrecho), el valor «Peso corporal» del filtro de tipo se corta en seco («Peso corp»), sin puntos suspensivos; en el menú se lee entero (visto en el emulador; el corte ya se aceptó en el plan de filtros, la elipsis no).
