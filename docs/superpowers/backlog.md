@@ -4,6 +4,21 @@ Menores que las revisiones de cada rama dejaron sin arreglar. Cada línea dice s
 
 Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalogo-ejercicios-wger`) se cerraron en la rama `agent/menores-aplazados` (plan `docs/superpowers/plans/2026-10-10-menores-aplazados.md`).
 
+## 2026-10-12 — `agent/receta-pasos`
+
+- **Efecto visible:** el importador no parte en pasos las instrucciones con HTML escapado (`&lt;br&gt;`): queda «<br>» visible. Tampoco parte un array de textos o un `HowToStep` con `<br>` o `\n`, y sus pasos salen unidos (`RecipeImporter.kt`).
+- **Efecto visible:** si el texto único de instrucciones es HTML y lleva un `\n` del código fuente dentro de un `<p>`, el párrafo se parte en dos pasos. No se pierde texto (`RecipeImporter.kt`).
+- **Efecto visible:** el error de raciones o tiempo solo se marca en su campo si es el primer fallo de la validación. Sin título, o con los dos campos mal, alguno no se marca, aunque Guardar sí queda deshabilitado (`RecipeStepsEditor.kt`).
+- **Efecto visible:** «Subir paso», «Bajar paso» y «Quitar paso» no dicen de qué paso son, y TalkBack los repite hasta 30 veces (`RecipeStepsEditor.kt`).
+- **Efecto visible:** el buscador del Recetario (`Recipe.matches`: subcadena, distingue tildes, mira también los ingredientes) no se comporta como el del selector de Comidas (`forPicker`: por palabras, sin tildes, solo título y categoría). Por ejemplo, «limon» no encuentra «Pollo al limón» en el Recetario.
+- **Efecto visible:** en `IngredientsEditor`, quitar un ingrediente con el teclado abierto deja el foco en esa posición, igual que les pasaba a los pasos antes de `dc15e36`.
+- **Efecto visible (plan C):** si el admin borra una receta común del catálogo y pulsa «Deshacer», se recrea con otro id y sin `source`, y el importador del plan C la duplicaría en «Comunes» (`RecipesViewModel.restoreRecipe`).
+- **Interno:** `toRecipeCount` usa 0 como marca de «no es un entero». Funciona porque 0 queda fuera de los dos rangos (`RecipeDraft.kt`).
+- **Interno:** `recipeDetailsFailure` repite las comprobaciones de pasos, raciones y tiempo de `RecipesValidation.validate`, y `detailsMessage` existe solo para no superar `CyclomaticComplexMethod`.
+- **Interno:** los pasos se limpian hasta 4 veces en cada guardado (`RecipeDraft.validate`, `RecipesViewModel`, el repositorio y `RecipeMetaParser`).
+- **Interno:** `updateRecipe` (repositorio y ViewModel) tiene `steps`, `servings` y `totalMinutes` con valores por defecto. Una llamada futura que no los pase vaciaría la receta.
+- **Interno:** en el recorrido de punta a punta hubo que sembrar a mano el admin de recetas (uid de `RecipeAdmins`) y una receta antigua. Con ese admin sembrado como miembro de `demo-home`, la app dio `PERMISSION_DENIED` en `spaces/{id}`: parece una siembra incompleta y no se investigó.
+
 ## 2026-10-12 — `agent/compra-sin-duplicados`
 
 - **Efecto visible:** plural heurístico de las unidades no básicas al sumar: «pack» → «packes», «nuez» → «nuezes», «limón» → «limónes»; y «1/2 cucharadas» × 2 → «1 cucharadas», porque no hay grafía singular que elegir (`ShoppingQuantity.kt`).
