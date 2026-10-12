@@ -1,0 +1,12 @@
+{
+  "invariable": ["g", "kg", "ml", "l", "ud"],
+  "counted": [
+    { "singular": "cucharada", "plural": "cucharadas" },
+    { "singular": "cucharadita", "plural": "cucharaditas" },
+    { "singular": "pizca", "plural": "pizcas" },
+    { "singular": "diente", "plural": "dientes" },
+    { "singular": "rebanada", "plural": "rebanadas" },
+    { "singular": "hoja", "plural": "hojas" },
+    { "singular": "ramita", "plural": "ramitas" }
+  ]
+}
