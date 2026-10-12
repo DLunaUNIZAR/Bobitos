@@ -29,7 +29,8 @@ class JsonLdRecipeImporterTest {
 
         assertEquals("Tortilla de patatas", recipe.title)
         assertEquals("Plato principal", recipe.category)
-        assertEquals("Pelar las patatas\nBatir los huevos\nCuajar la tortilla", recipe.description)
+        assertEquals(null, recipe.description)
+        assertEquals(listOf("Pelar las patatas", "Batir los huevos", "Cuajar la tortilla"), recipe.steps)
         assertEquals(
             listOf(
                 Ingredient("huevos", "4", null),
@@ -87,18 +88,73 @@ class JsonLdRecipeImporterTest {
             """.trimIndent(),
         )
 
-        assertEquals("Mezclar los secos\nAñadir los huevos", importer.import("https://example.com/b").description)
+        assertEquals(listOf("Mezclar los secos", "Añadir los huevos"), importer.import("https://example.com/b").steps)
     }
 
     @Test
-    fun `falls back to description when there are no instructions`() = runTest {
+    fun `keeps the description when there are no instructions`() = runTest {
         fetcher.html = pageWith(
             """
             { "@type": "Recipe", "name": "Café", "description": "Un café rápido" }
             """.trimIndent(),
         )
 
-        assertEquals("Un café rápido", importer.import("https://example.com/cafe").description)
+        val recipe = importer.import("https://example.com/cafe")
+
+        assertEquals("Un café rápido", recipe.description)
+        assertEquals(emptyList<String>(), recipe.steps)
+        assertEquals(null, recipe.servings)
+        assertEquals(null, recipe.totalMinutes)
+    }
+
+    @Test
+    fun `keeps the web description as the intro and reads steps, servings and time`() = runTest {
+        fetcher.html = pageWith(
+            """
+            {
+              "@type": "Recipe",
+              "name": "Lentejas",
+              "description": "Las de toda la vida.",
+              "recipeYield": ["4", "4 raciones"],
+              "totalTime": "PT1H",
+              "recipeInstructions": [
+                { "@type": "HowToSection", "name": "Preparación", "itemListElement": [
+                  { "@type": "HowToStep", "text": "Remoja las lentejas." },
+                  { "@type": "HowToStep", "text": "Cuécelas con la verdura." }
+                ] }
+              ]
+            }
+            """.trimIndent(),
+        )
+
+        val recipe = importer.import("https://example.com/lentejas")
+
+        assertEquals("Las de toda la vida.", recipe.description)
+        assertEquals(listOf("Remoja las lentejas.", "Cuécelas con la verdura."), recipe.steps)
+        assertEquals(4, recipe.servings)
+        assertEquals(60, recipe.totalMinutes)
+    }
+
+    @Test
+    fun `a single instructions text is split by its line breaks`() = runTest {
+        fetcher.html = pageWith(
+            """
+            {
+              "@type": "Recipe",
+              "name": "Gazpacho",
+              "recipeInstructions": "Trocea las verduras.\nTritúralo todo.<br>Enfríalo en la nevera.",
+              "prepTime": "PT15M",
+              "cookTime": "PT0M",
+              "recipeYield": "Para 6 personas"
+            }
+            """.trimIndent(),
+        )
+
+        val recipe = importer.import("https://example.com/gazpacho")
+
+        assertEquals(listOf("Trocea las verduras.", "Tritúralo todo.", "Enfríalo en la nevera."), recipe.steps)
+        assertEquals(6, recipe.servings)
+        assertEquals(15, recipe.totalMinutes)
     }
 
     @Test

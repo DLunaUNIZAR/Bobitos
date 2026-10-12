@@ -51,10 +51,17 @@ class JsonLdRecipeImporter @Inject constructor(private val fetcher: HtmlFetcher)
         if (title.isBlank()) throw RecipeImportException(ImportFailure.NoRecipeFound)
         return ImportedRecipe(
             title = title,
-            description = parseDescription()?.take(MAX_DESCRIPTION),
+            description = cleanText(optString("description")).takeIf(String::isNotBlank)?.take(MAX_DESCRIPTION),
             category = parseCategory()?.take(MAX_CATEGORY),
             ingredients = parseIngredients(),
             sourceUrl = sourceUrl,
+            steps = RecipeMetaParser.steps(parseInstructions()),
+            servings = RecipeMetaParser.servings(opt("recipeYield")),
+            totalMinutes = RecipeMetaParser.totalMinutes(
+                optString("totalTime"),
+                optString("prepTime"),
+                optString("cookTime"),
+            ),
         )
     }
 
@@ -67,15 +74,9 @@ class JsonLdRecipeImporter @Inject constructor(private val fetcher: HtmlFetcher)
         return cleanText(category).takeIf(String::isNotBlank)
     }
 
-    // Preferimos los pasos (recipeInstructions); si no hay, caemos en la descripción corta.
-    private fun JSONObject.parseDescription(): String? {
-        val steps = parseInstructions()
-        if (steps.isNotEmpty()) return steps.joinToString("\n")
-        return cleanText(optString("description")).takeIf(String::isNotBlank)
-    }
-
     private fun JSONObject.parseInstructions(): List<String> = when (val raw = opt("recipeInstructions")) {
-        is String -> listOfNotNull(cleanText(raw).takeIf(String::isNotBlank))
+        // Un único texto puede traer varios pasos separados por saltos de línea (o <br>, </p>, </li>).
+        is String -> raw.replace(HTML_LINE_BREAK, "\n").lines().map { cleanText(it) }.filter(String::isNotBlank)
         is JSONArray -> flattenInstructions(raw)
         else -> emptyList()
     }
@@ -120,6 +121,7 @@ class JsonLdRecipeImporter @Inject constructor(private val fetcher: HtmlFetcher)
     }
 
     private companion object {
+        val HTML_LINE_BREAK = Regex("<br\\s*/?>|</p>|</li>", RegexOption.IGNORE_CASE)
         const val MAX_TITLE = 120
         const val MAX_DESCRIPTION = 1000
         const val MAX_CATEGORY = 60

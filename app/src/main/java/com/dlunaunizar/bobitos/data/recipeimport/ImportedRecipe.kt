@@ -13,4 +13,8 @@ data class ImportedRecipe(
     val category: String?,
     val ingredients: List<Ingredient>,
     val sourceUrl: String,
+    // Pasos (≤30, cada uno ≤500), raciones (1–50) y tiempo total en minutos (1–1440), si la web los da.
+    val steps: List<String> = emptyList(),
+    val servings: Int? = null,
+    val totalMinutes: Int? = null,
 )
