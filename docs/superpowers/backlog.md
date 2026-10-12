@@ -4,6 +4,22 @@ Menores que las revisiones de cada rama dejaron sin arreglar. Cada línea dice s
 
 Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalogo-ejercicios-wger`) se cerraron en la rama `agent/menores-aplazados` (plan `docs/superpowers/plans/2026-10-10-menores-aplazados.md`).
 
+## 2026-10-12 — `agent/catalogo-recetas`
+
+- **Efecto visible:** en «Lasaña de carne», el paso 2 dice «Sala y pimienta.»; debería ser «Salpimienta.» (`data/catalog/recipes.json`; el usuario aprobó el catálogo tal cual).
+- **Efecto visible:** pulsar «Deshacer» mientras el borrado sigue en curso no hace nada: `runAction` retorna si `isSaving`, y con red lenta la receta se queda borrada sin aviso (`RecipesViewModel.restoreRecipe`). Viene de antes de esta rama.
+- **Efecto visible:** «Deshacer» se ofrece aunque el borrado falle (`RecipesScreen.kt`, `launchUndo` tras `deleteRecipe`). Con `restoreRecipe`, pulsarlo da un error de permiso sobre una receta que nunca se borró (antes creaba un duplicado).
+- **Efecto visible:** al deshacer el borrado de una receta antigua sin `createdByName`, se guarda el uid como autor. La app ya lo mostraba así, porque `toRecipe` cae en `createdBy` (`FirestoreRecipeRepository.restoreRecipe`).
+- **Efecto visible:** si un admin deshace el borrado de una común, `ownerUid` y `createdBy` pasan a ser los suyos: con un segundo admin, el importador la vería como «ficha de usuario». Y si `isAdmin` fuese falso al restaurar, `safeVisibility` la guardaría como PRIVATE con el slug del catálogo, y la común desaparecería hasta borrarla y reimportar. Hoy hay un solo admin.
+- **Efecto visible (admin, CLI del catálogo):** con `"quantity": null`, el validador dice «tiene que ser texto («null» entre comillas)» en vez de pedir que se quite la clave (`scripts/catalog/recipes.mjs`, `amountProblem`).
+- **Interno:** `RecipeUnitsFixtureTest` no cubre singular + singular («1 diente» + «1 diente» = «2 dientes», que sale de `pluralOf`).
+- **Interno:** ningún test de reglas fija que un `setDoc` de cliente no pise una receta existente, propia o ajena. Hoy lo impide `validRecipeUpdate` (`createdAt`, `ownerUid` y `createdBy` iguales).
+- **Interno:** el importador de recetas lee la colección `recipes` entera, privadas incluidas. Bastaría `where("ownerUid", "==", CATALOG_ADMIN_UID)` más `getAll` de los slugs del catálogo (`import-recipes.mjs`).
+- **Interno:** `runRecipeImport` copia línea a línea `runRoutineImport`. Falta un `runGlobalCatalogImport` en `import-core.mjs`.
+- **Interno:** `RECIPE_UNITS` (`recipes.mjs`) duplica `tests/fixtures/recipe-units.json`, y un test comprueba que coinciden.
+- **Interno:** `ingredientKey` se calcula dos o tres veces por ingrediente en `recipes.mjs` (validación y construcción).
+- **Interno:** `isObject` e `isIntIn` están duplicados entre `recipes.mjs` y `routines.mjs`.
+
 ## 2026-10-12 — `agent/receta-pasos`
 
 - **Efecto visible:** el importador no parte en pasos las instrucciones con HTML escapado (`&lt;br&gt;`): queda «<br>» visible. Tampoco parte un array de textos o un `HowToStep` con `<br>` o `\n`, y sus pasos salen unidos (`RecipeImporter.kt`).
@@ -12,7 +28,7 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - **Efecto visible:** «Subir paso», «Bajar paso» y «Quitar paso» no dicen de qué paso son, y TalkBack los repite hasta 30 veces (`RecipeStepsEditor.kt`).
 - **Efecto visible:** el buscador del Recetario (`Recipe.matches`: subcadena, distingue tildes, mira también los ingredientes) no se comporta como el del selector de Comidas (`forPicker`: por palabras, sin tildes, solo título y categoría). Por ejemplo, «limon» no encuentra «Pollo al limón» en el Recetario.
 - **Efecto visible:** en `IngredientsEditor`, quitar un ingrediente con el teclado abierto deja el foco en esa posición, igual que les pasaba a los pasos antes de `dc15e36`.
-- **Efecto visible (plan C):** si el admin borra una receta común del catálogo y pulsa «Deshacer», se recrea con otro id y sin `source`, y el importador del plan C la duplicaría en «Comunes» (`RecipesViewModel.restoreRecipe`).
+- ~~**Efecto visible (plan C):** si el admin borra una receta común del catálogo y pulsa «Deshacer», se recrea con otro id y sin `source`, y el importador del plan C la duplicaría en «Comunes» (`RecipesViewModel.restoreRecipe`).~~ **Resuelto** en `agent/catalogo-recetas`: «Deshacer» recrea la receta con su mismo id (`RecipeRepository.restoreRecipe`) y el importador la omite como común manual.
 - **Interno:** `toRecipeCount` usa 0 como marca de «no es un entero». Funciona porque 0 queda fuera de los dos rangos (`RecipeDraft.kt`).
 - **Interno:** `recipeDetailsFailure` repite las comprobaciones de pasos, raciones y tiempo de `RecipesValidation.validate`, y `detailsMessage` existe solo para no superar `CyclomaticComplexMethod`.
 - **Interno:** los pasos se limpian hasta 4 veces en cada guardado (`RecipeDraft.validate`, `RecipesViewModel`, el repositorio y `RecipeMetaParser`).
