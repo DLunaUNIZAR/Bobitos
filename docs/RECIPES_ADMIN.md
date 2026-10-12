@@ -23,7 +23,7 @@ sincronizados**:
    No aporta seguridad; si se olvidara, las reglas seguirían protegiendo el catálogo.
 3. **`scripts/catalog/import-plan.mjs`** → `CATALOG_ADMIN_UID`. Es el dueño con el que el importador
    del catálogo de ejercicios ([`EXERCISE_CATALOG.md`](EXERCISE_CATALOG.md)) crea y reconoce las
-   fichas. Un test (`tests/catalog-import-plan.test.mjs`) comprueba que coincide con `firestore.rules`
+   fichas (y el de los importadores de ingredientes, rutinas y recetas). Un test (`tests/catalog-import-plan.test.mjs`) comprueba que coincide con `firestore.rules`
    y con `RecipeAdmins.kt`.
 
 Un UID de Firebase **no es un secreto** (ya aparece en campos como `createdBy`), por eso puede vivir
@@ -54,6 +54,8 @@ en las reglas y en el repositorio.
 
 ## Sembrar el catálogo común
 
+El catálogo común se siembra con el importador: unas 60 recetas de lista propia, con el autor «Catálogo Bobitos» (ver [`RECIPE_CATALOG.md`](RECIPE_CATALOG.md)). También se puede publicar una común a mano desde la app:
+
 1. Inicia sesión en la app con una cuenta admin (email verificado).
 2. Abre **Comidas → Recetario → Crear receta**.
 3. El editor muestra el interruptor **«Publicar en el catálogo común»** (solo visible para admins y
@@ -63,7 +65,7 @@ en las reglas y en el repositorio.
 
 Para **corregir o retirar** una receta común, el admin la abre desde «Recetas comunes» y usa
 Editar/Eliminar (las reglas permiten a un admin editar/borrar cualquier `GLOBAL`, aunque la haya
-creado otra cuenta).
+creado otra cuenta). Si es una común importada, editarla en la app la congela (el importador ya no la actualiza) y borrarla solo en la app no basta: la siguiente importación la recrea mientras siga en `recipes.json` (ver los avisos de `RECIPE_CATALOG.md`).
 
 ## Notas de seguridad y coste
 

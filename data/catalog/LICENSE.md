@@ -1,6 +1,6 @@
 # Licencias del catálogo
 
-La licencia CC BY-SA 4.0 de esta sección se refiere al **catálogo de ejercicios**. Los ingredientes tienen su propia sección más abajo.
+La licencia CC BY-SA 4.0 de esta sección se refiere al **catálogo de ejercicios**. Los ingredientes, las rutinas y las recetas tienen su propia sección más abajo.
 
 El contenido del catálogo de ejercicios se publica bajo la licencia
 [Creative Commons Atribución-CompartirIgual 4.0 (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/deed.es).
@@ -32,3 +32,7 @@ Las imágenes de las fichas de wger se redistribuyen como **adaptaciones** (redi
 ## Rutinas
 
 `routines.json` es una lista propia de Bobitos: la selección de ejercicios, las series, las repeticiones, los tiempos y los textos se han redactado para este catálogo y no derivan de ninguna base de datos. Cada rutina enlaza fichas del catálogo de ejercicios por su id y repite su nombre; la licencia CC BY-SA del principio de este fichero se refiere a las fichas de ejercicios, no a las rutinas.
+
+## Recetas
+
+`recipes.json` es una lista propia de Bobitos: la selección de recetas, las cantidades, los pasos y los textos se han redactado para este catálogo y no derivan de ninguna base de datos ni web de recetas. Cada ingrediente usa el nombre de `ingredients.json`; la licencia CC BY-SA del principio de este fichero se refiere a las fichas de ejercicios, no a las recetas.

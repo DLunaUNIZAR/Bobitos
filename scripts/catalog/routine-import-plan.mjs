@@ -1,7 +1,7 @@
 // Plan de importación del catálogo de rutinas. Puro: no importa firebase-admin (lo usan los tests de
 // reglas). `now` llega ya construido (FieldValue.serverTimestamp() o un Timestamp). Las rutinas comunes
 // son GLOBAL y del admin del catálogo; las de los usuarios comparten colección y nunca se tocan.
-import { CATALOG_ADMIN_UID, baseExisting, formatImportPlan, planCatalogImport, section, stampCatalogDoc } from "./import-core.mjs";
+import { CATALOG_ADMIN_UID, baseExisting, formatGlobalCatalogPlan, planGlobalCatalogImport, stampCatalogDoc } from "./import-core.mjs";
 import { CATALOG_AUTHOR_NAME } from "./import-plan.mjs";
 
 export const ROUTINES_COLLECTION = "routines";
@@ -42,23 +42,11 @@ export function routineToFirestoreDoc(entry, { now, create = false }) {
   };
 }
 
-/**
- * Plan genérico + `manualGlobal`: comunes del admin sin `source` y con un id que no está en el JSON
- * (creadas a mano en la app). Se informa de ellas para que el usuario decida; nunca se tocan.
- */
+/** Plan genérico + `manualGlobal` (ver `planGlobalCatalogImport`). */
 export function planRoutineImport({ routines, existing, adminUid }) {
-  const isForeign = (d) => d.ownerUid !== adminUid;
-  const plan = planCatalogImport({ entries: routines, existing, managedFields: routineManagedFields, isForeign });
-  const ids = new Set(routines.map((r) => r.id));
-  plan.manualGlobal = existing
-    .filter((d) => !isForeign(d) && !d.hasSource && d.visibility === "GLOBAL" && !ids.has(d.id))
-    .map((d) => d.id);
-  return plan;
+  return planGlobalCatalogImport({ entries: routines, existing, managedFields: routineManagedFields, adminUid });
 }
 
 export function formatRoutinePlan(plan) {
-  return [
-    ...formatImportPlan(plan, { title: "Plan de importación de rutinas", metaPath: null }),
-    ...section("Comunes creadas a mano en la app (no se tocan)", plan.manualGlobal),
-  ].join("\n");
+  return formatGlobalCatalogPlan(plan, "Plan de importación de rutinas");
 }

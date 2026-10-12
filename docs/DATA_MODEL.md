@@ -215,7 +215,7 @@ brand: string | ausente               # texto libre, ≤60
 
 `brand` es el nombre de la marca elegida en el selector de marca y tienda (o el texto libre cuando el producto no es un ingrediente reconocido); «Indiferente» se guarda como ausente (`null`).
 
-**Artículos repetidos.** Al crear un artículo (a mano, desde la ficha de un ingrediente o desde la revisión de una receta o comida) se busca uno ya apuntado con `shoppingMatchKey` (la clave tolerante `ingredientKey`: «Tomates» = «tomate»; si queda vacía, el nombre en minúsculas), y manda el pendiente sobre el comprado. Si está **pendiente**, se pregunta: sumar la cantidad (`ShoppingQuantity.sum`: suma si las dos son número con la misma unidad; si no, las une con « + ») o no añadirlo. Si está **comprado**, se vuelve a apuntar ese mismo documento (`relistItem`: `purchased = false` y atribución de compra a `null`, en una sola escritura) con la cantidad nueva. No se crean duplicados.
+**Artículos repetidos.** Al crear un artículo (a mano, desde la ficha de un ingrediente o desde la revisión de una receta o comida) se busca uno ya apuntado con `shoppingMatchKey` (la clave tolerante `ingredientKey`: «Tomates» = «tomate»; si queda vacía, el nombre en minúsculas), y manda el pendiente sobre el comprado. Si está **pendiente**, se pregunta: sumar la cantidad (`ShoppingQuantity.sum`: suma si las dos son número con la misma unidad; si no, las une con « + ») o no añadirlo. Si está **comprado**, se vuelve a apuntar ese mismo documento (`relistItem`: `purchased = false` y atribución de compra a `null`, en una sola escritura) con la cantidad nueva. No se crean duplicados. Antes de la compra sin duplicados, la revisión de una receta escribía la unidad en `notes`; esos artículos no se migran.
 
 ### Decisión importante
 
@@ -390,7 +390,12 @@ title: string
 description: string?
 category: string?
 sourceRecipeId: string?                # si es un fork («guardar como mía»)
+sourceUrl: string?                     # web de la que se importó (importador web)
 ingredients: array<Ingredient>?        # embebido, opcional, ≤50 (Fase 3)
+steps: array<string>?                  # pasos de la preparación, ≤30 de ≤500 caracteres
+servings: int?                         # raciones, 1–50
+totalMinutes: int?                     # tiempo total en minutos, 1–1440
+source: map?                           # solo comunes del catálogo: {provider: "bobitos", importedAt}
 createdBy: string
 createdByName: string
 createdAt: timestamp
@@ -399,6 +404,10 @@ updatedAt: timestamp
 ```
 
 Cada `Ingredient` es un mapa embebido `{ name: string, quantity: string?, unit: string? }` (cantidad y unidad son texto libre). El array es **opcional y retrocompatible**: una receta sin el campo se lee como «sin ingredientes».
+
+Las recetas antiguas no tienen `steps`, `servings` ni `totalMinutes` (sus pasos están en la descripción) y se leen igual; editarlas añade `steps: []` y los dos números a `null`.
+
+- **Catálogo común importado:** unas 60 comunes de lista propia (`recipes/{slug}`, autor «Catálogo Bobitos», con `source`), que crea el importador con el Admin SDK (ver [`RECIPE_CATALOG.md`](RECIPE_CATALOG.md)). Ningún cliente puede crear ni cambiar `source`; el admin puede editar el resto de campos de una común en la app, y entonces el importador deja de actualizarla. Cada ingrediente del catálogo usa el nombre canónico de `ingredients` y una unidad de lista cerrada.
 
 - **`PRIVATE`** — receta personal: la crea cualquier usuario verificado (`ownerUid == uid`), solo la ve su dueño y aparece en **todos sus espacios** con una única consulta `where ownerUid == me` (sin `collectionGroup` ni fan-out). El *fork* de otra receta produce una copia `PRIVATE` con `sourceRecipeId` (copia también sus ingredientes).
 - **`GLOBAL`** — receta del **catálogo común**, visible para todos. Solo la publica/cura una cuenta admin (allowlist de UID). Al planificar una comida se puede referenciar cualquier receta visible (`Meal.recipeId`).

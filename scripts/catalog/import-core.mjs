@@ -148,3 +148,27 @@ export async function commitCatalogOps({ db, FieldValue, collection, plan, toDoc
   }
   return ops.length;
 }
+
+/**
+ * Plan de una colección que comparten las comunes del catálogo y las fichas de los usuarios (rutinas, recetas):
+ * las de los usuarios (`ownerUid` ≠ admin) nunca se tocan. Añade `manualGlobal`: comunes del admin sin `source`
+ * y con un id que no está en el JSON (creadas a mano en la app); se informan y nunca se tocan. Cada documento de
+ * `existing` lleva además su `visibility`.
+ */
+export function planGlobalCatalogImport({ entries, existing, managedFields, adminUid }) {
+  const isForeign = (d) => d.ownerUid !== adminUid;
+  const plan = planCatalogImport({ entries, existing, managedFields, isForeign });
+  const ids = new Set(entries.map((e) => e.id));
+  plan.manualGlobal = existing
+    .filter((d) => !isForeign(d) && !d.hasSource && d.visibility === "GLOBAL" && !ids.has(d.id))
+    .map((d) => d.id);
+  return plan;
+}
+
+/** Texto del plan de `planGlobalCatalogImport`: sin versión (estas colecciones se leen en vivo). */
+export function formatGlobalCatalogPlan(plan, title) {
+  return [
+    ...formatImportPlan(plan, { title, metaPath: null }),
+    ...section("Comunes creadas a mano en la app (no se tocan)", plan.manualGlobal),
+  ].join("\n");
+}
