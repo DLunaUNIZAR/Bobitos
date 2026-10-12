@@ -42,6 +42,29 @@ export function stampCatalogDoc(managed, { now, adminUid }) {
   return { ...managed, source: { ...managed.source, importedAt: now }, updatedBy: adminUid, updatedAt: now };
 }
 
+/** Documento común a escribir: con `create`, añade visibilidad GLOBAL, dueño y autor del catálogo. */
+export function globalCatalogDoc(managed, { now, create = false, authorName }) {
+  const doc = stampCatalogDoc(managed, { now, adminUid: CATALOG_ADMIN_UID });
+  if (!create) return doc;
+  return {
+    ...doc,
+    visibility: "GLOBAL",
+    ownerUid: CATALOG_ADMIN_UID,
+    createdBy: CATALOG_ADMIN_UID,
+    createdByName: authorName,
+    createdAt: now,
+  };
+}
+
+/** `ExistingDoc` de un catálogo común: `fields` más `source` (solo `provider`) y `visibility`. */
+export function globalDocToExisting(id, data, times, fields) {
+  const s = data.source;
+  return {
+    ...baseExisting(id, data, times, { ...fields, source: s ? { provider: s.provider } : undefined }),
+    visibility: data.visibility,
+  };
+}
+
 export const canonical = (v) =>
   JSON.stringify(v, (_k, x) =>
     x && typeof x === "object" && !Array.isArray(x)

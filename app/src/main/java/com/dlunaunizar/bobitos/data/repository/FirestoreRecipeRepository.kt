@@ -280,13 +280,14 @@ class FirestoreRecipeRepository @Inject constructor(
         const val MAX_TITLE_LENGTH = 120
         const val MAX_DESCRIPTION_LENGTH = 1000
         const val MAX_CATEGORY_LENGTH = 60
-        const val MAX_AUTHOR_NAME_LENGTH = 60
         const val MAX_VISIBLE_RECIPES = 250L
     }
 }
 
+private const val MAX_AUTHOR_NAME_LENGTH = 60
+
 private val AuthUser.recipeDisplayName: String
-    get() = displayName.ifBlank { email.substringBefore('@') }.take(60)
+    get() = displayName.ifBlank { email.substringBefore('@') }.take(MAX_AUTHOR_NAME_LENGTH)
 
 private fun DocumentSnapshot.toRecipe(): Recipe? {
     val createdAt = getTimestamp("createdAt")?.toDate()?.toInstant() ?: return null
