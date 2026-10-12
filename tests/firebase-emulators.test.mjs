@@ -1294,6 +1294,102 @@ test("una receta guarda su lista de ingredientes pero rechaza un ingredients no-
   );
 });
 
+test("una receta guarda pasos, raciones y tiempo, y su dueño los edita o los vacía", async () => {
+  const chef = verifiedFirestore("recipe-steps");
+  const ref = doc(chef, "recipes", "con-pasos");
+
+  await assertSucceeds(setDoc(ref, recipeData("recipe-steps", {
+    steps: ["Pon las lentejas en remojo.", "Sofríe la verdura."], servings: 4, totalMinutes: 60,
+  })));
+  await assertSucceeds(updateDoc(ref, {
+    steps: ["Cuece todo junto."], servings: 2, totalMinutes: 45,
+    updatedBy: "recipe-steps", updatedAt: serverTimestamp(),
+  }));
+  await assertSucceeds(updateDoc(ref, {
+    steps: [], servings: null, totalMinutes: null, updatedBy: "recipe-steps", updatedAt: serverTimestamp(),
+  }));
+});
+
+test("una receta antigua, sin pasos ni raciones, se edita añadiéndolos vacíos", async () => {
+  const chef = verifiedFirestore("recipe-legacy");
+  const ref = doc(chef, "recipes", "antigua");
+  await assertSucceeds(setDoc(ref, recipeData("recipe-legacy")));
+
+  await assertSucceeds(updateDoc(ref, {
+    title: "Lentejas de la abuela", steps: [], servings: null, totalMinutes: null,
+    updatedBy: "recipe-legacy", updatedAt: serverTimestamp(),
+  }));
+});
+
+test("la receta rechaza más de 30 pasos y raciones o tiempo fuera de rango", async () => {
+  const chef = verifiedFirestore("recipe-limits");
+  const create = (id, overrides) => setDoc(doc(chef, "recipes", id), recipeData("recipe-limits", overrides));
+  const steps = (count) => Array.from({ length: count }, (_, index) => `Paso ${index + 1}`);
+
+  await assertSucceeds(create("maximos", { steps: steps(30), servings: 50, totalMinutes: 1440 }));
+  await assertSucceeds(create("minimos", { steps: [], servings: 1, totalMinutes: 1 }));
+  await assertFails(create("31-pasos", { steps: steps(31) }));
+  await assertFails(create("pasos-texto", { steps: "Remojar y cocer" }));
+  await assertFails(create("cero-raciones", { servings: 0 }));
+  await assertFails(create("51-raciones", { servings: 51 }));
+  await assertFails(create("raciones-decimales", { servings: 2.5 }));
+  await assertFails(create("raciones-texto", { servings: "4" }));
+  await assertFails(create("cero-minutos", { totalMinutes: 0 }));
+  await assertFails(create("1441-minutos", { totalMinutes: 1441 }));
+  await assertFails(updateDoc(doc(chef, "recipes", "minimos"), {
+    servings: 51, updatedBy: "recipe-limits", updatedAt: serverTimestamp(),
+  }));
+  await assertFails(updateDoc(doc(chef, "recipes", "minimos"), {
+    steps: steps(31), updatedBy: "recipe-limits", updatedAt: serverTimestamp(),
+  }));
+});
+
+test("ningún cliente crea una receta con la fuente del catálogo", async () => {
+  const source = { provider: "bobitos", importedAt: Timestamp.now() };
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  await assertFails(setDoc(doc(admin, "recipes", "falsa-global"),
+    recipeData(RECIPE_ADMIN_UID, { visibility: "GLOBAL", source })));
+  const user = verifiedFirestore("recipe-fake-source");
+  await assertFails(setDoc(doc(user, "recipes", "falsa"), recipeData("recipe-fake-source", { source })));
+});
+
+test("el admin edita una receta común del catálogo y su fuente se conserva", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const timestamp = Timestamp.now();
+    await setDoc(doc(context.firestore(), "recipes", "lentejas-catalogo"), {
+      ...recipeData(RECIPE_ADMIN_UID, {
+        visibility: "GLOBAL", title: "Lentejas estofadas", ingredients: [],
+        steps: ["Remoja las lentejas."], servings: 4, totalMinutes: 60,
+        source: { provider: "bobitos", importedAt: timestamp },
+      }),
+      createdByName: "Catálogo Bobitos",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+  });
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  const ref = doc(admin, "recipes", "lentejas-catalogo");
+
+  await assertSucceeds(updateDoc(ref, {
+    title: "Lentejas estofadas (editada)", steps: ["Remoja las lentejas.", "Cuécelas."], servings: 6, totalMinutes: 75,
+    updatedBy: RECIPE_ADMIN_UID, updatedAt: serverTimestamp(),
+  }));
+  await assertFails(updateDoc(ref, {
+    source: { provider: "bobitos", importedAt: Timestamp.now() }, updatedBy: RECIPE_ADMIN_UID, updatedAt: serverTimestamp(),
+  }));
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const stored = (await getDoc(doc(context.firestore(), "recipes", "lentejas-catalogo"))).data();
+    assert.equal(stored.source.provider, "bobitos");
+    assert.equal(stored.title, "Lentejas estofadas (editada)");
+    assert.deepEqual(stored.steps, ["Remoja las lentejas.", "Cuécelas."]);
+  });
+  const user = verifiedFirestore("recipe-catalog-user");
+  await assertFails(updateDoc(doc(user, "recipes", "lentejas-catalogo"), {
+    title: "Mía", updatedBy: "recipe-catalog-user", updatedAt: serverTimestamp(),
+  }));
+});
+
+
 // --- Catálogo común de ingredientes (solo el admin escribe) y datos personales ---
 
 const commonIngredient = (uid, overrides = {}) => ({

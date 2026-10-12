@@ -950,7 +950,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly([
           "ownerUid", "visibility", "title", "description", "category",
           "createdBy", "createdByName", "createdAt", "updatedBy", "updatedAt", "sourceRecipeId",
-          "sourceUrl", "ingredients"
+          "sourceUrl", "ingredients", "steps", "servings", "totalMinutes", "source"
         ])
         && (!request.resource.data.keys().hasAny(["sourceRecipeId"])
           || request.resource.data.sourceRecipeId == null
@@ -961,6 +961,19 @@ service cloud.firestore {
         && (!request.resource.data.keys().hasAny(["ingredients"])
           || (request.resource.data.ingredients is list
             && request.resource.data.ingredients.size() <= 50))
+        // Preparación: hasta 30 pasos (que cada texto mida ≤500 lo garantiza la app: las reglas no recorren listas).
+        && (!request.resource.data.keys().hasAny(["steps"])
+          || (request.resource.data.steps is list && request.resource.data.steps.size() <= 30))
+        && (!request.resource.data.keys().hasAny(["servings"])
+          || request.resource.data.servings == null
+          || (request.resource.data.servings is int
+            && request.resource.data.servings >= 1 && request.resource.data.servings <= 50))
+        && (!request.resource.data.keys().hasAny(["totalMinutes"])
+          || request.resource.data.totalMinutes == null
+          || (request.resource.data.totalMinutes is int
+            && request.resource.data.totalMinutes >= 1 && request.resource.data.totalMinutes <= 1440))
+        // Recetas del catálogo: `source` lo escribe solo el importador (Admin SDK), con la forma de ingredientes.
+        && (!request.resource.data.keys().hasAny(["source"]) || validIngredientSource(request.resource.data.source))
         && request.resource.data.ownerUid is string
         && request.resource.data.visibility in ["GLOBAL", "PRIVATE"]
         && request.resource.data.title is string
@@ -981,6 +994,7 @@ service cloud.firestore {
 
     function validNewRecipe() {
       return verifiedUser() && validRecipeShape()
+        && !request.resource.data.keys().hasAny(["source"])
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time
         && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time
@@ -996,7 +1010,7 @@ service cloud.firestore {
     function validRecipeUpdate() {
       return ownsOrCuratesRecipe() && validRecipeShape()
         && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(["title", "description", "category", "ingredients", "updatedBy", "updatedAt"])
+          .hasOnly(["title", "description", "category", "ingredients", "steps", "servings", "totalMinutes", "updatedBy", "updatedAt"])
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.visibility == resource.data.visibility
         && request.resource.data.createdBy == resource.data.createdBy
