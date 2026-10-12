@@ -1,17 +1,24 @@
-Beta de Bobitos — rutinas comunes listas para usar, «Guardar como mía» y filtros desplegables en Ejercicios.
+Beta de Bobitos — 60 recetas comunes, recetas con pasos, raciones y tiempo, y una Compra sin repetidos.
 
-IMPORTANTE: actualizad todos los miembros de cada espacio. Las versiones anteriores ven las rutinas comunes, pero no pueden copiarlas con «Guardar como mía» y en el detalle solo enseñan el número de series.
+IMPORTANTE: actualizad todos los miembros de cada espacio. Las versiones anteriores ven las recetas comunes, pero sin la preparación, las raciones ni el tiempo, y al copiarlas con «Guardar como mía» los pierden.
 
 Novedades desde la beta anterior:
 
-Rutinas
-- 29 rutinas comunes listas para usar, hechas con los ejercicios del catálogo: gimnasio (cuerpo completo, torso, pierna, empuje, tirón, fuerza con básicos…), en casa (peso corporal, mancuernas, kettlebell), abdomen y core, y cardio / HIIT.
-- Cada rutina indica su nivel, duración, material, descanso y frecuencia. El detalle muestra la pauta de cada ejercicio: 3 × 12, 3 × 30 s, 20 min · Moderado.
-- «Guardar como mía»: copia una rutina común a «Mis rutinas» para ponerle tus pesos o cambiarla sin tocar la común.
-- «Mis rutinas» muestra solo las tuyas; las comunes están siempre en «Comunes».
-- Al elegir rutina para una sesión de gimnasio salen primero las tuyas, y cada una indica si es «Mía» o «Común».
+Recetario
+- 60 recetas comunes listas para usar, con ingredientes del catálogo: legumbres, arroces, pasta, carnes, pescados, verduras, ensaladas, huevos, sopas y cremas, desayunos y meriendas, y postres.
+- Las recetas tienen ahora raciones, tiempo total y una sección «Preparación» con los pasos numerados. En el editor puedes añadir hasta 30 pasos y subirlos o bajarlos.
+- Al importar una receta de una web se traen también los pasos, las raciones y el tiempo.
+- «Mis recetas» muestra solo las tuyas; las comunes están siempre en «Comunes». «Guardar como mía» copia una común con sus pasos, raciones y tiempo.
+- Las recetas que ya tenías no cambian: si llevaban los pasos en la descripción, se siguen viendo ahí.
 
-Ejercicios
-- Los filtros de tipo y de grupo muscular son ahora dos desplegables, uno al lado del otro, debajo del buscador. También al añadir ejercicios a una rutina o a una sesión.
+Comidas
+- Al elegir receta para el planificador hay un buscador, salen primero las tuyas y cada una indica si es «Mía» o «Común».
+
+Compra
+- Se acabaron los repetidos al añadir desde una receta, una comida o un ingrediente: si un producto ya está pendiente sale como «Ya en la lista» y eliges «Omitir» (la opción marcada) o «Sumar». «Tomate» y «tomates» cuentan como el mismo.
+- Las cantidades con la misma unidad se suman: 200 g + 300 g = 500 g. Si no casan, se apuntan juntas: «1 kg + 500 g».
+- Si el producto ya estaba comprado, se vuelve a apuntar como pendiente con la cantidad nueva en lugar de crear otro.
+- Al apuntar a mano uno que ya está pendiente, eliges «Sumar cantidad» o «No añadir»; desaparece «Añadir aparte».
+- La unidad va ahora con la cantidad (200 g) y no en las notas.
 
 Comunica cualquier error indicando el modelo del dispositivo, la versión de Android y los pasos para reproducirlo.
