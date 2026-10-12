@@ -3,6 +3,8 @@ package com.dlunaunizar.bobitos.feature.shopping
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
+import com.dlunaunizar.bobitos.core.model.ShoppingQuantity
+import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
 
 data class ShoppingUiState(
@@ -20,8 +22,27 @@ data class ShoppingUiState(
     val duplicate: ShoppingDuplicate? = null,
 )
 
-/** Artículo ya pendiente en la lista ([existing]) y la cantidad que se quería añadir. */
-data class ShoppingDuplicate(val existing: ShoppingItem, val quantity: String?)
+/**
+ * Artículo ya pendiente en la lista ([existing]) y lo tecleado en el editor: la cantidad que se quería añadir y las
+ * notas, la tienda y la marca con que «Sumar cantidad» rellena las que el artículo tenga vacías.
+ */
+data class ShoppingDuplicate(
+    val existing: ShoppingItem,
+    val quantity: String?,
+    val notes: String? = null,
+    val supermarket: Supermarket? = null,
+    val brand: String? = null,
+) {
+    /** La cantidad del artículo tras «Sumar cantidad». */
+    val summed: String? get() = ShoppingQuantity.sum(existing.quantity, quantity)
+
+    /** La suma no cabe en una cantidad: el aviso lo dice y deshabilita «Sumar cantidad». */
+    val sumTooLong: Boolean get() = (summed?.length ?: 0) > ShoppingQuantity.MAX_LENGTH
+
+    /** La cantidad del artículo para el aviso, con espacios que no parten línea; null si no tiene. */
+    val existingQuantityLabel: String?
+        get() = existing.quantity?.trim()?.takeIf(String::isNotEmpty)?.replace(' ', ' ')
+}
 
 enum class ShoppingWriteStatus {
     IDLE,
@@ -40,6 +61,7 @@ enum class ShoppingUiMessage {
     SpaceNotFound,
     ItemNotFound,
     ItemChanged,
+    ListNotLoaded,
     PermissionDenied,
     NetworkError,
     UnexpectedError,

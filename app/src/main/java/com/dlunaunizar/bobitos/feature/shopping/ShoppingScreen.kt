@@ -368,16 +368,25 @@ fun ShoppingScreen(
             onDismissRequest = viewModel::dismissDuplicate,
             title = { Text(stringResource(R.string.shopping_duplicate_title)) },
             text = {
-                Text(
-                    stringResource(
-                        R.string.shopping_duplicate_body,
-                        duplicate.existing.name,
-                        duplicate.existing.quantity ?: "—",
-                    ),
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val listed = duplicate.existingQuantityLabel
+                    Text(
+                        if (listed != null) {
+                            stringResource(R.string.shopping_duplicate_body, duplicate.existing.name, listed)
+                        } else {
+                            stringResource(R.string.shopping_duplicate_body_plain, duplicate.existing.name)
+                        },
+                    )
+                    if (duplicate.sumTooLong) {
+                        Text(
+                            text = stringResource(R.string.shopping_duplicate_sum_too_long),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.sumDuplicate(spaceId) }) {
+                TextButton(onClick = { viewModel.sumDuplicate(spaceId) }, enabled = !duplicate.sumTooLong) {
                     Text(stringResource(R.string.shopping_duplicate_sum))
                 }
             },
@@ -880,6 +889,7 @@ private val ShoppingUiMessage.stringResourceId: Int
         ShoppingUiMessage.SpaceNotFound -> R.string.space_error_not_found
         ShoppingUiMessage.ItemNotFound -> R.string.shopping_error_item_not_found
         ShoppingUiMessage.ItemChanged -> R.string.shopping_error_item_changed
+        ShoppingUiMessage.ListNotLoaded -> R.string.shopping_error_list_not_loaded
         ShoppingUiMessage.PermissionDenied -> R.string.space_error_permission_denied
         ShoppingUiMessage.NetworkError -> R.string.space_error_network
         ShoppingUiMessage.UnexpectedError -> R.string.space_error_unexpected

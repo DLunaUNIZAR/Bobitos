@@ -68,6 +68,9 @@ class ShoppingViewModelTest {
 
     @Test
     fun `add trims values and reports success`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.itemState.value = emptyList()
+        viewModel.observe("home")
+        advanceUntilIdle()
         viewModel.addItem("home", "  Leche  ", " 2 ", "  ", Supermarket.MERCADONA, "Hacendado")
         advanceUntilIdle()
 
@@ -299,6 +302,9 @@ class ShoppingViewModelTest {
 
     @Test
     fun `editor save is SAVED only after the repository answers`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.itemState.value = emptyList()
+        viewModel.observe("home")
+        advanceUntilIdle()
         val gate = CompletableDeferred<Unit>()
         repository.addGate = gate
 
@@ -317,6 +323,9 @@ class ShoppingViewModelTest {
 
     @Test
     fun `editor save failure or timeout leaves FAILED`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.itemState.value = emptyList()
+        viewModel.observe("home")
+        advanceUntilIdle()
         repository.nextFailure = ShoppingRepositoryException(ShoppingFailure.Network)
         viewModel.addItem("home", "Leche", null, null, null, null)
         advanceUntilIdle()
@@ -427,20 +436,94 @@ class ShoppingViewModelTest {
         }
 
     @Test
-    fun `a sum longer than 40 characters is reported and not written`() = runTest(mainDispatcherRule.testDispatcher) {
-        repository.itemState.value = listOf(listItem(quantity = "x".repeat(30)))
-        viewModel.observe("home")
-        advanceUntilIdle()
-        viewModel.addItem("home", "Leche", "y".repeat(10), null, null, null)
-        advanceUntilIdle()
+    fun `summing a duplicate fills the empty notes, store and brand with the typed ones`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val pending = shoppingItem().copy(quantity = "1 l")
+            repository.itemState.value = listOf(pending)
+            viewModel.observe("home")
+            advanceUntilIdle()
+            viewModel.addItem("home", "Leche", "2 l", " sin lactosa ", Supermarket.EROSKI, " Puleva ")
+            advanceUntilIdle()
 
-        viewModel.sumDuplicate("home")
-        advanceUntilIdle()
+            viewModel.sumDuplicate("home")
+            advanceUntilIdle()
 
-        assertNull(repository.updatedItemId)
-        assertEquals(ShoppingUiMessage.QuantityTooLong, viewModel.uiState.value.error)
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-    }
+            assertEquals(
+                listOf(
+                    ShoppingWrite.Change(pending, "3 l", "sin lactosa", Supermarket.EROSKI, "Puleva", relist = false),
+                ),
+                repository.applied,
+            )
+        }
+
+    @Test
+    fun `summing a duplicate keeps the notes, store and brand the item already has`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val pending = listItem(quantity = "1 l").copy(notes = "entera")
+            repository.itemState.value = listOf(pending)
+            viewModel.observe("home")
+            advanceUntilIdle()
+            viewModel.addItem("home", "Leche", "2 l", "sin lactosa", Supermarket.EROSKI, "Otra")
+            advanceUntilIdle()
+
+            viewModel.sumDuplicate("home")
+            advanceUntilIdle()
+
+            assertEquals(
+                listOf(ShoppingWrite.Change(pending, "3 l", "entera", Supermarket.DIA, "Pascual", relist = false)),
+                repository.applied,
+            )
+        }
+
+    @Test
+    fun `summing treats an indifferent store as chosen and blank notes as empty`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val pending = shoppingItem().copy(quantity = "1 l", notes = "  ", supermarket = Supermarket.INDIFERENTE)
+            repository.itemState.value = listOf(pending)
+            viewModel.observe("home")
+            advanceUntilIdle()
+            viewModel.addItem("home", "Leche", "2 l", "sin lactosa", Supermarket.EROSKI, null)
+            advanceUntilIdle()
+
+            viewModel.sumDuplicate("home")
+            advanceUntilIdle()
+
+            assertEquals(
+                listOf(
+                    ShoppingWrite.Change(pending, "3 l", "sin lactosa", Supermarket.INDIFERENTE, null, relist = false),
+                ),
+                repository.applied,
+            )
+        }
+
+    @Test
+    fun `a sum that does not fit keeps the notice open and writes nothing`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.itemState.value = listOf(listItem(quantity = "x".repeat(30)))
+            viewModel.observe("home")
+            advanceUntilIdle()
+            viewModel.addItem("home", "Leche", "y".repeat(10), null, null, null)
+            advanceUntilIdle()
+
+            viewModel.sumDuplicate("home")
+            advanceUntilIdle()
+
+            assertNull(repository.applied)
+            assertTrue(viewModel.uiState.value.duplicate?.sumTooLong == true)
+            assertNull(viewModel.uiState.value.error)
+        }
+
+    @Test
+    fun `adding before the list is loaded asks to wait and writes nothing`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel.addItem("home", "Pan", "1", null, null, null)
+            advanceUntilIdle()
+
+            assertNull(repository.addedName)
+            assertNull(repository.applied)
+            assertEquals(ShoppingUiMessage.ListNotLoaded, viewModel.uiState.value.error)
+            assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        }
 
     @Test
     fun `relisting a purchased product sends the item as it was seen`() = runTest(mainDispatcherRule.testDispatcher) {

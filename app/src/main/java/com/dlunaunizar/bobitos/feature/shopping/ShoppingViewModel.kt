@@ -11,7 +11,6 @@ import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
-import com.dlunaunizar.bobitos.core.model.ShoppingQuantity
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.core.model.findByKey
 import com.dlunaunizar.bobitos.core.model.findShoppingMatch
@@ -123,8 +122,9 @@ class ShoppingViewModel @Inject constructor(
 
     /**
      * Alta desde el editor. Si el producto ya está pendiente en la lista, no escribe: deja el aviso en
-     * [ShoppingUiState.duplicate]. Si está comprado, vuelve a apuntar ese artículo (con su nombre y los
-     * valores del editor). Si no está, lo añade. Con la lista aún sin cargar, siempre añade.
+     * [ShoppingUiState.duplicate] con lo tecleado. Si está comprado, vuelve a apuntar ese artículo (con su nombre y
+     * los valores del editor). Si no está, lo añade. Con la lista aún sin cargar no escribe nada: sin ella no se
+     * pueden buscar repetidos.
      */
     fun addItem(
         spaceId: String,
@@ -135,48 +135,83 @@ class ShoppingViewModel @Inject constructor(
         brand: String?,
     ) {
         if (!validate(name, quantity, notes)) return
-        val match = findShoppingMatch(currentItems, name)
-        val normalizedQuantity = quantity.normalized()
-        if (match != null && !match.purchased) {
-            mutableUiState.update { it.copy(duplicate = ShoppingDuplicate(match, normalizedQuantity)) }
+        val items = loadedItems ?: run {
+            showError(ShoppingUiMessage.ListNotLoaded, editor = true)
             return
         }
+        val match = findShoppingMatch(items, name)
+        val normalizedQuantity = quantity.normalized()
         val normalizedNotes = notes.normalized()
+        if (match != null && !match.purchased) {
+            mutableUiState.update {
+                it.copy(
+                    duplicate = ShoppingDuplicate(
+                        match,
+                        normalizedQuantity,
+                        normalizedNotes,
+                        supermarket,
+                        brand.normalized(),
+                    ),
+                )
+            }
+            return
+        }
         runAction(ShoppingUiMessage.ItemAdded, editor = true) {
             if (match == null) {
                 repository.addItem(spaceId, name.trim(), normalizedQuantity, normalizedNotes, supermarket, brand)
             } else {
-                val change = ShoppingWrite.Change(match, normalizedQuantity, normalizedNotes, supermarket, brand, true)
-                repository.applyWrites(spaceId, listOf(change))
+                repository.applyWrites(
+                    spaceId,
+                    listOf(
+                        ShoppingWrite.Change(
+                            match,
+                            normalizedQuantity,
+                            normalizedNotes,
+                            supermarket,
+                            brand,
+                            relist = true,
+                        ),
+                    ),
+                )
             }
         }
     }
 
-    /** «Sumar cantidad» en el aviso de repetido: solo cambia la cantidad del artículo existente. */
+    /**
+     * «Sumar cantidad» en el aviso de repetido: suma la cantidad y rellena con lo tecleado las notas, la tienda y la
+     * marca que el artículo tenga vacías, sin pisar las que ya tiene. Si la suma no cabe, no hace nada (el aviso lo
+     * explica y deshabilita el botón).
+     */
     fun sumDuplicate(spaceId: String) {
         val duplicate = mutableUiState.value.duplicate ?: return
+        if (duplicate.sumTooLong) return
         mutableUiState.update { it.copy(duplicate = null) }
         val existing = duplicate.existing
-        val quantity = ShoppingQuantity.sum(existing.quantity, duplicate.quantity)
-        if (!validate(existing.name, quantity, existing.notes)) return
+        val notes = existing.notes.normalized() ?: duplicate.notes
+        if (!validate(existing.name, duplicate.summed, notes)) return
         runAction(ShoppingUiMessage.ItemUpdated, editor = true) {
-            val change = ShoppingWrite.Change(
-                existing,
-                quantity,
-                existing.notes,
-                existing.supermarket,
-                existing.brand,
-                relist = false,
+            repository.applyWrites(
+                spaceId,
+                listOf(
+                    ShoppingWrite.Change(
+                        seen = existing,
+                        quantity = duplicate.summed,
+                        notes = notes,
+                        supermarket = existing.supermarket ?: duplicate.supermarket,
+                        brand = existing.brand.normalized() ?: duplicate.brand,
+                        relist = false,
+                    ),
+                ),
             )
-            repository.applyWrites(spaceId, listOf(change))
         }
     }
 
     /** «No añadir» o cerrar el aviso de repetido: no se escribe nada. */
     fun dismissDuplicate() = mutableUiState.update { it.copy(duplicate = null) }
 
-    private val currentItems: List<ShoppingItem>
-        get() = (mutableUiState.value.items as? UiState.Content)?.value.orEmpty()
+    // La lista ya leída; null mientras carga o si su lectura ha fallado.
+    private val loadedItems: List<ShoppingItem>?
+        get() = (mutableUiState.value.items as? UiState.Content)?.value
 
     // Recrea un ítem borrado («Deshacer»): no es un guardado del editor, no mueve su estado.
     fun restoreItem(spaceId: String, item: ShoppingItem) = runAction(ShoppingUiMessage.ItemAdded) {
