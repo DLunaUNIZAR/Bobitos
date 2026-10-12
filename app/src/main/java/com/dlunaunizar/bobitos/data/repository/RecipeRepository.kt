@@ -38,6 +38,12 @@ interface RecipeRepository {
     )
 
     suspend fun deleteRecipe(recipeId: String)
+
+    /**
+     * Recrea con su mismo id una receta recién borrada («Deshacer»), con sus datos y su autor. No lleva `source`:
+     * las reglas no dejan que un cliente lo escriba, así que una común del catálogo vuelve como común manual.
+     */
+    suspend fun restoreRecipe(recipe: Recipe)
 }
 
 enum class RecipeFailure {

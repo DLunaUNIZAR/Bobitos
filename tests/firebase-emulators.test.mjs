@@ -8,6 +8,7 @@ import {
 } from "@firebase/rules-unit-testing";
 import { deleteApp, initializeApp } from "firebase/app";
 import { toFirestoreDoc } from "../scripts/catalog/import-plan.mjs";
+import { recipeToFirestoreDoc } from "../scripts/catalog/recipe-import-plan.mjs";
 import { routineToFirestoreDoc } from "../scripts/catalog/routine-import-plan.mjs";
 import {
   applyActionCode,
@@ -1387,6 +1388,49 @@ test("el admin edita una receta común del catálogo y su fuente se conserva", a
   await assertFails(updateDoc(doc(user, "recipes", "lentejas-catalogo"), {
     title: "Mía", updatedBy: "recipe-catalog-user", updatedAt: serverTimestamp(),
   }));
+});
+
+const importedRecipe = {
+  id: "lentejas-importadas", title: "Lentejas estofadas", description: "Las de toda la vida.", category: "Legumbres",
+  servings: 4, totalMinutes: 60,
+  ingredients: [{ name: "Lentejas pardinas", quantity: "300", unit: "g" }, { name: "Sal", quantity: null, unit: null }],
+  steps: ["Cuece las lentejas.", "Sirve."],
+};
+
+async function seedImportedRecipe(id) {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "recipes", id),
+      recipeToFirestoreDoc({ ...importedRecipe, id }, { now: Timestamp.now(), create: true }));
+  });
+}
+
+test("el admin edita en la app una receta del importador, pero no su fuente, y cualquiera la lee", async () => {
+  await seedImportedRecipe("lentejas-importadas");
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  const ref = doc(admin, "recipes", "lentejas-importadas");
+  await assertSucceeds(updateDoc(ref, {
+    title: "Lentejas estofadas (editada)", description: "Otra", category: "Legumbres",
+    ingredients: [{ name: "Lentejas pardinas", quantity: "400", unit: "g" }], steps: ["Cuece.", "Sirve."],
+    servings: 6, totalMinutes: 75, updatedBy: RECIPE_ADMIN_UID, updatedAt: serverTimestamp(),
+  }));
+  await assertFails(updateDoc(ref, {
+    source: { provider: "bobitos", importedAt: Timestamp.now() }, updatedBy: RECIPE_ADMIN_UID, updatedAt: serverTimestamp(),
+  }));
+  await assertSucceeds(getDoc(doc(verifiedFirestore("recipe-imported-reader"), "recipes", "lentejas-importadas")));
+});
+
+test("«Deshacer»: el admin recrea con el mismo id una común importada que acaba de borrar, sin su fuente", async () => {
+  await seedImportedRecipe("lentejas-deshacer");
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  const ref = doc(admin, "recipes", "lentejas-deshacer");
+  await assertSucceeds(writeBatch(admin).delete(ref).commit());
+  const restored = recipeData(RECIPE_ADMIN_UID, {
+    visibility: "GLOBAL", title: importedRecipe.title, description: importedRecipe.description,
+    category: importedRecipe.category, ingredients: importedRecipe.ingredients, steps: importedRecipe.steps,
+    servings: 4, totalMinutes: 60, sourceRecipeId: null, sourceUrl: null, createdByName: "Catálogo Bobitos",
+  });
+  await assertFails(setDoc(ref, { ...restored, source: { provider: "bobitos", importedAt: Timestamp.now() } }));
+  await assertSucceeds(setDoc(ref, restored));
 });
 
 

@@ -229,20 +229,11 @@ class RecipesViewModel @Inject constructor(
         }
     }
 
-    // Recrea una receta borrada («Deshacer»): no es un guardado del editor, no mueve su estado.
+    // Recrea la receta borrada («Deshacer») con su mismo id: el importador del catálogo no duplica una común
+    // recuperada y las comidas que la enlazaban la vuelven a encontrar. No es un guardado del editor, no mueve
+    // su estado.
     fun restoreRecipe(recipe: Recipe) = runAction(RecipeUiMessage.RecipeSaved) {
-        repository.createRecipe(
-            visibility = safeVisibility(recipe.visibility),
-            title = recipe.title,
-            description = recipe.description,
-            category = recipe.category,
-            sourceRecipeId = null,
-            ingredients = recipe.ingredients.orEmpty(),
-            sourceUrl = null,
-            steps = recipe.steps.orEmpty(),
-            servings = recipe.servings,
-            totalMinutes = recipe.totalMinutes,
-        )
+        repository.restoreRecipe(recipe.copy(visibility = safeVisibility(recipe.visibility)))
     }
 
     fun deleteRecipe(recipeId: String) {

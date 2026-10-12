@@ -332,7 +332,7 @@ class RecipesViewModelTest {
         viewModel.restoreRecipe(recipe("r1", RecipeVisibility.PRIVATE, "Tortilla"))
         advanceUntilIdle()
 
-        assertEquals("Tortilla", repository.lastTitle)
+        assertEquals("Tortilla", repository.restored?.title)
         assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
         assertEquals(RecipeUiMessage.RecipeSaved, viewModel.uiState.value.notice)
     }
@@ -429,18 +429,45 @@ class RecipesViewModelTest {
     }
 
     @Test
-    fun `undoing a delete recreates the steps, servings and minutes`() = runTest(mainDispatcherRule.testDispatcher) {
-        val deleted = recipe("r1", RecipeVisibility.PRIVATE, "Tortilla", listOf(Ingredient("Huevo", "4", "ud")))
-            .copy(steps = listOf("Bate.", "Cuaja."), servings = 2, totalMinutes = 20)
+    fun `undoing a delete recreates the same recipe under its own id`() = runTest(mainDispatcherRule.testDispatcher) {
+        val deleted = recipe(
+            "lentejas-estofadas",
+            RecipeVisibility.PRIVATE,
+            "Lentejas",
+            listOf(Ingredient("Lentejas", "300", "g")),
+        ).copy(
+            steps = listOf("Remoja.", "Cuece."),
+            servings = 4,
+            totalMinutes = 60,
+            sourceRecipeId = "lentejas-comunes",
+            sourceUrl = "https://example.com/lentejas",
+            createdByName = "Catálogo Bobitos",
+        )
 
         viewModel.restoreRecipe(deleted)
         advanceUntilIdle()
 
-        assertEquals(listOf(Ingredient("Huevo", "4", "ud")), repository.lastIngredients)
-        assertEquals(listOf("Bate.", "Cuaja."), repository.lastSteps)
-        assertEquals(2, repository.lastServings)
-        assertEquals(20, repository.lastTotalMinutes)
+        assertEquals(deleted, repository.restored)
+        assertEquals(0, repository.createCount)
     }
+
+    @Test
+    fun `undoing the delete of a common keeps it common only for the admin`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val common = recipe("torrijas", RecipeVisibility.GLOBAL, "Torrijas")
+
+            viewModel.restoreRecipe(common)
+            advanceUntilIdle()
+            assertEquals(RecipeVisibility.PRIVATE, repository.restored?.visibility)
+
+            repository.admin = true
+            viewModel.observe()
+            advanceUntilIdle()
+            viewModel.restoreRecipe(common)
+            advanceUntilIdle()
+            assertEquals(RecipeVisibility.GLOBAL, repository.restored?.visibility)
+            assertEquals("torrijas", repository.restored?.id)
+        }
 }
 
 private class FakeRecipeRepository : RecipeRepository {
@@ -463,6 +490,7 @@ private class FakeRecipeRepository : RecipeRepository {
     var lastTotalMinutes: Int? = null
     var updateCount = 0
     var lastUpdatedId: String? = null
+    var restored: Recipe? = null
     var admin = false
 
     override fun globalRecipes(): Flow<List<Recipe>> = globalState
@@ -529,6 +557,11 @@ private class FakeRecipeRepository : RecipeRepository {
     }
 
     override suspend fun deleteRecipe(recipeId: String) = Unit
+
+    override suspend fun restoreRecipe(recipe: Recipe) {
+        nextFailure?.let { throw it }
+        restored = recipe
+    }
 }
 
 private class FakeRecipeImporter : RecipeImporter {

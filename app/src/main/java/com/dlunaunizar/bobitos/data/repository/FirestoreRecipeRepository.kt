@@ -55,28 +55,21 @@ class FirestoreRecipeRepository @Inject constructor(
         totalMinutes: Int?,
     ) = runRecipeOperation {
         val user = requireVerifiedUser()
-        val values = validate(title, description, category)
-        val cleanSteps = checkedSteps(steps, servings, totalMinutes)
-        recipesCollection().document().set(
-            mapOf(
-                FIELD_OWNER_UID to user.id,
-                FIELD_VISIBILITY to visibility.name,
-                FIELD_TITLE to values.title,
-                FIELD_DESCRIPTION to values.description,
-                FIELD_CATEGORY to values.category,
-                FIELD_SOURCE_RECIPE_ID to sourceRecipeId,
-                FIELD_SOURCE_URL to sourceUrl?.trim()?.takeIf(String::isNotEmpty),
-                FIELD_INGREDIENTS to ingredients.toFirestore(),
-                FIELD_STEPS to cleanSteps,
-                FIELD_SERVINGS to servings,
-                FIELD_TOTAL_MINUTES to totalMinutes,
-                FIELD_CREATED_BY to user.id,
-                FIELD_CREATED_BY_NAME to user.recipeDisplayName,
-                FIELD_CREATED_AT to FieldValue.serverTimestamp(),
-                FIELD_UPDATED_BY to user.id,
-                FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
-            ),
-        ).await()
+        val fields = newRecipeFields(
+            user = user,
+            createdByName = user.recipeDisplayName,
+            visibility = visibility,
+            title = title,
+            description = description,
+            category = category,
+            sourceRecipeId = sourceRecipeId,
+            sourceUrl = sourceUrl,
+            ingredients = ingredients,
+            steps = steps,
+            servings = servings,
+            totalMinutes = totalMinutes,
+        )
+        recipesCollection().document().set(fields).await()
         Unit
     }
 
@@ -112,6 +105,28 @@ class FirestoreRecipeRepository @Inject constructor(
     override suspend fun deleteRecipe(recipeId: String) = runRecipeOperation {
         requireVerifiedUser()
         recipesCollection().document(recipeId).delete().await()
+        Unit
+    }
+
+    override suspend fun restoreRecipe(recipe: Recipe) = runRecipeOperation {
+        val user = requireVerifiedUser()
+        // Conserva el autor que se veía («Catálogo Bobitos» en las comunes importadas).
+        val author = recipe.createdByName.trim().take(MAX_AUTHOR_NAME_LENGTH).ifEmpty { user.recipeDisplayName }
+        val fields = newRecipeFields(
+            user = user,
+            createdByName = author,
+            visibility = recipe.visibility,
+            title = recipe.title,
+            description = recipe.description,
+            category = recipe.category,
+            sourceRecipeId = recipe.sourceRecipeId,
+            sourceUrl = recipe.sourceUrl,
+            ingredients = recipe.ingredients.orEmpty(),
+            steps = recipe.steps.orEmpty(),
+            servings = recipe.servings,
+            totalMinutes = recipe.totalMinutes,
+        )
+        recipesCollection().document(recipe.id).set(fields).await()
         Unit
     }
 
@@ -158,6 +173,43 @@ class FirestoreRecipeRepository @Inject constructor(
         val clean = cleanRecipeSteps(steps)
         recipeDetailsFailure(clean, servings, totalMinutes)?.let { throw RecipeRepositoryException(it) }
         return clean
+    }
+
+    // Documento de una receta nueva o recreada: valida y limpia como al crear; dueño y fechas, los del momento.
+    private fun newRecipeFields(
+        user: AuthUser,
+        createdByName: String,
+        visibility: RecipeVisibility,
+        title: String,
+        description: String?,
+        category: String?,
+        sourceRecipeId: String?,
+        sourceUrl: String?,
+        ingredients: List<Ingredient>,
+        steps: List<String>,
+        servings: Int?,
+        totalMinutes: Int?,
+    ): Map<String, Any?> {
+        val values = validate(title, description, category)
+        val cleanSteps = checkedSteps(steps, servings, totalMinutes)
+        return mapOf(
+            FIELD_OWNER_UID to user.id,
+            FIELD_VISIBILITY to visibility.name,
+            FIELD_TITLE to values.title,
+            FIELD_DESCRIPTION to values.description,
+            FIELD_CATEGORY to values.category,
+            FIELD_SOURCE_RECIPE_ID to sourceRecipeId,
+            FIELD_SOURCE_URL to sourceUrl?.trim()?.takeIf(String::isNotEmpty),
+            FIELD_INGREDIENTS to ingredients.toFirestore(),
+            FIELD_STEPS to cleanSteps,
+            FIELD_SERVINGS to servings,
+            FIELD_TOTAL_MINUTES to totalMinutes,
+            FIELD_CREATED_BY to user.id,
+            FIELD_CREATED_BY_NAME to createdByName,
+            FIELD_CREATED_AT to FieldValue.serverTimestamp(),
+            FIELD_UPDATED_BY to user.id,
+            FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+        )
     }
 
     private fun validate(title: String, description: String?, category: String?): RecipeValues {
@@ -228,6 +280,7 @@ class FirestoreRecipeRepository @Inject constructor(
         const val MAX_TITLE_LENGTH = 120
         const val MAX_DESCRIPTION_LENGTH = 1000
         const val MAX_CATEGORY_LENGTH = 60
+        const val MAX_AUTHOR_NAME_LENGTH = 60
         const val MAX_VISIBLE_RECIPES = 250L
     }
 }

@@ -582,6 +582,8 @@ private class FakeRecipeRepository : RecipeRepository {
     ) = Unit
 
     override suspend fun deleteRecipe(recipeId: String) = Unit
+
+    override suspend fun restoreRecipe(recipe: Recipe) = Unit
 }
 
 private fun choice(quantity: String?) = IngredientReviewChoice(quantity, null, null)
