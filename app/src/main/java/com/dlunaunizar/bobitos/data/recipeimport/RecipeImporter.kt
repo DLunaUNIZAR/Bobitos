@@ -5,6 +5,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
 import org.jsoup.Jsoup
+import org.jsoup.parser.Parser
 import javax.inject.Inject
 
 /** Importa una receta desde la URL de una web. */
@@ -75,30 +76,37 @@ class JsonLdRecipeImporter @Inject constructor(private val fetcher: HtmlFetcher)
     }
 
     private fun JSONObject.parseInstructions(): List<String> = when (val raw = opt("recipeInstructions")) {
-        // Un único texto puede traer varios pasos separados por saltos de línea (o <br>, </p>, </li>).
-        is String -> raw.replace(HTML_LINE_BREAK, "\n").lines().map { cleanText(it) }.filter(String::isNotBlank)
+        is String -> splitInstructionText(raw)
         is JSONArray -> flattenInstructions(raw)
         else -> emptyList()
     }
 
-    // recipeInstructions puede ser texto, lista de strings, de HowToStep {text} o de HowToSection.
+    // recipeInstructions puede ser texto, lista de strings, de HowToStep {text} o de HowToSection; cada texto puede traer varios pasos.
     private fun flattenInstructions(array: JSONArray): List<String> {
         val steps = mutableListOf<String>()
         for (index in 0 until array.length()) {
             when (val item = array.opt(index)) {
-                is String -> cleanText(item).takeIf(String::isNotBlank)?.let(steps::add)
+                is String -> steps += splitInstructionText(item)
                 is JSONObject -> {
                     val section = item.opt("itemListElement")
                     if (section is JSONArray) {
                         steps += flattenInstructions(section)
                     } else {
-                        cleanText(item.optText("text").ifBlank { item.optText("name") })
-                            .takeIf(String::isNotBlank)?.let(steps::add)
+                        steps += splitInstructionText(item.optText("text").ifBlank { item.optText("name") })
                     }
                 }
             }
         }
         return steps
+    }
+
+    // Parte un texto de instrucciones en pasos. Las etiquetas escapadas («&lt;br&gt;») se leen como etiquetas. Separan
+    // pasos <br>, <p>, </p>, <li> y </li>, y también los saltos de línea, salvo en HTML con párrafos o listas, donde
+    // solo son el formato del código fuente.
+    private fun splitInstructionText(raw: String): List<String> {
+        val html = if (ESCAPED_TAG.containsMatchIn(raw)) Parser.unescapeEntities(raw, false) else raw
+        val text = if (HTML_BLOCK.containsMatchIn(html)) html.replace(SOURCE_LINE_BREAK, " ") else html
+        return text.replace(HTML_LINE_BREAK, "\n").lines().map { cleanText(it) }.filter(String::isNotBlank)
     }
 
     private fun JSONObject.parseIngredients(): List<Ingredient> {
@@ -121,7 +129,10 @@ class JsonLdRecipeImporter @Inject constructor(private val fetcher: HtmlFetcher)
     }
 
     private companion object {
-        val HTML_LINE_BREAK = Regex("<br\\s*/?>|</p>|</li>", RegexOption.IGNORE_CASE)
+        val HTML_LINE_BREAK = Regex("<br\\s*/?>|</?(?:p|li)\\b[^>]*>", RegexOption.IGNORE_CASE)
+        val HTML_BLOCK = Regex("</?(?:p|li)\\b", RegexOption.IGNORE_CASE)
+        val ESCAPED_TAG = Regex("&lt;\\s*/?\\s*(?:br|p|li)\\b", RegexOption.IGNORE_CASE)
+        val SOURCE_LINE_BREAK = Regex("\\r?\\n")
         const val MAX_TITLE = 120
         const val MAX_DESCRIPTION = 1000
         const val MAX_CATEGORY = 60

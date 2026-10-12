@@ -160,6 +160,82 @@ class JsonLdRecipeImporterTest {
     }
 
     @Test
+    fun `escaped html tags in the instructions split the steps`() = runTest {
+        fetcher.html = pageWith(
+            """
+            {
+              "@type": "Recipe",
+              "name": "Gazpacho",
+              "recipeInstructions": "Trocea.&lt;br&gt;Tritura.&lt;br /&gt;Enfría.&lt;p&gt;Sirve.&lt;/p&gt;"
+            }
+            """.trimIndent(),
+        )
+
+        assertEquals(listOf("Trocea.", "Tritura.", "Enfría.", "Sirve."), importer.import("https://example.com/g").steps)
+    }
+
+    @Test
+    fun `each instruction of a list is split by its own line breaks`() = runTest {
+        fetcher.html = pageWith(
+            """
+            {
+              "@type": "Recipe",
+              "name": "Gazpacho",
+              "recipeInstructions": [
+                "Trocea las verduras.<br>Pélalas.",
+                { "@type": "HowToStep", "text": "Tritúralo todo.\nCuélalo." },
+                {
+                  "@type": "HowToSection",
+                  "itemListElement": [{ "@type": "HowToStep", "text": "Enfríalo.&lt;br&gt;Sírvelo." }]
+                }
+              ]
+            }
+            """.trimIndent(),
+        )
+
+        assertEquals(
+            listOf("Trocea las verduras.", "Pélalas.", "Tritúralo todo.", "Cuélalo.", "Enfríalo.", "Sírvelo."),
+            importer.import("https://example.com/g").steps,
+        )
+    }
+
+    @Test
+    fun `source line breaks inside html paragraphs do not split a step`() = runTest {
+        fetcher.html = pageWith(
+            """
+            {
+              "@type": "Recipe",
+              "name": "Gazpacho",
+              "recipeInstructions": "<p>Trocea las verduras\ny pélalas.</p>\n<p>Tritúralo todo.</p>"
+            }
+            """.trimIndent(),
+        )
+
+        assertEquals(
+            listOf("Trocea las verduras y pélalas.", "Tritúralo todo."),
+            importer.import("https://example.com/g").steps,
+        )
+    }
+
+    @Test
+    fun `plain instructions with ordinary entities keep splitting by lines`() = runTest {
+        fetcher.html = pageWith(
+            """
+            {
+              "@type": "Recipe",
+              "name": "Bizcocho",
+              "recipeInstructions": "Mezcla harina &amp; azúcar.\nAñade &quot;un poco&quot; de leche."
+            }
+            """.trimIndent(),
+        )
+
+        assertEquals(
+            listOf("Mezcla harina & azúcar.", "Añade \"un poco\" de leche."),
+            importer.import("https://example.com/b").steps,
+        )
+    }
+
+    @Test
     fun `decodes html entities in fields`() = runTest {
         fetcher.html = pageWith(
             """
