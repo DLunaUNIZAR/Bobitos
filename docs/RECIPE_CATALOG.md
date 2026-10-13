@@ -96,4 +96,4 @@ Primero la simulación; si el plan es el esperado, repetir con `--apply`. Las pr
 
 - Editar una común importada en la app (aunque sea guardarla sin cambios) la **congela**: el importador ya no la actualiza.
 - Borrar una común solo en la app no basta: la siguiente importación la vuelve a crear mientras siga en `recipes.json`. Para retirarla, quítala también del JSON.
-- «Deshacer» tras borrar una común en la app la recrea con el **mismo id**, pero sin `source` (un cliente no puede escribirlo): el importador la omite como «ficha manual del admin» y ya no la actualiza; no se duplica. Para devolverla al catálogo, bórrala en la app sin deshacer y vuelve a importar.
+- «Deshacer» tras borrar una común en la app la recrea **tal como era**: mismo id, dueño, autor, fechas y `source`, aunque la deshaga otro admin. El importador la sigue tratando como antes del borrado. Las comunes que se deshicieron antes de la beta 22 quedaron sin `source` y el importador las omite como «ficha manual del admin»: para devolverlas al catálogo, bórralas en la app sin deshacer y vuelve a importar.

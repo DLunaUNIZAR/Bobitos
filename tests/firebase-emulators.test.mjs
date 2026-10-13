@@ -1345,11 +1345,13 @@ test("la receta rechaza más de 30 pasos y raciones o tiempo fuera de rango", as
   }));
 });
 
-test("ningún cliente crea una receta con la fuente del catálogo", async () => {
+test("solo un admin crea una receta con la fuente del catálogo («Deshacer»); un usuario normal, no", async () => {
   const source = { provider: "bobitos", importedAt: Timestamp.now() };
   const admin = verifiedFirestore(RECIPE_ADMIN_UID);
-  await assertFails(setDoc(doc(admin, "recipes", "falsa-global"),
+  await assertSucceeds(setDoc(doc(admin, "recipes", "falsa-global"),
     recipeData(RECIPE_ADMIN_UID, { visibility: "GLOBAL", source })));
+  await assertFails(setDoc(doc(admin, "recipes", "falsa-privada"),
+    recipeData(RECIPE_ADMIN_UID, { visibility: "PRIVATE", source })));
   const user = verifiedFirestore("recipe-fake-source");
   await assertFails(setDoc(doc(user, "recipes", "falsa"), recipeData("recipe-fake-source", { source })));
 });
@@ -1419,18 +1421,44 @@ test("el admin edita en la app una receta del importador, pero no su fuente, y c
   await assertSucceeds(getDoc(doc(verifiedFirestore("recipe-imported-reader"), "recipes", "lentejas-importadas")));
 });
 
-test("«Deshacer»: el admin recrea con el mismo id una común importada que acaba de borrar, sin su fuente", async () => {
+test("«Deshacer»: el admin recrea una común importada tal como era, con su dueño, sus fechas y su fuente", async () => {
   await seedImportedRecipe("lentejas-deshacer");
   const admin = verifiedFirestore(RECIPE_ADMIN_UID);
   const ref = doc(admin, "recipes", "lentejas-deshacer");
+  const before = (await getDoc(ref)).data();
   await assertSucceeds(writeBatch(admin).delete(ref).commit());
-  const restored = recipeData(RECIPE_ADMIN_UID, {
-    visibility: "GLOBAL", title: importedRecipe.title, description: importedRecipe.description,
-    category: importedRecipe.category, ingredients: importedRecipe.ingredients, steps: importedRecipe.steps,
-    servings: 4, totalMinutes: 60, sourceRecipeId: null, sourceUrl: null, createdByName: "Catálogo Bobitos",
-  });
-  await assertFails(setDoc(ref, { ...restored, source: { provider: "bobitos", importedAt: Timestamp.now() } }));
-  await assertSucceeds(setDoc(ref, restored));
+
+  await assertSucceeds(setDoc(ref, before));
+
+  const after = (await getDoc(ref)).data();
+  assert.equal(after.ownerUid, RECIPE_ADMIN_UID);
+  assert.equal(after.createdByName, before.createdByName);
+  assert.equal(after.source.provider, "bobitos");
+  assert.ok(after.source.importedAt.isEqual(before.source.importedAt));
+  assert.ok(after.updatedAt.isEqual(before.updatedAt));
+});
+
+test("«Deshacer» de una común: solo un admin, con dueño, autor y editor admins y fechas pasadas", async () => {
+  await seedImportedRecipe("lentejas-deshacer-mal");
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  const ref = doc(admin, "recipes", "lentejas-deshacer-mal");
+  const before = (await getDoc(ref)).data();
+  await assertSucceeds(writeBatch(admin).delete(ref).commit());
+  const future = Timestamp.fromMillis(Date.now() + 3_600_000);
+
+  await assertFails(setDoc(ref, { ...before, ownerUid: "otro-autor", createdBy: "otro-autor" }));
+  await assertFails(setDoc(ref, { ...before, createdBy: "otro-autor" }));
+  await assertFails(setDoc(ref, { ...before, updatedBy: "otro-autor" }));
+  await assertFails(setDoc(ref, { ...before, updatedAt: future }));
+  await assertFails(setDoc(ref, { ...before, createdAt: future }));
+  await assertFails(setDoc(ref, { ...before, visibility: "PRIVATE" }));
+
+  const normal = verifiedFirestore("recipe-undo-normal");
+  const normalRef = doc(normal, "recipes", "lentejas-deshacer-mal");
+  await assertFails(setDoc(normalRef, before));
+  await assertFails(setDoc(normalRef, {
+    ...before, ownerUid: "recipe-undo-normal", createdBy: "recipe-undo-normal", updatedBy: "recipe-undo-normal",
+  }));
 });
 
 

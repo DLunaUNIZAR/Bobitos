@@ -73,3 +73,6 @@ creado otra cuenta). Si es una común importada, editarla en la app la congela (
   `request.resource.data`, así que ninguna operación del catálogo consume lecturas extra.
 - Publicar `GLOBAL` exige `ownerUid == request.auth.uid` **y** `uid ∈ recipeAdmins()`; un usuario
   normal solo puede crear `PRIVATE`. Editar una receta no puede cambiar `ownerUid` ni `visibility`.
+- «Deshacer» el borrado de una `GLOBAL` (`validRecipeRestore`): un admin la recrea con su dueño, autor, fechas
+  pasadas y `source` originales. Dueño, autor y último editor tienen que estar en `recipeAdmins()`; un usuario
+  normal no puede.

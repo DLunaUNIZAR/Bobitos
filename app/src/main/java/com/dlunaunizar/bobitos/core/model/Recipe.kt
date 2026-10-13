@@ -28,6 +28,8 @@ data class Recipe(
     val createdAt: Instant,
     val updatedBy: String,
     val updatedAt: Instant,
+    // Recetas del catálogo: cuándo la escribió el importador (`source.importedAt`); null en las demás.
+    val importedAt: Instant? = null,
 )
 
 // Límites de pasos, raciones y tiempo: los mismos en las reglas, el editor, el repositorio y el importador web.

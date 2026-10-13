@@ -1001,6 +1001,19 @@ service cloud.firestore {
         && (request.resource.data.visibility == "PRIVATE" || isRecipeAdmin());
     }
 
+    // «Deshacer» el borrado de una común: un admin la recrea tal como era (dueño, autor, fechas y `source` del
+    // importador), aunque sea de otro admin, para que el importador la siga tratando como antes. Dueño, autor y último
+    // editor tienen que ser admins y las fechas, pasadas.
+    function validRecipeRestore() {
+      return isRecipeAdmin() && validRecipeShape()
+        && request.resource.data.visibility == "GLOBAL"
+        && request.resource.data.ownerUid in recipeAdmins()
+        && request.resource.data.createdBy == request.resource.data.ownerUid
+        && request.resource.data.updatedBy in recipeAdmins()
+        && request.resource.data.createdAt <= request.resource.data.updatedAt
+        && request.resource.data.updatedAt <= request.time;
+    }
+
     function ownsOrCuratesRecipe() {
       return verifiedUser()
         && (resource.data.ownerUid == request.auth.uid
@@ -1102,7 +1115,7 @@ service cloud.firestore {
         && (resource.data.visibility == "GLOBAL" || resource.data.ownerUid == request.auth.uid);
       allow list: if verifiedUser()
         && (resource.data.visibility == "GLOBAL" || resource.data.ownerUid == request.auth.uid);
-      allow create: if validNewRecipe();
+      allow create: if validNewRecipe() || validRecipeRestore();
       allow update: if validRecipeUpdate()
         || validRecipeAnonymization();
       allow delete: if ownsOrCuratesRecipe();

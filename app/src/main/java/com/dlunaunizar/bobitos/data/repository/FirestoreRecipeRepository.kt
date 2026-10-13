@@ -9,6 +9,7 @@ import com.dlunaunizar.bobitos.core.model.cleanRecipeSteps
 import com.dlunaunizar.bobitos.data.sync.RealtimeMetrics
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
 import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.tasks.await
+import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -108,6 +110,7 @@ class FirestoreRecipeRepository @Inject constructor(
         Unit
     }
 
+    // «Deshacer»: una común vuelve tal como era y una privada, como receta nueva (ver restoreAudit).
     override suspend fun restoreRecipe(recipe: Recipe) = runRecipeOperation {
         val user = requireVerifiedUser()
         // Conserva el autor que se veía («Catálogo Bobitos» en las comunes importadas).
@@ -125,7 +128,7 @@ class FirestoreRecipeRepository @Inject constructor(
             steps = recipe.steps.orEmpty(),
             servings = recipe.servings,
             totalMinutes = recipe.totalMinutes,
-        )
+        ) + restoredFields(recipe.restoreAudit(user.id))
         recipesCollection().document(recipe.id).set(fields).await()
         Unit
     }
@@ -212,6 +215,20 @@ class FirestoreRecipeRepository @Inject constructor(
         )
     }
 
+    // Dueño, autor y fechas de la receta recreada; las fechas null, la hora del servidor. `source` solo si venía del
+    // importador.
+    private fun restoredFields(audit: RecipeRestoreAudit): Map<String, Any?> = buildMap {
+        put(FIELD_OWNER_UID, audit.ownerUid)
+        put(FIELD_CREATED_BY, audit.createdBy)
+        put(FIELD_CREATED_AT, audit.createdAt?.toTimestamp() ?: FieldValue.serverTimestamp())
+        put(FIELD_UPDATED_BY, audit.updatedBy)
+        put(FIELD_UPDATED_AT, audit.updatedAt?.toTimestamp() ?: FieldValue.serverTimestamp())
+        audit.importedAt?.let { importedAt ->
+            val source = mapOf(SOURCE_PROVIDER to CATALOG_PROVIDER, SOURCE_IMPORTED_AT to importedAt.toTimestamp())
+            put(FIELD_SOURCE, source)
+        }
+    }
+
     private fun validate(title: String, description: String?, category: String?): RecipeValues {
         val normalizedTitle = title.trim()
         val normalizedDescription = description?.trim()?.takeIf(String::isNotEmpty)
@@ -264,6 +281,10 @@ class FirestoreRecipeRepository @Inject constructor(
         const val FIELD_CATEGORY = "category"
         const val FIELD_SOURCE_RECIPE_ID = "sourceRecipeId"
         const val FIELD_SOURCE_URL = "sourceUrl"
+        const val FIELD_SOURCE = "source"
+        const val SOURCE_PROVIDER = "provider"
+        const val SOURCE_IMPORTED_AT = "importedAt"
+        const val CATALOG_PROVIDER = "bobitos"
         const val FIELD_INGREDIENTS = "ingredients"
         const val FIELD_STEPS = "steps"
         const val FIELD_SERVINGS = "servings"
@@ -289,6 +310,15 @@ private const val MAX_AUTHOR_NAME_LENGTH = 60
 private val AuthUser.recipeDisplayName: String
     get() = displayName.ifBlank { email.substringBefore('@') }.take(MAX_AUTHOR_NAME_LENGTH)
 
+private fun Instant.toTimestamp(): Timestamp = Timestamp(epochSecond, nano)
+
+// Recetas del importador: `source.importedAt` con proveedor «bobitos»; null en las demás.
+private fun DocumentSnapshot.catalogImportedAt(): Instant? {
+    val source = get("source") as? Map<*, *> ?: return null
+    if (source["provider"] != "bobitos") return null
+    return (source["importedAt"] as? Timestamp)?.toDate()?.toInstant()
+}
+
 private fun DocumentSnapshot.toRecipe(): Recipe? {
     val createdAt = getTimestamp("createdAt")?.toDate()?.toInstant() ?: return null
     val updatedAt = getTimestamp("updatedAt")?.toDate()?.toInstant() ?: createdAt
@@ -313,6 +343,7 @@ private fun DocumentSnapshot.toRecipe(): Recipe? {
         createdAt = createdAt,
         updatedBy = getString("updatedBy") ?: getString("createdBy") ?: return null,
         updatedAt = updatedAt,
+        importedAt = catalogImportedAt(),
     )
 }
 
