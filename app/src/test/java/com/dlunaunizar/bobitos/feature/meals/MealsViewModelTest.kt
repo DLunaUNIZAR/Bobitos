@@ -569,6 +569,40 @@ class MealsViewModelTest {
             assertTrue(shoppingRepository.appliedBatches.isEmpty())
             assertEquals(MealUiMessage.NothingToAddToShopping, viewModel.uiState.value.notice)
         }
+
+    @Test
+    fun `marking cooked reads the list from the server, not from a stale cached snapshot`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value =
+                listOf(recipe("r1", listOf(Ingredient("Arroz", "300", "g"), Ingredient("Tomate", "2", "ud"))))
+            shoppingRepository.itemsState.value = listOf(shoppingItem("s1", "Arroz"))
+            shoppingRepository.serverItems =
+                listOf(shoppingItem("s1", "Arroz").copy(purchased = true), shoppingItem("s2", "Tomate"))
+            viewModel.observe("home")
+            advanceUntilIdle()
+
+            viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.COMIDA, "Paella").copy(recipeId = "r1"))
+            advanceUntilIdle()
+
+            assertEquals(listOf("Tomate"), viewModel.uiState.value.cookedCrossOff?.map(ShoppingItem::name))
+        }
+
+    @Test
+    fun `marking cooked when the list cannot be read still marks the meal and offers nothing`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Arroz", "300", "g"))))
+            shoppingRepository.itemsFailure = ShoppingRepositoryException(ShoppingFailure.Network)
+            viewModel.observe("home")
+            advanceUntilIdle()
+
+            viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.COMIDA, "Paella").copy(recipeId = "r1"))
+            advanceUntilIdle()
+
+            assertEquals(true, mealRepository.cookedValue)
+            assertEquals(MealUiMessage.MealCooked, viewModel.uiState.value.notice)
+            assertEquals(null, viewModel.uiState.value.cookedCrossOff)
+            assertEquals(null, viewModel.uiState.value.error)
+        }
 }
 
 private class FakeMealRepository : MealRepository {

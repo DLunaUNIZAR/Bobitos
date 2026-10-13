@@ -34,7 +34,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -251,7 +250,10 @@ class MealsViewModel @Inject constructor(
                 val candidates = if (keys.isEmpty()) {
                     emptyList()
                 } else {
-                    val current = runCatching { shoppingRepository.items(spaceId).first() }.getOrDefault(emptyList())
+                    // La lista del servidor, no la caché; si no se puede leer, no se ofrece tachar nada.
+                    val current = runCatching { shoppingRepository.currentItems(spaceId) }
+                        .onFailure { if (it is CancellationException) throw it }
+                        .getOrDefault(emptyList())
                     current.filter { !it.purchased && shoppingMatchKey(it.name) in keys }
                 }
                 mutableUiState.update {
