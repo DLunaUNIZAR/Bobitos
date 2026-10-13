@@ -162,4 +162,33 @@ class ShoppingQuantityTest {
         assertEquals("2 botes sin azúcar", ShoppingQuantity.sum("1 bote sin azúcar", "1 bote sin azúcar"))
         assertEquals("2 cucharadas al ras", ShoppingQuantity.sum("1 cucharada al ras", "1 cucharada al ras"))
     }
+
+    @Test
+    fun `the singular of -ces after a consonant only drops the s`() {
+        assertEquals("1 bolsa dulce", ShoppingQuantity.sum("1/2 bolsas dulces", "1/2 bolsas dulces"))
+        assertEquals("1 nuez", ShoppingQuantity.sum("1/2 nueces", "1/2 nueces"))
+    }
+
+    @Test
+    fun `the singular of a plural in -nes gets the accent of its stress`() {
+        assertEquals("1 bolsa común", ShoppingQuantity.sum("1/2 bolsas comunes", "1/2 bolsas comunes"))
+        assertEquals("1 pan alemán", ShoppingQuantity.sum("1/2 panes alemanes", "1/2 panes alemanes"))
+        assertEquals("1 camión", ShoppingQuantity.sum("1/2 camiones", "1/2 camiones"))
+        assertEquals("1 examen", ShoppingQuantity.sum("1/2 exámenes", "1/2 exámenes"))
+        assertEquals("1 tren", ShoppingQuantity.sum("1/2 trenes", "1/2 trenes"))
+        assertEquals("1 guion", ShoppingQuantity.sum("1/2 guiones", "1/2 guiones"))
+        assertEquals("1 limón", ShoppingQuantity.sum("1/2 limones", "1/2 limones"))
+        assertEquals("1 botellín", ShoppingQuantity.sum("1/2 botellines", "1/2 botellines"))
+    }
+
+    @Test
+    fun `the singular keeps the capital letters and puts the accent in capitals`() {
+        assertEquals("1 PAN ALEMÁN", ShoppingQuantity.sum("1/2 PANES ALEMANES", "1/2 PANES ALEMANES"))
+    }
+
+    @Test
+    fun `the singular of a diphthong before the consonant keeps the e`() {
+        assertEquals("1 peine", ShoppingQuantity.sum("1/2 peines", "1/2 peines"))
+        assertEquals("1 baile", ShoppingQuantity.sum("1/2 bailes", "1/2 bailes"))
+    }
 }

@@ -114,7 +114,6 @@ private object UnitNumber {
 
     // Preposiciones que cierran la parte de la unidad que cambia de número («dientes de ajo», «bolsas con asa»).
     private val UNIT_LINKS = setOf("a", "al", "con", "de", "del", "en", "para", "por", "sin")
-    private val PLAIN_VOWELS = mapOf('á' to 'a', 'é' to 'e', 'í' to 'i', 'ó' to 'o', 'ú' to 'u')
 
     // Una grafía está en plural si su primera palabra acaba en «s» («dientes de ajo», «cucharadas soperas»).
     fun isPlural(unit: String): Boolean = unit.split(WORD_SPACE).first().lowercase().endsWith("s")
@@ -145,20 +144,37 @@ private object UnitNumber {
         }
     }
 
-    // Singular aproximado de una palabra en plural: «-ces» → «-z»; «-ones» → «-ón»; «-ines» → «-ín»; vocal + l, r, n,
-    // d o j + «-es» → sin «-es» («panes» → «pan», «boles» → «bol»); si no, sin la «-s» final («sobres» → «sobre»).
-    // Falla en palabras raras como unidad («trajes», «meses»).
+    // Singular aproximado de una palabra en plural:
+    // - vocal + «-ces» → «-z» («nueces» → «nuez»); consonante + «-ces» → sin la «-s» («dulces» → «dulce»);
+    // - diptongo + l, r, n, d o j + «-es» → sin la «-s» («peines» → «peine», «aires» → «aire»);
+    // - vocal + «-nes» → sin «-es», con la tilde de la aguda («comunes» → «común»), sin la de la esdrújula
+    //   («exámenes» → «examen») y sin tilde en la monosílaba («panes» → «pan»);
+    // - vocal + l, r, d o j + «-es» → sin «-es» («boles» → «bol», «yogures» → «yogur»);
+    // - si no, sin la «-s» final («sobres» → «sobre»).
+    // Falla en palabras raras como unidad («vales» → «val», «trajes», «meses»).
     fun singularOf(word: String): String {
         val lower = word.lowercase()
         return when {
-            lower.endsWith("ces") -> "${word.dropLast(3)}z"
-            lower.endsWith("ones") -> "${word.dropLast(4)}ón"
-            lower.endsWith("ines") -> "${word.dropLast(4)}ín"
+            lower.endsWith("ces") -> if (lower.vowelAt(lower.length - 4)) "${word.dropLast(3)}z" else word.dropLast(1)
+            lower.keepsEAfterDiphthong() -> word.dropLast(1)
+            lower.dropsNes() -> word.dropLast(2).withStressOfFinalN()
             lower.dropsEs() -> word.dropLast(2)
             lower.endsWith("s") -> word.dropLast(1)
             else -> word
         }
     }
+
+    private fun String.vowelAt(index: Int): Boolean = index >= 0 && this[index] in VOWELS
+
+    // Diptongo + l, r, n, d o j + «-es»: el singular conserva la «e» («peines» → «peine», «aires» → «aire»).
+    private fun String.keepsEAfterDiphthong(): Boolean = length >= 5 &&
+        endsWith("es") &&
+        this[length - 3] in ES_PLURAL_CONSONANTS &&
+        this[length - 4] in "iu" &&
+        this[length - 5] in "aeo"
+
+    // Vocal + «-nes»: el singular acaba en «-n» («panes» → «pan», «comunes» → «común»).
+    private fun String.dropsNes(): Boolean = length >= 4 && endsWith("nes") && vowelAt(length - 4)
 
     // «-es» tras l, r, n, d o j que siguen a una vocal: el singular acaba en esa consonante («flores» → «flor»).
     private fun String.dropsEs(): Boolean =
@@ -170,4 +186,28 @@ private object UnitNumber {
         val plain = PLAIN_VOWELS[this[length - 2]] ?: return this
         return substring(0, length - 2) + plain + last()
     }
+}
+
+private val PLAIN_VOWELS = mapOf('á' to 'a', 'é' to 'e', 'í' to 'i', 'ó' to 'o', 'ú' to 'u')
+private val ACUTE_VOWELS = mapOf('a' to 'á', 'e' to 'é', 'i' to 'í', 'o' to 'ó', 'u' to 'ú')
+private const val STRONG_VOWELS = "aeoáéíóú"
+private val VOWEL_RUN = Regex("[aeiouáéíóúü]+")
+
+// Sílabas aproximadas: cada grupo de vocales seguidas cuenta una por vocal fuerte (a, e, o o con tilde), o una si
+// solo tiene débiles («guion» → 1, «leon» → 2, «camion» → 2).
+private fun String.syllables(): Int =
+    VOWEL_RUN.findAll(lowercase()).sumOf { run -> run.value.count { it in STRONG_VOWELS }.coerceAtLeast(1) }
+
+// Cambia la vocal según [vowels] (claves en minúscula) y conserva la mayúscula.
+private fun Char.swapped(vowels: Map<Char, Char>): Char {
+    val swapped = vowels[lowercaseChar()] ?: return this
+    return if (isUpperCase()) swapped.uppercaseChar() else swapped
+}
+
+// Tilde de un singular en vocal + «n»: si viene de una esdrújula, la pierde («exámen» → «examen»); sin tilde y con dos
+// sílabas o más, es aguda y la lleva en la vocal antes de la «n» («comun» → «común»); la monosílaba, no («pan»).
+private fun String.withStressOfFinalN(): String = when {
+    any { it.lowercaseChar() in PLAIN_VOWELS } -> map { it.swapped(PLAIN_VOWELS) }.joinToString("")
+    syllables() < 2 -> this
+    else -> substring(0, length - 2) + this[length - 2].swapped(ACUTE_VOWELS) + last()
 }
