@@ -73,4 +73,33 @@ class RecipeRestoreTest {
 
         assertEquals(RecipeRestoreAudit("chef", "chef", null, "chef", null, null), mine.restoreAudit("chef", admins))
     }
+
+    @Test
+    fun `a common recipe whose last edit is still pending comes back edited at the server time`() {
+        val pending = recipe(RecipeVisibility.GLOBAL, importedAt = imported)
+            .copy(updatedAt = created, updatePending = true)
+        val madeInApp = recipe(RecipeVisibility.GLOBAL).copy(updatePending = true)
+
+        val audit = pending.restoreAudit("catalog-admin", admins)
+
+        assertNull(audit.updatedAt)
+        assertEquals(created, audit.createdAt)
+        assertEquals(imported, audit.importedAt)
+        assertNull(madeInApp.restoreAudit("catalog-admin", admins).updatedAt)
+    }
+
+    @Test
+    fun `a common recipe read with an edit date before its import comes back edited at the server time`() {
+        val stale = recipe(RecipeVisibility.GLOBAL, importedAt = imported).copy(updatedAt = created)
+
+        assertNull(stale.restoreAudit("catalog-admin", admins).updatedAt)
+    }
+
+    @Test
+    fun `an imported common recipe never edited in the app keeps its last edit at the import date`() {
+        val audit = recipe(RecipeVisibility.GLOBAL, importedAt = imported).restoreAudit("catalog-admin", admins)
+
+        assertEquals(imported, audit.updatedAt)
+        assertEquals(imported, audit.importedAt)
+    }
 }

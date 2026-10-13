@@ -30,6 +30,8 @@ data class Recipe(
     val updatedAt: Instant,
     // Recetas del catálogo: cuándo la escribió el importador (`source.importedAt`); null en las demás.
     val importedAt: Instant? = null,
+    // La última edición aún no ha llegado al servidor (`updatedAt` pendiente): «Deshacer» usa la hora del servidor.
+    val updatePending: Boolean = false,
 )
 
 // Límites de pasos, raciones y tiempo: los mismos en las reglas, el editor, el repositorio y el importador web.

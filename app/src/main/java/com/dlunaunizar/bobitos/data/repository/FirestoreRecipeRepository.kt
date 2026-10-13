@@ -321,7 +321,8 @@ private fun DocumentSnapshot.catalogImportedAt(): Instant? {
 
 private fun DocumentSnapshot.toRecipe(): Recipe? {
     val createdAt = getTimestamp("createdAt")?.toDate()?.toInstant() ?: return null
-    val updatedAt = getTimestamp("updatedAt")?.toDate()?.toInstant() ?: createdAt
+    val updatedStamp = getTimestamp("updatedAt")
+    val updatedAt = updatedStamp?.toDate()?.toInstant() ?: createdAt
     val visibility = getString("visibility")?.let { value ->
         runCatching { RecipeVisibility.valueOf(value) }.getOrNull()
     } ?: return null
@@ -344,6 +345,8 @@ private fun DocumentSnapshot.toRecipe(): Recipe? {
         updatedBy = getString("updatedBy") ?: getString("createdBy") ?: return null,
         updatedAt = updatedAt,
         importedAt = catalogImportedAt(),
+        // Una edición aún sin confirmar deja `updatedAt` con la hora del servidor pendiente, que se lee null.
+        updatePending = updatedStamp == null && contains("updatedAt"),
     )
 }
 
