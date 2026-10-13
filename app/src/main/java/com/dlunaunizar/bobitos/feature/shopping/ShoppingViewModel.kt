@@ -178,9 +178,9 @@ class ShoppingViewModel @Inject constructor(
     }
 
     /**
-     * «Sumar cantidad» en el aviso de repetido: suma la cantidad y rellena con lo tecleado las notas, la tienda y la
-     * marca que el artículo tenga vacías, sin pisar las que ya tiene. Si la suma no cabe, no hace nada (el aviso lo
-     * explica y deshabilita el botón).
+     * «Sumar cantidad» en el aviso de repetido: suma la cantidad, rellena con las tecleadas las notas que el artículo
+     * tenga vacías y rellena la tienda y la marca como pareja ([ShoppingDuplicate.storeAndBrandAfterSum]). Si la suma
+     * no cabe, no hace nada (el aviso lo explica y deshabilita el botón).
      */
     fun sumDuplicate(spaceId: String) {
         val duplicate = mutableUiState.value.duplicate ?: return
@@ -189,6 +189,7 @@ class ShoppingViewModel @Inject constructor(
         val existing = duplicate.existing
         val notes = existing.notes.normalized() ?: duplicate.notes
         if (!validate(existing.name, duplicate.summed, notes)) return
+        val (store, brand) = duplicate.storeAndBrandAfterSum()
         runAction(ShoppingUiMessage.ItemUpdated, editor = true) {
             repository.applyWrites(
                 spaceId,
@@ -197,8 +198,8 @@ class ShoppingViewModel @Inject constructor(
                         seen = existing,
                         quantity = duplicate.summed,
                         notes = notes,
-                        supermarket = existing.supermarket ?: duplicate.supermarket,
-                        brand = existing.brand.normalized() ?: duplicate.brand,
+                        supermarket = store,
+                        brand = brand,
                         relist = false,
                     ),
                 ),

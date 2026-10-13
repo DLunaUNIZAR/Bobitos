@@ -24,7 +24,8 @@ data class ShoppingUiState(
 
 /**
  * Artículo ya pendiente en la lista ([existing]) y lo tecleado en el editor: la cantidad que se quería añadir y las
- * notas, la tienda y la marca con que «Sumar cantidad» rellena las que el artículo tenga vacías.
+ * notas, la tienda y la marca con que «Sumar cantidad» rellena las notas vacías y, como pareja, la tienda y la marca
+ * (ver [ShoppingDuplicate.storeAndBrandAfterSum]).
  */
 data class ShoppingDuplicate(
     val existing: ShoppingItem,
@@ -39,9 +40,30 @@ data class ShoppingDuplicate(
     /** La suma no cabe en una cantidad: el aviso lo dice y deshabilita «Sumar cantidad». */
     val sumTooLong: Boolean get() = (summed?.length ?: 0) > ShoppingQuantity.MAX_LENGTH
 
-    /** La cantidad del artículo para el aviso, con espacios que no parten línea; null si no tiene. */
+    /**
+     * La cantidad del artículo para el aviso; null si no tiene. Solo el espacio entre el número inicial y la palabra que
+     * le sigue no parte línea («5 ud»): una cantidad larga se parte por sus otros espacios, nunca a mitad de palabra.
+     */
     val existingQuantityLabel: String?
-        get() = existing.quantity?.trim()?.takeIf(String::isNotEmpty)?.replace(' ', ' ')
+        get() = existing.quantity?.trim()?.takeIf(String::isNotEmpty)?.replaceFirst(NUMBER_THEN_SPACE, "\$1 ")
+
+    /**
+     * Tienda y marca tras «Sumar cantidad»: lo tecleado rellena las del artículo como pareja, para no juntar una tienda
+     * y una marca que no van juntas. Sin tienda ni marca, entran las tecleadas; con solo la tienda, la marca tecleada
+     * entra si se tecleó esa misma tienda; con solo la marca, la tienda tecleada entra si se tecleó esa misma marca (sin
+     * distinguir mayúsculas); con las dos, se conservan. Una marca solo con espacios cuenta como vacía.
+     */
+    fun storeAndBrandAfterSum(): Pair<Supermarket?, String?> {
+        val store = existing.supermarket
+        val listedBrand = existing.brand?.trim()?.takeIf(String::isNotEmpty)
+        val typedBrand = brand?.trim()?.takeIf(String::isNotEmpty)
+        return when {
+            store == null && listedBrand == null -> supermarket to typedBrand
+            listedBrand == null -> store to typedBrand.takeIf { supermarket == store }
+            store == null -> supermarket.takeIf { listedBrand.equals(typedBrand, ignoreCase = true) } to listedBrand
+            else -> store to listedBrand
+        }
+    }
 }
 
 enum class ShoppingWriteStatus {
@@ -75,3 +97,6 @@ enum class ShoppingUiMessage {
     IngredientCreated,
     IngredientExists,
 }
+
+// Número inicial («5», «1/2», «1,5») y el espacio que lo separa de la palabra siguiente.
+private val NUMBER_THEN_SPACE = Regex("""^(\S*\d\S*)\s+""")

@@ -476,6 +476,25 @@ class ShoppingViewModelTest {
         }
 
     @Test
+    fun `summing a duplicate does not join a store and a brand that do not go together`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val pending = shoppingItem().copy(quantity = "1 l", supermarket = Supermarket.DIA)
+            repository.itemState.value = listOf(pending)
+            viewModel.observe("home")
+            advanceUntilIdle()
+            viewModel.addItem("home", "Leche", "2 l", null, Supermarket.MERCADONA, "Hacendado")
+            advanceUntilIdle()
+
+            viewModel.sumDuplicate("home")
+            advanceUntilIdle()
+
+            assertEquals(
+                listOf(ShoppingWrite.Change(pending, "3 l", null, Supermarket.DIA, null, relist = false)),
+                repository.applied,
+            )
+        }
+
+    @Test
     fun `summing treats an indifferent store as chosen and blank notes as empty`() =
         runTest(mainDispatcherRule.testDispatcher) {
             val pending = shoppingItem().copy(quantity = "1 l", notes = "  ", supermarket = Supermarket.INDIFERENTE)
