@@ -282,6 +282,45 @@ class RecipesViewModelTest {
         }
 
     @Test
+    fun `while the shopping list is being read a second request is ignored and isSaving is on`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel.observe()
+            advanceUntilIdle()
+            val gate = CompletableDeferred<Unit>()
+            shoppingRepository.currentItemsGate = gate
+            val recipe = recipe("r1", RecipeVisibility.PRIVATE, "Tortilla", listOf(Ingredient("Huevo", "4", "uds")))
+
+            viewModel.addToShopping("home", recipe)
+            viewModel.addToShopping("home", recipe)
+            runCurrent()
+
+            assertEquals(1, shoppingRepository.currentItemsCalls)
+            assertTrue(viewModel.uiState.value.isSaving)
+            gate.complete(Unit)
+            advanceUntilIdle()
+            assertFalse(viewModel.uiState.value.isSaving)
+            assertEquals(listOf("Huevo"), viewModel.uiState.value.ingredientReview?.map { it.name })
+        }
+
+    @Test
+    fun `if the shopping list cannot be read isSaving goes off and the error is shown`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel.observe()
+            advanceUntilIdle()
+            shoppingRepository.itemsFailure = ShoppingRepositoryException(ShoppingFailure.Network)
+
+            viewModel.addToShopping(
+                "home",
+                recipe("r1", RecipeVisibility.PRIVATE, "Tortilla", listOf(Ingredient("Huevo", "4", "uds"))),
+            )
+            advanceUntilIdle()
+
+            assertFalse(viewModel.uiState.value.isSaving)
+            assertEquals(null, viewModel.uiState.value.ingredientReview)
+            assertEquals(RecipeUiMessage.NetworkError, viewModel.uiState.value.error)
+        }
+
+    @Test
     fun `adding a recipe without ingredients shows a message`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe()
         advanceUntilIdle()

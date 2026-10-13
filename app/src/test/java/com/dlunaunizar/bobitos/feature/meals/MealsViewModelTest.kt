@@ -512,6 +512,44 @@ class MealsViewModelTest {
         }
 
     @Test
+    fun `while the shopping list is being read a second request is ignored and isSaving is on`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Arroz", "300", "g"))))
+            viewModel.observe("home")
+            advanceUntilIdle()
+            val gate = CompletableDeferred<Unit>()
+            shoppingRepository.currentItemsGate = gate
+            val paella = meal("m1", LocalDate.now(), MealSlot.COMIDA, "Paella").copy(recipeId = "r1")
+
+            viewModel.addIngredientsToShopping(paella)
+            viewModel.addIngredientsToShopping(paella)
+            runCurrent()
+
+            assertEquals(1, shoppingRepository.currentItemsCalls)
+            assertTrue(viewModel.uiState.value.isSaving)
+            gate.complete(Unit)
+            advanceUntilIdle()
+            assertFalse(viewModel.uiState.value.isSaving)
+            assertEquals(listOf("Arroz"), viewModel.uiState.value.ingredientReview?.map { it.name })
+        }
+
+    @Test
+    fun `if the shopping list cannot be read isSaving goes off`() = runTest(mainDispatcherRule.testDispatcher) {
+        recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Arroz", "300", "g"))))
+        shoppingRepository.itemsFailure = ShoppingRepositoryException(ShoppingFailure.Network)
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.addIngredientsToShopping(
+            meal("m1", LocalDate.now(), MealSlot.COMIDA, "Paella").copy(recipeId = "r1"),
+        )
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isSaving)
+        assertEquals(MealUiMessage.NetworkError, viewModel.uiState.value.error)
+    }
+
+    @Test
     fun `a recipe whose ingredients were all bought writes nothing by default`() =
         runTest(mainDispatcherRule.testDispatcher) {
             recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Arroz", "300", "g"))))

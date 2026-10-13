@@ -8,6 +8,7 @@ import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientBrandRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientPrefsRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakePersonalIngredientRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
@@ -39,7 +40,13 @@ internal class RecordingShoppingRepository : ShoppingRepository {
     override fun items(spaceId: String): Flow<List<ShoppingItem>> =
         itemsFailure?.let { failure -> flow { throw failure } } ?: itemsState
 
+    // Si hay puerta, currentItems espera a que se complete (simula una lectura lenta); cuenta las lecturas.
+    var currentItemsGate: CompletableDeferred<Unit>? = null
+    var currentItemsCalls = 0
+
     override suspend fun currentItems(spaceId: String): List<ShoppingItem> {
+        currentItemsCalls++
+        currentItemsGate?.await()
         itemsFailure?.let { throw it }
         return serverItems ?: itemsState.value
     }

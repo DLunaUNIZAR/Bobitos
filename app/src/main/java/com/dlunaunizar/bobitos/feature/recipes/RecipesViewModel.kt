@@ -96,16 +96,23 @@ class RecipesViewModel @Inject constructor(
             showError(RecipeUiMessage.NoIngredients)
             return
         }
+        // La lectura del servidor puede tardar: mientras espera, isSaving evita lecturas en paralelo.
+        if (mutableUiState.value.isSaving) return
+        mutableUiState.update { it.copy(isSaving = true) }
         viewModelScope.launch {
-            // Sin la lista no se pueden buscar repetidos: si no se puede leer, no se abre la revisión.
-            val current = runCatching { shoppingRepository.currentItems(spaceId) }
-                .onFailure { if (it is CancellationException) throw it }
-                .getOrElse { error ->
-                    showError(error.toUiMessage())
-                    return@launch
-                }
-            val rows = buildIngredientReviewRows(ingredients, current, shoppingData)
-            mutableUiState.update { it.copy(ingredientReview = rows) }
+            try {
+                // Sin la lista no se pueden buscar repetidos: si no se puede leer, no se abre la revisión.
+                val current = runCatching { shoppingRepository.currentItems(spaceId) }
+                    .onFailure { if (it is CancellationException) throw it }
+                    .getOrElse { error ->
+                        showError(error.toUiMessage())
+                        return@launch
+                    }
+                val rows = buildIngredientReviewRows(ingredients, current, shoppingData)
+                mutableUiState.update { it.copy(ingredientReview = rows) }
+            } finally {
+                mutableUiState.update { it.copy(isSaving = false) }
+            }
         }
     }
 
