@@ -33,4 +33,14 @@ class ShoppingValidationTest {
     fun `valid optional values pass validation`() {
         assertNull(ShoppingValidation.validate("Pan", "2 barras", "Integral"))
     }
+
+    @Test
+    fun `the brand is limited to 60 characters once trimmed`() {
+        assertNull(ShoppingValidation.validate("Pan", null, null, "  " + "M".repeat(60) + "  "))
+        assertEquals(
+            ShoppingUiMessage.BrandTooLong,
+            ShoppingValidation.validate("Pan", null, null, "M".repeat(61)),
+        )
+        assertNull(ShoppingValidation.validate("Pan", null, null, null))
+    }
 }

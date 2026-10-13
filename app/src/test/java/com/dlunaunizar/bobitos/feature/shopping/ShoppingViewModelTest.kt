@@ -587,6 +587,31 @@ class ShoppingViewModelTest {
         }
 
     @Test
+    fun `a brand over 60 characters is refused in the editor before looking for repeats or writing`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel.observe("home")
+            advanceUntilIdle()
+            val longBrand = "M".repeat(61)
+
+            viewModel.addItem("home", "Leche", "1", null, null, longBrand)
+            advanceUntilIdle()
+
+            assertNull(viewModel.uiState.value.duplicate)
+            assertNull(repository.applied)
+            assertEquals(ShoppingUiMessage.BrandTooLong, viewModel.uiState.value.error)
+            assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+
+            viewModel.addItem("home", "Pan", "1", null, null, longBrand)
+            advanceUntilIdle()
+            viewModel.updateItem("home", "milk", "Leche", "1", null, null, longBrand)
+            advanceUntilIdle()
+
+            assertNull(repository.addedName)
+            assertNull(repository.updatedItemId)
+            assertEquals(ShoppingUiMessage.BrandTooLong, viewModel.uiState.value.error)
+        }
+
+    @Test
     fun `relisting a purchased product sends the item as it was seen`() = runTest(mainDispatcherRule.testDispatcher) {
         val bought = listItem(quantity = "6 l", purchased = true)
         repository.itemState.value = listOf(bought)

@@ -83,6 +83,7 @@ import com.dlunaunizar.bobitos.feature.common.BrandStorePicker
 import com.dlunaunizar.bobitos.feature.common.BrandStoreSelection
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
 import com.dlunaunizar.bobitos.feature.common.contextFor
+import com.dlunaunizar.bobitos.feature.common.freeBrandTooLong
 
 @Composable
 fun ShoppingScreen(
@@ -623,18 +624,18 @@ private fun ShoppingItemEditor(
     val quantity = draft.quantity
     val notes = draft.notes
     val brand = draft.brand
-    val validation = ShoppingValidation.validate(name, quantity, notes)
+    // Solo al crear: un ingrediente reconocido propone marca y tienda (§5).
+    val context = remember(ingredientKey(name), ingredientData) {
+        if (item == null) ingredientData.contextFor(name) else null
+    }
+    LaunchedEffect(context) { draft = draft.withContext(context) }
+    val validation = ShoppingValidation.validate(name, quantity, notes, draft.savedBrand(context))
     // Solo al crear: avisa si ya hay un producto con ese nombre en la lista.
     val duplicate = if (item == null) resolveDuplicate(name) else null
     val nameErrorMessage = validation?.takeIf {
         it == ShoppingUiMessage.NameRequired || it == ShoppingUiMessage.NameTooLong
     }
     val nameError = nameErrorMessage != null
-    // Solo al crear: un ingrediente reconocido propone marca y tienda (§5).
-    val context = remember(ingredientKey(name), ingredientData) {
-        if (item == null) ingredientData.contextFor(name) else null
-    }
-    LaunchedEffect(context) { draft = draft.withContext(context) }
 
     BobitosFormSheet(
         title = stringResource(if (item == null) R.string.shopping_add_title else R.string.shopping_edit_title),
@@ -753,11 +754,18 @@ private fun SupermarketAndBrandFields(
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
     SupermarketDropdown(selected = supermarket, onSelect = onSupermarket)
+    val tooLong = freeBrandTooLong(brand)
     OutlinedTextField(
         value = brand,
         onValueChange = onBrand,
         label = { Text(stringResource(R.string.shopping_brand_label)) },
         singleLine = true,
+        isError = tooLong,
+        supportingText = if (tooLong) {
+            { Text(stringResource(R.string.shopping_error_brand_too_long)) }
+        } else {
+            null
+        },
     )
 }
 

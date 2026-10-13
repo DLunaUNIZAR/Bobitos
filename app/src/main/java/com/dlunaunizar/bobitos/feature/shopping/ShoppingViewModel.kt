@@ -134,7 +134,7 @@ class ShoppingViewModel @Inject constructor(
         supermarket: Supermarket?,
         brand: String?,
     ) {
-        if (!validate(name, quantity, notes)) return
+        if (!validate(name, quantity, notes, brand)) return
         val items = itemsForAdd(spaceId) ?: return
         val match = findShoppingMatch(items, name)
         val normalizedQuantity = quantity.normalized()
@@ -185,8 +185,8 @@ class ShoppingViewModel @Inject constructor(
         mutableUiState.update { it.copy(duplicate = null) }
         val existing = duplicate.existing
         val notes = existing.notes.normalized() ?: duplicate.notes
-        if (!validate(existing.name, duplicate.summed, notes)) return
         val (store, brand) = duplicate.storeAndBrandAfterSum()
+        if (!validate(existing.name, duplicate.summed, notes, brand)) return
         runAction(ShoppingUiMessage.ItemUpdated, editor = true) {
             repository.applyWrites(
                 spaceId,
@@ -234,7 +234,7 @@ class ShoppingViewModel @Inject constructor(
         supermarket: Supermarket?,
         brand: String?,
     ) {
-        if (!validate(name, quantity, notes)) return
+        if (!validate(name, quantity, notes, brand)) return
         runAction(ShoppingUiMessage.ItemUpdated, editor = true) {
             repository.updateItem(
                 spaceId,
@@ -304,8 +304,8 @@ class ShoppingViewModel @Inject constructor(
         }
     }
 
-    private fun validate(name: String, quantity: String?, notes: String?): Boolean {
-        val error = ShoppingValidation.validate(name, quantity, notes) ?: return true
+    private fun validate(name: String, quantity: String?, notes: String?, brand: String?): Boolean {
+        val error = ShoppingValidation.validate(name, quantity, notes, brand) ?: return true
         showError(error, editor = true)
         return false
     }

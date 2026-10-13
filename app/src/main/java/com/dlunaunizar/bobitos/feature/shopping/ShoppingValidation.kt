@@ -10,7 +10,7 @@ object ShoppingValidation {
     // El mismo límite que las reglas y FirestoreShoppingRepository.
     const val MAX_BRAND_LENGTH = 60
 
-    fun validate(name: String, quantity: String?, notes: String?): ShoppingUiMessage? = when {
+    fun validate(name: String, quantity: String?, notes: String?, brand: String? = null): ShoppingUiMessage? = when {
         name.isBlank() -> ShoppingUiMessage.NameRequired
         name.trim().length > MAX_NAME_LENGTH -> ShoppingUiMessage.NameTooLong
         quantity?.trim()?.length?.let { it > MAX_QUANTITY_LENGTH } == true -> {
@@ -19,6 +19,7 @@ object ShoppingValidation {
         notes?.trim()?.length?.let { it > MAX_NOTES_LENGTH } == true -> {
             ShoppingUiMessage.NotesTooLong
         }
+        brand?.trim()?.length?.let { it > MAX_BRAND_LENGTH } == true -> ShoppingUiMessage.BrandTooLong
         else -> null
     }
 }
