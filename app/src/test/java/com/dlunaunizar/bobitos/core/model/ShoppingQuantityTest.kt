@@ -153,4 +153,13 @@ class ShoppingQuantityTest {
         assertEquals("1 dl", ShoppingQuantity.sum("1/2 dl", "1/2 dl"))
         assertEquals("2 cdas", ShoppingQuantity.sum("1 cda", "1 cda"))
     }
+
+    @Test
+    fun `only the words before any preposition of the unit change in number`() {
+        assertEquals("2 bolsas con asa", ShoppingQuantity.sum("1 bolsa con asa", "1 bolsa con asa"))
+        assertEquals("1 bolsa con asa", ShoppingQuantity.sum("1/2 bolsas con asa", "1/2 bolsas con asa"))
+        assertEquals("2 tazas para café", ShoppingQuantity.sum("1 taza para café", "1 taza para café"))
+        assertEquals("2 botes sin azúcar", ShoppingQuantity.sum("1 bote sin azúcar", "1 bote sin azúcar"))
+        assertEquals("2 cucharadas al ras", ShoppingQuantity.sum("1 cucharada al ras", "1 cucharada al ras"))
+    }
 }

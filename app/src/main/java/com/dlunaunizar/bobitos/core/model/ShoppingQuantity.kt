@@ -112,15 +112,15 @@ private object UnitNumber {
     private const val ES_PLURAL_CONSONANTS = "lrndj"
     private val WORD_SPACE = Regex("""\s+""")
 
-    // Palabras que cierran la parte de la unidad que cambia de número («dientes de ajo»).
-    private val UNIT_LINKS = setOf("de", "del")
+    // Preposiciones que cierran la parte de la unidad que cambia de número («dientes de ajo», «bolsas con asa»).
+    private val UNIT_LINKS = setOf("a", "al", "con", "de", "del", "en", "para", "por", "sin")
     private val PLAIN_VOWELS = mapOf('á' to 'a', 'é' to 'e', 'í' to 'i', 'ó' to 'o', 'ú' to 'u')
 
     // Una grafía está en plural si su primera palabra acaba en «s» («dientes de ajo», «cucharadas soperas»).
     fun isPlural(unit: String): Boolean = unit.split(WORD_SPACE).first().lowercase().endsWith("s")
 
-    // Cambia de número las palabras de la unidad hasta la primera «de» o «del» («cucharadas soperas» → «cucharada
-    // sopera», «dientes de ajo» → «diente de ajo»). Las abreviaturas no cambian.
+    // Cambia de número las palabras de la unidad hasta la primera preposición («de», «con», «sin», «para»…)
+    // («cucharadas soperas» → «cucharada sopera», «dientes de ajo» → «diente de ajo»). Las abreviaturas no cambian.
     fun inflect(unit: String, change: (String) -> String): String {
         val words = unit.split(WORD_SPACE)
         val link = words.indexOfFirst { it.lowercase() in UNIT_LINKS }
