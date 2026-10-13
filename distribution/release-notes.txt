@@ -1,24 +1,25 @@
-Beta de Bobitos — 60 recetas comunes, recetas con pasos, raciones y tiempo, y una Compra sin repetidos.
-
-IMPORTANTE: actualizad todos los miembros de cada espacio. Las versiones anteriores ven las recetas comunes, pero sin la preparación, las raciones ni el tiempo, y al copiarlas con «Guardar como mía» los pierden.
+Beta de Bobitos — una Compra más fiable al añadir desde recetas y comidas, y arreglos en el Recetario.
 
 Novedades desde la beta anterior:
 
-Recetario
-- 60 recetas comunes listas para usar, con ingredientes del catálogo: legumbres, arroces, pasta, carnes, pescados, verduras, ensaladas, huevos, sopas y cremas, desayunos y meriendas, y postres.
-- Las recetas tienen ahora raciones, tiempo total y una sección «Preparación» con los pasos numerados. En el editor puedes añadir hasta 30 pasos y subirlos o bajarlos.
-- Al importar una receta de una web se traen también los pasos, las raciones y el tiempo.
-- «Mis recetas» muestra solo las tuyas; las comunes están siempre en «Comunes». «Guardar como mía» copia una común con sus pasos, raciones y tiempo.
-- Las recetas que ya tenías no cambian: si llevaban los pasos en la descripción, se siguen viendo ahí.
+Compra
+- Si un producto de la receta o de la comida ya estaba comprado, sale como «Ya comprado» con «Omitir» marcado; elige «Volver a apuntar» para añadirlo otra vez.
+- Si otro miembro cambia, marca o borra un producto mientras lo añades, no se guarda nada y se avisa de que la lista ha cambiado; al volver a intentarlo se parte de la lista nueva. Lo que añades desde una receta o una semana se guarda entero o no se guarda, y reintentar no suma dos veces.
+- «Sumar cantidad» rellena las notas que el producto tenía vacías con lo que has escrito, y también la tienda y la marca, sin mezclar nunca una tienda con la marca de otra.
+- Las unidades concuerdan con la cantidad: «1 cucharada sopera», «2 dientes de ajo», «3 limones». Las abreviaturas (cl, mg, cc…) no cambian.
+- El aviso «Ya en la lista» ya no muestra «—» cuando falta una cantidad, no corta la cantidad a mitad de palabra y, si la suma queda demasiado larga, lo explica y no deja sumar.
+- Si la lista no se ha podido leer, se dice en lugar de añadir a ciegas o quedarse esperando; el editor vuelve a cargarla para que el siguiente «Guardar» funcione.
+- Una marca de más de 60 caracteres se marca en su campo y no deja confirmar, en lugar de fallar toda la revisión.
 
 Comidas
-- Al elegir receta para el planificador hay un buscador, salen primero las tuyas y cada una indica si es «Mía» o «Común».
+- Al marcar una comida como cocinada, los productos que se ofrecen para tachar salen de la lista de la compra al día.
 
-Compra
-- Se acabaron los repetidos al añadir desde una receta, una comida o un ingrediente: si un producto ya está pendiente sale como «Ya en la lista» y eliges «Omitir» (la opción marcada) o «Sumar». «Tomate» y «tomates» cuentan como el mismo.
-- Las cantidades con la misma unidad se suman: 200 g + 300 g = 500 g. Si no casan, se apuntan juntas: «1 kg + 500 g».
-- Si el producto ya estaba comprado, se vuelve a apuntar como pendiente con la cantidad nueva en lugar de crear otro.
-- Al apuntar a mano uno que ya está pendiente, eliges «Sumar cantidad» o «No añadir»; desaparece «Añadir aparte».
-- La unidad va ahora con la cantidad (200 g) y no en las notas.
+Recetario
+- «Deshacer» tras borrar una receta solo aparece si el borrado ha ido bien, y la recupera tal como era, también si era común.
+- Las recetas antiguas sin autor ya no muestran un código interno en su lugar.
+- El buscador va por palabras y no distingue tildes ni mayúsculas: «lentejas coco» encuentra «Lentejas al curry con leche de coco».
+- En el editor, los errores de raciones, tiempo y pasos demasiado largos se marcan siempre en su campo; TalkBack dice de qué paso son «Subir», «Bajar» y «Quitar»; y al quitar un ingrediente el foco no salta a otro campo.
+- Al importar una receta de una web, los pasos se separan mejor.
+- «Lasaña de carne» dice ahora «Salpimienta.».
 
 Comunica cualquier error indicando el modelo del dispositivo, la versión de Android y los pasos para reproducirlo.
