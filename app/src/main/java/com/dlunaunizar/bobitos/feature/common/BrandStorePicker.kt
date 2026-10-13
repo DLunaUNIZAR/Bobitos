@@ -44,11 +44,18 @@ internal fun BrandStorePicker(
     Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (context.brands.isEmpty()) {
+                val tooLong = freeBrandTooLong(freeBrand)
                 OutlinedTextField(
                     value = freeBrand,
                     onValueChange = onFreeBrandChange,
                     label = { Text(stringResource(R.string.shopping_brand_label)) },
                     singleLine = true,
+                    isError = tooLong,
+                    supportingText = if (tooLong) {
+                        { Text(stringResource(R.string.shopping_error_brand_too_long)) }
+                    } else {
+                        null
+                    },
                     modifier = Modifier.fillMaxWidth(),
                 )
             } else {

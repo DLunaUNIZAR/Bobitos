@@ -121,6 +121,14 @@ internal fun ReviewRowState.withInclude(value: Boolean): ReviewRowState = copy(i
 /** La cantidad que se va a escribir supera el máximo: error en el campo y Confirmar deshabilitado. */
 internal fun ReviewRowState.quantityTooLong(): Boolean = include && quantity.trim().length > ShoppingQuantity.MAX_LENGTH
 
+/** La marca libre de una fila nueva supera el máximo: error en el campo y Confirmar deshabilitado. */
+internal fun ReviewRowState.brandTooLong(row: IngredientReviewRow): Boolean =
+    row.context?.brands?.isEmpty() == true && freeBrandTooLong(freeBrand)
+
+/** Confirmar se puede pulsar si ninguna fila tiene la cantidad o la marca libre demasiado larga. */
+internal fun canConfirmReview(rows: List<IngredientReviewRow>, states: List<ReviewRowState>): Boolean =
+    rows.indices.none { index -> states[index].quantityTooLong() || states[index].brandTooLong(rows[index]) }
+
 internal fun ReviewRowState.toChoice(row: IngredientReviewRow): IngredientReviewChoice {
     val trimmed = quantity.trim().ifEmpty { null }
     val existing = row.existing
@@ -234,7 +242,7 @@ fun IngredientReviewDialog(
         confirmButton = {
             TextButton(
                 onClick = { onConfirm(rows.mapIndexed { i, row -> states[i].toChoice(row) }) },
-                enabled = states.none(ReviewRowState::quantityTooLong),
+                enabled = canConfirmReview(rows, states),
             ) {
                 Text(stringResource(R.string.confirm))
             }

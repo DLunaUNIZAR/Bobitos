@@ -410,4 +410,36 @@ class IngredientReviewTest {
 
         assertTrue(shopping.appliedBatches.isEmpty())
     }
+
+    @Test
+    fun `a free brand longer than the limit marks its row and blocks confirming`() {
+        val free = IngredientReviewRow(
+            name = "Arroz",
+            recipeQuantity = "300 g",
+            existing = null,
+            context = IngredientShoppingContext(arroz, emptyList(), emptyList()),
+        )
+        val long = free.initialState().withFreeBrand("x".repeat(61))
+        val fits = free.initialState().withFreeBrand("  " + "x".repeat(60) + "  ")
+
+        assertTrue(long.brandTooLong(free))
+        assertFalse(fits.brandTooLong(free))
+        assertFalse(canConfirmReview(listOf(free), listOf(long)))
+        assertTrue(canConfirmReview(listOf(free), listOf(fits)))
+
+        // Con marcas registradas no hay campo libre: su texto no cuenta.
+        val withBrands = free.copy(context = IngredientShoppingContext(arroz, data.brands, emptyList()))
+        assertFalse(withBrands.initialState().withFreeBrand("x".repeat(61)).brandTooLong(withBrands))
+        assertTrue(freeBrandTooLong("x".repeat(61)))
+        assertFalse(freeBrandTooLong(" " + "x".repeat(60) + " "))
+    }
+
+    @Test
+    fun `a quantity that does not fit still blocks confirming`() {
+        val row = IngredientReviewRow("Sal", "1 pizca", existing = null)
+        val long = row.initialState().copy(quantity = "x".repeat(41))
+
+        assertFalse(canConfirmReview(listOf(row), listOf(long)))
+        assertTrue(canConfirmReview(listOf(row), listOf(row.initialState())))
+    }
 }

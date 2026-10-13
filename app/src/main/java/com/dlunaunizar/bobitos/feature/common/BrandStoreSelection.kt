@@ -7,6 +7,7 @@ import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.core.model.ingredientKey
 import com.dlunaunizar.bobitos.data.repository.sortedForBrands
+import com.dlunaunizar.bobitos.feature.shopping.ShoppingValidation
 import kotlinx.parcelize.Parcelize
 
 // Lógica pura del selector de marca y tienda al añadir un ingrediente a la compra
@@ -113,3 +114,6 @@ internal fun IngredientShoppingContext.brandToSave(selection: BrandStoreSelectio
     val text = if (brands.isEmpty()) freeText else brandName(selection).orEmpty()
     return text.trim().ifEmpty { null }
 }
+
+/** El texto libre de la marca no cabe: el campo lo marca y la revisión no deja confirmar. */
+internal fun freeBrandTooLong(text: String): Boolean = text.trim().length > ShoppingValidation.MAX_BRAND_LENGTH
