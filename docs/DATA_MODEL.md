@@ -411,7 +411,7 @@ Las recetas antiguas no tienen `steps`, `servings` ni `totalMinutes` (sus pasos 
 
 - **`PRIVATE`** — receta personal: la crea cualquier usuario verificado (`ownerUid == uid`), solo la ve su dueño y aparece en **todos sus espacios** con una única consulta `where ownerUid == me` (sin `collectionGroup` ni fan-out). El *fork* de otra receta produce una copia `PRIVATE` con `sourceRecipeId` (copia también sus ingredientes).
 - **`GLOBAL`** — receta del **catálogo común**, visible para todos. Solo la publica/cura una cuenta admin (allowlist de UID). Al planificar una comida se puede referenciar cualquier receta visible (`Meal.recipeId`).
-- **Curación y admins:** la política y el procedimiento para añadir/rotar admins están en [`RECIPES_ADMIN.md`](RECIPES_ADMIN.md). La frontera de seguridad es `recipeAdmins()` en `firestore.rules`; la app replica la allowlist solo para enseñar la opción de publicar.
+- **Curación y admins:** la política y el procedimiento para añadir/rotar admins están en [`RECIPES_ADMIN.md`](RECIPES_ADMIN.md). La frontera de seguridad es `recipeAdmins()` en `firestore.rules`; la app replica la allowlist solo para enseñar la opción de publicar. Una `GLOBAL` solo la editan o borran los admins actuales; su dueño, si ya no es admin, no.
 - **Validación de `ingredients` (Fase 3):** las reglas validan de forma **gruesa** (`is list` + `size() <= 50`); Firestore Rules no puede inspeccionar cada elemento del array. El parseo por elemento (descartar mapas sin `name`) lo hace el cliente al leer.
 
 #### Integración con la Compra (Fase 3)
@@ -491,8 +491,8 @@ updatedAt: timestamp
 
 - **Lectura:** cualquier usuario verificado.
 - **Creación:** el propio usuario (`ownerUid == uid`, marcas de tiempo = `request.time`); `GLOBAL` solo el admin. Ningún cliente puede crear `source`.
-- **Edición:** el dueño o el admin (en las `GLOBAL`). Solo cambian `title`, `description`, `exercises`, `updatedBy` y `updatedAt`; `source`, `sourceRoutineId` y la autoría son inmutables.
-- **Borrado:** el dueño o el admin.
+- **Edición:** el dueño en las `PRIVATE`; en las `GLOBAL`, solo un admin actual (aunque el dueño sea otro o un admin retirado). Solo cambian `title`, `description`, `exercises`, `updatedBy` y `updatedAt`; `source`, `sourceRoutineId` y la autoría son inmutables.
+- **Borrado:** como la edición.
 
 #### Ejercicios embebidos en `routines` y `activities.session`
 

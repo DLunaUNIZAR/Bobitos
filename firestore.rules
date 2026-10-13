@@ -1018,10 +1018,12 @@ service cloud.firestore {
           || request.resource.data.source.importedAt <= request.resource.data.updatedAt);
     }
 
+    // Una común (GLOBAL) solo la curan los admins actuales, aunque sea de otro o de un admin retirado; una personal, solo
+    // su dueño. Anonimizar el autor al borrar la cuenta va aparte (validRecipeAnonymization).
     function ownsOrCuratesRecipe() {
       return verifiedUser()
-        && (resource.data.ownerUid == request.auth.uid
-          || (resource.data.visibility == "GLOBAL" && isRecipeAdmin()));
+        && ((resource.data.visibility == "GLOBAL" && isRecipeAdmin())
+          || (resource.data.visibility != "GLOBAL" && resource.data.ownerUid == request.auth.uid));
     }
 
     function validRecipeUpdate() {
@@ -1089,10 +1091,12 @@ service cloud.firestore {
         && (request.resource.data.visibility == "PRIVATE" || isRecipeAdmin());
     }
 
+    // Una común (GLOBAL) solo la curan los admins actuales, aunque sea de otro o de un admin retirado; una personal, solo
+    // su dueño. Anonimizar el autor al borrar la cuenta va aparte (validRoutineAnonymization).
     function ownsOrCuratesRoutine() {
       return verifiedUser()
-        && (resource.data.ownerUid == request.auth.uid
-          || (resource.data.visibility == "GLOBAL" && isRecipeAdmin()));
+        && ((resource.data.visibility == "GLOBAL" && isRecipeAdmin())
+          || (resource.data.visibility != "GLOBAL" && resource.data.ownerUid == request.auth.uid));
     }
 
     function validRoutineUpdate() {

@@ -1514,6 +1514,34 @@ test("«Deshacer» de una común de un admin retirado: se recrea a nombre de qui
   assert.ok(after.source.importedAt.isEqual(before.source.importedAt));
 });
 
+test("un admin retirado ya no edita ni borra sus recetas y rutinas comunes; sí las personales y anonimizar su autor", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const firestore = context.firestore();
+    const timestamp = Timestamp.now();
+    const dates = { createdAt: timestamp, updatedAt: timestamp };
+    await setDoc(doc(firestore, "recipes", "ex-admin-common"),
+      { ...recipeData("ex-admin", { visibility: "GLOBAL" }), ...dates });
+    await setDoc(doc(firestore, "recipes", "ex-admin-private"), { ...recipeData("ex-admin"), ...dates });
+    await setDoc(doc(firestore, "routines", "ex-admin-common"),
+      { ...routineData("ex-admin", { visibility: "GLOBAL" }), ...dates });
+    await setDoc(doc(firestore, "routines", "ex-admin-private"), { ...routineData("ex-admin"), ...dates });
+  });
+  const exAdmin = verifiedFirestore("ex-admin");
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  const edit = { title: "Editada por el retirado", updatedBy: "ex-admin", updatedAt: serverTimestamp() };
+
+  for (const collectionName of ["recipes", "routines"]) {
+    const common = doc(exAdmin, collectionName, "ex-admin-common");
+    const personal = doc(exAdmin, collectionName, "ex-admin-private");
+    await assertFails(updateDoc(common, edit));
+    await assertFails(writeBatch(exAdmin).delete(common).commit());
+    await assertSucceeds(updateDoc(common, { createdByName: "Usuario eliminado" }));
+    await assertSucceeds(updateDoc(personal, edit));
+    await assertSucceeds(writeBatch(exAdmin).delete(personal).commit());
+    await assertSucceeds(writeBatch(admin).delete(doc(admin, collectionName, "ex-admin-common")).commit());
+  }
+});
+
 
 // --- Catálogo común de ingredientes (solo el admin escribe) y datos personales ---
 

@@ -49,7 +49,7 @@ en las reglas y en el repositorio.
 4. Publica una nueva versión de la app (el interruptor del editor depende de `RecipeAdmins.kt`).
 5. Actualiza la tabla «Admins actuales» de este documento.
 
-Si quitas a un admin, «Deshacer» de una común suya la recrea a nombre de quien deshace.
+Si quitas a un admin, deja de poder editar y borrar sus comunes (recetas y rutinas) aunque siga siendo su dueño; solo puede anonimizar su autor al borrar su cuenta. «Deshacer» de una común suya la recrea a nombre de quien deshace.
 
 > El test de emulador (`tests/firebase-emulators.test.mjs`) usa la constante `RECIPE_ADMIN_UID`, que
 > debe coincidir con `recipeAdmins()`. Si cambias el admin de referencia, actualízala también.
@@ -67,7 +67,7 @@ El catálogo común se siembra con el importador: unas 60 recetas de lista propi
 
 Para **corregir o retirar** una receta común, el admin la abre desde «Recetas comunes» y usa
 Editar/Eliminar (las reglas permiten a un admin editar/borrar cualquier `GLOBAL`, aunque la haya
-creado otra cuenta). Si es una común importada, editarla en la app la congela (el importador ya no la actualiza) y borrarla solo en la app no basta: la siguiente importación la recrea mientras siga en `recipes.json` (ver los avisos de `RECIPE_CATALOG.md`).
+creado otra cuenta, y solo a un admin: su dueño, si ya no lo es, no puede). Si es una común importada, editarla en la app la congela (el importador ya no la actualiza) y borrarla solo en la app no basta: la siguiente importación la recrea mientras siga en `recipes.json` (ver los avisos de `RECIPE_CATALOG.md`).
 
 ## Notas de seguridad y coste
 
