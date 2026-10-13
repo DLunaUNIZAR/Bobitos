@@ -972,7 +972,8 @@ service cloud.firestore {
           || request.resource.data.totalMinutes == null
           || (request.resource.data.totalMinutes is int
             && request.resource.data.totalMinutes >= 1 && request.resource.data.totalMinutes <= 1440))
-        // Recetas del catálogo: `source` lo escribe solo el importador (Admin SDK), con la forma de ingredientes.
+        // Recetas del catálogo: `source` lo escribe el importador (Admin SDK), con la forma de ingredientes; un admin
+        // solo lo conserva al deshacer el borrado de una común (ver validRecipeRestore).
         && (!request.resource.data.keys().hasAny(["source"]) || validIngredientSource(request.resource.data.source))
         && request.resource.data.ownerUid is string
         && request.resource.data.visibility in ["GLOBAL", "PRIVATE"]
