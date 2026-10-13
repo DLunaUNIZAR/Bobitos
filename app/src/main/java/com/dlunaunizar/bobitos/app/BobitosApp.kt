@@ -69,7 +69,7 @@ fun BobitosApp(
 ) {
     when (val authState = uiState.authUser) {
         UiState.Loading -> FullScreenLoading()
-        is UiState.Error -> AppLoadError(authState.message)
+        is UiState.Error -> AppLoadError()
         is UiState.Content -> {
             val user = authState.value
             when {
@@ -101,7 +101,7 @@ fun BobitosApp(
                 else -> key("authenticated-${user.id}") {
                     when (uiState.spaces) {
                         UiState.Loading -> FullScreenLoading()
-                        is UiState.Error -> AppLoadError(uiState.spaces.message)
+                        is UiState.Error -> AppLoadError()
                         is UiState.Content -> {
                             val remindersViewModel: RemindersViewModel = hiltViewModel()
                             val remindersEnabled by remindersViewModel.enabled.collectAsStateWithLifecycle()
@@ -149,12 +149,13 @@ fun BobitosApp(
     }
 }
 
+// Error al arrancar o al leer los espacios: un texto fijo, nunca el de la excepción (técnico y en inglés).
 @Composable
-private fun AppLoadError(message: String?) {
+private fun AppLoadError() {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = message ?: stringResource(R.string.app_start_error))
+        Text(text = stringResource(R.string.app_start_error))
     }
 }

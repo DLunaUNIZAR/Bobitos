@@ -52,14 +52,16 @@ class FirestoreSyncRepository @Inject constructor(
                         .await()
                     recordRefreshReads(1, "spaces")
                 } else {
+                    // Por consulta y no por el documento: con la membresía perdida, su documento ya no existe y las
+                    // reglas no dejan leerlo (PERMISSION_DENIED); la sincronización se quedaba «sin conexión».
                     val membership = firestore.collection(MEMBERSHIPS)
-                        .document("${spaceId}_${user.id}")
+                        .whereEqualTo(FIELD_USER_ID, user.id)
+                        .whereEqualTo(FIELD_SPACE_ID, spaceId)
+                        .whereEqualTo(FIELD_STATUS, STATUS_ACTIVE)
+                        .limit(1)
                         .get(Source.SERVER)
                         .await()
-                    if (
-                        membership.exists() &&
-                        membership.getString(FIELD_STATUS) == STATUS_ACTIVE
-                    ) {
+                    if (!membership.isEmpty) {
                         firestore.collection(SPACES)
                             .document(spaceId)
                             .get(Source.SERVER)
@@ -127,6 +129,7 @@ class FirestoreSyncRepository @Inject constructor(
         const val SPACES = "spaces"
         const val MEMBERSHIPS = "memberships"
         const val FIELD_USER_ID = "userId"
+        const val FIELD_SPACE_ID = "spaceId"
         const val FIELD_STATUS = "status"
         const val STATUS_ACTIVE = "ACTIVE"
     }

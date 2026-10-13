@@ -329,6 +329,29 @@ test("el propietario puede expulsar a un miembro con la misma operación segura"
   await assertSucceeds(batch.commit());
 });
 
+test("al quitar a un miembro, su membresía y el espacio ya no se leen por documento, pero sus consultas de membresías sí, sin ella", async () => {
+  await seedSpace("lost-space", "lost-owner", ["lost-member"]);
+  const member = verifiedFirestore("lost-member");
+  const memberships = collection(member, "memberships");
+  const mine = query(memberships, where("userId", "==", "lost-member"), where("status", "==", "ACTIVE"));
+  const mineHere = query(
+    memberships,
+    where("userId", "==", "lost-member"),
+    where("spaceId", "==", "lost-space"),
+    where("status", "==", "ACTIVE"),
+  );
+  assert.equal((await getDocs(mine)).size, 1);
+
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await deleteDoc(doc(context.firestore(), "memberships", "lost-space_lost-member"));
+  });
+
+  await assertFails(getDoc(doc(member, "memberships", "lost-space_lost-member")));
+  await assertFails(getDoc(doc(member, "spaces", "lost-space")));
+  assert.equal((await assertSucceeds(getDocs(mine))).size, 0);
+  assert.equal((await assertSucceeds(getDocs(mineHere))).size, 0);
+});
+
 test("solo el propietario crea invitaciones de 72 horas", async () => {
   await seedSpace("invite-create", "invite-owner", ["invite-member"]);
   const owner = verifiedFirestore("invite-owner");

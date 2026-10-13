@@ -64,12 +64,11 @@ class FirestoreSpaceRepository @Inject constructor(
         if (user == null || !user.isEmailVerified) {
             flowOf(null)
         } else {
-            observeMembership(spaceId, user.id).flatMapLatest { membership ->
-                if (membership == null) {
-                    flowOf(null)
-                } else {
-                    observeSpace(membership, metricScope = "space:active")
-                }
+            // Por la consulta de membresías del usuario y no por el documento de la membresía: al quitarla se borra y
+            // las reglas ya no dejan leer ese documento (PERMISSION_DENIED). La consulta solo deja de incluirla, y la
+            // vuelve a incluir si se la devuelven.
+            activeSpaceOf(membershipsForUser(user.id), spaceId) { membership ->
+                observeSpace(membership, metricScope = "space:active")
             }
         }
     }
@@ -438,42 +437,15 @@ class FirestoreSpaceRepository @Inject constructor(
         }
     }
 
-    private fun observeMembership(spaceId: String, userId: String): Flow<MembershipSnapshot?> = callbackFlow {
-        val metricId = realtimeMetrics.listenerStarted("membership:active")
-        val registration = membershipReference(spaceId, userId)
-            .addSnapshotListener { snapshot, error ->
-                when {
-                    error != null -> close(error.toSpaceRepositoryException())
-                    snapshot == null ||
-                        !snapshot.exists() ||
-                        snapshot.getString(FIELD_STATUS) != STATUS_ACTIVE -> trySend(null)
-                    else -> {
-                        realtimeMetrics.snapshotReceived(
-                            scope = "membership:active",
-                            changedDocuments = 1,
-                            fromCache = snapshot.metadata.isFromCache,
-                        )
-                        val role = snapshot.membershipRole
-                        if (role == null) {
-                            close(SpaceRepositoryException(SpaceFailure.Unknown))
-                        } else {
-                            trySend(MembershipSnapshot(spaceId, role))
-                        }
-                    }
-                }
-            }
-        awaitClose {
-            registration.remove()
-            realtimeMetrics.listenerStopped(metricId)
-        }
-    }
-
     private fun observeSpace(membership: MembershipSnapshot, metricScope: String): Flow<SpaceSummary?> = callbackFlow {
         val metricId = realtimeMetrics.listenerStarted(metricScope)
         val registration = firestore.collection(SPACES)
             .document(membership.spaceId)
             .addSnapshotListener { snapshot, error ->
                 when {
+                    // Sin permiso para leer el espacio es que se ha perdido la membresía (su consulta lo confirmará): el
+                    // espacio deja de verse en vez de romper la app, y se vuelve a escuchar si la membresía vuelve.
+                    error?.code == FirebaseFirestoreException.Code.PERMISSION_DENIED -> trySend(null)
                     error != null -> close(error.toSpaceRepositoryException())
                     snapshot == null || !snapshot.exists() -> trySend(null)
                     else -> {
@@ -650,8 +622,6 @@ class FirestoreSpaceRepository @Inject constructor(
             throw error.toSpaceRepositoryException()
         }
     }
-
-    private data class MembershipSnapshot(val spaceId: String, val role: SpaceRole)
 
     private companion object {
         const val MAX_SPACE_NAME_LENGTH = 60
