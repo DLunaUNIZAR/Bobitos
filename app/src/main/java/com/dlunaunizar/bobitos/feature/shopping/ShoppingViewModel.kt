@@ -59,10 +59,10 @@ class ShoppingViewModel @Inject constructor(
         mutableUiState.update { it.copy(items = UiState.Loading) }
         itemsJob = viewModelScope.launch {
             repository.items(spaceId)
-                .catch { error ->
-                    mutableUiState.update { state ->
-                        state.copy(items = UiState.Error(error.message))
-                    }
+                .catch {
+                    // Sin el texto de la excepción (técnico y en inglés): la pantalla dice que no se ha podido leer la
+                    // lista y ofrece «Reintentar».
+                    mutableUiState.update { state -> state.copy(items = UiState.Error()) }
                 }
                 .collect { items ->
                     mutableUiState.update { state ->

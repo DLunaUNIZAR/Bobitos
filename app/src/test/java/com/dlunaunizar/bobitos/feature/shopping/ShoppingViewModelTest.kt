@@ -587,6 +587,22 @@ class ShoppingViewModelTest {
         }
 
     @Test
+    fun `a failed read of the list keeps no exception text and observing again loads it`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.itemsFailures = 1
+            viewModel.observe("home")
+            advanceUntilIdle()
+
+            assertEquals(UiState.Error(), viewModel.uiState.value.items)
+
+            viewModel.observe("home")
+            advanceUntilIdle()
+
+            assertEquals(2, repository.itemsCalls)
+            assertEquals("milk", (viewModel.uiState.value.items as UiState.Content).value.single().id)
+        }
+
+    @Test
     fun `a brand over 60 characters is refused in the editor before looking for repeats or writing`() =
         runTest(mainDispatcherRule.testDispatcher) {
             viewModel.observe("home")
@@ -691,7 +707,12 @@ private class FakeShoppingRepository : ShoppingRepository {
         itemsCalls++
         if (itemsFailures > 0) {
             itemsFailures--
-            return flow { throw ShoppingRepositoryException(ShoppingFailure.PermissionDenied) }
+            return flow {
+                throw ShoppingRepositoryException(
+                    ShoppingFailure.PermissionDenied,
+                    IllegalStateException("PERMISSION_DENIED: evaluation error at L818"),
+                )
+            }
         }
         return itemState
     }

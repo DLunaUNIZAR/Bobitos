@@ -67,6 +67,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
@@ -195,9 +196,10 @@ fun ShoppingScreen(
 
             when (val itemsState = state.items) {
                 UiState.Loading -> Text(stringResource(R.string.generic_loading))
-                is UiState.Error -> Text(
-                    text = itemsState.message ?: stringResource(R.string.generic_error),
-                    color = MaterialTheme.colorScheme.error,
+                is UiState.Error -> ErrorState(
+                    modifier = Modifier.weight(1f),
+                    message = stringResource(R.string.shopping_error_list_read),
+                    onRetry = { viewModel.observe(spaceId) },
                 )
                 is UiState.Content -> {
                     if (itemsState.value.isEmpty()) {
