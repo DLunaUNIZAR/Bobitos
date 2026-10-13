@@ -49,6 +49,8 @@ en las reglas y en el repositorio.
 4. Publica una nueva versión de la app (el interruptor del editor depende de `RecipeAdmins.kt`).
 5. Actualiza la tabla «Admins actuales» de este documento.
 
+Si quitas a un admin, «Deshacer» de una común suya la recrea a nombre de quien deshace.
+
 > El test de emulador (`tests/firebase-emulators.test.mjs`) usa la constante `RECIPE_ADMIN_UID`, que
 > debe coincidir con `recipeAdmins()`. Si cambias el admin de referencia, actualízala también.
 
@@ -74,5 +76,6 @@ creado otra cuenta). Si es una común importada, editarla en la app la congela (
 - Publicar `GLOBAL` exige `ownerUid == request.auth.uid` **y** `uid ∈ recipeAdmins()`; un usuario
   normal solo puede crear `PRIVATE`. Editar una receta no puede cambiar `ownerUid` ni `visibility`.
 - «Deshacer» el borrado de una `GLOBAL` (`validRecipeRestore`): un admin la recrea con su dueño, autor, fechas
-  pasadas y `source` originales. Dueño, autor y último editor tienen que estar en `recipeAdmins()`; un usuario
-  normal no puede.
+  pasadas y `source` originales. Dueño, autor y último editor tienen que estar en `recipeAdmins()` (si uno ya no lo
+  está, la app pone a quien deshace), las fechas tienen que ser pasadas y `source.importedAt` no puede ser posterior
+  a `updatedAt`; un usuario normal no puede.

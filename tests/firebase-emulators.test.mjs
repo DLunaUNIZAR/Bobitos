@@ -1453,6 +1453,14 @@ test("«Deshacer» de una común: solo un admin, con dueño, autor y editor admi
   await assertFails(setDoc(ref, { ...before, createdAt: future }));
   await assertFails(setDoc(ref, { ...before, visibility: "PRIVATE" }));
 
+  // La fecha de importación no puede ser posterior a la última edición (ni futura).
+  const at = (minutes) => Timestamp.fromMillis(Date.now() + minutes * 60_000);
+  const dated = { ...before, createdAt: at(-120), updatedAt: at(-60) };
+  await assertFails(setDoc(ref, { ...dated, source: { ...before.source, importedAt: at(-30) } }));
+  await assertFails(setDoc(ref, { ...dated, source: { ...before.source, importedAt: at(60) } }));
+  await assertSucceeds(setDoc(ref, { ...dated, source: { ...before.source, importedAt: at(-90) } }));
+
+  await assertSucceeds(writeBatch(admin).delete(ref).commit());
   const normal = verifiedFirestore("recipe-undo-normal");
   const normalRef = doc(normal, "recipes", "lentejas-deshacer-mal");
   await assertFails(setDoc(normalRef, before));
