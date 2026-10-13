@@ -123,4 +123,34 @@ class ShoppingQuantityTest {
         assertEquals("1 limón", ShoppingQuantity.sum("1/2 limones", "1/2 limones"))
         assertEquals("1 sobre", ShoppingQuantity.sum("1/2 sobres", "1/2 sobres"))
     }
+
+    @Test
+    fun `the singular of a plural in -es after a vowel and l, r, n, d or j drops the whole -es`() {
+        assertEquals("1 bol", ShoppingQuantity.sum("1/2 boles", "1/2 boles"))
+        assertEquals("1 pan", ShoppingQuantity.sum("1/2 panes", "1/2 panes"))
+        assertEquals("1 yogur", ShoppingQuantity.sum("1/2 yogures", "1/2 yogures"))
+        assertEquals("1 botellín", ShoppingQuantity.sum("1/2 botellines", "1/2 botellines"))
+        assertEquals("1 balde", ShoppingQuantity.sum("1/2 baldes", "1/2 baldes"))
+        assertEquals("1 filete", ShoppingQuantity.sum("1/2 filetes", "1/2 filetes"))
+    }
+
+    @Test
+    fun `every word of the unit agrees in number up to the first de`() {
+        assertEquals("1 cucharada sopera", ShoppingQuantity.sum("1/2 cucharadas soperas", "1/2 cucharadas soperas"))
+        assertEquals("2 cucharadas soperas", ShoppingQuantity.sum("1 cucharada sopera", "1 cucharada sopera"))
+        assertEquals("2 dientes de ajo", ShoppingQuantity.sum("1 diente de ajo", "1 diente de ajo"))
+        assertEquals("3 dientes de ajo", ShoppingQuantity.sum("1 diente de ajo", "2 dientes de ajo"))
+        assertEquals("1 vaso de leche", ShoppingQuantity.sum("1/2 vasos de leche", "1/2 vasos de leche"))
+        assertEquals("1 Cucharada Sopera", ShoppingQuantity.sum("1/2 Cucharadas Soperas.", "1/2 cucharadas soperas"))
+    }
+
+    @Test
+    fun `abbreviations do not change in number`() {
+        assertEquals("3 cl", ShoppingQuantity.sum("1 cl", "2 cl"))
+        assertEquals("2 oz", ShoppingQuantity.sum("1 oz", "1 oz"))
+        assertEquals("3 mg", ShoppingQuantity.sum("1 mg", "2 mg"))
+        assertEquals("2 cc", ShoppingQuantity.sum("1 cc", "1 cc"))
+        assertEquals("1 dl", ShoppingQuantity.sum("1/2 dl", "1/2 dl"))
+        assertEquals("2 cdas", ShoppingQuantity.sum("1 cda", "1 cda"))
+    }
 }
