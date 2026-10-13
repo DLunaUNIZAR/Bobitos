@@ -43,15 +43,7 @@ class FirestoreShoppingRepository @Inject constructor(
                             changedDocuments = snapshot.documentChanges.size,
                             fromCache = snapshot.metadata.isFromCache,
                         )
-                        trySend(
-                            snapshot.documents
-                                .mapNotNull(DocumentSnapshot::toShoppingItem)
-                                .sortedWith(
-                                    compareBy<ShoppingItem> { it.purchased }
-                                        .thenBy(ShoppingItem::createdAt)
-                                        .thenBy(ShoppingItem::id),
-                                ),
-                        )
+                        trySend(snapshot.documents.toSortedShoppingItems())
                     }
                 }
             }
@@ -59,6 +51,16 @@ class FirestoreShoppingRepository @Inject constructor(
             registration.remove()
             realtimeMetrics.listenerStopped(metricId)
         }
+    }
+
+    override suspend fun currentItems(spaceId: String): List<ShoppingItem> = runShoppingOperation {
+        itemsCollection(spaceId)
+            .orderBy(FIELD_CREATED_AT, Query.Direction.ASCENDING)
+            .limit(MAX_VISIBLE_ITEMS)
+            .get(Source.SERVER)
+            .await()
+            .documents
+            .toSortedShoppingItems()
     }
 
     override suspend fun addItem(
@@ -362,6 +364,15 @@ class FirestoreShoppingRepository @Inject constructor(
 
 private val AuthUser.shoppingDisplayName: String
     get() = displayName.ifBlank { email.substringBefore('@') }.take(60)
+
+// Mapeo y orden de la lista: pendientes antes que comprados, y por antigüedad.
+private fun List<DocumentSnapshot>.toSortedShoppingItems(): List<ShoppingItem> =
+    mapNotNull(DocumentSnapshot::toShoppingItem)
+        .sortedWith(
+            compareBy<ShoppingItem> { it.purchased }
+                .thenBy(ShoppingItem::createdAt)
+                .thenBy(ShoppingItem::id),
+        )
 
 private fun DocumentSnapshot.toShoppingItem(): ShoppingItem? {
     val createdAt = getTimestamp("createdAt")?.toDate()?.toInstant() ?: return null

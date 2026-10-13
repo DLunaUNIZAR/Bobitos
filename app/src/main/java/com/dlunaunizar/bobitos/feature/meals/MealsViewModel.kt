@@ -217,7 +217,7 @@ class MealsViewModel @Inject constructor(
         if (ingredients.isEmpty()) return
         viewModelScope.launch {
             // Sin la lista no se pueden buscar repetidos: si no se puede leer, no se abre la revisión.
-            val current = runCatching { shoppingRepository.items(spaceId).first() }
+            val current = runCatching { shoppingRepository.currentItems(spaceId) }
                 .onFailure { if (it is CancellationException) throw it }
                 .getOrElse { error ->
                     showError(error.toUiMessage())

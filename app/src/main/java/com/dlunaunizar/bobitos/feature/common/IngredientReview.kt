@@ -30,7 +30,9 @@ import com.dlunaunizar.bobitos.core.model.ShoppingQuantity
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.core.model.findShoppingMatch
 import com.dlunaunizar.bobitos.core.model.shoppingMatchKey
+import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
+import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
 import com.dlunaunizar.bobitos.data.repository.ShoppingWrite
 
 /** Qué hace una fila de la revisión según la lista actual de la compra. */
@@ -161,6 +163,8 @@ fun buildIngredientReviewRows(
 
 /**
  * Aplica la revisión en una sola escritura ([ShoppingRepository.applyWrites]); ver [ingredientReviewWrites].
+ * Si otro miembro ha borrado un artículo desde que se abrió la revisión, falla con [ShoppingFailure.ItemChanged]
+ * (la lista ha cambiado y reintentar lo arregla), no con [ShoppingFailure.ItemNotFound].
  */
 suspend fun applyIngredientReview(
     spaceId: String,
@@ -169,7 +173,15 @@ suspend fun applyIngredientReview(
     shoppingRepository: ShoppingRepository,
 ) {
     val writes = ingredientReviewWrites(rows, choices)
-    if (writes.isNotEmpty()) shoppingRepository.applyWrites(spaceId, writes)
+    if (writes.isEmpty()) return
+    try {
+        shoppingRepository.applyWrites(spaceId, writes)
+    } catch (error: ShoppingRepositoryException) {
+        if (error.failure == ShoppingFailure.ItemNotFound) {
+            throw ShoppingRepositoryException(ShoppingFailure.ItemChanged, error)
+        }
+        throw error
+    }
 }
 
 /**

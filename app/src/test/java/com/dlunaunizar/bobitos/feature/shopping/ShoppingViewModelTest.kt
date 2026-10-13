@@ -602,6 +602,8 @@ private class FakeShoppingRepository : ShoppingRepository {
         return itemState
     }
 
+    override suspend fun currentItems(spaceId: String): List<ShoppingItem> = itemState.value
+
     override suspend fun addItem(
         spaceId: String,
         name: String,

@@ -28,6 +28,7 @@ import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewChoice
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewRow
 import com.dlunaunizar.bobitos.feature.common.RecordingShoppingRepository
+import com.dlunaunizar.bobitos.feature.common.ReviewRowKind
 import com.dlunaunizar.bobitos.feature.common.ingredientShoppingSource
 import com.dlunaunizar.bobitos.feature.common.initialState
 import com.dlunaunizar.bobitos.feature.common.toChoice
@@ -456,6 +457,42 @@ class MealsViewModelTest {
 
         assertEquals(MealUiMessage.ShoppingChanged, viewModel.uiState.value.error)
     }
+
+    @Test
+    fun `the review reads the list from the server, not from a stale cached snapshot`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Arroz", "300", "g"))))
+            shoppingRepository.itemsState.value = listOf(shoppingItem("s1", "arroz", quantity = "1 kg"))
+            shoppingRepository.serverItems =
+                listOf(shoppingItem("s1", "arroz", quantity = "1 kg").copy(purchased = true))
+            viewModel.observe("home")
+            advanceUntilIdle()
+
+            viewModel.addIngredientsToShopping(
+                meal("m1", LocalDate.now(), MealSlot.COMIDA, "Paella").copy(recipeId = "r1"),
+            )
+            advanceUntilIdle()
+
+            assertEquals(ReviewRowKind.PURCHASED, viewModel.uiState.value.ingredientReview!!.single().kind)
+        }
+
+    @Test
+    fun `a shopping item deleted while reviewing is reported as a changed list`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Arroz", "300", "g"))))
+            viewModel.observe("home")
+            advanceUntilIdle()
+            viewModel.addIngredientsToShopping(
+                meal("m1", LocalDate.now(), MealSlot.COMIDA, "Paella").copy(recipeId = "r1"),
+            )
+            advanceUntilIdle()
+            shoppingRepository.applyFailure = ShoppingRepositoryException(ShoppingFailure.ItemNotFound)
+
+            viewModel.confirmIngredientReview(listOf(choice("300 g")))
+            advanceUntilIdle()
+
+            assertEquals(MealUiMessage.ShoppingChanged, viewModel.uiState.value.error)
+        }
 
     @Test
     fun `if the shopping list cannot be read the review does not open and the error is shown`() =

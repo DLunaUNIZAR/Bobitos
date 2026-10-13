@@ -33,8 +33,16 @@ internal class RecordingShoppingRepository : ShoppingRepository {
     var applyFailure: Throwable? = null
     var itemsFailure: Throwable? = null
 
+    // Lo que lee currentItems (el servidor); con null devuelve itemsState. Distinto de itemsState simula una caché vieja.
+    var serverItems: List<ShoppingItem>? = null
+
     override fun items(spaceId: String): Flow<List<ShoppingItem>> =
         itemsFailure?.let { failure -> flow { throw failure } } ?: itemsState
+
+    override suspend fun currentItems(spaceId: String): List<ShoppingItem> {
+        itemsFailure?.let { throw it }
+        return serverItems ?: itemsState.value
+    }
 
     override suspend fun addItem(
         spaceId: String,

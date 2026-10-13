@@ -7,6 +7,12 @@ import kotlinx.coroutines.flow.Flow
 interface ShoppingRepository {
     fun items(spaceId: String): Flow<List<ShoppingItem>>
 
+    /**
+     * Lectura puntual de la lista tal como está en el servidor, para la revisión de ingredientes: el primer
+     * snapshot de [items] puede salir de la caché local (vieja) y la revisión se haría sobre datos caducados.
+     */
+    suspend fun currentItems(spaceId: String): List<ShoppingItem>
+
     suspend fun addItem(
         spaceId: String,
         name: String,
