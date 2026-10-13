@@ -545,6 +545,48 @@ class ShoppingViewModelTest {
         }
 
     @Test
+    fun `adding after the list failed to load says so, listens again and works once it loads`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.itemsFailures = 1
+            viewModel.observe("home")
+            advanceUntilIdle()
+            assertTrue(viewModel.uiState.value.items is UiState.Error)
+
+            viewModel.addItem("home", "Pan", "1", null, null, null)
+            advanceUntilIdle()
+
+            assertNull(repository.addedName)
+            assertEquals(ShoppingUiMessage.ListUnavailable, viewModel.uiState.value.error)
+            assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+            assertEquals(2, repository.itemsCalls)
+            assertTrue(viewModel.uiState.value.items is UiState.Content)
+
+            viewModel.addItem("home", "Pan", "1", null, null, null)
+            advanceUntilIdle()
+
+            assertEquals("Pan", repository.addedName)
+        }
+
+    @Test
+    fun `adding while the list keeps failing to load never writes and listens again each time`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.itemsFailures = 3
+            viewModel.observe("home")
+            advanceUntilIdle()
+
+            viewModel.addItem("home", "Pan", "1", null, null, null)
+            advanceUntilIdle()
+            viewModel.addItem("home", "Pan", "1", null, null, null)
+            advanceUntilIdle()
+
+            assertNull(repository.addedName)
+            assertNull(repository.applied)
+            assertEquals(ShoppingUiMessage.ListUnavailable, viewModel.uiState.value.error)
+            assertEquals(3, repository.itemsCalls)
+            assertTrue(viewModel.uiState.value.items is UiState.Error)
+        }
+
+    @Test
     fun `relisting a purchased product sends the item as it was seen`() = runTest(mainDispatcherRule.testDispatcher) {
         val bought = listItem(quantity = "6 l", purchased = true)
         repository.itemState.value = listOf(bought)
@@ -615,9 +657,17 @@ private class FakeShoppingRepository : ShoppingRepository {
     var clearCount = 0
     var nextFailure: ShoppingRepositoryException? = null
     val itemState = MutableStateFlow(listOf(shoppingItem()))
+    var itemsFailures = 0
+    var itemsCalls = 0
 
+    // Las primeras `itemsFailures` escuchas fallan con un permiso denegado (como un listener que se cierra).
     override fun items(spaceId: String): Flow<List<ShoppingItem>> {
         observedSpaceId = spaceId
+        itemsCalls++
+        if (itemsFailures > 0) {
+            itemsFailures--
+            return flow { throw ShoppingRepositoryException(ShoppingFailure.PermissionDenied) }
+        }
         return itemState
     }
 

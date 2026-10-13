@@ -123,8 +123,8 @@ class ShoppingViewModel @Inject constructor(
     /**
      * Alta desde el editor. Si el producto ya está pendiente en la lista, no escribe: deja el aviso en
      * [ShoppingUiState.duplicate] con lo tecleado. Si está comprado, vuelve a apuntar ese artículo (con su nombre y
-     * los valores del editor). Si no está, lo añade. Con la lista aún sin cargar no escribe nada: sin ella no se
-     * pueden buscar repetidos.
+     * los valores del editor). Si no está, lo añade. Con la lista aún sin cargar, o con su lectura fallida, no
+     * escribe nada: sin ella no se pueden buscar repetidos (ver [itemsForAdd]).
      */
     fun addItem(
         spaceId: String,
@@ -135,10 +135,7 @@ class ShoppingViewModel @Inject constructor(
         brand: String?,
     ) {
         if (!validate(name, quantity, notes)) return
-        val items = loadedItems ?: run {
-            showError(ShoppingUiMessage.ListNotLoaded, editor = true)
-            return
-        }
+        val items = itemsForAdd(spaceId) ?: return
         val match = findShoppingMatch(items, name)
         val normalizedQuantity = quantity.normalized()
         val normalizedNotes = notes.normalized()
@@ -210,9 +207,16 @@ class ShoppingViewModel @Inject constructor(
     /** «No añadir» o cerrar el aviso de repetido: no se escribe nada. */
     fun dismissDuplicate() = mutableUiState.update { it.copy(duplicate = null) }
 
-    // La lista ya leída; null mientras carga o si su lectura ha fallado.
-    private val loadedItems: List<ShoppingItem>?
-        get() = (mutableUiState.value.items as? UiState.Content)?.value
+    // La lista ya leída. Si aún carga, o si su lectura ha fallado (y entonces se vuelve a escuchar), lo dice en el
+    // editor y devuelve null: sin ella no se pueden buscar repetidos.
+    private fun itemsForAdd(spaceId: String): List<ShoppingItem>? = when (val items = mutableUiState.value.items) {
+        is UiState.Content -> items.value
+        UiState.Loading -> null.also { showError(ShoppingUiMessage.ListNotLoaded, editor = true) }
+        is UiState.Error -> null.also {
+            showError(ShoppingUiMessage.ListUnavailable, editor = true)
+            observe(spaceId)
+        }
+    }
 
     // Recrea un ítem borrado («Deshacer»): no es un guardado del editor, no mueve su estado.
     fun restoreItem(spaceId: String, item: ShoppingItem) = runAction(ShoppingUiMessage.ItemAdded) {

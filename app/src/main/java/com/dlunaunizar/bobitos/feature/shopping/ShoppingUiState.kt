@@ -84,6 +84,7 @@ enum class ShoppingUiMessage {
     ItemNotFound,
     ItemChanged,
     ListNotLoaded,
+    ListUnavailable,
     PermissionDenied,
     NetworkError,
     UnexpectedError,

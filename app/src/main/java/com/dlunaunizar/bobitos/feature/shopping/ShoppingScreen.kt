@@ -890,6 +890,7 @@ private val ShoppingUiMessage.stringResourceId: Int
         ShoppingUiMessage.ItemNotFound -> R.string.shopping_error_item_not_found
         ShoppingUiMessage.ItemChanged -> R.string.shopping_error_item_changed
         ShoppingUiMessage.ListNotLoaded -> R.string.shopping_error_list_not_loaded
+        ShoppingUiMessage.ListUnavailable -> R.string.shopping_error_list_unavailable
         ShoppingUiMessage.PermissionDenied -> R.string.space_error_permission_denied
         ShoppingUiMessage.NetworkError -> R.string.space_error_network
         ShoppingUiMessage.UnexpectedError -> R.string.space_error_unexpected
