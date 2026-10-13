@@ -128,7 +128,7 @@ class FirestoreRecipeRepository @Inject constructor(
             steps = recipe.steps.orEmpty(),
             servings = recipe.servings,
             totalMinutes = recipe.totalMinutes,
-        ) + restoredFields(recipe.restoreAudit(user.id))
+        ) + restoredFields(recipe.restoreAudit(user.id, RecipeAdmins.uids))
         recipesCollection().document(recipe.id).set(fields).await()
         Unit
     }

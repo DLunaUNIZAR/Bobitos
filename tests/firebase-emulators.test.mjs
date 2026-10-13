@@ -1461,6 +1461,28 @@ test("«Deshacer» de una común: solo un admin, con dueño, autor y editor admi
   }));
 });
 
+test("«Deshacer» de una común de un admin retirado: se recrea a nombre de quien deshace, no con el retirado", async () => {
+  await seedImportedRecipe("lentejas-deshacer-retirado");
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await updateDoc(doc(context.firestore(), "recipes", "lentejas-deshacer-retirado"),
+      { ownerUid: "ex-admin", createdBy: "ex-admin", updatedBy: "ex-admin" });
+  });
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  const ref = doc(admin, "recipes", "lentejas-deshacer-retirado");
+  const before = (await getDoc(ref)).data();
+  await assertSucceeds(writeBatch(admin).delete(ref).commit());
+
+  await assertFails(setDoc(ref, before));
+  await assertSucceeds(setDoc(ref, {
+    ...before, ownerUid: RECIPE_ADMIN_UID, createdBy: RECIPE_ADMIN_UID, updatedBy: RECIPE_ADMIN_UID,
+  }));
+
+  const after = (await getDoc(ref)).data();
+  assert.equal(after.ownerUid, RECIPE_ADMIN_UID);
+  assert.ok(after.createdAt.isEqual(before.createdAt));
+  assert.ok(after.source.importedAt.isEqual(before.source.importedAt));
+});
+
 
 // --- Catálogo común de ingredientes (solo el admin escribe) y datos personales ---
 

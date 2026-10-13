@@ -18,10 +18,14 @@ internal data class RecipeRestoreAudit(
 
 /**
  * Una común vuelve tal como era (dueño, autor, fechas y `source.importedAt`), aunque la deshaga otro admin: así el
- * importador la sigue tratando como antes del borrado (reglas: `validRecipeRestore`). Una privada vuelve como receta
- * nueva de quien deshace.
+ * importador la sigue tratando como antes del borrado (reglas: `validRecipeRestore`). Si su dueño o su último editor ya
+ * no es admin, pasa a quien deshace (las reglas exigen admins). Una privada vuelve como receta nueva de quien deshace.
  */
-internal fun Recipe.restoreAudit(restorerUid: String): RecipeRestoreAudit = when (visibility) {
-    RecipeVisibility.GLOBAL -> RecipeRestoreAudit(ownerUid, createdBy, createdAt, updatedBy, updatedAt, importedAt)
+internal fun Recipe.restoreAudit(restorerUid: String, admins: Set<String>): RecipeRestoreAudit = when (visibility) {
+    RecipeVisibility.GLOBAL -> {
+        val owner = ownerUid.takeIf { it in admins } ?: restorerUid
+        val editor = updatedBy.takeIf { it in admins } ?: restorerUid
+        RecipeRestoreAudit(owner, owner, createdAt, editor, updatedAt, importedAt)
+    }
     RecipeVisibility.PRIVATE -> RecipeRestoreAudit(restorerUid, restorerUid, null, restorerUid, null, null)
 }
