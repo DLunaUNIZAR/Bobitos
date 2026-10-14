@@ -50,6 +50,7 @@ import com.dlunaunizar.bobitos.core.model.PantryItem
 fun PantryScreen(
     onBack: () -> Unit,
     canWrite: Boolean,
+    onWhatToCook: () -> Unit,
     modifier: Modifier = Modifier,
     spaceId: String? = null,
     viewModel: PantryViewModel = hiltViewModel(),
@@ -74,7 +75,15 @@ fun PantryScreen(
     Scaffold(
         modifier = modifier,
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = { BobitosTopBar(title = stringResource(R.string.pantry_title), onBack = onBack) },
+        topBar = {
+            BobitosTopBar(
+                title = stringResource(R.string.pantry_title),
+                onBack = onBack,
+                actions = {
+                    TextButton(onClick = onWhatToCook) { Text(stringResource(R.string.pantry_what_to_cook)) }
+                },
+            )
+        },
         floatingActionButton = {
             if (canEdit) {
                 ExtendedFloatingActionButton(

@@ -23,4 +23,8 @@ data class RecipesUiState(
     val ingredientReview: List<IngredientReviewRow>? = null,
     // Receta recién borrada, con el borrado ya confirmado: la pantalla ofrece «Deshacer» y la consume.
     val deletedRecipe: Recipe? = null,
+    // Ids de la despensa del espacio activo; null sin espacio, mientras se lee o si no se puede leer (sin chip).
+    val pantryIds: Set<String>? = null,
+    // Chip «Con lo que hay» activado.
+    val pantryOnly: Boolean = false,
 )

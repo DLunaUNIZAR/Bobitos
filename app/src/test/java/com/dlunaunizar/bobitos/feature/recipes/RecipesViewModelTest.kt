@@ -8,6 +8,7 @@ import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
+import com.dlunaunizar.bobitos.core.model.PantryItem
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
@@ -652,6 +653,42 @@ class RecipesViewModelTest {
 
         assertEquals(listOf(ReviewRowKind.NEW), viewModel.uiState.value.ingredientReview?.map { it.kind })
         assertNull(viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `the pantry of the active space feeds the pantry chip`() = runTest(mainDispatcherRule.testDispatcher) {
+        pantryRepository.itemsState.value = listOf(PantryItem("arroc", "Arroz", null, null))
+
+        viewModel.observePantry("home")
+        advanceUntilIdle()
+
+        assertEquals("home", pantryRepository.observedSpaceId)
+        assertEquals(setOf("arroc"), viewModel.uiState.value.pantryIds)
+    }
+
+    @Test
+    fun `without a space or a readable pantry there is no pantry chip`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observePantry("home")
+        advanceUntilIdle()
+        viewModel.observePantry(null)
+        advanceUntilIdle()
+        assertNull(viewModel.uiState.value.pantryIds)
+
+        pantryRepository.itemsFailure = PantryRepositoryException(PantryFailure.PermissionDenied)
+        viewModel.observePantry("home")
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.pantryIds)
+        assertNull(viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `the pantry chip switches on and off`() {
+        viewModel.setPantryOnly(true)
+        assertTrue(viewModel.uiState.value.pantryOnly)
+
+        viewModel.setPantryOnly(false)
+        assertFalse(viewModel.uiState.value.pantryOnly)
     }
 }
 

@@ -453,13 +453,17 @@ fun BobitosNavHost(
             )
         }
 
-        composable(BobitosDestination.Recipes.route) {
+        composable(BobitosDestination.Recipes.route) { entry ->
+            val pantryFilter by entry.savedStateHandle.getStateFlow(RECIPES_PANTRY_FILTER_KEY, false)
+                .collectAsStateWithLifecycle()
             RecipesScreen(
                 onBack = { navController.popBackStack() },
                 canWrite = uiState.syncStatus.canWrite,
                 spaceId = uiState.selectedSpace?.id,
                 importUrl = pendingRecipeImportUrl,
                 onImportUrlConsumed = onRecipeImportUrlConsumed,
+                pantryFilterRequested = pantryFilter,
+                onPantryFilterConsumed = { entry.savedStateHandle[RECIPES_PANTRY_FILTER_KEY] = false },
             )
         }
 
@@ -496,6 +500,7 @@ fun BobitosNavHost(
             PantryScreen(
                 onBack = { navController.popBackStack() },
                 canWrite = uiState.syncStatus.canWrite,
+                onWhatToCook = { navController.openRecipesWithPantry() },
                 spaceId = uiState.selectedSpace?.id,
             )
         }
@@ -626,6 +631,7 @@ private fun SpaceScaffold(
 }
 
 internal const val SHOPPING_PREFILL_KEY = "shoppingPrefillName"
+internal const val RECIPES_PANTRY_FILTER_KEY = "recipesPantryFilter"
 
 private fun NavHostController.navigateToWorkspace(destination: BobitosDestination) {
     navigate(destination.route) {
@@ -669,6 +675,12 @@ private fun NavHostController.openShoppingWithName(name: String) {
     }
     navigateToWorkspace(BobitosDestination.Shopping)
     getBackStackEntry(BobitosDestination.Shopping.route).savedStateHandle[SHOPPING_PREFILL_KEY] = name
+}
+
+// «¿Qué cocino?» de la Despensa: abre el Recetario con «Con lo que hay» activado (la pantalla lo consume).
+private fun NavHostController.openRecipesWithPantry() {
+    navigate(BobitosDestination.Recipes.route)
+    getBackStackEntry(BobitosDestination.Recipes.route).savedStateHandle[RECIPES_PANTRY_FILTER_KEY] = true
 }
 
 private fun NavHostController.navigateToHome() {

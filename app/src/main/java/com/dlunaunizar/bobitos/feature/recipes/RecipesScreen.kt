@@ -61,6 +61,9 @@ import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewDialog
+import com.dlunaunizar.bobitos.feature.common.PantryLine
+import com.dlunaunizar.bobitos.feature.common.pantryLineText
+import com.dlunaunizar.bobitos.feature.common.withPantryLines
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,6 +74,8 @@ fun RecipesScreen(
     spaceId: String? = null,
     importUrl: String? = null,
     onImportUrlConsumed: () -> Unit = {},
+    pantryFilterRequested: Boolean = false,
+    onPantryFilterConsumed: () -> Unit = {},
     viewModel: RecipesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -78,6 +83,15 @@ fun RecipesScreen(
         viewModel.observe()
         onDispose { viewModel.stopObserving() }
     }
+    PantryFilterEffects(
+        spaceId = spaceId,
+        requested = pantryFilterRequested,
+        onObservePantry = viewModel::observePantry,
+        onRequested = {
+            viewModel.setPantryOnly(true)
+            onPantryFilterConsumed()
+        },
+    )
     // Enlace compartido desde el navegador: se importa una sola vez y se consume.
     LaunchedEffect(importUrl) {
         importUrl?.let {
@@ -94,6 +108,7 @@ fun RecipesScreen(
     var recipeToDelete by remember { mutableStateOf<Recipe?>(null) }
     var showImport by remember { mutableStateOf(false) }
     var selectedCategory by rememberSaveable { mutableStateOf<String?>(null) }
+    val pantryIds = state.pantryIds?.takeIf { state.pantryOnly }
 
     // Cuando la importación produce un borrador, se abre el editor prerrellenado para revisarlo.
     LaunchedEffect(state.importDraft) {
@@ -170,21 +185,34 @@ fun RecipesScreen(
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
             )
-            if (categories.isNotEmpty()) {
-                CategoryFilter(
-                    categories = categories,
-                    selected = selectedCategory,
-                    onSelect = { selectedCategory = it },
-                )
-            }
+            RecipeFilters(
+                categories = categories,
+                selected = selectedCategory,
+                onSelect = { selectedCategory = it },
+                pantryAvailable = state.pantryIds != null,
+                pantryOnly = state.pantryOnly,
+                onPantryOnly = viewModel::setPantryOnly,
+            )
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(bottom = 88.dp),
             ) {
-                recipesSection(R.string.recipes_section_mine, state.mine, state.query, selectedCategory) {
+                recipesSection(
+                    R.string.recipes_section_mine,
+                    state.mine,
+                    state.query,
+                    selectedCategory,
+                    pantryIds,
+                ) {
                     detailRecipeId = it.id
                 }
-                recipesSection(R.string.recipes_section_global, state.global, state.query, selectedCategory) {
+                recipesSection(
+                    R.string.recipes_section_global,
+                    state.global,
+                    state.query,
+                    selectedCategory,
+                    pantryIds,
+                ) {
                     detailRecipeId = it.id
                 }
             }
@@ -283,6 +311,7 @@ private fun LazyListScope.recipesSection(
     recipes: UiState<List<Recipe>>,
     query: String,
     category: String?,
+    pantryIds: Set<String>?,
     onOpen: (Recipe) -> Unit,
 ) {
     item(key = "header-$titleRes") {
@@ -298,9 +327,12 @@ private fun LazyListScope.recipesSection(
             ErrorState(Modifier.fillMaxWidth(), message = recipes.message)
         }
         is UiState.Content -> {
-            val filtered = recipes.value.matching(query).filter { category == null || it.category == category }
-            if (filtered.isEmpty()) {
-                val noResults = (query.isNotBlank() || category != null) && recipes.value.isNotEmpty()
+            val rows = recipes.value.matching(query)
+                .filter { category == null || it.category == category }
+                .withPantryLines(pantryIds)
+            if (rows.isEmpty()) {
+                val filtering = query.isNotBlank() || category != null || pantryIds != null
+                val noResults = filtering && recipes.value.isNotEmpty()
                 item(key = "empty-$titleRes") {
                     EmptyState(
                         modifier = Modifier.fillMaxWidth(),
@@ -311,39 +343,81 @@ private fun LazyListScope.recipesSection(
                     )
                 }
             } else {
-                items(filtered, key = { "$titleRes-${it.id}" }) { recipe ->
-                    RecipeCard(recipe = recipe, onClick = { onOpen(recipe) }, modifier = Modifier.animateItem())
+                items(rows, key = { "$titleRes-${it.recipe.id}" }) { row ->
+                    RecipeCard(
+                        recipe = row.recipe,
+                        pantryLine = row.pantryLine,
+                        onClick = { onOpen(row.recipe) },
+                        modifier = Modifier.animateItem(),
+                    )
                 }
             }
         }
     }
 }
 
+// La despensa del espacio activo para «Con lo que hay» y, desde «¿Qué cocino?», el chip activado una sola vez.
 @Composable
-private fun CategoryFilter(categories: List<String>, selected: String?, onSelect: (String?) -> Unit) {
+private fun PantryFilterEffects(
+    spaceId: String?,
+    requested: Boolean,
+    onObservePantry: (String?) -> Unit,
+    onRequested: () -> Unit,
+) {
+    DisposableEffect(spaceId) {
+        onObservePantry(spaceId)
+        onDispose { onObservePantry(null) }
+    }
+    LaunchedEffect(requested) {
+        if (requested) onRequested()
+    }
+}
+
+// Fila de filtros: «Con lo que hay» (si se puede leer la despensa) y las categorías. Sin ninguno, no sale.
+@Composable
+private fun RecipeFilters(
+    categories: List<String>,
+    selected: String?,
+    onSelect: (String?) -> Unit,
+    pantryAvailable: Boolean,
+    pantryOnly: Boolean,
+    onPantryOnly: (Boolean) -> Unit,
+) {
+    if (categories.isEmpty() && !pantryAvailable) return
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.padding(bottom = 8.dp),
     ) {
-        item(key = "cat-all") {
-            FilterChip(
-                selected = selected == null,
-                onClick = { onSelect(null) },
-                label = { Text(stringResource(R.string.recipes_filter_all)) },
-            )
+        if (pantryAvailable) {
+            item(key = "pantry") {
+                FilterChip(
+                    selected = pantryOnly,
+                    onClick = { onPantryOnly(!pantryOnly) },
+                    label = { Text(stringResource(R.string.recipes_filter_pantry)) },
+                )
+            }
         }
-        items(categories, key = { it }) { category ->
-            FilterChip(
-                selected = selected == category,
-                onClick = { onSelect(category) },
-                label = { Text(category) },
-            )
+        if (categories.isNotEmpty()) {
+            item(key = "cat-all") {
+                FilterChip(
+                    selected = selected == null,
+                    onClick = { onSelect(null) },
+                    label = { Text(stringResource(R.string.recipes_filter_all)) },
+                )
+            }
+            items(categories, key = { it }) { category ->
+                FilterChip(
+                    selected = selected == category,
+                    onClick = { onSelect(category) },
+                    label = { Text(category) },
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun RecipeCard(recipe: Recipe, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun RecipeCard(recipe: Recipe, pantryLine: PantryLine?, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -364,6 +438,13 @@ private fun RecipeCard(recipe: Recipe, onClick: () -> Unit, modifier: Modifier =
                     text = line,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            pantryLine?.let { line ->
+                Text(
+                    text = pantryLineText(line),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
                 )
             }
         }

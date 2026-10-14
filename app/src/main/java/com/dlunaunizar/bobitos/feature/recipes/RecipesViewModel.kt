@@ -10,6 +10,7 @@ import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.Ingredient
+import com.dlunaunizar.bobitos.core.model.PantryItem
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
 import com.dlunaunizar.bobitos.core.model.cleanRecipeSteps
@@ -56,6 +57,8 @@ class RecipesViewModel @Inject constructor(
     private var mineJob: Job? = null
     private var prefsJob: Job? = null
     private var observing = false
+    private var pantryJob: Job? = null
+    private var pantrySpaceId: String? = null
 
     // «Dónde lo compro» del usuario (tiendas por ingrediente), para prerrellenar al añadir a la compra.
     private var shoppingData: IngredientShoppingData = IngredientShoppingData()
@@ -82,7 +85,30 @@ class RecipesViewModel @Inject constructor(
         }
     }
 
+    /** Escucha la despensa de [spaceId] para «Con lo que hay»; con null (sin espacio) la suelta. */
+    fun observePantry(spaceId: String?) {
+        if (spaceId == pantrySpaceId && pantryJob?.isActive == true) return
+        pantryJob?.cancel()
+        pantryJob = null
+        pantrySpaceId = spaceId
+        mutableUiState.update { it.copy(pantryIds = null) }
+        if (spaceId == null) return
+        pantryJob = viewModelScope.launch {
+            pantryRepository.items(spaceId)
+                // Si no se puede leer, el chip no sale.
+                .catch { mutableUiState.update { state -> state.copy(pantryIds = null) } }
+                .collect { items ->
+                    mutableUiState.update { it.copy(pantryIds = items.mapTo(HashSet(), PantryItem::id)) }
+                }
+        }
+    }
+
+    fun setPantryOnly(value: Boolean) = mutableUiState.update { it.copy(pantryOnly = value) }
+
     fun stopObserving() {
+        pantryJob?.cancel()
+        pantryJob = null
+        pantrySpaceId = null
         globalJob?.cancel()
         mineJob?.cancel()
         prefsJob?.cancel()
