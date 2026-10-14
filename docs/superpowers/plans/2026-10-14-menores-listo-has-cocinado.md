@@ -749,7 +749,7 @@ git commit -m "fix(comidas): si «Listo» falla porque alguien ha cambiado un ar
      - Esperado: el error sale dentro del diálogo («No hay conexión…») (captura).
      - Pulsa «Cancelar». Esperado: el diálogo se cierra y el aviso de Comidas no muestra ningún error (captura).
      - Desactiva el modo avión (`… airplane-mode disable`) y espera 10 s.
-     - Si a los 20 s de pulsar «Listo» no ha salido ningún error, anótalo como «no comprobado», pulsa «Cancelar», desactiva el modo avión y sigue.
+     - Las escrituras de la Compra fallan al momento sin conexión de Android (`FirestoreSyncRepository.requireWritable`), pero el emulador puede conservar red: cortar solo wifi y datos no bastó en un recorrido anterior, porque la app va por `adb reverse`. Si a los 20 s de pulsar «Listo» no ha salido ningún error, anótalo como «no comprobado», pulsa «Cancelar», desactiva el modo avión y sigue.
   2. **«Listo» de punta a punta (Tarea 1, orden nuevo):**
      - En la tarjeta, «Marcar como no cocinada» y otra vez «Marcar como cocinada».
      - Marca «Arroz» y pulsa «Listo». Esperado: el aviso «Compra y despensa al día» (captura).
