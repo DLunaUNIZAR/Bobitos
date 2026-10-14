@@ -17,7 +17,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,6 +30,7 @@ import com.dlunaunizar.bobitos.core.common.prepareQuery
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
 import com.dlunaunizar.bobitos.feature.common.RecipeRow
+import com.dlunaunizar.bobitos.feature.common.ScrollToTopOnChange
 import com.dlunaunizar.bobitos.feature.common.pantryLineText
 import com.dlunaunizar.bobitos.feature.common.withPantryLines
 
@@ -71,7 +71,7 @@ internal fun RecipePickerDialog(
     // Al buscar o activar el chip la lista se filtra y se reordena; con claves se quedaría anclada en la receta
     // que estaba arriba, ahora lejos, así que vuelve al primer elemento.
     val listState = rememberLazyListState()
-    LaunchedEffect(query, pantryOnly) { listState.scrollToItem(0) }
+    ScrollToTopOnChange("$pantryOnly|$query", listState)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.meals_recipe_picker_title)) },

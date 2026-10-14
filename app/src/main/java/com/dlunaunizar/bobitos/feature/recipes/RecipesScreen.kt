@@ -64,6 +64,7 @@ import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewDialog
 import com.dlunaunizar.bobitos.feature.common.PantryLine
 import com.dlunaunizar.bobitos.feature.common.RecipeRow
+import com.dlunaunizar.bobitos.feature.common.ScrollToTopOnChange
 import com.dlunaunizar.bobitos.feature.common.pantryLineText
 import com.dlunaunizar.bobitos.feature.common.withPantryLines
 
@@ -201,7 +202,7 @@ fun RecipesScreen(
             // Los filtros quedan fuera de la lista: al activar o apagar «Con lo que hay» la lista se reordena y,
             // si estaba desplazada, se quedaría anclada en una receta que se ha movido; vuelve arriba.
             val listState = rememberLazyListState()
-            LaunchedEffect(state.pantryOnly) { listState.scrollToItem(0) }
+            ScrollToTopOnChange(state.pantryOnly.toString(), listState)
             LazyColumn(
                 state = listState,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
