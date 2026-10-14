@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -27,6 +28,9 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.prepareQuery
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
+import com.dlunaunizar.bobitos.feature.common.RecipeRow
+import com.dlunaunizar.bobitos.feature.common.pantryLineText
+import com.dlunaunizar.bobitos.feature.common.withPantryLines
 
 // Recetas del selector del planificador: primero las privadas (mías) y después las comunes, cada grupo por
 // título. La búsqueda mira el título y la categoría, por palabras y sin tildes; en blanco, todas.
@@ -44,11 +48,24 @@ internal fun recipeOriginRes(recipe: Recipe): Int = when (recipe.visibility) {
     RecipeVisibility.GLOBAL -> R.string.meals_recipe_origin_common
 }
 
-// Selector de receta del editor de comidas, con buscador. Cada fila: título y «Mía»/«Común» (· categoría).
+// Filas del selector: sin [pantryIds], como [forPicker] y sin línea; con ellos, «Con lo que hay» (ver withPantryLines).
+internal fun List<Recipe>.pickerRows(query: String, pantryIds: Set<String>?): List<RecipeRow> =
+    forPicker(query).withPantryLines(pantryIds)
+
+// Selector de receta del editor de comidas, con buscador y, si se puede leer la despensa, el chip «Con lo que hay».
+// Cada fila: título, «Mía»/«Común» (· categoría) y, con el chip, lo que falta.
 @Composable
-internal fun RecipePickerDialog(recipes: List<Recipe>, onPick: (Recipe) -> Unit, onDismiss: () -> Unit) {
+internal fun RecipePickerDialog(
+    recipes: List<Recipe>,
+    pantryIds: Set<String>?,
+    onPick: (Recipe) -> Unit,
+    onDismiss: () -> Unit,
+) {
     var query by rememberSaveable { mutableStateOf("") }
-    val shown = remember(recipes, query) { recipes.forPicker(query) }
+    var pantryOnly by rememberSaveable { mutableStateOf(false) }
+    val shown = remember(recipes, query, pantryOnly, pantryIds) {
+        recipes.pickerRows(query, pantryIds?.takeIf { pantryOnly })
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.meals_recipe_picker_title)) },
@@ -61,6 +78,13 @@ internal fun RecipePickerDialog(recipes: List<Recipe>, onPick: (Recipe) -> Unit,
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                if (pantryIds != null) {
+                    FilterChip(
+                        selected = pantryOnly,
+                        onClick = { pantryOnly = !pantryOnly },
+                        label = { Text(stringResource(R.string.recipes_filter_pantry)) },
+                    )
+                }
                 if (shown.isEmpty()) {
                     Text(
                         text = stringResource(R.string.recipes_no_results),
@@ -69,8 +93,8 @@ internal fun RecipePickerDialog(recipes: List<Recipe>, onPick: (Recipe) -> Unit,
                     )
                 } else {
                     LazyColumn(modifier = Modifier.heightIn(max = 320.dp)) {
-                        items(shown, key = Recipe::id) { recipe ->
-                            RecipePickerRow(recipe = recipe, onClick = { onPick(recipe) })
+                        items(shown, key = { it.recipe.id }) { row ->
+                            RecipePickerRow(row = row, onClick = { onPick(row.recipe) })
                         }
                     }
                 }
@@ -81,7 +105,8 @@ internal fun RecipePickerDialog(recipes: List<Recipe>, onPick: (Recipe) -> Unit,
 }
 
 @Composable
-private fun RecipePickerRow(recipe: Recipe, onClick: () -> Unit) {
+private fun RecipePickerRow(row: RecipeRow, onClick: () -> Unit) {
+    val recipe = row.recipe
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -94,5 +119,12 @@ private fun RecipePickerRow(recipe: Recipe, onClick: () -> Unit) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        row.pantryLine?.let { line ->
+            Text(
+                text = pantryLineText(line),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
     }
 }

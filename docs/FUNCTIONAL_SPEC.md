@@ -223,6 +223,21 @@ Dentro de cada grupo se utilizará inicialmente la fecha de creación, salvo que
 - «Se acabó» quita la entrada y ofrece «A la compra» durante unos segundos.
 - «A la compra» lo apunta en la Compra: si ya está pendiente, solo avisa; si está comprado, lo vuelve a apuntar con su cantidad, notas, tienda y marca; si no está, lo añade sin cantidad, con la marca y la tienda por defecto.
 
+### PANTRY-04. La despensa en la Compra
+
+- Al añadir a la Compra los ingredientes de una receta o de las comidas, lo que hay en la despensa sale como «Hay en la despensa», con «Omitir» marcado; con «Añadir» se apunta como siempre (o se vuelve a apuntar, si estaba comprado). Si todo queda en «Omitir», la app dice «No hace falta añadir nada».
+- Al crear un producto en la Compra, si está en la despensa sale la pista «Hay en la despensa», que no impide guardarlo.
+
+### PANTRY-05. Al cocinar
+
+- Al marcar una comida como cocinada, el diálogo «Has cocinado …» ofrece tachar de la compra lo pendiente de su receta (marcado por defecto; lo tachado entra en la despensa si es un ingrediente) y pregunta «¿Se ha acabado algo?» con lo que de la receta hay en la despensa (sin marcar).
+- Lo que se marca como acabado sale de la despensa y, con «Apuntar a la compra lo que se ha acabado» (marcada por defecto), se apunta en la Compra como en PANTRY-03.
+
+### PANTRY-06. Qué cocino con lo que hay
+
+- El Recetario y el selector de receta de Comidas tienen el filtro «Con lo que hay»: solo las recetas con ingredientes, de la que menos falta a la que más, con «Lo tienes todo» o lo que falta («Faltan 2: huevos y leche»).
+- En la Despensa, «¿Qué cocino?» abre el Recetario con ese filtro activado.
+
 ## 9. Tareas
 
 ### TASK-01. Crear tarea

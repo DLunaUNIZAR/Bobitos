@@ -11,6 +11,7 @@ import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
+import com.dlunaunizar.bobitos.core.model.PantryItem
 import com.dlunaunizar.bobitos.data.repository.MealFailure
 import com.dlunaunizar.bobitos.data.repository.MealRepository
 import com.dlunaunizar.bobitos.data.repository.MealRepositoryException
@@ -62,6 +63,7 @@ class MealsViewModel @Inject constructor(
     private var mealsJob: Job? = null
     private var membersJob: Job? = null
     private var recipesJob: Job? = null
+    private var pantryJob: Job? = null
     private var prefsJob: Job? = null
 
     // «Dónde lo compro» del usuario (tiendas por ingrediente), para prerrellenar la compra.
@@ -87,6 +89,20 @@ class MealsViewModel @Inject constructor(
                 .catch { mutableUiState.update { it.copy(recipes = emptyList()) } }
                 .collect { recipes -> mutableUiState.update { it.copy(recipes = recipes) } }
         }
+        observePantry(spaceId)
+    }
+
+    // La despensa del espacio, para el chip «Con lo que hay» del selector de receta; si no se puede leer, sin chip.
+    private fun observePantry(spaceId: String) {
+        pantryJob?.cancel()
+        mutableUiState.update { it.copy(pantryIds = null) }
+        pantryJob = viewModelScope.launch {
+            pantryRepository.items(spaceId)
+                .catch { mutableUiState.update { state -> state.copy(pantryIds = null) } }
+                .collect { items ->
+                    mutableUiState.update { it.copy(pantryIds = items.mapTo(HashSet(), PantryItem::id)) }
+                }
+        }
     }
 
     private fun observePrefs() {
@@ -102,10 +118,12 @@ class MealsViewModel @Inject constructor(
         mealsJob?.cancel()
         membersJob?.cancel()
         recipesJob?.cancel()
+        pantryJob?.cancel()
         prefsJob?.cancel()
         mealsJob = null
         membersJob = null
         recipesJob = null
+        pantryJob = null
         prefsJob = null
         observedSpaceId = null
         observedWeekStart = null

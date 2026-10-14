@@ -246,6 +246,7 @@ fun MealsScreen(
         mealsLoaded = state.meals is UiState.Content,
         members = members,
         recipes = state.recipes,
+        pantryIds = state.pantryIds,
         saving = state.isSaving,
         errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
             ?.let { stringResource(it.stringResourceId) },
@@ -517,6 +518,7 @@ private fun MealEditorHost(
     mealsLoaded: Boolean,
     members: List<SpaceMember>,
     recipes: List<Recipe>,
+    pantryIds: Set<String>?,
     saving: Boolean,
     errorMessage: String?,
     canWrite: Boolean,
@@ -536,6 +538,7 @@ private fun MealEditorHost(
         initialSlot = MealSlot.valueOf(slotName),
         members = members,
         recipes = recipes,
+        pantryIds = pantryIds,
         saving = saving,
         errorMessage = errorMessage,
         canWrite = canWrite,
@@ -552,6 +555,7 @@ private fun MealEditor(
     initialSlot: MealSlot,
     members: List<SpaceMember>,
     recipes: List<Recipe>,
+    pantryIds: Set<String>?,
     saving: Boolean,
     errorMessage: String?,
     canWrite: Boolean,
@@ -614,6 +618,7 @@ private fun MealEditor(
     if (pickerOpen) {
         RecipePickerDialog(
             recipes = recipes,
+            pantryIds = pantryIds,
             onPick = { recipe ->
                 draft = draft.withRecipe(recipe.title, recipe.id)
                 pickerOpen = false

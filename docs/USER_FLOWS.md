@@ -243,3 +243,7 @@ Todos los miembros tienen permiso de edición sobre estos módulos.
 2. Si está vacía, pulsa «Llenar la despensa» (o «Añadir»), busca y marca lo que hay en casa; lo que no sea un ingrediente se apunta con «Añadir «…»». Pulsa «Añadir (N)».
 3. Lo que se marca como comprado en la Compra y es un ingrediente aparece solo; si se desmarca, desaparece.
 4. Cuando algo se acaba, pulsa «Se acabó». El aviso ofrece «A la compra»: si se pulsa, se apunta en la Compra (o avisa de que ya estaba).
+5. Para decidir qué cocinar, pulsa «¿Qué cocino?» (o activa «Con lo que hay» en el Recetario): salen las recetas de la que menos falta a la que más, con lo que falta. Al pulsar «Añadir a la compra» en una receta, lo que hay en la despensa sale como «Hay en la despensa», con «Omitir» marcado.
+6. Al planificar una comida, el selector de receta también tiene «Con lo que hay».
+7. Al marcar una comida como cocinada, el diálogo «Has cocinado …» ofrece tachar lo pendiente de la compra y pregunta «¿Se ha acabado algo?»: lo marcado sale de la despensa y, si se deja marcada «Apuntar a la compra lo que se ha acabado», se apunta en la Compra.
+8. Al añadir a mano en la Compra algo que hay en la despensa, el nombre lo avisa con «Hay en la despensa».

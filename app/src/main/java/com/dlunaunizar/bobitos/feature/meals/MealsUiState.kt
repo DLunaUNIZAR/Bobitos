@@ -18,6 +18,8 @@ data class MealsUiState(
     val error: MealUiMessage? = null,
     val notice: MealUiMessage? = null,
     val recipes: List<Recipe> = emptyList(),
+    // Ids de la despensa del espacio, para «Con lo que hay» del selector de receta; null si no se puede leer (sin chip).
+    val pantryIds: Set<String>? = null,
     // Filas a revisar al volcar ingredientes a la Compra (null = sin diálogo abierto).
     val ingredientReview: List<IngredientReviewRow>? = null,
     // Diálogo «Has cocinado …» tras marcar una comida como cocinada (null = sin diálogo).

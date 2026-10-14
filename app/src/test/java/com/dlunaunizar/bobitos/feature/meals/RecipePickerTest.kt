@@ -1,9 +1,13 @@
 package com.dlunaunizar.bobitos.feature.meals
 
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
+import com.dlunaunizar.bobitos.core.model.pantryId
+import com.dlunaunizar.bobitos.feature.common.PantryLine
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 
@@ -35,13 +39,45 @@ class RecipePickerTest {
         assertEquals(R.string.meals_recipe_origin_common, recipeOriginRes(recipes[0]))
     }
 
-    private fun recipe(id: String, visibility: RecipeVisibility, title: String, category: String?) = Recipe(
+    @Test
+    fun `without the pantry chip the picker keeps mine first and has no lines`() {
+        val rows = recipes.pickerRows("", null)
+
+        assertEquals(listOf("p1", "p2", "g2", "g1"), rows.map { it.recipe.id })
+        assertTrue(rows.all { it.pantryLine == null })
+    }
+
+    @Test
+    fun `with the pantry chip the picker orders by what is missing and adds the line`() {
+        val withIngredients = listOf(
+            recipe("p1", RecipeVisibility.PRIVATE, "Tortilla", null, listOf("Huevos", "Patatas")),
+            recipe("g1", RecipeVisibility.GLOBAL, "Aliño", null, listOf("Sal")),
+            recipe("p2", RecipeVisibility.PRIVATE, "Tostada", null),
+        )
+        val pantry = setOf(pantryId("Sal"), pantryId("Huevos"))
+
+        val rows = withIngredients.pickerRows("", pantry)
+
+        assertEquals(listOf("g1", "p1"), rows.map { it.recipe.id })
+        assertEquals(PantryLine(R.string.recipes_pantry_all), rows[0].pantryLine)
+        assertEquals(PantryLine(R.string.recipes_pantry_missing_one, listOf("patatas")), rows[1].pantryLine)
+        assertEquals(listOf("p1"), withIngredients.pickerRows("tortilla", pantry).map { it.recipe.id })
+    }
+
+    private fun recipe(
+        id: String,
+        visibility: RecipeVisibility,
+        title: String,
+        category: String?,
+        ingredients: List<String> = emptyList(),
+    ) = Recipe(
         id = id,
         ownerUid = "u",
         visibility = visibility,
         title = title,
         description = null,
         category = category,
+        ingredients = ingredients.map { Ingredient(it) }.takeIf { it.isNotEmpty() },
         createdBy = "u",
         createdByName = "U",
         createdAt = Instant.EPOCH,

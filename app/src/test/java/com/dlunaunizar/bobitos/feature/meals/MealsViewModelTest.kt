@@ -10,6 +10,7 @@ import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
+import com.dlunaunizar.bobitos.core.model.PantryItem
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
@@ -80,6 +81,30 @@ class MealsViewModelTest {
         ingredientShoppingSource(ingredientRepository, brandRepository, ingredientPrefsRepository),
         pantryRepository,
     )
+
+    @Test
+    fun `the pantry of the space feeds the recipe picker`() = runTest(mainDispatcherRule.testDispatcher) {
+        pantryRepository.itemsState.value = listOf(PantryItem("sal", "Sal", null, null))
+
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        assertEquals("home", pantryRepository.observedSpaceId)
+        assertEquals(setOf("sal"), viewModel.uiState.value.pantryIds)
+    }
+
+    @Test
+    fun `an unreadable pantry leaves the picker without the chip`() = runTest(mainDispatcherRule.testDispatcher) {
+        pantryRepository.itemsFailure = PantryRepositoryException(PantryFailure.PermissionDenied)
+        mealRepository.mealsState.value = listOf(meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas"))
+
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.pantryIds)
+        assertNull(viewModel.uiState.value.error)
+        assertEquals(listOf("Lentejas"), (viewModel.uiState.value.meals as UiState.Content).value.map(Meal::name))
+    }
 
     @Test
     fun `observes meals and members for the active space`() = runTest(mainDispatcherRule.testDispatcher) {
