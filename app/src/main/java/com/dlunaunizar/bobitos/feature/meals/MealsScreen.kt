@@ -295,9 +295,19 @@ fun MealsScreen(
         )
     }
 
-    state.cooked?.let { review ->
-        CookedDialog(review = review, onConfirm = viewModel::confirmCooked, onDismiss = viewModel::dismissCooked)
-    }
+    state.cooked?.let { review -> CookedReviewDialog(review, state, viewModel) }
+}
+
+// «Has cocinado …»; el error de una escritura fallida sale dentro del diálogo, no en el aviso de la pantalla.
+@Composable
+private fun CookedReviewDialog(review: CookedReview, state: MealsUiState, viewModel: MealsViewModel) {
+    CookedDialog(
+        review = review,
+        saving = state.isSaving,
+        errorMessage = state.error?.let { stringResource(it.stringResourceId) },
+        onConfirm = viewModel::confirmCooked,
+        onDismiss = viewModel::dismissCooked,
+    )
 }
 
 @Composable

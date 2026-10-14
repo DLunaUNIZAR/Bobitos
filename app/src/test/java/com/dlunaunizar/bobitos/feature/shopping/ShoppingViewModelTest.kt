@@ -15,6 +15,7 @@ import com.dlunaunizar.bobitos.data.repository.IngredientFailure
 import com.dlunaunizar.bobitos.data.repository.IngredientRepositoryException
 import com.dlunaunizar.bobitos.data.repository.PantryFailure
 import com.dlunaunizar.bobitos.data.repository.PantryRepositoryException
+import com.dlunaunizar.bobitos.data.repository.ShoppingCrossOff
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
@@ -838,6 +839,13 @@ internal class FakeShoppingRepository : ShoppingRepository {
         purchaseChange = Triple(spaceId, itemId, purchased)
         purchaseEntry = pantryEntry
     }
+
+    override suspend fun applyCooked(
+        spaceId: String,
+        crossOff: List<ShoppingCrossOff>,
+        finishedPantryIds: List<String>,
+        restock: List<ShoppingWrite>,
+    ) = Unit
 
     override suspend fun deleteItem(spaceId: String, itemId: String) {
         throwNextFailure()

@@ -232,6 +232,7 @@ Dentro de cada grupo se utilizará inicialmente la fecha de creación, salvo que
 
 - Al marcar una comida como cocinada, el diálogo «Has cocinado …» ofrece tachar de la compra lo pendiente de su receta (marcado por defecto; lo tachado entra en la despensa si es un ingrediente) y pregunta «¿Se ha acabado algo?» con lo que de la receta hay en la despensa (sin marcar).
 - Lo que se marca como acabado sale de la despensa y, con «Apuntar a la compra lo que se ha acabado» (marcada por defecto), se apunta en la Compra como en PANTRY-03.
+- «Listo» lo escribe todo a la vez: si algo falla (por ejemplo, sin conexión), no se escribe nada y el diálogo sigue abierto, con lo marcado y el motivo, para volver a intentarlo. Lo que otro miembro ya ha tachado o ha quitado de la lista se salta.
 
 ### PANTRY-06. Qué cocino con lo que hay
 

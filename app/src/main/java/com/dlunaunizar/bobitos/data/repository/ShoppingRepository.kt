@@ -47,6 +47,20 @@ interface ShoppingRepository {
      */
     suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean, pantryEntry: PantryEntry? = null)
 
+    /**
+     * «Listo» en «Has cocinado …», en una sola transacción (todo o nada): marca como comprados los artículos de
+     * [crossOff] y apunta en la despensa su entrada, si la traen y no estaba (como [setPurchased]); quita de la
+     * despensa [finishedPantryIds]; y escribe [restock] sobre la lista tal como se vio (como [applyWrites]). Un artículo
+     * de [crossOff] que ya no existe o ya está comprado se salta. Si otro miembro ha cambiado o borrado un artículo de
+     * [restock], no se escribe nada y falla con [ShoppingFailure.ItemChanged] o [ShoppingFailure.ItemNotFound].
+     */
+    suspend fun applyCooked(
+        spaceId: String,
+        crossOff: List<ShoppingCrossOff>,
+        finishedPantryIds: List<String>,
+        restock: List<ShoppingWrite>,
+    )
+
     suspend fun deleteItem(spaceId: String, itemId: String)
 
     suspend fun clearPurchased(spaceId: String): Int
@@ -76,6 +90,9 @@ sealed interface ShoppingWrite {
         val relist: Boolean,
     ) : ShoppingWrite
 }
+
+/** Un artículo que se tacha al cocinar y la entrada de la despensa que trae si es un ingrediente reconocido. */
+data class ShoppingCrossOff(val itemId: String, val pantryEntry: PantryEntry?)
 
 enum class ShoppingFailure {
     NameRequired,

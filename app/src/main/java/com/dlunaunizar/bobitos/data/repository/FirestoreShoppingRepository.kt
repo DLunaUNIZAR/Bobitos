@@ -120,14 +120,7 @@ class FirestoreShoppingRepository @Inject constructor(
                 throw ShoppingRepositoryException(ShoppingFailure.SpaceNotFound)
             }
             planned.forEach { plan -> plan.seen?.let { requireUnchanged(transaction.get(plan.reference), it) } }
-            planned.forEach { plan ->
-                if (plan.seen == null) {
-                    transaction.set(plan.reference, newItemFields(user, plan.values))
-                } else {
-                    val fields = changedItemFields(user, plan.values, rename = false, relist = plan.relist)
-                    transaction.update(plan.reference, fields)
-                }
-            }
+            planned.forEach { plan -> writePlanned(transaction, plan, user) }
         }.await()
         Unit
     }
@@ -146,6 +139,16 @@ class FirestoreShoppingRepository @Inject constructor(
             seen = write.seen,
             relist = write.relist,
         )
+    }
+
+    // Un alta en su documento nuevo o un cambio del artículo tal como se vio (ver ShoppingWrite).
+    private fun writePlanned(transaction: Transaction, plan: PlannedWrite, user: AuthUser) {
+        if (plan.seen == null) {
+            transaction.set(plan.reference, newItemFields(user, plan.values))
+        } else {
+            val fields = changedItemFields(user, plan.values, rename = false, relist = plan.relist)
+            transaction.update(plan.reference, fields)
+        }
     }
 
     // El artículo sigue como se vio; si otro miembro lo ha cambiado, no se escribe nada de la transacción.
@@ -209,21 +212,7 @@ class FirestoreShoppingRepository @Inject constructor(
                     // Firestore exige hacer todas las lecturas antes de la primera escritura; solo se lee si hay cambio.
                     val pantry =
                         readPantry(transaction, spaceId, if (purchased) entry?.name else item.getString(FIELD_NAME))
-                    transaction.update(
-                        reference,
-                        FIELD_PURCHASED,
-                        purchased,
-                        FIELD_PURCHASED_BY,
-                        if (purchased) user.id else null,
-                        FIELD_PURCHASED_BY_NAME,
-                        if (purchased) user.shoppingDisplayName else null,
-                        FIELD_PURCHASED_AT,
-                        if (purchased) FieldValue.serverTimestamp() else null,
-                        FIELD_UPDATED_BY,
-                        user.id,
-                        FIELD_UPDATED_AT,
-                        FieldValue.serverTimestamp(),
-                    )
+                    markPurchased(transaction, reference, purchased, user)
                     if (pantry != null) {
                         writePantry(transaction, pantry, entry.takeIf { purchased }, user.id, item)
                     }
@@ -231,6 +220,66 @@ class FirestoreShoppingRepository @Inject constructor(
             }.await()
             Unit
         }
+
+    // Marca o desmarca el artículo: quién lo compró y cuándo (nada, al desmarcar) y quién lo ha cambiado.
+    private fun markPurchased(
+        transaction: Transaction,
+        reference: DocumentReference,
+        purchased: Boolean,
+        user: AuthUser,
+    ) {
+        transaction.update(
+            reference,
+            FIELD_PURCHASED,
+            purchased,
+            FIELD_PURCHASED_BY,
+            if (purchased) user.id else null,
+            FIELD_PURCHASED_BY_NAME,
+            if (purchased) user.shoppingDisplayName else null,
+            FIELD_PURCHASED_AT,
+            if (purchased) FieldValue.serverTimestamp() else null,
+            FIELD_UPDATED_BY,
+            user.id,
+            FIELD_UPDATED_AT,
+            FieldValue.serverTimestamp(),
+        )
+    }
+
+    override suspend fun applyCooked(
+        spaceId: String,
+        crossOff: List<ShoppingCrossOff>,
+        finishedPantryIds: List<String>,
+        restock: List<ShoppingWrite>,
+    ) = runShoppingOperation {
+        val user = requireVerifiedUser()
+        val entries = crossOff.map { it.pantryEntry?.let(::validPantryEntryOrNull) }
+        val planned = restock.map { planWrite(spaceId, it) }
+        val spaceReference = firestore.collection(SPACES).document(spaceId)
+        val pantry = firestore.pantryCollection(spaceId)
+
+        firestore.runTransaction { transaction ->
+            // Firestore exige hacer todas las lecturas antes de la primera escritura.
+            if (!transaction.get(spaceReference).exists()) {
+                throw ShoppingRepositoryException(ShoppingFailure.SpaceNotFound)
+            }
+            // Lo que ya no está en la lista (otro miembro lo ha borrado) o ya está comprado no se tacha.
+            val crossed = crossOff.map { transaction.get(itemsCollection(spaceId).document(it.itemId)) }
+                .zip(entries)
+                .filter { (item, _) -> item.getBoolean(FIELD_PURCHASED) == false }
+            // Una entrada por id: si dos artículos traen la misma («Tomates» y «tomate»), la apunta el primero.
+            val pantryReads = crossed.mapNotNull { (item, entry) -> entry?.let { item to it } }
+                .distinctBy { (_, entry) -> pantryId(entry.name) }
+                .map { (item, entry) -> Triple(item, entry, readPantry(transaction, spaceId, entry.name)) }
+            planned.forEach { plan -> plan.seen?.let { requireUnchanged(transaction.get(plan.reference), it) } }
+            crossed.forEach { (item, _) -> markPurchased(transaction, item.reference, true, user) }
+            pantryReads.forEach { (item, entry, snapshot) ->
+                snapshot?.let { writePantry(transaction, it, entry, user.id, item) }
+            }
+            finishedPantryIds.filter(String::isNotEmpty).distinct().forEach { transaction.delete(pantry.document(it)) }
+            planned.forEach { plan -> writePlanned(transaction, plan, user) }
+        }.await()
+        Unit
+    }
 
     override suspend fun deleteItem(spaceId: String, itemId: String) = runShoppingOperation {
         requireVerifiedUser()

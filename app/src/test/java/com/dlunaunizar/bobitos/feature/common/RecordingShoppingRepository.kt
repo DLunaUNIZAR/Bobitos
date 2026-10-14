@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.feature.common
 import com.dlunaunizar.bobitos.core.model.PantryEntry
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.dlunaunizar.bobitos.data.repository.ShoppingCrossOff
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingWrite
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientBrandRepository
@@ -34,6 +35,11 @@ internal class RecordingShoppingRepository : ShoppingRepository {
     val updatedBrands = mutableListOf<String?>()
     val appliedBatches = mutableListOf<List<ShoppingWrite>>()
     var applyFailure: Throwable? = null
+    val cookedCalls = mutableListOf<CookedCall>()
+    var cookedFailure: Throwable? = null
+
+    // Si hay puerta, applyCooked espera a que se complete (simula una escritura lenta).
+    var cookedGate: CompletableDeferred<Unit>? = null
     var itemsFailure: Throwable? = null
 
     // Lo que lee currentItems (el servidor); con null devuelve itemsState. Distinto de itemsState simula una caché vieja.
@@ -88,6 +94,28 @@ internal class RecordingShoppingRepository : ShoppingRepository {
     override suspend fun applyWrites(spaceId: String, writes: List<ShoppingWrite>) {
         applyFailure?.let { throw it }
         appliedBatches += writes
+        record(writes)
+    }
+
+    // Como el real, todo o nada: con fallo no registra nada. Cada llamada queda en cookedCalls y, además, lo tachado en
+    // purchasedIds y purchasedEntries y lo apuntado en las listas de altas y reapuntados (no en appliedBatches).
+    override suspend fun applyCooked(
+        spaceId: String,
+        crossOff: List<ShoppingCrossOff>,
+        finishedPantryIds: List<String>,
+        restock: List<ShoppingWrite>,
+    ) {
+        cookedGate?.await()
+        cookedFailure?.let { throw it }
+        cookedCalls += CookedCall(crossOff, finishedPantryIds, restock)
+        crossOff.forEach {
+            purchasedIds += it.itemId
+            purchasedEntries += it.pantryEntry
+        }
+        record(restock)
+    }
+
+    private fun record(writes: List<ShoppingWrite>) {
         writes.forEach { write ->
             when (write) {
                 is ShoppingWrite.Add -> {
@@ -130,3 +158,10 @@ internal fun ingredientShoppingSource(
     prefs: FakeIngredientPrefsRepository,
     personal: FakePersonalIngredientRepository = FakePersonalIngredientRepository(),
 ) = IngredientShoppingSource(ingredients, personal, brands, prefs)
+
+/** Una llamada a [ShoppingRepository.applyCooked]. */
+internal data class CookedCall(
+    val crossOff: List<ShoppingCrossOff>,
+    val finishedPantryIds: List<String>,
+    val restock: List<ShoppingWrite>,
+)

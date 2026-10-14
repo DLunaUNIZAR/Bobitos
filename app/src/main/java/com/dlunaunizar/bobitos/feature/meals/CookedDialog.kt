@@ -26,40 +26,59 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 
 // «Has cocinado …»: tachar de la compra (marcado), «¿Se ha acabado algo?» (sin marcar) y «Apuntar a la compra lo que se
-// ha acabado» (marcado; solo se puede tocar si algo se ha marcado como acabado).
+// ha acabado» (marcado; solo se puede tocar si algo se ha marcado como acabado). Mientras se guarda, «Listo» no se
+// puede pulsar; si falla, el error sale dentro y lo marcado se conserva (el diálogo sigue con la misma revisión).
 @Composable
-internal fun CookedDialog(review: CookedReview, onConfirm: (CookedChoice) -> Unit, onDismiss: () -> Unit) {
+internal fun CookedDialog(
+    review: CookedReview,
+    saving: Boolean,
+    errorMessage: String?,
+    onConfirm: (CookedChoice) -> Unit,
+    onDismiss: () -> Unit,
+) {
     var choice by remember(review) { mutableStateOf(review.defaultChoice()) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.meals_cooked_title, review.mealName)) },
         text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                if (review.crossOff.isNotEmpty()) {
-                    CookedSectionTitle(R.string.meals_cooked_cross_off)
-                    review.crossOff.forEach { item ->
-                        CookedCheckRow(item.name, item.id in choice.crossOffIds) {
-                            choice = choice.toggleCrossOff(item.id)
-                        }
-                    }
+            Column {
+                if (errorMessage != null) {
+                    Text(
+                        text = errorMessage,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(bottom = Spacing.sm),
+                    )
                 }
-                if (review.finished.isNotEmpty()) {
-                    CookedSectionTitle(R.string.meals_cooked_finished)
-                    review.finished.forEach { row ->
-                        CookedCheckRow(row.name, row.id in choice.finishedIds) {
-                            choice = choice.toggleFinished(row.id)
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    if (review.crossOff.isNotEmpty()) {
+                        CookedSectionTitle(R.string.meals_cooked_cross_off)
+                        review.crossOff.forEach { item ->
+                            CookedCheckRow(item.name, item.id in choice.crossOffIds) {
+                                choice = choice.toggleCrossOff(item.id)
+                            }
                         }
                     }
-                    CookedCheckRow(
-                        label = stringResource(R.string.meals_cooked_restock),
-                        checked = choice.restock,
-                        enabled = choice.finishedIds.isNotEmpty(),
-                    ) { choice = choice.copy(restock = !choice.restock) }
+                    if (review.finished.isNotEmpty()) {
+                        CookedSectionTitle(R.string.meals_cooked_finished)
+                        review.finished.forEach { row ->
+                            CookedCheckRow(row.name, row.id in choice.finishedIds) {
+                                choice = choice.toggleFinished(row.id)
+                            }
+                        }
+                        CookedCheckRow(
+                            label = stringResource(R.string.meals_cooked_restock),
+                            checked = choice.restock,
+                            enabled = choice.finishedIds.isNotEmpty(),
+                        ) { choice = choice.copy(restock = !choice.restock) }
+                    }
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(choice) }) { Text(stringResource(R.string.meals_cooked_done)) }
+            TextButton(onClick = { onConfirm(choice) }, enabled = !saving) {
+                Text(stringResource(R.string.meals_cooked_done))
+            }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )

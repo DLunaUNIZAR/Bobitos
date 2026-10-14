@@ -9,12 +9,17 @@ import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.pantryId
 import com.dlunaunizar.bobitos.data.repository.PantryFailure
 import com.dlunaunizar.bobitos.data.repository.PantryRepositoryException
+import com.dlunaunizar.bobitos.data.repository.ShoppingCrossOff
+import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
+import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
+import com.dlunaunizar.bobitos.data.repository.ShoppingWrite
 import com.dlunaunizar.bobitos.feature.common.FakePantryRepository
 import com.dlunaunizar.bobitos.feature.common.RecordingShoppingRepository
 import com.dlunaunizar.bobitos.feature.common.ingredientShoppingSource
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientBrandRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientPrefsRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.flow
@@ -25,6 +30,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -126,7 +132,7 @@ class MealsCookedViewModelTest {
             viewModel.confirmCooked(review.defaultChoice().toggleFinished(pantryId("Leche")))
             advanceUntilIdle()
 
-            assertEquals(listOf(listOf(pantryId("Leche"))), pantryRepository.removed)
+            assertEquals(listOf(pantryId("Leche")), shoppingRepository.cookedCalls.single().finishedPantryIds)
             assertEquals(listOf("Leche"), shoppingRepository.addedNames)
             assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.notice)
         }
@@ -144,7 +150,8 @@ class MealsCookedViewModelTest {
         viewModel.confirmCooked(review.defaultChoice().toggleFinished(pantryId("Leche")).copy(restock = false))
         advanceUntilIdle()
 
-        assertEquals(listOf(listOf(pantryId("Leche"))), pantryRepository.removed)
+        assertEquals(listOf(pantryId("Leche")), shoppingRepository.cookedCalls.single().finishedPantryIds)
+        assertTrue(shoppingRepository.cookedCalls.single().restock.isEmpty())
         assertTrue(shoppingRepository.appliedBatches.isEmpty())
         assertTrue(shoppingRepository.addedNames.isEmpty())
     }
@@ -165,7 +172,7 @@ class MealsCookedViewModelTest {
             advanceUntilIdle()
 
             assertTrue(shoppingRepository.purchasedIds.isEmpty())
-            assertTrue(pantryRepository.removed.isEmpty())
+            assertTrue(shoppingRepository.cookedCalls.isEmpty())
             assertTrue(shoppingRepository.appliedBatches.isEmpty())
             assertNull(viewModel.uiState.value.cooked)
             assertFalse(viewModel.uiState.value.isSaving)
@@ -192,5 +199,106 @@ class MealsCookedViewModelTest {
             runCurrent()
             assertEquals(listOf("s1"), shoppingRepository.purchasedIds)
             assertEquals(listOf<PantryEntry?>(null), shoppingRepository.purchasedEntries)
+        }
+
+    @Test
+    fun `done writes what is crossed off, what has finished and the restock in a single write`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            ingredientRepository.catalogState.value = listOf(CatalogIngredient("arroz", "Arroz"))
+            recipeRepository.mineState.value =
+                listOf(recipe("r1", listOf(Ingredient("Arroz", "300", "g"), Ingredient("Leche", "1", "l"))))
+            shoppingRepository.itemsState.value = listOf(shoppingItem("s1", "arroz"))
+            pantryRepository.serverIds = setOf(pantryId("Leche"))
+            viewModel.observe("home")
+            advanceUntilIdle()
+            viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.COMIDA, "Arroz con leche").copy(recipeId = "r1"))
+            advanceUntilIdle()
+            val review = viewModel.uiState.value.cooked!!
+
+            viewModel.confirmCooked(review.defaultChoice().toggleFinished(pantryId("Leche")))
+            advanceUntilIdle()
+
+            val call = shoppingRepository.cookedCalls.single()
+            assertEquals(listOf(ShoppingCrossOff("s1", PantryEntry("Arroz", null))), call.crossOff)
+            assertEquals(listOf(pantryId("Leche")), call.finishedPantryIds)
+            assertEquals(listOf("Leche"), call.restock.map { (it as ShoppingWrite.Add).name })
+            assertTrue(pantryRepository.removed.isEmpty())
+            assertTrue(shoppingRepository.appliedBatches.isEmpty())
+            assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.notice)
+            assertNull(viewModel.uiState.value.cooked)
+        }
+
+    @Test
+    fun `if done fails nothing is written and the dialog stays open with the error until a retry works`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Arroz", "300", "g"))))
+            shoppingRepository.itemsState.value = listOf(shoppingItem("s1", "Arroz"))
+            viewModel.observe("home")
+            advanceUntilIdle()
+            viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.COMIDA, "Paella").copy(recipeId = "r1"))
+            advanceUntilIdle()
+            val review = viewModel.uiState.value.cooked!!
+            shoppingRepository.cookedFailure = ShoppingRepositoryException(ShoppingFailure.Network)
+
+            viewModel.confirmCooked(review.defaultChoice())
+            advanceUntilIdle()
+
+            assertSame(review, viewModel.uiState.value.cooked)
+            assertEquals(MealUiMessage.NetworkError, viewModel.uiState.value.error)
+            assertNull(viewModel.uiState.value.notice)
+            assertFalse(viewModel.uiState.value.isSaving)
+            assertTrue(shoppingRepository.purchasedIds.isEmpty())
+
+            shoppingRepository.cookedFailure = null
+            viewModel.confirmCooked(review.defaultChoice())
+            advanceUntilIdle()
+
+            assertEquals(1, shoppingRepository.cookedCalls.size)
+            assertNull(viewModel.uiState.value.cooked)
+            assertNull(viewModel.uiState.value.error)
+            assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.notice)
+        }
+
+    @Test
+    fun `while done is saving the dialog stays open and a second tap does not write twice`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Arroz", "300", "g"))))
+            shoppingRepository.itemsState.value = listOf(shoppingItem("s1", "Arroz"))
+            viewModel.observe("home")
+            advanceUntilIdle()
+            viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.COMIDA, "Paella").copy(recipeId = "r1"))
+            advanceUntilIdle()
+            val review = viewModel.uiState.value.cooked!!
+            shoppingRepository.cookedGate = CompletableDeferred()
+
+            viewModel.confirmCooked(review.defaultChoice())
+            viewModel.confirmCooked(review.defaultChoice())
+            runCurrent()
+
+            assertSame(review, viewModel.uiState.value.cooked)
+            assertTrue(viewModel.uiState.value.isSaving)
+            shoppingRepository.cookedGate?.complete(Unit)
+            advanceUntilIdle()
+            assertEquals(1, shoppingRepository.cookedCalls.size)
+            assertNull(viewModel.uiState.value.cooked)
+        }
+
+    @Test
+    fun `if an item to put back on the list was deleted meanwhile done says the list changed`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Leche", "1", "l"))))
+            pantryRepository.serverIds = setOf(pantryId("Leche"))
+            viewModel.observe("home")
+            advanceUntilIdle()
+            viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.DESAYUNO, "Café con leche").copy(recipeId = "r1"))
+            advanceUntilIdle()
+            val review = viewModel.uiState.value.cooked!!
+            shoppingRepository.cookedFailure = ShoppingRepositoryException(ShoppingFailure.ItemNotFound)
+
+            viewModel.confirmCooked(review.defaultChoice().toggleFinished(pantryId("Leche")))
+            advanceUntilIdle()
+
+            assertEquals(MealUiMessage.ShoppingChanged, viewModel.uiState.value.error)
+            assertSame(review, viewModel.uiState.value.cooked)
         }
 }
