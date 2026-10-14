@@ -4,9 +4,16 @@ Menores que las revisiones de cada rama dejaron sin arreglar. Cada línea dice s
 
 Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalogo-ejercicios-wger`) se cerraron en la rama `agent/menores-aplazados` (plan `docs/superpowers/plans/2026-10-10-menores-aplazados.md`).
 
+## 2026-10-14 — `agent/menores-listo-duplicado`
+
+- **Efecto visible (raro):** `applyWrites` tiene la misma ventana con sus `ShoppingWrite.Add`: si otro miembro apunta lo mismo mientras se guarda, sale duplicado. Afecta a la revisión de «Añadir a la compra» (recetas y comidas) y a «A la compra» de la Despensa. El arreglo sería el de `applyCooked` (`FirestoreShoppingRepository.applyWrites`, ruling 3 de `docs/superpowers/plans/2026-10-14-menores-listo-duplicado.md`).
+- **Efecto visible (raro):** si el commit de «Listo» llega al servidor pero se pierde la respuesta (`UNAVAILABLE` o `DEADLINE_EXCEEDED`) y Firestore repite la transacción, la comprobación nueva ve el artículo que acaba de añadir el propio «Listo» y el diálogo dice «alguien ha cambiado «Arroz»… No se ha guardado nada», aunque se ha guardado todo. Al volver a pulsar «Listo» sale bien. Arreglo: no contar en la comprobación los ids de las altas propias (los `planned` con `seen == null`) (`FirestoreShoppingRepository.applyCooked`, `listedMeanwhileFailure`).
+- **Interno:** el comentario de `serverItemsBlocking` dice que los fallos salen «sin envolver, como en Transaction.get», pero `Transaction.get` solo saca la causa si es `FirebaseFirestoreException` (`FirestoreShoppingRepository.kt`).
+- **Interno:** la consulta de la lista visible (`orderBy(FIELD_CREATED_AT)` + `limit(MAX_VISIBLE_ITEMS)`) está escrita en tres sitios (`items`, `currentItems` y `applyCooked`). Un helper común evitaría que la comprobación y la lectura de `confirmCooked` lean listas distintas.
+
 ## 2026-10-14 — `agent/menores-listo-has-cocinado`
 
-- **Efecto visible (raro):** lo que «Listo» vuelve a apuntar a la compra (`ShoppingWrite.Add`) no lleva precondición: si otro miembro apunta el mismo artículo entre la lectura de la lista (`currentItems`) y la transacción de `applyCooked`, sale duplicado. La rama cerró la ventana de hasta 5 s de espera al catálogo; queda la de milisegundos (`MealsViewModel.confirmCooked`, `FirestoreShoppingRepository.applyCooked`).
+- ~~**Efecto visible (raro):** lo que «Listo» vuelve a apuntar a la compra (`ShoppingWrite.Add`) no lleva precondición: si otro miembro apunta el mismo artículo entre la lectura de la lista (`currentItems`) y la transacción de `applyCooked`, sale duplicado. La rama cerró la ventana de hasta 5 s de espera al catálogo; queda la de milisegundos (`MealsViewModel.confirmCooked`, `FirestoreShoppingRepository.applyCooked`).~~ **Resuelto** en `agent/menores-listo-duplicado`. Justo antes de escribir, «Listo» vuelve a leer la lista dentro de la transacción. Si ya tiene algo de lo que añade, no escribe nada y pide volver a pulsar «Listo» (rulings 1 y 2). Queda la ventana entre esa lectura y el commit: no se puede cerrar sin cambiar el esquema.
 - **Interno:** ningún test protege que «Cancelar» sin error previo conserve el aviso «Comida marcada como cocinada» (ruling 2 del plan; `MealsCookedViewModelTest`).
 - **Interno:** la lambda `toMessage` de `confirmCooked` escribe estado (`changedItemName`) además de traducir el error; depende de que `runAction` la llame una sola vez y justo antes de `showError`, y ese contrato no está comentado (`MealsViewModel.runAction`).
 
