@@ -4,6 +4,17 @@ Menores que las revisiones de cada rama dejaron sin arreglar. Cada línea dice s
 
 Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalogo-ejercicios-wger`) se cerraron en la rama `agent/menores-aplazados` (plan `docs/superpowers/plans/2026-10-10-menores-aplazados.md`).
 
+## 2026-10-14 — `agent/despensa`
+
+- **Efecto visible:** si se dice «Se acabó» de varias cosas seguidas, solo la última ofrece «A la compra»: cada Snackbar nuevo cancela el anterior. `pantryRestock` ya acepta una lista, así que se podrían juntar («Leche y huevos: se han acabado») (`PantryScreen.kt`).
+- **Efecto visible:** renombrar un artículo comprado y después desmarcarlo deja en la despensa la entrada del nombre viejo, porque la transacción la busca por el nombre que hay en el servidor. Para arreglarlo habría que guardar el id de la despensa en el artículo, lo que cambia el esquema y las reglas (`FirestoreShoppingRepository.setPurchased`).
+- **Efecto visible (raro):** `PantryUiMessage` junta errores y avisos, y `clearFeedback` borra los dos: al cerrar el banner de error se puede perder un aviso pendiente. Además repite `PantryFailure` y `ShoppingFailure` en tres `when` (`PantryUiState.kt`, `PantryViewModel.kt`).
+- **Efecto visible (residual):** si se marca algo como comprado antes de que termine de precargarse el catálogo, la lista de la Compra se queda bloqueada hasta 5 s (`isSaving`) (`ShoppingViewModel.dataForPantry`).
+- **Efecto visible (accesibilidad):** el lector de pantalla anuncia cada «Se acabó» sin el nombre del artículo (`PantryScreen.kt`).
+- **Efecto visible (previo, visto en el recorrido del emulador):** la confirmación «Eliminar espacio definitivamente» solo nombra la compra, las tareas y los eventos. No dice nada de comidas, notas, deporte ni despensa, que también se borran.
+- **Efecto visible (visto en el recorrido del emulador):** en tema claro, la barra de estado sale gris oscuro encima del selector «Añadir a la despensa», que es un `Dialog` a pantalla completa y la oscurece con su velo (`PantryPicker.kt`).
+- **Interno:** el test de «A la compra» sin catálogo a tiempo (`PantryViewModelTest`) llama a `advanceUntilIdle()` después de `advanceTimeBy(5_001)`, así que no comprueba el límite de 5 s. Hay que usar `runCurrent()`, como ya hace el test equivalente de la Compra (`ShoppingViewModelPantryTest`), y corregir la plantilla antes de escribir el plan 2.
+
 ## 2026-10-13 — `agent/menores-compra-membresia-y-comunes`
 
 - **Efecto visible (previo):** Tareas, Notas, Comidas, Deporte, Recetario, Rutinas y los ajustes del espacio (miembros, invitaciones) muestran el texto crudo de la excepción (`UiState.Error(error.message)`), en inglés; al perder la membresía pueden enseñarlo un instante antes de volver a «Espacios». Arreglo de raíz: que `UiState.Error`/`ErrorState` no lleven el texto de la excepción.
