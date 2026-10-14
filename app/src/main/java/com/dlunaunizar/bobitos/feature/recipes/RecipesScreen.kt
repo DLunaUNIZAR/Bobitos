@@ -198,7 +198,12 @@ fun RecipesScreen(
             val filtering = state.query.isNotBlank() || selectedCategory != null || pantryIds != null
             val mineRows = rememberRecipeRows(state.mine, state.query, selectedCategory, pantryIds)
             val globalRows = rememberRecipeRows(state.global, state.query, selectedCategory, pantryIds)
+            // Los filtros quedan fuera de la lista: al activar o apagar «Con lo que hay» la lista se reordena y,
+            // si estaba desplazada, se quedaría anclada en una receta que se ha movido; vuelve arriba.
+            val listState = rememberLazyListState()
+            LaunchedEffect(state.pantryOnly) { listState.scrollToItem(0) }
             LazyColumn(
+                state = listState,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(bottom = 88.dp),
             ) {
