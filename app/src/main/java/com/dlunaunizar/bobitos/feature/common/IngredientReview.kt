@@ -285,7 +285,7 @@ fun IngredientReviewDialog(
 // El spread copia un array de 0-2 textos: no importa.
 @Suppress("SpreadOperator")
 @Composable
-private fun ReviewRowContent(
+internal fun ReviewRowContent(
     row: IngredientReviewRow,
     state: ReviewRowState,
     update: ((ReviewRowState) -> ReviewRowState) -> Unit,
@@ -331,6 +331,7 @@ private fun ReviewRowContent(
                 onBrandSelected = { brandId -> update { it.withBrand(context, brandId) } },
                 onStoreSelected = { store -> update { it.withStore(store) } },
                 onFreeBrandChange = { text -> update { it.withFreeBrand(text) } },
+                stacked = true,
             )
         }
     }

@@ -28,8 +28,9 @@ import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.feature.shopping.SupermarketDropdown
 
 /**
- * Marca y tienda del ingrediente reconocido (§5): dos desplegables de igual ancho. Sin marcas
- * registradas, la marca es un campo de texto libre.
+ * Marca y tienda del ingrediente reconocido (§5): dos desplegables de igual ancho, uno al lado del otro o, con
+ * [stacked], uno debajo del otro (en la revisión de «Añadir a la compra», que es estrecha). Sin marcas registradas,
+ * la marca es un campo de texto libre.
  */
 @Composable
 internal fun BrandStorePicker(
@@ -40,37 +41,68 @@ internal fun BrandStorePicker(
     onStoreSelected: (Supermarket?) -> Unit,
     onFreeBrandChange: (String) -> Unit,
     modifier: Modifier = Modifier,
+    stacked: Boolean = false,
 ) {
-    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            if (context.brands.isEmpty()) {
-                val tooLong = freeBrandTooLong(freeBrand)
-                OutlinedTextField(
-                    value = freeBrand,
-                    onValueChange = onFreeBrandChange,
-                    label = { Text(stringResource(R.string.shopping_brand_label)) },
-                    singleLine = true,
-                    isError = tooLong,
-                    supportingText = if (tooLong) {
-                        { Text(stringResource(R.string.shopping_error_brand_too_long)) }
-                    } else {
-                        null
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            } else {
-                PickerLabel(R.string.shopping_brand_picker_label)
-                BrandDropdown(context.brands, selection.brandId, onBrandSelected)
-            }
+    if (stacked) {
+        Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            BrandField(context, selection, freeBrand, onBrandSelected, onFreeBrandChange, Modifier.fillMaxWidth())
+            StoreField(context, selection, onStoreSelected, Modifier.fillMaxWidth())
         }
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            PickerLabel(R.string.shopping_store_picker_label)
-            SupermarketDropdown(
-                selected = selection.store,
-                onSelect = onStoreSelected,
-                options = remember(context, selection.brandId) { context.storeOptions(selection) },
+    } else {
+        Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            BrandField(context, selection, freeBrand, onBrandSelected, onFreeBrandChange, Modifier.weight(1f))
+            StoreField(context, selection, onStoreSelected, Modifier.weight(1f))
+        }
+    }
+}
+
+// La marca: desplegable con las registradas o, si no hay ninguna, texto libre.
+@Composable
+private fun BrandField(
+    context: IngredientShoppingContext,
+    selection: BrandStoreSelection,
+    freeBrand: String,
+    onBrandSelected: (String?) -> Unit,
+    onFreeBrandChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        if (context.brands.isEmpty()) {
+            val tooLong = freeBrandTooLong(freeBrand)
+            OutlinedTextField(
+                value = freeBrand,
+                onValueChange = onFreeBrandChange,
+                label = { Text(stringResource(R.string.shopping_brand_label)) },
+                singleLine = true,
+                isError = tooLong,
+                supportingText = if (tooLong) {
+                    { Text(stringResource(R.string.shopping_error_brand_too_long)) }
+                } else {
+                    null
+                },
+                modifier = Modifier.fillMaxWidth(),
             )
+        } else {
+            PickerLabel(R.string.shopping_brand_picker_label)
+            BrandDropdown(context.brands, selection.brandId, onBrandSelected)
         }
+    }
+}
+
+@Composable
+private fun StoreField(
+    context: IngredientShoppingContext,
+    selection: BrandStoreSelection,
+    onStoreSelected: (Supermarket?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        PickerLabel(R.string.shopping_store_picker_label)
+        SupermarketDropdown(
+            selected = selection.store,
+            onSelect = onStoreSelected,
+            options = remember(context, selection.brandId) { context.storeOptions(selection) },
+        )
     }
 }
 
