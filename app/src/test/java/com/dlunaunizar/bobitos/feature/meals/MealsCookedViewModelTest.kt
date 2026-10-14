@@ -22,6 +22,7 @@ import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -393,31 +394,57 @@ class MealsCookedViewModelTest {
     }
 
     @Test
-    fun `done reads the list while it waits for the catalog`() = runTest(mainDispatcherRule.testDispatcher) {
-        ingredientRepository.catalogOverride = flow { awaitCancellation() }
-        recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Leche", "1", "l"))))
-        pantryRepository.serverIds = setOf(pantryId("Leche"))
-        viewModel.observe("home")
-        runCurrent()
-        viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.DESAYUNO, "Café con leche").copy(recipeId = "r1"))
-        runCurrent()
-        val review = viewModel.uiState.value.cooked!!
-        val readsBefore = shoppingRepository.currentItemsCalls
+    fun `without the catalog in time done reads the list after waiting and sees what was listed meanwhile`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            ingredientRepository.catalogOverride = flow { awaitCancellation() }
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Leche", "1", "l"))))
+            pantryRepository.serverIds = setOf(pantryId("Leche"))
+            viewModel.observe("home")
+            runCurrent()
+            viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.DESAYUNO, "Café con leche").copy(recipeId = "r1"))
+            runCurrent()
+            val review = viewModel.uiState.value.cooked!!
 
-        viewModel.confirmCooked(review.defaultChoice().toggleFinished(pantryId("Leche")))
-        runCurrent()
+            viewModel.confirmCooked(review.defaultChoice().toggleFinished(pantryId("Leche")))
+            runCurrent()
+            // Mientras «Listo» espera al catálogo, otro miembro apunta «Leche».
+            shoppingRepository.itemsState.value = listOf(shoppingItem("s9", "Leche"))
+            advanceTimeBy(5_001)
+            runCurrent()
 
-        assertEquals(readsBefore + 1, shoppingRepository.currentItemsCalls)
-        assertTrue(shoppingRepository.cookedCalls.isEmpty())
-
-        advanceTimeBy(5_001)
-        runCurrent()
-        val restock = shoppingRepository.cookedCalls.single().restock
-        assertEquals(listOf("Leche"), restock.map { (it as ShoppingWrite.Add).name })
-    }
+            assertTrue(shoppingRepository.cookedCalls.single().restock.isEmpty())
+            assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.notice)
+        }
 
     @Test
-    fun `if the list cannot be read done fails at once without waiting for the catalog`() =
+    fun `done waits only until the catalog arrives and then reads the list`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            ingredientRepository.catalogOverride = flow {
+                delay(2_000)
+                emit(listOf(CatalogIngredient("leche", "Leche")))
+            }
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Leche", "1", "l"))))
+            pantryRepository.serverIds = setOf(pantryId("Leche"))
+            viewModel.observe("home")
+            runCurrent()
+            viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.DESAYUNO, "Café con leche").copy(recipeId = "r1"))
+            runCurrent()
+            val review = viewModel.uiState.value.cooked!!
+
+            viewModel.confirmCooked(review.defaultChoice().toggleFinished(pantryId("Leche")))
+            advanceTimeBy(1_000)
+            runCurrent()
+            assertTrue(shoppingRepository.cookedCalls.isEmpty())
+            // Mientras espera, otro miembro apunta «Leche».
+            shoppingRepository.itemsState.value = listOf(shoppingItem("s9", "Leche"))
+
+            advanceTimeBy(1_001)
+            runCurrent()
+            assertTrue(shoppingRepository.cookedCalls.single().restock.isEmpty())
+        }
+
+    @Test
+    fun `if the list cannot be read after waiting for the catalog done writes nothing and keeps the dialog`() =
         runTest(mainDispatcherRule.testDispatcher) {
             ingredientRepository.catalogOverride = flow { awaitCancellation() }
             recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Leche", "1", "l"))))
@@ -430,14 +457,12 @@ class MealsCookedViewModelTest {
             shoppingRepository.itemsFailure = ShoppingRepositoryException(ShoppingFailure.Network)
 
             viewModel.confirmCooked(review.defaultChoice().toggleFinished(pantryId("Leche")))
+            advanceTimeBy(5_001)
             runCurrent()
 
             assertEquals(MealUiMessage.NetworkError, viewModel.uiState.value.error)
             assertFalse(viewModel.uiState.value.isSaving)
             assertSame(review, viewModel.uiState.value.cooked)
-
-            advanceTimeBy(5_001)
-            runCurrent()
             assertTrue(shoppingRepository.cookedCalls.isEmpty())
         }
 

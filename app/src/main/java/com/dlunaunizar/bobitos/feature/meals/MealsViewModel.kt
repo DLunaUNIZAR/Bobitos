@@ -35,8 +35,6 @@ import com.dlunaunizar.bobitos.feature.common.writesNothing
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -310,27 +308,20 @@ class MealsViewModel @Inject constructor(
         }
         runAction(MealUiMessage.CookedReviewApplied, toMessage = Throwable::toCookedUiMessage) {
             val needsCatalog = writes.crossOff.isNotEmpty() || writes.restockNames.isNotEmpty()
-            // La lista se lee mientras se espera al catálogo: si no se puede leer, el error sale enseguida.
-            coroutineScope {
-                // «A la compra» sobre la lista del servidor: con una caché vieja se duplicaría el artículo.
-                val items = if (writes.restockNames.isEmpty()) {
-                    null
-                } else {
-                    async { shoppingRepository.currentItems(spaceId) }
-                }
-                val data = if (needsCatalog) ingredientData() else IngredientShoppingData()
-                val restock = if (items == null) {
-                    emptyList()
-                } else {
-                    pantryRestock(writes.restockNamesIn(data), items.await(), data).writes
-                }
-                shoppingRepository.applyCooked(
-                    spaceId,
-                    writes.crossOff.map { ShoppingCrossOff(it.id, pantryEntryFor(it.name, data)) },
-                    writes.finishedIds,
-                    restock,
-                )
+            // Primero el catálogo (al momento si ya ha llegado; si no, hasta 5 s) y después la lista: «A la compra»
+            // trabaja sobre la lista recién leída y no duplica lo que otro miembro apunte mientras se espera.
+            val data = if (needsCatalog) ingredientData() else IngredientShoppingData()
+            val restock = if (writes.restockNames.isEmpty()) {
+                emptyList()
+            } else {
+                pantryRestock(writes.restockNamesIn(data), shoppingRepository.currentItems(spaceId), data).writes
             }
+            shoppingRepository.applyCooked(
+                spaceId,
+                writes.crossOff.map { ShoppingCrossOff(it.id, pantryEntryFor(it.name, data)) },
+                writes.finishedIds,
+                restock,
+            )
             mutableUiState.update { it.copy(cooked = null) }
         }
     }
