@@ -6,6 +6,8 @@ import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
 import com.dlunaunizar.bobitos.core.model.pantryId
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 
@@ -73,6 +75,42 @@ class RecipePantryTest {
             PantryLine(R.string.recipes_pantry_missing_two, listOf("ácido cítrico", "AOVE")),
             pantryLine(listOf("Ácido cítrico", "AOVE")),
         )
+    }
+
+    @Test
+    fun `before the sound i the last conjunction is e`() {
+        assertEquals(
+            PantryLine(R.string.recipes_pantry_missing_two_e, listOf("sal", "higos")),
+            pantryLine(listOf("Sal", "Higos")),
+        )
+        assertEquals(
+            PantryLine(R.string.recipes_pantry_missing_three_e, listOf("huevos", "leche", "ibérico")),
+            pantryLine(listOf("Huevos", "Leche", "Ibérico")),
+        )
+    }
+
+    @Test
+    fun `before a diphthong or any other sound the conjunction stays y`() {
+        assertEquals(
+            PantryLine(R.string.recipes_pantry_missing_two, listOf("agua", "hielo")),
+            pantryLine(listOf("Agua", "Hielo")),
+        )
+        assertEquals(
+            PantryLine(R.string.recipes_pantry_missing_three, listOf("sal", "pan", "hierbabuena")),
+            pantryLine(listOf("Sal", "Pan", "Hierbabuena")),
+        )
+        assertEquals(
+            PantryLine(R.string.recipes_pantry_missing_more, listOf(4, "sal", "pan", 2)),
+            pantryLine(listOf("Sal", "Pan", "Higos", "Hinojo")),
+        )
+    }
+
+    @Test
+    fun `takesE follows the sound, not the spelling`() {
+        listOf("higos", "Hinojo", "ibérico", "Ídolo", "hígado", "IPA", "hi").forEach { assertTrue(it, takesE(it)) }
+        listOf("hielo", "hierbabuena", "hierro", "yogur", "huevos", "leche", "", "  ").forEach {
+            assertFalse(it, takesE(it))
+        }
     }
 
     private fun recipe(id: String, title: String, vararg names: String) = Recipe(

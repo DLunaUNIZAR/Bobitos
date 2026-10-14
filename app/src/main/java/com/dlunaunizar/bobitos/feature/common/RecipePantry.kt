@@ -47,16 +47,34 @@ internal fun List<Recipe>.withPantryLines(pantryIds: Set<String>?): List<RecipeR
 
 /**
  * «Lo tienes todo», «Falta: huevos», «Faltan 2: huevos y leche», «Faltan 3: huevos, leche y harina» o, con más de tres,
- * «Faltan 5: huevos, leche y 3 más». Los nombres van con la inicial en minúscula, salvo las siglas («AOVE»).
+ * «Faltan 5: huevos, leche y 3 más». Delante del sonido /i/ la conjunción es «e» («Faltan 2: sal e higos»). Los nombres
+ * van con la inicial en minúscula, salvo las siglas («AOVE»).
  */
 internal fun pantryLine(missing: List<String>): PantryLine {
     val names = missing.map(::lowerInitial)
+    val e = names.lastOrNull()?.let(::takesE) == true
     return when (names.size) {
         0 -> PantryLine(R.string.recipes_pantry_all)
         1 -> PantryLine(R.string.recipes_pantry_missing_one, names)
-        2 -> PantryLine(R.string.recipes_pantry_missing_two, names)
-        3 -> PantryLine(R.string.recipes_pantry_missing_three, names)
+        2 -> PantryLine(if (e) R.string.recipes_pantry_missing_two_e else R.string.recipes_pantry_missing_two, names)
+        3 -> {
+            val res = if (e) R.string.recipes_pantry_missing_three_e else R.string.recipes_pantry_missing_three
+            PantryLine(res, names)
+        }
         else -> PantryLine(R.string.recipes_pantry_missing_more, listOf(names.size, names[0], names[1], names.size - 2))
+    }
+}
+
+/**
+ * Si delante de [word] la conjunción es «e» y no «y»: ante el sonido /i/ («sal e higos», «pan e hinojo», «queso e
+ * ibérico»), pero no ante un diptongo («agua y hielo», «sal y hierbabuena»).
+ */
+internal fun takesE(word: String): Boolean {
+    val sound = word.trim().lowercase().removePrefix("h")
+    return when (sound.firstOrNull()) {
+        'í' -> true
+        'i' -> sound.getOrNull(1)?.let { it !in "aeiouáéíóú" } ?: true
+        else -> false
     }
 }
 

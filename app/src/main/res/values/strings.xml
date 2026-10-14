@@ -474,6 +474,8 @@
     <string name="recipes_pantry_missing_one">Falta: %1$s</string>
     <string name="recipes_pantry_missing_two">Faltan 2: %1$s y %2$s</string>
     <string name="recipes_pantry_missing_three">Faltan 3: %1$s, %2$s y %3$s</string>
+    <string name="recipes_pantry_missing_two_e">Faltan 2: %1$s e %2$s</string>
+    <string name="recipes_pantry_missing_three_e">Faltan 3: %1$s, %2$s e %3$s</string>
     <string name="recipes_pantry_missing_more">Faltan %1$d: %2$s, %3$s y %4$d más</string>
     <string name="recipes_by">por %1$s</string>
     <string name="recipes_no_description">Sin descripción.</string>
