@@ -11,6 +11,7 @@ Bobitos es una aplicación privada en desarrollo gestionada por DLunaUNIZAR. Uti
 - Correo electrónico y nombre visible.
 - Identificador técnico de la cuenta y pertenencia a espacios.
 - Productos, tareas, eventos y participantes introducidos por los usuarios.
+- Lo que hay en la despensa de cada espacio: lo ven y lo cambian sus miembros, y se borra al eliminar el espacio.
 - Ingredientes personales, marcas (con su código de barras y su información nutricional) y tiendas donde compra cada usuario: solo los ve ese usuario, no se comparten con los miembros de sus espacios. El catálogo común de ingredientes no contiene datos personales.
 - Datos técnicos mínimos de seguridad, sincronización y funcionamiento proporcionados por Firebase.
 - Informes de fallos y diagnóstico de estabilidad, únicamente en las compilaciones de distribución (release), mediante Firebase Crashlytics.

@@ -705,7 +705,7 @@ La regla deberá verificar:
 
 ### Eliminación de espacio
 
-- Debe eliminar el contenido (compra, tareas, eventos y comidas), las membresías y las invitaciones relacionadas.
+- Debe eliminar todas las subcolecciones de `spaces/{spaceId}` (compra, tareas, eventos, comidas, notas, sesiones de deporte y despensa: `SPACE_CHILD_COLLECTIONS`, que un test mantiene igual a las reglas), las membresías y las invitaciones relacionadas.
 - Al no existir borrado en cascada automático, se implementará una eliminación paginada y verificable.
 - Si la implementación exclusivamente cliente no resulta suficientemente segura, esta operación será candidata a una función backend mínima.
 

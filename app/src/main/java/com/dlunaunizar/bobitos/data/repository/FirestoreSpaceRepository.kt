@@ -30,6 +30,18 @@ import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
 
+// Subcolecciones de cada espacio, que deleteSpace vacía antes de borrar el documento. Deben ser todas las que las
+// reglas abren dentro de `spaces/{spaceId}` (lo comprueba SpaceDeletionCollectionsTest).
+internal val SPACE_CHILD_COLLECTIONS = listOf(
+    "shoppingItems",
+    "tasks",
+    "events",
+    "meals",
+    "notes",
+    "activities",
+    PANTRY_ITEMS,
+)
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @Singleton
 class FirestoreSpaceRepository @Inject constructor(
@@ -219,7 +231,7 @@ class FirestoreSpaceRepository @Inject constructor(
         // Firestore no elimina subcolecciones al borrar el documento padre. Se vacían
         // explícitamente en lotes acotados y se conserva la membresía del propietario
         // hasta la operación final para que las reglas sigan autorizando el proceso.
-        listOf(SHOPPING_ITEMS, TASKS, EVENTS, MEALS).forEach { childCollection ->
+        SPACE_CHILD_COLLECTIONS.forEach { childCollection ->
             deleteDocumentsInChunks(spaceReference.collection(childCollection).get(Source.SERVER).await().documents)
         }
         val invitationDocuments = firestore.collection(INVITATIONS)
@@ -629,9 +641,6 @@ class FirestoreSpaceRepository @Inject constructor(
         const val MEMBERSHIPS = "memberships"
         const val INVITATIONS = "invitations"
         const val TASKS = "tasks"
-        const val SHOPPING_ITEMS = "shoppingItems"
-        const val EVENTS = "events"
-        const val MEALS = "meals"
         const val MAX_BATCH_DELETES = 400
         const val FIELD_NAME = "name"
         const val FIELD_OWNER_ID = "ownerId"

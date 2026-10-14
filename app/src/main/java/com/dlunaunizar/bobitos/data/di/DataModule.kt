@@ -36,6 +36,7 @@ import com.dlunaunizar.bobitos.data.repository.FirestoreIngredientPrefsRepositor
 import com.dlunaunizar.bobitos.data.repository.FirestoreIngredientRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreMealRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreNoteRepository
+import com.dlunaunizar.bobitos.data.repository.FirestorePantryRepository
 import com.dlunaunizar.bobitos.data.repository.FirestorePersonalIngredientRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreRecipeRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreRoutineRepository
@@ -50,6 +51,7 @@ import com.dlunaunizar.bobitos.data.repository.IngredientRepository
 import com.dlunaunizar.bobitos.data.repository.MealRepository
 import com.dlunaunizar.bobitos.data.repository.NoteRepository
 import com.dlunaunizar.bobitos.data.repository.OnboardingPreferenceRepository
+import com.dlunaunizar.bobitos.data.repository.PantryRepository
 import com.dlunaunizar.bobitos.data.repository.PersonalIngredientRepository
 import com.dlunaunizar.bobitos.data.repository.RecipeRepository
 import com.dlunaunizar.bobitos.data.repository.ReminderPreferenceRepository
@@ -97,6 +99,9 @@ abstract class DataModule {
 
     @Binds @Singleton
     abstract fun bindNoteRepository(repository: FirestoreNoteRepository): NoteRepository
+
+    @Binds @Singleton
+    abstract fun bindPantryRepository(repository: FirestorePantryRepository): PantryRepository
 
     @Binds @Singleton
     abstract fun bindSportActivityRepository(repository: FirestoreSportActivityRepository): SportActivityRepository
