@@ -778,6 +778,7 @@ private val MealUiMessage.stringResourceId: Int
         MealUiMessage.UnexpectedError -> R.string.space_error_unexpected
         MealUiMessage.ShoppingChanged -> R.string.meals_error_shopping_changed
         MealUiMessage.CookedShoppingChanged -> R.string.meals_error_cooked_shopping_changed
+        MealUiMessage.CookedNotApplied -> R.string.meals_error_cooked_not_applied
         MealUiMessage.SaveTimeout -> R.string.write_timeout
         MealUiMessage.MealAdded -> R.string.meals_notice_added
         MealUiMessage.MealUpdated -> R.string.meals_notice_updated

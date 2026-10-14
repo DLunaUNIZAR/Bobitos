@@ -354,6 +354,76 @@ class MealsCookedViewModelTest {
     }
 
     @Test
+    fun `cancelling after done fails takes the error away with the dialog`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Leche", "1", "l"))))
+            pantryRepository.serverIds = setOf(pantryId("Leche"))
+            viewModel.observe("home")
+            advanceUntilIdle()
+            viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.DESAYUNO, "Café con leche").copy(recipeId = "r1"))
+            advanceUntilIdle()
+            val review = viewModel.uiState.value.cooked!!
+            shoppingRepository.cookedFailure = ShoppingRepositoryException(ShoppingFailure.ItemChanged)
+            viewModel.confirmCooked(review.defaultChoice().toggleFinished(pantryId("Leche")))
+            advanceUntilIdle()
+            assertEquals(MealUiMessage.CookedShoppingChanged, viewModel.uiState.value.error)
+
+            viewModel.dismissCooked()
+
+            assertNull(viewModel.uiState.value.cooked)
+            assertNull(viewModel.uiState.value.error)
+        }
+
+    @Test
+    fun `if the list changes after cancelling while done saves the notice does not ask to tap done again`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Leche", "1", "l"))))
+            pantryRepository.serverIds = setOf(pantryId("Leche"))
+            viewModel.observe("home")
+            advanceUntilIdle()
+            viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.DESAYUNO, "Café con leche").copy(recipeId = "r1"))
+            advanceUntilIdle()
+            val review = viewModel.uiState.value.cooked!!
+            shoppingRepository.cookedGate = CompletableDeferred()
+            shoppingRepository.cookedFailure = ShoppingRepositoryException(ShoppingFailure.ItemChanged)
+
+            viewModel.confirmCooked(review.defaultChoice().toggleFinished(pantryId("Leche")))
+            runCurrent()
+            viewModel.dismissCooked()
+            shoppingRepository.cookedGate?.complete(Unit)
+            advanceUntilIdle()
+
+            assertNull(viewModel.uiState.value.cooked)
+            assertEquals(MealUiMessage.CookedNotApplied, viewModel.uiState.value.error)
+            assertFalse(viewModel.uiState.value.isSaving)
+            assertTrue(shoppingRepository.cookedCalls.isEmpty())
+        }
+
+    @Test
+    fun `if done works after cancelling while it saves the notice says it is saved`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Leche", "1", "l"))))
+            pantryRepository.serverIds = setOf(pantryId("Leche"))
+            viewModel.observe("home")
+            advanceUntilIdle()
+            viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.DESAYUNO, "Café con leche").copy(recipeId = "r1"))
+            advanceUntilIdle()
+            val review = viewModel.uiState.value.cooked!!
+            shoppingRepository.cookedGate = CompletableDeferred()
+
+            viewModel.confirmCooked(review.defaultChoice().toggleFinished(pantryId("Leche")))
+            runCurrent()
+            viewModel.dismissCooked()
+            shoppingRepository.cookedGate?.complete(Unit)
+            advanceUntilIdle()
+
+            assertNull(viewModel.uiState.value.cooked)
+            assertNull(viewModel.uiState.value.error)
+            assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.notice)
+            assertEquals(1, shoppingRepository.cookedCalls.size)
+        }
+
+    @Test
     fun `what has finished goes on the list with the catalog name`() = runTest(mainDispatcherRule.testDispatcher) {
         ingredientRepository.catalogState.value =
             listOf(CatalogIngredient("aceite-de-oliva-virgen-extra", "Aceite de oliva virgen extra"))

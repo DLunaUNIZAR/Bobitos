@@ -306,7 +306,11 @@ class MealsViewModel @Inject constructor(
             mutableUiState.update { it.copy(cooked = null) }
             return
         }
-        runAction(MealUiMessage.CookedReviewApplied, toMessage = Throwable::toCookedUiMessage) {
+        runAction(
+            MealUiMessage.CookedReviewApplied,
+            // Si se ha pulsado «Cancelar» mientras guardaba, ya no hay «Listo» que volver a pulsar.
+            toMessage = { error -> error.toCookedUiMessage(dialogOpen = mutableUiState.value.cooked != null) },
+        ) {
             val needsCatalog = writes.crossOff.isNotEmpty() || writes.restockNames.isNotEmpty()
             // Primero el catálogo (al momento si ya ha llegado; si no, hasta 5 s) y después la lista: «A la compra»
             // trabaja sobre la lista recién leída y no duplica lo que otro miembro apunte mientras se espera.
@@ -326,7 +330,8 @@ class MealsViewModel @Inject constructor(
         }
     }
 
-    fun dismissCooked() = mutableUiState.update { it.copy(cooked = null) }
+    // «Cancelar»: el error de «Listo» es del diálogo y se va con él.
+    fun dismissCooked() = mutableUiState.update { it.copy(cooked = null, error = null) }
 
     // Catálogo para reconocer ingredientes: el que ya escucha la pantalla; si aún no ha llegado, se espera 5 s como máximo
     // y, si no llega, se sigue sin él (lo tachado no entra en la despensa; lo apuntado va sin marca ni tienda).
@@ -418,15 +423,15 @@ private fun Throwable.toUiMessage(): MealUiMessage = when (this) {
     else -> MealUiMessage.UnexpectedError
 }
 
-// «Listo» en «Has cocinado …»: si un artículo que se vuelve a apuntar ha cambiado o se ha borrado, no se ha
-// escrito nada y basta con volver a pulsar «Listo», que vuelve a leer la lista. Los demás errores, como en el resto
-// de Comidas.
-private fun Throwable.toCookedUiMessage(): MealUiMessage {
+// «Listo» en «Has cocinado …»: si un artículo que se vuelve a apuntar ha cambiado o se ha borrado, no se ha escrito
+// nada. Con el diálogo abierto basta con volver a pulsar «Listo», que vuelve a leer la lista; si se ha cancelado
+// mientras guardaba, solo se avisa de que no se ha escrito nada. Los demás errores, como en el resto de Comidas.
+private fun Throwable.toCookedUiMessage(dialogOpen: Boolean): MealUiMessage {
     val failure = (this as? ShoppingRepositoryException)?.failure
-    return if (failure == ShoppingFailure.ItemChanged || failure == ShoppingFailure.ItemNotFound) {
-        MealUiMessage.CookedShoppingChanged
-    } else {
-        toUiMessage()
+    return when {
+        failure != ShoppingFailure.ItemChanged && failure != ShoppingFailure.ItemNotFound -> toUiMessage()
+        dialogOpen -> MealUiMessage.CookedShoppingChanged
+        else -> MealUiMessage.CookedNotApplied
     }
 }
 
