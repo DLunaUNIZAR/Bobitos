@@ -9,6 +9,8 @@ import com.dlunaunizar.bobitos.data.repository.PantryRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingWrite
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -96,6 +98,18 @@ internal suspend fun PantryRepository.currentIdsOrNull(spaceId: String): Set<Str
     runCatching { currentIds(spaceId) }
         .onFailure { if (it is CancellationException) throw it }
         .getOrNull()
+
+/**
+ * Lee a la vez, del servidor, la lista de la compra ([readItems]) y la despensa de [spaceId] ([currentIdsOrNull]): un
+ * viaje de ida y vuelta de espera en lugar de dos. Si [readItems] falla, falla igual y deja de esperar a la despensa.
+ */
+internal suspend fun <T> PantryRepository.withCurrentIds(
+    spaceId: String,
+    readItems: suspend () -> T,
+): Pair<T, Set<String>?> = coroutineScope {
+    val pantryIds = async { currentIdsOrNull(spaceId) }
+    readItems() to pantryIds.await()
+}
 
 /** Los ids de la despensa de [spaceId], cada vez que cambia. */
 internal fun PantryRepository.idsFlow(spaceId: String): Flow<Set<String>> =

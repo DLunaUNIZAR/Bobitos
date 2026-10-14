@@ -25,12 +25,18 @@ internal class FakePantryRepository : PantryRepository {
     var removeGate: CompletableDeferred<Unit>? = null
     var observedSpaceId: String? = null
 
+    // Si hay puerta, currentIds espera a que se complete (simula una lectura lenta); cuenta las lecturas.
+    var currentIdsGate: CompletableDeferred<Unit>? = null
+    var currentIdsCalls = 0
+
     override fun items(spaceId: String): Flow<List<PantryItem>> {
         observedSpaceId = spaceId
         return itemsFailure?.let { failure -> flow { throw failure } } ?: itemsState
     }
 
     override suspend fun currentIds(spaceId: String): Set<String> {
+        currentIdsCalls++
+        currentIdsGate?.await()
         itemsFailure?.let { throw it }
         return serverIds ?: itemsState.value.mapTo(HashSet(), PantryItem::id)
     }

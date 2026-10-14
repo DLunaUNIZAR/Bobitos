@@ -737,6 +737,42 @@ class RecipesViewModelTest {
         viewModel.setPantryOnly(false)
         assertFalse(viewModel.uiState.value.pantryOnly)
     }
+
+    @Test
+    fun `the review reads the list and the pantry at the same time`() = runTest(mainDispatcherRule.testDispatcher) {
+        pantryRepository.serverIds = setOf(pantryId("Arroz"))
+        viewModel.observe()
+        advanceUntilIdle()
+        shoppingRepository.currentItemsGate = CompletableDeferred()
+        val recipe = recipe("r1", RecipeVisibility.PRIVATE, "Arroz", listOf(Ingredient("Arroz", "300", "g")))
+
+        viewModel.addToShopping("home", recipe)
+        runCurrent()
+
+        assertEquals(1, shoppingRepository.currentItemsCalls)
+        assertEquals(1, pantryRepository.currentIdsCalls)
+        shoppingRepository.currentItemsGate?.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(listOf(ReviewRowKind.IN_PANTRY), viewModel.uiState.value.ingredientReview?.map { it.kind })
+    }
+
+    // Ya pasa hoy (la lista se lee primero); protege la versión en paralelo de esperar a la despensa.
+    @Test
+    fun `if the list cannot be read the review fails without waiting for the pantry`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel.observe()
+            advanceUntilIdle()
+            shoppingRepository.itemsFailure = ShoppingRepositoryException(ShoppingFailure.Network)
+            pantryRepository.currentIdsGate = CompletableDeferred()
+            val recipe = recipe("r1", RecipeVisibility.PRIVATE, "Arroz", listOf(Ingredient("Arroz", "300", "g")))
+
+            viewModel.addToShopping("home", recipe)
+            runCurrent()
+
+            assertEquals(RecipeUiMessage.NetworkError, viewModel.uiState.value.error)
+            assertNull(viewModel.uiState.value.ingredientReview)
+            assertFalse(viewModel.uiState.value.isSaving)
+        }
 }
 
 private class FakeRecipeRepository : RecipeRepository {

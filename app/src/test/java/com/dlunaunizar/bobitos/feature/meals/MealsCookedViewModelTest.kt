@@ -320,4 +320,25 @@ class MealsCookedViewModelTest {
 
         assertEquals(listOf("Aceite de oliva virgen extra"), shoppingRepository.addedNames)
     }
+
+    @Test
+    fun `cooking reads the list and the pantry at the same time`() = runTest(mainDispatcherRule.testDispatcher) {
+        recipeRepository.mineState.value =
+            listOf(recipe("r1", listOf(Ingredient("Arroz", "300", "g"), Ingredient("Leche", "1", "l"))))
+        shoppingRepository.itemsState.value = listOf(shoppingItem("s1", "Arroz"))
+        pantryRepository.serverIds = setOf(pantryId("Leche"))
+        viewModel.observe("home")
+        advanceUntilIdle()
+        shoppingRepository.currentItemsGate = CompletableDeferred()
+
+        viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.COMIDA, "Arroz con leche").copy(recipeId = "r1"))
+        runCurrent()
+
+        assertEquals(1, shoppingRepository.currentItemsCalls)
+        assertEquals(1, pantryRepository.currentIdsCalls)
+        shoppingRepository.currentItemsGate?.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(listOf("Arroz"), viewModel.uiState.value.cooked?.crossOff?.map(ShoppingItem::name))
+        assertEquals(listOf(CookedPantryRow(pantryId("Leche"), "Leche")), viewModel.uiState.value.cooked?.finished)
+    }
 }

@@ -669,6 +669,45 @@ class MealsViewModelTest {
         assertEquals(listOf(ReviewRowKind.NEW), viewModel.uiState.value.ingredientReview?.map { it.kind })
         assertNull(viewModel.uiState.value.error)
     }
+
+    @Test
+    fun `the meal review reads the list and the pantry at the same time`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Arroz", "300", "g"))))
+            pantryRepository.serverIds = setOf(pantryId("Arroz"))
+            viewModel.observe("home")
+            advanceUntilIdle()
+            shoppingRepository.currentItemsGate = CompletableDeferred()
+
+            val paella = meal("m1", LocalDate.now(), MealSlot.COMIDA, "Paella").copy(recipeId = "r1")
+            viewModel.addIngredientsToShopping(paella)
+            runCurrent()
+
+            assertEquals(1, shoppingRepository.currentItemsCalls)
+            assertEquals(1, pantryRepository.currentIdsCalls)
+            shoppingRepository.currentItemsGate?.complete(Unit)
+            advanceUntilIdle()
+            assertEquals(listOf(ReviewRowKind.IN_PANTRY), viewModel.uiState.value.ingredientReview?.map { it.kind })
+        }
+
+    // Ya pasa hoy (la lista se lee primero); protege la versión en paralelo de esperar a la despensa.
+    @Test
+    fun `if the list cannot be read the meal review fails without waiting for the pantry`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Arroz", "300", "g"))))
+            viewModel.observe("home")
+            advanceUntilIdle()
+            shoppingRepository.itemsFailure = ShoppingRepositoryException(ShoppingFailure.Network)
+            pantryRepository.currentIdsGate = CompletableDeferred()
+
+            val paella = meal("m1", LocalDate.now(), MealSlot.COMIDA, "Paella").copy(recipeId = "r1")
+            viewModel.addIngredientsToShopping(paella)
+            runCurrent()
+
+            assertEquals(MealUiMessage.NetworkError, viewModel.uiState.value.error)
+            assertNull(viewModel.uiState.value.ingredientReview)
+            assertFalse(viewModel.uiState.value.isSaving)
+        }
 }
 
 internal class FakeMealRepository : MealRepository {

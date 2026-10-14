@@ -26,11 +26,11 @@ import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
 import com.dlunaunizar.bobitos.feature.common.applyIngredientReview
 import com.dlunaunizar.bobitos.feature.common.buildIngredientReviewRows
-import com.dlunaunizar.bobitos.feature.common.currentIdsOrNull
 import com.dlunaunizar.bobitos.feature.common.firstOrEmpty
 import com.dlunaunizar.bobitos.feature.common.idsFlow
 import com.dlunaunizar.bobitos.feature.common.pantryEntryFor
 import com.dlunaunizar.bobitos.feature.common.pantryRestock
+import com.dlunaunizar.bobitos.feature.common.withCurrentIds
 import com.dlunaunizar.bobitos.feature.common.writesNothing
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -241,16 +241,17 @@ class MealsViewModel @Inject constructor(
         mutableUiState.update { it.copy(isSaving = true) }
         viewModelScope.launch {
             try {
-                // Sin la lista no se pueden buscar repetidos: si no se puede leer, no se abre la revisión.
-                val current = runCatching { shoppingRepository.currentItems(spaceId) }
+                // La lista y la despensa del servidor, a la vez. Sin la lista no se pueden buscar repetidos: si no se
+                // puede leer, no se abre la revisión; si no se puede leer la despensa, la revisión sale sin ella.
+                val (current, pantryIds) = runCatching {
+                    pantryRepository.withCurrentIds(spaceId) { shoppingRepository.currentItems(spaceId) }
+                }
                     .onFailure { if (it is CancellationException) throw it }
                     .getOrElse { error ->
                         showError(error.toUiMessage())
                         return@launch
                     }
-                // La despensa del servidor; si no se puede leer, la revisión sale sin ella.
-                val pantryIds = pantryRepository.currentIdsOrNull(spaceId).orEmpty()
-                val rows = buildIngredientReviewRows(ingredients, current, shoppingData, pantryIds)
+                val rows = buildIngredientReviewRows(ingredients, current, shoppingData, pantryIds.orEmpty())
                 mutableUiState.update { it.copy(ingredientReview = rows) }
             } finally {
                 mutableUiState.update { it.copy(isSaving = false) }
@@ -274,10 +275,12 @@ class MealsViewModel @Inject constructor(
                 val review = if (ingredients.isEmpty()) {
                     null
                 } else {
-                    val items = runCatching { shoppingRepository.currentItems(spaceId) }
-                        .onFailure { if (it is CancellationException) throw it }
-                        .getOrNull()
-                    cookedReview(meal.name, ingredients, items, pantryRepository.currentIdsOrNull(spaceId))
+                    val (items, pantryIds) = pantryRepository.withCurrentIds(spaceId) {
+                        runCatching { shoppingRepository.currentItems(spaceId) }
+                            .onFailure { if (it is CancellationException) throw it }
+                            .getOrNull()
+                    }
+                    cookedReview(meal.name, ingredients, items, pantryIds)
                 }
                 mutableUiState.update { it.copy(isSaving = false, notice = MealUiMessage.MealCooked, cooked = review) }
             } catch (error: Throwable) {
