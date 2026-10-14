@@ -375,6 +375,28 @@ class MealsCookedViewModelTest {
         }
 
     @Test
+    fun `done with nothing to write after a failed done takes the error away with the dialog`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Leche", "1", "l"))))
+            pantryRepository.serverIds = setOf(pantryId("Leche"))
+            viewModel.observe("home")
+            advanceUntilIdle()
+            viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.DESAYUNO, "Café con leche").copy(recipeId = "r1"))
+            advanceUntilIdle()
+            val review = viewModel.uiState.value.cooked!!
+            shoppingRepository.cookedFailure = ShoppingRepositoryException(ShoppingFailure.ItemChanged)
+            viewModel.confirmCooked(review.defaultChoice().toggleFinished(pantryId("Leche")))
+            advanceUntilIdle()
+            assertEquals(MealUiMessage.CookedShoppingChanged, viewModel.uiState.value.error)
+
+            viewModel.confirmCooked(CookedChoice(emptySet(), emptySet(), restock = false))
+            advanceUntilIdle()
+
+            assertNull(viewModel.uiState.value.cooked)
+            assertNull(viewModel.uiState.value.error)
+        }
+
+    @Test
     fun `if the list changes after cancelling while done saves the notice does not ask to tap done again`() =
         runTest(mainDispatcherRule.testDispatcher) {
             recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Leche", "1", "l"))))

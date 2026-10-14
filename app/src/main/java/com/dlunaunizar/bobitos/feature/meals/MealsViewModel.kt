@@ -303,7 +303,7 @@ class MealsViewModel @Inject constructor(
         val spaceId = observedSpaceId ?: return
         val writes = mutableUiState.value.cooked?.writesFor(choice) ?: return
         if (writes.isEmpty) {
-            mutableUiState.update { it.copy(cooked = null) }
+            mutableUiState.update { it.copy(cooked = null, error = null) }
             return
         }
         runAction(
