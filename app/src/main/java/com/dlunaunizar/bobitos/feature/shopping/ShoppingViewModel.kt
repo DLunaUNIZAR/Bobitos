@@ -10,7 +10,6 @@ import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
-import com.dlunaunizar.bobitos.core.model.PantryItem
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.core.model.findByKey
@@ -28,6 +27,7 @@ import com.dlunaunizar.bobitos.data.repository.toIngredientRepositoryException
 import com.dlunaunizar.bobitos.feature.common.CATALOG_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
+import com.dlunaunizar.bobitos.feature.common.idsFlow
 import com.dlunaunizar.bobitos.feature.common.pantryEntryFor
 import com.dlunaunizar.bobitos.feature.ingredients.mergeIngredients
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -105,11 +105,9 @@ class ShoppingViewModel @Inject constructor(
             // La despensa, para la pista del alta; si no se puede leer, no hay pista.
             if (spaceId != null) {
                 launch {
-                    pantryRepository.items(spaceId)
-                        .catch { emit(emptyList()) }
-                        .collect { items ->
-                            mutableUiState.update { it.copy(pantryIds = items.mapTo(HashSet(), PantryItem::id)) }
-                        }
+                    pantryRepository.idsFlow(spaceId)
+                        .catch { emit(emptySet()) }
+                        .collect { ids -> mutableUiState.update { it.copy(pantryIds = ids) } }
                 }
             }
             ingredientSource.data().collect { data -> mutableUiState.update { it.copy(ingredientData = data) } }

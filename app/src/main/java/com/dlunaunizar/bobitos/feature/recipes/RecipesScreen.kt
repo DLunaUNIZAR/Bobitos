@@ -62,6 +62,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewDialog
 import com.dlunaunizar.bobitos.feature.common.PantryLine
+import com.dlunaunizar.bobitos.feature.common.RecipeRow
 import com.dlunaunizar.bobitos.feature.common.pantryLineText
 import com.dlunaunizar.bobitos.feature.common.withPantryLines
 
@@ -193,26 +194,17 @@ fun RecipesScreen(
                 pantryOnly = state.pantryOnly,
                 onPantryOnly = viewModel::setPantryOnly,
             )
+            val filtering = state.query.isNotBlank() || selectedCategory != null || pantryIds != null
+            val mineRows = rememberRecipeRows(state.mine, state.query, selectedCategory, pantryIds)
+            val globalRows = rememberRecipeRows(state.global, state.query, selectedCategory, pantryIds)
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(bottom = 88.dp),
             ) {
-                recipesSection(
-                    R.string.recipes_section_mine,
-                    state.mine,
-                    state.query,
-                    selectedCategory,
-                    pantryIds,
-                ) {
+                recipesSection(R.string.recipes_section_mine, state.mine, mineRows, filtering) {
                     detailRecipeId = it.id
                 }
-                recipesSection(
-                    R.string.recipes_section_global,
-                    state.global,
-                    state.query,
-                    selectedCategory,
-                    pantryIds,
-                ) {
+                recipesSection(R.string.recipes_section_global, state.global, globalRows, filtering) {
                     detailRecipeId = it.id
                 }
             }
@@ -306,12 +298,28 @@ fun RecipesScreen(
     }
 }
 
-private fun LazyListScope.recipesSection(
-    @StringRes titleRes: Int,
+// Las filas de una sección, calculadas solo cuando cambian las recetas, la búsqueda, la categoría o la despensa.
+@Composable
+private fun rememberRecipeRows(
     recipes: UiState<List<Recipe>>,
     query: String,
     category: String?,
     pantryIds: Set<String>?,
+): List<RecipeRow> = remember(recipes, query, category, pantryIds) {
+    if (recipes !is UiState.Content) {
+        emptyList()
+    } else {
+        recipes.value.matching(query)
+            .filter { category == null || it.category == category }
+            .withPantryLines(pantryIds)
+    }
+}
+
+private fun LazyListScope.recipesSection(
+    @StringRes titleRes: Int,
+    recipes: UiState<List<Recipe>>,
+    rows: List<RecipeRow>,
+    filtering: Boolean,
     onOpen: (Recipe) -> Unit,
 ) {
     item(key = "header-$titleRes") {
@@ -327,11 +335,7 @@ private fun LazyListScope.recipesSection(
             ErrorState(Modifier.fillMaxWidth(), message = recipes.message)
         }
         is UiState.Content -> {
-            val rows = recipes.value.matching(query)
-                .filter { category == null || it.category == category }
-                .withPantryLines(pantryIds)
             if (rows.isEmpty()) {
-                val filtering = query.isNotBlank() || category != null || pantryIds != null
                 val noResults = filtering && recipes.value.isNotEmpty()
                 item(key = "empty-$titleRes") {
                     EmptyState(

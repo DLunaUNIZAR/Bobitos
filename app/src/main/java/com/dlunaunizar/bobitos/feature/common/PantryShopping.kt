@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.feature.common
 
 import com.dlunaunizar.bobitos.core.model.PantryEntry
+import com.dlunaunizar.bobitos.core.model.PantryItem
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.findShoppingMatch
 import com.dlunaunizar.bobitos.core.model.shoppingMatchKey
@@ -8,7 +9,9 @@ import com.dlunaunizar.bobitos.data.repository.PantryRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingWrite
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withTimeoutOrNull
 
 // Puente entre la Compra y la Despensa (spec 2026-10-13-despensa-design, §2 y §3).
@@ -93,3 +96,7 @@ internal suspend fun PantryRepository.currentIdsOrNull(spaceId: String): Set<Str
     runCatching { currentIds(spaceId) }
         .onFailure { if (it is CancellationException) throw it }
         .getOrNull()
+
+/** Los ids de la despensa de [spaceId], cada vez que cambia. */
+internal fun PantryRepository.idsFlow(spaceId: String): Flow<Set<String>> =
+    items(spaceId).map { items -> items.mapTo(HashSet(), PantryItem::id) }

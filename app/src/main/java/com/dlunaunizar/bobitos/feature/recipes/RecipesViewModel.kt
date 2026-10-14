@@ -10,7 +10,6 @@ import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.Ingredient
-import com.dlunaunizar.bobitos.core.model.PantryItem
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
 import com.dlunaunizar.bobitos.core.model.cleanRecipeSteps
@@ -30,6 +29,7 @@ import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
 import com.dlunaunizar.bobitos.feature.common.applyIngredientReview
 import com.dlunaunizar.bobitos.feature.common.buildIngredientReviewRows
 import com.dlunaunizar.bobitos.feature.common.currentIdsOrNull
+import com.dlunaunizar.bobitos.feature.common.idsFlow
 import com.dlunaunizar.bobitos.feature.common.writesNothing
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -94,12 +94,10 @@ class RecipesViewModel @Inject constructor(
         mutableUiState.update { it.copy(pantryIds = null) }
         if (spaceId == null) return
         pantryJob = viewModelScope.launch {
-            pantryRepository.items(spaceId)
+            pantryRepository.idsFlow(spaceId)
                 // Si no se puede leer, el chip no sale.
                 .catch { mutableUiState.update { state -> state.copy(pantryIds = null) } }
-                .collect { items ->
-                    mutableUiState.update { it.copy(pantryIds = items.mapTo(HashSet(), PantryItem::id)) }
-                }
+                .collect { ids -> mutableUiState.update { it.copy(pantryIds = ids) } }
         }
     }
 

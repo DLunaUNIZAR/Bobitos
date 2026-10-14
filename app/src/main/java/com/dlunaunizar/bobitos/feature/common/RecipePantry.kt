@@ -13,11 +13,14 @@ import com.dlunaunizar.bobitos.core.model.pantryId
  * Los ingredientes de [recipe] que no hay en la despensa ([pantryIds]), como se escriben en la receta (recortados), sin
  * repetir por clave y en el orden de la receta. Los nombres sin letras ni números ni están ni faltan.
  */
-internal fun missingFromPantry(recipe: Recipe, pantryIds: Set<String>): List<String> = recipe.ingredients.orEmpty()
-    .map { it.name.trim() }
-    .filter { pantryId(it).isNotEmpty() }
-    .distinctBy(::pantryId)
-    .filterNot { pantryId(it) in pantryIds }
+internal fun missingFromPantry(recipe: Recipe, pantryIds: Set<String>): List<String> =
+    pantryNames(recipe).filterNot { it.second in pantryIds }.map { it.first }
+
+// (nombre recortado, `pantryId`) de cada ingrediente con letras o números, sin repetir por id y en el orden de la receta.
+private fun pantryNames(recipe: Recipe): List<Pair<String, String>> = recipe.ingredients.orEmpty()
+    .map { it.name.trim().let { name -> name to pantryId(name) } }
+    .filter { it.second.isNotEmpty() }
+    .distinctBy { it.second }
 
 /** La línea de una receta en «Con lo que hay»: su texto y sus argumentos. */
 data class PantryLine(@StringRes val res: Int, val args: List<Any> = emptyList())
@@ -31,8 +34,9 @@ data class RecipeRow(val recipe: Recipe, val pantryLine: PantryLine?)
  */
 internal fun List<Recipe>.withPantryLines(pantryIds: Set<String>?): List<RecipeRow> {
     if (pantryIds == null) return map { RecipeRow(it, null) }
-    return filter { recipe -> recipe.ingredients.orEmpty().any { pantryId(it.name).isNotEmpty() } }
-        .map { it to missingFromPantry(it, pantryIds) }
+    return map { it to pantryNames(it) }
+        .filter { it.second.isNotEmpty() }
+        .map { (recipe, names) -> recipe to names.filterNot { it.second in pantryIds }.map { it.first } }
         .sortedWith(compareBy({ it.second.size }, { it.first.title.lowercase() }, { it.first.id }))
         .map { (recipe, missing) -> RecipeRow(recipe, pantryLine(missing)) }
 }

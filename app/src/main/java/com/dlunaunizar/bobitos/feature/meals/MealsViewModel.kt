@@ -11,7 +11,6 @@ import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
-import com.dlunaunizar.bobitos.core.model.PantryItem
 import com.dlunaunizar.bobitos.data.repository.MealFailure
 import com.dlunaunizar.bobitos.data.repository.MealRepository
 import com.dlunaunizar.bobitos.data.repository.MealRepositoryException
@@ -30,6 +29,7 @@ import com.dlunaunizar.bobitos.feature.common.applyIngredientReview
 import com.dlunaunizar.bobitos.feature.common.buildIngredientReviewRows
 import com.dlunaunizar.bobitos.feature.common.currentIdsOrNull
 import com.dlunaunizar.bobitos.feature.common.firstOrEmpty
+import com.dlunaunizar.bobitos.feature.common.idsFlow
 import com.dlunaunizar.bobitos.feature.common.pantryEntryFor
 import com.dlunaunizar.bobitos.feature.common.restockFromPantry
 import com.dlunaunizar.bobitos.feature.common.writesNothing
@@ -97,11 +97,9 @@ class MealsViewModel @Inject constructor(
         pantryJob?.cancel()
         mutableUiState.update { it.copy(pantryIds = null) }
         pantryJob = viewModelScope.launch {
-            pantryRepository.items(spaceId)
+            pantryRepository.idsFlow(spaceId)
                 .catch { mutableUiState.update { state -> state.copy(pantryIds = null) } }
-                .collect { items ->
-                    mutableUiState.update { it.copy(pantryIds = items.mapTo(HashSet(), PantryItem::id)) }
-                }
+                .collect { ids -> mutableUiState.update { it.copy(pantryIds = ids) } }
         }
     }
 

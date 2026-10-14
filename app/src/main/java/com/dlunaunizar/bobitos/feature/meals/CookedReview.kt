@@ -2,7 +2,6 @@ package com.dlunaunizar.bobitos.feature.meals
 
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
-import com.dlunaunizar.bobitos.core.model.isInPantry
 import com.dlunaunizar.bobitos.core.model.pantryId
 import com.dlunaunizar.bobitos.core.model.shoppingMatchKey
 
@@ -48,9 +47,11 @@ internal fun cookedReview(
     val finished = if (pantryIds == null) {
         emptyList()
     } else {
-        names.filter { shoppingMatchKey(it) !in pendingKeys && isInPantry(it, pantryIds) }
-            .distinctBy(::pantryId)
-            .map { CookedPantryRow(pantryId(it), it) }
+        names.filter { shoppingMatchKey(it) !in pendingKeys }
+            .map { it to pantryId(it) }
+            .filter { it.second.isNotEmpty() && it.second in pantryIds }
+            .distinctBy { it.second }
+            .map { (name, id) -> CookedPantryRow(id, name) }
     }
     if (crossOff.isEmpty() && finished.isEmpty()) return null
     return CookedReview(mealName, crossOff, finished)

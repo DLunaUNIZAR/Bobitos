@@ -16,6 +16,9 @@ data class CatalogIngredient(
     val personal: Boolean = false,
 )
 
+private val DIACRITICS = Regex("\\p{M}+")
+private val NON_ALPHANUMERIC = Regex("[^a-z0-9]+")
+
 /**
  * Normaliza un nombre de ingrediente a un identificador estable: minúsculas, sin acentos, y cualquier
  * secuencia no alfanumérica convertida en un solo `-` (sin `-` al principio ni al final). Así «Tomate
@@ -24,9 +27,9 @@ data class CatalogIngredient(
 fun slug(name: String): String {
     val decomposed = Normalizer.normalize(name.trim(), Normalizer.Form.NFD)
     return decomposed
-        .replace(Regex("\\p{M}+"), "")
+        .replace(DIACRITICS, "")
         .lowercase()
-        .replace(Regex("[^a-z0-9]+"), "-")
+        .replace(NON_ALPHANUMERIC, "-")
         .trim('-')
 }
 
