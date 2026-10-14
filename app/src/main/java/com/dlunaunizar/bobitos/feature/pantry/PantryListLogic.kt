@@ -1,5 +1,3 @@
-@file:Suppress("MatchingDeclarationName", "ktlint:standard:filename")
-
 package com.dlunaunizar.bobitos.feature.pantry
 
 import com.dlunaunizar.bobitos.core.common.prepareQuery
@@ -7,9 +5,6 @@ import com.dlunaunizar.bobitos.core.model.INGREDIENT_CATEGORIES
 import com.dlunaunizar.bobitos.core.model.PantryItem
 import java.text.Collator
 import java.util.Locale
-
-/** Un grupo de la Despensa: [category] es una de las 14 del catálogo, o `null` para «Otros» (siempre al final). */
-internal data class PantryGroup<T>(val category: String?, val items: List<T>)
 
 // Compartido entre llamadas: RuleBasedCollator.compare está sincronizado.
 private val PANTRY_COLLATOR: Collator =

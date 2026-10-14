@@ -5,6 +5,8 @@ import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.findShoppingMatch
 import com.dlunaunizar.bobitos.core.model.shoppingMatchKey
 import com.dlunaunizar.bobitos.data.repository.ShoppingWrite
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 
 // Puente entre la Compra y la Despensa (spec 2026-10-13-despensa-design, §2 y §3).
 
@@ -60,3 +62,9 @@ private fun newShoppingWrite(name: String, data: IngredientShoppingData): Shoppi
         brand = context.brandName(selection),
     )
 }
+
+// Sin catálogo a tiempo, datos vacíos.
+private const val CATALOG_TIMEOUT_MILLIS = 5_000L
+
+internal suspend fun IngredientShoppingSource.firstOrEmpty(): IngredientShoppingData =
+    withTimeoutOrNull(CATALOG_TIMEOUT_MILLIS) { data().first() } ?: IngredientShoppingData()

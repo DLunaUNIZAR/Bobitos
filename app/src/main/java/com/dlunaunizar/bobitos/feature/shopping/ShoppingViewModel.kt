@@ -25,6 +25,7 @@ import com.dlunaunizar.bobitos.data.repository.ShoppingWrite
 import com.dlunaunizar.bobitos.data.repository.toIngredientRepositoryException
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
+import com.dlunaunizar.bobitos.feature.common.firstOrEmpty
 import com.dlunaunizar.bobitos.feature.common.pantryEntryFor
 import com.dlunaunizar.bobitos.feature.ingredients.mergeIngredients
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -265,8 +266,7 @@ class ShoppingViewModel @Inject constructor(
     private suspend fun dataForPantry(): IngredientShoppingData {
         mutableUiState.value.ingredientData.takeIf { it.ingredients.isNotEmpty() }?.let { return it }
         pantryData?.let { return it }
-        val loaded = withTimeoutOrNull(PANTRY_CATALOG_TIMEOUT_MILLIS) { ingredientSource.data().first() }
-        return (loaded ?: IngredientShoppingData()).also { if (it.ingredients.isNotEmpty()) pantryData = it }
+        return ingredientSource.firstOrEmpty().also { if (it.ingredients.isNotEmpty()) pantryData = it }
     }
 
     fun deleteItem(spaceId: String, itemId: String) {
@@ -379,7 +379,6 @@ class ShoppingViewModel @Inject constructor(
 // Con la caché del catálogo vacía, su primera emisión puede esperar hasta 10 s la metainformación
 // (META_TIMEOUT_MILLIS) y después leer del servidor; el margen cubre las dos esperas.
 private const val INGREDIENT_LOAD_TIMEOUT_MILLIS = 30_000L
-private const val PANTRY_CATALOG_TIMEOUT_MILLIS = 5_000L
 
 private class IngredientAlreadyKnown : Exception()
 

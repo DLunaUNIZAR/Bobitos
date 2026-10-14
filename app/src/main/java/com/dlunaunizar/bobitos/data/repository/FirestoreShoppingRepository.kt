@@ -279,7 +279,7 @@ class FirestoreShoppingRepository @Inject constructor(
 
     private fun readPantry(transaction: Transaction, spaceId: String, name: String?): DocumentSnapshot? {
         val id = name?.let(::pantryId)?.takeIf(String::isNotEmpty) ?: return null
-        return transaction.get(pantryCollection(spaceId).document(id))
+        return transaction.get(firestore.pantryCollection(spaceId).document(id))
     }
 
     // Con [entry] (se marcó): la apunta si no estaba. Sin ella (se desmarcó): la quita si la trajo este artículo.
@@ -296,11 +296,6 @@ class FirestoreShoppingRepository @Inject constructor(
             transaction.delete(pantry.reference)
         }
     }
-
-    private fun pantryCollection(spaceId: String) = firestore
-        .collection(SPACES)
-        .document(spaceId)
-        .collection(PANTRY_ITEMS)
 
     private fun requireVerifiedUser(): AuthUser {
         val user = authRepository.currentUser.value

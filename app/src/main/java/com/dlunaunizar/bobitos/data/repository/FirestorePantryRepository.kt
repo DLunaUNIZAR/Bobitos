@@ -24,14 +24,14 @@ class FirestorePantryRepository @Inject constructor(
     private val firestore = FirebaseFirestore.getInstance()
 
     override fun items(spaceId: String): Flow<List<PantryItem>> =
-        pantryCollection(spaceId).limit(MAX_PANTRY_ITEMS).documentsFlow(
+        firestore.pantryCollection(spaceId).limit(MAX_PANTRY_ITEMS).documentsFlow(
             metrics = realtimeMetrics,
             scope = "pantry:active",
             toException = Throwable::toPantryRepositoryException,
         ) { documents -> documents.mapNotNull(DocumentSnapshot::toPantryItem) }
 
     override suspend fun currentIds(spaceId: String): Set<String> = runPantryOperation {
-        pantryCollection(spaceId)
+        firestore.pantryCollection(spaceId)
             .limit(MAX_PANTRY_ITEMS)
             .get(Source.SERVER)
             .await()
@@ -43,12 +43,13 @@ class FirestorePantryRepository @Inject constructor(
         val user = requireVerifiedUser()
         val valid = entries.map(::validatePantryEntry).distinctBy { pantryId(it.name) }
         val spaceReference = firestore.collection(SPACES).document(spaceId)
+        val pantry = firestore.pantryCollection(spaceId)
         valid.chunked(MAX_ADDS_PER_TRANSACTION).forEach { chunk ->
             firestore.runTransaction { transaction ->
                 if (!transaction.get(spaceReference).exists()) {
                     throw PantryRepositoryException(PantryFailure.SpaceNotFound)
                 }
-                val references = chunk.map { pantryCollection(spaceId).document(pantryId(it.name)) }
+                val references = chunk.map { pantry.document(pantryId(it.name)) }
                 // Firestore exige hacer todas las lecturas antes de la primera escritura.
                 val missing = references.map { !transaction.get(it).exists() }
                 chunk.forEachIndexed { index, entry ->
@@ -62,13 +63,11 @@ class FirestorePantryRepository @Inject constructor(
         requireVerifiedUser()
         ids.filter(String::isNotEmpty).distinct().chunked(MAX_BATCH_DELETES).forEach { chunk ->
             val batch = firestore.batch()
-            chunk.forEach { batch.delete(pantryCollection(spaceId).document(it)) }
+            val pantry = firestore.pantryCollection(spaceId)
+            chunk.forEach { batch.delete(pantry.document(it)) }
             batch.commit().await()
         }
     }
-
-    private fun pantryCollection(spaceId: String) = firestore.collection(SPACES)
-        .document(spaceId).collection(PANTRY_ITEMS)
 
     private fun requireVerifiedUser(): AuthUser {
         val user = authRepository.currentUser.value

@@ -7,10 +7,14 @@ import com.dlunaunizar.bobitos.core.model.PantryItem
 import com.dlunaunizar.bobitos.core.model.pantryId
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
 
 // Compartido por FirestorePantryRepository y FirestoreShoppingRepository (comprado → despensa).
 internal const val PANTRY_ITEMS = "pantryItems"
 internal const val FIELD_PANTRY_SHOPPING_ITEM_ID = "shoppingItemId"
+
+internal fun FirebaseFirestore.pantryCollection(spaceId: String) =
+    collection("spaces").document(spaceId).collection(PANTRY_ITEMS)
 
 /**
  * Entrada lista para escribir: nombre recortado (con letras o números, 120 caracteres como máximo) y categoría

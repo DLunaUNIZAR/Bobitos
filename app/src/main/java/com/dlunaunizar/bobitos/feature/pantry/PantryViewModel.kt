@@ -14,6 +14,7 @@ import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
+import com.dlunaunizar.bobitos.feature.common.firstOrEmpty
 import com.dlunaunizar.bobitos.feature.common.pantryRestock
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -22,10 +23,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 @HiltViewModel
@@ -102,8 +101,7 @@ class PantryViewModel @Inject constructor(
     }
 
     fun closePicker() {
-        catalogJob?.cancel()
-        catalogJob = null
+        stopCatalog()
         mutableUiState.update { it.copy(picker = null) }
     }
 
@@ -123,17 +121,20 @@ class PantryViewModel @Inject constructor(
         if (entries.isEmpty()) return
         runAction(onSuccess = { it.copy(picker = null) }) {
             repository.add(spaceId, entries)
-            catalogJob?.cancel()
-            catalogJob = null
+            stopCatalog()
             PantryUiMessage.ItemsAdded
         }
+    }
+
+    private fun stopCatalog() {
+        catalogJob?.cancel()
+        catalogJob = null
     }
 
     fun clearFeedback() = mutableUiState.update { it.copy(error = null, notice = null) }
 
     // Marcas y tiendas para un artículo nuevo; si no llegan a tiempo, se apunta sin marca ni tienda.
-    private suspend fun ingredientData(): IngredientShoppingData =
-        withTimeoutOrNull(CATALOG_TIMEOUT_MILLIS) { ingredientSource.data().first() } ?: IngredientShoppingData()
+    private suspend fun ingredientData(): IngredientShoppingData = ingredientSource.firstOrEmpty()
 
     // Ejecuta [action] (devuelve el aviso de éxito) y, si sale bien, aplica [onSuccess] al estado.
     private fun runAction(
@@ -152,8 +153,6 @@ class PantryViewModel @Inject constructor(
         }
     }
 }
-
-private const val CATALOG_TIMEOUT_MILLIS = 5_000L
 
 private fun Throwable.toUiMessage(): PantryUiMessage = when (this) {
     is PantryRepositoryException -> failure.toUiMessage()
