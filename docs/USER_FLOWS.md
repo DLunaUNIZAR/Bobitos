@@ -112,6 +112,7 @@ La app no pide responsable porque la compra pertenece al espacio completo.
 2. La app espera confirmación.
 3. El producto se mueve a “Comprados”.
 4. Se registra quién lo marcó y cuándo.
+5. Si es un ingrediente reconocido, entra en la Despensa; si se desmarca, sale (salvo que ya estuviera antes).
 
 ### Limpiar
 

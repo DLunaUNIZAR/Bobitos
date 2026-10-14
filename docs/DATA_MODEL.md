@@ -254,6 +254,8 @@ shoppingItemId: string | null # el artículo de la Compra cuya compra lo trajo; 
 
 **Reglas:** leen y borran los miembros activos; crear exige la forma (`hasOnly`), `createdBy == auth.uid`, `createdAt == request.time` y un id con formato de slug (≤120); `update` está prohibido.
 
+**Comprado → despensa.** Al marcar un artículo como comprado, si su nombre es un ingrediente reconocido (común o personal, por la clave tolerante), la misma transacción lo apunta en la despensa con el nombre canónico, su categoría y `shoppingItemId` = ese artículo, salvo que ya estuviera. Al desmarcarlo, la transacción quita la entrada solo si la trajo esa compra (mismo `shoppingItemId`). Si el catálogo no se puede leer en 5 s, el artículo se marca sin apuntarlo. «Limpiar comprados» no toca la despensa.
+
 ## 9. Tareas
 
 Ruta:

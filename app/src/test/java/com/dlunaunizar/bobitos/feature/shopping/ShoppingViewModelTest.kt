@@ -7,6 +7,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
+import com.dlunaunizar.bobitos.core.model.PantryEntry
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.repository.IngredientFailure
@@ -275,6 +276,66 @@ class ShoppingViewModelTest {
         advanceUntilIdle()
 
         assertEquals(Triple("home", "milk", true), repository.purchaseChange)
+        assertEquals(ShoppingUiMessage.ItemMarked, viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun `marking a recognized ingredient sends its pantry entry`() = runTest(mainDispatcherRule.testDispatcher) {
+        ingredientRepository.catalogState.value = listOf(CatalogIngredient("tomate", "Tomate", "Verduras y hortalizas"))
+        repository.itemState.value = listOf(shoppingItem().copy(id = "t1", name = "tomates"))
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.setPurchased("home", "t1", true)
+        advanceUntilIdle()
+
+        assertEquals(Triple("home", "t1", true), repository.purchaseChange)
+        assertEquals(PantryEntry("Tomate", "Verduras y hortalizas"), repository.purchaseEntry)
+    }
+
+    @Test
+    fun `marking something that is not an ingredient sends no pantry entry`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            ingredientRepository.catalogState.value =
+                listOf(CatalogIngredient("tomate", "Tomate", "Verduras y hortalizas"))
+            repository.itemState.value = listOf(shoppingItem().copy(id = "w1", name = "Lavavajillas"))
+            viewModel.observe("home")
+            advanceUntilIdle()
+
+            viewModel.setPurchased("home", "w1", true)
+            advanceUntilIdle()
+
+            assertEquals(Triple("home", "w1", true), repository.purchaseChange)
+            assertNull(repository.purchaseEntry)
+        }
+
+    @Test
+    fun `unmarking sends no pantry entry`() = runTest(mainDispatcherRule.testDispatcher) {
+        ingredientRepository.catalogState.value = listOf(CatalogIngredient("tomate", "Tomate", "Verduras y hortalizas"))
+        repository.itemState.value = listOf(shoppingItem().copy(id = "t1", name = "tomates", purchased = true))
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.setPurchased("home", "t1", false)
+        advanceUntilIdle()
+
+        assertEquals(Triple("home", "t1", false), repository.purchaseChange)
+        assertNull(repository.purchaseEntry)
+    }
+
+    @Test
+    fun `marking without the catalog in time still marks the item`() = runTest(mainDispatcherRule.testDispatcher) {
+        ingredientRepository.catalogOverride = flow { awaitCancellation() }
+        repository.itemState.value = listOf(shoppingItem().copy(id = "t1", name = "tomates"))
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.setPurchased("home", "t1", true)
+        advanceTimeBy(5_001)
+        advanceUntilIdle()
+
+        assertEquals(Triple("home", "t1", true), repository.purchaseChange)
+        assertNull(repository.purchaseEntry)
         assertEquals(ShoppingUiMessage.ItemMarked, viewModel.uiState.value.notice)
     }
 
@@ -695,6 +756,7 @@ private class FakeShoppingRepository : ShoppingRepository {
     var updatedQuantity: String? = null
     var relisted: RelistCall? = null
     var purchaseChange: Triple<String, String, Boolean>? = null
+    var purchaseEntry: PantryEntry? = null
     var clearCount = 0
     var nextFailure: ShoppingRepositoryException? = null
     val itemState = MutableStateFlow(listOf(shoppingItem()))
@@ -792,9 +854,10 @@ private class FakeShoppingRepository : ShoppingRepository {
         }
     }
 
-    override suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean) {
+    override suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean, pantryEntry: PantryEntry?) {
         throwNextFailure()
         purchaseChange = Triple(spaceId, itemId, purchased)
+        purchaseEntry = pantryEntry
     }
 
     override suspend fun deleteItem(spaceId: String, itemId: String) {

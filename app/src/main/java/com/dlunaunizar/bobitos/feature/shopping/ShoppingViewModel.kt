@@ -25,6 +25,7 @@ import com.dlunaunizar.bobitos.data.repository.ShoppingWrite
 import com.dlunaunizar.bobitos.data.repository.toIngredientRepositoryException
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
+import com.dlunaunizar.bobitos.feature.common.pantryEntryFor
 import com.dlunaunizar.bobitos.feature.ingredients.mergeIngredients
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -51,6 +52,7 @@ class ShoppingViewModel @Inject constructor(
     private var itemsJob: Job? = null
     private var observedSpaceId: String? = null
     private var catalogJob: Job? = null
+    private var pantryData: IngredientShoppingData? = null
 
     fun observe(spaceId: String) {
         if (spaceId == observedSpaceId && itemsJob?.isActive == true) return
@@ -249,11 +251,22 @@ class ShoppingViewModel @Inject constructor(
     }
 
     fun setPurchased(spaceId: String, itemId: String, purchased: Boolean) {
+        val item = (mutableUiState.value.items as? UiState.Content)?.value?.firstOrNull { it.id == itemId }
         runAction(
             if (purchased) ShoppingUiMessage.ItemMarked else ShoppingUiMessage.ItemUnmarked,
         ) {
-            repository.setPurchased(spaceId, itemId, purchased)
+            val entry = if (purchased && item != null) pantryEntryFor(item.name, dataForPantry()) else null
+            repository.setPurchased(spaceId, itemId, purchased, entry)
         }
+    }
+
+    // Catálogo para reconocer el ingrediente al marcar comprado: el del editor si ya está cargado; si no, se lee una
+    // vez (con tiempo límite) y se guarda. Sin él, el artículo se marca igual, pero no entra en la despensa.
+    private suspend fun dataForPantry(): IngredientShoppingData {
+        mutableUiState.value.ingredientData.takeIf { it.ingredients.isNotEmpty() }?.let { return it }
+        pantryData?.let { return it }
+        val loaded = withTimeoutOrNull(PANTRY_CATALOG_TIMEOUT_MILLIS) { ingredientSource.data().first() }
+        return (loaded ?: IngredientShoppingData()).also { if (it.ingredients.isNotEmpty()) pantryData = it }
     }
 
     fun deleteItem(spaceId: String, itemId: String) {
@@ -366,6 +379,7 @@ class ShoppingViewModel @Inject constructor(
 // Con la caché del catálogo vacía, su primera emisión puede esperar hasta 10 s la metainformación
 // (META_TIMEOUT_MILLIS) y después leer del servidor; el margen cubre las dos esperas.
 private const val INGREDIENT_LOAD_TIMEOUT_MILLIS = 30_000L
+private const val PANTRY_CATALOG_TIMEOUT_MILLIS = 5_000L
 
 private class IngredientAlreadyKnown : Exception()
 

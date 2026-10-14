@@ -1,8 +1,10 @@
 package com.dlunaunizar.bobitos.data.repository
 
 import com.dlunaunizar.bobitos.core.model.AuthUser
+import com.dlunaunizar.bobitos.core.model.PantryEntry
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.dlunaunizar.bobitos.core.model.pantryId
 import com.dlunaunizar.bobitos.core.model.sameContentAs
 import com.dlunaunizar.bobitos.data.sync.RealtimeMetrics
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
@@ -14,6 +16,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.Source
+import com.google.firebase.firestore.Transaction
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -194,32 +197,38 @@ class FirestoreShoppingRepository @Inject constructor(
         return fields
     }
 
-    override suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean) = runShoppingOperation {
-        val user = requireVerifiedUser()
-        val reference = itemsCollection(spaceId).document(itemId)
+    override suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean, pantryEntry: PantryEntry?) =
+        runShoppingOperation {
+            val user = requireVerifiedUser()
+            val reference = itemsCollection(spaceId).document(itemId)
+            val entry = pantryEntry?.let(::validPantryEntryOrNull)
 
-        firestore.runTransaction { transaction ->
-            val item = requireItem(transaction.get(reference))
-            if (item.getBoolean(FIELD_PURCHASED) != purchased) {
-                transaction.update(
-                    reference,
-                    FIELD_PURCHASED,
-                    purchased,
-                    FIELD_PURCHASED_BY,
-                    if (purchased) user.id else null,
-                    FIELD_PURCHASED_BY_NAME,
-                    if (purchased) user.shoppingDisplayName else null,
-                    FIELD_PURCHASED_AT,
-                    if (purchased) FieldValue.serverTimestamp() else null,
-                    FIELD_UPDATED_BY,
-                    user.id,
-                    FIELD_UPDATED_AT,
-                    FieldValue.serverTimestamp(),
-                )
-            }
-        }.await()
-        Unit
-    }
+            firestore.runTransaction { transaction ->
+                val item = requireItem(transaction.get(reference))
+                // Firestore exige hacer todas las lecturas antes de la primera escritura.
+                val pantry =
+                    readPantry(transaction, spaceId, if (purchased) entry?.name else item.getString(FIELD_NAME))
+                if (item.getBoolean(FIELD_PURCHASED) != purchased) {
+                    transaction.update(
+                        reference,
+                        FIELD_PURCHASED,
+                        purchased,
+                        FIELD_PURCHASED_BY,
+                        if (purchased) user.id else null,
+                        FIELD_PURCHASED_BY_NAME,
+                        if (purchased) user.shoppingDisplayName else null,
+                        FIELD_PURCHASED_AT,
+                        if (purchased) FieldValue.serverTimestamp() else null,
+                        FIELD_UPDATED_BY,
+                        user.id,
+                        FIELD_UPDATED_AT,
+                        FieldValue.serverTimestamp(),
+                    )
+                    if (pantry != null) writePantry(transaction, pantry, entry.takeIf { purchased }, user.id, itemId)
+                }
+            }.await()
+            Unit
+        }
 
     override suspend fun deleteItem(spaceId: String, itemId: String) = runShoppingOperation {
         requireVerifiedUser()
@@ -260,6 +269,38 @@ class FirestoreShoppingRepository @Inject constructor(
         .collection(SPACES)
         .document(spaceId)
         .collection(SHOPPING_ITEMS)
+
+    // Una entrada que no se puede apuntar (sin letras, demasiado larga) no impide marcar el artículo.
+    private fun validPantryEntryOrNull(entry: PantryEntry): PantryEntry? = try {
+        validatePantryEntry(entry)
+    } catch (_: PantryRepositoryException) {
+        null
+    }
+
+    private fun readPantry(transaction: Transaction, spaceId: String, name: String?): DocumentSnapshot? {
+        val id = name?.let(::pantryId)?.takeIf(String::isNotEmpty) ?: return null
+        return transaction.get(pantryCollection(spaceId).document(id))
+    }
+
+    // Con [entry] (se marcó): la apunta si no estaba. Sin ella (se desmarcó): la quita si la trajo este artículo.
+    private fun writePantry(
+        transaction: Transaction,
+        pantry: DocumentSnapshot,
+        entry: PantryEntry?,
+        userId: String,
+        itemId: String,
+    ) {
+        if (entry != null) {
+            if (!pantry.exists()) transaction.set(pantry.reference, pantryItemFields(entry, userId, itemId))
+        } else if (pantry.getString(FIELD_PANTRY_SHOPPING_ITEM_ID) == itemId) {
+            transaction.delete(pantry.reference)
+        }
+    }
+
+    private fun pantryCollection(spaceId: String) = firestore
+        .collection(SPACES)
+        .document(spaceId)
+        .collection(PANTRY_ITEMS)
 
     private fun requireVerifiedUser(): AuthUser {
         val user = authRepository.currentUser.value

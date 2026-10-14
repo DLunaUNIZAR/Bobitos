@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.data.repository
 
+import com.dlunaunizar.bobitos.core.model.PantryEntry
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import kotlinx.coroutines.flow.Flow
@@ -39,7 +40,12 @@ interface ShoppingRepository {
      */
     suspend fun applyWrites(spaceId: String, writes: List<ShoppingWrite>)
 
-    suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean)
+    /**
+     * Marca o desmarca [itemId] en una transacción. Al marcar con [pantryEntry] (el artículo es un ingrediente
+     * reconocido), la apunta en la despensa si no estaba, con `shoppingItemId = itemId`. Al desmarcar, quita la
+     * entrada de la despensa del nombre del artículo solo si la trajo esta compra (mismo `shoppingItemId`).
+     */
+    suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean, pantryEntry: PantryEntry? = null)
 
     suspend fun deleteItem(spaceId: String, itemId: String)
 

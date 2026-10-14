@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.common
 
+import com.dlunaunizar.bobitos.core.model.PantryEntry
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
@@ -26,6 +27,7 @@ internal class RecordingShoppingRepository : ShoppingRepository {
     val relistedBrands = mutableListOf<String?>()
     val itemsState = MutableStateFlow<List<ShoppingItem>>(emptyList())
     val purchasedIds = mutableListOf<String>()
+    val purchasedEntries = mutableListOf<PantryEntry?>()
     val updatedIds = mutableListOf<String>()
     val updatedQuantities = mutableListOf<String?>()
     val updatedSupermarkets = mutableListOf<Supermarket?>()
@@ -110,8 +112,11 @@ internal class RecordingShoppingRepository : ShoppingRepository {
         }
     }
 
-    override suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean) {
-        if (purchased) purchasedIds += itemId
+    override suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean, pantryEntry: PantryEntry?) {
+        if (purchased) {
+            purchasedIds += itemId
+            purchasedEntries += pantryEntry
+        }
     }
 
     override suspend fun deleteItem(spaceId: String, itemId: String) = Unit

@@ -191,6 +191,7 @@ Cualquier miembro podrá editar o eliminar un producto. Las eliminaciones requer
 - Cualquier miembro podrá marcar o desmarcar.
 - Los comprados se mostrarán debajo de los pendientes.
 - Se registrarán la persona y la fecha que realizaron la acción.
+- Si el producto es un ingrediente reconocido del catálogo (común o personal), al marcarlo entra en la Despensa del espacio; al desmarcarlo, sale si lo trajo esa compra.
 
 ### SHOP-05. Limpiar comprados
 
