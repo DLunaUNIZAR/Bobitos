@@ -21,7 +21,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 
@@ -47,7 +50,10 @@ internal fun CookedDialog(
                         text = errorMessage,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(bottom = Spacing.sm),
+                        // Como en BobitosFormSheet: el lector de pantalla lo anuncia al aparecer.
+                        modifier = Modifier
+                            .padding(bottom = Spacing.sm)
+                            .semantics { liveRegion = LiveRegionMode.Polite },
                     )
                 }
                 Column(modifier = Modifier.verticalScroll(rememberScrollState())) {

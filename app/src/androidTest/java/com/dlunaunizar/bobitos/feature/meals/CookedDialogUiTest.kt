@@ -1,6 +1,10 @@
 package com.dlunaunizar.bobitos.feature.meals
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -63,5 +67,11 @@ class CookedDialogUiTest {
     @Test fun doneCannotBePressedWhileSaving() {
         setDialog(saving = true, errorMessage = null)
         compose.onNodeWithText(done()).assertIsNotEnabled()
+    }
+
+    @Test fun theScreenReaderAnnouncesTheError() {
+        setDialog(saving = false, errorMessage = "Sin conexión.")
+        compose.onNodeWithText("Sin conexión.")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
     }
 }
