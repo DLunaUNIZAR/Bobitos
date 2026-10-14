@@ -71,19 +71,30 @@ class PantryViewModel @Inject constructor(
 
     fun consumeFinished() = mutableUiState.update { it.copy(finished = null) }
 
-    /** «A la compra»: apunta [item] en la Compra (ver [pantryRestock]); si ya estaba pendiente, solo lo avisa. */
+    /**
+     * «A la compra»: apunta [item] en la Compra (ver [pantryRestock]); si ya estaba pendiente, solo lo avisa. No pasa
+     * por [runAction]: el aviso del Snackbar ya se consumió y no debe perderse porque otra acción esté guardando.
+     */
     fun restock(item: PantryItem) {
         val spaceId = observedSpaceId ?: return
-        runAction {
-            // La lista del servidor, no la caché: con una vieja se duplicaría el artículo.
-            val items = shoppingRepository.currentItems(spaceId)
-            val plan = pantryRestock(listOf(item.name), items, ingredientData())
-            if (plan.writes.isEmpty()) {
-                PantryUiMessage.AlreadyInShopping
-            } else {
-                shoppingRepository.applyWrites(spaceId, plan.writes)
-                PantryUiMessage.AddedToShopping
+        mutableUiState.update { it.copy(error = null, notice = null) }
+        viewModelScope.launch {
+            runCatching {
+                // La lista del servidor, no la caché: con una vieja se duplicaría el artículo.
+                val items = shoppingRepository.currentItems(spaceId)
+                val plan = pantryRestock(listOf(item.name), items, ingredientData())
+                if (plan.writes.isEmpty()) {
+                    PantryUiMessage.AlreadyInShopping
+                } else {
+                    shoppingRepository.applyWrites(spaceId, plan.writes)
+                    PantryUiMessage.AddedToShopping
+                }
             }
+                .onSuccess { notice -> mutableUiState.update { it.copy(notice = notice) } }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    mutableUiState.update { it.copy(error = error.toUiMessage()) }
+                }
         }
     }
 
@@ -133,8 +144,10 @@ class PantryViewModel @Inject constructor(
 
     fun clearFeedback() = mutableUiState.update { it.copy(error = null, notice = null) }
 
-    // Marcas y tiendas para un artículo nuevo; si no llegan a tiempo, se apunta sin marca ni tienda.
-    private suspend fun ingredientData(): IngredientShoppingData = ingredientSource.firstOrEmpty()
+    // Marcas y tiendas para un artículo nuevo: las que ya cargó el selector; si no, se esperan (5 s como máximo) y,
+    // si no llegan a tiempo, se apunta sin marca ni tienda.
+    private suspend fun ingredientData(): IngredientShoppingData =
+        mutableUiState.value.ingredientData.takeIf { it.ingredients.isNotEmpty() } ?: ingredientSource.firstOrEmpty()
 
     // Ejecuta [action] (devuelve el aviso de éxito) y, si sale bien, aplica [onSuccess] al estado.
     private fun runAction(

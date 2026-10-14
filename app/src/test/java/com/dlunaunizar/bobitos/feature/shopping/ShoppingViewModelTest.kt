@@ -280,66 +280,6 @@ class ShoppingViewModelTest {
     }
 
     @Test
-    fun `marking a recognized ingredient sends its pantry entry`() = runTest(mainDispatcherRule.testDispatcher) {
-        ingredientRepository.catalogState.value = listOf(CatalogIngredient("tomate", "Tomate", "Verduras y hortalizas"))
-        repository.itemState.value = listOf(shoppingItem().copy(id = "t1", name = "tomates"))
-        viewModel.observe("home")
-        advanceUntilIdle()
-
-        viewModel.setPurchased("home", "t1", true)
-        advanceUntilIdle()
-
-        assertEquals(Triple("home", "t1", true), repository.purchaseChange)
-        assertEquals(PantryEntry("Tomate", "Verduras y hortalizas"), repository.purchaseEntry)
-    }
-
-    @Test
-    fun `marking something that is not an ingredient sends no pantry entry`() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            ingredientRepository.catalogState.value =
-                listOf(CatalogIngredient("tomate", "Tomate", "Verduras y hortalizas"))
-            repository.itemState.value = listOf(shoppingItem().copy(id = "w1", name = "Lavavajillas"))
-            viewModel.observe("home")
-            advanceUntilIdle()
-
-            viewModel.setPurchased("home", "w1", true)
-            advanceUntilIdle()
-
-            assertEquals(Triple("home", "w1", true), repository.purchaseChange)
-            assertNull(repository.purchaseEntry)
-        }
-
-    @Test
-    fun `unmarking sends no pantry entry`() = runTest(mainDispatcherRule.testDispatcher) {
-        ingredientRepository.catalogState.value = listOf(CatalogIngredient("tomate", "Tomate", "Verduras y hortalizas"))
-        repository.itemState.value = listOf(shoppingItem().copy(id = "t1", name = "tomates", purchased = true))
-        viewModel.observe("home")
-        advanceUntilIdle()
-
-        viewModel.setPurchased("home", "t1", false)
-        advanceUntilIdle()
-
-        assertEquals(Triple("home", "t1", false), repository.purchaseChange)
-        assertNull(repository.purchaseEntry)
-    }
-
-    @Test
-    fun `marking without the catalog in time still marks the item`() = runTest(mainDispatcherRule.testDispatcher) {
-        ingredientRepository.catalogOverride = flow { awaitCancellation() }
-        repository.itemState.value = listOf(shoppingItem().copy(id = "t1", name = "tomates"))
-        viewModel.observe("home")
-        advanceUntilIdle()
-
-        viewModel.setPurchased("home", "t1", true)
-        advanceTimeBy(5_001)
-        advanceUntilIdle()
-
-        assertEquals(Triple("home", "t1", true), repository.purchaseChange)
-        assertNull(repository.purchaseEntry)
-        assertEquals(ShoppingUiMessage.ItemMarked, viewModel.uiState.value.notice)
-    }
-
-    @Test
     fun `safe cleanup exposes actual deleted count`() = runTest(mainDispatcherRule.testDispatcher) {
         repository.clearCount = 2
 
@@ -738,7 +678,7 @@ class ShoppingViewModelTest {
     }
 }
 
-private class FakeShoppingRepository : ShoppingRepository {
+internal class FakeShoppingRepository : ShoppingRepository {
     var addGate: CompletableDeferred<Unit>? = null
 
     // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
@@ -874,7 +814,7 @@ private class FakeShoppingRepository : ShoppingRepository {
     }
 }
 
-private fun shoppingItem() = ShoppingItem(
+internal fun shoppingItem() = ShoppingItem(
     id = "milk",
     name = "Leche",
     quantity = null,
@@ -897,7 +837,7 @@ private fun listItem(quantity: String? = null, purchased: Boolean = false) = sho
     brand = "Pascual",
 )
 
-private data class RelistCall(
+internal data class RelistCall(
     val itemId: String,
     val name: String,
     val quantity: String?,

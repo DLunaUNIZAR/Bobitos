@@ -168,7 +168,7 @@ private fun PantryContent(
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             sections.forEach { section ->
-                item(key = "h-${section.category}") {
+                item(key = pantryHeaderKey(section.category)) {
                     Text(
                         text = section.category ?: stringResource(R.string.pantry_others),
                         style = MaterialTheme.typography.titleSmall,
@@ -176,7 +176,7 @@ private fun PantryContent(
                         modifier = Modifier.padding(top = Spacing.sm),
                     )
                 }
-                items(section.items, key = PantryItem::id) { item ->
+                items(section.items, key = { pantryItemKey(it.id) }) { item ->
                     PantryRow(item = item, enabled = enabled, onFinished = { onFinished(item) })
                 }
             }

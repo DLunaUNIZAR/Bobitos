@@ -8,6 +8,7 @@ import com.dlunaunizar.bobitos.core.model.pantryId
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import java.time.Instant
 
 // Compartido por FirestorePantryRepository y FirestoreShoppingRepository (comprado → despensa).
 internal const val PANTRY_ITEMS = "pantryItems"
@@ -47,3 +48,15 @@ internal fun DocumentSnapshot.toPantryItem(): PantryItem? = PantryItem(
     category = getString("category"),
     shoppingItemId = getString(FIELD_PANTRY_SHOPPING_ITEM_ID),
 )
+
+/**
+ * Al desmarcar, la entrada se quita solo si la creó **esta** compra: es del mismo artículo y su `createdAt` coincide
+ * con el `purchasedAt` del artículo (ambos son la hora del servidor de la misma transacción). Un artículo vuelto a
+ * apuntar conserva la entrada de su compra anterior, que no debe borrarse.
+ */
+internal fun shouldRemovePantryEntry(
+    entryShoppingItemId: String?,
+    entryCreatedAt: Instant?,
+    itemId: String,
+    itemPurchasedAt: Instant?,
+): Boolean = entryShoppingItemId == itemId && entryCreatedAt != null && entryCreatedAt == itemPurchasedAt

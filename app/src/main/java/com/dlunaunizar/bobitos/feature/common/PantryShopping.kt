@@ -64,7 +64,7 @@ private fun newShoppingWrite(name: String, data: IngredientShoppingData): Shoppi
 }
 
 // Sin catálogo a tiempo, datos vacíos.
-private const val CATALOG_TIMEOUT_MILLIS = 5_000L
+internal const val CATALOG_TIMEOUT_MILLIS = 5_000L
 
 internal suspend fun IngredientShoppingSource.firstOrEmpty(): IngredientShoppingData =
     withTimeoutOrNull(CATALOG_TIMEOUT_MILLIS) { data().first() } ?: IngredientShoppingData()

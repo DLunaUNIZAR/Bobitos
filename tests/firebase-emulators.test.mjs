@@ -2814,6 +2814,34 @@ test("marcar comprado y apuntarlo en la despensa van en la misma transacción, y
   assert.equal((await getDoc(pantry)).exists(), false);
 });
 
+test("en una misma transacción, purchasedAt del artículo y createdAt de la entrada quedan iguales", async () => {
+  await seedSpace("pantry-same-time", "pantry-time-owner");
+  await seedShoppingItem("pantry-same-time", "tomatoes", "pantry-time-owner", { name: "Tomates" });
+  const owner = verifiedFirestore("pantry-time-owner");
+  const item = doc(owner, "spaces", "pantry-same-time", "shoppingItems", "tomatoes");
+  const pantry = doc(owner, "spaces", "pantry-same-time", "pantryItems", "tomat");
+
+  await assertSucceeds(
+    runTransaction(owner, async (transaction) => {
+      await transaction.get(item);
+      await transaction.get(pantry);
+      transaction.update(item, {
+        purchased: true,
+        purchasedBy: "pantry-time-owner",
+        purchasedByName: "pantry-time-owner",
+        purchasedAt: serverTimestamp(),
+        updatedBy: "pantry-time-owner",
+        updatedAt: serverTimestamp(),
+      });
+      transaction.set(pantry, pantryData("pantry-time-owner", { shoppingItemId: "tomatoes" }));
+    }),
+  );
+  // El cliente decide si desmarcar borra la entrada comparando ambas horas: tienen que ser idénticas.
+  const purchasedAt = (await getDoc(item)).data().purchasedAt;
+  const createdAt = (await getDoc(pantry)).data().createdAt;
+  assert.ok(purchasedAt.isEqual(createdAt));
+});
+
 function noteData(userId, overrides = {}) {
   return {
     title: "Nota",

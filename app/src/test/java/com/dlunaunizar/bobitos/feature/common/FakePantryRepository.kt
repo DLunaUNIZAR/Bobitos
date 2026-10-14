@@ -4,6 +4,7 @@ import com.dlunaunizar.bobitos.core.model.PantryEntry
 import com.dlunaunizar.bobitos.core.model.PantryItem
 import com.dlunaunizar.bobitos.core.model.pantryId
 import com.dlunaunizar.bobitos.data.repository.PantryRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
@@ -19,6 +20,9 @@ internal class FakePantryRepository : PantryRepository {
     val removed = mutableListOf<List<String>>()
     var addFailure: Throwable? = null
     var removeFailure: Throwable? = null
+
+    // Si no es null, remove espera a que se complete (para simular una acción que sigue guardando).
+    var removeGate: CompletableDeferred<Unit>? = null
     var observedSpaceId: String? = null
 
     override fun items(spaceId: String): Flow<List<PantryItem>> {
@@ -42,6 +46,7 @@ internal class FakePantryRepository : PantryRepository {
     }
 
     override suspend fun remove(spaceId: String, ids: List<String>) {
+        removeGate?.await()
         removeFailure?.let { throw it }
         removed.add(ids)
         itemsState.value = itemsState.value.filterNot { it.id in ids }

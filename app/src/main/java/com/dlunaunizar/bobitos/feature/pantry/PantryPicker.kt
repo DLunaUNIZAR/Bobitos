@@ -90,7 +90,7 @@ private fun PickerList(
 ) {
     LazyColumn(modifier) {
         content.freeText?.let { row ->
-            item(key = "free-${row.id}") {
+            item(key = pantryFreeTextKey(row.id)) {
                 PickRow(
                     label = stringResource(R.string.pantry_picker_free_text, row.entry.name),
                     checked = row.id in selected,
@@ -100,7 +100,7 @@ private fun PickerList(
             }
         }
         content.groups.forEach { group ->
-            item(key = "h-${group.category}") {
+            item(key = pantryHeaderKey(group.category)) {
                 Text(
                     text = group.category ?: stringResource(R.string.pantry_others),
                     style = MaterialTheme.typography.titleSmall,
@@ -108,7 +108,7 @@ private fun PickerList(
                     modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.xs),
                 )
             }
-            items(group.items, key = PantryPickRow::id) { row ->
+            items(group.items, key = { pantryItemKey(it.id) }) { row ->
                 PickRow(
                     label = row.entry.name,
                     checked = row.inPantry || row.id in selected,

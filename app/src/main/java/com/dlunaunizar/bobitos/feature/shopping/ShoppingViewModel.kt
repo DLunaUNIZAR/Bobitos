@@ -23,19 +23,22 @@ import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
 import com.dlunaunizar.bobitos.data.repository.ShoppingWrite
 import com.dlunaunizar.bobitos.data.repository.toIngredientRepositoryException
+import com.dlunaunizar.bobitos.feature.common.CATALOG_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
-import com.dlunaunizar.bobitos.feature.common.firstOrEmpty
 import com.dlunaunizar.bobitos.feature.common.pantryEntryFor
 import com.dlunaunizar.bobitos.feature.ingredients.mergeIngredients
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -54,6 +57,8 @@ class ShoppingViewModel @Inject constructor(
     private var observedSpaceId: String? = null
     private var catalogJob: Job? = null
     private var pantryData: IngredientShoppingData? = null
+    private var pantryLoad: Deferred<IngredientShoppingData>? = null
+    private var pantryGeneration = 0
 
     fun observe(spaceId: String) {
         if (spaceId == observedSpaceId && itemsJob?.isActive == true) return
@@ -73,12 +78,17 @@ class ShoppingViewModel @Inject constructor(
                     }
                 }
         }
+        // El catálogo para reconocer lo que se marque como comprado: se empieza a leer ya, sin esperar al primer toque.
+        if (pantryData == null) startPantryLoad()
     }
+
     fun stopObserving() {
         itemsJob?.cancel()
         catalogJob?.cancel()
+        pantryLoad?.cancel()
         itemsJob = null
         catalogJob = null
+        pantryLoad = null
         observedSpaceId = null
     }
 
@@ -106,6 +116,9 @@ class ShoppingViewModel @Inject constructor(
             // personales). Si no se puede, no se escribe: sin la lista no se puede detectar el duplicado.
             if (findByKey(loadIngredientsOnDemand(), name) != null) throw IngredientAlreadyKnown()
             personalIngredients.create(name, null, null)
+            // El ingrediente nuevo tiene que reconocerse al marcar: se descarta lo guardado y se vuelve a leer.
+            pantryData = null
+            startPantryLoad(restart = true)
         }
     }
 
@@ -261,12 +274,27 @@ class ShoppingViewModel @Inject constructor(
         }
     }
 
-    // Catálogo para reconocer el ingrediente al marcar comprado: el del editor si ya está cargado; si no, se lee una
-    // vez (con tiempo límite) y se guarda. Sin él, el artículo se marca igual, pero no entra en la despensa.
+    // Catálogo para reconocer el ingrediente al marcar comprado: el del editor si ya está cargado; si no, el leído en
+    // segundo plano. Se espera 5 s como máximo y sin cancelar la lectura, que sigue y sirve a los marcados siguientes;
+    // sin catálogo a tiempo, el artículo se marca igual, pero no entra en la despensa.
     private suspend fun dataForPantry(): IngredientShoppingData {
         mutableUiState.value.ingredientData.takeIf { it.ingredients.isNotEmpty() }?.let { return it }
         pantryData?.let { return it }
-        return ingredientSource.firstOrEmpty().also { if (it.ingredients.isNotEmpty()) pantryData = it }
+        return withTimeoutOrNull(CATALOG_TIMEOUT_MILLIS) { startPantryLoad().await() } ?: IngredientShoppingData()
+    }
+
+    // Una sola lectura del catálogo a la vez (con el límite largo); [restart] la sustituye aunque haya una en curso.
+    private fun startPantryLoad(restart: Boolean = false): Deferred<IngredientShoppingData> {
+        pantryLoad?.takeIf { it.isActive && !restart }?.let { return it }
+        val generation = ++pantryGeneration
+        return viewModelScope.async {
+            val data = withTimeoutOrNull(INGREDIENT_LOAD_TIMEOUT_MILLIS) {
+                ingredientSource.data().catch { }.firstOrNull()
+            } ?: IngredientShoppingData()
+            // Una lectura sustituida mientras corría no pisa los datos de la nueva.
+            if (data.ingredients.isNotEmpty() && generation == pantryGeneration) pantryData = data
+            data
+        }.also { pantryLoad = it }
     }
 
     fun deleteItem(spaceId: String, itemId: String) {

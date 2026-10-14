@@ -85,6 +85,8 @@ internal class FakePersonalIngredientRepository : PersonalIngredientRepository {
         createError?.let { throw it }
         createCount++
         lastCreatedName = name
+        // Como el real: lo creado aparece luego en la lista de personales.
+        state.value += CatalogIngredient(id = slug(name), name = name, category = category)
         return slug(name)
     }
 

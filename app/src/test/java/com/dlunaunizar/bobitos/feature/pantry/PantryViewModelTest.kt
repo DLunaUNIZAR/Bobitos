@@ -16,11 +16,13 @@ import com.dlunaunizar.bobitos.feature.common.ingredientShoppingSource
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientBrandRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientPrefsRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -194,6 +196,41 @@ class PantryViewModelTest {
         assertEquals(listOf(null), shopping.addedSupermarkets)
         assertEquals(listOf(null), shopping.addedBrands)
     }
+
+    @Test
+    fun `restock while another action is saving still adds the item`() = runTest(mainDispatcherRule.testDispatcher) {
+        pantry.itemsState.value = listOf(salt, tomato)
+        viewModel.observe("home")
+        advanceUntilIdle()
+        val gate = CompletableDeferred<Unit>()
+        pantry.removeGate = gate
+        viewModel.markFinished(salt)
+        runCurrent()
+        assertTrue(viewModel.uiState.value.isSaving)
+
+        viewModel.restock(tomato)
+        advanceUntilIdle()
+
+        assertEquals(listOf("Tomate"), shopping.addedNames)
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(listOf(listOf("sal")), pantry.removed)
+    }
+
+    @Test
+    fun `restock uses the catalog the picker already loaded without waiting`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            ingredients.catalogState.value = listOf(CatalogIngredient("tomate", "Tomate", "Verduras y hortalizas"))
+            viewModel.observe("home")
+            viewModel.openPicker()
+            advanceUntilIdle()
+            ingredients.catalogOverride = flow { awaitCancellation() }
+
+            viewModel.restock(tomato)
+            runCurrent()
+
+            assertEquals(listOf("Tomate"), shopping.addedNames)
+        }
 
     @Test
     fun `the picker loads the catalog while open`() = runTest(mainDispatcherRule.testDispatcher) {

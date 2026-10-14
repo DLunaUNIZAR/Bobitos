@@ -205,10 +205,10 @@ class FirestoreShoppingRepository @Inject constructor(
 
             firestore.runTransaction { transaction ->
                 val item = requireItem(transaction.get(reference))
-                // Firestore exige hacer todas las lecturas antes de la primera escritura.
-                val pantry =
-                    readPantry(transaction, spaceId, if (purchased) entry?.name else item.getString(FIELD_NAME))
                 if (item.getBoolean(FIELD_PURCHASED) != purchased) {
+                    // Firestore exige hacer todas las lecturas antes de la primera escritura; solo se lee si hay cambio.
+                    val pantry =
+                        readPantry(transaction, spaceId, if (purchased) entry?.name else item.getString(FIELD_NAME))
                     transaction.update(
                         reference,
                         FIELD_PURCHASED,
@@ -224,7 +224,9 @@ class FirestoreShoppingRepository @Inject constructor(
                         FIELD_UPDATED_AT,
                         FieldValue.serverTimestamp(),
                     )
-                    if (pantry != null) writePantry(transaction, pantry, entry.takeIf { purchased }, user.id, itemId)
+                    if (pantry != null) {
+                        writePantry(transaction, pantry, entry.takeIf { purchased }, user.id, item)
+                    }
                 }
             }.await()
             Unit
@@ -288,14 +290,22 @@ class FirestoreShoppingRepository @Inject constructor(
         pantry: DocumentSnapshot,
         entry: PantryEntry?,
         userId: String,
-        itemId: String,
+        item: DocumentSnapshot,
     ) {
         if (entry != null) {
-            if (!pantry.exists()) transaction.set(pantry.reference, pantryItemFields(entry, userId, itemId))
-        } else if (pantry.getString(FIELD_PANTRY_SHOPPING_ITEM_ID) == itemId) {
+            if (!pantry.exists()) transaction.set(pantry.reference, pantryItemFields(entry, userId, item.id))
+        } else if (pantry.exists() && pantry.createdByPurchaseOf(item)) {
             transaction.delete(pantry.reference)
         }
     }
+
+    // La entrada la creó la compra vigente del artículo (mismo artículo y misma hora de servidor).
+    private fun DocumentSnapshot.createdByPurchaseOf(item: DocumentSnapshot): Boolean = shouldRemovePantryEntry(
+        entryShoppingItemId = getString(FIELD_PANTRY_SHOPPING_ITEM_ID),
+        entryCreatedAt = getTimestamp("createdAt")?.toDate()?.toInstant(),
+        itemId = item.id,
+        itemPurchasedAt = item.getTimestamp(FIELD_PURCHASED_AT)?.toDate()?.toInstant(),
+    )
 
     private fun requireVerifiedUser(): AuthUser {
         val user = authRepository.currentUser.value
