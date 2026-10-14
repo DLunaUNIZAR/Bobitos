@@ -298,6 +298,7 @@ class MealsViewModel @Inject constructor(
     // ingrediente reconocido, entra en la despensa, como al marcar en la Compra), quita de la despensa lo que se ha
     // acabado y, si se pide, lo apunta a la compra. El diálogo sigue abierto hasta que se escribe: si falla, no se ha
     // escrito nada y conserva lo marcado.
+    // Si la lista ha cambiado entretanto, basta con volver a pulsar «Listo» (toCookedUiMessage).
     fun confirmCooked(choice: CookedChoice) {
         val spaceId = observedSpaceId ?: return
         val writes = mutableUiState.value.cooked?.writesFor(choice) ?: return
@@ -305,7 +306,7 @@ class MealsViewModel @Inject constructor(
             mutableUiState.update { it.copy(cooked = null) }
             return
         }
-        runAction(MealUiMessage.CookedReviewApplied) {
+        runAction(MealUiMessage.CookedReviewApplied, toMessage = Throwable::toCookedUiMessage) {
             val needsCatalog = writes.crossOff.isNotEmpty() || writes.restockNames.isNotEmpty()
             val data = if (needsCatalog) ingredientData() else IngredientShoppingData()
             // «A la compra» sobre la lista del servidor: con una caché vieja se duplicaría el artículo.
@@ -384,7 +385,12 @@ class MealsViewModel @Inject constructor(
         }
     }
 
-    private fun runAction(successNotice: MealUiMessage?, editor: Boolean = false, action: suspend () -> Unit) {
+    private fun runAction(
+        successNotice: MealUiMessage?,
+        editor: Boolean = false,
+        toMessage: (Throwable) -> MealUiMessage = Throwable::toUiMessage,
+        action: suspend () -> Unit,
+    ) {
         if (mutableUiState.value.isSaving) return
         mutableUiState.update {
             it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
@@ -398,7 +404,7 @@ class MealsViewModel @Inject constructor(
                 }
                 .onFailure { error ->
                     if (error is CancellationException) throw error
-                    showError(error.toUiMessage(), editor)
+                    showError(toMessage(error), editor)
                 }
         }
     }
@@ -409,6 +415,18 @@ private fun Throwable.toUiMessage(): MealUiMessage = when (this) {
     is ShoppingRepositoryException -> failure.toUiMessage()
     is SaveTimeoutException -> MealUiMessage.SaveTimeout
     else -> MealUiMessage.UnexpectedError
+}
+
+// «Listo» en «Has cocinado …»: si un artículo que se vuelve a apuntar ha cambiado o se ha borrado, no se ha
+// escrito nada y basta con volver a pulsar «Listo», que vuelve a leer la lista. Los demás errores, como en el resto
+// de Comidas.
+private fun Throwable.toCookedUiMessage(): MealUiMessage {
+    val failure = (this as? ShoppingRepositoryException)?.failure
+    return if (failure == ShoppingFailure.ItemChanged || failure == ShoppingFailure.ItemNotFound) {
+        MealUiMessage.CookedShoppingChanged
+    } else {
+        toUiMessage()
+    }
 }
 
 private fun MealFailure.toUiMessage(): MealUiMessage = when (this) {
@@ -430,11 +448,10 @@ private fun ShoppingFailure.toUiMessage(): MealUiMessage = when (this) {
     ShoppingFailure.SpaceNotFound -> MealUiMessage.SpaceNotFound
     ShoppingFailure.PermissionDenied -> MealUiMessage.PermissionDenied
     ShoppingFailure.Network -> MealUiMessage.NetworkError
-    // En Comidas, ItemNotFound solo llega de «A la compra» al cocinar: un comprado que se vuelve a apuntar y otro miembro
-    // ha borrado mientras tanto.
-    ShoppingFailure.ItemChanged,
+    // La revisión de «Añadir a la compra» convierte ItemNotFound en ItemChanged (applySeenWrites); «Listo» al cocinar
+    // elige su propio mensaje (toCookedUiMessage).
+    ShoppingFailure.ItemChanged -> MealUiMessage.ShoppingChanged
     ShoppingFailure.ItemNotFound,
-    -> MealUiMessage.ShoppingChanged
     ShoppingFailure.NameRequired,
     ShoppingFailure.NameTooLong,
     ShoppingFailure.QuantityTooLong,

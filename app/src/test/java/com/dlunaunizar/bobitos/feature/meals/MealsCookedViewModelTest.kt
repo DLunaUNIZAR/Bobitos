@@ -298,9 +298,59 @@ class MealsCookedViewModelTest {
             viewModel.confirmCooked(review.defaultChoice().toggleFinished(pantryId("Leche")))
             advanceUntilIdle()
 
-            assertEquals(MealUiMessage.ShoppingChanged, viewModel.uiState.value.error)
+            assertEquals(MealUiMessage.CookedShoppingChanged, viewModel.uiState.value.error)
             assertSame(review, viewModel.uiState.value.cooked)
         }
+
+    @Test
+    fun `if the list changes while done saves a retry reads it again and writes once`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Leche", "1", "l"))))
+            pantryRepository.serverIds = setOf(pantryId("Leche"))
+            viewModel.observe("home")
+            advanceUntilIdle()
+            viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.DESAYUNO, "Café con leche").copy(recipeId = "r1"))
+            advanceUntilIdle()
+            val review = viewModel.uiState.value.cooked!!
+            val choice = review.defaultChoice().toggleFinished(pantryId("Leche"))
+            shoppingRepository.cookedFailure = ShoppingRepositoryException(ShoppingFailure.ItemChanged)
+
+            viewModel.confirmCooked(choice)
+            advanceUntilIdle()
+
+            assertEquals(MealUiMessage.CookedShoppingChanged, viewModel.uiState.value.error)
+            assertSame(review, viewModel.uiState.value.cooked)
+            assertFalse(viewModel.uiState.value.isSaving)
+            val readsAfterFailure = shoppingRepository.currentItemsCalls
+
+            shoppingRepository.cookedFailure = null
+            viewModel.confirmCooked(choice)
+            advanceUntilIdle()
+
+            assertEquals(readsAfterFailure + 1, shoppingRepository.currentItemsCalls)
+            assertEquals(1, shoppingRepository.cookedCalls.size)
+            assertNull(viewModel.uiState.value.cooked)
+            assertNull(viewModel.uiState.value.error)
+            assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.notice)
+        }
+
+    @Test
+    fun `any other failure of done keeps its own message`() = runTest(mainDispatcherRule.testDispatcher) {
+        recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Leche", "1", "l"))))
+        pantryRepository.serverIds = setOf(pantryId("Leche"))
+        viewModel.observe("home")
+        advanceUntilIdle()
+        viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.DESAYUNO, "Café con leche").copy(recipeId = "r1"))
+        advanceUntilIdle()
+        val review = viewModel.uiState.value.cooked!!
+        shoppingRepository.cookedFailure = ShoppingRepositoryException(ShoppingFailure.PermissionDenied)
+
+        viewModel.confirmCooked(review.defaultChoice().toggleFinished(pantryId("Leche")))
+        advanceUntilIdle()
+
+        assertEquals(MealUiMessage.PermissionDenied, viewModel.uiState.value.error)
+        assertSame(review, viewModel.uiState.value.cooked)
+    }
 
     @Test
     fun `what has finished goes on the list with the catalog name`() = runTest(mainDispatcherRule.testDispatcher) {

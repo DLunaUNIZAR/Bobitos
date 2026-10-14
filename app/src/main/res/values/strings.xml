@@ -421,6 +421,7 @@
     <string name="meals_error_invalid_participants">La selección de comensales no es válida.</string>
     <string name="meals_error_not_found">No se encontró la comida.</string>
     <string name="meals_error_shopping_changed">La lista de la compra ha cambiado mientras la revisabas. Vuelve a añadir los ingredientes.</string>
+    <string name="meals_error_cooked_shopping_changed">La lista de la compra ha cambiado mientras guardabas. No se ha guardado nada: vuelve a pulsar «Listo».</string>
     <string name="meals_notice_added">Comida añadida</string>
     <string name="meals_notice_updated">Comida actualizada</string>
     <string name="meals_notice_deleted">Comida eliminada</string>

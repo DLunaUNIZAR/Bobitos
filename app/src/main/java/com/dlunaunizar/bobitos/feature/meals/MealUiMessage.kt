@@ -14,6 +14,7 @@ enum class MealUiMessage {
     NetworkError,
     UnexpectedError,
     ShoppingChanged,
+    CookedShoppingChanged,
     SaveTimeout,
     MealAdded,
     MealUpdated,
