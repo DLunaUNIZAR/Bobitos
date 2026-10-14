@@ -1,11 +1,13 @@
 package com.dlunaunizar.bobitos.feature.meals
 
+import android.os.Parcelable
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.pantryId
 import com.dlunaunizar.bobitos.core.model.shoppingMatchKey
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
 import com.dlunaunizar.bobitos.feature.common.pantryEntryFor
+import kotlinx.parcelize.Parcelize
 
 // Diálogo «Has cocinado …» (spec 2026-10-13-despensa-design, §3c).
 
@@ -18,8 +20,12 @@ data class CookedPantryRow(val id: String, val name: String)
  */
 data class CookedReview(val mealName: String, val crossOff: List<ShoppingItem>, val finished: List<CookedPantryRow>)
 
-/** Lo marcado en el diálogo: los artículos a tachar, lo que se ha acabado y si se apunta a la compra. */
-data class CookedChoice(val crossOffIds: Set<String>, val finishedIds: Set<String>, val restock: Boolean)
+/**
+ * Lo marcado en el diálogo: los artículos a tachar, lo que se ha acabado y si se apunta a la compra. Parcelable para
+ * que sobreviva a una rotación.
+ */
+@Parcelize
+data class CookedChoice(val crossOffIds: Set<String>, val finishedIds: Set<String>, val restock: Boolean) : Parcelable
 
 /** Lo que hay que escribir al pulsar «Listo». */
 internal data class CookedWrites(

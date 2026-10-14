@@ -16,7 +16,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,7 +30,8 @@ import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 
 // «Has cocinado …»: tachar de la compra (marcado), «¿Se ha acabado algo?» (sin marcar) y «Apuntar a la compra lo que se
 // ha acabado» (marcado; solo se puede tocar si algo se ha marcado como acabado). Mientras se guarda, «Listo» no se
-// puede pulsar; si falla, el error sale dentro y lo marcado se conserva (el diálogo sigue con la misma revisión).
+// puede pulsar; si falla, el error sale dentro y lo marcado se conserva (el diálogo sigue con la misma revisión),
+// también al girar el móvil.
 @Composable
 internal fun CookedDialog(
     review: CookedReview,
@@ -39,7 +40,8 @@ internal fun CookedDialog(
     onConfirm: (CookedChoice) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var choice by remember(review) { mutableStateOf(review.defaultChoice()) }
+    // Sobrevive a una rotación; con otra revisión, vuelve a lo de por defecto.
+    var choice by rememberSaveable(review) { mutableStateOf(review.defaultChoice()) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.meals_cooked_title, review.mealName)) },
