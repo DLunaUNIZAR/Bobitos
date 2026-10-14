@@ -357,15 +357,15 @@ git commit -m "fix(comidas): «Listo» mira la lista justo antes de escribir y n
        createdBy: "demo-owner", createdByName: "David Demo", createdAt: FieldValue.serverTimestamp(),
        updatedBy: "demo-owner", updatedAt: FieldValue.serverTimestamp(),
      });
-     // pantryId("Arroz") = "arroz"
-     await db.collection("spaces").doc("demo-home").collection("pantryItems").doc("arroz").set({
+     // pantryId("Arroz") = "arroc" (ingredientKey cambia la z final por c)
+     await db.collection("spaces").doc("demo-home").collection("pantryItems").doc("arroc").set({
        name: "Arroz", category: null, createdBy: "demo-owner", createdAt: FieldValue.serverTimestamp(), shoppingItemId: null,
      });
      console.log("usuario demo-owner, receta «Arroz con leche» y «Arroz» en la despensa listos");
      ```
 
   5. Instala la app debug: `export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" && ./gradlew :app:installDebug`.
-- **Recorrido en la app real.** Inicia sesión con `david@bobitos.invalid` / `bobitos123` y haz capturas de cada paso en `SCRATCH/e2e/`. Si en el paso 1 «¿Se ha acabado algo?» no ofrece «Arroz», el id de la despensa no es `arroz`: sácalo leyendo `pantryId`, `slug` y `shoppingMatchKey` (`APP/core/model/`), corrige `setup.mjs` y repite.
+- **Recorrido en la app real.** Inicia sesión con `david@bobitos.invalid` / `bobitos123` y haz capturas de cada paso en `SCRATCH/e2e/`. Si en el paso 1 «¿Se ha acabado algo?» no ofrece «Arroz», el id de la despensa no es `arroc`: sácalo leyendo `pantryId`, `slug` y `shoppingMatchKey` (`APP/core/model/`), corrige `setup.mjs` y repite.
   1. **«Listo» que añade un artículo (la lectura dentro de la transacción, con el SDK real):**
      - Casa de prueba → Comidas → «Nueva comida» → «Elegir de una receta» → «Arroz con leche» → «Guardar».
      - En la tarjeta, «Marcar como cocinada». Sale «Has cocinado Arroz con leche», con «Leche» en «Tachar de la compra» y «Arroz» en «¿Se ha acabado algo?».
