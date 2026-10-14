@@ -4,17 +4,30 @@ Menores que las revisiones de cada rama dejaron sin arreglar. Cada línea dice s
 
 Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalogo-ejercicios-wger`) se cerraron en la rama `agent/menores-aplazados` (plan `docs/superpowers/plans/2026-10-10-menores-aplazados.md`).
 
+## 2026-10-14 — `agent/menores-despensa-recetas`
+
+- **Efecto visible (raro):** dentro de «Has cocinado …», el error «La lista de la compra ha cambiado mientras la revisabas. Vuelve a añadir los ingredientes.» da una instrucción equivocada: lo que hay que hacer es volver a pulsar «Listo». Si se hace caso y se cancela, se pierde lo marcado. Solo sale si otro miembro cambia lo que se vuelve a apuntar en los milisegundos entre leer la lista y escribir (`meals_error_shopping_changed`, `MealsViewModel.toUiMessage`).
+- **Efecto visible (accesibilidad):** cuando «Listo» falla, el lector de pantalla no anuncia el error que sale dentro del diálogo. Falta `liveRegion = LiveRegionMode.Polite`, como en `BobitosFormSheet` (`CookedDialog.kt`).
+- **Efecto visible (previo):** al girar el móvil con «Has cocinado …» abierto se pierde lo marcado, porque las casillas viven en `remember(review)` y no en `rememberSaveable` (`CookedDialog.kt`).
+- **Efecto visible (raro):** «Listo» espera al catálogo (hasta 5 s si aún no ha llegado) y después lee la lista del servidor, una cosa detrás de otra; podrían ir a la vez (`MealsViewModel.confirmCooked`).
+- **Efecto visible (sin confirmar; visto una vez en el recorrido del emulador):** tras girar a horizontal y volver a vertical con el selector «Elegir receta» abierto, al elegir la receta la hoja «Nueva comida» quedó invisible pero activa: la pantalla parecía libre y un toque abría «¿Descartar los cambios?». No se reprodujo en otros 4 intentos.
+- **Interno:** el comentario de la llamada a `CookedDialog` dice que el error no sale en el aviso de la pantalla, y sí sale (`MealsFeedback`) (`MealsScreen.kt`).
+- **Interno:** el KDoc de `restockFromPantry` dice que la usa Comidas; ya no (`PantryShopping.kt`).
+- **Interno:** `IngredientReviewUiTest` mide a 280 dp, el mínimo del contenedor de un `AlertDialog`; el contenido real ronda los 232 dp. Corregir el comentario o medir a 232 dp.
+- **Interno:** `ItemNotFound` → «La lista ha cambiado» está en el mapeo general de Comidas; iría mejor en la llamada a `applyCooked`, como hace `applySeenWrites` (`MealsViewModel.toUiMessage`).
+- **Interno:** `applyCooked` repite la lógica de borrado de `FirestorePantryRepository.remove` (quitar vacíos, `distinct`, borrar) (`FirestoreShoppingRepository.kt`).
+
 ## 2026-10-14 — `agent/despensa-recetas`
 
-- **Efecto visible (raro):** «Listo» en «Has cocinado …» no es atómico. Tacha con una transacción por artículo, en serie, y después quita de la despensa y apunta a la compra. Si falla un paso (otro miembro borró un artículo, o se corta la conexión a mitad), lo que viene detrás no se hace: sale el error genérico, el diálogo ya se ha cerrado y lo marcado se pierde. Con muchos pendientes, además, tarda (`MealsViewModel.confirmCooked`).
-- **Efecto visible:** la línea de lo que falta usa siempre «y»: «Faltan 2: sal y higos». Delante de /i/ va «e» (`pantryLine`, `recipes_pantry_*` en `strings.xml`).
-- **Efecto visible:** «Apuntar a la compra lo que se ha acabado», en el diálogo de cocinar, apunta el nombre tal como está en la receta («aceite de oliva virgen extra», en minúsculas), no el nombre del catálogo, que sí usa «Se acabó» en la Despensa (`CookedReview.kt`; `pantryEntryFor(name, data)?.name ?: name`).
-- **Efecto visible:** al abrir la revisión de «Añadir a la compra» y al cocinar, la lista y la despensa se leen del servidor una después de otra: es un viaje de ida y vuelta más de espera. Se dejó así por el ruling 2 del plan (`MealsViewModel`, `RecipesViewModel`).
-- **Efecto visible (previo, visto en el recorrido del emulador):** en la fila de una cosa nueva de la revisión, «Marca (opcional)» y «Sin especificar» se parten en dos líneas por falta de ancho.
-- **Efecto visible (previo, visto en el recorrido del emulador):** el selector «Elegir receta» de Comidas se cierra al girar el móvil y se vuelve a la hoja «Nueva comida».
+- ~~**Efecto visible (raro):** «Listo» en «Has cocinado …» no es atómico. Tacha con una transacción por artículo, en serie, y después quita de la despensa y apunta a la compra. Si falla un paso (otro miembro borró un artículo, o se corta la conexión a mitad), lo que viene detrás no se hace: sale el error genérico, el diálogo ya se ha cerrado y lo marcado se pierde. Con muchos pendientes, además, tarda (`MealsViewModel.confirmCooked`).~~ **Resuelto** en `agent/menores-despensa-recetas`.
+- ~~**Efecto visible:** la línea de lo que falta usa siempre «y»: «Faltan 2: sal y higos». Delante de /i/ va «e» (`pantryLine`, `recipes_pantry_*` en `strings.xml`).~~ **Resuelto** en `agent/menores-despensa-recetas`.
+- ~~**Efecto visible:** «Apuntar a la compra lo que se ha acabado», en el diálogo de cocinar, apunta el nombre tal como está en la receta («aceite de oliva virgen extra», en minúsculas), no el nombre del catálogo, que sí usa «Se acabó» en la Despensa (`CookedReview.kt`; `pantryEntryFor(name, data)?.name ?: name`).~~ **Resuelto** en `agent/menores-despensa-recetas`.
+- ~~**Efecto visible:** al abrir la revisión de «Añadir a la compra» y al cocinar, la lista y la despensa se leen del servidor una después de otra: es un viaje de ida y vuelta más de espera. Se dejó así por el ruling 2 del plan (`MealsViewModel`, `RecipesViewModel`).~~ **Resuelto** en `agent/menores-despensa-recetas`.
+- ~~**Efecto visible (previo, visto en el recorrido del emulador):** en la fila de una cosa nueva de la revisión, «Marca (opcional)» y «Sin especificar» se parten en dos líneas por falta de ancho.~~ **Resuelto** en `agent/menores-despensa-recetas`.
+- ~~**Efecto visible (previo, visto en el recorrido del emulador):** el selector «Elegir receta» de Comidas se cierra al girar el móvil y se vuelve a la hoja «Nueva comida».~~ **Resuelto** en `agent/menores-despensa-recetas`.
 - **Interno:** Comidas escucha la despensa todo el tiempo que observa el espacio (ruling 9), aunque el chip solo se usa en el selector. Son lecturas de más; bastaría con escuchar mientras el selector está abierto, como hace la Compra con el editor (`MealsViewModel.observe`).
 - **Interno:** `@StringRes` sin destino en `PantryLine` (`RecipePantry.kt`) y en `ReviewHint` (`IngredientReview.kt`, de antes) provoca un aviso del compilador. Se arregla con `@param:StringRes`, como en el resto del proyecto.
-- **Interno:** faltan dos tests: `PantryFailure.toUiMessage()` de Comidas cuando `remove` falla en «Listo», y un «Listo» que tacha y a la vez marca algo como acabado, comprobando el orden de las escrituras.
+- ~~**Interno:** faltan dos tests: `PantryFailure.toUiMessage()` de Comidas cuando `remove` falla en «Listo», y un «Listo» que tacha y a la vez marca algo como acabado, comprobando el orden de las escrituras.~~ **Ya no aplica** tras `agent/menores-despensa-recetas`: Comidas ya no llama a `remove` y «Listo» es una sola escritura, cuyo contenido comprueba `MealsCookedViewModelTest`.
 - **Interno:** `currentIdsOrNull` y el `runCatching` de `markCooked` repiten `loadOrNull` de `SpaceHomeViewModel`. Se podría mover a `feature/common` y usar en los tres sitios.
 - **Interno:** Recetas, Comidas y la Compra escriben a mano el mismo listener de la despensa (`Job`, `cancel`, `catch`, reinicio), con pequeñas diferencias. Un helper común lo unificaría.
 
