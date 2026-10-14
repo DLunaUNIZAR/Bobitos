@@ -43,7 +43,7 @@ Un documento por cada cosa que hay en casa. Que exista es «hay»; «Se acabó»
 | `createdAt` | timestamp | Hora del servidor. |
 | `shoppingItemId` | string ≤128 o `null` | El artículo de la Compra cuya compra lo trajo; `null` si se añadió a mano o al cocinar. |
 
-- **Id:** `pantryId(name) = slug(shoppingMatchKey(name))` (función pura nueva en `core/model`). «Tomates» y «tomate» dan `tomate`; «Aceite de oliva» da `aceite-oliva`. Si queda vacío, no se puede apuntar (el editor lo impide). Mismo id → no hay duplicados y apuntar lo que ya está no hace nada.
+- **Id:** `pantryId(name) = slug(shoppingMatchKey(name))` (función pura nueva en `core/model`). «Tomates» y «tomate» dan `tomat`; «Aceite de oliva» da `aceit-oliva` (la clave tolerante quita la «-e» final y las palabras vacías, y ordena las palabras; los ids no se ven en la app). Si queda vacío, no se puede apuntar (el editor lo impide). Mismo id → no hay duplicados y apuntar lo que ya está no hace nada.
 - **Sin nombre de quien lo apuntó:** la pantalla no lo muestra, así que borrar la cuenta no tiene nada que anonimizar aquí. El uid se queda, como en las demás colecciones del espacio.
 - **Nunca se edita:** se crea o se borra.
 
