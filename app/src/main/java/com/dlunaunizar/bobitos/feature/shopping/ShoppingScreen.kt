@@ -80,6 +80,7 @@ import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.core.model.findShoppingMatch
 import com.dlunaunizar.bobitos.core.model.ingredientKey
+import com.dlunaunizar.bobitos.core.model.isInPantry
 import com.dlunaunizar.bobitos.feature.common.BrandStorePicker
 import com.dlunaunizar.bobitos.feature.common.BrandStoreSelection
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
@@ -352,6 +353,7 @@ fun ShoppingScreen(
             errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
                 ?.let { stringResource(it.stringResourceId) },
             resolveDuplicate = pendingMatch,
+            pantryIds = state.pantryIds,
             ingredientData = state.ingredientData,
             suggestions = { queryText -> catalogSuggestions(state.ingredientData.ingredients, queryText) },
             onDismiss = { editorVisible = false },
@@ -608,6 +610,22 @@ private fun ShoppingItemMenu(
     }
 }
 
+// Bajo el nombre: el error; si no hay, «Ya en la lista» (con su cantidad) y «Hay en la despensa».
+@Composable
+private fun NameHint(error: ShoppingUiMessage?, duplicate: ShoppingItem?, inPantry: Boolean) {
+    if (error != null) {
+        Text(stringResource(error.stringResourceId))
+        return
+    }
+    val parts = listOfNotNull(
+        duplicate?.let { listed ->
+            stringResource(R.string.shopping_already_in_list) + (listed.quantity?.let { " · $it" } ?: "")
+        },
+        if (inPantry) stringResource(R.string.shopping_in_pantry) else null,
+    )
+    if (parts.isNotEmpty()) Text(parts.joinToString(" · "))
+}
+
 @Composable
 private fun ShoppingItemEditor(
     item: ShoppingItem?,
@@ -615,6 +633,7 @@ private fun ShoppingItemEditor(
     saving: Boolean,
     errorMessage: String?,
     resolveDuplicate: (String) -> ShoppingItem?,
+    pantryIds: Set<String>,
     ingredientData: IngredientShoppingData,
     suggestions: (String) -> List<String>,
     onDismiss: () -> Unit,
@@ -632,8 +651,9 @@ private fun ShoppingItemEditor(
     }
     LaunchedEffect(context) { draft = draft.withContext(context) }
     val validation = ShoppingValidation.validate(name, quantity, notes, draft.savedBrand(context))
-    // Solo al crear: avisa si ya hay un producto con ese nombre en la lista.
+    // Solo al crear: avisa si ya hay un producto con ese nombre en la lista y si hay en la despensa (no bloquea nada).
     val duplicate = if (item == null) resolveDuplicate(name) else null
+    val inPantry = item == null && isInPantry(name, pantryIds)
     val nameErrorMessage = validation?.takeIf {
         it == ShoppingUiMessage.NameRequired || it == ShoppingUiMessage.NameTooLong
     }
@@ -653,15 +673,7 @@ private fun ShoppingItemEditor(
             value = name,
             onValueChange = { draft = draft.copy(name = it) },
             label = { Text(stringResource(R.string.shopping_name_label)) },
-            supportingText = {
-                when {
-                    nameErrorMessage != null -> Text(stringResource(nameErrorMessage.stringResourceId))
-                    duplicate != null -> Text(
-                        stringResource(R.string.shopping_already_in_list) +
-                            (duplicate.quantity?.let { " · $it" } ?: ""),
-                    )
-                }
-            },
+            supportingText = { NameHint(nameErrorMessage, duplicate, inPantry) },
             isError = nameError,
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),

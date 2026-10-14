@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.feature.shopping
 import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.PantryEntry
+import com.dlunaunizar.bobitos.feature.common.FakePantryRepository
 import com.dlunaunizar.bobitos.feature.common.ingredientShoppingSource
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientBrandRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientPrefsRepository
@@ -40,6 +41,7 @@ class ShoppingViewModelPantryTest {
             FakeIngredientPrefsRepository(),
             personalRepository,
         ),
+        FakePantryRepository(),
     )
 
     @Test

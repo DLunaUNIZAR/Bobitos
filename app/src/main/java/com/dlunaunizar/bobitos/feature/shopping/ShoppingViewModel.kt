@@ -10,6 +10,7 @@ import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
+import com.dlunaunizar.bobitos.core.model.PantryItem
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.core.model.findByKey
@@ -17,6 +18,7 @@ import com.dlunaunizar.bobitos.core.model.findShoppingMatch
 import com.dlunaunizar.bobitos.data.repository.IngredientFailure
 import com.dlunaunizar.bobitos.data.repository.IngredientRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientRepositoryException
+import com.dlunaunizar.bobitos.data.repository.PantryRepository
 import com.dlunaunizar.bobitos.data.repository.PersonalIngredientRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
@@ -50,6 +52,7 @@ class ShoppingViewModel @Inject constructor(
     private val ingredientRepository: IngredientRepository,
     private val personalIngredients: PersonalIngredientRepository,
     private val ingredientSource: IngredientShoppingSource,
+    private val pantryRepository: PantryRepository,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(ShoppingUiState())
     val uiState: StateFlow<ShoppingUiState> = mutableUiState.asStateFlow()
@@ -92,17 +95,28 @@ class ShoppingViewModel @Inject constructor(
         observedSpaceId = null
     }
 
-    /** Ingredientes, marcas y preferencias: solo mientras el editor de ítem está abierto. */
+    /** Ingredientes, marcas, preferencias y la despensa: solo mientras el editor de ítem está abierto. */
     fun startIngredientAssist() {
         if (catalogJob?.isActive == true) return
         // Sin datos viejos de un ViewModel restaurado: los valores por defecto parten de lo recién leído.
-        mutableUiState.update { it.copy(ingredientData = IngredientShoppingData()) }
+        mutableUiState.update { it.copy(ingredientData = IngredientShoppingData(), pantryIds = emptySet()) }
+        val spaceId = observedSpaceId
         catalogJob = viewModelScope.launch {
+            // La despensa, para la pista del alta; si no se puede leer, no hay pista.
+            if (spaceId != null) {
+                launch {
+                    pantryRepository.items(spaceId)
+                        .catch { emit(emptyList()) }
+                        .collect { items ->
+                            mutableUiState.update { it.copy(pantryIds = items.mapTo(HashSet(), PantryItem::id)) }
+                        }
+                }
+            }
             ingredientSource.data().collect { data -> mutableUiState.update { it.copy(ingredientData = data) } }
         }
     }
 
-    /** Suelta el listener del catálogo al cerrar el editor (conserva lo ya cargado). */
+    /** Suelta los listeners del catálogo y de la despensa al cerrar el editor (conserva lo ya cargado). */
     fun stopIngredientAssist() {
         catalogJob?.cancel()
         catalogJob = null

@@ -18,6 +18,8 @@ data class ShoppingUiState(
     // Ingredientes, marcas y preferencias, cargados de forma perezosa mientras el editor de ítem está
     // abierto: autocompletan el nombre y proponen marca y tienda.
     val ingredientData: IngredientShoppingData = IngredientShoppingData(),
+    // Ids de la despensa del espacio, escuchados mientras el editor está abierto: la pista «Hay en la despensa» del alta.
+    val pantryIds: Set<String> = emptySet(),
     // Aviso de artículo ya pendiente al crear uno («Sumar cantidad» / «No añadir»); null si no hay.
     val duplicate: ShoppingDuplicate? = null,
 )

@@ -8,14 +8,18 @@ import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.PantryEntry
+import com.dlunaunizar.bobitos.core.model.PantryItem
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.repository.IngredientFailure
 import com.dlunaunizar.bobitos.data.repository.IngredientRepositoryException
+import com.dlunaunizar.bobitos.data.repository.PantryFailure
+import com.dlunaunizar.bobitos.data.repository.PantryRepositoryException
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
 import com.dlunaunizar.bobitos.data.repository.ShoppingWrite
+import com.dlunaunizar.bobitos.feature.common.FakePantryRepository
 import com.dlunaunizar.bobitos.feature.common.ingredientShoppingSource
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientBrandRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientPrefsRepository
@@ -50,12 +54,47 @@ class ShoppingViewModelTest {
     private val personalRepository = FakePersonalIngredientRepository()
     private val brandRepository = FakeIngredientBrandRepository()
     private val prefsRepository = FakeIngredientPrefsRepository()
+    private val pantryRepository = FakePantryRepository()
     private val viewModel = ShoppingViewModel(
         repository,
         ingredientRepository,
         personalRepository,
         ingredientShoppingSource(ingredientRepository, brandRepository, prefsRepository, personalRepository),
+        pantryRepository,
     )
+
+    @Test
+    fun `the editor assist listens to the pantry of the space only while it is open`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            pantryRepository.itemsState.value = listOf(PantryItem("tomat", "Tomate", null, null))
+            viewModel.observe("home")
+            advanceUntilIdle()
+            assertEquals(emptySet<String>(), viewModel.uiState.value.pantryIds)
+            assertNull(pantryRepository.observedSpaceId)
+
+            viewModel.startIngredientAssist()
+            advanceUntilIdle()
+            assertEquals("home", pantryRepository.observedSpaceId)
+            assertEquals(setOf("tomat"), viewModel.uiState.value.pantryIds)
+
+            viewModel.stopIngredientAssist()
+            pantryRepository.itemsState.value = emptyList()
+            advanceUntilIdle()
+            assertEquals(setOf("tomat"), viewModel.uiState.value.pantryIds)
+        }
+
+    @Test
+    fun `a pantry that cannot be read gives no hint and no error`() = runTest(mainDispatcherRule.testDispatcher) {
+        pantryRepository.itemsFailure = PantryRepositoryException(PantryFailure.PermissionDenied)
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.startIngredientAssist()
+        advanceUntilIdle()
+
+        assertEquals(emptySet<String>(), viewModel.uiState.value.pantryIds)
+        assertNull(viewModel.uiState.value.error)
+    }
 
     @Test
     fun `observes items for active space`() = runTest(mainDispatcherRule.testDispatcher) {
