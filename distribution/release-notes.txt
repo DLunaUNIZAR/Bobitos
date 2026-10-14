@@ -1,25 +1,32 @@
-Beta de Bobitos — una Compra más fiable al añadir desde recetas y comidas, y arreglos en el Recetario.
+Beta de Bobitos — llega la Despensa: apunta lo que hay en casa y la Compra, las Comidas y el Recetario lo tienen en cuenta.
 
 Novedades desde la beta anterior:
 
+Despensa (nueva, en «Más»)
+- Apunta lo que hay en casa, compartido con todo el espacio. Solo indica si hay algo o no: sin cantidades ni caducidades.
+- «Llenar la despensa» permite marcar varios ingredientes del catálogo a la vez o escribir uno a mano. La lista se agrupa por categorías y tiene buscador.
+- Lo que marcas como comprado en la Compra entra solo en la despensa si es un ingrediente; si lo desmarcas, sale.
+- «Se acabó» quita algo de la despensa y el aviso ofrece «A la compra» para apuntarlo.
+- «¿Qué cocino?» abre el Recetario con las recetas que puedes hacer con lo que hay.
+
 Compra
-- Si un producto de la receta o de la comida ya estaba comprado, sale como «Ya comprado» con «Omitir» marcado; elige «Volver a apuntar» para añadirlo otra vez.
-- Si otro miembro cambia, marca o borra un producto mientras lo añades, no se guarda nada y se avisa de que la lista ha cambiado; al volver a intentarlo se parte de la lista nueva. Lo que añades desde una receta o una semana se guarda entero o no se guarda, y reintentar no suma dos veces.
-- «Sumar cantidad» rellena las notas que el producto tenía vacías con lo que has escrito, y también la tienda y la marca, sin mezclar nunca una tienda con la marca de otra.
-- Las unidades concuerdan con la cantidad: «1 cucharada sopera», «2 dientes de ajo», «3 limones». Las abreviaturas (cl, mg, cc…) no cambian.
-- El aviso «Ya en la lista» ya no muestra «—» cuando falta una cantidad, no corta la cantidad a mitad de palabra y, si la suma queda demasiado larga, lo explica y no deja sumar.
-- Si la lista no se ha podido leer, se dice en lugar de añadir a ciegas o quedarse esperando; el editor vuelve a cargarla para que el siguiente «Guardar» funcione.
-- Una marca de más de 60 caracteres se marca en su campo y no deja confirmar, en lugar de fallar toda la revisión.
+- Al añadir una receta o una comida, lo que ya está en la despensa sale como «Hay en la despensa» con «Omitir» marcado.
+- Al apuntar a mano algo que está en la despensa, se avisa.
+- Si la lista no se ha podido leer, se dice y se ofrece «Reintentar».
+- Una marca de más de 60 caracteres no deja guardar el producto.
+- Al sumar cantidades, el singular sale bien: «1 limón», «1 nuez», «1 pan alemán».
 
 Comidas
-- Al marcar una comida como cocinada, los productos que se ofrecen para tachar salen de la lista de la compra al día.
+- Al marcar una comida como cocinada, «Has cocinado …» pregunta también «¿Se ha acabado algo?»: lo que marques sale de la despensa y, si quieres, se apunta a la compra.
+- «Listo» lo guarda todo a la vez. Si otro miembro cambia la lista mientras tanto, no se guarda nada: el aviso nombra el producto que ha cambiado, si se sabe cuál, y lo marcado se conserva para volver a pulsar «Listo».
+- Lo marcado en «Has cocinado …» y el selector «Elegir receta» siguen ahí al girar el móvil.
+- El selector «Elegir receta» tiene el filtro «Con lo que hay».
 
 Recetario
-- «Deshacer» tras borrar una receta solo aparece si el borrado ha ido bien, y la recupera tal como era, también si era común.
-- Las recetas antiguas sin autor ya no muestran un código interno en su lugar.
-- El buscador va por palabras y no distingue tildes ni mayúsculas: «lentejas coco» encuentra «Lentejas al curry con leche de coco».
-- En el editor, los errores de raciones, tiempo y pasos demasiado largos se marcan siempre en su campo; TalkBack dice de qué paso son «Subir», «Bajar» y «Quitar»; y al quitar un ingrediente el foco no salta a otro campo.
-- Al importar una receta de una web, los pasos se separan mejor.
-- «Lasaña de carne» dice ahora «Salpimienta.».
+- Filtro «Con lo que hay»: solo salen las recetas con ingredientes, primero las que tienen menos por comprar, y cada una dice lo que falta («Falta: huevos», «Faltan 2: sal e higos»).
+
+Espacios
+- Si dejas de ser miembro de un espacio mientras lo usas, la app vuelve a «Espacios» sin mostrar un error.
+- Al borrar un espacio se borran también sus notas, sus sesiones de deporte y su despensa.
 
 Comunica cualquier error indicando el modelo del dispositivo, la versión de Android y los pasos para reproducirlo.
