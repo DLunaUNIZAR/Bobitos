@@ -581,6 +581,23 @@ service cloud.firestore {
         && request.resource.data.createdByName == "Usuario eliminado";
     }
 
+    function validNewPantryItem(spaceId, itemId) {
+      return isActiveMember(spaceId)
+        && itemId.size() <= 120
+        && itemId.matches('^[a-z0-9]+(-[a-z0-9]+)*$')
+        && request.resource.data.keys().hasAll(["name", "createdBy", "createdAt"])
+        && request.resource.data.keys().hasOnly(["name", "category", "createdBy", "createdAt", "shoppingItemId"])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120
+        && (request.resource.data.get("category", null) == null
+          || (request.resource.data.category is string && request.resource.data.category.size() <= 60))
+        && (request.resource.data.get("shoppingItemId", null) == null
+          || (request.resource.data.shoppingItemId is string && request.resource.data.shoppingItemId.size() <= 128))
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+    }
+
     function validActivityShape() {
       return request.resource.data.keys().hasAll([
         "date", "type", "name", "participantIds", "participantNames",
@@ -701,6 +718,14 @@ service cloud.firestore {
         allow create: if validNewActivity(spaceId);
         allow update: if validActivityUpdate(spaceId)
           || validActivityAnonymization(spaceId);
+        allow delete: if isActiveMember(spaceId);
+      }
+
+      // Despensa: solo «hay» (existe) o «no hay» (no existe). Nunca se edita: se crea o se borra.
+      match /pantryItems/{itemId} {
+        allow read: if isActiveMember(spaceId);
+        allow create: if validNewPantryItem(spaceId, itemId);
+        allow update: if false;
         allow delete: if isActiveMember(spaceId);
       }
 

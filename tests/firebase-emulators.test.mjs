@@ -2716,6 +2716,104 @@ test("un usuario puede anonimizar su nombre en sus notas pero no en las ajenas",
   );
 });
 
+test("todos los miembros apuntan, leen y quitan cosas de la despensa", async () => {
+  await seedSpace("pantry-crud", "pantry-owner", ["pantry-member"]);
+  const member = verifiedFirestore("pantry-member");
+  const owner = verifiedFirestore("pantry-owner");
+  const outsider = verifiedFirestore("pantry-outsider");
+  const reference = doc(member, "spaces", "pantry-crud", "pantryItems", "tomat");
+
+  await assertSucceeds(setDoc(reference, pantryData("pantry-member")));
+  await assertSucceeds(getDoc(doc(owner, "spaces", "pantry-crud", "pantryItems", "tomat")));
+  await assertSucceeds(getDocs(collection(member, "spaces", "pantry-crud", "pantryItems")));
+  await assertFails(getDoc(doc(outsider, "spaces", "pantry-crud", "pantryItems", "tomat")));
+  await assertFails(
+    setDoc(doc(outsider, "spaces", "pantry-crud", "pantryItems", "sal"), pantryData("pantry-outsider", { name: "Sal" })),
+  );
+  await assertFails(deleteDoc(doc(outsider, "spaces", "pantry-crud", "pantryItems", "tomat")));
+  await assertSucceeds(deleteDoc(reference));
+  // Quitar lo que ya no está no falla (otro miembro lo quitó antes).
+  await assertSucceeds(deleteDoc(reference));
+});
+
+test("una entrada de la despensa no se edita: se crea o se quita", async () => {
+  await seedSpace("pantry-update", "pantry-upd-owner");
+  const owner = verifiedFirestore("pantry-upd-owner");
+  const reference = doc(owner, "spaces", "pantry-update", "pantryItems", "tomat");
+  await assertSucceeds(setDoc(reference, pantryData("pantry-upd-owner")));
+
+  await assertFails(updateDoc(reference, { category: "Frutas" }));
+  await assertFails(setDoc(reference, pantryData("pantry-upd-owner", { name: "Tomates" })));
+});
+
+test("la despensa valida la forma, el autor, la hora y el id", async () => {
+  await seedSpace("pantry-schema", "pantry-schema-owner", ["pantry-schema-member"]);
+  const owner = verifiedFirestore("pantry-schema-owner");
+  const at = (id) => doc(owner, "spaces", "pantry-schema", "pantryItems", id);
+
+  await assertSucceeds(setDoc(at("ok"), pantryData("pantry-schema-owner", { category: null, shoppingItemId: "milk" })));
+  await assertSucceeds(
+    setDoc(at("sin-opcionales"), { name: "Sal", createdBy: "pantry-schema-owner", createdAt: serverTimestamp() }),
+  );
+  await assertFails(setDoc(at("vacio"), pantryData("pantry-schema-owner", { name: "" })));
+  await assertFails(setDoc(at("largo"), pantryData("pantry-schema-owner", { name: "a".repeat(121) })));
+  await assertFails(setDoc(at("categoria"), pantryData("pantry-schema-owner", { category: "a".repeat(61) })));
+  await assertFails(setDoc(at("compra"), pantryData("pantry-schema-owner", { shoppingItemId: 7 })));
+  await assertFails(setDoc(at("extra"), pantryData("pantry-schema-owner", { quantity: "1 kg" })));
+  await assertFails(setDoc(at("sin-nombre"), { createdBy: "pantry-schema-owner", createdAt: serverTimestamp() }));
+  await assertFails(setDoc(at("autor"), pantryData("pantry-schema-member")));
+  await assertFails(setDoc(at("hora"), pantryData("pantry-schema-owner", { createdAt: Timestamp.now() })));
+  await assertFails(setDoc(at("Tomate"), pantryData("pantry-schema-owner")));
+  await assertFails(setDoc(at("con espacio"), pantryData("pantry-schema-owner")));
+  await assertFails(setDoc(at("-tomat"), pantryData("pantry-schema-owner")));
+  await assertFails(setDoc(at("a".repeat(121)), pantryData("pantry-schema-owner")));
+});
+
+test("marcar comprado y apuntarlo en la despensa van en la misma transacción, y desmarcar lo quita", async () => {
+  await seedSpace("pantry-purchase", "pantry-buy-owner", ["pantry-buy-member"]);
+  await seedShoppingItem("pantry-purchase", "tomatoes", "pantry-buy-owner", { name: "Tomates" });
+  const member = verifiedFirestore("pantry-buy-member");
+  const item = doc(member, "spaces", "pantry-purchase", "shoppingItems", "tomatoes");
+  const pantry = doc(member, "spaces", "pantry-purchase", "pantryItems", "tomat");
+
+  await assertSucceeds(
+    runTransaction(member, async (transaction) => {
+      await transaction.get(item);
+      await transaction.get(pantry);
+      transaction.update(item, {
+        purchased: true,
+        purchasedBy: "pantry-buy-member",
+        purchasedByName: "pantry-buy-member",
+        purchasedAt: serverTimestamp(),
+        updatedBy: "pantry-buy-member",
+        updatedAt: serverTimestamp(),
+      });
+      transaction.set(
+        pantry,
+        pantryData("pantry-buy-member", { category: "Verduras y hortalizas", shoppingItemId: "tomatoes" }),
+      );
+    }),
+  );
+  assert.equal((await getDoc(pantry)).data().shoppingItemId, "tomatoes");
+
+  await assertSucceeds(
+    runTransaction(member, async (transaction) => {
+      await transaction.get(item);
+      await transaction.get(pantry);
+      transaction.update(item, {
+        purchased: false,
+        purchasedBy: null,
+        purchasedByName: null,
+        purchasedAt: null,
+        updatedBy: "pantry-buy-member",
+        updatedAt: serverTimestamp(),
+      });
+      transaction.delete(pantry);
+    }),
+  );
+  assert.equal((await getDoc(pantry)).exists(), false);
+});
+
 function noteData(userId, overrides = {}) {
   return {
     title: "Nota",
@@ -2726,6 +2824,17 @@ function noteData(userId, overrides = {}) {
     createdAt: serverTimestamp(),
     updatedBy: userId,
     updatedAt: serverTimestamp(),
+    ...overrides,
+  };
+}
+
+function pantryData(userId, overrides = {}) {
+  return {
+    name: "Tomate",
+    category: "Verduras y hortalizas",
+    createdBy: userId,
+    createdAt: serverTimestamp(),
+    shoppingItemId: null,
     ...overrides,
   };
 }

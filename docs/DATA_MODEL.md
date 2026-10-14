@@ -30,6 +30,7 @@ spaces/{spaceId}/shoppingItems/{itemId}
 spaces/{spaceId}/tasks/{taskId}
 spaces/{spaceId}/events/{eventId}
 spaces/{spaceId}/meals/{mealId}
+spaces/{spaceId}/pantryItems/{pantryId}
 recipes/{recipeId}
 routines/{routineId}
 ingredients/{ingredientId}
@@ -236,6 +237,22 @@ convertirlo en responsable.
 Se consultan desde servidor los elementos con `purchased == true` y una transacción vuelve
 a leer cada candidato antes de borrarlo. Así, un producto desmarcado simultáneamente no se
 elimina. Cada ejecución procesa hasta 100 elementos; si quedasen más, se repite la operación.
+
+### Despensa (`spaces/{spaceId}/pantryItems/{pantryId}`)
+
+Lo que hay en casa, compartido por los miembros del espacio. Solo guarda **si hay o no hay**: un documento por cada cosa que hay; «Se acabó» lo borra. Nunca se edita.
+
+```text
+name: string                  # 1–120; el nombre canónico del catálogo si es un ingrediente reconocido
+category: string | null       # ≤60; la del ingrediente (común o personal); null o fuera de las 14 → «Otros»
+createdBy: string             # uid de quien lo apuntó
+createdAt: timestamp          # hora del servidor
+shoppingItemId: string | null # el artículo de la Compra cuya compra lo trajo; null si se apuntó a mano
+```
+
+**Id:** `pantryId(name) = slug(shoppingMatchKey(name))`: «Tomates» y «tomate» dan `tomat`; «Aceite de oliva», `aceit-oliva`. Mismo id → sin duplicados; apuntar lo que ya está no hace nada. Un nombre sin letras ni números no se puede apuntar.
+
+**Reglas:** leen y borran los miembros activos; crear exige la forma (`hasOnly`), `createdBy == auth.uid`, `createdAt == request.time` y un id con formato de slug (≤120); `update` está prohibido.
 
 ## 9. Tareas
 
