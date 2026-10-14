@@ -151,11 +151,9 @@ class FirestoreShoppingRepository @Inject constructor(
         }
     }
 
-    // El artículo sigue como se vio; si otro miembro lo ha cambiado, no se escribe nada de la transacción.
+    // El artículo sigue como se vio; si otro miembro lo ha cambiado o borrado, no se escribe nada de la transacción.
     private fun requireUnchanged(snapshot: DocumentSnapshot, seen: ShoppingItem) {
-        val current = requireItem(snapshot).toShoppingItem()
-            ?: throw ShoppingRepositoryException(ShoppingFailure.ItemNotFound)
-        if (!current.sameContentAs(seen)) throw ShoppingRepositoryException(ShoppingFailure.ItemChanged)
+        staleItemFailure(snapshot.takeIf { it.exists() }?.toShoppingItem(), seen)?.let { throw it }
     }
 
     private fun newItemFields(user: AuthUser, values: ItemValues): Map<String, Any?> = mapOf(
@@ -502,3 +500,14 @@ private fun Throwable.toShoppingRepositoryException(): ShoppingRepositoryExcepti
     },
     cause = this,
 )
+
+/**
+ * El fallo de una escritura sobre [seen] si su artículo ya no está como se vio: [ShoppingFailure.ItemNotFound] si
+ * se ha borrado o no se puede leer ([current] es `null`) y [ShoppingFailure.ItemChanged] si ha cambiado; `null` si
+ * sigue igual. Lleva el nombre de [seen], para poder decir qué artículo ha sido.
+ */
+internal fun staleItemFailure(current: ShoppingItem?, seen: ShoppingItem): ShoppingRepositoryException? = when {
+    current == null -> ShoppingRepositoryException(ShoppingFailure.ItemNotFound, itemName = seen.name)
+    !current.sameContentAs(seen) -> ShoppingRepositoryException(ShoppingFailure.ItemChanged, itemName = seen.name)
+    else -> null
+}

@@ -110,4 +110,13 @@ enum class ShoppingFailure {
     Unknown,
 }
 
-class ShoppingRepositoryException(val failure: ShoppingFailure, cause: Throwable? = null) : Exception(cause)
+/**
+ * Fallo de [ShoppingRepository]. Si una escritura sobre un artículo tal como se vio falla porque otro miembro lo ha
+ * cambiado o borrado ([ShoppingFailure.ItemChanged] o [ShoppingFailure.ItemNotFound]), [itemName] es su nombre tal
+ * como se vio; si no, `null`.
+ */
+class ShoppingRepositoryException(
+    val failure: ShoppingFailure,
+    cause: Throwable? = null,
+    val itemName: String? = null,
+) : Exception(cause)

@@ -308,8 +308,13 @@ class MealsViewModel @Inject constructor(
         }
         runAction(
             MealUiMessage.CookedReviewApplied,
-            // Si se ha pulsado «Cancelar» mientras guardaba, ya no hay «Listo» que volver a pulsar.
-            toMessage = { error -> error.toCookedUiMessage(dialogOpen = mutableUiState.value.cooked != null) },
+            toMessage = { error ->
+                // Qué artículo ha cambiado, para nombrarlo en el diálogo (MealsUiState.cookedErrorItem).
+                val itemName = (error as? ShoppingRepositoryException)?.itemName
+                mutableUiState.update { it.copy(changedItemName = itemName) }
+                // Si se ha pulsado «Cancelar» mientras guardaba, ya no hay «Listo» que volver a pulsar.
+                error.toCookedUiMessage(dialogOpen = mutableUiState.value.cooked != null)
+            },
         ) {
             val needsCatalog = writes.crossOff.isNotEmpty() || writes.restockNames.isNotEmpty()
             // Primero el catálogo (al momento si ya ha llegado; si no, hasta 5 s) y después la lista: «A la compra»

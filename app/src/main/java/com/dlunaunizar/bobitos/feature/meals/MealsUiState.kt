@@ -24,12 +24,19 @@ data class MealsUiState(
     val ingredientReview: List<IngredientReviewRow>? = null,
     // Diálogo «Has cocinado …» tras marcar una comida como cocinada (null = sin diálogo).
     val cooked: CookedReview? = null,
+    // El artículo de la lista que alguien ha cambiado o borrado la última vez que falló «Listo» (null si no se sabe).
+    // Solo cuenta con error = CookedShoppingChanged: se lee a través de cookedErrorItem.
+    val changedItemName: String? = null,
 ) {
     // Lunes de la semana del día enfocado (ISO: día 1 = lunes). Define la ventana observada.
     val weekStart: LocalDate get() = focusedDate.with(ChronoField.DAY_OF_WEEK, 1L)
 
     // Los 7 días (lunes→domingo) de la semana enfocada, para la tira selectora.
     val weekDays: List<LocalDate> get() = (0L until DAYS_IN_WEEK).map(weekStart::plusDays)
+
+    // El artículo que nombra el error de «Has cocinado …»; null si el error es otro o no se sabe cuál.
+    val cookedErrorItem: String?
+        get() = changedItemName.takeIf { error == MealUiMessage.CookedShoppingChanged }
 
     private companion object {
         const val DAYS_IN_WEEK = 7L

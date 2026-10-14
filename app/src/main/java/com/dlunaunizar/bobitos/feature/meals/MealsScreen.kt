@@ -304,7 +304,9 @@ private fun CookedReviewDialog(review: CookedReview, state: MealsUiState, viewMo
     CookedDialog(
         review = review,
         saving = state.isSaving,
-        errorMessage = state.error?.let { stringResource(it.stringResourceId) },
+        // Si «Listo» ha fallado porque alguien ha cambiado un artículo de la lista, lo nombra.
+        errorMessage = state.cookedErrorItem?.let { stringResource(R.string.meals_error_cooked_item_changed, it) }
+            ?: state.error?.let { stringResource(it.stringResourceId) },
         onConfirm = viewModel::confirmCooked,
         onDismiss = viewModel::dismissCooked,
     )

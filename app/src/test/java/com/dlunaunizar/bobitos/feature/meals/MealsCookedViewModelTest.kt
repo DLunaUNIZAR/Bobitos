@@ -424,6 +424,44 @@ class MealsCookedViewModelTest {
         }
 
     @Test
+    fun `if done fails because someone changed an item the dialog names it, and only that time`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Leche", "1", "l"))))
+            pantryRepository.serverIds = setOf(pantryId("Leche"))
+            viewModel.observe("home")
+            advanceUntilIdle()
+            viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.DESAYUNO, "Café con leche").copy(recipeId = "r1"))
+            advanceUntilIdle()
+            val choice = viewModel.uiState.value.cooked!!.defaultChoice().toggleFinished(pantryId("Leche"))
+            shoppingRepository.cookedFailure =
+                ShoppingRepositoryException(ShoppingFailure.ItemChanged, itemName = "Leche")
+
+            viewModel.confirmCooked(choice)
+            advanceUntilIdle()
+
+            assertEquals(MealUiMessage.CookedShoppingChanged, viewModel.uiState.value.error)
+            assertEquals("Leche", viewModel.uiState.value.cookedErrorItem)
+
+            // Si el siguiente fallo no dice qué artículo, no se repite el nombre de antes.
+            shoppingRepository.cookedFailure = ShoppingRepositoryException(ShoppingFailure.ItemNotFound)
+            viewModel.confirmCooked(choice)
+            advanceUntilIdle()
+
+            assertEquals(MealUiMessage.CookedShoppingChanged, viewModel.uiState.value.error)
+            assertNull(viewModel.uiState.value.cookedErrorItem)
+        }
+
+    @Test
+    fun `the changed item is only named with the error that asks to tap done again`() {
+        val state = MealsUiState(error = MealUiMessage.CookedShoppingChanged, changedItemName = "Leche")
+
+        assertEquals("Leche", state.cookedErrorItem)
+        assertNull(state.copy(error = MealUiMessage.NetworkError).cookedErrorItem)
+        assertNull(state.copy(error = MealUiMessage.CookedNotApplied).cookedErrorItem)
+        assertNull(state.copy(error = null).cookedErrorItem)
+    }
+
+    @Test
     fun `what has finished goes on the list with the catalog name`() = runTest(mainDispatcherRule.testDispatcher) {
         ingredientRepository.catalogState.value =
             listOf(CatalogIngredient("aceite-de-oliva-virgen-extra", "Aceite de oliva virgen extra"))
