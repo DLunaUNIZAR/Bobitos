@@ -35,6 +35,8 @@ import com.dlunaunizar.bobitos.feature.common.writesNothing
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -308,19 +310,27 @@ class MealsViewModel @Inject constructor(
         }
         runAction(MealUiMessage.CookedReviewApplied, toMessage = Throwable::toCookedUiMessage) {
             val needsCatalog = writes.crossOff.isNotEmpty() || writes.restockNames.isNotEmpty()
-            val data = if (needsCatalog) ingredientData() else IngredientShoppingData()
-            // «A la compra» sobre la lista del servidor: con una caché vieja se duplicaría el artículo.
-            val restock = if (writes.restockNames.isEmpty()) {
-                emptyList()
-            } else {
-                pantryRestock(writes.restockNamesIn(data), shoppingRepository.currentItems(spaceId), data).writes
+            // La lista se lee mientras se espera al catálogo: si no se puede leer, el error sale enseguida.
+            coroutineScope {
+                // «A la compra» sobre la lista del servidor: con una caché vieja se duplicaría el artículo.
+                val items = if (writes.restockNames.isEmpty()) {
+                    null
+                } else {
+                    async { shoppingRepository.currentItems(spaceId) }
+                }
+                val data = if (needsCatalog) ingredientData() else IngredientShoppingData()
+                val restock = if (items == null) {
+                    emptyList()
+                } else {
+                    pantryRestock(writes.restockNamesIn(data), items.await(), data).writes
+                }
+                shoppingRepository.applyCooked(
+                    spaceId,
+                    writes.crossOff.map { ShoppingCrossOff(it.id, pantryEntryFor(it.name, data)) },
+                    writes.finishedIds,
+                    restock,
+                )
             }
-            shoppingRepository.applyCooked(
-                spaceId,
-                writes.crossOff.map { ShoppingCrossOff(it.id, pantryEntryFor(it.name, data)) },
-                writes.finishedIds,
-                restock,
-            )
             mutableUiState.update { it.copy(cooked = null) }
         }
     }

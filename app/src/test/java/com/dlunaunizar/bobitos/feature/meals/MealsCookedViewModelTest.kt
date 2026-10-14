@@ -391,4 +391,71 @@ class MealsCookedViewModelTest {
         assertEquals(listOf("Arroz"), viewModel.uiState.value.cooked?.crossOff?.map(ShoppingItem::name))
         assertEquals(listOf(CookedPantryRow(pantryId("Leche"), "Leche")), viewModel.uiState.value.cooked?.finished)
     }
+
+    @Test
+    fun `done reads the list while it waits for the catalog`() = runTest(mainDispatcherRule.testDispatcher) {
+        ingredientRepository.catalogOverride = flow { awaitCancellation() }
+        recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Leche", "1", "l"))))
+        pantryRepository.serverIds = setOf(pantryId("Leche"))
+        viewModel.observe("home")
+        runCurrent()
+        viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.DESAYUNO, "Café con leche").copy(recipeId = "r1"))
+        runCurrent()
+        val review = viewModel.uiState.value.cooked!!
+        val readsBefore = shoppingRepository.currentItemsCalls
+
+        viewModel.confirmCooked(review.defaultChoice().toggleFinished(pantryId("Leche")))
+        runCurrent()
+
+        assertEquals(readsBefore + 1, shoppingRepository.currentItemsCalls)
+        assertTrue(shoppingRepository.cookedCalls.isEmpty())
+
+        advanceTimeBy(5_001)
+        runCurrent()
+        val restock = shoppingRepository.cookedCalls.single().restock
+        assertEquals(listOf("Leche"), restock.map { (it as ShoppingWrite.Add).name })
+    }
+
+    @Test
+    fun `if the list cannot be read done fails at once without waiting for the catalog`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            ingredientRepository.catalogOverride = flow { awaitCancellation() }
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Leche", "1", "l"))))
+            pantryRepository.serverIds = setOf(pantryId("Leche"))
+            viewModel.observe("home")
+            runCurrent()
+            viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.DESAYUNO, "Café con leche").copy(recipeId = "r1"))
+            runCurrent()
+            val review = viewModel.uiState.value.cooked!!
+            shoppingRepository.itemsFailure = ShoppingRepositoryException(ShoppingFailure.Network)
+
+            viewModel.confirmCooked(review.defaultChoice().toggleFinished(pantryId("Leche")))
+            runCurrent()
+
+            assertEquals(MealUiMessage.NetworkError, viewModel.uiState.value.error)
+            assertFalse(viewModel.uiState.value.isSaving)
+            assertSame(review, viewModel.uiState.value.cooked)
+
+            advanceTimeBy(5_001)
+            runCurrent()
+            assertTrue(shoppingRepository.cookedCalls.isEmpty())
+        }
+
+    @Test
+    fun `done with nothing to put on the list does not read the list`() = runTest(mainDispatcherRule.testDispatcher) {
+        recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Arroz", "300", "g"))))
+        shoppingRepository.itemsState.value = listOf(shoppingItem("s1", "Arroz"))
+        viewModel.observe("home")
+        advanceUntilIdle()
+        viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.COMIDA, "Paella").copy(recipeId = "r1"))
+        advanceUntilIdle()
+        val review = viewModel.uiState.value.cooked!!
+        val readsBefore = shoppingRepository.currentItemsCalls
+
+        viewModel.confirmCooked(review.defaultChoice())
+        advanceUntilIdle()
+
+        assertEquals(readsBefore, shoppingRepository.currentItemsCalls)
+        assertEquals(1, shoppingRepository.cookedCalls.size)
+    }
 }
