@@ -15,7 +15,7 @@ import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
 import com.dlunaunizar.bobitos.feature.common.firstOrEmpty
-import com.dlunaunizar.bobitos.feature.common.pantryRestock
+import com.dlunaunizar.bobitos.feature.common.restockFromPantry
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -72,7 +72,7 @@ class PantryViewModel @Inject constructor(
     fun consumeFinished() = mutableUiState.update { it.copy(finished = null) }
 
     /**
-     * «A la compra»: apunta [item] en la Compra (ver [pantryRestock]); si ya estaba pendiente, solo lo avisa. No pasa
+     * «A la compra»: apunta [item] en la Compra (ver [restockFromPantry]); si ya estaba pendiente, solo lo avisa. No pasa
      * por [runAction]: el aviso del Snackbar ya se consumió y no debe perderse porque otra acción esté guardando.
      */
     fun restock(item: PantryItem) {
@@ -80,15 +80,8 @@ class PantryViewModel @Inject constructor(
         mutableUiState.update { it.copy(error = null, notice = null) }
         viewModelScope.launch {
             runCatching {
-                // La lista del servidor, no la caché: con una vieja se duplicaría el artículo.
-                val items = shoppingRepository.currentItems(spaceId)
-                val plan = pantryRestock(listOf(item.name), items, ingredientData())
-                if (plan.writes.isEmpty()) {
-                    PantryUiMessage.AlreadyInShopping
-                } else {
-                    shoppingRepository.applyWrites(spaceId, plan.writes)
-                    PantryUiMessage.AddedToShopping
-                }
+                val plan = restockFromPantry(spaceId, listOf(item.name), shoppingRepository, ingredientData())
+                if (plan.writes.isEmpty()) PantryUiMessage.AlreadyInShopping else PantryUiMessage.AddedToShopping
             }
                 .onSuccess { notice -> mutableUiState.update { it.copy(notice = notice) } }
                 .onFailure { error ->

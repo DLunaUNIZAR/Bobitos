@@ -22,5 +22,5 @@ enum class MealUiMessage {
     IngredientsAddedToShopping,
     NothingToAddToShopping,
     MealCooked,
-    IngredientsCrossedOff,
+    CookedReviewApplied,
 }

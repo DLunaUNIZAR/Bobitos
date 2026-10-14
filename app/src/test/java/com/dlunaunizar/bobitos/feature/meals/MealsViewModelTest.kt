@@ -247,13 +247,13 @@ class MealsViewModelTest {
 
             assertEquals("m1", mealRepository.cookedMealId)
             assertEquals(true, mealRepository.cookedValue)
-            assertEquals(listOf("Arroz"), viewModel.uiState.value.cookedCrossOff?.map(ShoppingItem::name))
+            assertEquals(listOf("Arroz"), viewModel.uiState.value.cooked?.crossOff?.map(ShoppingItem::name))
 
-            viewModel.crossOffCookedIngredients()
+            viewModel.confirmCooked(viewModel.uiState.value.cooked!!.defaultChoice())
             advanceUntilIdle()
 
             assertEquals(listOf("s1"), shoppingRepository.purchasedIds)
-            assertEquals(null, viewModel.uiState.value.cookedCrossOff)
+            assertEquals(null, viewModel.uiState.value.cooked)
         }
 
     @Test
@@ -356,7 +356,7 @@ class MealsViewModelTest {
         viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.COMIDA, "Ensalada").copy(recipeId = "r1"))
         advanceUntilIdle()
 
-        assertEquals(listOf("Tomate"), viewModel.uiState.value.cookedCrossOff?.map(ShoppingItem::name))
+        assertEquals(listOf("Tomate"), viewModel.uiState.value.cooked?.crossOff?.map(ShoppingItem::name))
     }
 
     @Test
@@ -591,7 +591,7 @@ class MealsViewModelTest {
             viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.COMIDA, "Paella").copy(recipeId = "r1"))
             advanceUntilIdle()
 
-            assertEquals(listOf("Tomate"), viewModel.uiState.value.cookedCrossOff?.map(ShoppingItem::name))
+            assertEquals(listOf("Tomate"), viewModel.uiState.value.cooked?.crossOff?.map(ShoppingItem::name))
         }
 
     @Test
@@ -607,7 +607,7 @@ class MealsViewModelTest {
 
             assertEquals(true, mealRepository.cookedValue)
             assertEquals(MealUiMessage.MealCooked, viewModel.uiState.value.notice)
-            assertEquals(null, viewModel.uiState.value.cookedCrossOff)
+            assertEquals(null, viewModel.uiState.value.cooked)
             assertEquals(null, viewModel.uiState.value.error)
         }
 
@@ -646,7 +646,7 @@ class MealsViewModelTest {
     }
 }
 
-private class FakeMealRepository : MealRepository {
+internal class FakeMealRepository : MealRepository {
     var addGate: CompletableDeferred<Unit>? = null
 
     // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
@@ -727,7 +727,7 @@ private class FakeMealRepository : MealRepository {
     }
 }
 
-private class FakeSpaceRepository : SpaceRepository {
+internal class FakeSpaceRepository : SpaceRepository {
     val membersState = MutableStateFlow<List<SpaceMember>>(emptyList())
 
     override fun members(spaceId: String): Flow<List<SpaceMember>> = membersState
@@ -757,7 +757,7 @@ private class FakeSpaceRepository : SpaceRepository {
     override suspend fun acceptInvitation(code: String): String = error("no usado en el test")
 }
 
-private class FakeRecipeRepository : RecipeRepository {
+internal class FakeRecipeRepository : RecipeRepository {
     val mineState = MutableStateFlow<List<Recipe>>(emptyList())
     override fun globalRecipes(): Flow<List<Recipe>> = MutableStateFlow(emptyList())
     override fun myRecipes(): Flow<List<Recipe>> = mineState
@@ -793,7 +793,7 @@ private class FakeRecipeRepository : RecipeRepository {
 
 private fun choice(quantity: String?) = IngredientReviewChoice(quantity, null, null)
 
-private fun recipe(id: String, ingredients: List<Ingredient>) = Recipe(
+internal fun recipe(id: String, ingredients: List<Ingredient>) = Recipe(
     id = id,
     ownerUid = "owner",
     visibility = RecipeVisibility.PRIVATE,
@@ -808,7 +808,7 @@ private fun recipe(id: String, ingredients: List<Ingredient>) = Recipe(
     updatedAt = Instant.EPOCH,
 )
 
-private fun meal(id: String, date: LocalDate, slot: MealSlot, name: String) = Meal(
+internal fun meal(id: String, date: LocalDate, slot: MealSlot, name: String) = Meal(
     id = id,
     date = date,
     slot = slot,
@@ -822,7 +822,7 @@ private fun meal(id: String, date: LocalDate, slot: MealSlot, name: String) = Me
     updatedAt = Instant.EPOCH,
 )
 
-private fun shoppingItem(id: String, name: String, quantity: String? = null) = ShoppingItem(
+internal fun shoppingItem(id: String, name: String, quantity: String? = null) = ShoppingItem(
     id = id,
     name = name,
     quantity = quantity,

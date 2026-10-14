@@ -23,7 +23,6 @@ import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Kitchen
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -295,22 +294,8 @@ fun MealsScreen(
         )
     }
 
-    state.cookedCrossOff?.let { items ->
-        AlertDialog(
-            onDismissRequest = viewModel::dismissCookedCrossOff,
-            title = { Text(stringResource(R.string.meals_cooked_crossoff_title)) },
-            text = {
-                Text(stringResource(R.string.meals_cooked_crossoff_body, items.joinToString(", ") { it.name }))
-            },
-            confirmButton = {
-                TextButton(onClick = viewModel::crossOffCookedIngredients) {
-                    Text(stringResource(R.string.meals_cooked_crossoff_confirm))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = viewModel::dismissCookedCrossOff) { Text(stringResource(R.string.cancel)) }
-            },
-        )
+    state.cooked?.let { review ->
+        CookedDialog(review = review, onConfirm = viewModel::confirmCooked, onDismiss = viewModel::dismissCooked)
     }
 }
 
@@ -784,5 +769,5 @@ private val MealUiMessage.stringResourceId: Int
         MealUiMessage.IngredientsAddedToShopping -> R.string.meals_notice_ingredients_added
         MealUiMessage.NothingToAddToShopping -> R.string.meals_notice_nothing_to_add
         MealUiMessage.MealCooked -> R.string.meals_notice_cooked
-        MealUiMessage.IngredientsCrossedOff -> R.string.meals_notice_crossed_off
+        MealUiMessage.CookedReviewApplied -> R.string.meals_notice_cooked_review
     }

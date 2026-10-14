@@ -192,9 +192,7 @@ fun buildIngredientReviewRows(
 }
 
 /**
- * Aplica la revisión en una sola escritura ([ShoppingRepository.applyWrites]); ver [ingredientReviewWrites].
- * Si otro miembro ha borrado un artículo desde que se abrió la revisión, falla con [ShoppingFailure.ItemChanged]
- * (la lista ha cambiado y reintentar lo arregla), no con [ShoppingFailure.ItemNotFound].
+ * Aplica la revisión en una sola escritura ([ShoppingRepository.applySeenWrites]); ver [ingredientReviewWrites].
  */
 suspend fun applyIngredientReview(
     spaceId: String,
@@ -204,8 +202,17 @@ suspend fun applyIngredientReview(
 ) {
     val writes = ingredientReviewWrites(rows, choices)
     if (writes.isEmpty()) return
+    shoppingRepository.applySeenWrites(spaceId, writes)
+}
+
+/**
+ * [ShoppingRepository.applyWrites] de unos cambios hechos sobre la lista tal como se vio: si otro miembro ha borrado un
+ * artículo desde entonces, falla con [ShoppingFailure.ItemChanged] (la lista ha cambiado y reintentar lo arregla), no con
+ * [ShoppingFailure.ItemNotFound].
+ */
+internal suspend fun ShoppingRepository.applySeenWrites(spaceId: String, writes: List<ShoppingWrite>) {
     try {
-        shoppingRepository.applyWrites(spaceId, writes)
+        applyWrites(spaceId, writes)
     } catch (error: ShoppingRepositoryException) {
         if (error.failure == ShoppingFailure.ItemNotFound) {
             throw ShoppingRepositoryException(ShoppingFailure.ItemChanged, error)

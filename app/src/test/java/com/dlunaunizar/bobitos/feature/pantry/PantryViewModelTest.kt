@@ -186,12 +186,15 @@ class PantryViewModelTest {
     fun `restock without brands in time adds it without brand or store`() = runTest(mainDispatcherRule.testDispatcher) {
         ingredients.catalogOverride = flow { awaitCancellation() }
         viewModel.observe("home")
-        advanceUntilIdle()
+        runCurrent()
 
         viewModel.restock(tomato)
-        advanceTimeBy(5_001)
-        advanceUntilIdle()
+        advanceTimeBy(4_999)
+        runCurrent()
+        assertTrue(shopping.addedNames.isEmpty())
 
+        advanceTimeBy(2)
+        runCurrent()
         assertEquals(listOf("Tomate"), shopping.addedNames)
         assertEquals(listOf(null), shopping.addedSupermarkets)
         assertEquals(listOf(null), shopping.addedBrands)

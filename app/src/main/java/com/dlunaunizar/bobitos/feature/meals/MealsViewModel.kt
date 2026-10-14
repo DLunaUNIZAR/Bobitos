@@ -11,11 +11,12 @@ import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
-import com.dlunaunizar.bobitos.core.model.shoppingMatchKey
 import com.dlunaunizar.bobitos.data.repository.MealFailure
 import com.dlunaunizar.bobitos.data.repository.MealRepository
 import com.dlunaunizar.bobitos.data.repository.MealRepositoryException
+import com.dlunaunizar.bobitos.data.repository.PantryFailure
 import com.dlunaunizar.bobitos.data.repository.PantryRepository
+import com.dlunaunizar.bobitos.data.repository.PantryRepositoryException
 import com.dlunaunizar.bobitos.data.repository.RecipeRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
@@ -27,6 +28,9 @@ import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
 import com.dlunaunizar.bobitos.feature.common.applyIngredientReview
 import com.dlunaunizar.bobitos.feature.common.buildIngredientReviewRows
 import com.dlunaunizar.bobitos.feature.common.currentIdsOrNull
+import com.dlunaunizar.bobitos.feature.common.firstOrEmpty
+import com.dlunaunizar.bobitos.feature.common.pantryEntryFor
+import com.dlunaunizar.bobitos.feature.common.restockFromPantry
 import com.dlunaunizar.bobitos.feature.common.writesNothing
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -241,35 +245,26 @@ class MealsViewModel @Inject constructor(
 
     fun dismissIngredientReview() = mutableUiState.update { it.copy(ingredientReview = null) }
 
-    // Marca la comida como cocinada y, si su receta tiene ingredientes en la compra sin comprar,
-    // ofrece tacharlos (setPurchased) en un diálogo. Cruce por shoppingMatchKey («Tomates» = «tomate»).
+    // Marca la comida como cocinada y, si su receta tiene ingredientes pendientes en la compra o que hay en la
+    // despensa, abre «Has cocinado …» (ver cookedReview). Las dos se leen del servidor; si una no se puede leer, su
+    // sección no sale.
     fun markCooked(meal: Meal) {
         val spaceId = observedSpaceId ?: return
         if (mutableUiState.value.isSaving) return
-        val recipe = mutableUiState.value.recipes.firstOrNull { it.id == meal.recipeId }
+        val ingredients = mutableUiState.value.recipes.firstOrNull { it.id == meal.recipeId }?.ingredients.orEmpty()
         mutableUiState.update { it.copy(isSaving = true, error = null, notice = null) }
         viewModelScope.launch {
             try {
                 repository.setCooked(spaceId, meal.id, true)
-                val keys = recipe?.ingredients.orEmpty().map { shoppingMatchKey(it.name) }.toSet()
-                val candidates = if (keys.isEmpty()) {
-                    emptyList()
+                val review = if (ingredients.isEmpty()) {
+                    null
                 } else {
-                    // La lista del servidor, no la caché; si no se puede leer, no se ofrece tachar nada.
-                    val current = runCatching { shoppingRepository.currentItems(spaceId) }
+                    val items = runCatching { shoppingRepository.currentItems(spaceId) }
                         .onFailure { if (it is CancellationException) throw it }
-                        .getOrDefault(emptyList())
-                    current.filter { !it.purchased && shoppingMatchKey(it.name) in keys }
+                        .getOrNull()
+                    cookedReview(meal.name, ingredients, items, pantryRepository.currentIdsOrNull(spaceId))
                 }
-                mutableUiState.update {
-                    it.copy(
-                        isSaving = false,
-                        notice = MealUiMessage.MealCooked,
-                        cookedCrossOff = candidates.ifEmpty {
-                            null
-                        },
-                    )
-                }
+                mutableUiState.update { it.copy(isSaving = false, notice = MealUiMessage.MealCooked, cooked = review) }
             } catch (error: Throwable) {
                 showError(error.toUiMessage())
             }
@@ -281,17 +276,32 @@ class MealsViewModel @Inject constructor(
         runAction(null) { repository.setCooked(spaceId, meal.id, false) }
     }
 
-    // Confirma tachar como comprados los ítems ofrecidos tras cocinar.
-    fun crossOffCookedIngredients() {
+    // «Listo» en «Has cocinado …»: tacha lo marcado (si es un ingrediente reconocido, entra en la despensa, como al
+    // marcar en la Compra), quita de la despensa lo que se ha acabado y, si se pide, lo apunta a la compra.
+    fun confirmCooked(choice: CookedChoice) {
         val spaceId = observedSpaceId ?: return
-        val items = mutableUiState.value.cookedCrossOff ?: return
-        mutableUiState.update { it.copy(cookedCrossOff = null) }
-        runAction(MealUiMessage.IngredientsCrossedOff) {
-            items.forEach { shoppingRepository.setPurchased(spaceId, it.id, true) }
+        val writes = mutableUiState.value.cooked?.writesFor(choice) ?: return
+        mutableUiState.update { it.copy(cooked = null) }
+        if (writes.isEmpty) return
+        runAction(MealUiMessage.CookedReviewApplied) {
+            val needsCatalog = writes.crossOff.isNotEmpty() || writes.restockNames.isNotEmpty()
+            val data = if (needsCatalog) ingredientData() else IngredientShoppingData()
+            writes.crossOff.forEach { item ->
+                shoppingRepository.setPurchased(spaceId, item.id, true, pantryEntryFor(item.name, data))
+            }
+            if (writes.finishedIds.isNotEmpty()) pantryRepository.remove(spaceId, writes.finishedIds)
+            if (writes.restockNames.isNotEmpty()) {
+                restockFromPantry(spaceId, writes.restockNames, shoppingRepository, data)
+            }
         }
     }
 
-    fun dismissCookedCrossOff() = mutableUiState.update { it.copy(cookedCrossOff = null) }
+    fun dismissCooked() = mutableUiState.update { it.copy(cooked = null) }
+
+    // Catálogo para reconocer ingredientes: el que ya escucha la pantalla; si aún no ha llegado, se espera 5 s como máximo
+    // y, si no llega, se sigue sin él (lo tachado no entra en la despensa; lo apuntado va sin marca ni tienda).
+    private suspend fun ingredientData(): IngredientShoppingData =
+        shoppingData.takeIf { it.ingredients.isNotEmpty() } ?: ingredientShoppingSource.firstOrEmpty()
 
     // Aplica la revisión: omite, suma, vuelve a apuntar o añade cada fila (ver applyIngredientReview).
     fun confirmIngredientReview(choices: List<IngredientReviewChoice>) {
@@ -369,6 +379,7 @@ class MealsViewModel @Inject constructor(
 private fun Throwable.toUiMessage(): MealUiMessage = when (this) {
     is MealRepositoryException -> failure.toUiMessage()
     is ShoppingRepositoryException -> failure.toUiMessage()
+    is PantryRepositoryException -> failure.toUiMessage()
     is SaveTimeoutException -> MealUiMessage.SaveTimeout
     else -> MealUiMessage.UnexpectedError
 }
@@ -400,5 +411,17 @@ private fun ShoppingFailure.toUiMessage(): MealUiMessage = when (this) {
     ShoppingFailure.BrandTooLong,
     ShoppingFailure.ItemNotFound,
     ShoppingFailure.Unknown,
+    -> MealUiMessage.UnexpectedError
+}
+
+private fun PantryFailure.toUiMessage(): MealUiMessage = when (this) {
+    PantryFailure.NotAuthenticated -> MealUiMessage.NotAuthenticated
+    PantryFailure.EmailNotVerified -> MealUiMessage.EmailNotVerified
+    PantryFailure.SpaceNotFound -> MealUiMessage.SpaceNotFound
+    PantryFailure.PermissionDenied -> MealUiMessage.PermissionDenied
+    PantryFailure.Network -> MealUiMessage.NetworkError
+    PantryFailure.NameRequired,
+    PantryFailure.NameTooLong,
+    PantryFailure.Unknown,
     -> MealUiMessage.UnexpectedError
 }

@@ -5,6 +5,7 @@ import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.findShoppingMatch
 import com.dlunaunizar.bobitos.core.model.shoppingMatchKey
 import com.dlunaunizar.bobitos.data.repository.PantryRepository
+import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingWrite
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
@@ -50,6 +51,22 @@ internal fun pantryRestock(
         }
     }
     return PantryRestock(writes, alreadyListed)
+}
+
+/**
+ * «A la compra» de [names] en la Compra de [spaceId]: lee la lista del servidor (con una caché vieja se duplicaría el
+ * artículo) y escribe lo que haga falta ([pantryRestock]) en una sola escritura ([applySeenWrites]). Devuelve el plan:
+ * lo que ya estaba pendiente va en `alreadyListed`. Lo usan la Despensa («Se acabó») y Comidas («Has cocinado …»).
+ */
+internal suspend fun restockFromPantry(
+    spaceId: String,
+    names: List<String>,
+    shoppingRepository: ShoppingRepository,
+    data: IngredientShoppingData,
+): PantryRestock {
+    val plan = pantryRestock(names, shoppingRepository.currentItems(spaceId), data)
+    if (plan.writes.isNotEmpty()) shoppingRepository.applySeenWrites(spaceId, plan.writes)
+    return plan
 }
 
 private fun newShoppingWrite(name: String, data: IngredientShoppingData): ShoppingWrite.Add {

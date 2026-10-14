@@ -5,7 +5,10 @@ import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.PantryEntry
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
+import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
 import com.dlunaunizar.bobitos.data.repository.ShoppingWrite
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -40,6 +43,41 @@ class PantryShoppingTest {
     fun `pantryEntryFor is null for something that is not an ingredient`() {
         assertNull(pantryEntryFor("Lavavajillas", data))
         assertNull(pantryEntryFor("¡¿!?", data))
+    }
+
+    @Test
+    fun `restock from the pantry reads the server list and writes once`() = runTest {
+        val shopping = RecordingShoppingRepository()
+        shopping.itemsState.value = listOf(shoppingItem("s1", "Tomate"))
+        shopping.serverItems = listOf(shoppingItem("s1", "Tomate", purchased = true))
+
+        val plan = restockFromPantry("home", listOf("tomates"), shopping, data)
+
+        assertEquals(listOf("s1"), shopping.relistedIds)
+        assertEquals(1, shopping.appliedBatches.size)
+        assertTrue(plan.alreadyListed.isEmpty())
+    }
+
+    @Test
+    fun `restock from the pantry of something already pending writes nothing`() = runTest {
+        val shopping = RecordingShoppingRepository()
+        shopping.serverItems = listOf(shoppingItem("s1", "Tomate"))
+
+        val plan = restockFromPantry("home", listOf("tomates"), shopping, data)
+
+        assertTrue(shopping.appliedBatches.isEmpty())
+        assertEquals(listOf("Tomate"), plan.alreadyListed)
+    }
+
+    @Test
+    fun `restock from the pantry with an item deleted meanwhile reports a changed list`() = runTest {
+        val shopping = RecordingShoppingRepository()
+        shopping.serverItems = listOf(shoppingItem("s1", "Tomate", purchased = true))
+        shopping.applyFailure = ShoppingRepositoryException(ShoppingFailure.ItemNotFound)
+
+        val failure = runCatching { restockFromPantry("home", listOf("Tomate"), shopping, data) }.exceptionOrNull()
+
+        assertEquals(ShoppingFailure.ItemChanged, (failure as ShoppingRepositoryException).failure)
     }
 
     private fun shoppingItem(
