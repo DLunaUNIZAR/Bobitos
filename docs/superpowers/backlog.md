@@ -4,6 +4,20 @@ Menores que las revisiones de cada rama dejaron sin arreglar. Cada línea dice s
 
 Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalogo-ejercicios-wger`) se cerraron en la rama `agent/menores-aplazados` (plan `docs/superpowers/plans/2026-10-10-menores-aplazados.md`).
 
+## 2026-10-14 — `agent/despensa-recetas`
+
+- **Efecto visible (raro):** «Listo» en «Has cocinado …» no es atómico. Tacha con una transacción por artículo, en serie, y después quita de la despensa y apunta a la compra. Si falla un paso (otro miembro borró un artículo, o se corta la conexión a mitad), lo que viene detrás no se hace: sale el error genérico, el diálogo ya se ha cerrado y lo marcado se pierde. Con muchos pendientes, además, tarda (`MealsViewModel.confirmCooked`).
+- **Efecto visible:** la línea de lo que falta usa siempre «y»: «Faltan 2: sal y higos». Delante de /i/ va «e» (`pantryLine`, `recipes_pantry_*` en `strings.xml`).
+- **Efecto visible:** «Apuntar a la compra lo que se ha acabado», en el diálogo de cocinar, apunta el nombre tal como está en la receta («aceite de oliva virgen extra», en minúsculas), no el nombre del catálogo, que sí usa «Se acabó» en la Despensa (`CookedReview.kt`; `pantryEntryFor(name, data)?.name ?: name`).
+- **Efecto visible:** al abrir la revisión de «Añadir a la compra» y al cocinar, la lista y la despensa se leen del servidor una después de otra: es un viaje de ida y vuelta más de espera. Se dejó así por el ruling 2 del plan (`MealsViewModel`, `RecipesViewModel`).
+- **Efecto visible (previo, visto en el recorrido del emulador):** en la fila de una cosa nueva de la revisión, «Marca (opcional)» y «Sin especificar» se parten en dos líneas por falta de ancho.
+- **Efecto visible (previo, visto en el recorrido del emulador):** el selector «Elegir receta» de Comidas se cierra al girar el móvil y se vuelve a la hoja «Nueva comida».
+- **Interno:** Comidas escucha la despensa todo el tiempo que observa el espacio (ruling 9), aunque el chip solo se usa en el selector. Son lecturas de más; bastaría con escuchar mientras el selector está abierto, como hace la Compra con el editor (`MealsViewModel.observe`).
+- **Interno:** `@StringRes` sin destino en `PantryLine` (`RecipePantry.kt`) y en `ReviewHint` (`IngredientReview.kt`, de antes) provoca un aviso del compilador. Se arregla con `@param:StringRes`, como en el resto del proyecto.
+- **Interno:** faltan dos tests: `PantryFailure.toUiMessage()` de Comidas cuando `remove` falla en «Listo», y un «Listo» que tacha y a la vez marca algo como acabado, comprobando el orden de las escrituras.
+- **Interno:** `currentIdsOrNull` y el `runCatching` de `markCooked` repiten `loadOrNull` de `SpaceHomeViewModel`. Se podría mover a `feature/common` y usar en los tres sitios.
+- **Interno:** Recetas, Comidas y la Compra escriben a mano el mismo listener de la despensa (`Job`, `cancel`, `catch`, reinicio), con pequeñas diferencias. Un helper común lo unificaría.
+
 ## 2026-10-14 — `agent/despensa`
 
 - **Efecto visible:** si se dice «Se acabó» de varias cosas seguidas, solo la última ofrece «A la compra»: cada Snackbar nuevo cancela el anterior. `pantryRestock` ya acepta una lista, así que se podrían juntar («Leche y huevos: se han acabado») (`PantryScreen.kt`).
@@ -13,7 +27,7 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - **Efecto visible (accesibilidad):** el lector de pantalla anuncia cada «Se acabó» sin el nombre del artículo (`PantryScreen.kt`).
 - **Efecto visible (previo, visto en el recorrido del emulador):** la confirmación «Eliminar espacio definitivamente» solo nombra la compra, las tareas y los eventos. No dice nada de comidas, notas, deporte ni despensa, que también se borran.
 - **Efecto visible (visto en el recorrido del emulador):** en tema claro, la barra de estado sale gris oscuro encima del selector «Añadir a la despensa», que es un `Dialog` a pantalla completa y la oscurece con su velo (`PantryPicker.kt`).
-- **Interno:** el test de «A la compra» sin catálogo a tiempo (`PantryViewModelTest`) llama a `advanceUntilIdle()` después de `advanceTimeBy(5_001)`, así que no comprueba el límite de 5 s. Hay que usar `runCurrent()`, como ya hace el test equivalente de la Compra (`ShoppingViewModelPantryTest`), y corregir la plantilla antes de escribir el plan 2.
+- ~~**Interno:** el test de «A la compra» sin catálogo a tiempo (`PantryViewModelTest`) llama a `advanceUntilIdle()` después de `advanceTimeBy(5_001)`, así que no comprueba el límite de 5 s. Hay que usar `runCurrent()`, como ya hace el test equivalente de la Compra (`ShoppingViewModelPantryTest`), y corregir la plantilla antes de escribir el plan 2.~~ **Resuelto** en `agent/despensa-recetas`.
 
 ## 2026-10-13 — `agent/menores-compra-membresia-y-comunes`
 
