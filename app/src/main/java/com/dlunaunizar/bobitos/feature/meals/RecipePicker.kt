@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -16,6 +17,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,6 +68,10 @@ internal fun RecipePickerDialog(
     val shown = remember(recipes, query, pantryOnly, pantryIds) {
         recipes.pickerRows(query, pantryIds?.takeIf { pantryOnly })
     }
+    // Al buscar o activar el chip la lista se filtra y se reordena; con claves se quedaría anclada en la receta
+    // que estaba arriba, ahora lejos, así que vuelve al primer elemento.
+    val listState = rememberLazyListState()
+    LaunchedEffect(query, pantryOnly) { listState.scrollToItem(0) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.meals_recipe_picker_title)) },
@@ -92,7 +98,7 @@ internal fun RecipePickerDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
-                    LazyColumn(modifier = Modifier.heightIn(max = 320.dp)) {
+                    LazyColumn(state = listState, modifier = Modifier.heightIn(max = 320.dp)) {
                         items(shown, key = { it.recipe.id }) { row ->
                             RecipePickerRow(row = row, onClick = { onPick(row.recipe) })
                         }

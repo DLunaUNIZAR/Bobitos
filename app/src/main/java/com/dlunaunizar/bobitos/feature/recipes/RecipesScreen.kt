@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Link
@@ -389,7 +390,16 @@ private fun RecipeFilters(
     onPantryOnly: (Boolean) -> Unit,
 ) {
     if (categories.isEmpty() && !pantryAvailable) return
+    val rowState = rememberLazyListState()
+    // Si el chip aparece cuando la fila ya muestra «Todas», la LazyRow se queda anclada en «Todas» y el chip
+    // queda fuera de pantalla. Si la fila estaba en su inicio (índice 0 antes de insertar, 1 tras anclar, sin
+    // desplazamiento), se vuelve al principio; si el usuario ya la había desplazado, no se toca.
+    LaunchedEffect(pantryAvailable) {
+        val atStart = rowState.firstVisibleItemIndex <= 1 && rowState.firstVisibleItemScrollOffset == 0
+        if (pantryAvailable && atStart) rowState.scrollToItem(0)
+    }
     LazyRow(
+        state = rowState,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.padding(bottom = 8.dp),
     ) {
