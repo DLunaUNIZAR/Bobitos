@@ -560,7 +560,7 @@ private fun MealEditorHost(
 }
 
 @Composable
-private fun MealEditor(
+internal fun MealEditor(
     meal: Meal?,
     initialSlot: MealSlot,
     members: List<SpaceMember>,
@@ -574,7 +574,8 @@ private fun MealEditor(
 ) {
     val initial = MealDraft.of(meal, initialSlot)
     var draft by rememberSaveable(meal?.id) { mutableStateOf(initial) }
-    var pickerOpen by remember { mutableStateOf(false) }
+    // Como el borrador, sobrevive a una rotación (la búsqueda y el chip del selector ya se guardan en el diálogo).
+    var pickerOpen by rememberSaveable(meal?.id) { mutableStateOf(false) }
     val validation = MealsValidation.validate(draft.name)
 
     BobitosFormSheet(
