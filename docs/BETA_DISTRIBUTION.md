@@ -123,6 +123,8 @@ Si se cambian las reglas de Firestore, desplegarlas antes de distribuir (sin `--
 npx firebase deploy --only firestore:rules --project dev
 ```
 
+Despliega las reglas desde el mismo commit que vas a distribuir: con reglas antiguas, una beta con la Despensa falla también al marcar y desmarcar en la Compra y al borrar espacios.
+
 Firebase enviará un correo a los miembros de `bobitos-beta`. Los testers aceptan la invitación, instalan el APK y permiten instalaciones procedentes del navegador o de App Tester cuando Android lo solicite.
 
 ## 6. Actualización y caducidad

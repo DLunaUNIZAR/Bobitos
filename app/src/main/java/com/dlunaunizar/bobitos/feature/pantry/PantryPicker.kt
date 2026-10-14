@@ -42,6 +42,8 @@ internal fun PantryPicker(
     onQueryChange: (String) -> Unit,
     onToggle: (PantryEntry) -> Unit,
     onConfirm: () -> Unit,
+    error: PantryUiMessage?,
+    onDismissError: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val content = remember(ingredients, pantryIds, picker.query) {
@@ -62,6 +64,7 @@ internal fun PantryPicker(
             },
         ) { innerPadding ->
             Column(Modifier.padding(innerPadding).fillMaxSize().padding(horizontal = Spacing.lg)) {
+                error?.let { message -> PantryErrorBanner(message, onDismissError) }
                 SearchField(
                     query = picker.query,
                     onQueryChange = onQueryChange,

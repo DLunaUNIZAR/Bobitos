@@ -192,7 +192,7 @@ Dos **planes grandes**, cada uno en su rama, mergeado en main antes del siguient
 
 ## 8. Despliegue (fuera de este trabajo)
 
-Aplazado por el usuario. **Las reglas cambian:** hay que desplegarlas (`npx firebase deploy --only firestore:rules --project dev`) **antes** de distribuir una beta que lleve la Despensa; sin ellas, la beta no puede leer ni escribir `pantryItems`. Pueden ir en el mismo despliegue aplazado del tercer plan de menores (reglas → beta 23), cada paso confirmado por el usuario (ver las trampas de la beta: `--project dev`, JAVA_HOME de Android Studio, `beta:distribute` sube el APK viejo si falla el build). No hay datos que importar.
+Aplazado por el usuario. **Las reglas cambian:** hay que desplegarlas (`npx firebase deploy --only firestore:rules --project dev`) **antes** de distribuir una beta que lleve la Despensa; sin ellas, `pantryItems` cae en el `match /{document=**}` que lo deniega todo, y no falla solo la Despensa: también fallan con «permiso denegado» marcar y desmarcar en la Compra (la transacción de `setPurchased` lee la entrada de la despensa al marcar un ingrediente reconocido y al desmarcar casi cualquier artículo) y borrar espacios (`deleteSpace` lee `pantryItems`). Las reglas se despliegan desde el mismo commit que se distribuye, antes de la beta. Pueden ir en el mismo despliegue aplazado del tercer plan de menores (reglas → beta 23), cada paso confirmado por el usuario (ver las trampas de la beta: `--project dev`, JAVA_HOME de Android Studio, `beta:distribute` sube el APK viejo si falla el build). No hay datos que importar.
 
 ## Fuera de alcance
 

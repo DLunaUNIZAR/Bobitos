@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
@@ -116,6 +117,8 @@ fun PantryScreen(
             onQueryChange = viewModel::setPickerQuery,
             onToggle = viewModel::togglePick,
             onConfirm = viewModel::confirmPicker,
+            error = state.error,
+            onDismissError = viewModel::clearFeedback,
             onDismiss = viewModel::closePicker,
         )
     }
@@ -160,7 +163,8 @@ private fun PantryContent(
             )
         }
         LazyColumn(
-            contentPadding = PaddingValues(Spacing.lg),
+            // Abajo deja sitio al botón flotante para no tapar «Se acabó» de la última fila.
+            contentPadding = PaddingValues(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg, bottom = 88.dp),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             sections.forEach { section ->
@@ -215,7 +219,7 @@ private fun PantrySnackbars(
 }
 
 @Composable
-private fun PantryErrorBanner(message: PantryUiMessage, onDismiss: () -> Unit) {
+internal fun PantryErrorBanner(message: PantryUiMessage, onDismiss: () -> Unit) {
     Surface(
         Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         color = MaterialTheme.colorScheme.errorContainer,
