@@ -36,6 +36,20 @@ class WorkspaceTabsTest {
     }
 
     @Test
+    fun masAgrupaComidasDeporteNotasYDespensa() {
+        assertEquals(
+            listOf(
+                BobitosDestination.Meals,
+                BobitosDestination.Sport,
+                BobitosDestination.Notes,
+                BobitosDestination.Pantry,
+            ),
+            BobitosDestination.moreDestinations,
+        )
+        assertEquals("pantry", BobitosDestination.Pantry.route)
+    }
+
+    @Test
     fun lasRutasFueraDelEspacioNoTienenPestana() {
         assertNull(workspaceTabFor(null))
         assertNull(workspaceTabFor("home"))

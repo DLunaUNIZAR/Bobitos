@@ -28,7 +28,7 @@ class RealtimeScopeForTest {
     fun lasPantallasDeUnEspacioEscuchanSoloElActivo() {
         listOf(
             "space-home", "space-more", "tasks", "shopping", "calendar", CALENDAR_EVENT_ROUTE,
-            "meals", "sport", "notes", "space-settings",
+            "meals", "sport", "notes", "pantry", "space-settings",
         ).forEach {
             assertEquals(it, RealtimeScope.ACTIVE_SPACE, realtimeScopeFor(it, spacePickerOpen = false))
         }

@@ -206,6 +206,23 @@ Cualquier miembro podrá editar o eliminar un producto. Las eliminaciones requer
 
 Dentro de cada grupo se utilizará inicialmente la fecha de creación, salvo que el diseño posterior determine otro orden.
 
+### PANTRY-01. Despensa del espacio
+
+- Cada espacio tiene una Despensa, en «Más»: lo que hay en casa, compartido por sus miembros.
+- Solo dice si algo **hay o no hay**, sin cantidades ni caducidades.
+- Se agrupa por las 14 categorías del catálogo de ingredientes, con «Otros» al final, y tiene buscador por nombre y categoría.
+
+### PANTRY-02. Llenar la despensa
+
+- «Añadir» abre un selector de ingredientes (comunes y personales) con buscador y casillas; lo que ya hay sale marcado y deshabilitado.
+- Si lo escrito no es ningún ingrediente, se puede apuntar tal cual («Añadir «Papel de cocina»»).
+- Al marcar como comprado un ingrediente reconocido en la Compra, entra solo (SHOP-04).
+
+### PANTRY-03. Se acabó
+
+- «Se acabó» quita la entrada y ofrece «A la compra» durante unos segundos.
+- «A la compra» lo apunta en la Compra: si ya está pendiente, solo avisa; si está comprado, lo vuelve a apuntar con su cantidad, notas, tienda y marca; si no está, lo añade sin cantidad, con la marca y la tienda por defecto.
+
 ## 9. Tareas
 
 ### TASK-01. Crear tarea

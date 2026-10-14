@@ -236,3 +236,10 @@ Todos los miembros tienen permiso de edición sobre estos módulos.
 7. Elimina membresías y anonimiza atribuciones necesarias.
 8. Elimina perfil y cuenta de autenticación.
 9. Regresa a la pantalla inicial.
+
+## 17. Despensa
+
+1. Abre «Más» → «Despensa».
+2. Si está vacía, pulsa «Llenar la despensa» (o «Añadir»), busca y marca lo que hay en casa; lo que no sea un ingrediente se apunta con «Añadir «…»». Pulsa «Añadir (N)».
+3. Lo que se marca como comprado en la Compra y es un ingrediente aparece solo; si se desmarca, desaparece.
+4. Cuando algo se acaba, pulsa «Se acabó». El aviso ofrece «A la compra»: si se pulsa, se apunta en la Compra (o avisa de que ya estaba).

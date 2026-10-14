@@ -10,7 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 
-/** «Más»: los módulos que no caben en la barra inferior (Comidas, Deporte y Notas). */
+/** «Más»: los módulos que no caben en la barra inferior (Comidas, Deporte, Notas y Despensa). */
 @Composable
 internal fun SpaceMoreScreen(onOpen: (BobitosDestination) -> Unit) {
     Column(

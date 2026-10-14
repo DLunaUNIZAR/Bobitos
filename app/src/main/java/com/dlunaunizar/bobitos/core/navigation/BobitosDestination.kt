@@ -10,6 +10,7 @@ import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.Event
 import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.rounded.Groups
+import androidx.compose.material.icons.rounded.Inventory2
 import androidx.compose.material.icons.rounded.Kitchen
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.MoreHoriz
@@ -100,6 +101,11 @@ enum class BobitosDestination(val route: String, @param:StringRes val titleRes: 
         titleRes = R.string.notes_title,
         icon = Icons.AutoMirrored.Rounded.StickyNote2,
     ),
+    Pantry(
+        route = "pantry",
+        titleRes = R.string.pantry_title,
+        icon = Icons.Rounded.Inventory2,
+    ),
     Profile(
         route = "profile",
         titleRes = R.string.profile_title,
@@ -117,11 +123,11 @@ enum class BobitosDestination(val route: String, @param:StringRes val titleRes: 
         val mainMenuDestinations = listOf(Spaces, Recipes, Ingredients, Routines, Exercises, MyCalendar)
         val workspaceDestinations = listOf(Shopping, Tasks, Calendar, Meals, Sport)
 
-        // Pestañas de la barra inferior dentro de un espacio. Comidas y Deporte cuelgan de «Más».
+        // Pestañas de la barra inferior dentro de un espacio. Comidas, Deporte, Notas y Despensa cuelgan de «Más».
         val workspaceTabs = listOf(SpaceHome, Calendar, Tasks, Shopping, SpaceMore)
 
         // Módulos agrupados bajo la pestaña «Más».
-        val moreDestinations = listOf(Meals, Sport, Notes)
+        val moreDestinations = listOf(Meals, Sport, Notes, Pantry)
     }
 }
 

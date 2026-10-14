@@ -60,6 +60,7 @@ import com.dlunaunizar.bobitos.feature.ingredients.IngredientDetailScreen
 import com.dlunaunizar.bobitos.feature.ingredients.IngredientsScreen
 import com.dlunaunizar.bobitos.feature.meals.MealsScreen
 import com.dlunaunizar.bobitos.feature.notes.NotesScreen
+import com.dlunaunizar.bobitos.feature.pantry.PantryScreen
 import com.dlunaunizar.bobitos.feature.recipes.RecipesScreen
 import com.dlunaunizar.bobitos.feature.routines.RoutinesScreen
 import com.dlunaunizar.bobitos.feature.shopping.ShoppingScreen
@@ -132,6 +133,7 @@ fun BobitosNavHost(
         BobitosDestination.SpaceHome.route +
         BobitosDestination.SpaceMore.route +
         BobitosDestination.Notes.route +
+        BobitosDestination.Pantry.route +
         CALENDAR_EVENT_ROUTE
 
     LaunchedEffect(currentRoute, spacePickerOpen) {
@@ -484,6 +486,14 @@ fun BobitosNavHost(
 
         composable(BobitosDestination.Notes.route) {
             NotesScreen(
+                onBack = { navController.popBackStack() },
+                canWrite = uiState.syncStatus.canWrite,
+                spaceId = uiState.selectedSpace?.id,
+            )
+        }
+
+        composable(BobitosDestination.Pantry.route) {
+            PantryScreen(
                 onBack = { navController.popBackStack() },
                 canWrite = uiState.syncStatus.canWrite,
                 spaceId = uiState.selectedSpace?.id,
