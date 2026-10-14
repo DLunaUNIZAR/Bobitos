@@ -4,6 +4,8 @@ import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.pantryId
 import com.dlunaunizar.bobitos.core.model.shoppingMatchKey
+import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
+import com.dlunaunizar.bobitos.feature.common.pantryEntryFor
 
 // Diálogo «Has cocinado …» (spec 2026-10-13-despensa-design, §3c).
 
@@ -76,3 +78,10 @@ internal fun CookedReview.writesFor(choice: CookedChoice): CookedWrites {
         restockNames = if (choice.restock) finishedRows.map(CookedPantryRow::name) else emptyList(),
     )
 }
+
+/**
+ * Lo que se apunta a la compra: con el nombre del catálogo si se reconoce («Aceite de oliva virgen extra»), como al
+ * decir «Se acabó» en la Despensa; si no, como se escribe en la receta.
+ */
+internal fun CookedWrites.restockNamesIn(data: IngredientShoppingData): List<String> =
+    restockNames.map { pantryEntryFor(it, data)?.name ?: it }

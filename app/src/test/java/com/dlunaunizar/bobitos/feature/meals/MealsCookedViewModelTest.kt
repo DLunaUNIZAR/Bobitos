@@ -301,4 +301,23 @@ class MealsCookedViewModelTest {
             assertEquals(MealUiMessage.ShoppingChanged, viewModel.uiState.value.error)
             assertSame(review, viewModel.uiState.value.cooked)
         }
+
+    @Test
+    fun `what has finished goes on the list with the catalog name`() = runTest(mainDispatcherRule.testDispatcher) {
+        ingredientRepository.catalogState.value =
+            listOf(CatalogIngredient("aceite-de-oliva-virgen-extra", "Aceite de oliva virgen extra"))
+        recipeRepository.mineState.value =
+            listOf(recipe("r1", listOf(Ingredient("aceite de oliva virgen extra", "2", "cucharadas"))))
+        pantryRepository.serverIds = setOf(pantryId("aceite de oliva virgen extra"))
+        viewModel.observe("home")
+        advanceUntilIdle()
+        viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.CENA, "Pisto").copy(recipeId = "r1"))
+        advanceUntilIdle()
+        val review = viewModel.uiState.value.cooked!!
+
+        viewModel.confirmCooked(review.defaultChoice().toggleFinished(pantryId("aceite de oliva virgen extra")))
+        advanceUntilIdle()
+
+        assertEquals(listOf("Aceite de oliva virgen extra"), shoppingRepository.addedNames)
+    }
 }

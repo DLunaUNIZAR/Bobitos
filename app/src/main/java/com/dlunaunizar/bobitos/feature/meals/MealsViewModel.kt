@@ -309,7 +309,7 @@ class MealsViewModel @Inject constructor(
             val restock = if (writes.restockNames.isEmpty()) {
                 emptyList()
             } else {
-                pantryRestock(writes.restockNames, shoppingRepository.currentItems(spaceId), data).writes
+                pantryRestock(writes.restockNamesIn(data), shoppingRepository.currentItems(spaceId), data).writes
             }
             shoppingRepository.applyCooked(
                 spaceId,

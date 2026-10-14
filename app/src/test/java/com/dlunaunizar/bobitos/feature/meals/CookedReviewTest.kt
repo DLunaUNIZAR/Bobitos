@@ -1,8 +1,10 @@
 package com.dlunaunizar.bobitos.feature.meals
 
+import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.pantryId
+import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -119,4 +121,24 @@ class CookedReviewTest {
         purchasedByName = null,
         purchasedAt = null,
     )
+
+    @Test
+    fun `what is put on the list takes the catalog name when it is recognized and stays as written if not`() {
+        val data = IngredientShoppingData(
+            listOf(
+                CatalogIngredient("aceite-de-oliva-virgen-extra", "Aceite de oliva virgen extra"),
+                CatalogIngredient("huevos", "Huevos"),
+            ),
+        )
+        val writes = CookedWrites(
+            crossOff = emptyList(),
+            finishedIds = listOf("a", "b", "c"),
+            restockNames = listOf("aceite de oliva virgen extra", "huevo", "Sal de Añana"),
+        )
+
+        assertEquals(
+            listOf("Aceite de oliva virgen extra", "Huevos", "Sal de Añana"),
+            writes.restockNamesIn(data),
+        )
+    }
 }
