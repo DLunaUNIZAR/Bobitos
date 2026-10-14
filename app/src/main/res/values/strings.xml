@@ -549,6 +549,11 @@
     <string name="notes_notice_deleted">Nota eliminada</string>
     <string name="notes_notice_pinned">Nota fijada</string>
     <string name="notes_notice_unpinned">Nota no fijada</string>
+    <string name="pantry_others">Otros</string>
+    <string name="pantry_picker_title">Añadir a la despensa</string>
+    <string name="pantry_picker_confirm">Añadir (%1$d)</string>
+    <string name="pantry_picker_search">Buscar ingrediente</string>
+    <string name="pantry_picker_free_text">Añadir «%1$s»</string>
     <string name="close">Cerrar</string>
     <string name="routines_title">Rutinas</string>
     <string name="routines_open">Rutinas</string>

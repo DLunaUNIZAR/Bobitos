@@ -3,7 +3,9 @@ package com.dlunaunizar.bobitos.feature.pantry
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.PantryEntry
 import com.dlunaunizar.bobitos.core.model.PantryItem
+import com.dlunaunizar.bobitos.core.model.pantryId
 import com.dlunaunizar.bobitos.data.repository.PantryFailure
 import com.dlunaunizar.bobitos.data.repository.PantryRepository
 import com.dlunaunizar.bobitos.data.repository.PantryRepositoryException
@@ -36,6 +38,7 @@ class PantryViewModel @Inject constructor(
     val uiState: StateFlow<PantryUiState> = mutableUiState.asStateFlow()
     private var itemsJob: Job? = null
     private var observedSpaceId: String? = null
+    private var catalogJob: Job? = null
 
     fun observe(spaceId: String) {
         if (spaceId == observedSpaceId && itemsJob?.isActive == true) return
@@ -82,6 +85,47 @@ class PantryViewModel @Inject constructor(
                 shoppingRepository.applyWrites(spaceId, plan.writes)
                 PantryUiMessage.AddedToShopping
             }
+        }
+    }
+
+    fun openPicker() {
+        if (mutableUiState.value.picker != null) return
+        mutableUiState.update { it.copy(picker = PantryPickerState()) }
+        catalogJob?.cancel()
+        catalogJob = viewModelScope.launch {
+            ingredientSource.data().collect { data ->
+                mutableUiState.update { state ->
+                    state.copy(ingredientData = data, picker = state.picker?.copy(catalogLoaded = true))
+                }
+            }
+        }
+    }
+
+    fun closePicker() {
+        catalogJob?.cancel()
+        catalogJob = null
+        mutableUiState.update { it.copy(picker = null) }
+    }
+
+    fun setPickerQuery(query: String) = mutableUiState.update { it.copy(picker = it.picker?.copy(query = query)) }
+
+    fun togglePick(entry: PantryEntry) = mutableUiState.update { state ->
+        val picker = state.picker ?: return@update state
+        val id = pantryId(entry.name)
+        val selection = if (id in picker.selection) picker.selection - id else picker.selection + (id to entry)
+        state.copy(picker = picker.copy(selection = selection))
+    }
+
+    /** Apunta lo marcado; si sale bien, cierra el selector. Si falla, lo deja abierto con lo marcado. */
+    fun confirmPicker() {
+        val spaceId = observedSpaceId ?: return
+        val entries = mutableUiState.value.picker?.selection?.values?.toList().orEmpty()
+        if (entries.isEmpty()) return
+        runAction(onSuccess = { it.copy(picker = null) }) {
+            repository.add(spaceId, entries)
+            catalogJob?.cancel()
+            catalogJob = null
+            PantryUiMessage.ItemsAdded
         }
     }
 

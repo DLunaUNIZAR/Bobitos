@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.feature.pantry
 import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
+import com.dlunaunizar.bobitos.core.model.PantryEntry
 import com.dlunaunizar.bobitos.core.model.PantryItem
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.data.repository.PantryFailure
@@ -192,5 +193,76 @@ class PantryViewModelTest {
         assertEquals(listOf("Tomate"), shopping.addedNames)
         assertEquals(listOf(null), shopping.addedSupermarkets)
         assertEquals(listOf(null), shopping.addedBrands)
+    }
+
+    @Test
+    fun `the picker loads the catalog while open`() = runTest(mainDispatcherRule.testDispatcher) {
+        ingredients.catalogState.value = listOf(CatalogIngredient("sal", "Sal", "Especias y hierbas"))
+        viewModel.observe("home")
+
+        viewModel.openPicker()
+        advanceUntilIdle()
+
+        assertEquals(true, viewModel.uiState.value.picker?.catalogLoaded)
+        assertEquals(listOf("Sal"), viewModel.uiState.value.ingredientData.ingredients.map { it.name })
+        viewModel.closePicker()
+        assertNull(viewModel.uiState.value.picker)
+    }
+
+    @Test
+    fun `toggling the same item twice unselects it`() {
+        viewModel.openPicker()
+
+        viewModel.togglePick(PantryEntry("Sal", "Especias y hierbas"))
+        assertEquals(setOf("sal"), viewModel.uiState.value.picker?.selection?.keys)
+        viewModel.togglePick(PantryEntry("sal", null))
+
+        assertEquals(emptySet<String>(), viewModel.uiState.value.picker?.selection?.keys)
+    }
+
+    @Test
+    fun `confirming adds the selection and closes the picker`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        advanceUntilIdle()
+        viewModel.openPicker()
+        viewModel.togglePick(PantryEntry("Sal", "Especias y hierbas"))
+        viewModel.togglePick(PantryEntry("Papel de cocina", null))
+
+        viewModel.confirmPicker()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(PantryEntry("Sal", "Especias y hierbas"), PantryEntry("Papel de cocina", null)),
+            pantry.added.single(),
+        )
+        assertNull(viewModel.uiState.value.picker)
+        assertEquals(PantryUiMessage.ItemsAdded, viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun `a failed add keeps the picker open with its selection`() = runTest(mainDispatcherRule.testDispatcher) {
+        pantry.addFailure = PantryRepositoryException(PantryFailure.Network)
+        viewModel.observe("home")
+        advanceUntilIdle()
+        viewModel.openPicker()
+        viewModel.togglePick(PantryEntry("Sal", "Especias y hierbas"))
+
+        viewModel.confirmPicker()
+        advanceUntilIdle()
+
+        assertEquals(PantryUiMessage.NetworkError, viewModel.uiState.value.error)
+        assertEquals(setOf("sal"), viewModel.uiState.value.picker?.selection?.keys)
+    }
+
+    @Test
+    fun `confirming with nothing selected writes nothing`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        advanceUntilIdle()
+        viewModel.openPicker()
+
+        viewModel.confirmPicker()
+        advanceUntilIdle()
+
+        assertTrue(pantry.added.isEmpty())
     }
 }
