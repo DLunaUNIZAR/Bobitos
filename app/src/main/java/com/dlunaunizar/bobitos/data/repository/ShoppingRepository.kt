@@ -52,7 +52,10 @@ interface ShoppingRepository {
      * [crossOff] y apunta en la despensa su entrada, si la traen y no estaba (como [setPurchased]); quita de la
      * despensa [finishedPantryIds]; y escribe [restock] sobre la lista tal como se vio (como [applyWrites]). Un artículo
      * de [crossOff] que ya no existe o ya está comprado se salta. Si otro miembro ha cambiado o borrado un artículo de
-     * [restock], no se escribe nada y falla con [ShoppingFailure.ItemChanged] o [ShoppingFailure.ItemNotFound].
+     * [restock], no se escribe nada y falla con [ShoppingFailure.ItemChanged] o [ShoppingFailure.ItemNotFound]. Justo
+     * antes de escribir se vuelve a leer la lista: si ya tiene algo de lo que [restock] añade ([ShoppingWrite.Add]),
+     * porque otro miembro lo ha apuntado entretanto, tampoco se escribe nada y falla con
+     * [ShoppingFailure.ItemChanged].
      */
     suspend fun applyCooked(
         spaceId: String,
@@ -113,7 +116,8 @@ enum class ShoppingFailure {
 /**
  * Fallo de [ShoppingRepository]. Si una escritura sobre un artículo tal como se vio falla porque otro miembro lo ha
  * cambiado o borrado ([ShoppingFailure.ItemChanged] o [ShoppingFailure.ItemNotFound]), [itemName] es su nombre tal
- * como se vio; si no, `null`.
+ * como se vio. Si [ShoppingRepository.applyCooked] falla porque otro miembro ya ha apuntado algo que se iba a
+ * añadir ([ShoppingFailure.ItemChanged]), es el nombre de ese artículo tal como está en la lista. Si no, `null`.
  */
 class ShoppingRepositoryException(
     val failure: ShoppingFailure,

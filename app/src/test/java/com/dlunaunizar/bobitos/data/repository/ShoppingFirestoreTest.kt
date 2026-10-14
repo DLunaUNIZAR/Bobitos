@@ -45,4 +45,28 @@ class ShoppingFirestoreTest {
         assertEquals(ShoppingFailure.ItemNotFound, failure.failure)
         assertEquals("Leche", failure.itemName)
     }
+
+    private fun listed(name: String, purchased: Boolean = false) =
+        seen.copy(id = "id-$name", name = name, purchased = purchased)
+
+    @Test
+    fun `adding what is still not on the list is fine`() {
+        assertNull(listedMeanwhileFailure(listOf(listed("Pan")), listOf("Leche", "Arroz")))
+    }
+
+    @Test
+    fun `if someone has listed something being added it fails as changed and names it as listed`() {
+        val failure = listedMeanwhileFailure(listOf(listed("Pan"), listed("Tomates")), listOf("Leche", "tomate"))!!
+
+        assertEquals(ShoppingFailure.ItemChanged, failure.failure)
+        assertEquals("Tomates", failure.itemName)
+    }
+
+    @Test
+    fun `an item listed and bought meanwhile also fails, so that tapping done again lists it again`() {
+        val failure = listedMeanwhileFailure(listOf(listed("Leche", purchased = true)), listOf("Leche"))!!
+
+        assertEquals(ShoppingFailure.ItemChanged, failure.failure)
+        assertEquals("Leche", failure.itemName)
+    }
 }

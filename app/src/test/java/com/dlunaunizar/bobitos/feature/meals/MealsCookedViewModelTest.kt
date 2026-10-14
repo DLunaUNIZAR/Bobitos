@@ -484,6 +484,36 @@ class MealsCookedViewModelTest {
     }
 
     @Test
+    fun `if someone lists meanwhile what done adds the dialog names it and a retry does not add it again`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Leche", "1", "l"))))
+            pantryRepository.serverIds = setOf(pantryId("Leche"))
+            viewModel.observe("home")
+            advanceUntilIdle()
+            viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.DESAYUNO, "Café con leche").copy(recipeId = "r1"))
+            advanceUntilIdle()
+            val choice = viewModel.uiState.value.cooked!!.defaultChoice().toggleFinished(pantryId("Leche"))
+            // Justo antes de escribir, el repositorio ve que otro miembro acaba de apuntar «Leche».
+            shoppingRepository.cookedFailure =
+                ShoppingRepositoryException(ShoppingFailure.ItemChanged, itemName = "Leche")
+
+            viewModel.confirmCooked(choice)
+            advanceUntilIdle()
+
+            assertEquals(MealUiMessage.CookedShoppingChanged, viewModel.uiState.value.error)
+            assertEquals("Leche", viewModel.uiState.value.cookedErrorItem)
+
+            shoppingRepository.cookedFailure = null
+            shoppingRepository.itemsState.value = listOf(shoppingItem("s9", "Leche"))
+            viewModel.confirmCooked(choice)
+            advanceUntilIdle()
+
+            assertTrue(shoppingRepository.cookedCalls.single().restock.isEmpty())
+            assertNull(viewModel.uiState.value.cooked)
+            assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.notice)
+        }
+
+    @Test
     fun `what has finished goes on the list with the catalog name`() = runTest(mainDispatcherRule.testDispatcher) {
         ingredientRepository.catalogState.value =
             listOf(CatalogIngredient("aceite-de-oliva-virgen-extra", "Aceite de oliva virgen extra"))

@@ -4,11 +4,13 @@ import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.PantryEntry
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.dlunaunizar.bobitos.core.model.findShoppingMatch
 import com.dlunaunizar.bobitos.core.model.pantryId
 import com.dlunaunizar.bobitos.core.model.sameContentAs
 import com.dlunaunizar.bobitos.data.sync.RealtimeMetrics
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
 import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
+import com.google.android.gms.tasks.Tasks
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
@@ -21,6 +23,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+import java.util.concurrent.ExecutionException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -252,8 +255,13 @@ class FirestoreShoppingRepository @Inject constructor(
         val user = requireVerifiedUser()
         val entries = crossOff.map { it.pantryEntry?.let(::validPantryEntryOrNull) }
         val planned = restock.map { planWrite(spaceId, it) }
+        val added = restock.filterIsInstance<ShoppingWrite.Add>().map(ShoppingWrite.Add::name)
         val spaceReference = firestore.collection(SPACES).document(spaceId)
         val pantry = firestore.pantryCollection(spaceId)
+        // La misma lectura que currentItems: con ella se comprueba lo que se añade, justo antes de escribir.
+        val list = itemsCollection(spaceId)
+            .orderBy(FIELD_CREATED_AT, Query.Direction.ASCENDING)
+            .limit(MAX_VISIBLE_ITEMS)
 
         firestore.runTransaction { transaction ->
             // Firestore exige hacer todas las lecturas antes de la primera escritura.
@@ -269,6 +277,10 @@ class FirestoreShoppingRepository @Inject constructor(
                 .distinctBy { (_, entry) -> pantryId(entry.name) }
                 .map { (item, entry) -> Triple(item, entry, readPantry(transaction, spaceId, entry.name)) }
             planned.forEach { plan -> plan.seen?.let { requireUnchanged(transaction.get(plan.reference), it) } }
+            // Lo último antes de escribir: si otro miembro ha apuntado algo de lo que se añade después de que
+            // se leyera la lista, no se escribe nada. Firestore no deja consultar dentro de una transacción,
+            // así que la lista se lee aparte (serverItemsBlocking).
+            if (added.isNotEmpty()) listedMeanwhileFailure(list.serverItemsBlocking(), added)?.let { throw it }
             crossed.forEach { (item, _) -> markPurchased(transaction, item.reference, true, user) }
             pantryReads.forEach { (item, entry, snapshot) ->
                 snapshot?.let { writePantry(transaction, it, entry, user.id, item) }
@@ -510,4 +522,22 @@ internal fun staleItemFailure(current: ShoppingItem?, seen: ShoppingItem): Shopp
     current == null -> ShoppingRepositoryException(ShoppingFailure.ItemNotFound, itemName = seen.name)
     !current.sameContentAs(seen) -> ShoppingRepositoryException(ShoppingFailure.ItemChanged, itemName = seen.name)
     else -> null
+}
+
+/**
+ * El fallo de añadir [added] (los nombres de cada [ShoppingWrite.Add]) si la lista [current] ya tiene un artículo
+ * que corresponde a alguno ([findShoppingMatch]): otro miembro lo ha apuntado después de que se leyera la lista.
+ * Es [ShoppingFailure.ItemChanged], con el nombre de ese artículo tal como está en la lista; `null` si no hay ninguno.
+ */
+internal fun listedMeanwhileFailure(current: List<ShoppingItem>, added: List<String>): ShoppingRepositoryException? =
+    added.firstNotNullOfOrNull { name -> findShoppingMatch(current, name) }
+        ?.let { ShoppingRepositoryException(ShoppingFailure.ItemChanged, itemName = it.name) }
+
+// La lista del servidor, leída desde la función de una transacción: corre en un hilo de fondo y puede esperar, como
+// Transaction.get. Los fallos salen sin envolver, también como en Transaction.get: sin conexión sigue siendo
+// ShoppingFailure.Network y no «error inesperado».
+private fun Query.serverItemsBlocking(): List<ShoppingItem> = try {
+    Tasks.await(get(Source.SERVER)).documents.toSortedShoppingItems()
+} catch (error: ExecutionException) {
+    throw error.cause ?: error
 }
