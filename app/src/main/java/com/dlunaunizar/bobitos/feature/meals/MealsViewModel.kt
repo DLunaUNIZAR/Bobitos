@@ -15,6 +15,7 @@ import com.dlunaunizar.bobitos.core.model.shoppingMatchKey
 import com.dlunaunizar.bobitos.data.repository.MealFailure
 import com.dlunaunizar.bobitos.data.repository.MealRepository
 import com.dlunaunizar.bobitos.data.repository.MealRepositoryException
+import com.dlunaunizar.bobitos.data.repository.PantryRepository
 import com.dlunaunizar.bobitos.data.repository.RecipeRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
@@ -25,6 +26,7 @@ import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
 import com.dlunaunizar.bobitos.feature.common.applyIngredientReview
 import com.dlunaunizar.bobitos.feature.common.buildIngredientReviewRows
+import com.dlunaunizar.bobitos.feature.common.currentIdsOrNull
 import com.dlunaunizar.bobitos.feature.common.writesNothing
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -46,6 +48,7 @@ class MealsViewModel @Inject constructor(
     private val recipeRepository: RecipeRepository,
     private val shoppingRepository: ShoppingRepository,
     private val ingredientShoppingSource: IngredientShoppingSource,
+    private val pantryRepository: PantryRepository,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(MealsUiState())
     val uiState: StateFlow<MealsUiState> = mutableUiState.asStateFlow()
@@ -226,7 +229,9 @@ class MealsViewModel @Inject constructor(
                         showError(error.toUiMessage())
                         return@launch
                     }
-                val rows = buildIngredientReviewRows(ingredients, current, shoppingData)
+                // La despensa del servidor; si no se puede leer, la revisión sale sin ella.
+                val pantryIds = pantryRepository.currentIdsOrNull(spaceId).orEmpty()
+                val rows = buildIngredientReviewRows(ingredients, current, shoppingData, pantryIds)
                 mutableUiState.update { it.copy(ingredientReview = rows) }
             } finally {
                 mutableUiState.update { it.copy(isSaving = false) }

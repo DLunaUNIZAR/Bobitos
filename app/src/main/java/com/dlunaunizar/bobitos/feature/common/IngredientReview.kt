@@ -29,6 +29,7 @@ import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.ShoppingQuantity
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.core.model.findShoppingMatch
+import com.dlunaunizar.bobitos.core.model.isInPantry
 import com.dlunaunizar.bobitos.core.model.shoppingMatchKey
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
@@ -42,6 +43,12 @@ enum class ReviewRowKind {
 
     /** Ya está pendiente: «Omitir» (por defecto) o «Sumar». */
     PENDING,
+
+    /**
+     * No está pendiente y hay en la despensa: «Omitir» (por defecto) o «Añadir», como una nueva o, si hay un comprado,
+     * volviéndolo a apuntar.
+     */
+    IN_PANTRY,
 
     /** Está, pero comprado: «Omitir» (por defecto) o «Volver a apuntar» ese artículo (pendiente, con la cantidad nueva). */
     PURCHASED,
@@ -60,12 +67,16 @@ data class IngredientReviewRow(
     val quantities: List<String> = emptyList(),
     /** Solo en filas nuevas con ingrediente reconocido: da pie a elegir marca y tienda. */
     val context: IngredientShoppingContext? = null,
+    /** Hay en la despensa del espacio. */
+    val inPantry: Boolean = false,
 ) {
+    // Precedencia: pendiente en la lista → en la despensa → comprado → nueva.
     val kind: ReviewRowKind
         get() = when {
-            existing == null -> ReviewRowKind.NEW
-            existing.purchased -> ReviewRowKind.PURCHASED
-            else -> ReviewRowKind.PENDING
+            existing != null && !existing.purchased -> ReviewRowKind.PENDING
+            inPantry -> ReviewRowKind.IN_PANTRY
+            existing != null -> ReviewRowKind.PURCHASED
+            else -> ReviewRowKind.NEW
         }
 }
 
@@ -86,7 +97,8 @@ internal data class ReviewRowState(
 )
 
 // Ya en la lista (pendiente o comprado): «Omitir» marcado; con «Sumar», la suma preparada; con «Volver a apuntar»,
-// la cantidad de la receta. Nueva: la de la receta, con la marca y la tienda por defecto.
+// la cantidad de la receta. En la despensa: «Omitir» marcado, con la cantidad de la receta y la marca y la tienda
+// por defecto. Nueva: la de la receta, con la marca y la tienda por defecto.
 internal fun IngredientReviewRow.initialState(): ReviewRowState = when (kind) {
     ReviewRowKind.PENDING -> ReviewRowState(
         quantity = ShoppingQuantity.sum(existing?.quantity, recipeQuantity).orEmpty(),
@@ -97,6 +109,12 @@ internal fun IngredientReviewRow.initialState(): ReviewRowState = when (kind) {
     ReviewRowKind.PURCHASED -> ReviewRowState(
         quantity = recipeQuantity.orEmpty(),
         selection = BrandStoreSelection.None,
+        freeBrand = "",
+        include = false,
+    )
+    ReviewRowKind.IN_PANTRY -> ReviewRowState(
+        quantity = recipeQuantity.orEmpty(),
+        selection = context?.defaultSelection() ?: BrandStoreSelection.None,
         freeBrand = "",
         include = false,
     )
@@ -121,9 +139,9 @@ internal fun ReviewRowState.withInclude(value: Boolean): ReviewRowState = copy(i
 /** La cantidad que se va a escribir supera el máximo: error en el campo y Confirmar deshabilitado. */
 internal fun ReviewRowState.quantityTooLong(): Boolean = include && quantity.trim().length > ShoppingQuantity.MAX_LENGTH
 
-/** La marca libre de una fila nueva supera el máximo: error en el campo y Confirmar deshabilitado. */
+/** La marca libre de una fila que se va a añadir supera el máximo: error en el campo y Confirmar deshabilitado. */
 internal fun ReviewRowState.brandTooLong(row: IngredientReviewRow): Boolean =
-    row.context?.brands?.isEmpty() == true && freeBrandTooLong(freeBrand)
+    include && row.context?.brands?.isEmpty() == true && freeBrandTooLong(freeBrand)
 
 /** Confirmar se puede pulsar si ninguna fila tiene la cantidad o la marca libre demasiado larga. */
 internal fun canConfirmReview(rows: List<IngredientReviewRow>, states: List<ReviewRowState>): Boolean =
@@ -135,11 +153,12 @@ internal fun ReviewRowState.toChoice(row: IngredientReviewRow): IngredientReview
     val context = row.context
     return when {
         existing != null -> IngredientReviewChoice(trimmed, existing.supermarket, existing.brand, skip = !include)
-        context == null -> IngredientReviewChoice(trimmed, null, null)
+        context == null -> IngredientReviewChoice(trimmed, null, null, skip = !include)
         else -> IngredientReviewChoice(
             quantity = trimmed,
             supermarket = selection.store,
             brand = context.brandToSave(selection, freeBrand),
+            skip = !include,
         )
     }
 }
@@ -150,12 +169,14 @@ fun List<IngredientReviewChoice>.writesNothing(): Boolean = all(IngredientReview
 /**
  * Agrupa [ingredients] por [shoppingMatchKey] («Tomate» y «tomates» van juntos), suma sus cantidades y
  * los cruza con la lista de la compra actual ([currentItems]) con [findShoppingMatch] (manda el
- * pendiente). El orden respeta la primera aparición. Función pura (sin efectos), fácil de testear.
+ * pendiente) y con la despensa ([pantryIds], leída del servidor): pendiente → en la despensa → comprado → nueva.
+ * El orden respeta la primera aparición. Función pura (sin efectos), fácil de testear.
  */
 fun buildIngredientReviewRows(
     ingredients: List<Ingredient>,
     currentItems: List<ShoppingItem>,
     data: IngredientShoppingData = IngredientShoppingData(),
+    pantryIds: Set<String> = emptySet(),
 ): List<IngredientReviewRow> = ingredients.groupBy { shoppingMatchKey(it.name) }.values.map { occurrences ->
     val first = occurrences.first()
     val contributions = occurrences.mapNotNull(Ingredient::formattedQuantity)
@@ -166,6 +187,7 @@ fun buildIngredientReviewRows(
         existing = existing,
         quantities = contributions,
         context = if (existing == null) data.contextFor(first.name) else null,
+        inPantry = isInPantry(first.name, pantryIds),
     )
 }
 
@@ -273,11 +295,7 @@ private fun ReviewRowContent(
         if (row.kind != ReviewRowKind.NEW) {
             SkipOrIncludePicker(
                 include = state.include,
-                includeLabel = if (row.kind == ReviewRowKind.PENDING) {
-                    R.string.meals_review_sum
-                } else {
-                    R.string.meals_review_relist
-                },
+                includeLabel = row.includeLabel(),
                 onChange = { value -> update { it.withInclude(value) } },
             )
         }
@@ -298,7 +316,7 @@ private fun ReviewRowContent(
             )
         }
         val context = row.context
-        if (context != null) {
+        if (context != null && state.include) {
             BrandStorePicker(
                 context = context,
                 selection = state.selection,
@@ -314,8 +332,18 @@ private fun ReviewRowContent(
 /** Pista bajo el nombre de una fila: su texto y sus argumentos. Si falta una cantidad, no se nombra (sin «—»). */
 internal data class ReviewHint(@StringRes val res: Int, val args: List<String> = emptyList())
 
+/** La opción que no omite: «Sumar» en un pendiente; «Volver a apuntar» si hay un comprado; si no, «Añadir». */
+@StringRes
+internal fun IngredientReviewRow.includeLabel(): Int = when {
+    kind == ReviewRowKind.PENDING -> R.string.meals_review_sum
+    existing != null -> R.string.meals_review_relist
+    else -> R.string.meals_review_add
+}
+
 internal fun IngredientReviewRow.hint(): ReviewHint? = when (kind) {
     ReviewRowKind.PENDING -> pendingHint()
+    ReviewRowKind.IN_PANTRY -> recipeQuantity?.let { ReviewHint(R.string.meals_review_in_pantry_recipe, listOf(it)) }
+        ?: ReviewHint(R.string.meals_review_in_pantry)
     ReviewRowKind.PURCHASED -> recipeQuantity?.let { ReviewHint(R.string.meals_review_purchased_recipe, listOf(it)) }
         ?: ReviewHint(R.string.meals_review_purchased)
     ReviewRowKind.NEW -> when {

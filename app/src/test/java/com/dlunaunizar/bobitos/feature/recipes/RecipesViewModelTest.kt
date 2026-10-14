@@ -12,15 +12,19 @@ import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.dlunaunizar.bobitos.core.model.pantryId
 import com.dlunaunizar.bobitos.data.recipeimport.ImportFailure
 import com.dlunaunizar.bobitos.data.recipeimport.ImportedRecipe
 import com.dlunaunizar.bobitos.data.recipeimport.RecipeImportException
 import com.dlunaunizar.bobitos.data.recipeimport.RecipeImporter
+import com.dlunaunizar.bobitos.data.repository.PantryFailure
+import com.dlunaunizar.bobitos.data.repository.PantryRepositoryException
 import com.dlunaunizar.bobitos.data.repository.RecipeFailure
 import com.dlunaunizar.bobitos.data.repository.RecipeRepository
 import com.dlunaunizar.bobitos.data.repository.RecipeRepositoryException
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepositoryException
+import com.dlunaunizar.bobitos.feature.common.FakePantryRepository
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewChoice
 import com.dlunaunizar.bobitos.feature.common.RecordingShoppingRepository
 import com.dlunaunizar.bobitos.feature.common.ReviewRowKind
@@ -59,11 +63,13 @@ class RecipesViewModelTest {
     private val ingredientRepository = FakeIngredientRepository()
     private val brandRepository = FakeIngredientBrandRepository()
     private val prefsRepository = FakeIngredientPrefsRepository()
+    private val pantryRepository = FakePantryRepository()
     private val viewModel = RecipesViewModel(
         repository,
         importer,
         shoppingRepository,
         ingredientShoppingSource(ingredientRepository, brandRepository, prefsRepository),
+        pantryRepository,
     )
 
     @Test
@@ -612,6 +618,41 @@ class RecipesViewModelTest {
             assertEquals(null, viewModel.uiState.value.ingredientReview)
             assertEquals(RecipeUiMessage.NetworkError, viewModel.uiState.value.error)
         }
+
+    @Test
+    fun `the review marks what is in the pantry, read from the server`() = runTest(mainDispatcherRule.testDispatcher) {
+        pantryRepository.serverIds = setOf(pantryId("Arroz"))
+        viewModel.observe()
+        advanceUntilIdle()
+        val recipe = recipe(
+            "r1",
+            RecipeVisibility.PRIVATE,
+            "Arroz con huevo",
+            listOf(Ingredient("Arroz", "300", "g"), Ingredient("Huevo", "2", "uds")),
+        )
+
+        viewModel.addToShopping("home", recipe)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(ReviewRowKind.IN_PANTRY, ReviewRowKind.NEW),
+            viewModel.uiState.value.ingredientReview?.map { it.kind },
+        )
+    }
+
+    @Test
+    fun `if the pantry cannot be read the review opens without it`() = runTest(mainDispatcherRule.testDispatcher) {
+        pantryRepository.itemsFailure = PantryRepositoryException(PantryFailure.Network)
+        viewModel.observe()
+        advanceUntilIdle()
+        val recipe = recipe("r1", RecipeVisibility.PRIVATE, "Arroz", listOf(Ingredient("Arroz", "300", "g")))
+
+        viewModel.addToShopping("home", recipe)
+        advanceUntilIdle()
+
+        assertEquals(listOf(ReviewRowKind.NEW), viewModel.uiState.value.ingredientReview?.map { it.kind })
+        assertNull(viewModel.uiState.value.error)
+    }
 }
 
 private class FakeRecipeRepository : RecipeRepository {

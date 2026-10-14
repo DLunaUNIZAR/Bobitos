@@ -21,3 +21,7 @@ const val MAX_PANTRY_CATEGORY_LENGTH = 60
  * «Aceite de oliva», `aceit-oliva`. Vacío si el nombre no tiene letras ni números: eso no se puede apuntar.
  */
 fun pantryId(name: String): String = slug(shoppingMatchKey(name))
+
+/** Si [name] está en la despensa ([pantryIds], ids de [pantryId]); un nombre sin letras ni números nunca lo está. */
+fun isInPantry(name: String, pantryIds: Set<String>): Boolean =
+    pantryId(name).let { it.isNotEmpty() && it in pantryIds }

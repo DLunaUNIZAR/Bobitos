@@ -4,7 +4,9 @@ import com.dlunaunizar.bobitos.core.model.PantryEntry
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.findShoppingMatch
 import com.dlunaunizar.bobitos.core.model.shoppingMatchKey
+import com.dlunaunizar.bobitos.data.repository.PantryRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingWrite
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -68,3 +70,9 @@ internal const val CATALOG_TIMEOUT_MILLIS = 5_000L
 
 internal suspend fun IngredientShoppingSource.firstOrEmpty(): IngredientShoppingData =
     withTimeoutOrNull(CATALOG_TIMEOUT_MILLIS) { data().first() } ?: IngredientShoppingData()
+
+/** Los ids de la despensa de [spaceId] leídos del servidor, o `null` si no se puede leer (se sigue sin ella). */
+internal suspend fun PantryRepository.currentIdsOrNull(spaceId: String): Set<String>? =
+    runCatching { currentIds(spaceId) }
+        .onFailure { if (it is CancellationException) throw it }
+        .getOrNull()

@@ -1,6 +1,8 @@
 package com.dlunaunizar.bobitos.core.model
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PantryItemTest {
@@ -26,5 +28,16 @@ class PantryItemTest {
     fun `pantryId is empty without letters or numbers`() {
         assertEquals("", pantryId("¡¿!?"))
         assertEquals("", pantryId("   "))
+    }
+
+    @Test
+    fun `isInPantry matches by pantryId and never matches a name without letters or numbers`() {
+        val ids = setOf("tomat", "aceit-oliva", "")
+
+        assertTrue(isInPantry("Tomates", ids))
+        assertTrue(isInPantry("  aceite de oliva ", ids))
+        assertFalse(isInPantry("Leche", ids))
+        assertFalse(isInPantry("¡!", ids))
+        assertFalse(isInPantry("   ", ids))
     }
 }

@@ -7,6 +7,7 @@ import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.dlunaunizar.bobitos.core.model.pantryId
 import com.dlunaunizar.bobitos.data.repository.ShoppingWrite
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -441,5 +442,79 @@ class IngredientReviewTest {
 
         assertFalse(canConfirmReview(listOf(row), listOf(long)))
         assertTrue(canConfirmReview(listOf(row), listOf(row.initialState())))
+    }
+
+    @Test
+    fun `a row in the pantry is omitted by default and added like a new one when chosen`() {
+        val row = buildIngredientReviewRows(
+            listOf(Ingredient("Arroz", "300", "g")),
+            emptyList(),
+            data,
+            setOf(pantryId("Arroz")),
+        ).single()
+        val state = row.initialState()
+
+        assertEquals(ReviewRowKind.IN_PANTRY, row.kind)
+        assertNotNull(row.context)
+        assertFalse(state.include)
+        assertTrue(listOf(state.toChoice(row)).writesNothing())
+        val added = state.withInclude(true).toChoice(row)
+        assertEquals(IngredientReviewChoice("300 g", Supermarket.DIA, "Brillante"), added)
+        assertEquals(
+            listOf(ShoppingWrite.Add("Arroz", "300 g", null, Supermarket.DIA, "Brillante")),
+            ingredientReviewWrites(listOf(row), listOf(added)),
+        )
+    }
+
+    @Test
+    fun `pending wins over the pantry and the pantry over purchased`() {
+        val rows = buildIngredientReviewRows(
+            listOf(Ingredient("Sal"), Ingredient("Leche", "1", "l"), Ingredient("Arroz")),
+            listOf(item("s1", "sal"), item("s2", "leche", purchased = true)),
+            data,
+            setOf(pantryId("Sal"), pantryId("Leche")),
+        )
+
+        assertEquals(listOf(ReviewRowKind.PENDING, ReviewRowKind.IN_PANTRY, ReviewRowKind.NEW), rows.map { it.kind })
+        val milk = rows[1]
+        assertEquals(R.string.meals_review_relist, milk.includeLabel())
+        assertEquals(
+            listOf(ShoppingWrite.Change(milk.existing!!, "1 l", null, null, null, relist = true)),
+            ingredientReviewWrites(listOf(milk), listOf(milk.initialState().withInclude(true).toChoice(milk))),
+        )
+    }
+
+    @Test
+    fun `pantry rows hint the pantry and offer Añadir`() {
+        fun rowFor(ingredient: Ingredient) =
+            buildIngredientReviewRows(listOf(ingredient), emptyList(), data, setOf(pantryId("Sal"))).single()
+
+        assertEquals(
+            ReviewHint(R.string.meals_review_in_pantry_recipe, listOf("1 kg")),
+            rowFor(Ingredient("Sal", "1", "kg")).hint(),
+        )
+        assertEquals(ReviewHint(R.string.meals_review_in_pantry), rowFor(Ingredient("Sal")).hint())
+        assertEquals(R.string.meals_review_add, rowFor(Ingredient("Sal")).includeLabel())
+        assertEquals(
+            R.string.meals_review_sum,
+            buildIngredientReviewRows(listOf(Ingredient("Sal")), listOf(item("s1", "Sal")), data).single()
+                .includeLabel(),
+        )
+    }
+
+    @Test
+    fun `an omitted pantry row with a long free brand does not block confirming`() {
+        val row = IngredientReviewRow(
+            name = "Arroz",
+            recipeQuantity = "300 g",
+            existing = null,
+            context = IngredientShoppingContext(arroz, emptyList(), emptyList()),
+            inPantry = true,
+        )
+        val omitted = row.initialState().withFreeBrand("x".repeat(61))
+
+        assertFalse(omitted.brandTooLong(row))
+        assertTrue(canConfirmReview(listOf(row), listOf(omitted)))
+        assertTrue(omitted.withInclude(true).brandTooLong(row))
     }
 }
