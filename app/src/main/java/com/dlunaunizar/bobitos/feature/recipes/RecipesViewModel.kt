@@ -85,13 +85,24 @@ class RecipesViewModel @Inject constructor(
         }
     }
 
-    /** Escucha la despensa de [spaceId] para «Con lo que hay»; con null (sin espacio) la suelta. */
+    /**
+     * Escucha la despensa de [spaceId] para «Con lo que hay»; con null (sin espacio) la suelta. Volver a observar el
+     * mismo espacio (rotación, volver al Recetario) reinicia el listener conservando los ids hasta la instantánea nueva;
+     * pasar a otro espacio (o a ninguno) los borra y apaga el chip, para que no quede un filtro activo y oculto.
+     */
     fun observePantry(spaceId: String?) {
         if (spaceId == pantrySpaceId && pantryJob?.isActive == true) return
         pantryJob?.cancel()
         pantryJob = null
+        val previous = pantrySpaceId
         pantrySpaceId = spaceId
-        mutableUiState.update { it.copy(pantryIds = null) }
+        if (spaceId != previous) {
+            // De ningún espacio al primero no se apaga: «¿Qué cocino?» activa el chip justo después de observar.
+            val resetFilter = spaceId == null || previous != null
+            mutableUiState.update {
+                it.copy(pantryIds = null, pantryOnly = if (resetFilter) false else it.pantryOnly)
+            }
+        }
         if (spaceId == null) return
         pantryJob = viewModelScope.launch {
             pantryRepository.idsFlow(spaceId)
@@ -106,7 +117,6 @@ class RecipesViewModel @Inject constructor(
     fun stopObserving() {
         pantryJob?.cancel()
         pantryJob = null
-        pantrySpaceId = null
         globalJob?.cancel()
         mineJob?.cancel()
         prefsJob?.cancel()

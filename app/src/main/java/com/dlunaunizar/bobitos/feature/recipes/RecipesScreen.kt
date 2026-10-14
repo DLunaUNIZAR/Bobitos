@@ -370,7 +370,8 @@ private fun PantryFilterEffects(
 ) {
     DisposableEffect(spaceId) {
         onObservePantry(spaceId)
-        onDispose { onObservePantry(null) }
+        // Al salir no se suelta aquí: el stopObserving() de la pantalla cancela el listener y conserva los ids.
+        onDispose { }
     }
     LaunchedEffect(requested) {
         if (requested) onRequested()

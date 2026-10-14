@@ -14,7 +14,11 @@ import com.dlunaunizar.bobitos.core.model.pantryId
  * repetir por clave y en el orden de la receta. Los nombres sin letras ni números ni están ni faltan.
  */
 internal fun missingFromPantry(recipe: Recipe, pantryIds: Set<String>): List<String> =
-    pantryNames(recipe).filterNot { it.second in pantryIds }.map { it.first }
+    missing(pantryNames(recipe), pantryIds)
+
+// Los nombres de [names] ((nombre, `pantryId`)) cuyo id no está en la despensa: la regla de «lo que falta», en un sitio.
+private fun missing(names: List<Pair<String, String>>, pantryIds: Set<String>): List<String> =
+    names.filterNot { it.second in pantryIds }.map { it.first }
 
 // (nombre recortado, `pantryId`) de cada ingrediente con letras o números, sin repetir por id y en el orden de la receta.
 private fun pantryNames(recipe: Recipe): List<Pair<String, String>> = recipe.ingredients.orEmpty()
@@ -36,7 +40,7 @@ internal fun List<Recipe>.withPantryLines(pantryIds: Set<String>?): List<RecipeR
     if (pantryIds == null) return map { RecipeRow(it, null) }
     return map { it to pantryNames(it) }
         .filter { it.second.isNotEmpty() }
-        .map { (recipe, names) -> recipe to names.filterNot { it.second in pantryIds }.map { it.first } }
+        .map { (recipe, names) -> recipe to missing(names, pantryIds) }
         .sortedWith(compareBy({ it.second.size }, { it.first.title.lowercase() }, { it.first.id }))
         .map { (recipe, missing) -> RecipeRow(recipe, pantryLine(missing)) }
 }

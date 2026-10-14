@@ -41,6 +41,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -681,6 +682,52 @@ class RecipesViewModelTest {
         assertNull(viewModel.uiState.value.pantryIds)
         assertNull(viewModel.uiState.value.error)
     }
+
+    @Test
+    fun `observing the same space again after stopping never drops the pantry ids`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            pantryRepository.itemsState.value = listOf(PantryItem(pantryId("Arroz"), "Arroz", null, null))
+            val seen = mutableListOf<Set<String>?>()
+            backgroundScope.launch(mainDispatcherRule.testDispatcher) {
+                viewModel.uiState.collect { seen += it.pantryIds }
+            }
+            viewModel.observePantry("home")
+            runCurrent()
+            assertEquals(setOf(pantryId("Arroz")), viewModel.uiState.value.pantryIds)
+            seen.clear()
+
+            viewModel.stopObserving()
+            viewModel.observePantry("home")
+            runCurrent()
+
+            // Con el dispatcher sin cola la instantánea llega al momento: lo que importa es que no pase por null.
+            assertFalse(seen.contains(null))
+            assertEquals(setOf(pantryId("Arroz")), viewModel.uiState.value.pantryIds)
+        }
+
+    @Test
+    fun `observing another space switches the pantry chip off`() = runTest(mainDispatcherRule.testDispatcher) {
+        pantryRepository.itemsState.value = listOf(PantryItem(pantryId("Arroz"), "Arroz", null, null))
+        viewModel.observePantry("home")
+        runCurrent()
+        viewModel.setPantryOnly(true)
+
+        // La despensa del otro espacio no se puede leer: sin chip, y el filtro no queda activo y oculto.
+        pantryRepository.itemsFailure = PantryRepositoryException(PantryFailure.PermissionDenied)
+        viewModel.observePantry("work")
+
+        assertFalse(viewModel.uiState.value.pantryOnly)
+        assertNull(viewModel.uiState.value.pantryIds)
+    }
+
+    @Test
+    fun `the pantry filter requested right after observing the first space stays on`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel.observePantry("home")
+            viewModel.setPantryOnly(true)
+
+            assertTrue(viewModel.uiState.value.pantryOnly)
+        }
 
     @Test
     fun `the pantry chip switches on and off`() {
