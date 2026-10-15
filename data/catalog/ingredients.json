@@ -464,6 +464,12 @@
       "defaultUnit": "g"
     },
     {
+      "id": "carrilleras-de-cerdo",
+      "name": "Carrilleras de cerdo",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
       "id": "chorizo",
       "name": "Chorizo",
       "category": "Carnes",
@@ -568,6 +574,12 @@
     {
       "id": "panceta",
       "name": "Panceta",
+      "category": "Carnes",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "pavo-picado",
+      "name": "Pavo picado",
       "category": "Carnes",
       "defaultUnit": "g"
     },
@@ -682,6 +694,12 @@
     {
       "id": "berberechos",
       "name": "Berberechos",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "bonito",
+      "name": "Bonito",
       "category": "Pescados y mariscos",
       "defaultUnit": "g"
     },
@@ -818,10 +836,22 @@
       "defaultUnit": "g"
     },
     {
+      "id": "tinta-de-calamar",
+      "name": "Tinta de calamar",
+      "category": "Pescados y mariscos",
+      "defaultUnit": "ud"
+    },
+    {
       "id": "trucha",
       "name": "Trucha",
       "category": "Pescados y mariscos",
       "defaultUnit": "g"
+    },
+    {
+      "id": "claras-de-huevo",
+      "name": "Claras de huevo",
+      "category": "Lácteos y huevos",
+      "defaultUnit": "ml"
     },
     {
       "id": "flan",
@@ -1304,6 +1334,12 @@
       "defaultUnit": "g"
     },
     {
+      "id": "bizcochos-de-soletilla",
+      "name": "Bizcochos de soletilla",
+      "category": "Panadería",
+      "defaultUnit": "g"
+    },
+    {
       "id": "colines",
       "name": "Colines",
       "category": "Panadería",
@@ -1436,6 +1472,12 @@
       "defaultUnit": "ml"
     },
     {
+      "id": "carne-de-pimiento-choricero",
+      "name": "Carne de pimiento choricero",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "g"
+    },
+    {
       "id": "concentrado-de-tomate",
       "name": "Concentrado de tomate",
       "category": "Aceites, salsas y condimentos",
@@ -1512,6 +1554,12 @@
       "name": "Salsa picante",
       "category": "Aceites, salsas y condimentos",
       "defaultUnit": "ml"
+    },
+    {
+      "id": "tahini",
+      "name": "Tahini",
+      "category": "Aceites, salsas y condimentos",
+      "defaultUnit": "g"
     },
     {
       "id": "tomate-frito",
@@ -1822,6 +1870,12 @@
     {
       "id": "semillas-de-lino",
       "name": "Semillas de lino",
+      "category": "Frutos secos",
+      "defaultUnit": "g"
+    },
+    {
+      "id": "semillas-de-sesamo",
+      "name": "Semillas de sésamo",
       "category": "Frutos secos",
       "defaultUnit": "g"
     },

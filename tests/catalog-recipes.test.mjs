@@ -153,7 +153,7 @@ test("la revisión enseña las recetas por categorías, con raciones, tiempo, in
   assert.match(md, /- Sal — al gusto/);
   assert.match(md, /\*\*Preparación\*\*\n\n1\. Pon las lentejas a cocer\.\n2\. Sirve\./);
   assert.match(md, /`tortilla` · 1 ración · 20 min/);
-  assert.equal(RECIPE_CATEGORIES.length, 11);
+  assert.equal(RECIPE_CATEGORIES.length, 12);
 });
 
 test("el recipes.json real es válido: 60 recetas en las 11 categorías y cantidades como texto", async () => {
@@ -166,7 +166,7 @@ test("el recipes.json real es válido: 60 recetas en las 11 categorías y cantid
     Object.fromEntries(RECIPE_CATEGORIES.map((c) => [c, built.filter((r) => r.category === c).length])),
     {
       Legumbres: 5, Arroces: 4, Pasta: 4, Carnes: 6, Pescados: 5, Verduras: 5, Ensaladas: 4, Huevos: 4,
-      "Sopas y cremas": 5, "Desayunos y meriendas": 9, Postres: 9,
+      "Sopas y cremas": 5, "Desayunos y meriendas": 9, Postres: 9, Saludables: 0,
     },
   );
   assert.equal(built.reduce((n, r) => n + r.ingredients.length, 0), 503);

@@ -2,21 +2,21 @@
 
 Generado con `npm run catalog:ingredients` a partir de `data/catalog/ingredients.json`; no se edita a mano.
 
-Total: 358
+Total: 367
 
 | Categoría | Ingredientes |
 |---|---|
 | Frutas | 28 |
 | Verduras y hortalizas | 45 |
-| Carnes | 33 |
-| Pescados y mariscos | 31 |
-| Lácteos y huevos | 33 |
+| Carnes | 35 |
+| Pescados y mariscos | 33 |
+| Lácteos y huevos | 34 |
 | Legumbres | 10 |
 | Cereales, pasta y arroz | 33 |
-| Panadería | 17 |
-| Aceites, salsas y condimentos | 27 |
+| Panadería | 18 |
+| Aceites, salsas y condimentos | 29 |
 | Especias y hierbas | 31 |
-| Frutos secos | 16 |
+| Frutos secos | 17 |
 | Dulces y chocolate | 17 |
 | Bebidas | 23 |
 | Congelados y otros | 14 |
@@ -112,6 +112,7 @@ Total: 358
 | Alitas de pollo | g | alitas-de-pollo |
 | Bacon | g | bacon |
 | Carne picada mixta | g | carne-picada-mixta |
+| Carrilleras de cerdo | g | carrilleras-de-cerdo |
 | Chorizo | g | chorizo |
 | Chuletas de cerdo | g | chuletas-de-cerdo |
 | Chuletas de cordero | g | chuletas-de-cordero |
@@ -130,6 +131,7 @@ Total: 358
 | Morcilla | g | morcilla |
 | Muslos de pollo | g | muslos-de-pollo |
 | Panceta | g | panceta |
+| Pavo picado | g | pavo-picado |
 | Pechuga de pavo | g | pechuga-de-pavo |
 | Pechuga de pollo | g | pechuga-de-pollo |
 | Pierna de cordero | g | pierna-de-cordero |
@@ -154,6 +156,7 @@ Total: 358
 | Bacalao | g | bacalao |
 | Bacalao desalado | g | bacalao-desalado |
 | Berberechos | g | berberechos |
+| Bonito | g | bonito |
 | Bonito en lata | ud | bonito-en-lata |
 | Boquerones | g | boquerones |
 | Caballa | g | caballa |
@@ -176,12 +179,14 @@ Total: 358
 | Sardinillas en lata | ud | sardinillas-en-lata |
 | Sepia | g | sepia |
 | Surimi | g | surimi |
+| Tinta de calamar | ud | tinta-de-calamar |
 | Trucha | g | trucha |
 
 ## Lácteos y huevos
 
 | Nombre | Unidad | id |
 |---|---|---|
+| Claras de huevo | ml | claras-de-huevo |
 | Flan | ud | flan |
 | Huevos | ud | huevos |
 | Leche | ml | leche |
@@ -277,6 +282,7 @@ Total: 358
 | Barra de pan | ud | barra-de-pan |
 | Biscotes | g | biscotes |
 | Bizcocho | g | bizcocho |
+| Bizcochos de soletilla | g | bizcochos-de-soletilla |
 | Colines | g | colines |
 | Croissant | ud | croissant |
 | Galletas María | g | galletas-maria |
@@ -304,6 +310,7 @@ Total: 358
 | Caldo de pescado | ml | caldo-de-pescado |
 | Caldo de pollo | ml | caldo-de-pollo |
 | Caldo de verduras | ml | caldo-de-verduras |
+| Carne de pimiento choricero | g | carne-de-pimiento-choricero |
 | Concentrado de tomate | g | concentrado-de-tomate |
 | Kétchup | g | ketchup |
 | Leche de coco | ml | leche-de-coco |
@@ -317,6 +324,7 @@ Total: 358
 | Salsa de soja | ml | salsa-de-soja |
 | Salsa de tomate | g | salsa-de-tomate |
 | Salsa picante | ml | salsa-picante |
+| Tahini | g | tahini |
 | Tomate frito | g | tomate-frito |
 | Vinagre | ml | vinagre |
 | Vinagre balsámico | ml | vinagre-balsamico |
@@ -379,6 +387,7 @@ Total: 358
 | Pistachos | g | pistachos |
 | Semillas de chía | g | semillas-de-chia |
 | Semillas de lino | g | semillas-de-lino |
+| Semillas de sésamo | g | semillas-de-sesamo |
 
 ## Dulces y chocolate
 

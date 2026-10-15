@@ -6,7 +6,7 @@ import { foldText, groupBy, slug } from "./normalize.mjs";
 // Categorías por tipo de plato, en el orden de la revisión.
 export const RECIPE_CATEGORIES = [
   "Legumbres", "Arroces", "Pasta", "Carnes", "Pescados", "Verduras", "Ensaladas", "Huevos", "Sopas y cremas",
-  "Desayunos y meriendas", "Postres",
+  "Desayunos y meriendas", "Postres", "Saludables",
 ];
 
 // Unidades de la lista cerrada, para que «Añadir a la compra» pueda sumar cantidades (ShoppingQuantity en la
