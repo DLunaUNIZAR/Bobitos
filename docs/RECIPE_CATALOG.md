@@ -1,13 +1,14 @@
 # Catálogo común de recetas
 
-El catálogo común de recetas (`recipes/{slug}`) se siembra con 60 recetas caseras de una lista propia de Bobitos. Este documento explica cómo se edita, se valida y se importa.
+El catálogo común de recetas (`recipes/{slug}`) se siembra con 160 recetas caseras de una lista propia de Bobitos. Este documento explica cómo se edita, se valida y se importa.
 
 ## Qué es
 
-- 60 **recetas comunes** (`recipes/{slug}`, `visibility: GLOBAL`, dueño el admin del catálogo, autor «Catálogo Bobitos») que viven en la **misma colección** que las recetas personales de los usuarios. Las crea **solo el admin**, con el importador.
-- Once categorías por tipo de plato: Legumbres, Arroces, Pasta, Carnes, Pescados, Verduras, Ensaladas, Huevos, Sopas y cremas, Desayunos y meriendas, y Postres.
+- 160 **recetas comunes** (`recipes/{slug}`, `visibility: GLOBAL`, dueño el admin del catálogo, autor «Catálogo Bobitos») que viven en la **misma colección** que las recetas personales de los usuarios. Las crea **solo el admin**, con el importador.
+- Doce categorías: once por tipo de plato (Legumbres, Arroces, Pasta, Carnes, Pescados, Verduras, Ensaladas, Huevos, Sopas y cremas, Desayunos y meriendas, y Postres) y «Saludables».
+- «Saludables» reúne platos ricos en proteína o ligeros, para quien entrena o quiere comer ligero: a la plancha, al horno, al vapor, en papillote o salteados, sin fritos, rebozados ni nata. No guardan datos de nutrición: la entradilla dice para qué sirven («buena después de entrenar», «ideal para táper», «cena ligera») sin cifras. Las recetas ligeras de la primera tanda siguen en su categoría por tipo de plato.
 - Cada ingrediente usa el nombre de un ingrediente del catálogo común (`ingredients.json`), para que «Añadir a la compra» reconozca la marca y la tienda, y una unidad de una lista cerrada, para que las cantidades se puedan sumar.
-- El diseño completo está en [`superpowers/specs/2026-10-12-recetario-y-compra-design.md`](superpowers/specs/2026-10-12-recetario-y-compra-design.md) (parte C).
+- El diseño completo está en [`superpowers/specs/2026-10-12-recetario-y-compra-design.md`](superpowers/specs/2026-10-12-recetario-y-compra-design.md) (parte C). La segunda tanda (100 recetas y «Saludables», 2026-10-15) siguió el mismo formato.
 
 ## Fuente y licencia
 

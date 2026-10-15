@@ -1,6 +1,6 @@
 # Catálogo común de ingredientes
 
-El catálogo común de ingredientes (`ingredients/{slug}`, colección top-level global) se siembra con unos 358 ingredientes genéricos de una cocina española, de una lista propia de Bobitos. Este documento explica cómo se edita, se revisa, se importa y se borra para empezar de cero.
+El catálogo común de ingredientes (`ingredients/{slug}`, colección top-level global) se siembra con unos 367 ingredientes genéricos de una cocina española, de una lista propia de Bobitos. Este documento explica cómo se edita, se revisa, se importa y se borra para empezar de cero.
 
 ## Qué es
 
@@ -180,7 +180,7 @@ La marca se guarda en la compra como texto (el nombre de la marca); «Indiferent
 
 - Primera importación: unas 358 escrituras de ingredientes más 1 de la versión, y una lectura de la colección (vacía tras el borrado).
 - Reimportar sin cambios: 0 escrituras.
-- Cada dispositivo: una lectura de unos 358 documentos cuando cambia la versión; sin cambios, solo la lectura de `catalogMeta/ingredients`.
+- Cada dispositivo: una lectura de unos 367 documentos cuando cambia la versión; sin cambios, solo la lectura de `catalogMeta/ingredients`.
 - El borrado cuesta una lectura por documento más una escritura (borrado) por documento, una sola vez.
 
 ## Resolución de problemas

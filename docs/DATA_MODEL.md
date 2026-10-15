@@ -599,7 +599,7 @@ updatedBy: string                      # uid del admin
 - **Escritura:** solo el admin del catálogo (la misma allowlist que las recetas, `RECIPES_ADMIN.md`). La app solo ofrece editar a esos uid; las reglas lo vuelven a exigir.
 - **`source`:** lo añade el importador (Admin SDK, salta las reglas). Los clientes no lo crean (`create` rechaza el campo) ni lo modifican (`update` solo cambia `name`, `nameLower`, `category`, `defaultUnit`, `updatedBy` y `updatedAt`).
 - **Versión y caché:** `catalogMeta/ingredients` guarda la versión del catálogo (`version`, `updatedAt`, `updatedBy`). Se crea con `version == 1` y cada cambio sube `+1`; solo la escribe el admin, de uno en uno, sin `list` ni borrado. La lee cualquier verificado con `get`. El importador la sube una vez por lote con cambios; cada alta, edición o borrado del admin en la app va en la **misma transacción** que la ficha. Las reglas de `ingredients` no exigen subirla, para no romper a la beta 18.
-- La app carga el catálogo con `VersionedCatalogLoader` (clave `"ingredients"`): lee la versión (1 lectura) y, si coincide con la guardada, usa la caché local; si no, relee la colección entera (unos 358 documentos). La caché caduca a los 7 días. Los cambios de otros dispositivos llegan en la siguiente apertura, no en directo.
+- La app carga el catálogo con `VersionedCatalogLoader` (clave `"ingredients"`): lee la versión (1 lectura) y, si coincide con la guardada, usa la caché local; si no, relee la colección entera (unos 367 documentos). La caché caduca a los 7 días. Los cambios de otros dispositivos llegan en la siguiente apertura, no en directo.
 
 #### Ingredientes personales (`users/{userId}/ingredients/{slug}`)
 

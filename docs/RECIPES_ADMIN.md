@@ -56,7 +56,7 @@ Si quitas a un admin, deja de poder editar y borrar sus comunes (recetas y rutin
 
 ## Sembrar el catálogo común
 
-El catálogo común se siembra con el importador: unas 60 recetas de lista propia, con el autor «Catálogo Bobitos» (ver [`RECIPE_CATALOG.md`](RECIPE_CATALOG.md)). También se puede publicar una común a mano desde la app:
+El catálogo común se siembra con el importador: unas 160 recetas de lista propia, con el autor «Catálogo Bobitos» (ver [`RECIPE_CATALOG.md`](RECIPE_CATALOG.md)). También se puede publicar una común a mano desde la app:
 
 1. Inicia sesión en la app con una cuenta admin (email verificado).
 2. Abre **Comidas → Recetario → Crear receta**.
