@@ -77,6 +77,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
+import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
@@ -202,22 +203,6 @@ fun ShoppingScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
-            Column {
-                Text(
-                    text = stringResource(R.string.shopping_list_title),
-                    style = MaterialTheme.typography.headlineSmall,
-                )
-                Text(
-                    text = pluralStringResource(
-                        R.plurals.shopping_pending_count,
-                        pending.size,
-                        pending.size,
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
             SearchField(
                 query = query,
                 onQueryChange = { query = it },
@@ -252,7 +237,7 @@ fun ShoppingScreen(
                             contentPadding = PaddingValues(bottom = Spacing.fabClearance),
                         ) {
                             item(key = "pending-heading") {
-                                ShoppingSectionTitle(
+                                SectionHeader(
                                     title = stringResource(R.string.shopping_pending),
                                     count = pending.size,
                                 )
@@ -296,22 +281,18 @@ fun ShoppingScreen(
                                 item(key = "purchased-heading") {
                                     Column {
                                         Spacer(modifier = Modifier.height(8.dp))
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically,
-                                        ) {
-                                            ShoppingSectionTitle(
-                                                title = stringResource(R.string.shopping_purchased),
-                                                count = purchased.size,
-                                            )
-                                            TextButton(
-                                                enabled = actionsEnabled,
-                                                onClick = { clearConfirmationVisible = true },
-                                            ) {
-                                                Text(stringResource(R.string.shopping_clear_purchased))
-                                            }
-                                        }
+                                        SectionHeader(
+                                            title = stringResource(R.string.shopping_purchased),
+                                            count = purchased.size,
+                                            action = {
+                                                TextButton(
+                                                    enabled = actionsEnabled,
+                                                    onClick = { clearConfirmationVisible = true },
+                                                ) {
+                                                    Text(stringResource(R.string.shopping_clear_purchased))
+                                                }
+                                            },
+                                        )
                                     }
                                 }
                                 items(purchased, key = ShoppingItem::id) { item ->
@@ -476,14 +457,6 @@ private fun ShoppingEmptyState(modifier: Modifier = Modifier) {
         modifier = modifier,
         icon = Icons.Rounded.ShoppingCart,
         description = stringResource(R.string.shopping_empty_description),
-    )
-}
-
-@Composable
-private fun ShoppingSectionTitle(title: String, count: Int) {
-    Text(
-        text = "$title · $count",
-        style = MaterialTheme.typography.titleMedium,
     )
 }
 

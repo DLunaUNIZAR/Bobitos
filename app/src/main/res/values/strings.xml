@@ -187,11 +187,6 @@
     <string name="write_saving">Guardando…</string>
     <string name="write_timeout">No hay respuesta del servidor. Puede que se guarde al recuperar la conexión: compruébalo antes de repetir</string>
     <string name="shopping_title">Compra</string>
-    <string name="shopping_list_title">Lista compartida</string>
-    <plurals name="shopping_pending_count">
-        <item quantity="one">%1$d producto pendiente</item>
-        <item quantity="other">%1$d productos pendientes</item>
-    </plurals>
     <string name="shopping_pending">Pendientes</string>
     <string name="shopping_purchased">Comprados</string>
     <string name="shopping_empty">La lista está vacía</string>
@@ -264,11 +259,6 @@
         <item quantity="other">Se han limpiado %1$d productos comprados.</item>
     </plurals>
     <string name="tasks_title">Tareas</string>
-    <string name="tasks_list_title">Tareas compartidas</string>
-    <plurals name="tasks_visible_count">
-        <item quantity="one">%1$d de %2$d tarea</item>
-        <item quantity="other">%1$d de %2$d tareas</item>
-    </plurals>
     <string name="tasks_add">Nueva tarea</string>
     <string name="tasks_templates">Plantillas</string>
     <string name="tasks_templates_title">Plantillas del hogar</string>
@@ -298,7 +288,9 @@
     <string name="tasks_clear_date">Quitar fecha</string>
     <string name="tasks_start_date_value">Inicio: %1$s</string>
     <string name="tasks_no_date">Sin fecha</string>
-    <string name="tasks_completed_toggle">Mostrar u ocultar completadas</string>
+    <string name="section_header_count">%1$s · %2$d</string>
+    <string name="state_expanded">Desplegado</string>
+    <string name="state_collapsed">Plegado</string>
     <string name="task_type_label">Tipo (opcional)</string>
     <string name="task_type_none">Sin tipo</string>
     <string name="task_type_cleaning">Limpieza</string>

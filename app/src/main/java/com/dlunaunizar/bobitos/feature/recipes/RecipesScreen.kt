@@ -59,6 +59,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffec
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
+import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
@@ -339,11 +340,7 @@ private fun LazyListScope.recipesSection(
     onOpen: (Recipe) -> Unit,
 ) {
     item(key = "header-$titleRes") {
-        Text(
-            text = stringResource(titleRes),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(top = 8.dp),
-        )
+        SectionHeader(title = stringResource(titleRes))
     }
     when (recipes) {
         UiState.Loading -> item(key = "loading-$titleRes") { LoadingState(Modifier.fillMaxWidth()) }

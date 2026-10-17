@@ -37,3 +37,9 @@ distribution/.last-distributed.json
 # Herramientas de diseño locales
 .superpowers/
 .impeccable/hook.cache.json
+.taste-skill/
+.impeccable/review/
+.impeccable/critique/
+.impeccable/mocks/
+.impeccable/build/
+.impeccable/config.local.json

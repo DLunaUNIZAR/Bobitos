@@ -29,6 +29,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
@@ -187,7 +189,7 @@ private fun PantryContent(
                         text = section.category ?: stringResource(R.string.pantry_others),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = Spacing.sm),
+                        modifier = Modifier.padding(top = Spacing.sm).semantics { heading() },
                     )
                 }
                 items(section.items, key = { pantryItemKey(it.id) }) { item ->

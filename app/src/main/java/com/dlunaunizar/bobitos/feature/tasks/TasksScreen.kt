@@ -32,8 +32,6 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.ExpandLess
-import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Person
@@ -99,6 +97,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
+import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
@@ -190,32 +189,32 @@ fun TasksScreen(
             }
         }
         Column(Modifier.fillMaxSize().padding(padding).padding(Spacing.lg)) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text(stringResource(R.string.tasks_list_title), style = MaterialTheme.typography.headlineSmall)
-                    TasksVisibleCount(visible = visibleTasks.size, total = allTasks.size)
-                }
-                if (canWrite) {
+            val queried = visibleTasks.filter { it.matchesQuery(query) }
+            val sections = queried.groupIntoSections()
+            // «Plantillas» va en la primera cabecera visible; sin secciones, al final de los filtros.
+            val templatesAction: (@Composable () -> Unit)? = if (canWrite) {
+                {
                     TextButton(onClick = { templatesVisible = true }) {
                         Icon(Icons.Rounded.Bolt, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(Spacing.xs))
                         Text(stringResource(R.string.tasks_templates))
                     }
                 }
+            } else {
+                null
             }
-            TaskFilterBar(state.filters, members, viewModel::setFilters)
+            TaskFilterBar(
+                state.filters,
+                members,
+                viewModel::setFilters,
+                trailing = templatesAction.takeIf { sections.isEmpty() },
+            )
             SearchField(
                 query = query,
                 onQueryChange = { query = it },
                 visible = allTasks.isNotEmpty(),
                 modifier = Modifier.padding(vertical = Spacing.xs),
             )
-            val queried = visibleTasks.filter { it.matchesQuery(query) }
-            val sections = queried.groupIntoSections()
             when (val tasks = state.tasks) {
                 UiState.Loading -> LoadingState(Modifier.weight(1f))
                 is UiState.Error -> ErrorState(
@@ -284,15 +283,19 @@ fun TasksScreen(
                         // Deja hueco para que el FAB no tape el último elemento.
                         contentPadding = PaddingValues(bottom = Spacing.fabClearance),
                     ) {
-                        sections.forEach { (section, sectionTasks) ->
+                        sections.forEachIndexed { index, (section, sectionTasks) ->
                             val collapsible = section == TaskSection.COMPLETED
                             item(key = "header-$section") {
-                                TaskSectionHeader(
+                                SectionHeader(
                                     title = stringResource(section.titleRes),
                                     count = sectionTasks.size,
-                                    collapsible = collapsible,
-                                    expanded = completedExpanded,
-                                    onToggle = { completedExpanded = !completedExpanded },
+                                    expanded = completedExpanded.takeIf { collapsible },
+                                    onToggle = if (collapsible) {
+                                        { completedExpanded = !completedExpanded }
+                                    } else {
+                                        null
+                                    },
+                                    action = templatesAction.takeIf { index == 0 },
                                 )
                             }
                             if (!collapsible || completedExpanded) {
@@ -376,41 +379,16 @@ private val TaskSection.titleRes: Int
         TaskSection.COMPLETED -> R.string.tasks_done
     }
 
-// Cabecera «Título · N». La de Completadas es plegable (colapsada por defecto).
-@Composable
-private fun TaskSectionHeader(
-    title: String,
-    count: Int,
-    collapsible: Boolean,
-    expanded: Boolean,
-    onToggle: () -> Unit,
-) {
-    val label = "$title · $count"
-    if (!collapsible) {
-        Text(label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = Spacing.xs))
-        return
-    }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onToggle)
-            .padding(vertical = Spacing.xs),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, style = MaterialTheme.typography.titleMedium)
-        Icon(
-            imageVector = if (expanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-            contentDescription = stringResource(R.string.tasks_completed_toggle),
-        )
-    }
-}
-
 // Barra de filtros con FilterChip de estado visible. Estado y prioridad son chips directos
 // (single-select con toggle: tocar el activo lo desmarca); tipo y responsable abren un menú.
 // La dimensión fecha ya la cubren las secciones de la lista (B3).
 @Composable
-private fun TaskFilterBar(filters: TaskFilters, members: List<SpaceMember>, onChange: (TaskFilters) -> Unit) {
+private fun TaskFilterBar(
+    filters: TaskFilters,
+    members: List<SpaceMember>,
+    onChange: (TaskFilters) -> Unit,
+    trailing: (@Composable () -> Unit)? = null,
+) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -443,6 +421,7 @@ private fun TaskFilterBar(filters: TaskFilters, members: List<SpaceMember>, onCh
         }
         TaskTypeFilterChip(filters, onChange)
         TaskAssigneeFilterChip(filters, members, onChange)
+        trailing?.invoke()
     }
 }
 
@@ -1084,10 +1063,4 @@ private fun TaskUiMessage.stringRes() = when (this) {
     TaskUiMessage.TaskCompleted -> R.string.tasks_notice_completed
     TaskUiMessage.TaskReopened -> R.string.tasks_notice_reopened
     TaskUiMessage.TaskDeleted -> R.string.tasks_notice_deleted
-}
-
-/** «1 de 2 tareas»: el plural sigue al total, que es lo que cierra la frase. */
-@Composable
-internal fun TasksVisibleCount(visible: Int, total: Int) {
-    Text(pluralStringResource(R.plurals.tasks_visible_count, total, visible, total))
 }

@@ -57,6 +57,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
+import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
@@ -227,11 +228,7 @@ private fun LazyListScope.routinesSection(
     onRetry: () -> Unit,
 ) {
     item(key = "header-$titleRes") {
-        Text(
-            text = stringResource(titleRes),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(top = Spacing.xs),
-        )
+        SectionHeader(title = stringResource(titleRes))
     }
     when (routines) {
         UiState.Loading -> item(key = "loading-$titleRes") { LoadingState(Modifier.fillMaxWidth()) }
