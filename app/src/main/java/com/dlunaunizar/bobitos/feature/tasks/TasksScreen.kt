@@ -224,15 +224,17 @@ fun TasksScreen(
                 )
                 is UiState.Content -> if (queried.isEmpty()) {
                     val firstRun = allTasks.isEmpty()
+                    val canClearFilters = !firstRun && (state.filters != TaskFilters() || query.isNotBlank())
                     EmptyState(
                         modifier = Modifier.weight(1f),
                         icon = Icons.Rounded.Checklist,
                         title = stringResource(if (firstRun) R.string.tasks_empty else R.string.tasks_no_results),
                         description = if (firstRun) stringResource(R.string.tasks_empty_description) else null,
-                        actionLabel = if (firstRun && canWrite) stringResource(R.string.tasks_add) else null,
-                        onAction = if (firstRun && canWrite) {
+                        actionLabel = if (canClearFilters) stringResource(R.string.tasks_clear_filters) else null,
+                        onAction = if (canClearFilters) {
                             {
-                                openEditor(null, -1)
+                                viewModel.clearFilters()
+                                query = ""
                             }
                         } else {
                             null

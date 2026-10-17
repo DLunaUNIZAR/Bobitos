@@ -236,7 +236,6 @@ fun MealsScreen(
                                     recipes = state.recipes,
                                     canWrite = canWrite,
                                     actionsEnabled = actionsEnabled,
-                                    onAdd = { openEditor(null, slot) },
                                     onEdit = { meal -> openEditor(meal, meal.slot) },
                                     onDelete = { mealToDelete = it },
                                     onAddToShopping = { viewModel.addIngredientsToShopping(it) },
@@ -393,7 +392,6 @@ private fun MealSlotSection(
     recipes: List<Recipe>,
     canWrite: Boolean,
     actionsEnabled: Boolean,
-    onAdd: () -> Unit,
     onEdit: (Meal) -> Unit,
     onDelete: (Meal) -> Unit,
     onAddToShopping: (Meal) -> Unit,
@@ -411,13 +409,6 @@ private fun MealSlotSection(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.weight(1f),
             )
-            if (canWrite) {
-                TextButton(enabled = actionsEnabled, onClick = onAdd) {
-                    Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(stringResource(R.string.meals_add))
-                }
-            }
         }
         if (meals.isEmpty()) {
             Text(

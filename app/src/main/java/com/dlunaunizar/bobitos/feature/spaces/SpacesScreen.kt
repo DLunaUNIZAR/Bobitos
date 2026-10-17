@@ -192,14 +192,11 @@ private fun SpacesContent(
             }
 
             if (spaces.isEmpty()) {
-                SpacesEmptyState(
-                    enabled = !managementState.isLoading && canWrite,
-                    onCreate = { showCreateDialog = true },
-                    onJoin = {
-                        invitationCode = ""
-                        showJoinDialog = true
-                    },
+                EmptyState(
                     modifier = Modifier.weight(1f),
+                    icon = Icons.Rounded.Groups,
+                    title = stringResource(R.string.spaces_empty),
+                    description = stringResource(R.string.spaces_empty_hint),
                 )
             } else {
                 LazyColumn(
@@ -251,31 +248,6 @@ private fun SpacesContent(
             onDismiss = closeJoin,
             onConfirm = onAcceptInvitation,
         )
-    }
-}
-
-@Composable
-private fun SpacesEmptyState(
-    enabled: Boolean,
-    onCreate: () -> Unit,
-    onJoin: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        EmptyState(
-            icon = Icons.Rounded.Groups,
-            title = stringResource(R.string.spaces_empty),
-            description = stringResource(R.string.spaces_empty_hint),
-            actionLabel = if (enabled) stringResource(R.string.space_create) else null,
-            onAction = onCreate.takeIf { enabled },
-        )
-        TextButton(onClick = onJoin, enabled = enabled) {
-            Text(stringResource(R.string.invitation_join))
-        }
     }
 }
 

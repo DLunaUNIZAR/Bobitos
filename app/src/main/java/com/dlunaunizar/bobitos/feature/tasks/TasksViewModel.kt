@@ -71,6 +71,8 @@ class TasksViewModel @Inject constructor(
 
     fun setFilters(filters: TaskFilters) = mutableUiState.update { it.copy(filters = filters) }
 
+    fun clearFilters() = setFilters(TaskFilters())
+
     fun createTask(
         spaceId: String,
         title: String,

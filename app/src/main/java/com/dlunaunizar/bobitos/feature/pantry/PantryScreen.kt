@@ -108,11 +108,9 @@ fun PantryScreen(
                 is UiState.Content -> PantryContent(
                     items = loaded.value,
                     query = state.query,
-                    canEdit = canEdit,
                     enabled = canEdit && !state.isSaving,
                     onQueryChange = viewModel::setQuery,
                     onFinished = viewModel::markFinished,
-                    onFill = viewModel::openPicker,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -139,11 +137,9 @@ fun PantryScreen(
 private fun PantryContent(
     items: List<PantryItem>,
     query: String,
-    canEdit: Boolean,
     enabled: Boolean,
     onQueryChange: (String) -> Unit,
     onFinished: (PantryItem) -> Unit,
-    onFill: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (items.isEmpty()) {
@@ -152,8 +148,6 @@ private fun PantryContent(
             icon = Icons.Rounded.Inventory2,
             title = stringResource(R.string.pantry_empty),
             description = stringResource(R.string.pantry_empty_description),
-            actionLabel = if (canEdit) stringResource(R.string.pantry_fill) else null,
-            onAction = if (canEdit) onFill else null,
         )
         return
     }

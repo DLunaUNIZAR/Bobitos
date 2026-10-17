@@ -144,6 +144,22 @@ class TasksViewModelTest {
     }
 
     @Test
+    fun `clearFilters goes back to the default filters`() {
+        viewModel.setFilters(
+            TaskFilters(
+                status = TaskStatus.DONE,
+                priority = TaskPriority.HIGH,
+                type = TaskType.LIMPIEZA,
+                assigneeId = "u2",
+            ),
+        )
+
+        viewModel.clearFilters()
+
+        assertEquals(TaskFilters(), viewModel.uiState.value.filters)
+    }
+
+    @Test
     fun `filtering by type keeps only that category`() {
         val tasks = listOf(
             task("t1", "Fregar", TaskType.LIMPIEZA),
