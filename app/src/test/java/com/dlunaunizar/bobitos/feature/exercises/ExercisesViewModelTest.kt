@@ -78,7 +78,7 @@ class ExercisesViewModelTest {
             viewModel.observe()
             advanceUntilIdle()
 
-            assertEquals(UiState.Error(null), viewModel.uiState.value.catalog)
+            assertEquals(UiState.Error(), viewModel.uiState.value.catalog)
             assertEquals(ExerciseUiMessage.CatalogUnavailable, viewModel.uiState.value.catalogError)
         }
 

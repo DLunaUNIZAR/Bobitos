@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.feature.spaces
 import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.InvitationStatus
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
@@ -17,6 +18,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -48,6 +50,17 @@ class SpacesViewModelTest {
         assertFalse(viewModel.uiState.value.isLoading)
         assertEquals(WriteStatus.SAVED, viewModel.uiState.value.writeStatus)
         assertNull(viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun aLoadFailureNeverExposesTheExceptionText() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.loadFailure = RuntimeException("PERMISSION_DENIED: Missing or insufficient permissions.")
+
+        viewModel.observeSpaceSettings("home", includeInvitations = true)
+        advanceUntilIdle()
+
+        assertEquals(UiState.Error(FailureKind.UNKNOWN), viewModel.uiState.value.members)
+        assertEquals(UiState.Error(FailureKind.UNKNOWN), viewModel.uiState.value.invitations)
     }
 
     @Test
@@ -213,6 +226,7 @@ private class FakeSpaceRepository : SpaceRepository {
     var acceptedCode: String? = null
     var deletedSpaceId: String? = null
     var nextFailure: SpaceRepositoryException? = null
+    var loadFailure: Throwable? = null
     var createGate: CompletableDeferred<Unit>? = null
     var renameGate: CompletableDeferred<Unit>? = null
     var acceptGate: CompletableDeferred<Unit>? = null
@@ -220,11 +234,11 @@ private class FakeSpaceRepository : SpaceRepository {
     // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
     var hang = false
 
-    override fun members(spaceId: String): Flow<List<SpaceMember>> = flowOf(
-        listOf(SpaceMember("owner", "David", SpaceRole.OWNER)),
-    )
+    override fun members(spaceId: String): Flow<List<SpaceMember>> = loadFailure?.let { error -> flow { throw error } }
+        ?: flowOf(listOf(SpaceMember("owner", "David", SpaceRole.OWNER)))
 
-    override fun invitations(spaceId: String): Flow<List<SpaceInvitation>> = flowOf(emptyList())
+    override fun invitations(spaceId: String): Flow<List<SpaceInvitation>> =
+        loadFailure?.let { error -> flow { throw error } } ?: flowOf(emptyList())
 
     override suspend fun createSpace(name: String): String {
         if (hang) {

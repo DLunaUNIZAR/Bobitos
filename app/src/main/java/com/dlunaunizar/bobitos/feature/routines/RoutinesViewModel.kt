@@ -8,6 +8,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
+import com.dlunaunizar.bobitos.core.common.toFailureKind
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.Routine
 import com.dlunaunizar.bobitos.core.model.RoutineExercise
@@ -46,15 +47,24 @@ class RoutinesViewModel @Inject constructor(
         mutableUiState.update { it.copy(isAdmin = repository.isCurrentUserRoutineAdmin()) }
         globalJob = viewModelScope.launch {
             repository.globalRoutines()
-                .catch { error -> mutableUiState.update { it.copy(global = UiState.Error(error.message)) } }
+                .catch { error -> mutableUiState.update { it.copy(global = UiState.Error(error.toFailureKind())) } }
                 .collect { list -> mutableUiState.update { it.copy(global = UiState.Content(list)) } }
         }
         mineJob = viewModelScope.launch {
             repository.myRoutines()
-                .catch { error -> mutableUiState.update { it.copy(mine = UiState.Error(error.message)) } }
+                .catch { error -> mutableUiState.update { it.copy(mine = UiState.Error(error.toFailureKind())) } }
                 // «Mis rutinas» = solo privadas; las GLOBAL (también las del admin) llegan por `global`.
                 .collect { list -> mutableUiState.update { it.copy(mine = UiState.Content(list.personalOnly())) } }
         }
+    }
+
+    // Reintento tras un fallo de carga: reinicia solo las dos listas de rutinas.
+    fun retry() {
+        globalJob?.cancel()
+        mineJob?.cancel()
+        observing = false
+        mutableUiState.update { it.copy(global = UiState.Loading, mine = UiState.Loading) }
+        observe()
     }
 
     // Catálogo de ejercicios para el editor de rutina. Diferido: lo pide el editor al aparecer. Idempotente;

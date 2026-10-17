@@ -58,6 +58,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
@@ -166,7 +167,11 @@ fun SportScreen(
             SportFeedback(state, viewModel::clearFeedback)
             when (val activities = state.activities) {
                 UiState.Loading -> LoadingState(Modifier.weight(1f))
-                is UiState.Error -> ErrorState(Modifier.weight(1f), message = activities.message)
+                is UiState.Error -> ErrorState(
+                    Modifier.weight(1f),
+                    message = stringResource(activities.failure.messageRes()),
+                    onRetry = { viewModel.observe(spaceId) },
+                )
                 is UiState.Content -> {
                     val dayActivities = activities.value.filter { it.date == state.focusedDate }
                     if (dayActivities.isEmpty()) {

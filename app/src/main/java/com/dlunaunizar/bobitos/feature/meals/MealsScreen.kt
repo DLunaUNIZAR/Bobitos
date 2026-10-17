@@ -53,6 +53,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
@@ -195,7 +196,11 @@ fun MealsScreen(
 
             when (val mealsState = state.meals) {
                 UiState.Loading -> LoadingState(Modifier.weight(1f))
-                is UiState.Error -> ErrorState(Modifier.weight(1f), message = mealsState.message)
+                is UiState.Error -> ErrorState(
+                    Modifier.weight(1f),
+                    message = stringResource(mealsState.failure.messageRes()),
+                    onRetry = { viewModel.observe(spaceId) },
+                )
                 is UiState.Content -> {
                     val dayMeals = mealsState.value.filter { it.date == state.focusedDate }
                     SearchField(

@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.feature.tasks
 import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SpaceMember
@@ -23,6 +24,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -116,6 +118,16 @@ class TasksViewModelTest {
 
         assertEquals(Triple("home", "t1", true), taskRepository.completedChange)
         assertEquals(TaskUiMessage.TaskCompleted, viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun aLoadFailureNeverExposesTheExceptionText() = runTest(mainDispatcherRule.testDispatcher) {
+        taskRepository.loadFailure = RuntimeException("PERMISSION_DENIED: Missing or insufficient permissions.")
+
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        assertEquals(UiState.Error(FailureKind.UNKNOWN), viewModel.uiState.value.tasks)
     }
 
     @Test
@@ -230,6 +242,7 @@ private class FakeTaskRepository : TaskRepository {
     var createdAssigneeSet = false
     var completedChange: Triple<String, String, Boolean>? = null
     var nextFailure: TaskRepositoryException? = null
+    var loadFailure: Throwable? = null
     var createGate: CompletableDeferred<Unit>? = null
 
     // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
@@ -238,6 +251,7 @@ private class FakeTaskRepository : TaskRepository {
 
     override fun tasks(spaceId: String): Flow<List<TaskItem>> {
         observedSpaceId = spaceId
+        loadFailure?.let { return flow { throw it } }
         return tasksState
     }
 

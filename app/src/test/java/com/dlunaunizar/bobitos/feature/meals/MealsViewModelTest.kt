@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.feature.meals
 import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.Ingredient
@@ -47,6 +48,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -181,6 +183,16 @@ class MealsViewModelTest {
 
         assertEquals("leo", mealRepository.addedCookId)
         assertEquals(MealUiMessage.MealAdded, viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun aLoadFailureNeverExposesTheExceptionText() = runTest(mainDispatcherRule.testDispatcher) {
+        mealRepository.loadFailure = RuntimeException("PERMISSION_DENIED: Missing or insufficient permissions.")
+
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        assertEquals(UiState.Error(FailureKind.UNKNOWN), viewModel.uiState.value.meals)
     }
 
     @Test
@@ -727,11 +739,13 @@ internal class FakeMealRepository : MealRepository {
     var addCount = 0
     val addedDates = mutableListOf<LocalDate>()
     var nextFailure: MealRepositoryException? = null
+    var loadFailure: Throwable? = null
     val mealsState = MutableStateFlow<List<Meal>>(emptyList())
 
     override fun meals(spaceId: String, weekStart: LocalDate, weekEndExclusive: LocalDate): Flow<List<Meal>> {
         observedSpaceId = spaceId
         lastWeekStart = weekStart
+        loadFailure?.let { return flow { throw it } }
         return mealsState
     }
 

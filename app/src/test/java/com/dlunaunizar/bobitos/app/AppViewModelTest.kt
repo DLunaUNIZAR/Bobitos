@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.app
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
@@ -106,6 +107,45 @@ class AppViewModelTest {
         advanceUntilIdle()
 
         assertEquals("home", viewModel.uiState.value.selectedSpace?.id)
+    }
+
+    @Test
+    fun aLoadFailureNeverExposesTheExceptionText() = runTest(mainDispatcherRule.testDispatcher) {
+        val leak = RuntimeException("PERMISSION_DENIED: Missing or insufficient permissions.")
+        val viewModel = AppViewModel(
+            authRepository = FakeAppAuthRepository(
+                refreshFailure = AuthRepositoryException(AuthFailure.Unknown, leak),
+            ),
+            spaceRepository = FakeAppSpaceRepository(loadFailure = leak),
+            activeSpaceRepository = FakeActiveSpaceRepository("home"),
+            connectivityRepository = FakeConnectivityRepository(),
+            syncRepository = FakeSyncRepository(),
+        )
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect()
+        }
+        advanceUntilIdle()
+
+        assertEquals(UiState.Error(FailureKind.UNKNOWN), viewModel.uiState.value.authUser)
+    }
+
+    @Test
+    fun aSpacesLoadFailureNeverExposesTheExceptionText() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = AppViewModel(
+            authRepository = FakeAppAuthRepository(),
+            spaceRepository = FakeAppSpaceRepository(
+                loadFailure = RuntimeException("PERMISSION_DENIED: Missing or insufficient permissions."),
+            ),
+            activeSpaceRepository = FakeActiveSpaceRepository("home"),
+            connectivityRepository = FakeConnectivityRepository(),
+            syncRepository = FakeSyncRepository(),
+        )
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect()
+        }
+        advanceUntilIdle()
+
+        assertEquals(UiState.Error(FailureKind.UNKNOWN), viewModel.uiState.value.spaces)
     }
 
     @Test
@@ -231,7 +271,10 @@ private class FakeAppAuthRepository(
     override fun signOut() = Unit
 }
 
-private class FakeAppSpaceRepository(private val trackCollectors: Boolean = false) : SpaceRepository {
+private class FakeAppSpaceRepository(
+    private val trackCollectors: Boolean = false,
+    private val loadFailure: Throwable? = null,
+) : SpaceRepository {
     private val summaries = listOf(
         SpaceSummary("home", "Casa", 2, SpaceRole.OWNER),
         SpaceSummary("work", "Trabajo", 3, SpaceRole.MEMBER),
@@ -239,17 +282,18 @@ private class FakeAppSpaceRepository(private val trackCollectors: Boolean = fals
     var allSpacesCollectors = 0
     var activeSpaceCollectors = 0
 
-    override fun spaces(): Flow<List<SpaceSummary>> = trackedFlow(
+    override fun spaces(): Flow<List<SpaceSummary>> = loadFailure?.let { error -> flow { throw error } } ?: trackedFlow(
         onStart = { allSpacesCollectors++ },
         onStop = { allSpacesCollectors-- },
         value = summaries,
     )
 
-    override fun space(spaceId: String): Flow<SpaceSummary?> = trackedFlow(
-        onStart = { activeSpaceCollectors++ },
-        onStop = { activeSpaceCollectors-- },
-        value = summaries.firstOrNull { it.id == spaceId },
-    )
+    override fun space(spaceId: String): Flow<SpaceSummary?> =
+        loadFailure?.let { error -> flow { throw error } } ?: trackedFlow(
+            onStart = { activeSpaceCollectors++ },
+            onStop = { activeSpaceCollectors-- },
+            value = summaries.firstOrNull { it.id == spaceId },
+        )
 
     private fun <T> trackedFlow(onStart: () -> Unit, onStop: () -> Unit, value: T): Flow<T> = if (!trackCollectors) {
         MutableStateFlow(value)

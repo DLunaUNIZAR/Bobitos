@@ -36,8 +36,10 @@ import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.QrCodeImage
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
@@ -125,6 +127,7 @@ fun SpaceSettingsScreen(
                     onCreateInvitation = { onCreateInvitation(space.id) },
                     onRevokeInvitation = onRevokeInvitation,
                     onShareInvitation = onShareInvitation,
+                    onRetry = { onObserveSpaceSettings(space.id, true) },
                 )
             }
 
@@ -136,9 +139,10 @@ fun SpaceSettingsScreen(
 
             when (val members = state.members) {
                 UiState.Loading -> CircularProgressIndicator()
-                is UiState.Error -> Text(
-                    text = members.message ?: stringResource(R.string.generic_error),
-                    color = MaterialTheme.colorScheme.error,
+                is UiState.Error -> ErrorState(
+                    Modifier.weight(1f),
+                    message = stringResource(members.failure.messageRes()),
+                    onRetry = { onObserveSpaceSettings(space.id, space.role == SpaceRole.OWNER) },
                 )
                 is UiState.Content -> LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -258,6 +262,7 @@ private fun OwnerInvitations(
     onCreateInvitation: () -> Unit,
     onRevokeInvitation: (String) -> Unit,
     onShareInvitation: (SpaceInvitation) -> Unit,
+    onRetry: () -> Unit,
 ) {
     Text(
         text = stringResource(R.string.invitation_section_title),
@@ -282,9 +287,10 @@ private fun OwnerInvitations(
 
     when (invitations) {
         UiState.Loading -> CircularProgressIndicator()
-        is UiState.Error -> Text(
-            text = invitations.message ?: stringResource(R.string.generic_error),
-            color = MaterialTheme.colorScheme.error,
+        is UiState.Error -> ErrorState(
+            Modifier.fillMaxWidth(),
+            message = stringResource(invitations.failure.messageRes()),
+            onRetry = onRetry,
         )
         is UiState.Content -> {
             if (invitations.value.isEmpty()) {

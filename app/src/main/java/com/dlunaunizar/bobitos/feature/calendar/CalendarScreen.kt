@@ -83,7 +83,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
@@ -229,7 +231,7 @@ fun CalendarScreen(
                 )
             }
 
-            CalendarMessage(state.message, state.editorSave, viewModel::clearMessage)
+            CalendarMessage(state.error, state.notice, state.editorSave, viewModel::clearMessage)
         }
 
         eventToDelete?.let { event ->
@@ -268,7 +270,9 @@ fun CalendarScreen(
         day = state.focusedDate,
         members = members,
         saving = state.saving,
-        errorMessage = state.message.takeIf { state.editorSave == EditorSaveStatus.FAILED },
+        errorMessage = state.error
+            ?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
+            ?.let { stringResource(it.messageRes()) },
         canWrite = canWrite,
         onClose = closeEditor,
         onSave = { id, input -> viewModel.save(id, input) },
@@ -277,10 +281,27 @@ fun CalendarScreen(
 
 // Si el editor abierto falló, el mensaje se ve dentro del formulario (no se descarta antes de tiempo).
 @Composable
-internal fun CalendarMessage(message: String?, editorSave: EditorSaveStatus, onShown: () -> Unit) {
-    if (message == null || editorSave == EditorSaveStatus.FAILED) return
-    Text(message, color = MaterialTheme.colorScheme.error)
-    LaunchedEffect(message) { onShown() }
+internal fun CalendarMessage(
+    error: FailureKind?,
+    notice: CalendarNotice?,
+    editorSave: EditorSaveStatus,
+    onShown: () -> Unit,
+) {
+    if (editorSave == EditorSaveStatus.FAILED) return
+    when {
+        error != null -> {
+            Text(stringResource(error.messageRes()), color = MaterialTheme.colorScheme.error)
+            LaunchedEffect(error) { onShown() }
+        }
+        notice != null -> {
+            val text = when (notice) {
+                CalendarNotice.SAVED -> R.string.calendar_notice_saved
+                CalendarNotice.DELETED -> R.string.calendar_undo_deleted
+            }
+            Text(stringResource(text))
+            LaunchedEffect(notice) { onShown() }
+        }
+    }
 }
 
 @Composable

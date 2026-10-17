@@ -8,6 +8,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
+import com.dlunaunizar.bobitos.core.common.toFailureKind
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
@@ -77,7 +78,7 @@ class MealsViewModel @Inject constructor(
         mutableUiState.update { it.copy(members = UiState.Loading) }
         membersJob = viewModelScope.launch {
             spaces.members(spaceId)
-                .catch { error -> mutableUiState.update { it.copy(members = UiState.Error(error.message)) } }
+                .catch { error -> mutableUiState.update { it.copy(members = UiState.Error(error.toFailureKind())) } }
                 .collect { members -> mutableUiState.update { it.copy(members = UiState.Content(members)) } }
         }
         recipesJob?.cancel()
@@ -379,7 +380,7 @@ class MealsViewModel @Inject constructor(
         mutableUiState.update { it.copy(meals = UiState.Loading) }
         mealsJob = viewModelScope.launch {
             repository.meals(spaceId, weekStart, weekStart.plusWeeks(1))
-                .catch { error -> mutableUiState.update { it.copy(meals = UiState.Error(error.message)) } }
+                .catch { error -> mutableUiState.update { it.copy(meals = UiState.Error(error.toFailureKind())) } }
                 .collect { meals -> mutableUiState.update { it.copy(meals = UiState.Content(meals)) } }
         }
     }

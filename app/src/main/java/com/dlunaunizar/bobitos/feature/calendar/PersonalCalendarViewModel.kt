@@ -3,10 +3,12 @@ package com.dlunaunizar.bobitos.feature.calendar
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
+import com.dlunaunizar.bobitos.core.common.toFailureKind
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.SpaceMember
@@ -40,7 +42,7 @@ data class PersonalCalendarUiState(
     val editorMembers: List<SpaceMember> = emptyList(),
     val saving: Boolean = false,
     val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
-    val message: String? = null,
+    val error: FailureKind? = null,
 )
 
 @HiltViewModel
@@ -137,11 +139,11 @@ class PersonalCalendarViewModel @Inject constructor(
 
     fun consumeEditorSave() = mutable.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
 
-    fun clearMessage() = mutable.update { it.copy(message = null) }
+    fun clearMessage() = mutable.update { it.copy(error = null) }
 
     private fun action(editor: Boolean = false, block: suspend () -> Unit) {
         if (mutable.value.saving) return
-        mutable.update { it.copy(saving = true, message = null, editorSave = it.editorSave.started(editor)) }
+        mutable.update { it.copy(saving = true, error = null, editorSave = it.editorSave.started(editor)) }
         viewModelScope.launch {
             runCatching { withEditorSaveTimeout(editor) { block() } }
                 .onSuccess {
@@ -152,7 +154,7 @@ class PersonalCalendarViewModel @Inject constructor(
                     mutable.update {
                         it.copy(
                             saving = false,
-                            message = error.message ?: "error",
+                            error = error.toFailureKind(),
                             editorSave = it.editorSave.failed(editor),
                         )
                     }
@@ -190,7 +192,7 @@ class PersonalCalendarViewModel @Inject constructor(
                     eventsBySpace.toList(),
                 )
             }.catch { error ->
-                mutable.update { it.copy(events = UiState.Error(error.message)) }
+                mutable.update { it.copy(events = UiState.Error(error.toFailureKind())) }
             }.collect { events ->
                 mutable.update { it.copy(events = UiState.Content(events)) }
             }

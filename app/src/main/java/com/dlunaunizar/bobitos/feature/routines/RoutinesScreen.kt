@@ -47,6 +47,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosInfoSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
@@ -119,6 +120,7 @@ fun RoutinesScreen(
                     editorOpen = true
                 },
                 onDelete = { deleteTarget = it },
+                onRetry = viewModel::retry,
             )
         }
     }
@@ -176,6 +178,7 @@ private fun RoutinesCatalog(
     onOpen: (Routine) -> Unit,
     onEdit: (Routine) -> Unit,
     onDelete: (Routine) -> Unit,
+    onRetry: () -> Unit,
 ) {
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -189,6 +192,7 @@ private fun RoutinesCatalog(
             onOpen = onOpen,
             onEdit = onEdit,
             onDelete = onDelete,
+            onRetry = onRetry,
         )
         routinesSection(
             titleRes = R.string.routines_common,
@@ -198,6 +202,7 @@ private fun RoutinesCatalog(
             onOpen = onOpen,
             onEdit = onEdit,
             onDelete = onDelete,
+            onRetry = onRetry,
         )
     }
 }
@@ -210,6 +215,7 @@ private fun LazyListScope.routinesSection(
     onOpen: (Routine) -> Unit,
     onEdit: (Routine) -> Unit,
     onDelete: (Routine) -> Unit,
+    onRetry: () -> Unit,
 ) {
     item(key = "header-$titleRes") {
         Text(
@@ -221,7 +227,11 @@ private fun LazyListScope.routinesSection(
     when (routines) {
         UiState.Loading -> item(key = "loading-$titleRes") { LoadingState(Modifier.fillMaxWidth()) }
         is UiState.Error -> item(key = "error-$titleRes") {
-            ErrorState(Modifier.fillMaxWidth(), message = routines.message)
+            ErrorState(
+                Modifier.fillMaxWidth(),
+                message = stringResource(routines.failure.messageRes()),
+                onRetry = onRetry,
+            )
         }
         is UiState.Content -> {
             val visible = routines.value

@@ -8,6 +8,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
+import com.dlunaunizar.bobitos.core.common.toFailureKind
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.InvitationCode
 import com.dlunaunizar.bobitos.data.repository.SpaceFailure
@@ -38,7 +39,7 @@ class SpacesViewModel @Inject constructor(private val spaceRepository: SpaceRepo
             spaceRepository.members(spaceId)
                 .catch { error ->
                     mutableUiState.update { state ->
-                        state.copy(members = UiState.Error(error.message))
+                        state.copy(members = UiState.Error(error.toFailureKind()))
                     }
                 }
                 .collect { members ->
@@ -54,7 +55,7 @@ class SpacesViewModel @Inject constructor(private val spaceRepository: SpaceRepo
                 spaceRepository.invitations(spaceId)
                     .catch { error ->
                         mutableUiState.update { state ->
-                            state.copy(invitations = UiState.Error(error.message))
+                            state.copy(invitations = UiState.Error(error.toFailureKind()))
                         }
                     }
                     .collect { invitations ->

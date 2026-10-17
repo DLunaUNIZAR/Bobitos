@@ -38,6 +38,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
@@ -174,7 +175,7 @@ fun PersonalCalendarScreen(
                 )
             }
 
-            CalendarMessage(state.message, state.editorSave, viewModel::clearMessage)
+            CalendarMessage(state.error, null, state.editorSave, viewModel::clearMessage)
         }
     }
 
@@ -211,7 +212,9 @@ fun PersonalCalendarScreen(
         day = state.focusedDate,
         members = state.editorMembers,
         saving = state.saving,
-        errorMessage = state.message.takeIf { state.editorSave == EditorSaveStatus.FAILED },
+        errorMessage = state.error
+            ?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
+            ?.let { stringResource(it.messageRes()) },
         canWrite = canWrite,
         onClose = closeEditor,
         onSave = { id, input -> editorSpaceId?.let { viewModel.saveEvent(it, id, input) } },

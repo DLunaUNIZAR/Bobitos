@@ -8,6 +8,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
+import com.dlunaunizar.bobitos.core.common.toFailureKind
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.RoutineExercise
 import com.dlunaunizar.bobitos.core.model.SportActivity
@@ -58,7 +59,7 @@ class SportViewModel @Inject constructor(
         mutableUiState.update { it.copy(members = UiState.Loading) }
         membersJob = viewModelScope.launch {
             spaces.members(spaceId)
-                .catch { error -> mutableUiState.update { it.copy(members = UiState.Error(error.message)) } }
+                .catch { error -> mutableUiState.update { it.copy(members = UiState.Error(error.toFailureKind())) } }
                 .collect { members -> mutableUiState.update { it.copy(members = UiState.Content(members)) } }
         }
         observeRoutines()
@@ -98,7 +99,7 @@ class SportViewModel @Inject constructor(
         mutableUiState.update { it.copy(activities = UiState.Loading) }
         activitiesJob = viewModelScope.launch {
             repository.activities(spaceId, weekStart, weekStart.plusWeeks(1))
-                .catch { error -> mutableUiState.update { it.copy(activities = UiState.Error(error.message)) } }
+                .catch { error -> mutableUiState.update { it.copy(activities = UiState.Error(error.toFailureKind())) } }
                 .collect { activities -> mutableUiState.update { it.copy(activities = UiState.Content(activities)) } }
         }
     }

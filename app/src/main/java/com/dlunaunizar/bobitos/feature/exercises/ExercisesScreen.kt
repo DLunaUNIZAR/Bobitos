@@ -42,6 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
@@ -204,7 +205,9 @@ private fun ExerciseCatalog(
         UiState.Loading -> LoadingState(Modifier.fillMaxWidth())
         is UiState.Error -> ErrorState(
             Modifier.fillMaxWidth(),
-            message = state.catalogError?.let { stringResource(it.stringResourceId) } ?: catalog.message,
+            message =
+            state.catalogError?.let { stringResource(it.stringResourceId) }
+                ?: stringResource(catalog.failure.messageRes()),
             onRetry = onRetry,
         )
         is UiState.Content -> {

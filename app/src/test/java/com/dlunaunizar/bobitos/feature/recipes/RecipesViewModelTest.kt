@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.feature.recipes
 import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.Ingredient
@@ -41,6 +42,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -104,6 +106,16 @@ class RecipesViewModelTest {
         assertEquals("Tortilla", repository.lastTitle)
         assertEquals(null, repository.lastSourceRecipeId)
         assertEquals(RecipeUiMessage.RecipeSaved, viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun aLoadFailureNeverExposesTheExceptionText() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.loadFailure = RuntimeException("PERMISSION_DENIED: Missing or insufficient permissions.")
+
+        viewModel.observe()
+        advanceUntilIdle()
+
+        assertEquals(UiState.Error(FailureKind.UNKNOWN), viewModel.uiState.value.global)
     }
 
     @Test
@@ -797,8 +809,9 @@ private class FakeRecipeRepository : RecipeRepository {
     var lastUpdatedId: String? = null
     var restored: Recipe? = null
     var admin = false
+    var loadFailure: Throwable? = null
 
-    override fun globalRecipes(): Flow<List<Recipe>> = globalState
+    override fun globalRecipes(): Flow<List<Recipe>> = loadFailure?.let { error -> flow { throw error } } ?: globalState
     override fun myRecipes(): Flow<List<Recipe>> = mineState
     override fun isCurrentUserRecipeAdmin(): Boolean = admin
     override suspend fun createRecipe(

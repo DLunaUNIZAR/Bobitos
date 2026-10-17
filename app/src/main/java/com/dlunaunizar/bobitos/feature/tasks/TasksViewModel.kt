@@ -8,6 +8,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
+import com.dlunaunizar.bobitos.core.common.toFailureKind
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.TaskItem
 import com.dlunaunizar.bobitos.core.model.TaskPriority
@@ -44,14 +45,14 @@ class TasksViewModel @Inject constructor(
         mutableUiState.update { it.copy(tasks = UiState.Loading, members = UiState.Loading) }
         tasksJob = viewModelScope.launch {
             taskRepository.tasks(spaceId).catch { error ->
-                mutableUiState.update { it.copy(tasks = UiState.Error(error.message)) }
+                mutableUiState.update { it.copy(tasks = UiState.Error(error.toFailureKind())) }
             }.collect { tasks ->
                 mutableUiState.update { it.copy(tasks = UiState.Content(tasks)) }
             }
         }
         membersJob = viewModelScope.launch {
             spaceRepository.members(spaceId).catch { error ->
-                mutableUiState.update { it.copy(members = UiState.Error(error.message)) }
+                mutableUiState.update { it.copy(members = UiState.Error(error.toFailureKind())) }
             }.collect { members ->
                 mutableUiState.update { it.copy(members = UiState.Content(members)) }
             }

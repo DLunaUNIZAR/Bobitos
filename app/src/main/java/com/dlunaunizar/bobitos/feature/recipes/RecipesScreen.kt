@@ -50,6 +50,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
@@ -201,10 +202,10 @@ fun RecipesScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(bottom = Spacing.fabClearance),
             ) {
-                recipesSection(R.string.recipes_section_mine, state.mine, mineRows, filtering) {
+                recipesSection(R.string.recipes_section_mine, state.mine, mineRows, filtering, viewModel::retry) {
                     detailRecipeId = it.id
                 }
-                recipesSection(R.string.recipes_section_global, state.global, globalRows, filtering) {
+                recipesSection(R.string.recipes_section_global, state.global, globalRows, filtering, viewModel::retry) {
                     detailRecipeId = it.id
                 }
             }
@@ -320,6 +321,7 @@ private fun LazyListScope.recipesSection(
     recipes: UiState<List<Recipe>>,
     rows: List<RecipeRow>,
     filtering: Boolean,
+    onRetry: () -> Unit,
     onOpen: (Recipe) -> Unit,
 ) {
     item(key = "header-$titleRes") {
@@ -332,7 +334,11 @@ private fun LazyListScope.recipesSection(
     when (recipes) {
         UiState.Loading -> item(key = "loading-$titleRes") { LoadingState(Modifier.fillMaxWidth()) }
         is UiState.Error -> item(key = "error-$titleRes") {
-            ErrorState(Modifier.fillMaxWidth(), message = recipes.message)
+            ErrorState(
+                Modifier.fillMaxWidth(),
+                message = stringResource(recipes.failure.messageRes()),
+                onRetry = onRetry,
+            )
         }
         is UiState.Content -> {
             if (rows.isEmpty()) {

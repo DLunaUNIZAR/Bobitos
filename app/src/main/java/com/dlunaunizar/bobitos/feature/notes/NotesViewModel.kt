@@ -8,6 +8,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
+import com.dlunaunizar.bobitos.core.common.toFailureKind
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.data.repository.NoteFailure
 import com.dlunaunizar.bobitos.data.repository.NoteRepository
@@ -37,7 +38,7 @@ class NotesViewModel @Inject constructor(private val repository: NoteRepository)
         mutableUiState.update { it.copy(notes = UiState.Loading) }
         notesJob = viewModelScope.launch {
             repository.notes(spaceId)
-                .catch { error -> mutableUiState.update { it.copy(notes = UiState.Error(error.message)) } }
+                .catch { error -> mutableUiState.update { it.copy(notes = UiState.Error(error.toFailureKind())) } }
                 .collect { notes -> mutableUiState.update { it.copy(notes = UiState.Content(notes)) } }
         }
     }

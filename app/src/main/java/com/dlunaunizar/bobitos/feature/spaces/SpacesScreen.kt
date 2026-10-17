@@ -48,7 +48,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
@@ -75,7 +77,7 @@ fun SpacesScreen(
 ) {
     when (state) {
         UiState.Loading -> LoadingContent(modifier)
-        is UiState.Error -> ErrorContent(modifier, state.message)
+        is UiState.Error -> ErrorContent(modifier, state.failure)
         is UiState.Content -> SpacesContent(
             spaces = state.value,
             managementState = managementState,
@@ -439,11 +441,11 @@ private fun LoadingContent(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ErrorContent(modifier: Modifier = Modifier, message: String?) {
+private fun ErrorContent(modifier: Modifier = Modifier, failure: FailureKind) {
     Box(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = message ?: stringResource(R.string.generic_error))
+        Text(text = stringResource(failure.messageRes()))
     }
 }

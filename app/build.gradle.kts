@@ -90,6 +90,11 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    testOptions {
+        // FirebaseFirestoreException.Code usa android.util.SparseArray; sin esto no se puede ni construir en JVM.
+        unitTests.isReturnDefaultValues = true
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"

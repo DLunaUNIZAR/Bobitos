@@ -3,10 +3,12 @@ package com.dlunaunizar.bobitos.feature.calendar
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
+import com.dlunaunizar.bobitos.core.common.toFailureKind
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.SpaceMember
@@ -28,6 +30,8 @@ import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
 
+enum class CalendarNotice { SAVED, DELETED }
+
 data class CalendarUiState(
     val focusedDate: LocalDate = LocalDate.now(),
     val mode: CalendarDisplayMode = CalendarDisplayMode.MONTH,
@@ -38,7 +42,8 @@ data class CalendarUiState(
     val knownMemberIds: Set<String> = emptySet(),
     val saving: Boolean = false,
     val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
-    val message: String? = null,
+    val error: FailureKind? = null,
+    val notice: CalendarNotice? = null,
 )
 
 @HiltViewModel
@@ -70,7 +75,7 @@ class CalendarViewModel @Inject constructor(
         memberJob = viewModelScope.launch {
             spaces.members(id)
                 .catch { error ->
-                    mutable.update { it.copy(members = UiState.Error(error.message)) }
+                    mutable.update { it.copy(members = UiState.Error(error.toFailureKind())) }
                 }
                 .collect(::onMembersChanged)
         }
@@ -151,7 +156,7 @@ class CalendarViewModel @Inject constructor(
     fun consumeEditorSave() = mutable.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
 
     fun clearMessage() {
-        mutable.update { it.copy(message = null) }
+        mutable.update { it.copy(error = null, notice = null) }
     }
 
     private fun move(amount: Long) {
@@ -182,7 +187,7 @@ class CalendarViewModel @Inject constructor(
         eventJob = viewModelScope.launch {
             repository.events(id, interval.start, interval.endExclusive)
                 .catch { error ->
-                    mutable.update { it.copy(events = UiState.Error(error.message)) }
+                    mutable.update { it.copy(events = UiState.Error(error.toFailureKind())) }
                 }
                 .collect { events ->
                     mutable.update { it.copy(events = UiState.Content(events)) }
@@ -192,14 +197,17 @@ class CalendarViewModel @Inject constructor(
 
     private fun action(editor: Boolean = false, onSuccess: () -> Unit = {}, block: suspend () -> Unit) {
         if (mutable.value.saving) return
-        mutable.update { it.copy(saving = true, message = null, editorSave = it.editorSave.started(editor)) }
+        mutable.update {
+            it.copy(saving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
+        }
         viewModelScope.launch {
             runCatching { withEditorSaveTimeout(editor) { block() } }
                 .onSuccess {
                     mutable.update {
                         it.copy(
                             saving = false,
-                            message = "Cambios guardados",
+                            error = null,
+                            notice = CalendarNotice.SAVED,
                             editorSave = it.editorSave.succeeded(editor),
                         )
                     }
@@ -210,7 +218,8 @@ class CalendarViewModel @Inject constructor(
                     mutable.update {
                         it.copy(
                             saving = false,
-                            message = error.message ?: "No se pudo completar la operación",
+                            error = error.toFailureKind(),
+                            notice = null,
                             editorSave = it.editorSave.failed(editor),
                         )
                     }

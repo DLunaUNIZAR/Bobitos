@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.app
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.toFailureKind
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.data.connectivity.ConnectivityRepository
@@ -66,7 +67,7 @@ class AppViewModel @Inject constructor(
                         when (error.failure) {
                             AuthFailure.Network -> emit(UiState.Content(cachedUser))
                             AuthFailure.SessionExpired -> emit(UiState.Content(null))
-                            else -> emit(UiState.Error(error.message))
+                            else -> emit(UiState.Error(error.toFailureKind()))
                         }
                     }
                 }.onStart { emit(UiState.Loading) }
@@ -199,4 +200,4 @@ class AppViewModel @Inject constructor(
 }
 
 private fun Flow<UiState<List<SpaceSummary>>>.catchAsUiState(): Flow<UiState<List<SpaceSummary>>> =
-    catch { error -> emit(UiState.Error(error.message)) }
+    catch { error -> emit(UiState.Error(error.toFailureKind())) }

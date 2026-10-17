@@ -8,6 +8,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
+import com.dlunaunizar.bobitos.core.common.toFailureKind
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
@@ -74,15 +75,25 @@ class RecipesViewModel @Inject constructor(
         }
         globalJob = viewModelScope.launch {
             repository.globalRecipes()
-                .catch { error -> mutableUiState.update { it.copy(global = UiState.Error(error.message)) } }
+                .catch { error -> mutableUiState.update { it.copy(global = UiState.Error(error.toFailureKind())) } }
                 .collect { recipes -> mutableUiState.update { it.copy(global = UiState.Content(recipes)) } }
         }
         mineJob = viewModelScope.launch {
             repository.myRecipes()
-                .catch { error -> mutableUiState.update { it.copy(mine = UiState.Error(error.message)) } }
+                .catch { error -> mutableUiState.update { it.copy(mine = UiState.Error(error.toFailureKind())) } }
                 // «Mis recetas» = solo privadas; las GLOBAL (también las del admin) llegan por `global`.
                 .collect { list -> mutableUiState.update { it.copy(mine = UiState.Content(list.personalOnly())) } }
         }
+    }
+
+    // Reintento tras un fallo de carga: reinicia solo las dos listas de recetas.
+    fun retry() {
+        prefsJob?.cancel()
+        globalJob?.cancel()
+        mineJob?.cancel()
+        observing = false
+        mutableUiState.update { it.copy(global = UiState.Loading, mine = UiState.Loading) }
+        observe()
     }
 
     /**

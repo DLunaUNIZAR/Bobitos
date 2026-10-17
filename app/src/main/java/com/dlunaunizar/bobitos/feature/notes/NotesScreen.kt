@@ -44,6 +44,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
@@ -107,7 +108,11 @@ fun NotesScreen(
             state.error?.let { message -> NoteFeedbackBanner(message, viewModel::clearFeedback) }
             when (val notes = state.notes) {
                 UiState.Loading -> LoadingState(Modifier.weight(1f))
-                is UiState.Error -> ErrorState(Modifier.weight(1f), message = notes.message)
+                is UiState.Error -> ErrorState(
+                    Modifier.weight(1f),
+                    message = stringResource(notes.failure.messageRes()),
+                    onRetry = spaceId?.let { id -> { viewModel.observe(id) } },
+                )
                 is UiState.Content -> if (notes.value.isEmpty()) {
                     EmptyState(
                         modifier = Modifier.weight(1f),

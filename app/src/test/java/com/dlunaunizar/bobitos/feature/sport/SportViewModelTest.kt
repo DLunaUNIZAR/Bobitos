@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.feature.sport
 import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseInput
@@ -28,6 +29,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -196,6 +198,16 @@ class SportViewModelTest {
     }
 
     @Test
+    fun aLoadFailureNeverExposesTheExceptionText() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.loadFailure = RuntimeException("PERMISSION_DENIED: Missing or insufficient permissions.")
+
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        assertEquals(UiState.Error(FailureKind.UNKNOWN), viewModel.uiState.value.activities)
+    }
+
+    @Test
     fun `network failure is shown explicitly`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("home")
         advanceUntilIdle()
@@ -280,6 +292,7 @@ private class FakeSportActivityRepository : SportActivityRepository {
     var addedSession: List<RoutineExercise> = emptyList()
     var doneChange: Pair<String, Boolean>? = null
     var nextFailure: SportRepositoryException? = null
+    var loadFailure: Throwable? = null
 
     override fun activities(
         spaceId: String,
@@ -287,6 +300,7 @@ private class FakeSportActivityRepository : SportActivityRepository {
         weekEndExclusive: LocalDate,
     ): Flow<List<SportActivity>> {
         observedSpaceId = spaceId
+        loadFailure?.let { return flow { throw it } }
         return activitiesState
     }
 

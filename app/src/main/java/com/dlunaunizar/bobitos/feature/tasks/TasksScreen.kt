@@ -85,6 +85,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
@@ -214,7 +215,11 @@ fun TasksScreen(
             val sections = queried.groupIntoSections()
             when (val tasks = state.tasks) {
                 UiState.Loading -> LoadingState(Modifier.weight(1f))
-                is UiState.Error -> ErrorState(Modifier.weight(1f), message = tasks.message)
+                is UiState.Error -> ErrorState(
+                    Modifier.weight(1f),
+                    message = stringResource(tasks.failure.messageRes()),
+                    onRetry = { viewModel.observe(spaceId) },
+                )
                 is UiState.Content -> if (queried.isEmpty()) {
                     val firstRun = allTasks.isEmpty()
                     EmptyState(
