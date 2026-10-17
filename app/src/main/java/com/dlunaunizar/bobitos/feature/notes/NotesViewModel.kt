@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.feature.notes
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
@@ -52,8 +53,10 @@ class NotesViewModel @Inject constructor(private val repository: NoteRepository)
     fun addNote(title: String, body: String?) {
         val spaceId = observedSpaceId ?: return
         if (!validate(title, body)) return
-        runAction(NoteUiMessage.NoteAdded, editor = true) {
-            repository.addNote(spaceId, title.trim(), body.normalized())
+        val name = title.trim()
+        // Un alta desde la hoja deja `created` (con «Deshacer») en lugar del aviso de nota añadida.
+        runAction(null, editor = true) {
+            CreatedItem(repository.addNote(spaceId, name, body.normalized()), name)
         }
     }
 
@@ -78,6 +81,14 @@ class NotesViewModel @Inject constructor(private val repository: NoteRepository)
         runAction(NoteUiMessage.NoteDeleted) { repository.deleteNote(spaceId, noteId) }
     }
 
+    fun consumeCreated() = mutableUiState.update { it.copy(created = null) }
+
+    // «Deshacer» el alta: borra justo esa nota con el borrado de siempre (sin aviso; si falla, sale el error).
+    fun undoCreate(id: String) {
+        val spaceId = observedSpaceId ?: return
+        runAction(null) { repository.deleteNote(spaceId, id) }
+    }
+
     fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
 
     fun clearFeedback() = mutableUiState.update { it.copy(error = null, notice = null) }
@@ -92,16 +103,22 @@ class NotesViewModel @Inject constructor(private val repository: NoteRepository)
         it.copy(isSaving = false, error = message, notice = null, editorSave = it.editorSave.failed(editor))
     }
 
-    private fun runAction(notice: NoteUiMessage?, editor: Boolean = false, action: suspend () -> Unit) {
+    // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
+    private fun runAction(notice: NoteUiMessage?, editor: Boolean = false, action: suspend () -> Any?) {
         if (mutableUiState.value.isSaving) return
         mutableUiState.update {
             it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
         }
         viewModelScope.launch {
             runCatching { withEditorSaveTimeout(editor) { action() } }
-                .onSuccess {
+                .onSuccess { result ->
                     mutableUiState.update {
-                        it.copy(isSaving = false, notice = notice, editorSave = it.editorSave.succeeded(editor))
+                        it.copy(
+                            isSaving = false,
+                            notice = notice,
+                            created = result as? CreatedItem,
+                            editorSave = it.editorSave.succeeded(editor),
+                        )
                     }
                 }
                 .onFailure { error ->

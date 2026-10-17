@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 interface NoteRepository {
     fun notes(spaceId: String): Flow<List<Note>>
 
-    suspend fun addNote(spaceId: String, title: String, body: String?)
+    suspend fun addNote(spaceId: String, title: String, body: String?): String
 
     suspend fun updateNote(spaceId: String, noteId: String, title: String, body: String?)
 

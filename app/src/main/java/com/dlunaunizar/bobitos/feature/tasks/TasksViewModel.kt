@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.feature.tasks
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
@@ -39,9 +40,11 @@ class TasksViewModel @Inject constructor(
     val uiState: StateFlow<TasksUiState> = mutableUiState.asStateFlow()
     private var tasksJob: Job? = null
     private var membersJob: Job? = null
+    private var activeSpaceId: String? = null
 
     fun observe(spaceId: String) {
         stopObserving()
+        activeSpaceId = spaceId
         mutableUiState.update { it.copy(tasks = UiState.Loading, members = UiState.Loading) }
         tasksJob = viewModelScope.launch {
             taskRepository.tasks(spaceId).catch { error ->
@@ -80,10 +83,13 @@ class TasksViewModel @Inject constructor(
         startAt: Instant?,
     ) {
         if (!validate(title, description)) return
-        runAction(TaskUiMessage.TaskCreated, editor = true) {
-            taskRepository.createTask(
+        val name = title.trim()
+        activeSpaceId = spaceId
+        // Un alta desde la hoja deja `created` (con «Deshacer») en lugar del aviso de tarea creada.
+        runAction(null, editor = true) {
+            val id = taskRepository.createTask(
                 spaceId,
-                title.trim(),
+                name,
                 description.normalized(),
                 assigneeId,
                 dueAt,
@@ -92,6 +98,7 @@ class TasksViewModel @Inject constructor(
                 recurrence,
                 startAt,
             )
+            CreatedItem(id, name)
         }
     }
 
@@ -148,6 +155,14 @@ class TasksViewModel @Inject constructor(
         )
     }
 
+    fun consumeCreated() = mutableUiState.update { it.copy(created = null) }
+
+    // «Deshacer» el alta: borra justo esa tarea con el borrado de siempre (sin aviso; si falla, sale el error).
+    fun undoCreate(id: String) {
+        val spaceId = activeSpaceId ?: return
+        deleteTask(spaceId, id)
+    }
+
     fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
 
     // Solo se llama desde el editor.
@@ -165,16 +180,22 @@ class TasksViewModel @Inject constructor(
         it.copy(isSaving = false, error = message, notice = null, editorSave = it.editorSave.failed(editor))
     }
 
-    private fun runAction(notice: TaskUiMessage?, editor: Boolean = false, action: suspend () -> Unit) {
+    // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
+    private fun runAction(notice: TaskUiMessage?, editor: Boolean = false, action: suspend () -> Any?) {
         if (mutableUiState.value.isSaving) return
         mutableUiState.update {
             it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
         }
         viewModelScope.launch {
             runCatching { withEditorSaveTimeout(editor) { action() } }
-                .onSuccess {
+                .onSuccess { result ->
                     mutableUiState.update {
-                        it.copy(isSaving = false, notice = notice, editorSave = it.editorSave.succeeded(editor))
+                        it.copy(
+                            isSaving = false,
+                            notice = notice,
+                            created = result as? CreatedItem,
+                            editorSave = it.editorSave.succeeded(editor),
+                        )
                     }
                 }
                 .onFailure { error ->

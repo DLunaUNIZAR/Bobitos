@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.feature.calendar
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
@@ -43,6 +44,8 @@ data class PersonalCalendarUiState(
     val saving: Boolean = false,
     val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
     val error: FailureKind? = null,
+    // Alta recién hecha desde la hoja: la pantalla la avisa con «Deshacer» y la consume.
+    val created: CreatedItem? = null,
 )
 
 @HiltViewModel
@@ -57,6 +60,10 @@ class PersonalCalendarViewModel @Inject constructor(
     private var spaces: List<SpaceSummary> = emptyList()
     private var eventJob: Job? = null
     private var membersJob: Job? = null
+
+    // Espacio de cada evento creado desde la hoja: el calendario personal elige el espacio al crear y «Deshacer»
+    // necesita saber dónde borrar.
+    private val createdSpaces = mutableMapOf<String, String>()
 
     fun observe(currentUserId: String, currentSpaces: List<SpaceSummary>) {
         if (userId == currentUserId && spaces == currentSpaces) return
@@ -132,22 +139,42 @@ class PersonalCalendarViewModel @Inject constructor(
     }
 
     fun saveEvent(spaceId: String, eventId: String?, input: EventInput) = action(editor = true) {
-        if (eventId == null) repository.createEvent(spaceId, input) else repository.updateEvent(spaceId, eventId, input)
+        if (eventId == null) {
+            val id = repository.createEvent(spaceId, input)
+            createdSpaces[id] = spaceId
+            CreatedItem(id, input.title)
+        } else {
+            repository.updateEvent(spaceId, eventId, input)
+        }
     }
 
     fun deleteEvent(spaceId: String, eventId: String) = action { repository.deleteEvent(spaceId, eventId) }
+
+    fun consumeCreated() = mutable.update { it.copy(created = null) }
+
+    // «Deshacer» el alta: borra justo ese evento, en el espacio donde se creó, con el borrado de siempre.
+    fun undoCreate(id: String) {
+        val spaceId = createdSpaces[id] ?: return
+        action { repository.deleteEvent(spaceId, id) }
+    }
 
     fun consumeEditorSave() = mutable.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
 
     fun clearMessage() = mutable.update { it.copy(error = null) }
 
-    private fun action(editor: Boolean = false, block: suspend () -> Unit) {
+    private fun action(editor: Boolean = false, block: suspend () -> Any?) {
         if (mutable.value.saving) return
         mutable.update { it.copy(saving = true, error = null, editorSave = it.editorSave.started(editor)) }
         viewModelScope.launch {
             runCatching { withEditorSaveTimeout(editor) { block() } }
-                .onSuccess {
-                    mutable.update { it.copy(saving = false, editorSave = it.editorSave.succeeded(editor)) }
+                .onSuccess { result ->
+                    mutable.update {
+                        it.copy(
+                            saving = false,
+                            created = result as? CreatedItem,
+                            editorSave = it.editorSave.succeeded(editor),
+                        )
+                    }
                 }
                 .onFailure { error ->
                     if (error is CancellationException) throw error

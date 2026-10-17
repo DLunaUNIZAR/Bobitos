@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.feature.notes
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
@@ -56,7 +57,38 @@ class NotesViewModelTest {
         advanceUntilIdle()
 
         assertEquals("Wifi", repository.addedTitle)
-        assertEquals(NoteUiMessage.NoteAdded, viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun creatingOneItemOffersUndoWithItsIdAndName() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        viewModel.addNote("Wifi", null)
+        advanceUntilIdle()
+
+        assertEquals(CreatedItem("new-1", "Wifi"), viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.notice)
+
+        viewModel.consumeCreated()
+        assertNull(viewModel.uiState.value.created)
+    }
+
+    @Test
+    fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        viewModel.undoCreate("new-1")
+        advanceUntilIdle()
+
+        assertEquals(listOf("new-1"), repository.deleted)
+    }
+
+    @Test
+    fun editingDoesNotOfferUndo() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        viewModel.updateNote("n1", "Wifi", null)
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.created)
     }
 
     @Test
@@ -150,6 +182,7 @@ private class FakeNoteRepository : NoteRepository {
 
     val notesState = MutableStateFlow<List<Note>>(emptyList())
     var addedTitle: String? = null
+    val deleted = mutableListOf<String>()
     var pinnedChange: Pair<String, Boolean>? = null
     var nextFailure: NoteRepositoryException? = null
     var loadFailure: Throwable? = null
@@ -157,7 +190,7 @@ private class FakeNoteRepository : NoteRepository {
     override fun notes(spaceId: String): Flow<List<Note>> =
         loadFailure?.let { error -> flow { throw error } } ?: notesState
 
-    override suspend fun addNote(spaceId: String, title: String, body: String?) {
+    override suspend fun addNote(spaceId: String, title: String, body: String?): String {
         throwNextFailure()
         if (hang) {
             try {
@@ -168,6 +201,7 @@ private class FakeNoteRepository : NoteRepository {
         }
         addGate?.await()
         addedTitle = title
+        return "new-1"
     }
 
     override suspend fun updateNote(spaceId: String, noteId: String, title: String, body: String?) {
@@ -181,6 +215,7 @@ private class FakeNoteRepository : NoteRepository {
 
     override suspend fun deleteNote(spaceId: String, noteId: String) {
         throwNextFailure()
+        deleted += noteId
     }
 
     private fun throwNextFailure() {

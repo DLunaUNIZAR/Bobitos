@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.feature.calendar
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
@@ -44,6 +45,8 @@ data class CalendarUiState(
     val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
     val error: FailureKind? = null,
     val notice: CalendarNotice? = null,
+    // Alta recién hecha desde la hoja: la pantalla la avisa con «Deshacer» y la consume.
+    val created: CreatedItem? = null,
 )
 
 @HiltViewModel
@@ -134,25 +137,34 @@ class CalendarViewModel @Inject constructor(
         mutable.update { it.copy(selectedMemberIds = emptySet()) }
     }
 
-    fun save(eventId: String?, input: EventInput) = action(editor = true) {
-        val id = spaceId ?: return@action
+    // Un alta deja `created` (con «Deshacer») en lugar del aviso de guardado; una edición conserva el suyo.
+    fun save(eventId: String?, input: EventInput) = action(
+        editor = true,
+        notice = if (eventId == null) null else CalendarNotice.SAVED,
+    ) {
+        val id = spaceId ?: return@action null
         if (eventId == null) {
-            repository.createEvent(id, input)
+            CreatedItem(repository.createEvent(id, input), input.title)
         } else {
             repository.updateEvent(id, eventId, input)
         }
     }
 
     fun restore(eventId: String, input: EventInput) = action {
-        repository.createEvent(spaceId ?: return@action, input, eventId)
+        repository.createEvent(spaceId ?: return@action null, input, eventId)
     }
 
     // onDeleted se llama solo si el borrado termina bien (y ya sin «guardando»): así el deshacer no se
     // ofrece para un borrado fallido ni se descarta por pulsarlo mientras el borrado sigue en curso.
     // Sin aviso propio: el snackbar de «Deshacer» ya confirma el borrado.
     fun delete(eventId: String, onDeleted: () -> Unit = {}) = action(notice = null, onSuccess = onDeleted) {
-        repository.deleteEvent(spaceId ?: return@action, eventId)
+        repository.deleteEvent(spaceId ?: return@action null, eventId)
     }
+
+    fun consumeCreated() = mutable.update { it.copy(created = null) }
+
+    // «Deshacer» el alta: borra justo ese evento con el borrado de siempre (sin aviso; si falla, sale el error).
+    fun undoCreate(id: String) = delete(id)
 
     fun consumeEditorSave() = mutable.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
 
@@ -200,7 +212,7 @@ class CalendarViewModel @Inject constructor(
         editor: Boolean = false,
         notice: CalendarNotice? = CalendarNotice.SAVED,
         onSuccess: () -> Unit = {},
-        block: suspend () -> Unit,
+        block: suspend () -> Any?,
     ) {
         if (mutable.value.saving) return
         mutable.update {
@@ -208,12 +220,13 @@ class CalendarViewModel @Inject constructor(
         }
         viewModelScope.launch {
             runCatching { withEditorSaveTimeout(editor) { block() } }
-                .onSuccess {
+                .onSuccess { result ->
                     mutable.update {
                         it.copy(
                             saving = false,
                             error = null,
                             notice = notice,
+                            created = result as? CreatedItem,
                             editorSave = it.editorSave.succeeded(editor),
                         )
                     }

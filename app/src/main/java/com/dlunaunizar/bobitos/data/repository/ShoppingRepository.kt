@@ -21,7 +21,7 @@ interface ShoppingRepository {
         notes: String?,
         supermarket: Supermarket?,
         brand: String?,
-    )
+    ): String
 
     suspend fun updateItem(
         spaceId: String,

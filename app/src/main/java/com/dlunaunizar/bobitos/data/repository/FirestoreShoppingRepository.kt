@@ -76,7 +76,7 @@ class FirestoreShoppingRepository @Inject constructor(
         notes: String?,
         supermarket: Supermarket?,
         brand: String?,
-    ) = runShoppingOperation {
+    ): String = runShoppingOperation {
         val user = requireVerifiedUser()
         val values = validateItem(name, quantity, notes, supermarket, brand)
         val spaceReference = firestore.collection(SPACES).document(spaceId)
@@ -88,7 +88,7 @@ class FirestoreShoppingRepository @Inject constructor(
             }
             transaction.set(itemReference, newItemFields(user, values))
         }.await()
-        Unit
+        itemReference.id
     }
 
     override suspend fun updateItem(

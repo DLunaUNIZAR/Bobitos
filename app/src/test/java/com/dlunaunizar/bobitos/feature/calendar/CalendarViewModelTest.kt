@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.feature.calendar
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
@@ -125,11 +126,54 @@ class CalendarViewModelTest {
         val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
         viewModel.observe("space-1")
 
-        viewModel.save(null, input)
+        viewModel.save("event-1", input)
         advanceUntilIdle()
 
         assertEquals(CalendarNotice.SAVED, viewModel.uiState.value.notice)
         assertNull(viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun creatingOneItemOffersUndoWithItsIdAndName() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = RecordingCalendarRepository()
+        val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
+        viewModel.observe("space-1")
+
+        viewModel.save(null, input)
+        advanceUntilIdle()
+
+        assertEquals(CreatedItem("new-1", "Correr"), viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.notice)
+
+        viewModel.consumeCreated()
+        assertNull(viewModel.uiState.value.created)
+    }
+
+    @Test
+    fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = RecordingCalendarRepository()
+        repository.pendingDelete.complete(Unit)
+        val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
+        viewModel.observe("space-1")
+
+        viewModel.undoCreate("new-1")
+        advanceUntilIdle()
+
+        assertEquals(listOf("new-1"), repository.deleted)
+    }
+
+    @Test
+    fun editingDoesNotOfferUndo() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = RecordingCalendarRepository()
+        val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
+        viewModel.observe("space-1")
+
+        viewModel.save("event-1", input)
+        advanceUntilIdle()
+        viewModel.restore("event-2", input)
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.created)
     }
 
     @Test
@@ -207,6 +251,7 @@ class CalendarViewModelTest {
 
 private class RecordingCalendarRepository : CalendarRepository {
     val created = mutableListOf<Triple<String, String?, EventInput>>()
+    val deleted = mutableListOf<String>()
     var createGate: CompletableDeferred<Unit>? = null
     var failure: Throwable? = null
     var loadFailure: Throwable? = null
@@ -217,11 +262,12 @@ private class RecordingCalendarRepository : CalendarRepository {
     override fun events(spaceId: String, rangeStart: Instant, rangeEndExclusive: Instant): Flow<List<CalendarEvent>> =
         loadFailure?.let { error -> flow { throw error } } ?: emptyFlow()
 
-    override suspend fun createEvent(spaceId: String, input: EventInput, eventId: String?) {
+    override suspend fun createEvent(spaceId: String, input: EventInput, eventId: String?): String {
         failure?.let { throw it }
         awaitIfHanging()
         createGate?.await()
         created += Triple(spaceId, eventId, input)
+        return eventId ?: "new-1"
     }
 
     override suspend fun updateEvent(spaceId: String, eventId: String, input: EventInput) {
@@ -241,7 +287,10 @@ private class RecordingCalendarRepository : CalendarRepository {
 
     val pendingDelete = CompletableDeferred<Unit>()
 
-    override suspend fun deleteEvent(spaceId: String, eventId: String) = pendingDelete.await()
+    override suspend fun deleteEvent(spaceId: String, eventId: String) {
+        deleted += eventId
+        pendingDelete.await()
+    }
 }
 
 // Repositorios que el test no ejercita: cualquier flujo que se pida está vacío.

@@ -109,6 +109,7 @@
     <ID>TooGenericExceptionCaught:TasksViewModel.kt$TasksViewModel$error: Throwable</ID>
     <ID>TooManyFunctions:DataModule.kt$DataModule</ID>
     <ID>TooManyFunctions:MealsViewModel.kt$MealsViewModel : ViewModel</ID>
+    <ID>TooManyFunctions:ShoppingViewModel.kt$ShoppingViewModel : ViewModel</ID>
     <ID>TooManyFunctions:SpaceRepository.kt$SpaceRepository</ID>
     <ID>TooManyFunctions:TasksScreen.kt$com.dlunaunizar.bobitos.feature.tasks.TasksScreen.kt</ID>
   </CurrentIssues>

@@ -65,6 +65,7 @@ import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
+import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
@@ -176,6 +177,7 @@ fun ShoppingScreen(
             Feedback(shoppingMessageText(it.message, state.lastClearedCount), it.isError)
         }
         FeedbackSnackbarEffect(feedback, viewModel::clearFeedback)
+        CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
         val deletedMessage = stringResource(R.string.shopping_undo_deleted)
         val undoLabel = stringResource(R.string.undo)
         val deleteColor = MaterialTheme.colorScheme.error

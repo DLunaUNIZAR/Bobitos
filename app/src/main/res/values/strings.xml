@@ -159,6 +159,7 @@
     <string name="profile_reminders_lead_label">Avisar</string>
     <string name="search_label">Buscar</string>
     <string name="undo">Deshacer</string>
+    <string name="created_undo_message">Has añadido «%1$s»</string>
     <string name="shopping_undo_deleted">Producto eliminado</string>
     <string name="tasks_undo_deleted">Tarea eliminada</string>
     <string name="meals_undo_deleted">Comida eliminada</string>

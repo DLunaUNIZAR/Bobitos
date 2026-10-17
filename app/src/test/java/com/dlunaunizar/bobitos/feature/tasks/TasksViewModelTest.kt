@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.feature.tasks
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
@@ -77,7 +78,8 @@ class TasksViewModelTest {
 
         assertEquals("Fregar", taskRepository.createdTitle)
         assertEquals(TaskType.LIMPIEZA, taskRepository.createdType)
-        assertEquals(TaskUiMessage.TaskCreated, viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.notice)
+        assertEquals(CreatedItem("new-1", "Fregar"), viewModel.uiState.value.created)
         assertFalse(viewModel.uiState.value.isSaving)
     }
 
@@ -100,7 +102,7 @@ class TasksViewModelTest {
             assertEquals("Sacar la basura", taskRepository.createdTitle)
             assertTrue(taskRepository.createdAssigneeSet)
             assertNull(taskRepository.createdAssignee)
-            assertEquals(TaskUiMessage.TaskCreated, viewModel.uiState.value.notice)
+            assertNull(viewModel.uiState.value.notice)
         }
 
     @Test
@@ -230,6 +232,35 @@ class TasksViewModelTest {
         assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
     }
 
+    @Test
+    fun creatingOneItemOffersUndoWithItsIdAndName() = runTest(mainDispatcherRule.testDispatcher) {
+        editorCreate("Leche")
+        advanceUntilIdle()
+
+        assertEquals(CreatedItem("new-1", "Leche"), viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.notice)
+
+        viewModel.consumeCreated()
+        assertNull(viewModel.uiState.value.created)
+    }
+
+    @Test
+    fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        viewModel.undoCreate("new-1")
+        advanceUntilIdle()
+
+        assertEquals(listOf("new-1"), taskRepository.deleted)
+    }
+
+    @Test
+    fun editingDoesNotOfferUndo() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.updateTask("home", "t1", "Leche", null, "ana", null, TaskPriority.MEDIUM, null, null, null)
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.created)
+    }
+
     private fun editorCreate(title: String) =
         viewModel.createTask("home", title, null, "ana", null, TaskPriority.MEDIUM, null, null, null)
 }
@@ -244,6 +275,7 @@ private class FakeTaskRepository : TaskRepository {
     var nextFailure: TaskRepositoryException? = null
     var loadFailure: Throwable? = null
     var createGate: CompletableDeferred<Unit>? = null
+    val deleted = mutableListOf<String>()
 
     // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
     var hang = false
@@ -265,7 +297,7 @@ private class FakeTaskRepository : TaskRepository {
         type: TaskType?,
         recurrence: TaskRecurrence?,
         startAt: Instant?,
-    ) {
+    ): String {
         throwNextFailure()
         if (hang) {
             try {
@@ -279,6 +311,7 @@ private class FakeTaskRepository : TaskRepository {
         createdType = type
         createdAssignee = assigneeId
         createdAssigneeSet = true
+        return "new-1"
     }
 
     override suspend fun updateTask(
@@ -303,6 +336,7 @@ private class FakeTaskRepository : TaskRepository {
 
     override suspend fun deleteTask(spaceId: String, taskId: String) {
         throwNextFailure()
+        deleted += taskId
     }
 
     private fun throwNextFailure() {

@@ -61,7 +61,7 @@ class FirestoreCalendarRepository @Inject constructor(
             }
         }
 
-    override suspend fun createEvent(spaceId: String, input: EventInput, eventId: String?) = operation {
+    override suspend fun createEvent(spaceId: String, input: EventInput, eventId: String?): String = operation {
         val user = verifiedUser()
         val value = input.validated()
         val space = firestore.collection(SPACES).document(spaceId)
@@ -73,7 +73,7 @@ class FirestoreCalendarRepository @Inject constructor(
             requireParticipants(value.participantIds, members)
             tx.set(event, value.data(user, members.map { it.getString(FIELD_DISPLAY_NAME).orEmpty() }))
         }.await()
-        Unit
+        event.id
     }
 
     override suspend fun updateEvent(spaceId: String, eventId: String, input: EventInput) = operation {

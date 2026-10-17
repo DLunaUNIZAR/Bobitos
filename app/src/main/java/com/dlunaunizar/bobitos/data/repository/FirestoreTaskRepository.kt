@@ -69,7 +69,7 @@ class FirestoreTaskRepository @Inject constructor(
         type: TaskType?,
         recurrence: TaskRecurrence?,
         startAt: Instant?,
-    ) = runTaskOperation {
+    ): String = runTaskOperation {
         val user = requireVerifiedUser()
         val values = validate(title, description, assigneeId)
         val spaceReference = firestore.collection(SPACES).document(spaceId)
@@ -92,7 +92,7 @@ class FirestoreTaskRepository @Inject constructor(
                 ),
             )
         }.await()
-        Unit
+        taskReference.id
     }
 
     override suspend fun updateTask(

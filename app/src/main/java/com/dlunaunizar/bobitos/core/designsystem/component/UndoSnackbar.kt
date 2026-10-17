@@ -3,7 +3,13 @@ package com.dlunaunizar.bobitos.core.designsystem.component
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.res.stringResource
+import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -28,5 +34,24 @@ fun CoroutineScope.launchUndo(
 ): Job = launch {
     if (snackbar != null && snackbar.showUndo(message, actionLabel)) {
         onUndo()
+    }
+}
+
+/**
+ * Avisa «Has añadido «nombre»» con «Deshacer» cuando [created] trae un alta recién hecha. Se llama dentro del `content`
+ * del scaffold de la pantalla, que provee [LocalSnackbarHostState]. Consume el alta antes de mostrar el aviso y solo
+ * llama a [onUndo] si el usuario pulsa la acción.
+ */
+@Composable
+fun CreatedUndoEffect(created: CreatedItem?, onConsumed: () -> Unit, onUndo: (CreatedItem) -> Unit) {
+    val snackbar = LocalSnackbarHostState.current
+    val scope = rememberCoroutineScope()
+    val actionLabel = stringResource(R.string.undo)
+    val message = created?.let { stringResource(R.string.created_undo_message, it.name) }
+    LaunchedEffect(created) {
+        if (created != null && message != null) {
+            onConsumed()
+            scope.launchUndo(snackbar, message, actionLabel) { onUndo(created) }
+        }
     }
 }

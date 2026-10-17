@@ -56,7 +56,7 @@ class FirestoreNoteRepository @Inject constructor(
         }
     }
 
-    override suspend fun addNote(spaceId: String, title: String, body: String?) = runNoteOperation {
+    override suspend fun addNote(spaceId: String, title: String, body: String?): String = runNoteOperation {
         val user = requireVerifiedUser()
         val values = validate(title, body)
         val spaceReference = firestore.collection(SPACES).document(spaceId)
@@ -79,7 +79,7 @@ class FirestoreNoteRepository @Inject constructor(
                 ),
             )
         }.await()
-        Unit
+        noteReference.id
     }
 
     override suspend fun updateNote(spaceId: String, noteId: String, title: String, body: String?) = runNoteOperation {

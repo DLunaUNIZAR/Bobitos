@@ -66,12 +66,13 @@ internal class RecordingShoppingRepository : ShoppingRepository {
         notes: String?,
         supermarket: Supermarket?,
         brand: String?,
-    ) {
+    ): String {
         addedNames += name
         addedQuantities += quantity
         addedNotes += notes
         addedSupermarkets += supermarket
         addedBrands += brand
+        return "new-${addedNames.size}"
     }
 
     override suspend fun updateItem(

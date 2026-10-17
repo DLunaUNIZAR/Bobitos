@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.feature.shopping
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
@@ -181,9 +182,13 @@ class ShoppingViewModel @Inject constructor(
             }
             return
         }
-        runAction(ShoppingUiMessage.ItemAdded, editor = true) {
+        // Solo el artículo nuevo deja `created` (con «Deshacer») en lugar del aviso; reapuntar un comprado conserva el
+        // suyo y nunca ofrece deshacer, para no borrar algo que ya existía.
+        runAction(if (match == null) null else ShoppingUiMessage.ItemAdded, editor = true) {
             if (match == null) {
-                repository.addItem(spaceId, name.trim(), normalizedQuantity, normalizedNotes, supermarket, brand)
+                val newName = name.trim()
+                val id = repository.addItem(spaceId, newName, normalizedQuantity, normalizedNotes, supermarket, brand)
+                CreatedItem(id, newName)
             } else {
                 repository.applyWrites(
                     spaceId,
@@ -249,6 +254,14 @@ class ShoppingViewModel @Inject constructor(
     // Recrea un ítem borrado («Deshacer»): no es un guardado del editor, no mueve su estado.
     fun restoreItem(spaceId: String, item: ShoppingItem) = runAction(ShoppingUiMessage.ItemAdded) {
         repository.addItem(spaceId, item.name, item.quantity, item.notes, item.supermarket, item.brand)
+    }
+
+    fun consumeCreated() = mutableUiState.update { it.copy(created = null) }
+
+    // «Deshacer» el alta: borra justo ese artículo con el borrado de siempre (sin aviso; si falla, sale el error).
+    fun undoCreate(id: String) {
+        val spaceId = observedSpaceId ?: return
+        deleteItem(spaceId, id)
     }
 
     fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
@@ -375,7 +388,8 @@ class ShoppingViewModel @Inject constructor(
         }
     }
 
-    private fun runAction(successNotice: ShoppingUiMessage?, editor: Boolean = false, action: suspend () -> Unit) {
+    // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
+    private fun runAction(successNotice: ShoppingUiMessage?, editor: Boolean = false, action: suspend () -> Any?) {
         if (mutableUiState.value.isSaving) return
         mutableUiState.update {
             it.copy(
@@ -388,13 +402,14 @@ class ShoppingViewModel @Inject constructor(
         }
         viewModelScope.launch {
             runCatching { withEditorSaveTimeout(editor) { action() } }
-                .onSuccess {
+                .onSuccess { result ->
                     mutableUiState.update {
                         it.copy(
                             isSaving = false,
                             writeStatus = ShoppingWriteStatus.SAVED,
                             editorSave = it.editorSave.succeeded(editor),
                             notice = successNotice,
+                            created = result as? CreatedItem,
                         )
                     }
                 }

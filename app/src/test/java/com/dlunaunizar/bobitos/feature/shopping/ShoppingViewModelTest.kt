@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.feature.shopping
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
@@ -120,7 +121,8 @@ class ShoppingViewModelTest {
         assertNull(repository.addedNotes)
         assertEquals(Supermarket.MERCADONA, repository.addedSupermarket)
         assertEquals("Hacendado", repository.addedBrand)
-        assertEquals(ShoppingUiMessage.ItemAdded, viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.notice)
+        assertEquals(CreatedItem("new-1", "Leche"), viewModel.uiState.value.created)
         assertEquals(ShoppingWriteStatus.SAVED, viewModel.uiState.value.writeStatus)
         assertFalse(viewModel.uiState.value.isSaving)
     }
@@ -477,6 +479,71 @@ class ShoppingViewModelTest {
         }
 
     @Test
+    fun creatingOneItemOffersUndoWithItsIdAndName() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.itemState.value = emptyList()
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.addItem("home", "Leche", null, null, null, null)
+        advanceUntilIdle()
+
+        assertEquals(CreatedItem("new-1", "Leche"), viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.notice)
+
+        viewModel.consumeCreated()
+        assertNull(viewModel.uiState.value.created)
+    }
+
+    @Test
+    fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        viewModel.undoCreate("new-1")
+        advanceUntilIdle()
+
+        assertEquals(listOf("new-1"), repository.deleted)
+    }
+
+    @Test
+    fun editingDoesNotOfferUndo() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        advanceUntilIdle()
+        viewModel.updateItem("home", "milk", "Leche", "2", null, null, null)
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.created)
+    }
+
+    @Test
+    fun relistingAPurchasedItemNeverOffersUndo() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.itemState.value = listOf(listItem(quantity = "6 l", purchased = true))
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.addItem("home", "Leche", "2", null, null, null)
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.created)
+        assertEquals(ShoppingUiMessage.ItemAdded, viewModel.uiState.value.notice)
+        assertTrue(repository.deleted.isEmpty())
+    }
+
+    @Test
+    fun summingADuplicateNeverOffersUndo() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.itemState.value = listOf(listItem(quantity = "1 l"))
+        viewModel.observe("home")
+        advanceUntilIdle()
+        viewModel.addItem("home", "Leche", "2 l", null, null, null)
+        advanceUntilIdle()
+
+        viewModel.sumDuplicate("home")
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.created)
+        assertEquals(ShoppingUiMessage.ItemUpdated, viewModel.uiState.value.notice)
+        assertTrue(repository.deleted.isEmpty())
+    }
+
+    @Test
     fun `summing a duplicate fills the empty notes, store and brand with the typed ones`() =
         runTest(mainDispatcherRule.testDispatcher) {
             val pending = shoppingItem().copy(quantity = "1 l")
@@ -726,6 +793,7 @@ internal class FakeShoppingRepository : ShoppingRepository {
 
     var observedSpaceId: String? = null
     var addedName: String? = null
+    val deleted = mutableListOf<String>()
     var addedQuantity: String? = null
     var addedNotes: String? = null
     var addedSupermarket: Supermarket? = null
@@ -768,7 +836,7 @@ internal class FakeShoppingRepository : ShoppingRepository {
         notes: String?,
         supermarket: Supermarket?,
         brand: String?,
-    ) {
+    ): String {
         throwNextFailure()
         if (hang) {
             try {
@@ -783,6 +851,7 @@ internal class FakeShoppingRepository : ShoppingRepository {
         addedNotes = notes
         addedSupermarket = supermarket
         addedBrand = brand
+        return "new-1"
     }
 
     override suspend fun updateItem(
@@ -849,6 +918,7 @@ internal class FakeShoppingRepository : ShoppingRepository {
 
     override suspend fun deleteItem(spaceId: String, itemId: String) {
         throwNextFailure()
+        deleted += itemId
     }
 
     override suspend fun clearPurchased(spaceId: String): Int {

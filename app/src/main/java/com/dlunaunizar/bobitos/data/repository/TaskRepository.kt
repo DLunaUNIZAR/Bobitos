@@ -20,7 +20,7 @@ interface TaskRepository {
         type: TaskType?,
         recurrence: TaskRecurrence?,
         startAt: Instant?,
-    )
+    ): String
 
     suspend fun updateTask(
         spaceId: String,

@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.shopping
 
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
@@ -22,6 +23,8 @@ data class ShoppingUiState(
     val pantryIds: Set<String> = emptySet(),
     // Aviso de artículo ya pendiente al crear uno («Sumar cantidad» / «No añadir»); null si no hay.
     val duplicate: ShoppingDuplicate? = null,
+    // Alta recién hecha desde la hoja (solo un artículo nuevo, nunca un reapuntado ni una suma): se avisa con «Deshacer».
+    val created: CreatedItem? = null,
 )
 
 /**

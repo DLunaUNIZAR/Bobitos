@@ -87,6 +87,7 @@ import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
+import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -171,6 +172,7 @@ fun TasksScreen(
         val feedback = feedbackFor(state.error, state.notice, state.editorSave, editorVisible)
             ?.let { Feedback(stringResource(it.message.stringRes()), it.isError) }
         FeedbackSnackbarEffect(feedback, viewModel::clearFeedback)
+        CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
         val deletedMessage = stringResource(R.string.tasks_undo_deleted)
         val undoLabel = stringResource(R.string.undo)
         val deleteColor = MaterialTheme.colorScheme.error

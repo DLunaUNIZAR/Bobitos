@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.tasks
 
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.SpaceMember
@@ -18,6 +19,8 @@ data class TasksUiState(
     val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
     val error: TaskUiMessage? = null,
     val notice: TaskUiMessage? = null,
+    // Alta recién hecha desde la hoja: la pantalla la avisa con «Deshacer» y la consume.
+    val created: CreatedItem? = null,
 )
 
 data class TaskFilters(

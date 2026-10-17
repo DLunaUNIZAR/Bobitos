@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.feature.calendar
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
@@ -24,6 +25,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -63,6 +65,36 @@ class PersonalCalendarViewModelTest {
         advanceUntilIdle()
 
         assertEquals(UiState.Error(FailureKind.UNKNOWN), viewModel.uiState.value.events)
+    }
+
+    @Test
+    fun creatingOneItemOffersUndoWithItsIdAndName() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.saveEvent("space-1", null, input)
+        advanceUntilIdle()
+
+        assertEquals(CreatedItem("new-1", "Correr"), viewModel.uiState.value.created)
+
+        viewModel.consumeCreated()
+        assertNull(viewModel.uiState.value.created)
+    }
+
+    @Test
+    fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.saveEvent("space-1", null, input)
+        advanceUntilIdle()
+        viewModel.undoCreate("new-1")
+        advanceUntilIdle()
+
+        assertEquals(listOf("new-1"), repository.deleted)
+        assertEquals(listOf("space-1"), repository.deletedSpaces)
+    }
+
+    @Test
+    fun editingDoesNotOfferUndo() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.saveEvent("space-1", "event-1", input)
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.created)
     }
 
     @Test
@@ -112,6 +144,8 @@ class PersonalCalendarViewModelTest {
 
 private class PersonalRecordingCalendarRepository : CalendarRepository {
     var createGate: CompletableDeferred<Unit>? = null
+    val deleted = mutableListOf<String>()
+    val deletedSpaces = mutableListOf<String>()
     var failure: Throwable? = null
     var loadFailure: Throwable? = null
 
@@ -121,10 +155,11 @@ private class PersonalRecordingCalendarRepository : CalendarRepository {
     override fun events(spaceId: String, rangeStart: Instant, rangeEndExclusive: Instant): Flow<List<CalendarEvent>> =
         loadFailure?.let { error -> flow { throw error } } ?: emptyFlow()
 
-    override suspend fun createEvent(spaceId: String, input: EventInput, eventId: String?) {
+    override suspend fun createEvent(spaceId: String, input: EventInput, eventId: String?): String {
         failure?.let { throw it }
         awaitIfHanging()
         createGate?.await()
+        return eventId ?: "new-1"
     }
 
     override suspend fun updateEvent(spaceId: String, eventId: String, input: EventInput) {
@@ -132,7 +167,10 @@ private class PersonalRecordingCalendarRepository : CalendarRepository {
         awaitIfHanging()
     }
 
-    override suspend fun deleteEvent(spaceId: String, eventId: String) = Unit
+    override suspend fun deleteEvent(spaceId: String, eventId: String) {
+        deletedSpaces += spaceId
+        deleted += eventId
+    }
 
     private suspend fun awaitIfHanging() {
         if (hang) {
