@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.feature.routines
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
@@ -29,6 +30,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -129,7 +131,7 @@ class RoutinesViewModelTest {
             assertEquals("Empuje", repository.lastTitle)
             assertEquals(null, repository.lastDescription)
             assertEquals(exercises, repository.lastExercises)
-            assertEquals(RoutineUiMessage.Saved, viewModel.uiState.value.notice)
+            assertNull(viewModel.uiState.value.notice)
         }
 
     @Test
@@ -138,6 +140,44 @@ class RoutinesViewModelTest {
 
         assertEquals(0, repository.createCount)
         assertEquals(RoutineUiMessage.TitleRequired, viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun creatingOneItemOffersUndoWithItsIdAndName() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.createRoutine(RoutineVisibility.PRIVATE, "  Empuje ", null, emptyList())
+        advanceUntilIdle()
+
+        assertEquals(CreatedItem("new-1", "Empuje"), viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.notice)
+
+        viewModel.consumeCreated()
+        assertNull(viewModel.uiState.value.created)
+    }
+
+    @Test
+    fun forkingOffersUndoForTheCopy() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.fork(routine("torso", RoutineVisibility.GLOBAL, "Torso"))
+        advanceUntilIdle()
+
+        assertEquals(CreatedItem("new-1", "Torso"), viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.undoCreate("new-1")
+        advanceUntilIdle()
+
+        assertEquals("new-1", repository.lastDeletedId)
+        assertNull(viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun editingDoesNotOfferUndo() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.updateRoutine("r1", "Pierna", null, emptyList())
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.created)
     }
 
     @Test
@@ -197,7 +237,7 @@ class RoutinesViewModelTest {
         assertEquals("Intermedio · 60 min", repository.lastDescription)
         assertEquals(exercises, repository.lastExercises)
         assertEquals("torso", repository.lastSourceRoutineId)
-        assertEquals(RoutineUiMessage.Forked, viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.notice)
     }
 
     @Test
@@ -307,7 +347,7 @@ private class FakeExerciseRepository : ExerciseRepository {
     override fun isCurrentUserCatalogAdmin(): Boolean = false
     override fun currentUserId(): String? = "u"
     override suspend fun exerciseById(id: String): CatalogExercise? = null
-    override suspend fun createExercise(input: ExerciseInput) = Unit
+    override suspend fun createExercise(input: ExerciseInput): String = "new-1"
     override suspend fun updateExercise(id: String, input: ExerciseInput) = Unit
     override suspend fun deleteExercise(id: String) = Unit
 }
@@ -344,7 +384,7 @@ private class FakeRoutineRepository : RoutineRepository {
         description: String?,
         exercises: List<RoutineExercise>,
         sourceRoutineId: String?,
-    ) {
+    ): String {
         failure?.let { throw RoutineRepositoryException(it) }
         if (hang) {
             try {
@@ -360,6 +400,7 @@ private class FakeRoutineRepository : RoutineRepository {
         lastTitle = title
         lastDescription = description
         lastExercises = exercises
+        return "new-1"
     }
 
     override suspend fun updateRoutine(

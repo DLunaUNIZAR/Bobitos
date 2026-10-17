@@ -55,7 +55,7 @@ class FirestoreRecipeRepository @Inject constructor(
         steps: List<String>,
         servings: Int?,
         totalMinutes: Int?,
-    ) = runRecipeOperation {
+    ): String = runRecipeOperation {
         val user = requireVerifiedUser()
         val fields = newRecipeFields(
             user = user,
@@ -71,8 +71,9 @@ class FirestoreRecipeRepository @Inject constructor(
             servings = servings,
             totalMinutes = totalMinutes,
         )
-        recipesCollection().document().set(fields).await()
-        Unit
+        val reference = recipesCollection().document()
+        reference.set(fields).await()
+        reference.id
     }
 
     override suspend fun updateRecipe(

@@ -72,7 +72,7 @@ class FirestoreMealRepository @Inject constructor(
         participantIds: List<String>,
         recipeId: String?,
         cookId: String?,
-    ) = runMealOperation {
+    ): String = runMealOperation {
         val user = requireVerifiedUser()
         val normalizedName = validate(name, participantIds, cookId)
         val spaceReference = firestore.collection(SPACES).document(spaceId)
@@ -98,7 +98,7 @@ class FirestoreMealRepository @Inject constructor(
                 ),
             )
         }.await()
-        Unit
+        mealReference.id
     }
 
     override suspend fun updateMeal(

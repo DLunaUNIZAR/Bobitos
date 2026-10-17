@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.feature.sport
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
@@ -89,8 +90,52 @@ class SportViewModelTest {
 
         assertEquals("Pecho", repository.addedName)
         assertEquals(SportType.GIMNASIO, repository.addedType)
-        assertEquals(SportUiMessage.ActivityAdded, viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.notice)
         assertFalse(viewModel.uiState.value.isSaving)
+    }
+
+    @Test
+    fun creatingOneItemOffersUndoWithItsIdAndName() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.addActivity(LocalDate.now(), SportType.PADEL, "  Pádel ", emptyList())
+        advanceUntilIdle()
+
+        assertEquals(CreatedItem("new-1", "Pádel"), viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.notice)
+
+        viewModel.consumeCreated()
+        assertNull(viewModel.uiState.value.created)
+    }
+
+    @Test
+    fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        viewModel.undoCreate("new-1")
+        advanceUntilIdle()
+
+        assertEquals(listOf("new-1"), repository.deleted)
+    }
+
+    @Test
+    fun editingDoesNotOfferUndo() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        viewModel.updateActivity("a1", LocalDate.now(), SportType.PADEL, "Pádel", emptyList())
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.created)
+    }
+
+    @Test
+    fun aRestoredActivityNeverOffersUndo() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.restoreActivity(activity("a1", LocalDate.now(), SportType.PADEL, "Pádel"))
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.created)
     }
 
     @Test
@@ -312,7 +357,7 @@ private class FakeSportActivityRepository : SportActivityRepository {
         participantIds: List<String>,
         routineId: String?,
         session: List<RoutineExercise>,
-    ) {
+    ): String {
         throwNextFailure()
         if (hang) {
             try {
@@ -326,6 +371,7 @@ private class FakeSportActivityRepository : SportActivityRepository {
         addedType = type
         addedRoutineId = routineId
         addedSession = session
+        return "new-1"
     }
 
     override suspend fun updateActivity(
@@ -346,8 +392,11 @@ private class FakeSportActivityRepository : SportActivityRepository {
         doneChange = activityId to done
     }
 
+    val deleted = mutableListOf<String>()
+
     override suspend fun deleteActivity(spaceId: String, activityId: String) {
         throwNextFailure()
+        deleted += activityId
     }
 
     private fun throwNextFailure() {
@@ -386,7 +435,7 @@ private class FakeSportRoutineRepository : RoutineRepository {
         description: String?,
         exercises: List<RoutineExercise>,
         sourceRoutineId: String?,
-    ) = Unit
+    ): String = "new-1"
 
     override suspend fun updateRoutine(
         routineId: String,
@@ -410,7 +459,7 @@ private class FakeSportExerciseRepository : ExerciseRepository {
     override fun isCurrentUserCatalogAdmin(): Boolean = false
     override fun currentUserId(): String? = "u"
     override suspend fun exerciseById(id: String): CatalogExercise? = null
-    override suspend fun createExercise(input: ExerciseInput) = Unit
+    override suspend fun createExercise(input: ExerciseInput): String = "new-1"
     override suspend fun updateExercise(id: String, input: ExerciseInput) = Unit
     override suspend fun deleteExercise(id: String) = Unit
 }

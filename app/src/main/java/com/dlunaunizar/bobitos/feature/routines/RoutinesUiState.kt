@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.routines
 
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
@@ -16,6 +17,8 @@ data class RoutinesUiState(
     val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
     val error: RoutineUiMessage? = null,
     val notice: RoutineUiMessage? = null,
+    // Alta recién hecha desde la hoja: la pantalla la avisa con «Deshacer» y la consume.
+    val created: CreatedItem? = null,
 )
 
 enum class RoutineUiMessage {

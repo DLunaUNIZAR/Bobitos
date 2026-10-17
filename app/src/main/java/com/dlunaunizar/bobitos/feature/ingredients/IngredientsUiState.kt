@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.ingredients
 
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
@@ -33,6 +34,8 @@ data class IngredientsUiState(
     val openBrand: OpenBrand? = null,
     val error: IngredientUiMessage? = null,
     val notice: IngredientUiMessage? = null,
+    // Alta recién hecha desde la hoja: la pantalla la avisa con «Deshacer» y la consume.
+    val created: CreatedItem? = null,
     // Evento: ficha existente a la que navegar tras un alta duplicada, y su nombre para el aviso.
     val openIngredientId: String? = null,
     val existingName: String? = null,

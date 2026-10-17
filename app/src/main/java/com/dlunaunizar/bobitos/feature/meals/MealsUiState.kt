@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.meals
 
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.Meal
@@ -17,6 +18,8 @@ data class MealsUiState(
     val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
     val error: MealUiMessage? = null,
     val notice: MealUiMessage? = null,
+    // Alta recién hecha desde la hoja: la pantalla la avisa con «Deshacer» y la consume.
+    val created: CreatedItem? = null,
     val recipes: List<Recipe> = emptyList(),
     // Ids de la despensa del espacio, para «Con lo que hay» del selector de receta; null si no se puede leer (sin chip).
     val pantryIds: Set<String>? = null,

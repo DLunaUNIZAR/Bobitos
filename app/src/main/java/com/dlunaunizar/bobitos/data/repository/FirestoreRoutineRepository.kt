@@ -46,10 +46,11 @@ class FirestoreRoutineRepository @Inject constructor(
         description: String?,
         exercises: List<RoutineExercise>,
         sourceRoutineId: String?,
-    ) = runRoutineOperation {
+    ): String = runRoutineOperation {
         val user = requireVerifiedUser()
         val values = validate(title, description)
-        routinesCollection().document().set(
+        val reference = routinesCollection().document()
+        reference.set(
             buildMap {
                 put(FIELD_OWNER_UID, user.id)
                 put(FIELD_VISIBILITY, visibility.name)
@@ -65,7 +66,7 @@ class FirestoreRoutineRepository @Inject constructor(
                 sourceRoutineId?.let { put(FIELD_SOURCE_ROUTINE_ID, it) }
             },
         ).await()
-        Unit
+        reference.id
     }
 
     override suspend fun updateRoutine(

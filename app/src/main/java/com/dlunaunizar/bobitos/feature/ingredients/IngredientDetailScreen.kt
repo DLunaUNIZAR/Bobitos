@@ -50,6 +50,7 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.formatDecimal
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
+import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.InfoChip
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
@@ -104,6 +105,7 @@ fun IngredientDetailScreen(
         modifier = modifier,
         saving = savingOutsideEditor(state.isSaving, showFichaEditor || brandInitial != null),
     ) { padding ->
+        CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
         Column(
             modifier = Modifier
                 .fillMaxSize()

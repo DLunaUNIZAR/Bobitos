@@ -16,7 +16,7 @@ interface MealRepository {
         participantIds: List<String>,
         recipeId: String?,
         cookId: String?,
-    )
+    ): String
 
     suspend fun updateMeal(
         spaceId: String,

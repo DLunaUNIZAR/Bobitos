@@ -42,6 +42,7 @@ import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
+import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -104,6 +105,7 @@ fun ExercisesScreen(
             val feedback = feedbackFor(state.error, state.notice, state.editorSave, editorOpen)
                 ?.let { Feedback(stringResource(it.message.stringResourceId), it.isError) }
             FeedbackSnackbarEffect(feedback, viewModel::clearFeedback)
+            CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },

@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.ingredients
 
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
@@ -32,6 +33,8 @@ data class IngredientDetailUiState(
     val barcodeConflict: BarcodeConflict? = null,
     val error: IngredientUiMessage? = null,
     val notice: IngredientUiMessage? = null,
+    // Alta recién hecha desde la hoja: la pantalla la avisa con «Deshacer» y la consume.
+    val created: CreatedItem? = null,
     // El ingrediente se borró: la pantalla debe cerrarse.
     val finished: Boolean = false,
 ) {

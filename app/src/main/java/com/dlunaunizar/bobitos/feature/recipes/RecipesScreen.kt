@@ -51,6 +51,7 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
+import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -177,6 +178,7 @@ fun RecipesScreen(
             viewModel.consumeDeletedRecipe()
             scope.launchUndo(snackbarHost, deletedMessage, undoLabel) { viewModel.restoreRecipe(deleted) }
         }
+        CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
         Column(
             modifier = Modifier
                 .fillMaxSize()

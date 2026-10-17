@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.feature.meals
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
@@ -150,8 +151,66 @@ class MealsViewModelTest {
 
         assertEquals("Tostadas", mealRepository.addedName)
         assertEquals(1, mealRepository.addCount)
-        assertEquals(MealUiMessage.MealAdded, viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.notice)
         assertFalse(viewModel.uiState.value.isSaving)
+    }
+
+    @Test
+    fun creatingOneItemOffersUndoWithItsIdAndName() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.addMeal(LocalDate.now(), MealSlot.COMIDA, "  Lentejas ", emptyList(), recipeId = null, cookId = null)
+        advanceUntilIdle()
+
+        assertEquals(CreatedItem("new-1", "Lentejas"), viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.notice)
+
+        viewModel.consumeCreated()
+        assertNull(viewModel.uiState.value.created)
+    }
+
+    @Test
+    fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        viewModel.undoCreate("new-1")
+        advanceUntilIdle()
+
+        assertEquals(listOf("new-1"), mealRepository.deleted)
+    }
+
+    @Test
+    fun editingDoesNotOfferUndo() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        viewModel.updateMeal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas", emptyList(), null, null)
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.created)
+    }
+
+    @Test
+    fun duplicatingADayNeverOffersUndo() = runTest(mainDispatcherRule.testDispatcher) {
+        val today = LocalDate.now()
+        mealRepository.mealsState.value = listOf(meal("m1", today, MealSlot.COMIDA, "Lentejas"))
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.duplicateDay(today.plusDays(1))
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.created)
+        assertEquals(MealUiMessage.MealsDuplicated, viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun aRestoredMealNeverOffersUndo() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.restoreMeal(meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas"))
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.created)
     }
 
     @Test
@@ -163,7 +222,7 @@ class MealsViewModelTest {
         advanceUntilIdle()
 
         assertEquals("receta-1", mealRepository.addedRecipeId)
-        assertEquals(MealUiMessage.MealAdded, viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.notice)
     }
 
     @Test
@@ -182,7 +241,7 @@ class MealsViewModelTest {
         advanceUntilIdle()
 
         assertEquals("leo", mealRepository.addedCookId)
-        assertEquals(MealUiMessage.MealAdded, viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.notice)
     }
 
     @Test
@@ -757,7 +816,7 @@ internal class FakeMealRepository : MealRepository {
         participantIds: List<String>,
         recipeId: String?,
         cookId: String?,
-    ) {
+    ): String {
         throwNextFailure()
         if (hang) {
             try {
@@ -773,6 +832,7 @@ internal class FakeMealRepository : MealRepository {
         addedCookId = cookId
         addedDates += date
         addCount++
+        return "new-1"
     }
 
     override suspend fun updateMeal(
@@ -796,8 +856,11 @@ internal class FakeMealRepository : MealRepository {
         cookedValue = cooked
     }
 
+    val deleted = mutableListOf<String>()
+
     override suspend fun deleteMeal(spaceId: String, mealId: String) {
         throwNextFailure()
+        deleted += mealId
     }
 
     private fun throwNextFailure() {
@@ -851,7 +914,7 @@ internal class FakeRecipeRepository : RecipeRepository {
         steps: List<String>,
         servings: Int?,
         totalMinutes: Int?,
-    ) = Unit
+    ): String = "new-1"
 
     override suspend fun updateRecipe(
         recipeId: String,

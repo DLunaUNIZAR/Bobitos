@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.feature.recipes
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
@@ -105,7 +106,7 @@ class RecipesViewModelTest {
         assertEquals(RecipeVisibility.PRIVATE, repository.lastVisibility)
         assertEquals("Tortilla", repository.lastTitle)
         assertEquals(null, repository.lastSourceRecipeId)
-        assertEquals(RecipeUiMessage.RecipeSaved, viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.notice)
     }
 
     @Test
@@ -182,7 +183,7 @@ class RecipesViewModelTest {
             assertEquals("Paella común", repository.lastTitle)
             assertEquals("origin", repository.lastSourceRecipeId)
             assertEquals(ingredients, repository.lastIngredients)
-            assertEquals(RecipeUiMessage.RecipeForked, viewModel.uiState.value.notice)
+            assertNull(viewModel.uiState.value.notice)
         }
 
     @Test
@@ -423,8 +424,58 @@ class RecipesViewModelTest {
             assertEquals(listOf("Remoja.", "Cuece."), repository.lastSteps)
             assertEquals(4, repository.lastServings)
             assertEquals(60, repository.lastTotalMinutes)
-            assertEquals(RecipeUiMessage.RecipeSaved, viewModel.uiState.value.notice)
+            assertNull(viewModel.uiState.value.notice)
         }
+
+    @Test
+    fun creatingOneItemOffersUndoWithItsIdAndName() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.saveDraft(null, RecipeDraft.of(null, null).copy(title = "  Lentejas "))
+        advanceUntilIdle()
+
+        assertEquals(CreatedItem("new-1", "Lentejas"), viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.notice)
+
+        viewModel.consumeCreated()
+        assertNull(viewModel.uiState.value.created)
+    }
+
+    @Test
+    fun forkingOffersUndoForTheCopy() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.fork(recipe("origin", RecipeVisibility.GLOBAL, "Paella común"))
+        advanceUntilIdle()
+
+        assertEquals(CreatedItem("new-1", "Paella común"), viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.notice)
+
+        viewModel.undoCreate("new-1")
+        advanceUntilIdle()
+        assertEquals(listOf("new-1"), repository.deletedIds)
+    }
+
+    @Test
+    fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.undoCreate("new-1")
+        advanceUntilIdle()
+
+        assertEquals(listOf("new-1"), repository.deletedIds)
+        assertNull(viewModel.uiState.value.deletedRecipe)
+    }
+
+    @Test
+    fun editingDoesNotOfferUndo() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.saveDraft("r1", RecipeDraft.of(null, null).copy(title = "Lentejas"))
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.created)
+    }
+
+    @Test
+    fun aRestoredRecipeNeverOffersUndo() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.restoreRecipe(recipe("r1", RecipeVisibility.PRIVATE, "Tortilla"))
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.created)
+    }
 
     @Test
     fun `an admin saving a global draft publishes it`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -825,7 +876,7 @@ private class FakeRecipeRepository : RecipeRepository {
         steps: List<String>,
         servings: Int?,
         totalMinutes: Int?,
-    ) {
+    ): String {
         nextFailure?.let { throw it }
         if (hang) {
             try {
@@ -844,6 +895,7 @@ private class FakeRecipeRepository : RecipeRepository {
         lastSteps = steps
         lastServings = servings
         lastTotalMinutes = totalMinutes
+        return "new-1"
     }
 
     override suspend fun updateRecipe(

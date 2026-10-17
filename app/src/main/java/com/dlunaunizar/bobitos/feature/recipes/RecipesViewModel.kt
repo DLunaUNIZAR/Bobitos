@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.feature.recipes
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
@@ -201,10 +202,12 @@ class RecipesViewModel @Inject constructor(
         totalMinutes: Int? = null,
     ) {
         if (!validate(title, description, category, steps, servings, totalMinutes)) return
-        runAction(RecipeUiMessage.RecipeSaved, editor = true) {
-            repository.createRecipe(
+        val trimmed = title.trim()
+        // Un alta desde la hoja (crear o importar) deja `created` (con «Deshacer») en lugar del aviso de guardado.
+        runAction(null, editor = true) {
+            val id = repository.createRecipe(
                 visibility = safeVisibility(visibility),
-                title = title.trim(),
+                title = trimmed,
                 description = description.normalized(),
                 category = category.normalized(),
                 sourceRecipeId = null,
@@ -214,6 +217,7 @@ class RecipesViewModel @Inject constructor(
                 servings = servings,
                 totalMinutes = totalMinutes,
             )
+            CreatedItem(id, trimmed)
         }
     }
 
@@ -307,8 +311,9 @@ class RecipesViewModel @Inject constructor(
     fun consumeDeletedRecipe() = mutableUiState.update { it.copy(deletedRecipe = null) }
 
     fun fork(source: Recipe) {
-        runAction(RecipeUiMessage.RecipeForked) {
-            repository.createRecipe(
+        // «Guardar como mía» deja `created` con la copia (su id, no el de la original) en lugar del aviso de copia.
+        runAction(null) {
+            val id = repository.createRecipe(
                 visibility = RecipeVisibility.PRIVATE,
                 title = source.title,
                 description = source.description,
@@ -319,8 +324,15 @@ class RecipesViewModel @Inject constructor(
                 servings = source.servings,
                 totalMinutes = source.totalMinutes,
             )
+            CreatedItem(id, source.title)
         }
     }
+
+    fun consumeCreated() = mutableUiState.update { it.copy(created = null) }
+
+    // «Deshacer» el alta: borra justo esa receta con el borrado de siempre, sin ofrecer otro «Deshacer» (sin aviso; si
+    // falla, sale el error).
+    fun undoCreate(id: String) = runAction(null) { repository.deleteRecipe(id) }
 
     fun consumeEditorSave() {
         mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
@@ -362,7 +374,8 @@ class RecipesViewModel @Inject constructor(
         successNotice: RecipeUiMessage?,
         editor: Boolean = false,
         onSuccess: (RecipesUiState) -> RecipesUiState = { it },
-        action: suspend () -> Unit,
+        // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
+        action: suspend () -> Any?,
     ) {
         if (mutableUiState.value.isSaving) return
         mutableUiState.update {
@@ -370,10 +383,17 @@ class RecipesViewModel @Inject constructor(
         }
         viewModelScope.launch {
             runCatching { withEditorSaveTimeout(editor) { action() } }
-                .onSuccess {
+                .onSuccess { result ->
                     mutableUiState.update {
                         val saved = it.editorSave.succeeded(editor)
-                        onSuccess(it.copy(isSaving = false, notice = successNotice, editorSave = saved))
+                        onSuccess(
+                            it.copy(
+                                isSaving = false,
+                                notice = successNotice,
+                                created = result as? CreatedItem,
+                                editorSave = saved,
+                            ),
+                        )
                     }
                 }
                 .onFailure { error ->

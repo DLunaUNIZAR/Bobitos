@@ -17,7 +17,7 @@ interface SportActivityRepository {
         participantIds: List<String>,
         routineId: String? = null,
         session: List<RoutineExercise> = emptyList(),
-    )
+    ): String
 
     suspend fun updateActivity(
         spaceId: String,

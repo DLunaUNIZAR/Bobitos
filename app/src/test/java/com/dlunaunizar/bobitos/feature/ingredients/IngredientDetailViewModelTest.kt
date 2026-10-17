@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.feature.ingredients
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
@@ -273,6 +274,43 @@ class IngredientDetailViewModelTest {
         assertEquals(Nutrition(energyKcal = 30.0), input?.nutrition)
         assertEquals(true, input?.favorite)
         assertEquals(listOf(Supermarket.ALCAMPO, Supermarket.DIA), input?.stores)
+        assertNull(viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun creatingOneItemOffersUndoWithItsIdAndName() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("tomate")
+        advanceUntilIdle()
+
+        viewModel.saveBrand(null, BrandDraft.of("  Hacendado ", "", null))
+        advanceUntilIdle()
+
+        assertEquals(CreatedItem("new", "Hacendado"), viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.notice)
+
+        viewModel.consumeCreated()
+        assertNull(viewModel.uiState.value.created)
+    }
+
+    @Test
+    fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("tomate")
+        viewModel.undoCreate("new")
+        advanceUntilIdle()
+
+        assertEquals(listOf("new"), brandRepository.deleted)
+        assertNull(viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun editingDoesNotOfferUndo() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("tomate")
+        advanceUntilIdle()
+
+        viewModel.saveBrand("b1", BrandDraft.of("Otra", "", null))
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.created)
         assertEquals(IngredientUiMessage.BrandSaved, viewModel.uiState.value.notice)
     }
 

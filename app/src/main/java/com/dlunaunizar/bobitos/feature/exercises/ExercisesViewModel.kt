@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.feature.exercises
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
@@ -90,8 +91,14 @@ class ExercisesViewModel @Inject constructor(
             showError(ExerciseUiMessage.AlreadyExists, editor = true)
             return
         }
-        runAction(ExerciseUiMessage.Saved, editor = true) { repository.createExercise(input.copy(name = trimmed)) }
+        // Un alta desde la hoja deja `created` (con «Deshacer») en lugar del aviso de guardado.
+        runAction(null, editor = true) { CreatedItem(repository.createExercise(input.copy(name = trimmed)), trimmed) }
     }
+
+    fun consumeCreated() = mutableUiState.update { it.copy(created = null) }
+
+    // «Deshacer» el alta: borra justo ese ejercicio con el borrado de siempre (sin aviso; si falla, sale el error).
+    fun undoCreate(id: String) = runAction(null) { repository.deleteExercise(id) }
 
     fun updateExercise(id: String, input: ExerciseInput) {
         if (input.name.trim().isEmpty()) {
@@ -118,16 +125,22 @@ class ExercisesViewModel @Inject constructor(
         it.copy(isSaving = false, error = message, notice = null, editorSave = it.editorSave.failed(editor))
     }
 
-    private fun runAction(successNotice: ExerciseUiMessage, editor: Boolean = false, action: suspend () -> Unit) {
+    // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
+    private fun runAction(successNotice: ExerciseUiMessage?, editor: Boolean = false, action: suspend () -> Any?) {
         if (mutableUiState.value.isSaving) return
         mutableUiState.update {
             it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
         }
         viewModelScope.launch {
             runCatching { withEditorSaveTimeout(editor) { action() } }
-                .onSuccess {
+                .onSuccess { result ->
                     mutableUiState.update {
-                        it.copy(isSaving = false, notice = successNotice, editorSave = it.editorSave.succeeded(editor))
+                        it.copy(
+                            isSaving = false,
+                            notice = successNotice,
+                            created = result as? CreatedItem,
+                            editorSave = it.editorSave.succeeded(editor),
+                        )
                     }
                 }
                 .onFailure { error ->

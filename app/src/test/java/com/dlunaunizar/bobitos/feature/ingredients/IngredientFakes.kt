@@ -154,7 +154,11 @@ internal class FakeIngredientBrandRepository : IngredientBrandRepository {
         lastFavorite = brandId to favorite
     }
 
-    override suspend fun deleteBrand(brandId: String) = Unit
+    val deleted = mutableListOf<String>()
+
+    override suspend fun deleteBrand(brandId: String) {
+        deleted += brandId
+    }
 }
 
 internal class FakeOffClient : OpenFoodFactsClient {

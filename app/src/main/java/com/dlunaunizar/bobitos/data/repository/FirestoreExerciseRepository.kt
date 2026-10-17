@@ -57,7 +57,7 @@ class FirestoreExerciseRepository @Inject constructor(
     override suspend fun exerciseById(id: String): CatalogExercise? =
         runCatching { exercisesCollection().document(id).get().await().toCatalogExercise() }.getOrNull()
 
-    override suspend fun createExercise(input: ExerciseInput) = runOperation {
+    override suspend fun createExercise(input: ExerciseInput): String = runOperation {
         val user = requireVerifiedUser()
         val values = validateExerciseInput(input)
         val id = slug(values.name).ifEmpty { throw ExerciseRepositoryException(ExerciseFailure.NameRequired) }
@@ -70,6 +70,7 @@ class FirestoreExerciseRepository @Inject constructor(
             FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
         )
         writeWithVersion(user.id, id, isCreate = true) { transaction, ref -> transaction.set(ref, fields) }
+        id
     }
 
     override suspend fun updateExercise(id: String, input: ExerciseInput) = runOperation {

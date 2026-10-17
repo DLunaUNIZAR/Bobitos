@@ -79,7 +79,7 @@ class FirestoreSportActivityRepository @Inject constructor(
         participantIds: List<String>,
         routineId: String?,
         session: List<RoutineExercise>,
-    ) = runActivityOperation {
+    ): String = runActivityOperation {
         val user = requireVerifiedUser()
         val normalizedName = validate(name, participantIds)
         val gym = GymSession(type, routineId, session)
@@ -106,7 +106,7 @@ class FirestoreSportActivityRepository @Inject constructor(
                 newSportEventData(user, user.id, user.sportDisplayName, date, normalizedName, participantIds, names),
             )
         }.await()
-        Unit
+        activityReference.id
     }
 
     override suspend fun updateActivity(

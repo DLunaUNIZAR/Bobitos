@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.sport
 
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
@@ -21,6 +22,8 @@ data class SportUiState(
     val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
     val error: SportUiMessage? = null,
     val notice: SportUiMessage? = null,
+    // Alta recién hecha desde la hoja: la pantalla la avisa con «Deshacer» y la consume.
+    val created: CreatedItem? = null,
 ) {
     // Lunes de la semana del día enfocado (ISO: día 1 = lunes). Define la ventana observada.
     val weekStart: LocalDate get() = focusedDate.with(ChronoField.DAY_OF_WEEK, 1L)

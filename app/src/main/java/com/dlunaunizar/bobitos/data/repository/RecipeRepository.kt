@@ -24,7 +24,7 @@ interface RecipeRepository {
         steps: List<String> = emptyList(),
         servings: Int? = null,
         totalMinutes: Int? = null,
-    )
+    ): String
 
     suspend fun updateRecipe(
         recipeId: String,

@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.feature.sport
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
@@ -138,9 +139,21 @@ class SportViewModel @Inject constructor(
     ) {
         val spaceId = observedSpaceId ?: return
         if (!validate(name)) return
-        runAction(SportUiMessage.ActivityAdded, editor = true) {
-            repository.addActivity(spaceId, date, type, name.trim(), participantIds, routineId, session)
+        val trimmed = name.trim()
+        // Un alta desde la hoja deja `created` (con «Deshacer») en lugar del aviso de actividad añadida.
+        runAction(null, editor = true) {
+            val id = repository.addActivity(spaceId, date, type, trimmed, participantIds, routineId, session)
+            CreatedItem(id, trimmed)
         }
+    }
+
+    fun consumeCreated() = mutableUiState.update { it.copy(created = null) }
+
+    // «Deshacer» el alta: borra justo esa actividad (y su evento enlazado) con el borrado de siempre (sin aviso; si
+    // falla, sale el error).
+    fun undoCreate(id: String) {
+        val spaceId = observedSpaceId ?: return
+        runAction(null) { repository.deleteActivity(spaceId, id) }
     }
 
     // Recrea una actividad borrada («Deshacer»): no es un guardado del editor, no mueve su estado.
@@ -202,16 +215,22 @@ class SportViewModel @Inject constructor(
         it.copy(isSaving = false, error = message, notice = null, editorSave = it.editorSave.failed(editor))
     }
 
-    private fun runAction(notice: SportUiMessage?, editor: Boolean = false, action: suspend () -> Unit) {
+    // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
+    private fun runAction(notice: SportUiMessage?, editor: Boolean = false, action: suspend () -> Any?) {
         if (mutableUiState.value.isSaving) return
         mutableUiState.update {
             it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
         }
         viewModelScope.launch {
             runCatching { withEditorSaveTimeout(editor) { action() } }
-                .onSuccess {
+                .onSuccess { result ->
                     mutableUiState.update {
-                        it.copy(isSaving = false, notice = notice, editorSave = it.editorSave.succeeded(editor))
+                        it.copy(
+                            isSaving = false,
+                            notice = notice,
+                            created = result as? CreatedItem,
+                            editorSave = it.editorSave.succeeded(editor),
+                        )
                     }
                 }
                 .onFailure { error ->

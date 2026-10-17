@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.feature.exercises
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
@@ -111,7 +112,39 @@ class ExercisesViewModelTest {
 
         assertEquals("Sentadilla", repository.createdName)
         assertEquals(ExerciseType.PESO_LIBRE, repository.createdType)
-        assertEquals(ExerciseUiMessage.Saved, viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun creatingOneItemOffersUndoWithItsIdAndName() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe()
+        advanceUntilIdle()
+
+        viewModel.createExercise(input("  Sentadilla  ", ExerciseType.PESO_LIBRE))
+        advanceUntilIdle()
+
+        assertEquals(CreatedItem("sentadilla", "Sentadilla"), viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.notice)
+
+        viewModel.consumeCreated()
+        assertNull(viewModel.uiState.value.created)
+    }
+
+    @Test
+    fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.undoCreate("sentadilla")
+        advanceUntilIdle()
+
+        assertEquals("sentadilla", repository.deletedId)
+        assertNull(viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun editingDoesNotOfferUndo() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.updateExercise("sentadilla", input("Sentadilla", ExerciseType.PESO_LIBRE))
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.created)
     }
 
     @Test
@@ -252,7 +285,7 @@ private class FakeExerciseRepository : ExerciseRepository {
     override fun currentUserId(): String? = "me"
     override suspend fun exerciseById(id: String): CatalogExercise? = catalogState.value.firstOrNull { it.id == id }
 
-    override suspend fun createExercise(input: ExerciseInput) {
+    override suspend fun createExercise(input: ExerciseInput): String {
         createFailure?.let { throw it }
         if (hang) {
             try {
@@ -263,6 +296,7 @@ private class FakeExerciseRepository : ExerciseRepository {
         }
         addGate?.await()
         createdInput = input
+        return slug(input.name)
     }
 
     override suspend fun updateExercise(id: String, input: ExerciseInput) = Unit

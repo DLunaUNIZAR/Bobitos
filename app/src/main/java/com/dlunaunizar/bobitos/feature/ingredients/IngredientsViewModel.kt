@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.feature.ingredients
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.failed
@@ -137,14 +138,20 @@ class IngredientsViewModel @Inject constructor(
             return
         }
         val asCommon = common && mutableUiState.value.isAdmin
-        runAction(IngredientUiMessage.Saved, editor = true) {
+        // El ingrediente personal deja `created` (con «Deshacer») en lugar del aviso de guardado; el común, el de siempre.
+        runAction(if (asCommon) IngredientUiMessage.Saved else null, editor = true) {
             if (asCommon) {
                 repository.createIngredient(trimmed, category, defaultUnit)
             } else {
-                personalRepository.create(trimmed, category, defaultUnit)
+                CreatedItem(personalRepository.create(trimmed, category, defaultUnit), trimmed)
             }
         }
     }
+
+    fun consumeCreated() = mutableUiState.update { it.copy(created = null) }
+
+    // «Deshacer» el alta del ingrediente personal: lo borra con el borrado de siempre (sin aviso; si falla, sale el error).
+    fun undoCreate(id: String) = runAction(null) { personalRepository.delete(id) }
 
     fun consumeOpenIngredient() {
         mutableUiState.update { it.copy(openIngredientId = null) }
@@ -250,7 +257,8 @@ class IngredientsViewModel @Inject constructor(
         }
     }
 
-    private fun runAction(successNotice: IngredientUiMessage, editor: Boolean = false, action: suspend () -> Unit) {
+    // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
+    private fun runAction(successNotice: IngredientUiMessage?, editor: Boolean = false, action: suspend () -> Any?) {
         if (mutableUiState.value.isSaving) return
         mutableUiState.update {
             it.copy(
@@ -263,9 +271,14 @@ class IngredientsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             runCatching { withEditorSaveTimeout(editor) { action() } }
-                .onSuccess {
+                .onSuccess { result ->
                     mutableUiState.update {
-                        it.copy(isSaving = false, notice = successNotice, editorSave = it.editorSave.succeeded(editor))
+                        it.copy(
+                            isSaving = false,
+                            notice = successNotice,
+                            created = result as? CreatedItem,
+                            editorSave = it.editorSave.succeeded(editor),
+                        )
                     }
                 }
                 .onFailure { error ->

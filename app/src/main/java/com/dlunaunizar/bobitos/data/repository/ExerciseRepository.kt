@@ -17,7 +17,7 @@ interface ExerciseRepository {
 
     suspend fun exerciseById(id: String): CatalogExercise?
 
-    suspend fun createExercise(input: ExerciseInput)
+    suspend fun createExercise(input: ExerciseInput): String
 
     suspend fun updateExercise(id: String, input: ExerciseInput)
 

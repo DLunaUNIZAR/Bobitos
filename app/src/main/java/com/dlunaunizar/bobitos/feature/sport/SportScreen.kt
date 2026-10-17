@@ -61,6 +61,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
+import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -135,6 +136,7 @@ fun SportScreen(
         val feedback = feedbackFor(state.error, state.notice, state.editorSave, editorOpen)
             ?.let { Feedback(stringResource(it.message.stringResourceId), it.isError) }
         FeedbackSnackbarEffect(feedback, viewModel::clearFeedback)
+        CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
         val deleteWithUndo: (SportActivity) -> Unit = { activity ->
             viewModel.deleteActivity(activity.id)
             scope.launchUndo(snackbar, deletedMessage, undoLabel) {

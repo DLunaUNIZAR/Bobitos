@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.feature.ingredients
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
@@ -93,6 +94,59 @@ class IngredientsViewModelTest {
         assertEquals(1, personalRepository.createCount)
         assertEquals("Cebolla", personalRepository.lastCreatedName)
         assertEquals(0, repository.createCount)
+        assertNull(viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun creatingOneItemOffersUndoWithItsIdAndName() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe()
+        advanceUntilIdle()
+
+        viewModel.createIngredient("  Cebolla  ", null, "ud", common = false)
+        advanceUntilIdle()
+
+        assertEquals(CreatedItem("cebolla", "Cebolla"), viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.notice)
+
+        viewModel.consumeCreated()
+        assertNull(viewModel.uiState.value.created)
+    }
+
+    @Test
+    fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe()
+        viewModel.undoCreate("cebolla")
+        advanceUntilIdle()
+
+        assertEquals("cebolla", personalRepository.deletedId)
+        assertNull(repository.deletedId)
+    }
+
+    @Test
+    fun editingDoesNotOfferUndo() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe()
+        advanceUntilIdle()
+
+        viewModel.createIngredient("Tomate", null, null, common = false)
+        advanceUntilIdle()
+        viewModel.consumeCreated()
+        // Un nombre que ya existe no escribe nada: abre la ficha existente y no ofrece deshacer.
+        viewModel.createIngredient("Tomate", null, null, common = false)
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.created)
+    }
+
+    @Test
+    fun aCommonIngredientNeverOffersUndo() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.admin = true
+        viewModel.observe()
+        advanceUntilIdle()
+
+        viewModel.createIngredient("Cebolla", null, null, common = true)
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.created)
         assertEquals(IngredientUiMessage.Saved, viewModel.uiState.value.notice)
     }
 

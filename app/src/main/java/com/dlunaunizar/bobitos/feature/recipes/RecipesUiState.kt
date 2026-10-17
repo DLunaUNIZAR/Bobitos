@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.recipes
 
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.Recipe
@@ -14,6 +15,8 @@ data class RecipesUiState(
     val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
     val error: RecipeUiMessage? = null,
     val notice: RecipeUiMessage? = null,
+    // Alta recién hecha desde la hoja: la pantalla la avisa con «Deshacer» y la consume.
+    val created: CreatedItem? = null,
     // La cuenta activa puede publicar recetas en el catálogo común (GLOBAL).
     val isAdmin: Boolean = false,
     // Importación desde una web: descarga en curso y borrador pendiente de abrir en el editor.

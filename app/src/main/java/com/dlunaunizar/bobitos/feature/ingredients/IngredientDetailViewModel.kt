@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.feature.ingredients
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.started
@@ -205,10 +206,21 @@ class IngredientDetailViewModel @Inject constructor(
             return
         }
         val input = draft.toInput(ingredientId)
-        runAction(IngredientUiMessage.BrandSaved, editor = true) {
-            if (brandId == null) brandRepository.addBrand(input) else brandRepository.updateBrand(brandId, input)
+        val name = draft.name.trim()
+        // Una marca nueva deja `created` (con «Deshacer») en lugar del aviso de marca guardada; editarla, el de siempre.
+        runAction(if (brandId == null) null else IngredientUiMessage.BrandSaved, editor = true) {
+            if (brandId == null) {
+                CreatedItem(brandRepository.addBrand(input), name)
+            } else {
+                brandRepository.updateBrand(brandId, input)
+            }
         }
     }
+
+    fun consumeCreated() = mutableUiState.update { it.copy(created = null) }
+
+    // «Deshacer» el alta de la marca: la borra con el borrado de siempre (sin aviso; si falla, sale el error).
+    fun undoCreate(id: String) = runAction(null) { brandRepository.deleteBrand(id) }
 
     fun deleteBrand(brandId: String) {
         runAction(IngredientUiMessage.BrandDeleted) { brandRepository.deleteBrand(brandId) }
@@ -287,7 +299,8 @@ class IngredientDetailViewModel @Inject constructor(
         notice: IngredientUiMessage?,
         finishOnSuccess: Boolean = false,
         editor: Boolean = false,
-        action: suspend () -> Unit,
+        // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
+        action: suspend () -> Any?,
     ) {
         if (mutableUiState.value.isSaving) return
         mutableUiState.update {
@@ -295,11 +308,12 @@ class IngredientDetailViewModel @Inject constructor(
         }
         viewModelScope.launch {
             runCatching { withEditorSaveTimeout(editor) { action() } }
-                .onSuccess {
+                .onSuccess { result ->
                     mutableUiState.update {
                         it.copy(
                             isSaving = false,
                             notice = notice,
+                            created = result as? CreatedItem,
                             finished = it.finished || finishOnSuccess,
                             editorSave = it.editorSave.succeeded(editor),
                         )

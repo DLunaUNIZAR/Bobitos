@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.feature.meals
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
@@ -143,9 +144,19 @@ class MealsViewModel @Inject constructor(
     ) {
         val spaceId = observedSpaceId ?: return
         if (!validate(name)) return
-        runAction(MealUiMessage.MealAdded, editor = true) {
-            repository.addMeal(spaceId, date, slot, name.trim(), participantIds, recipeId, cookId)
+        val trimmed = name.trim()
+        // Un alta desde la hoja deja `created` (con «Deshacer») en lugar del aviso de comida añadida.
+        runAction(null, editor = true) {
+            CreatedItem(repository.addMeal(spaceId, date, slot, trimmed, participantIds, recipeId, cookId), trimmed)
         }
+    }
+
+    fun consumeCreated() = mutableUiState.update { it.copy(created = null) }
+
+    // «Deshacer» el alta: borra justo esa comida con el borrado de siempre (sin aviso; si falla, sale el error).
+    fun undoCreate(id: String) {
+        val spaceId = observedSpaceId ?: return
+        runAction(null) { repository.deleteMeal(spaceId, id) }
     }
 
     // Recrea una comida borrada («Deshacer»): no es un guardado del editor, no mueve su estado.
@@ -401,7 +412,8 @@ class MealsViewModel @Inject constructor(
         successNotice: MealUiMessage?,
         editor: Boolean = false,
         toMessage: (Throwable) -> MealUiMessage = Throwable::toUiMessage,
-        action: suspend () -> Unit,
+        // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
+        action: suspend () -> Any?,
     ) {
         if (mutableUiState.value.isSaving) return
         mutableUiState.update {
@@ -409,9 +421,14 @@ class MealsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             runCatching { withEditorSaveTimeout(editor) { action() } }
-                .onSuccess {
+                .onSuccess { result ->
                     mutableUiState.update {
-                        it.copy(isSaving = false, notice = successNotice, editorSave = it.editorSave.succeeded(editor))
+                        it.copy(
+                            isSaving = false,
+                            notice = successNotice,
+                            created = result as? CreatedItem,
+                            editorSave = it.editorSave.succeeded(editor),
+                        )
                     }
                 }
                 .onFailure { error ->

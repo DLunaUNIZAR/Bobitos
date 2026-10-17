@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.exercises
 
+import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
@@ -15,6 +16,8 @@ data class ExercisesUiState(
     val catalogError: ExerciseUiMessage? = null,
     val error: ExerciseUiMessage? = null,
     val notice: ExerciseUiMessage? = null,
+    // Alta recién hecha desde la hoja: la pantalla la avisa con «Deshacer» y la consume.
+    val created: CreatedItem? = null,
 ) {
     fun canEdit(exercise: CatalogExercise): Boolean = isAdmin || exercise.ownerUid == currentUid
 }
