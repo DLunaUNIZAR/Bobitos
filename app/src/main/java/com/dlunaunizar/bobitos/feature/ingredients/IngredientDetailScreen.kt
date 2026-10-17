@@ -40,6 +40,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -56,7 +58,9 @@ import com.dlunaunizar.bobitos.core.designsystem.component.InfoChip
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SwitchRow
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
+import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
@@ -485,24 +489,35 @@ internal fun BrandEditorDialog(
     onSave: (BrandDraft) -> Unit,
 ) {
     var draft by rememberSaveable(brandId, initial) { mutableStateOf(initial) }
+    val form = rememberFormValidationState()
+    val nameFocus = remember { FocusRequester() }
+    val nameBlank = draft.name.isBlank()
+    val nameError = form.visible(stringResource(R.string.ingredients_brand_error_name_required).takeIf { nameBlank })
     BobitosFormSheet(
         title = stringResource(
             if (brandId == null) R.string.ingredients_brand_add_title else R.string.ingredients_brand_edit_title,
         ),
         confirmLabel = stringResource(R.string.save),
-        confirmEnabled = draft.name.isNotBlank(),
         saving = saving,
         dirty = { draft != initial },
         errorMessage = errorMessage,
         onDismiss = onDismiss,
-        onConfirm = { onSave(draft) },
+        onConfirm = {
+            form.submit(
+                isValid = !nameBlank,
+                onValid = { onSave(draft) },
+                onInvalid = { nameFocus.requestFocus() },
+            )
+        },
     ) {
         OutlinedTextField(
             value = draft.name,
             onValueChange = { draft = draft.copy(name = it) },
             label = { Text(stringResource(R.string.ingredients_brand_name_label)) },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            isError = nameError != null,
+            supportingText = errorSupportingText(nameError),
+            modifier = Modifier.fillMaxWidth().focusRequester(nameFocus),
         )
         OutlinedTextField(
             value = draft.barcode,

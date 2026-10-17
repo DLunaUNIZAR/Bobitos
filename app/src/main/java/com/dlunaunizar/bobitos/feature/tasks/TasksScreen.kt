@@ -68,6 +68,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
@@ -100,9 +102,11 @@ import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
+import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.RecurrenceUnit
@@ -659,7 +663,7 @@ private fun TaskTemplatePicker(onDismiss: () -> Unit, onPick: (TaskTemplate) -> 
 }
 
 @Composable
-private fun TaskEditor(
+internal fun TaskEditor(
     task: TaskItem?,
     template: TaskTemplate?,
     members: List<SpaceMember>,
@@ -676,29 +680,40 @@ private fun TaskEditor(
         mutableStateOf(initial)
     }
     val validation = TaskValidation.validate(draft.title, draft.description)
+    val form = rememberFormValidationState()
+    val titleFocus = remember { FocusRequester() }
+    val descriptionFocus = remember { FocusRequester() }
+    val descriptionInvalid = validation == TaskUiMessage.DescriptionTooLong
+    val titleError = form.visible(validation?.takeUnless { descriptionInvalid })
+    val descriptionError = form.visible(validation?.takeIf { descriptionInvalid })
     BobitosFormSheet(
         title = stringResource(if (task == null) R.string.tasks_add_title else R.string.tasks_edit_title),
         confirmLabel = stringResource(R.string.save),
-        confirmEnabled = validation == null,
         saving = saving,
         dirty = { draft != initial },
         errorMessage = errorMessage,
         onDismiss = onDismiss,
         onConfirm = {
-            try {
-                onSave(
-                    draft.title,
-                    draft.description,
-                    draft.assigneeId,
-                    TaskValidation.parseDueDate(draft.dueDate),
-                    draft.priority,
-                    draft.type,
-                    draft.recurrence,
-                    TaskValidation.parseDueDate(draft.startDate),
-                )
-            } catch (_: InvalidTaskDateException) {
-                onInvalidDate()
-            }
+            form.submit(
+                isValid = validation == null,
+                onValid = {
+                    try {
+                        onSave(
+                            draft.title,
+                            draft.description,
+                            draft.assigneeId,
+                            TaskValidation.parseDueDate(draft.dueDate),
+                            draft.priority,
+                            draft.type,
+                            draft.recurrence,
+                            TaskValidation.parseDueDate(draft.startDate),
+                        )
+                    } catch (_: InvalidTaskDateException) {
+                        onInvalidDate()
+                    }
+                },
+                onInvalid = { (if (descriptionInvalid) descriptionFocus else titleFocus).requestFocus() },
+            )
         },
     ) {
         OutlinedTextField(
@@ -706,14 +721,18 @@ private fun TaskEditor(
             { draft = draft.copy(title = it) },
             label = { Text(stringResource(R.string.tasks_title_label)) },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            isError = titleError != null,
+            supportingText = errorSupportingText(titleError?.let { stringResource(it.stringRes()) }),
+            modifier = Modifier.fillMaxWidth().focusRequester(titleFocus),
         )
         OutlinedTextField(
             draft.description,
             { draft = draft.copy(description = it) },
             label = { Text(stringResource(R.string.tasks_description_label)) },
             minLines = 2,
-            modifier = Modifier.fillMaxWidth(),
+            isError = descriptionError != null,
+            supportingText = errorSupportingText(descriptionError?.let { stringResource(it.stringRes()) }),
+            modifier = Modifier.fillMaxWidth().focusRequester(descriptionFocus),
         )
         AssigneePicker(draft.assigneeId, members) { draft = draft.copy(assigneeId = it) }
         TaskDateFields(
@@ -730,7 +749,6 @@ private fun TaskEditor(
                 draft = draft.copy(recurrenceUnit = it?.unit, recurrenceInterval = it?.interval ?: 1)
             },
         )
-        validation?.let { Text(stringResource(it.stringRes()), color = MaterialTheme.colorScheme.error) }
     }
 }
 

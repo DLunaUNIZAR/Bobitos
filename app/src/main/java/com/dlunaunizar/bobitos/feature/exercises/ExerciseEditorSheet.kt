@@ -14,12 +14,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
+import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseEquipment
@@ -43,16 +48,27 @@ internal fun ExerciseEditorSheet(
     val initial = CatalogExerciseDraft.of(exercise)
     var draft by rememberSaveable(exercise?.id) { mutableStateOf(initial) }
     val errors = visibleDraftErrors(draft.errors(otherIds), saving, saved)
-    val nameError = visibleNameError(draft, errors)
+    val form = rememberFormValidationState()
+    val nameFocus = remember { FocusRequester() }
+    val muscleFocus = remember { FocusRequester() }
+    val descriptionFocus = remember { FocusRequester() }
+    val nameError = form.visible(errors.firstOrNull { it in NAME_ERRORS })
+    val muscleError = form.visible(ExerciseDraftError.MuscleTooLong.takeIf { it in errors })
+    val descriptionError = form.visible(ExerciseDraftError.DescriptionTooLong.takeIf { it in errors })
     BobitosFormSheet(
         title = stringResource(if (exercise == null) R.string.exercises_add_title else R.string.exercises_edit_title),
         confirmLabel = stringResource(R.string.save),
-        confirmEnabled = errors.isEmpty(),
         saving = saving,
         dirty = { draft != initial },
         errorMessage = errorMessage,
         onDismiss = onDismiss,
-        onConfirm = { onSave(draft.toInput()) },
+        onConfirm = {
+            form.submit(
+                isValid = errors.isEmpty(),
+                onValid = { onSave(draft.toInput()) },
+                onInvalid = { firstInvalidFocus(errors, nameFocus, muscleFocus, descriptionFocus).requestFocus() },
+            )
+        },
     ) {
         OutlinedTextField(
             value = draft.name,
@@ -61,7 +77,7 @@ internal fun ExerciseEditorSheet(
             isError = nameError != null,
             supportingText = nameError?.let { { Text(stringResource(it.messageRes)) } },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().focusRequester(nameFocus),
         )
         Text(stringResource(R.string.exercises_type_label), style = MaterialTheme.typography.labelLarge)
         Row(
@@ -83,41 +99,58 @@ internal fun ExerciseEditorSheet(
             value = draft.muscle,
             onValueChange = { draft = draft.copy(muscle = it) },
             label = { Text(stringResource(R.string.exercises_muscle_label)) },
-            isError = ExerciseDraftError.MuscleTooLong in errors,
-            supportingText = if (ExerciseDraftError.MuscleTooLong in errors) {
-                { Text(stringResource(ExerciseDraftError.MuscleTooLong.messageRes)) }
-            } else {
-                null
-            },
+            isError = muscleError != null,
+            supportingText = errorSupportingText(muscleError?.let { stringResource(it.messageRes) }),
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().focusRequester(muscleFocus),
         )
         EquipmentSelector(draft.equipment) { draft = draft.copy(equipment = draft.equipment.toggled(it)) }
-        OutlinedTextField(
+        DescriptionField(
             value = draft.description,
-            onValueChange = { draft = draft.copy(description = it) },
-            label = { Text(stringResource(R.string.exercises_description_label)) },
-            supportingText = {
-                Text(
-                    stringResource(
-                        R.string.exercises_description_counter,
-                        draft.description.length,
-                        MAX_EXERCISE_DESCRIPTION_LENGTH,
-                    ),
-                )
-            },
-            isError = ExerciseDraftError.DescriptionTooLong in errors,
-            minLines = 3,
-            modifier = Modifier.fillMaxWidth(),
+            error = descriptionError,
+            focus = descriptionFocus,
+            onChange = { draft = draft.copy(description = it) },
         )
     }
 }
 
-// Con el nombre aún vacío solo se deshabilita Guardar; el mensaje aparece cuando se escribe y se borra.
-private fun visibleNameError(draft: CatalogExerciseDraft, errors: Set<ExerciseDraftError>): ExerciseDraftError? =
-    errors.firstOrNull {
-        it in NAME_ERRORS && (it != ExerciseDraftError.NameRequired || draft.name.isNotEmpty())
-    }
+@Composable
+private fun DescriptionField(
+    value: String,
+    error: ExerciseDraftError?,
+    focus: FocusRequester,
+    onChange: (String) -> Unit,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onChange,
+        label = { Text(stringResource(R.string.exercises_description_label)) },
+        supportingText = {
+            Text(
+                error?.let { stringResource(it.messageRes) }
+                    ?: stringResource(
+                        R.string.exercises_description_counter,
+                        value.length,
+                        MAX_EXERCISE_DESCRIPTION_LENGTH,
+                    ),
+            )
+        },
+        isError = error != null,
+        minLines = 3,
+        modifier = Modifier.fillMaxWidth().focusRequester(focus),
+    )
+}
+
+private fun firstInvalidFocus(
+    errors: Set<ExerciseDraftError>,
+    name: FocusRequester,
+    muscle: FocusRequester,
+    description: FocusRequester,
+) = when {
+    errors.any { it in NAME_ERRORS } -> name
+    ExerciseDraftError.MuscleTooLong in errors -> muscle
+    else -> description
+}
 
 private val NAME_ERRORS = setOf(
     ExerciseDraftError.NameRequired,

@@ -34,6 +34,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -53,8 +55,10 @@ import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffec
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
+import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Note
 
@@ -258,33 +262,45 @@ private fun NoteEditor(
     val initial = NoteDraft.of(note)
     var draft by rememberSaveable(note?.id) { mutableStateOf(initial) }
     val validation = NoteValidation.validate(draft.title, draft.body)
+    val form = rememberFormValidationState()
+    val titleFocus = remember { FocusRequester() }
+    val bodyFocus = remember { FocusRequester() }
+    val bodyInvalid = validation == NoteUiMessage.BodyTooLong
+    val titleError = form.visible(validation?.takeUnless { bodyInvalid })
+    val bodyError = form.visible(validation?.takeIf { bodyInvalid })
     BobitosFormSheet(
         title = stringResource(if (note == null) R.string.notes_add_title else R.string.notes_edit_title),
         confirmLabel = stringResource(R.string.save),
-        confirmEnabled = validation == null,
         saving = saving,
         dirty = { draft != initial },
         errorMessage = errorMessage,
         onDismiss = onDismiss,
-        onConfirm = { onSave(draft.title, draft.body) },
+        onConfirm = {
+            form.submit(
+                isValid = validation == null,
+                onValid = { onSave(draft.title, draft.body) },
+                onInvalid = { (if (bodyInvalid) bodyFocus else titleFocus).requestFocus() },
+            )
+        },
     ) {
         OutlinedTextField(
             value = draft.title,
             onValueChange = { draft = draft.copy(title = it) },
             label = { Text(stringResource(R.string.notes_title_label)) },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            isError = titleError != null,
+            supportingText = errorSupportingText(titleError?.let { stringResource(it.stringRes()) }),
+            modifier = Modifier.fillMaxWidth().focusRequester(titleFocus),
         )
         OutlinedTextField(
             value = draft.body,
             onValueChange = { draft = draft.copy(body = it) },
             label = { Text(stringResource(R.string.notes_body_label)) },
             minLines = 3,
-            modifier = Modifier.fillMaxWidth(),
+            isError = bodyError != null,
+            supportingText = errorSupportingText(bodyError?.let { stringResource(it.stringRes()) }),
+            modifier = Modifier.fillMaxWidth().focusRequester(bodyFocus),
         )
-        validation?.let {
-            Text(stringResource(it.stringRes()), color = MaterialTheme.colorScheme.error)
-        }
     }
 }
 

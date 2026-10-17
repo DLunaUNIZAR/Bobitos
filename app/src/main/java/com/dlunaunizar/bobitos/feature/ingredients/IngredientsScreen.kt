@@ -33,6 +33,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -57,7 +59,9 @@ import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SwitchRow
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
+import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
@@ -372,18 +376,27 @@ internal fun IngredientEditorDialog(
     var draft by rememberSaveable(ingredient?.id, initialName) {
         mutableStateOf(initial)
     }
+    val form = rememberFormValidationState()
+    val nameFocus = remember { FocusRequester() }
+    val nameBlank = draft.name.isBlank()
+    val nameError = form.visible(stringResource(R.string.ingredients_error_name_required).takeIf { nameBlank })
     BobitosFormSheet(
         title = stringResource(
             if (ingredient == null) R.string.ingredients_add_title else R.string.ingredients_edit_title,
         ),
         confirmLabel = stringResource(R.string.save),
-        confirmEnabled = draft.name.isNotBlank(),
         saving = saving,
         dirty = { draft != initial },
         errorMessage = errorMessage,
         onDismiss = onDismiss,
         onConfirm = {
-            onSave(draft.name, draft.category.trim().ifBlank { null }, draft.unit.trim().ifBlank { null })
+            form.submit(
+                isValid = !nameBlank,
+                onValid = {
+                    onSave(draft.name, draft.category.trim().ifBlank { null }, draft.unit.trim().ifBlank { null })
+                },
+                onInvalid = { nameFocus.requestFocus() },
+            )
         },
     ) {
         OutlinedTextField(
@@ -391,7 +404,9 @@ internal fun IngredientEditorDialog(
             onValueChange = { draft = draft.copy(name = it) },
             label = { Text(stringResource(R.string.ingredients_name_label)) },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            isError = nameError != null,
+            supportingText = errorSupportingText(nameError),
+            modifier = Modifier.fillMaxWidth().focusRequester(nameFocus),
         )
         OutlinedTextField(
             value = draft.category,

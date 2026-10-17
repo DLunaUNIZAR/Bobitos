@@ -15,9 +15,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
+import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.Routine
 import com.dlunaunizar.bobitos.core.model.RoutineExercise
@@ -49,18 +53,33 @@ internal fun RoutineEditor(
         routine?.exercises.orEmpty().toExerciseDrafts().toMutableStateList()
     }
     val canChooseGlobal = isAdmin && routine == null
+    val form = rememberFormValidationState()
+    val titleFocus = remember { FocusRequester() }
+    val titleBlank = draft.title.isBlank()
+    val titleError = form.visible(stringResource(R.string.routines_error_title_required).takeIf { titleBlank })
 
     BobitosFormSheet(
         title = stringResource(if (routine == null) R.string.routines_add_title else R.string.routines_edit_title),
         confirmLabel = stringResource(R.string.save),
-        confirmEnabled = draft.title.isNotBlank() && canWrite,
+        canSubmit = canWrite,
         saving = saving,
         dirty = { draft != initial || exercises.toRoutineExercises() != initialExercises },
         errorMessage = errorMessage,
         onDismiss = onDismiss,
         onConfirm = {
-            val visibility = if (draft.global) RoutineVisibility.GLOBAL else RoutineVisibility.PRIVATE
-            onSave(visibility, draft.title, draft.description.trim().ifBlank { null }, exercises.toRoutineExercises())
+            form.submit(
+                isValid = !titleBlank,
+                onValid = {
+                    val visibility = if (draft.global) RoutineVisibility.GLOBAL else RoutineVisibility.PRIVATE
+                    onSave(
+                        visibility,
+                        draft.title,
+                        draft.description.trim().ifBlank { null },
+                        exercises.toRoutineExercises(),
+                    )
+                },
+                onInvalid = { titleFocus.requestFocus() },
+            )
         },
     ) {
         OutlinedTextField(
@@ -68,7 +87,9 @@ internal fun RoutineEditor(
             onValueChange = { draft = draft.copy(title = it) },
             label = { Text(stringResource(R.string.routines_title_label)) },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            isError = titleError != null,
+            supportingText = errorSupportingText(titleError),
+            modifier = Modifier.fillMaxWidth().focusRequester(titleFocus),
         )
         OutlinedTextField(
             value = draft.description,

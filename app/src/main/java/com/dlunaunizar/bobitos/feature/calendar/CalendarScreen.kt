@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,13 +27,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
@@ -48,7 +45,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -69,6 +65,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -94,8 +92,10 @@ import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffec
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
+import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.EventColor
@@ -770,27 +770,33 @@ internal fun EventEditor(
         mutableStateOf(initial)
     }
     var activePicker by remember { mutableStateOf<EventPicker?>(null) }
-    var error by remember { mutableStateOf<String?>(null) }
-    val dateError = stringResource(R.string.calendar_date_error)
-    val startLabelRes = if (draft.allDay) R.string.calendar_start_date_label else R.string.calendar_start_datetime_label
-    val endLabelRes = if (draft.allDay) R.string.calendar_end_date_label else R.string.calendar_end_datetime_label
+    val form = rememberFormValidationState()
+    val titleFocus = remember { FocusRequester() }
+    val descriptionFocus = remember { FocusRequester() }
+    val endFocus = remember { FocusRequester() }
     val validation = CalendarValidation.validate(draft.title, draft.description)
+    val input = draft.toEventInput(zone)
+    val descriptionInvalid = validation == CalendarValidation.Error.DescriptionTooLong
+    val titleError = form.visible(validation?.takeUnless { descriptionInvalid })
+    val descriptionError = form.visible(validation?.takeIf { descriptionInvalid })
+    val datesError = form.visible(stringResource(R.string.calendar_date_error).takeIf { input == null })
 
     BobitosFormSheet(
         title = stringResource(if (event == null) R.string.calendar_new_event else R.string.calendar_edit_event_title),
         confirmLabel = stringResource(R.string.calendar_save),
-        confirmEnabled = canWrite && validation == null,
+        canSubmit = canWrite,
         saving = saving,
         dirty = { draft != initial },
         errorMessage = errorMessage,
         onDismiss = dismiss,
         onConfirm = {
-            val input = draft.toEventInput(zone)
-            if (input == null) {
-                error = dateError
-            } else {
-                save(event?.id, input)
-            }
+            form.submit(
+                isValid = validation == null && input != null,
+                onValid = { input?.let { save(event?.id, it) } },
+                onInvalid = {
+                    firstInvalidFocus(validation, titleFocus, descriptionFocus, endFocus).requestFocus()
+                },
+            )
         },
     ) {
         OutlinedTextField(
@@ -798,31 +804,27 @@ internal fun EventEditor(
             { draft = draft.copy(title = it) },
             label = { Text(stringResource(R.string.calendar_event_title_label)) },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            isError = titleError != null,
+            supportingText = errorSupportingText(titleError?.let { stringResource(it.stringResourceId) }),
+            modifier = Modifier.fillMaxWidth().focusRequester(titleFocus),
         )
         OutlinedTextField(
             draft.description,
             { draft = draft.copy(description = it) },
             label = { Text(stringResource(R.string.calendar_event_description_label)) },
-            modifier = Modifier.fillMaxWidth(),
+            isError = descriptionError != null,
+            supportingText = errorSupportingText(descriptionError?.let { stringResource(it.stringResourceId) }),
+            modifier = Modifier.fillMaxWidth().focusRequester(descriptionFocus),
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(draft.allDay, { draft = draft.copy(allDay = it) })
             Text(stringResource(R.string.calendar_all_day))
         }
-        DateTimeField(
-            label = stringResource(startLabelRes),
-            date = draft.startDate,
-            time = if (draft.allDay) null else draft.startTime,
-            onDateClick = { activePicker = EventPicker.START_DATE },
-            onTimeClick = { activePicker = EventPicker.START_TIME },
-        )
-        DateTimeField(
-            label = stringResource(endLabelRes),
-            date = draft.endDate,
-            time = if (draft.allDay) null else draft.endTime,
-            onDateClick = { activePicker = EventPicker.END_DATE },
-            onTimeClick = { activePicker = EventPicker.END_TIME },
+        EventDateFields(
+            draft = draft,
+            error = datesError,
+            endFocus = endFocus,
+            onPicker = { activePicker = it },
         )
         Text(stringResource(R.string.calendar_color_label), style = MaterialTheme.typography.labelLarge)
         ColorPicker(selected = draft.color, onSelect = { draft = draft.copy(color = it) })
@@ -832,9 +834,6 @@ internal fun EventEditor(
             selectedIds = draft.selectedIds,
             onToggle = { userId, selected -> draft = draft.withParticipant(userId, selected) },
         )
-        (validation?.let { stringResource(it.stringResourceId) } ?: error)?.let {
-            Text(it, color = MaterialTheme.colorScheme.error)
-        }
     }
 
     EventPickers(
@@ -887,6 +886,17 @@ private fun EventPickers(
         )
         null -> Unit
     }
+}
+
+private fun firstInvalidFocus(
+    validation: CalendarValidation.Error?,
+    title: FocusRequester,
+    description: FocusRequester,
+    dates: FocusRequester,
+) = when (validation) {
+    null -> dates
+    CalendarValidation.Error.DescriptionTooLong -> description
+    else -> title
 }
 
 // Muestra el editor de evento (nuevo, desde una hora o existente). Si el evento que se editaba ya no
@@ -980,46 +990,6 @@ private fun ColorPicker(selected: EventColor, onSelect: (EventColor) -> Unit) {
                             modifier = Modifier.size(18.dp),
                         )
                     }
-                }
-            }
-        }
-    }
-}
-
-private enum class EventPicker { START_DATE, END_DATE, START_TIME, END_TIME }
-
-private val editorDateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
-private val editorTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-
-@Composable
-private fun DateTimeField(
-    label: String,
-    date: LocalDate,
-    time: LocalTime?,
-    onDateClick: () -> Unit,
-    onTimeClick: () -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(label, style = MaterialTheme.typography.labelLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onDateClick) {
-                Icon(
-                    Icons.Rounded.CalendarMonth,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.size(8.dp))
-                Text(date.format(editorDateFormatter))
-            }
-            if (time != null) {
-                OutlinedButton(onClick = onTimeClick) {
-                    Icon(
-                        Icons.Rounded.Schedule,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.size(8.dp))
-                    Text(time.format(editorTimeFormatter))
                 }
             }
         }

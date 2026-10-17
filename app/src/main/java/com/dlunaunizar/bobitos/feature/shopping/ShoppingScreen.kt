@@ -51,6 +51,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -79,6 +81,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
@@ -636,29 +639,40 @@ private fun ShoppingItemEditor(
     // Solo al crear: avisa si ya hay un producto con ese nombre en la lista y si hay en la despensa (no bloquea nada).
     val duplicate = if (item == null) resolveDuplicate(name) else null
     val inPantry = item == null && isInPantry(name, pantryIds)
+    val form = rememberFormValidationState()
+    val nameFocus = remember { FocusRequester() }
+    val quantityFocus = remember { FocusRequester() }
+    val notesFocus = remember { FocusRequester() }
     val nameErrorMessage = validation?.takeIf {
         it == ShoppingUiMessage.NameRequired || it == ShoppingUiMessage.NameTooLong
     }
-    val nameError = nameErrorMessage != null
+    // Hasta el primer intento de guardar, solo los errores de longitud que ya se ven al escribir.
+    val nameShownError = form.visible(nameErrorMessage)
+    val shownValidation = form.visible(validation)
 
     BobitosFormSheet(
         title = stringResource(if (item == null) R.string.shopping_add_title else R.string.shopping_edit_title),
         confirmLabel = stringResource(R.string.save),
-        confirmEnabled = validation == null,
         saving = saving,
         dirty = { draft.isDirty(initial, context) },
         errorMessage = errorMessage,
         onDismiss = onDismiss,
-        onConfirm = { onSave(name, quantity, notes, draft.supermarket, draft.savedBrand(context)) },
+        onConfirm = {
+            form.submit(
+                isValid = validation == null,
+                onValid = { onSave(name, quantity, notes, draft.supermarket, draft.savedBrand(context)) },
+                onInvalid = { firstInvalidFocus(validation, nameFocus, quantityFocus, notesFocus).requestFocus() },
+            )
+        },
     ) {
         OutlinedTextField(
             value = name,
             onValueChange = { draft = draft.copy(name = it) },
             label = { Text(stringResource(R.string.shopping_name_label)) },
-            supportingText = { NameHint(nameErrorMessage, duplicate, inPantry) },
-            isError = nameError,
+            supportingText = { NameHint(nameShownError, duplicate, inPantry) },
+            isError = nameShownError != null,
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().focusRequester(nameFocus),
         )
         NameSuggestionChips(if (item == null) suggestions(name) else emptyList()) { suggestion ->
             draft = draft.copy(name = suggestion)
@@ -668,7 +682,9 @@ private fun ShoppingItemEditor(
             onQuantity = { draft = draft.copy(quantity = it) },
             notes = notes,
             onNotes = { draft = draft.copy(notes = it) },
-            validation = validation,
+            validation = shownValidation,
+            quantityFocus = quantityFocus,
+            notesFocus = notesFocus,
         )
         if (context != null) {
             BrandStorePicker(
@@ -690,6 +706,17 @@ private fun ShoppingItemEditor(
     }
 }
 
+private fun firstInvalidFocus(
+    validation: ShoppingUiMessage?,
+    name: FocusRequester,
+    quantity: FocusRequester,
+    notes: FocusRequester,
+) = when (validation) {
+    ShoppingUiMessage.QuantityTooLong -> quantity
+    ShoppingUiMessage.NotesTooLong -> notes
+    else -> name
+}
+
 @Composable
 private fun NameSuggestionChips(suggestions: List<String>, onPick: (String) -> Unit) {
     if (suggestions.isEmpty()) return
@@ -707,6 +734,8 @@ private fun QuantityAndNotesFields(
     notes: String,
     onNotes: (String) -> Unit,
     validation: ShoppingUiMessage?,
+    quantityFocus: FocusRequester,
+    notesFocus: FocusRequester,
 ) {
     OutlinedTextField(
         value = quantity,
@@ -719,7 +748,7 @@ private fun QuantityAndNotesFields(
         },
         isError = validation == ShoppingUiMessage.QuantityTooLong,
         singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().focusRequester(quantityFocus),
     )
     OutlinedTextField(
         value = notes,
@@ -733,7 +762,7 @@ private fun QuantityAndNotesFields(
         isError = validation == ShoppingUiMessage.NotesTooLong,
         minLines = 2,
         maxLines = 4,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().focusRequester(notesFocus),
     )
 }
 

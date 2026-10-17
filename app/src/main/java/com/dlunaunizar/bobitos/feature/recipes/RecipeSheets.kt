@@ -18,10 +18,13 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -32,6 +35,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosInfoSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.feature.common.formatted
@@ -169,6 +173,10 @@ private fun RecipeEditor(
         mutableStateOf(initial)
     }
     val validation = draft.validate()
+    val form = rememberFormValidationState()
+    val titleFocus = remember { FocusRequester() }
+    val descriptionFocus = remember { FocusRequester() }
+    val categoryFocus = remember { FocusRequester() }
     // El toggle de catálogo común solo se ofrece al crear (la visibilidad de una receta existente está
     // congelada por las reglas) y solo a quien puede publicar GLOBAL.
     val canChooseGlobal = isAdmin && recipe == null
@@ -176,14 +184,31 @@ private fun RecipeEditor(
     BobitosFormSheet(
         title = stringResource(if (recipe == null) R.string.recipes_add_title else R.string.recipes_edit_title),
         confirmLabel = stringResource(R.string.save),
-        confirmEnabled = validation == null && canWrite,
+        canSubmit = canWrite,
         saving = saving,
         dirty = { draft != initial },
         errorMessage = errorMessage,
         onDismiss = onDismiss,
-        onConfirm = { onSave(draft) },
+        onConfirm = {
+            form.submit(
+                isValid = validation == null,
+                onValid = { onSave(draft) },
+                onInvalid = {
+                    when (validation) {
+                        RecipeUiMessage.DescriptionTooLong -> descriptionFocus
+                        RecipeUiMessage.CategoryTooLong -> categoryFocus
+                        else -> titleFocus
+                    }.requestFocus()
+                },
+            )
+        },
     ) {
-        RecipeTextFields(draft = draft, validation = validation, onDraft = { draft = it })
+        RecipeTextFields(
+            draft = draft,
+            validation = form.visible(validation),
+            focus = RecipeFocus(titleFocus, descriptionFocus, categoryFocus),
+            onDraft = { draft = it },
+        )
         ServingsAndTimeFields(draft = draft, onDraft = { draft = it })
         if (canChooseGlobal) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -200,8 +225,15 @@ private fun RecipeEditor(
     }
 }
 
+private class RecipeFocus(val title: FocusRequester, val description: FocusRequester, val category: FocusRequester)
+
 @Composable
-private fun RecipeTextFields(draft: RecipeDraft, validation: RecipeUiMessage?, onDraft: (RecipeDraft) -> Unit) {
+private fun RecipeTextFields(
+    draft: RecipeDraft,
+    validation: RecipeUiMessage?,
+    focus: RecipeFocus,
+    onDraft: (RecipeDraft) -> Unit,
+) {
     OutlinedTextField(
         value = draft.title,
         onValueChange = { onDraft(draft.copy(title = it)) },
@@ -211,7 +243,7 @@ private fun RecipeTextFields(draft: RecipeDraft, validation: RecipeUiMessage?, o
         },
         isError = validation.isTitleError(),
         singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().focusRequester(focus.title),
     )
     OutlinedTextField(
         value = draft.description,
@@ -225,7 +257,7 @@ private fun RecipeTextFields(draft: RecipeDraft, validation: RecipeUiMessage?, o
         isError = validation == RecipeUiMessage.DescriptionTooLong,
         minLines = 2,
         maxLines = 4,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().focusRequester(focus.description),
     )
     OutlinedTextField(
         value = draft.category,
@@ -238,7 +270,7 @@ private fun RecipeTextFields(draft: RecipeDraft, validation: RecipeUiMessage?, o
         },
         isError = validation == RecipeUiMessage.CategoryTooLong,
         singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().focusRequester(focus.category),
     )
 }
 

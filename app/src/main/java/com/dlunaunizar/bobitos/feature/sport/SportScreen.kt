@@ -493,7 +493,7 @@ private fun ActivityEditor(
     BobitosFormSheet(
         title = stringResource(if (activity == null) R.string.sport_add_title else R.string.sport_edit_title),
         confirmLabel = stringResource(R.string.save),
-        confirmEnabled = canWrite,
+        canSubmit = canWrite,
         saving = saving,
         dirty = { draft != initial || session.toRoutineExercises() != initialSession },
         errorMessage = errorMessage,

@@ -41,19 +41,21 @@ import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
  * visibles con el teclado abierto). Si hay cambios sin guardar ([dirty], que solo se evalúa al intentar
  * cerrar para no recalcularlo en cada pulsación), deslizar, tocar fuera o
  * «Cancelar» pide confirmar el descarte; mientras se guarda ([saving]) no se puede cerrar y el botón dice «Guardando…».
- * [errorMessage] se pinta dentro del formulario, encima de los botones.
+ * [errorMessage] se pinta dentro del formulario, encima de los botones. Guardar siempre está activo (la
+ * validación se enseña bajo cada campo al pulsarlo, ver [FormValidationState]) salvo que [canSubmit] sea falso,
+ * que solo se usa para no escribir sin conexión.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BobitosFormSheet(
     title: String,
     confirmLabel: String,
-    confirmEnabled: Boolean,
     saving: Boolean,
     dirty: () -> Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     errorMessage: String? = null,
+    canSubmit: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var askDiscard by rememberSaveable { mutableStateOf(false) }
@@ -113,7 +115,7 @@ fun BobitosFormSheet(
             FormSheetActions(
                 errorMessage = errorMessage,
                 confirmLabel = confirmLabel,
-                confirmEnabled = confirmEnabled,
+                canSubmit = canSubmit,
                 saving = saving,
                 onCancel = requestClose,
                 onConfirm = onConfirm,
@@ -148,7 +150,7 @@ private fun DiscardChangesDialog(onDiscard: () -> Unit, onKeepEditing: () -> Uni
 private fun FormSheetActions(
     errorMessage: String?,
     confirmLabel: String,
-    confirmEnabled: Boolean,
+    canSubmit: Boolean,
     saving: Boolean,
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
@@ -169,7 +171,7 @@ private fun FormSheetActions(
             TextButton(onClick = onCancel, enabled = !saving) {
                 Text(stringResource(R.string.cancel))
             }
-            Button(onClick = onConfirm, enabled = confirmEnabled && !saving) {
+            Button(onClick = onConfirm, enabled = canSubmit && !saving) {
                 Text(if (saving) stringResource(R.string.write_saving) else confirmLabel)
             }
         }

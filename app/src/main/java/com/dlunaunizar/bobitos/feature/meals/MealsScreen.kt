@@ -44,6 +44,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -65,8 +67,10 @@ import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostStat
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
+import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Ingredient
@@ -603,22 +607,31 @@ internal fun MealEditor(
     // Como el borrador, sobrevive a una rotación (la búsqueda y el chip del selector ya se guardan en el diálogo).
     var pickerOpen by rememberSaveable(meal?.id) { mutableStateOf(false) }
     val validation = MealsValidation.validate(draft.name)
+    val form = rememberFormValidationState()
+    val nameFocus = remember { FocusRequester() }
+    val nameError = form.visible(validation)
 
     BobitosFormSheet(
         title = stringResource(if (meal == null) R.string.meals_add_title else R.string.meals_edit_title),
         confirmLabel = stringResource(R.string.save),
-        confirmEnabled = validation == null && canWrite,
+        canSubmit = canWrite,
         saving = saving,
         dirty = { draft != initial },
         errorMessage = errorMessage,
         onDismiss = onDismiss,
         onConfirm = {
-            onSave(
-                draft.slot,
-                draft.name,
-                draft.selectedIds,
-                draft.recipeId,
-                draft.cookId?.takeIf { it in draft.selectedIds },
+            form.submit(
+                isValid = validation == null,
+                onValid = {
+                    onSave(
+                        draft.slot,
+                        draft.name,
+                        draft.selectedIds,
+                        draft.recipeId,
+                        draft.cookId?.takeIf { it in draft.selectedIds },
+                    )
+                },
+                onInvalid = { nameFocus.requestFocus() },
             )
         },
     ) {
@@ -635,12 +648,10 @@ internal fun MealEditor(
             value = draft.name,
             onValueChange = { draft = draft.withName(it) },
             label = { Text(stringResource(R.string.meals_name_label)) },
-            supportingText = {
-                if (validation != null) Text(stringResource(validation.stringResourceId))
-            },
-            isError = validation != null,
+            supportingText = errorSupportingText(nameError?.let { stringResource(it.stringResourceId) }),
+            isError = nameError != null,
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().focusRequester(nameFocus),
         )
         if (recipes.isNotEmpty()) {
             TextButton(onClick = { pickerOpen = true }) {

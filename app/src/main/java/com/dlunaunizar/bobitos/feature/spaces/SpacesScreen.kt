@@ -40,10 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
@@ -57,6 +54,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
+import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
@@ -305,9 +303,10 @@ private fun InvitationCodeDialog(
                     onValueChange = { code = it },
                     label = { Text(text = stringResource(R.string.invitation_code_label)) },
                     singleLine = true,
+                    isError = errorMessage != null,
+                    supportingText = errorSupportingText(errorMessage),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                DialogError(errorMessage)
             }
         },
         confirmButton = {
@@ -417,9 +416,10 @@ internal fun SpaceNameDialog(
                     onValueChange = { name = it },
                     label = { Text(text = stringResource(R.string.space_name_label)) },
                     singleLine = true,
+                    isError = errorMessage != null,
+                    supportingText = errorSupportingText(errorMessage),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                DialogError(errorMessage)
             }
         },
         confirmButton = {
@@ -433,18 +433,6 @@ internal fun SpaceNameDialog(
             }
         },
     )
-}
-
-@Composable
-private fun DialogError(message: String?) {
-    message?.let {
-        Text(
-            text = it,
-            color = MaterialTheme.colorScheme.error,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-        )
-    }
 }
 
 @Composable
