@@ -9,9 +9,12 @@ import androidx.compose.material.icons.rounded.SelfImprovement
 import androidx.compose.material.icons.rounded.Sports
 import androidx.compose.material.icons.rounded.SportsSoccer
 import androidx.compose.material.icons.rounded.SportsTennis
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.designsystem.theme.LocalDarkTheme
+import com.dlunaunizar.bobitos.core.designsystem.theme.themedColor
 import com.dlunaunizar.bobitos.core.model.SportType
 
 @get:StringRes
@@ -37,13 +40,16 @@ internal val SportType.icon: ImageVector
         SportType.OTROS -> Icons.Rounded.Sports
     }
 
-// Color de categoría por tipo de actividad (tonos medios, legibles en claro y oscuro).
-internal fun SportType.accent(): Color = when (this) {
-    SportType.PADEL -> Color(0xFF00897B)
-    SportType.FUTBOL -> Color(0xFF2E7D32)
-    SportType.CAMINATA -> Color(0xFF6D4C41)
-    SportType.CORRER -> Color(0xFFC05621)
-    SportType.PILATES -> Color(0xFF7E57C2)
-    SportType.GIMNASIO -> Color(0xFF1565C0)
-    SportType.OTROS -> Color(0xFF6E6E6E)
+// Color de categoría por tipo de actividad (variante clara y oscura).
+internal fun SportType.accent(dark: Boolean): Color = when (this) {
+    SportType.PADEL -> themedColor(dark, 0xFF006359, 0xFF00C7B3)
+    SportType.FUTBOL -> themedColor(dark, 0xFF256528, 0xFF68C76D)
+    SportType.CAMINATA -> themedColor(dark, 0xFF6D4C41, 0xFFCAAFA6)
+    SportType.CORRER -> themedColor(dark, 0xFF904019, 0xFFE9A481)
+    SportType.PILATES -> themedColor(dark, 0xFF6940B0, 0xFFBEABE0)
+    SportType.GIMNASIO -> themedColor(dark, 0xFF1257A5, 0xFF85B8F2)
+    SportType.OTROS -> themedColor(dark, 0xFF595959, 0xFFB4B4B4)
 }
+
+@Composable
+internal fun SportType.accent(): Color = accent(LocalDarkTheme.current)

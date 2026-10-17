@@ -1,8 +1,11 @@
 package com.dlunaunizar.bobitos.feature.exercises
 
 import androidx.annotation.StringRes
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.designsystem.theme.LocalDarkTheme
+import com.dlunaunizar.bobitos.core.designsystem.theme.themedColor
 import com.dlunaunizar.bobitos.core.model.ExerciseEquipment
 import com.dlunaunizar.bobitos.core.model.ExerciseType
 import com.dlunaunizar.bobitos.core.model.recordsSets
@@ -44,10 +47,13 @@ internal val ExerciseEquipment.labelRes: Int
         ExerciseEquipment.BANDA_ELASTICA -> R.string.exercise_equipment_band
     }
 
-internal fun ExerciseType.accent(): Color = when (this) {
-    ExerciseType.MAQUINA -> Color(0xFF1565C0)
-    ExerciseType.PESO_LIBRE -> Color(0xFF6A1B9A)
-    ExerciseType.PESO_CORPORAL -> Color(0xFF2E7D32)
-    ExerciseType.CARDIO -> Color(0xFFC05621)
-    ExerciseType.OTROS -> Color(0xFF6E6E6E)
+internal fun ExerciseType.accent(dark: Boolean): Color = when (this) {
+    ExerciseType.MAQUINA -> themedColor(dark, 0xFF1257A5, 0xFF85B8F2)
+    ExerciseType.PESO_LIBRE -> themedColor(dark, 0xFF691B98, 0xFFD2A2EF)
+    ExerciseType.PESO_CORPORAL -> themedColor(dark, 0xFF256528, 0xFF68C76D)
+    ExerciseType.CARDIO -> themedColor(dark, 0xFF904019, 0xFFE9A481)
+    ExerciseType.OTROS -> themedColor(dark, 0xFF595959, 0xFFB4B4B4)
 }
+
+@Composable
+internal fun ExerciseType.accent(): Color = accent(LocalDarkTheme.current)

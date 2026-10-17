@@ -69,7 +69,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -937,6 +936,7 @@ private fun ColorPicker(selected: EventColor, onSelect: (EventColor) -> Unit) {
         EventColor.entries.forEach { option ->
             val label = stringResource(option.labelRes)
             val isSelected = option == selected
+            val swatch = option.accent()
             Box(
                 modifier = Modifier
                     .size(48.dp)
@@ -948,7 +948,7 @@ private fun ColorPicker(selected: EventColor, onSelect: (EventColor) -> Unit) {
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(option.accent())
+                        .background(swatch)
                         .then(
                             if (isSelected) {
                                 Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
@@ -962,7 +962,7 @@ private fun ColorPicker(selected: EventColor, onSelect: (EventColor) -> Unit) {
                         Icon(
                             imageVector = Icons.Rounded.Check,
                             contentDescription = null,
-                            tint = Color.White,
+                            tint = swatchCheckColor(swatch),
                             modifier = Modifier.size(18.dp),
                         )
                     }

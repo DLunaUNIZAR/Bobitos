@@ -34,6 +34,7 @@ import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Repeat
@@ -550,8 +551,6 @@ private fun TaskCard(
             )
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    PriorityDot(task.priority)
-                    Spacer(Modifier.width(Spacing.sm))
                     Text(
                         task.title,
                         style = MaterialTheme.typography.titleMedium,
@@ -575,18 +574,6 @@ private fun TaskCard(
             TaskCardMenu(enabled = enabled, onEdit = onEdit, onDelete = onDelete)
         }
     }
-}
-
-@Composable
-private fun PriorityDot(priority: TaskPriority) {
-    val description = stringResource(R.string.tasks_priority_cd, priority.label())
-    Box(
-        Modifier
-            .size(10.dp)
-            .clip(CircleShape)
-            .background(priority.accent())
-            .semantics { contentDescription = description },
-    )
 }
 
 @Composable
@@ -796,7 +783,7 @@ private fun PriorityPicker(selected: TaskPriority, onSelect: (TaskPriority) -> U
 // si está hecha, quién la completó. Cada dato es un «chip» de icono + texto.
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun TaskMetaRow(task: TaskItem, overdue: Boolean, done: Boolean) {
+internal fun TaskMetaRow(task: TaskItem, overdue: Boolean, done: Boolean) {
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
@@ -805,6 +792,11 @@ private fun TaskMetaRow(task: TaskItem, overdue: Boolean, done: Boolean) {
         task.startAt?.let { start ->
             MetaChip(Icons.Rounded.CalendarMonth, stringResource(R.string.tasks_start_date_value, start.formatDate()))
         }
+        MetaChip(
+            icon = Icons.Rounded.Flag,
+            text = task.priority.label(),
+            iconTint = task.priority.accent(),
+        )
         task.type?.let { type -> MetaChip(type.icon, stringResource(type.labelRes), type.accent()) }
         task.recurrence?.let { rec -> MetaChip(Icons.Rounded.Repeat, rec.label()) }
         MetaChip(
@@ -842,10 +834,10 @@ private fun TaskDateMeta(task: TaskItem, overdue: Boolean, done: Boolean) {
 }
 
 @Composable
-private fun MetaChip(icon: ImageVector, text: String, tint: Color? = null) {
+internal fun MetaChip(icon: ImageVector, text: String, tint: Color? = null, iconTint: Color? = null) {
     val color = tint ?: MaterialTheme.colorScheme.onSurfaceVariant
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(14.dp), tint = color)
+        Icon(icon, contentDescription = null, modifier = Modifier.size(14.dp), tint = iconTint ?: color)
         Spacer(Modifier.width(Spacing.xs))
         Text(text, style = MaterialTheme.typography.bodySmall, color = color)
     }

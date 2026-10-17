@@ -1,21 +1,27 @@
 package com.dlunaunizar.bobitos.feature.calendar
 
 import androidx.annotation.StringRes
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.designsystem.theme.LocalDarkTheme
+import com.dlunaunizar.bobitos.core.designsystem.theme.themedColor
 import com.dlunaunizar.bobitos.core.model.EventColor
 
 // Paleta categórica de los colores de evento (los elige la persona por evento), independiente
-// del tema de marca. Tonos medios legibles como banda o punto tanto en claro como en oscuro.
-// Se usan como acento (banda/punto), nunca como fondo de texto, por lo que el contraste se mantiene.
-internal fun EventColor.accent(): Color = when (this) {
-    EventColor.BLUE -> Color(0xFF1F6FEB)
-    EventColor.GREEN -> Color(0xFF2E7D32)
-    EventColor.ORANGE -> Color(0xFFC05621)
-    EventColor.PURPLE -> Color(0xFF7E57C2)
-    EventColor.RED -> Color(0xFFC62828)
-    EventColor.TEAL -> Color(0xFF00897B)
+// del tema de marca, con variante clara y oscura. Se usan como banda, punto o muestra (>= 3:1).
+internal fun EventColor.accent(dark: Boolean): Color = when (this) {
+    EventColor.BLUE -> themedColor(dark, 0xFF1153B9, 0xFF8CB5F5)
+    EventColor.GREEN -> themedColor(dark, 0xFF256528, 0xFF68C76D)
+    EventColor.ORANGE -> themedColor(dark, 0xFF904019, 0xFFE9A481)
+    EventColor.PURPLE -> themedColor(dark, 0xFF6940B0, 0xFFBEABE0)
+    EventColor.RED -> themedColor(dark, 0xFFA82222, 0xFFECA0A0)
+    EventColor.TEAL -> themedColor(dark, 0xFF006359, 0xFF00C7B3)
 }
+
+@Composable
+internal fun EventColor.accent(): Color = accent(LocalDarkTheme.current)
 
 @get:StringRes
 internal val EventColor.labelRes: Int
@@ -27,3 +33,15 @@ internal val EventColor.labelRes: Int
         EventColor.RED -> R.string.calendar_color_red
         EventColor.TEAL -> R.string.calendar_color_teal
     }
+
+// Marca de selección sobre la muestra de color: negro o blanco, el que más contraste dé.
+internal fun swatchCheckColor(swatch: Color): Color {
+    val l = swatch.luminance()
+    val onWhite = (WHITE_LUMINANCE + CONTRAST_OFFSET) / (l + CONTRAST_OFFSET)
+    val onBlack = (l + CONTRAST_OFFSET) / (BLACK_LUMINANCE + CONTRAST_OFFSET)
+    return if (onWhite >= onBlack) Color.White else Color.Black
+}
+
+private const val WHITE_LUMINANCE = 1f
+private const val BLACK_LUMINANCE = 0f
+private const val CONTRAST_OFFSET = 0.05f

@@ -16,3 +16,6 @@ fun categoryCardColors(accent: Color): CardColors =
     CardDefaults.cardColors(containerColor = accent.copy(alpha = CATEGORY_TINT_ALPHA))
 
 private const val CATEGORY_TINT_ALPHA = 0.12f
+
+/** Elige entre la variante clara y la oscura de un color de categoría (valores ARGB). */
+internal fun themedColor(dark: Boolean, light: Long, darkValue: Long): Color = Color(if (dark) darkValue else light)

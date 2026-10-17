@@ -7,9 +7,12 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Label
 import androidx.compose.material.icons.rounded.MedicalServices
 import androidx.compose.material.icons.rounded.ShoppingBag
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.designsystem.theme.LocalDarkTheme
+import com.dlunaunizar.bobitos.core.designsystem.theme.themedColor
 import com.dlunaunizar.bobitos.core.model.TaskPriority
 import com.dlunaunizar.bobitos.core.model.TaskType
 
@@ -32,20 +35,25 @@ internal val TaskType.icon: ImageVector
         TaskType.OTROS -> Icons.Rounded.Label
     }
 
-// Color de categoría por tipo de tarea (tonos medios, legibles como acento/tinte suave
-// en claro y oscuro), en la línea de EventColor.accent().
-internal fun TaskType.accent(): Color = when (this) {
-    TaskType.LIMPIEZA -> Color(0xFF00897B)
-    TaskType.MEDICO -> Color(0xFFC62828)
-    TaskType.COMPRAS -> Color(0xFFC05621)
-    TaskType.HOGAR -> Color(0xFF3F51B5)
-    TaskType.OTROS -> Color(0xFF6E6E6E)
+// Color de categoría por tipo de tarea, con variante clara (oscura sobre fondo claro) y oscura
+// (clara sobre fondo oscuro). Cada una pasa 4,5:1 como texto sobre la tarjeta teñida.
+internal fun TaskType.accent(dark: Boolean): Color = when (this) {
+    TaskType.LIMPIEZA -> themedColor(dark, 0xFF006359, 0xFF00C7B3)
+    TaskType.MEDICO -> themedColor(dark, 0xFFA82222, 0xFFECA0A0)
+    TaskType.COMPRAS -> themedColor(dark, 0xFF904019, 0xFFE9A481)
+    TaskType.HOGAR -> themedColor(dark, 0xFF3E50B2, 0xFFAAB2E1)
+    TaskType.OTROS -> themedColor(dark, 0xFF595959, 0xFFB4B4B4)
 }
 
-// Acento discreto de prioridad para el punto de la tarjeta (rojo = alta, ámbar = media, gris = baja).
-// Se superpone al tinte por tipo sin competir con él.
-internal fun TaskPriority.accent(): Color = when (this) {
-    TaskPriority.HIGH -> Color(0xFFD32F2F)
-    TaskPriority.MEDIUM -> Color(0xFFF9A825)
-    TaskPriority.LOW -> Color(0xFF9E9E9E)
+@Composable
+internal fun TaskType.accent(): Color = accent(LocalDarkTheme.current)
+
+// Acento de prioridad para la bandera de la línea de metadatos (rojo = alta, ámbar = media, gris = baja).
+internal fun TaskPriority.accent(dark: Boolean): Color = when (this) {
+    TaskPriority.HIGH -> themedColor(dark, 0xFFA62323, 0xFFEBA0A0)
+    TaskPriority.MEDIUM -> themedColor(dark, 0xFF7C4E03, 0xFFF9A927)
+    TaskPriority.LOW -> themedColor(dark, 0xFF595959, 0xFFB4B4B4)
 }
+
+@Composable
+internal fun TaskPriority.accent(): Color = accent(LocalDarkTheme.current)

@@ -7,9 +7,12 @@ import androidx.compose.material.icons.rounded.Eco
 import androidx.compose.material.icons.rounded.KebabDining
 import androidx.compose.material.icons.rounded.SetMeal
 import androidx.compose.material.icons.rounded.Storefront
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.designsystem.theme.LocalDarkTheme
+import com.dlunaunizar.bobitos.core.designsystem.theme.themedColor
 import com.dlunaunizar.bobitos.core.model.Supermarket
 
 @get:StringRes
@@ -29,20 +32,23 @@ internal val Supermarket.labelRes: Int
     }
 
 // Color de marca por supermercado (identidad visual sin usar logotipos, por marca registrada).
-// Se usa para tintar un icono de tienda genérico; tonos medios legibles en claro y oscuro.
-internal fun Supermarket.brandColor(): Color = when (this) {
-    Supermarket.DIA -> Color(0xFFE02947)
-    Supermarket.EROSKI -> Color(0xFFEC6608)
-    Supermarket.MERCADONA -> Color(0xFF00843D)
-    Supermarket.CARREFOUR -> Color(0xFF004E9E)
-    Supermarket.ALCAMPO -> Color(0xFFE30613)
-    Supermarket.CARNICERIA -> Color(0xFFBE5A55)
-    Supermarket.PESCADERIA -> Color(0xFF2F7DA8)
-    Supermarket.FRUTERIA -> Color(0xFF5E9A2F)
-    Supermarket.PANADERIA -> Color(0xFFB07A2A)
-    Supermarket.OTROS -> Color(0xFF6E6E6E)
-    Supermarket.INDIFERENTE -> Color(0xFF8A8A8A)
+// Se usa para tintar un icono de tienda genérico; con variante clara y oscura que pasan contraste.
+internal fun Supermarket.brandColor(dark: Boolean): Color = when (this) {
+    Supermarket.DIA -> themedColor(dark, 0xFFA91930, 0xFFF19DAB)
+    Supermarket.EROSKI -> themedColor(dark, 0xFF923F05, 0xFFF99D5C)
+    Supermarket.MERCADONA -> themedColor(dark, 0xFF00662F, 0xFF00CC5E)
+    Supermarket.CARREFOUR -> themedColor(dark, 0xFF004D9C, 0xFF73B8FF)
+    Supermarket.ALCAMPO -> themedColor(dark, 0xFFAE050F, 0xFFFC979D)
+    Supermarket.CARNICERIA -> themedColor(dark, 0xFF943D38, 0xFFDCA7A5)
+    Supermarket.PESCADERIA -> themedColor(dark, 0xFF235D7E, 0xFF7FBBDB)
+    Supermarket.FRUTERIA -> themedColor(dark, 0xFF3C621E, 0xFF7DC643)
+    Supermarket.PANADERIA -> themedColor(dark, 0xFF75511C, 0xFFDBAC67)
+    Supermarket.OTROS -> themedColor(dark, 0xFF595959, 0xFFB4B4B4)
+    Supermarket.INDIFERENTE -> themedColor(dark, 0xFF595959, 0xFFB4B4B4)
 }
+
+@Composable
+internal fun Supermarket.brandColor(): Color = brandColor(LocalDarkTheme.current)
 
 // Las tiendas de barrio tienen icono propio; supermercados, Otros e Indiferente comparten el de tienda.
 internal fun Supermarket.icon(): ImageVector = when (this) {

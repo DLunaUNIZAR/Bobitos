@@ -1,6 +1,5 @@
 package com.dlunaunizar.bobitos.core.designsystem.component
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -28,9 +27,8 @@ fun InfoChip(
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.small,
-        color = Color.Transparent,
+        color = contentColor.copy(alpha = TONAL_ALPHA),
         contentColor = contentColor,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -42,3 +40,5 @@ fun InfoChip(
         }
     }
 }
+
+private const val TONAL_ALPHA = 0.12f

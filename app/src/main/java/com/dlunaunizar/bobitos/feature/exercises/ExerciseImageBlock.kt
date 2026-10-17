@@ -26,6 +26,7 @@ import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberSafeLinks
+import com.dlunaunizar.bobitos.core.designsystem.theme.LocalDarkTheme
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.ExerciseImage
 import com.dlunaunizar.bobitos.data.repository.LoadedImage
@@ -76,7 +77,7 @@ internal fun ExerciseImageBlock(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color.White),
+                .background(exerciseImageBackground(LocalDarkTheme.current)),
         ) {
             Image(
                 bitmap = shown,
@@ -99,3 +100,7 @@ internal fun ExerciseImageBlock(
         )
     }
 }
+
+// Fondo de la imagen: blanco en claro; en oscuro, un gris claro atenuado (no blanco puro, que
+// deslumbra) que sigue sirviendo de fondo a los dibujos con transparencia.
+internal fun exerciseImageBackground(dark: Boolean): Color = if (dark) Color(0xFFD8D8D2) else Color.White
