@@ -13,6 +13,9 @@ interface IngredientRepository {
     /** Si la cuenta activa puede escribir en el catálogo común. */
     fun isCurrentUserCatalogAdmin(): Boolean
 
+    /** Uid de la cuenta activa, o null sin sesión. */
+    fun currentUserId(): String?
+
     suspend fun createIngredient(name: String, category: String?, defaultUnit: String?)
 
     suspend fun updateIngredient(id: String, name: String, category: String?, defaultUnit: String?)

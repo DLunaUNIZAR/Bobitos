@@ -111,9 +111,10 @@ class ExercisesViewModel @Inject constructor(
     }
 
     // onDeleted se llama solo si el borrado termina bien: así el «Deshacer» no se ofrece para un borrado fallido.
-    // Sin aviso propio: lo da la pantalla (el snackbar de «Deshacer» o el aviso de una ficha del catálogo común).
-    fun deleteExercise(id: String, onDeleted: () -> Unit = {}) {
-        runAction(null, onSuccess = onDeleted) { repository.deleteExercise(id) }
+    // Con [undoable] el aviso lo da el snackbar de «Deshacer» de la pantalla; si no (ficha del catálogo común), el suyo.
+    fun deleteExercise(id: String, undoable: Boolean = true, onDeleted: () -> Unit = {}) {
+        val notice = if (undoable) null else ExerciseUiMessage.Deleted
+        runAction(notice, onSuccess = onDeleted) { repository.deleteExercise(id) }
     }
 
     // «Deshacer» el borrado de un ejercicio propio (con el mismo id; el dueño pasa a ser quien deshace).

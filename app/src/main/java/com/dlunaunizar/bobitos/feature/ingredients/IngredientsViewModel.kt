@@ -42,18 +42,26 @@ class IngredientsViewModel @Inject constructor(
     val uiState: StateFlow<IngredientsUiState> = mutableUiState.asStateFlow()
 
     // Ingrediente personal recién borrado desde su detalle: la pantalla ofrece «Deshacer» y lo consume.
-    val deleted: StateFlow<DeletedIngredient?> = deletedRelay.deleted
+    // Solo se ofrece si lo borró la cuenta actual: el relevo vive lo que el proceso y la sesión puede haber cambiado.
+    private val mutableDeleted = MutableStateFlow<DeletedIngredient?>(null)
+    val deleted: StateFlow<DeletedIngredient?> = mutableDeleted.asStateFlow()
 
     fun consumeDeleted() = deletedRelay.consume()
 
     // «Deshacer» el borrado: devuelve el ingrediente con sus marcas y tiendas (si no puede, sale el error).
-    fun restoreIngredient(deleted: DeletedIngredient) =
+    fun restoreIngredient(deleted: DeletedIngredient) {
+        if (!deleted.isOwnedByCurrentUser()) return
         runAction(null, force = true) { personalRepository.restore(deleted) }
+    }
+
+    private fun DeletedIngredient.isOwnedByCurrentUser(): Boolean =
+        ownerUid != null && ownerUid == repository.currentUserId()
 
     private var catalogJob: Job? = null
     private var personalJob: Job? = null
     private var brandsJob: Job? = null
     private var prefsJob: Job? = null
+    private var relayJob: Job? = null
     private var observing = false
 
     // Comunes (null mientras cargan) y personales; la lista de la pantalla es su mezcla.
@@ -65,6 +73,15 @@ class IngredientsViewModel @Inject constructor(
         observing = true
         mutableUiState.update { it.copy(isAdmin = repository.isCurrentUserCatalogAdmin()) }
         startCatalog()
+        relayJob = viewModelScope.launch {
+            deletedRelay.deleted.collect { snapshot ->
+                if (snapshot == null || snapshot.isOwnedByCurrentUser()) {
+                    mutableDeleted.value = snapshot
+                } else {
+                    deletedRelay.consume()
+                }
+            }
+        }
         personalJob = viewModelScope.launch {
             personalRepository.ingredients()
                 .catch { personalIngredients = emptyList() }
@@ -119,11 +136,12 @@ class IngredientsViewModel @Inject constructor(
     }
 
     fun stopObserving() {
-        listOf(catalogJob, personalJob, brandsJob, prefsJob).forEach { it?.cancel() }
+        listOf(catalogJob, personalJob, brandsJob, prefsJob, relayJob).forEach { it?.cancel() }
         catalogJob = null
         personalJob = null
         brandsJob = null
         prefsJob = null
+        relayJob = null
         observing = false
     }
 

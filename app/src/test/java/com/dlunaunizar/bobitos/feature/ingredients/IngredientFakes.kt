@@ -36,6 +36,7 @@ private suspend fun hangUntilCancelled() {
 internal class FakeIngredientRepository : IngredientRepository {
     val catalogState = MutableStateFlow<List<CatalogIngredient>>(emptyList())
     var admin = false
+    var uid: String? = "me"
     var createCount = 0
     var lastCreatedName: String? = null
     var createGate: CompletableDeferred<Unit>? = null
@@ -50,6 +51,7 @@ internal class FakeIngredientRepository : IngredientRepository {
         ?: if (failCatalog) flow { error("offline") } else catalogState
 
     override fun isCurrentUserCatalogAdmin(): Boolean = admin
+    override fun currentUserId(): String? = uid
     override suspend fun createIngredient(name: String, category: String?, defaultUnit: String?) {
         if (hang) hangUntilCancelled()
         createGate?.await()

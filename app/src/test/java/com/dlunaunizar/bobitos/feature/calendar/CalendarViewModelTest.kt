@@ -47,6 +47,18 @@ class CalendarViewModelTest {
     }
 
     @Test
+    fun `undo has no saved notice`() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = RecordingCalendarRepository()
+        val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
+        viewModel.observe("space-1")
+
+        viewModel.restore("event-1", input)
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.notice)
+    }
+
+    @Test
     fun `undo runs even while another write is in flight`() = runTest(mainDispatcherRule.testDispatcher) {
         val repository = RecordingCalendarRepository()
         val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())

@@ -10,6 +10,8 @@ data class DeletedIngredient(
     val ingredient: CatalogIngredient,
     val brands: List<IngredientBrand>,
     val stores: List<Supermarket>,
+    // Cuenta que lo borró: solo ella puede deshacerlo (el relevo vive lo que el proceso, aunque cambie la sesión).
+    val ownerUid: String?,
 )
 
 /** Ingredientes personales del usuario (`users/{uid}/ingredients`), visibles solo para él. */

@@ -113,9 +113,10 @@ class RoutinesViewModel @Inject constructor(
     }
 
     // onDeleted se llama solo si el borrado termina bien: así el «Deshacer» no se ofrece para un borrado
-    // fallido. Sin aviso propio: lo da la pantalla (el snackbar de «Deshacer» o el aviso de una común).
-    fun deleteRoutine(routineId: String, onDeleted: () -> Unit = {}) {
-        runAction(null, onSuccess = onDeleted) { repository.deleteRoutine(routineId) }
+    // fallido. Con [undoable] el aviso lo da el snackbar de «Deshacer» de la pantalla; si no (una común), el suyo.
+    fun deleteRoutine(routineId: String, undoable: Boolean = true, onDeleted: () -> Unit = {}) {
+        val notice = if (undoable) null else RoutineUiMessage.Deleted
+        runAction(notice, onSuccess = onDeleted) { repository.deleteRoutine(routineId) }
     }
 
     // «Deshacer» el borrado de una rutina personal (con el mismo id; el dueño pasa a ser quien deshace).

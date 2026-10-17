@@ -153,8 +153,8 @@ class CalendarViewModel @Inject constructor(
         }
     }
 
-    // Con force: un «Deshacer» pulsado con otra escritura en curso no se descarta en silencio.
-    fun restore(eventId: String, input: EventInput) = action(force = true) {
+    // Con force: un «Deshacer» pulsado con otra escritura en curso no se descarta en silencio. Sin aviso propio.
+    fun restore(eventId: String, input: EventInput) = action(notice = null, force = true) {
         repository.createEvent(spaceId ?: return@action null, input, eventId)
     }
 

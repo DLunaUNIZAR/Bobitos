@@ -163,7 +163,7 @@ class IngredientDetailViewModel @Inject constructor(
     fun deleteIngredient() {
         val current = mutableUiState.value
         val snapshot = current.ingredient?.takeIf(CatalogIngredient::personal)
-            ?.let { DeletedIngredient(it, current.brands, current.stores) }
+            ?.let { DeletedIngredient(it, current.brands, current.stores, repository.currentUserId()) }
         runAction(
             if (snapshot == null) IngredientUiMessage.Deleted else null,
             finishOnSuccess = true,

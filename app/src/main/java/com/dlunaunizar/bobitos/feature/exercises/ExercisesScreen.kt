@@ -77,9 +77,8 @@ fun ExercisesScreen(
     var detailOpen by rememberSaveable { mutableStateOf(false) }
     var detailExerciseId by rememberSaveable { mutableStateOf<String?>(null) }
     var deleteTarget by remember { mutableStateOf<CatalogExercise?>(null) }
-    // Un ejercicio propio recién borrado, para ofrecer «Deshacer»; una ficha común borrada por el admin solo avisa.
+    // Un ejercicio propio recién borrado, para ofrecer «Deshacer»; una ficha común borrada por el admin avisa desde el ViewModel.
     var undoable by remember { mutableStateOf<CatalogExercise?>(null) }
-    var commonDeleted by remember { mutableStateOf(false) }
     val requestDelete: (CatalogExercise) -> Unit = { exercise ->
         if (exercise.canUndoDelete(state.currentUid)) {
             viewModel.deleteExercise(exercise.id) { undoable = exercise }
@@ -120,12 +119,6 @@ fun ExercisesScreen(
             val exercise = undoable ?: return@LaunchedEffect
             undoable = null
             scope.launchUndo(snackbar, deletedMessage, undoLabel) { viewModel.restoreExercise(exercise) }
-        }
-        LaunchedEffect(commonDeleted) {
-            if (commonDeleted) {
-                commonDeleted = false
-                snackbar?.showSnackbar(deletedMessage)
-            }
         }
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = Spacing.lg)) {
             FeedbackSnackbarEffect(
@@ -224,7 +217,7 @@ fun ExercisesScreen(
             destructive = true,
             confirmEnabled = !state.isSaving,
             onConfirm = {
-                viewModel.deleteExercise(exercise.id) { commonDeleted = true }
+                viewModel.deleteExercise(exercise.id, undoable = false)
                 deleteTarget = null
             },
             onDismiss = { deleteTarget = null },
@@ -379,4 +372,5 @@ private val ExerciseUiMessage.stringResourceId: Int
         ExerciseUiMessage.SaveTimeout -> R.string.write_timeout
         ExerciseUiMessage.CatalogUnavailable -> R.string.exercises_catalog_unavailable
         ExerciseUiMessage.Saved -> R.string.exercises_notice_saved
+        ExerciseUiMessage.Deleted -> R.string.exercises_notice_deleted
     }

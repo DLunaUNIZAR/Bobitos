@@ -204,6 +204,22 @@ class ExercisesViewModelTest {
     }
 
     @Test
+    fun `deleting a common one that cannot be undone reports it`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.deleteExercise("press-banca", undoable = false)
+        advanceUntilIdle()
+
+        assertEquals(ExerciseUiMessage.Deleted, viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun `deleting an undoable one has no notice of its own`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.deleteExercise("press-banca", undoable = true)
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.notice)
+    }
+
+    @Test
     fun `canUndoDelete only for the own exercises without source or image`() {
         val own = exercise("press-banca", "Press banca", ExerciseType.PESO_LIBRE)
         assertTrue(own.canUndoDelete("me"))

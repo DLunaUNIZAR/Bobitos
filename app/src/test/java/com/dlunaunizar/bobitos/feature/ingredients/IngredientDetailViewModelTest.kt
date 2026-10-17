@@ -383,7 +383,7 @@ class IngredientDetailViewModelTest {
         advanceUntilIdle()
 
         assertEquals(
-            DeletedIngredient(mine, listOf(brand), listOf(Supermarket.DIA, Supermarket.EROSKI)),
+            DeletedIngredient(mine, listOf(brand), listOf(Supermarket.DIA, Supermarket.EROSKI), "me"),
             relay.deleted.value,
         )
     }

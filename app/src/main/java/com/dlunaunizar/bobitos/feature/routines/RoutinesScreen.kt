@@ -86,8 +86,6 @@ fun RoutinesScreen(
     var editorOpen by rememberSaveable { mutableStateOf(false) }
     var editorRoutineId by rememberSaveable { mutableStateOf<String?>(null) }
     var deleteTarget by remember { mutableStateOf<Routine?>(null) }
-    // Una común borrada por el admin no tiene «Deshacer»: avisa con un snackbar simple.
-    var commonDeleted by remember { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
     LaunchedEffect(query) { viewModel.setQuery(query) }
     val closeEditor = {
@@ -118,12 +116,6 @@ fun RoutinesScreen(
         val scope = rememberCoroutineScope()
         val deletedMessage = stringResource(R.string.routines_notice_deleted)
         val undoLabel = stringResource(R.string.undo)
-        LaunchedEffect(commonDeleted) {
-            if (commonDeleted) {
-                commonDeleted = false
-                snackbar?.showSnackbar(deletedMessage)
-            }
-        }
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = Spacing.lg)) {
             FeedbackSnackbarEffect(
                 error = state.error,
@@ -195,7 +187,7 @@ fun RoutinesScreen(
             destructive = true,
             confirmEnabled = canWrite && !state.isSaving,
             onConfirm = {
-                viewModel.deleteRoutine(routine.id) { commonDeleted = true }
+                viewModel.deleteRoutine(routine.id, undoable = false)
                 deleteTarget = null
             },
             onDismiss = { deleteTarget = null },
@@ -491,4 +483,5 @@ private val RoutineUiMessage.stringResourceId: Int
         RoutineUiMessage.UnexpectedError -> R.string.space_error_unexpected
         RoutineUiMessage.SaveTimeout -> R.string.write_timeout
         RoutineUiMessage.Saved -> R.string.routines_notice_saved
+        RoutineUiMessage.Deleted -> R.string.routines_notice_deleted
     }

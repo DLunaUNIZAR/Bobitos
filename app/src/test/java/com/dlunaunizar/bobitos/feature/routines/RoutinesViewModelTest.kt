@@ -207,6 +207,22 @@ class RoutinesViewModelTest {
     }
 
     @Test
+    fun `deleting a common one that cannot be undone reports it`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.deleteRoutine("r1", undoable = false)
+        advanceUntilIdle()
+
+        assertEquals(RoutineUiMessage.Deleted, viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun `deleting an undoable one has no notice of its own`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.deleteRoutine("r1", undoable = true)
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.notice)
+    }
+
+    @Test
     fun `undo is offered only once the delete has finished`() = runTest(mainDispatcherRule.testDispatcher) {
         var offered = 0
         repository.failure = RoutineFailure.Network

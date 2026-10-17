@@ -72,6 +72,7 @@ class IngredientsViewModelTest {
             ingredient = CatalogIngredient("canela", "Canela", personal = true),
             brands = listOf(IngredientBrand(id = "b1", ingredientId = "canela", name = "Hida")),
             stores = listOf(Supermarket.DIA, Supermarket.MERCADONA),
+            ownerUid = "me",
         )
 
         viewModel.restoreIngredient(deleted)
@@ -86,7 +87,7 @@ class IngredientsViewModelTest {
         personalRepository.restoreError = IngredientRepositoryException(IngredientFailure.AlreadyExists)
 
         val deleted =
-            DeletedIngredient(CatalogIngredient("canela", "Canela", personal = true), emptyList(), emptyList())
+            DeletedIngredient(CatalogIngredient("canela", "Canela", personal = true), emptyList(), emptyList(), "me")
         viewModel.restoreIngredient(deleted)
         advanceUntilIdle()
 
@@ -96,9 +97,10 @@ class IngredientsViewModelTest {
     @Test
     fun `a deleted ingredient posted to the relay is exposed and consumed once`() =
         runTest(mainDispatcherRule.testDispatcher) {
-            val deleted =
-                DeletedIngredient(CatalogIngredient("canela", "Canela", personal = true), emptyList(), emptyList())
+            val canela = CatalogIngredient("canela", "Canela", personal = true)
+            val deleted = DeletedIngredient(canela, emptyList(), emptyList(), "me")
 
+            viewModel.observe()
             relay.post(deleted)
             assertEquals(deleted, viewModel.deleted.value)
 
@@ -106,6 +108,23 @@ class IngredientsViewModelTest {
             assertNull(viewModel.deleted.value)
             assertNull(relay.deleted.value)
         }
+
+    @Test
+    fun `a deleted snapshot from another account is discarded`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.uid = "bea"
+        val canela = CatalogIngredient("canela", "Canela", personal = true)
+        val deleted = DeletedIngredient(canela, emptyList(), emptyList(), "ana")
+
+        viewModel.observe()
+        relay.post(deleted)
+        advanceUntilIdle()
+        assertNull(viewModel.deleted.value)
+        assertNull(relay.deleted.value)
+
+        viewModel.restoreIngredient(deleted)
+        advanceUntilIdle()
+        assertNull(personalRepository.restored)
+    }
 
     @Test
     fun `a catalog error shows CatalogUnavailable and retry reloads it`() = runTest(mainDispatcherRule.testDispatcher) {
