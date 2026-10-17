@@ -143,6 +143,16 @@ fun BobitosDestination.moduleColor(): Color? = when (this) {
     else -> null
 }
 
+/** Módulo de color de la pestaña o destino; null en Hoy, Más y el resto de pantallas sin módulo. */
+internal fun BobitosDestination.appModule(): AppModule? = when (this) {
+    BobitosDestination.Shopping -> AppModule.SHOPPING
+    BobitosDestination.Tasks -> AppModule.TASKS
+    BobitosDestination.Calendar -> AppModule.CALENDAR
+    BobitosDestination.Meals -> AppModule.MEALS
+    BobitosDestination.Sport -> AppModule.SPORT
+    else -> null
+}
+
 internal const val CALENDAR_EVENT_ROUTE = "calendar-event/{eventId}/{date}"
 internal const val INGREDIENT_DETAIL_ROUTE = "ingredient-detail/{ingredientId}?brandId={brandId}"
 

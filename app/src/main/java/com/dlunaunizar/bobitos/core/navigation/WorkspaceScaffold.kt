@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.ArrowDropDown
@@ -27,15 +28,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.SyncStatusBanner
+import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
+import com.dlunaunizar.bobitos.core.designsystem.theme.LocalDarkTheme
+import com.dlunaunizar.bobitos.core.designsystem.theme.ModulePalette
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
+import com.dlunaunizar.bobitos.core.designsystem.theme.onSurfaceDark
+import com.dlunaunizar.bobitos.core.designsystem.theme.onSurfaceLight
 import com.dlunaunizar.bobitos.core.model.SyncStatus
 
 /**
@@ -84,30 +93,7 @@ internal fun WorkspaceScaffold(
             }
         },
         bottomBar = {
-            NavigationBar {
-                BobitosDestination.workspaceTabs.forEach { tab ->
-                    val accent = tab.moduleColor()
-                    NavigationBarItem(
-                        selected = tab == selectedTab,
-                        onClick = { onTabSelected(tab) },
-                        icon = { Icon(tab.icon, contentDescription = null) },
-                        label = {
-                            Text(
-                                text = stringResource(tab.titleRes),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        },
-                        colors = accent?.let {
-                            NavigationBarItemDefaults.colors(
-                                selectedIconColor = it,
-                                selectedTextColor = it,
-                                indicatorColor = it.copy(alpha = 0.2f),
-                            )
-                        } ?: NavigationBarItemDefaults.colors(),
-                    )
-                }
-            }
+            WorkspaceNavigationBar(selectedTab = selectedTab, onTabSelected = onTabSelected)
         },
     ) { innerPadding ->
         Box(
@@ -126,6 +112,56 @@ internal fun WorkspaceScaffold(
             onManageSpaces = onManageSpaces,
             onDismiss = { switcher.onPickerOpenChange(false) },
         )
+    }
+}
+
+/** Colores de una pestaña con módulo: indicador opaco, icono y etiqueta seleccionados. */
+internal data class TabColors(val indicator: Color, val selectedIcon: Color, val selectedLabel: Color)
+
+internal fun tabColors(module: AppModule, dark: Boolean): TabColors {
+    val colors = ModulePalette.colors(module, dark)
+    return TabColors(
+        indicator = colors.container,
+        selectedIcon = colors.onContainer,
+        selectedLabel = if (dark) onSurfaceDark else onSurfaceLight,
+    )
+}
+
+private val TabLabelMinSize = 10.sp
+
+/** Barra inferior de un espacio: las etiquetas encogen un poco antes de cortarse. */
+@Composable
+internal fun WorkspaceNavigationBar(selectedTab: BobitosDestination, onTabSelected: (BobitosDestination) -> Unit) {
+    val dark = LocalDarkTheme.current
+    NavigationBar {
+        BobitosDestination.workspaceTabs.forEach { tab ->
+            val selected = tab == selectedTab
+            val module = tab.appModule()
+            NavigationBarItem(
+                selected = selected,
+                onClick = { onTabSelected(tab) },
+                icon = { Icon(tab.icon, contentDescription = null) },
+                label = {
+                    Text(
+                        text = stringResource(tab.titleRes),
+                        fontWeight = if (selected && module != null) FontWeight.SemiBold else null,
+                        maxLines = 1,
+                        autoSize = TextAutoSize.StepBased(
+                            minFontSize = TabLabelMinSize,
+                            maxFontSize = MaterialTheme.typography.labelMedium.fontSize,
+                        ),
+                    )
+                },
+                colors = module?.let {
+                    val c = tabColors(it, dark)
+                    NavigationBarItemDefaults.colors(
+                        selectedIconColor = c.selectedIcon,
+                        selectedTextColor = c.selectedLabel,
+                        indicatorColor = c.indicator,
+                    )
+                } ?: NavigationBarItemDefaults.colors(),
+            )
+        }
     }
 }
 
