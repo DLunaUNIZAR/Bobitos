@@ -553,7 +553,6 @@
     <string name="recipes_error_not_found">No se encontró la receta.</string>
     <string name="recipes_notice_saved">Receta guardada</string>
     <string name="recipes_notice_deleted">Receta eliminada</string>
-    <string name="recipes_notice_forked">Guardada en «Mis recetas»</string>
     <string name="recipes_add_to_shopping">Añadir a la compra</string>
     <string name="recipes_notice_added_to_shopping">Añadido a la compra</string>
     <string name="recipes_notice_nothing_to_add">No hace falta añadir nada</string>
@@ -671,7 +670,6 @@
     <string name="routines_notice_saved">Rutina guardada</string>
     <string name="routines_notice_deleted">Rutina eliminada</string>
     <string name="routines_fork">Guardar como mía</string>
-    <string name="routines_notice_forked">Guardada en «Mis rutinas»</string>
     <string name="exercises_title">Ejercicios</string>
     <string name="exercises_open">Ejercicios</string>
     <string name="exercises_add">Nuevo ejercicio</string>

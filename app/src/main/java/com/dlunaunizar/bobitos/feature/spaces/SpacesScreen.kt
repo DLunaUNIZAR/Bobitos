@@ -50,12 +50,10 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
-import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
-import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
@@ -176,13 +174,13 @@ private fun SpacesContent(
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            val feedback = feedbackFor(
-                managementState.error,
-                managementState.notice,
-                managementState.editorSave,
+            FeedbackSnackbarEffect(
+                error = managementState.error,
+                notice = managementState.notice,
+                editorSave = managementState.editorSave,
                 editorOpen = editorOpen,
-            )?.let { Feedback(stringResource(it.message.stringResourceId), it.isError) }
-            FeedbackSnackbarEffect(feedback, onClearFeedback)
+                onShown = onClearFeedback,
+            ) { stringResource(it.stringResourceId) }
             OutlinedButton(
                 onClick = {
                     invitationCode = ""

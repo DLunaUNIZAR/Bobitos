@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 
 /**
  * `SnackbarHostState` del scaffold activo, para que cualquier módulo muestre avisos con acción sin
- * duplicar el host. Lo provee `WorkspaceScaffold` (y el Recetario en su propio scaffold).
+ * duplicar el host. Lo publican `ScreenScaffold` y `ModuleScaffold` (y `WorkspaceScaffold` fuera de los módulos).
  */
 val LocalSnackbarHostState = compositionLocalOf<SnackbarHostState?> { null }
 

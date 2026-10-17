@@ -24,8 +24,9 @@ import javax.inject.Inject
 /**
  * Carga los contadores «de vistazo» del hub (agregación `count()`, una lectura por módulo) y el
  * resumen personal + reparto ([SpaceHomeDigest]) agregado en cliente a partir de los flujos de cada módulo.
- * Se recarga cada vez que «Hoy» se muestra (para no enseñar contadores de antes de editar en otro módulo)
- * y degrada a null si falla (sin conexión), dejando el hub sin adornos.
+ * Se recarga cada vez que «Hoy» se muestra (para no enseñar contadores de antes de editar en otro módulo).
+ * Si falla una fuente del resumen se emite un resumen vacío (saludo sin adornos); si falla el conteo se
+ * conservan los últimos contadores del mismo espacio; al cambiar de espacio se limpian ambos.
  */
 @HiltViewModel
 class SpaceHomeViewModel @Inject constructor(

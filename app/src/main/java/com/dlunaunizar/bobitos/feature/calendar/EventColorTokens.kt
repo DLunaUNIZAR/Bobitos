@@ -34,14 +34,9 @@ internal val EventColor.labelRes: Int
         EventColor.TEAL -> R.string.calendar_color_teal
     }
 
-// Marca de selección sobre la muestra de color: negro o blanco, el que más contraste dé.
-internal fun swatchCheckColor(swatch: Color): Color {
-    val l = swatch.luminance()
-    val onWhite = (WHITE_LUMINANCE + CONTRAST_OFFSET) / (l + CONTRAST_OFFSET)
-    val onBlack = (l + CONTRAST_OFFSET) / (BLACK_LUMINANCE + CONTRAST_OFFSET)
-    return if (onWhite >= onBlack) Color.White else Color.Black
-}
+// Marca de selección sobre la muestra de color: negro o blanco, el que más contraste dé
+// (el punto de cruce de ambos contrastes es una luminancia de ~0,179).
+internal fun swatchCheckColor(swatch: Color): Color =
+    if (swatch.luminance() > CROSSOVER_LUMINANCE) Color.Black else Color.White
 
-private const val WHITE_LUMINANCE = 1f
-private const val BLACK_LUMINANCE = 0f
-private const val CONTRAST_OFFSET = 0.05f
+private const val CROSSOVER_LUMINANCE = 0.179f

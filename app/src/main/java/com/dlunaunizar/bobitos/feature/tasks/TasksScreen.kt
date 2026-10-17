@@ -94,7 +94,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
-import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
@@ -104,7 +103,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
-import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
@@ -173,9 +171,13 @@ fun TasksScreen(
     ) { padding ->
         val snackbar = LocalSnackbarHostState.current
         val scope = rememberCoroutineScope()
-        val feedback = feedbackFor(state.error, state.notice, state.editorSave, editorVisible)
-            ?.let { Feedback(stringResource(it.message.stringRes()), it.isError) }
-        FeedbackSnackbarEffect(feedback, viewModel::clearFeedback)
+        FeedbackSnackbarEffect(
+            error = state.error,
+            notice = state.notice,
+            editorSave = state.editorSave,
+            editorOpen = editorVisible,
+            onShown = viewModel::clearFeedback,
+        ) { stringResource(it.stringRes()) }
         CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
         val deletedMessage = stringResource(R.string.tasks_undo_deleted)
         val undoLabel = stringResource(R.string.undo)

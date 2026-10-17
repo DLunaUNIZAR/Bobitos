@@ -41,12 +41,10 @@ import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
-import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.QrCodeImage
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
-import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SpaceMember
@@ -114,9 +112,13 @@ fun SpaceSettingsScreen(
                 ),
                 style = MaterialTheme.typography.labelLarge,
             )
-            val feedback = feedbackFor(state.error, state.notice, state.editorSave, showRenameDialog)
-                ?.let { Feedback(stringResource(it.message.stringResourceId), it.isError) }
-            FeedbackSnackbarEffect(feedback, onClearFeedback)
+            FeedbackSnackbarEffect(
+                error = state.error,
+                notice = state.notice,
+                editorSave = state.editorSave,
+                editorOpen = showRenameDialog,
+                onShown = onClearFeedback,
+            ) { stringResource(it.stringResourceId) }
 
             if (space.role == SpaceRole.OWNER) {
                 Button(

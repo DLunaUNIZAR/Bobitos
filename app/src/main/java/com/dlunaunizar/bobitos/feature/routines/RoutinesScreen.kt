@@ -54,12 +54,10 @@ import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
-import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
-import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Routine
@@ -113,9 +111,13 @@ fun RoutinesScreen(
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = Spacing.lg)) {
-            val feedback = feedbackFor(state.error, state.notice, state.editorSave, editorOpen)
-                ?.let { Feedback(stringResource(it.message.stringResourceId), it.isError) }
-            FeedbackSnackbarEffect(feedback, viewModel::clearFeedback)
+            FeedbackSnackbarEffect(
+                error = state.error,
+                notice = state.notice,
+                editorSave = state.editorSave,
+                editorOpen = editorOpen,
+                onShown = viewModel::clearFeedback,
+            ) { stringResource(it.stringResourceId) }
             CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
             OutlinedTextField(
                 value = query,
@@ -465,5 +467,4 @@ private val RoutineUiMessage.stringResourceId: Int
         RoutineUiMessage.SaveTimeout -> R.string.write_timeout
         RoutineUiMessage.Saved -> R.string.routines_notice_saved
         RoutineUiMessage.Deleted -> R.string.routines_notice_deleted
-        RoutineUiMessage.Forked -> R.string.routines_notice_forked
     }

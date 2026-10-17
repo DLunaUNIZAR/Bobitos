@@ -51,7 +51,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
-import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.InfoChip
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
@@ -60,7 +59,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SwitchRow
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
-import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
@@ -446,9 +444,9 @@ internal fun IngredientsMessageEffect(
     existingName: String? = null,
     barcodeConflict: BarcodeConflict? = null,
 ) {
-    val feedback = feedbackFor(error, notice, editorSave, editorOpen)
-        ?.let { Feedback(ingredientMessageText(it.message, existingName, barcodeConflict), it.isError) }
-    FeedbackSnackbarEffect(feedback, onShown)
+    FeedbackSnackbarEffect(error, notice, editorSave, editorOpen, onShown) {
+        ingredientMessageText(it, existingName, barcodeConflict)
+    }
 }
 
 /** El error del guardado del editor abierto (solo con FAILED); los demás se ven en el snackbar. */

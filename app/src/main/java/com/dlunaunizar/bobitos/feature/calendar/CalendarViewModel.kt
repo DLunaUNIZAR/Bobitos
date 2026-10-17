@@ -31,7 +31,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
 
-enum class CalendarNotice { SAVED, DELETED }
+enum class CalendarNotice { SAVED }
 
 data class CalendarUiState(
     val focusedDate: LocalDate = LocalDate.now(),

@@ -72,7 +72,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
-import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
@@ -81,7 +80,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
-import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
@@ -179,10 +177,13 @@ fun ShoppingScreen(
     ) { padding ->
         val snackbar = LocalSnackbarHostState.current
         val scope = rememberCoroutineScope()
-        val feedback = feedbackFor(state.error, state.notice, state.editorSave, editorVisible)?.let {
-            Feedback(shoppingMessageText(it.message, state.lastClearedCount), it.isError)
-        }
-        FeedbackSnackbarEffect(feedback, viewModel::clearFeedback)
+        FeedbackSnackbarEffect(
+            error = state.error,
+            notice = state.notice,
+            editorSave = state.editorSave,
+            editorOpen = editorVisible,
+            onShown = viewModel::clearFeedback,
+        ) { shoppingMessageText(it, state.lastClearedCount) }
         CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
         val deletedMessage = stringResource(R.string.shopping_undo_deleted)
         val undoLabel = stringResource(R.string.undo)
@@ -644,7 +645,7 @@ private fun ShoppingItemEditor(
     val nameErrorMessage = validation?.takeIf {
         it == ShoppingUiMessage.NameRequired || it == ShoppingUiMessage.NameTooLong
     }
-    // Hasta el primer intento de guardar, solo los errores de longitud que ya se ven al escribir.
+    // Ningún error se ve hasta el primer intento de guardar; el del nombre es solo el de vacío o demasiado largo.
     val nameShownError = form.visible(nameErrorMessage)
     val shownValidation = form.visible(validation)
 

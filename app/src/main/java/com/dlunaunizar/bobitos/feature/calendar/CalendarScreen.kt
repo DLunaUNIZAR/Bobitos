@@ -294,7 +294,6 @@ fun CalendarScreen(
 
 private fun CalendarNotice.messageRes(): Int = when (this) {
     CalendarNotice.SAVED -> R.string.calendar_notice_saved
-    CalendarNotice.DELETED -> R.string.calendar_undo_deleted
 }
 
 @Composable

@@ -569,7 +569,6 @@ internal val RecipeUiMessage.stringResourceId: Int
         RecipeUiMessage.SaveTimeout -> R.string.write_timeout
         RecipeUiMessage.RecipeSaved -> R.string.recipes_notice_saved
         RecipeUiMessage.RecipeDeleted -> R.string.recipes_notice_deleted
-        RecipeUiMessage.RecipeForked -> R.string.recipes_notice_forked
         RecipeUiMessage.ImportInvalidUrl -> R.string.recipes_import_error_invalid_url
         RecipeUiMessage.ImportNetwork -> R.string.recipes_import_error_network
         RecipeUiMessage.ImportNotHtml -> R.string.recipes_import_error_not_html
