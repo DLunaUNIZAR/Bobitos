@@ -1,7 +1,8 @@
 package com.dlunaunizar.bobitos.feature.common
 
-import androidx.annotation.StringRes
+import androidx.annotation.AnyRes
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.model.Recipe
@@ -26,8 +27,8 @@ private fun pantryNames(recipe: Recipe): List<Pair<String, String>> = recipe.ing
     .filter { it.second.isNotEmpty() }
     .distinctBy { it.second }
 
-/** La línea de una receta en «Con lo que hay»: su texto y sus argumentos. */
-data class PantryLine(@StringRes val res: Int, val args: List<Any> = emptyList())
+/** La línea de una receta en «Con lo que hay»: su texto, sus argumentos y, si es un plural, su cantidad. */
+data class PantryLine(@AnyRes val res: Int, val args: List<Any> = emptyList(), val quantity: Int? = null)
 
 /** Una receta de la lista y, con «Con lo que hay», su línea. */
 data class RecipeRow(val recipe: Recipe, val pantryLine: PantryLine?)
@@ -61,7 +62,11 @@ internal fun pantryLine(missing: List<String>): PantryLine {
             val res = if (e) R.string.recipes_pantry_missing_three_e else R.string.recipes_pantry_missing_three
             PantryLine(res, names)
         }
-        else -> PantryLine(R.string.recipes_pantry_missing_more, listOf(names.size, names[0], names[1], names.size - 2))
+        else -> PantryLine(
+            R.plurals.recipes_pantry_missing_more,
+            listOf(names.size, names[0], names[1], names.size - 2),
+            names.size,
+        )
     }
 }
 
@@ -87,4 +92,6 @@ private fun lowerInitial(name: String): String {
 // El spread copia un array de 0-4 argumentos: no importa.
 @Suppress("SpreadOperator")
 @Composable
-internal fun pantryLineText(line: PantryLine): String = stringResource(line.res, *line.args.toTypedArray())
+internal fun pantryLineText(line: PantryLine): String = line.quantity?.let {
+    pluralStringResource(line.res, it, *line.args.toTypedArray())
+} ?: stringResource(line.res, *line.args.toTypedArray())

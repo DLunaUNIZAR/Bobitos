@@ -34,6 +34,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.BobitosDates
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
@@ -53,8 +54,6 @@ import com.dlunaunizar.bobitos.core.model.SpaceRole
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.core.model.SyncStatus
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 
 @Composable
 fun SpaceSettingsScreen(
@@ -335,10 +334,6 @@ private fun InvitationCard(
     onShare: () -> Unit,
 ) {
     val expired = invitation.isExpired()
-    val formatter = remember {
-        DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
-            .withZone(ZoneId.systemDefault())
-    }
     val clipboard = LocalClipboardManager.current
     var showQr by remember { mutableStateOf(false) }
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -370,7 +365,7 @@ private fun InvitationCard(
             Text(
                 text = stringResource(
                     R.string.invitation_expires_value,
-                    formatter.format(invitation.expiresAt),
+                    BobitosDates.dateTime(invitation.expiresAt.atZone(ZoneId.systemDefault()).toLocalDateTime()),
                 ),
                 style = MaterialTheme.typography.bodySmall,
             )

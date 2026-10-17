@@ -12,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
@@ -90,7 +91,13 @@ fun WorkloadSection(workload: List<MemberWorkload>, modifier: Modifier = Modifie
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(member.displayName, modifier = Modifier.weight(1f))
                     Text(
-                        text = stringResource(R.string.home_workload_counts, member.pending, member.doneThisWeek),
+                        text = pluralStringResource(R.plurals.home_workload_pending, member.pending, member.pending) +
+                            " · " +
+                            pluralStringResource(
+                                R.plurals.home_workload_done,
+                                member.doneThisWeek,
+                                member.doneThisWeek,
+                            ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

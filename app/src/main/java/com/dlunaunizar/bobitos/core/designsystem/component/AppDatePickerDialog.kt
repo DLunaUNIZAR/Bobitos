@@ -21,22 +21,25 @@ import java.time.ZoneOffset
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun AppDatePickerDialog(initialDate: LocalDate, onConfirm: (LocalDate) -> Unit, onDismiss: () -> Unit) {
-    val state = rememberDatePickerState(
-        initialSelectedDateMillis = initialDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
-    )
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    state.selectedDateMillis?.let { millis ->
-                        onConfirm(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
-                    }
-                },
-            ) { Text(stringResource(R.string.accept)) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
-    ) {
-        DatePicker(state = state)
+    // El estado se crea dentro de AppLocale: el calendario toma el locale de la configuración vigente.
+    AppLocale {
+        val state = rememberDatePickerState(
+            initialSelectedDateMillis = initialDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+        )
+        DatePickerDialog(
+            onDismissRequest = onDismiss,
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        state.selectedDateMillis?.let { millis ->
+                            onConfirm(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
+                        }
+                    },
+                ) { Text(stringResource(R.string.accept)) }
+            },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+        ) {
+            DatePicker(state = state)
+        }
     }
 }

@@ -83,6 +83,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.BobitosDates
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
@@ -119,7 +120,6 @@ import com.dlunaunizar.bobitos.core.model.TaskType
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 @Composable
 fun TasksScreen(
@@ -894,7 +894,7 @@ private fun DateField(label: String, value: String, onChange: (String) -> Unit) 
             OutlinedButton(onClick = { showPicker = true }) {
                 Icon(Icons.Rounded.CalendarMonth, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(Spacing.sm))
-                Text(date?.format(taskDateDisplayFormatter) ?: stringResource(R.string.tasks_no_date))
+                Text(date?.let(BobitosDates::shortDate) ?: stringResource(R.string.tasks_no_date))
             }
             if (date != null) {
                 IconButton(onClick = { onChange("") }) {
@@ -914,8 +914,6 @@ private fun DateField(label: String, value: String, onChange: (String) -> Unit) 
         )
     }
 }
-
-private val taskDateDisplayFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
 @Composable
 private fun TaskTypePicker(selected: TaskType?, onSelect: (TaskType?) -> Unit) {
@@ -992,9 +990,9 @@ private fun TaskRecurrence.label(): String = when {
     interval == 1 && unit == RecurrenceUnit.DAY -> stringResource(R.string.recurrence_daily)
     interval == 1 && unit == RecurrenceUnit.WEEK -> stringResource(R.string.recurrence_weekly)
     interval == 1 && unit == RecurrenceUnit.MONTH -> stringResource(R.string.recurrence_monthly)
-    unit == RecurrenceUnit.DAY -> stringResource(R.string.recurrence_every_n_days, interval)
-    unit == RecurrenceUnit.WEEK -> stringResource(R.string.recurrence_every_n_weeks, interval)
-    else -> stringResource(R.string.recurrence_every_n_months, interval)
+    unit == RecurrenceUnit.DAY -> pluralStringResource(R.plurals.recurrence_every_n_days, interval, interval)
+    unit == RecurrenceUnit.WEEK -> pluralStringResource(R.plurals.recurrence_every_n_weeks, interval, interval)
+    else -> pluralStringResource(R.plurals.recurrence_every_n_months, interval, interval)
 }
 
 @Composable
@@ -1069,8 +1067,7 @@ private fun CustomRecurrenceFields(recurrence: TaskRecurrence, onSelect: (TaskRe
     },
 )
 
-private fun Instant.formatDate() =
-    DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(ZoneId.systemDefault()).format(this)
+private fun Instant.formatDate() = BobitosDates.shortDate(atZone(ZoneId.systemDefault()).toLocalDate())
 internal fun Instant.formatIsoDate() = atZone(ZoneId.systemDefault()).toLocalDate().toString()
 
 private fun TaskUiMessage.stringRes() = when (this) {

@@ -39,6 +39,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -295,7 +296,11 @@ private fun RoutineCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = stringResource(R.string.routines_exercise_count, routine.exercises.orEmpty().size),
+                    text = pluralStringResource(
+                        R.plurals.routines_exercise_count,
+                        routine.exercises.orEmpty().size,
+                        routine.exercises.orEmpty().size,
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -427,7 +432,7 @@ private fun RoutineExercise.summary(): String {
     return if (type.isStrength) {
         val pattern = setsPattern()
         when {
-            pattern == null -> stringResource(R.string.routines_summary_strength, label, sets.size)
+            pattern == null -> pluralStringResource(R.plurals.routines_summary_strength, sets.size, label, sets.size)
             pattern.timed ->
                 stringResource(R.string.routines_summary_strength_seconds, label, pattern.count, pattern.value)
             else -> stringResource(R.string.routines_summary_strength_reps, label, pattern.count, pattern.value)

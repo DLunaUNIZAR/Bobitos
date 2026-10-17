@@ -11,13 +11,11 @@ import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.BobitosDates
 import com.dlunaunizar.bobitos.core.designsystem.theme.BobitosTheme
 import org.junit.Rule
 import org.junit.Test
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
-import java.util.Locale
 
 class EventEditorUiTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
@@ -26,14 +24,14 @@ class EventEditorUiTest {
 
     private fun text(id: Int) = compose.activity.getString(id)
 
-    private fun dateText(date: LocalDate) = date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+    private fun dateText(date: LocalDate) = BobitosDates.shortDate(date)
 
     private fun pickEndDate(target: LocalDate, current: LocalDate) {
         // Los dos botones de fecha (inicio y fin) muestran el mismo texto al abrir: el fin es el último.
         compose.onAllNodesWithText(dateText(current)).onLast().performClick()
-        // Cada día del selector se anuncia con su fecha completa («Saturday, October 10, 2026»).
-        val spoken = target.format(DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.US))
-        compose.onNode(hasClickAction() and hasText(spoken, substring = true)).performClick()
+        // Cada día del selector se anuncia con su fecha completa («Sábado, 10 de octubre de 2026»).
+        val spoken = BobitosDates.accessibleDate(target)
+        compose.onNode(hasClickAction() and hasText(spoken, substring = true, ignoreCase = true)).performClick()
         compose.onNodeWithText(text(R.string.accept)).performClick()
     }
 

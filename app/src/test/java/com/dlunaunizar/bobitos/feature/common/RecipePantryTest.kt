@@ -64,7 +64,7 @@ class RecipePantryTest {
             pantryLine(listOf("Huevos", "Leche", "Harina")),
         )
         assertEquals(
-            PantryLine(R.string.recipes_pantry_missing_more, listOf(5, "huevos", "leche", 3)),
+            PantryLine(R.plurals.recipes_pantry_missing_more, listOf(5, "huevos", "leche", 3), 5),
             pantryLine(listOf("Huevos", "Leche", "Harina", "Azúcar", "Sal")),
         )
     }
@@ -100,7 +100,7 @@ class RecipePantryTest {
             pantryLine(listOf("Sal", "Pan", "Hierbabuena")),
         )
         assertEquals(
-            PantryLine(R.string.recipes_pantry_missing_more, listOf(4, "sal", "pan", 2)),
+            PantryLine(R.plurals.recipes_pantry_missing_more, listOf(4, "sal", "pan", 2), 4),
             pantryLine(listOf("Sal", "Pan", "Higos", "Hinojo")),
         )
     }

@@ -35,9 +35,18 @@
     <string name="recurrence_unit_days">Días</string>
     <string name="recurrence_unit_weeks">Semanas</string>
     <string name="recurrence_unit_months">Meses</string>
-    <string name="recurrence_every_n_days">Cada %1$d días</string>
-    <string name="recurrence_every_n_weeks">Cada %1$d semanas</string>
-    <string name="recurrence_every_n_months">Cada %1$d meses</string>
+    <plurals name="recurrence_every_n_days">
+        <item quantity="one">Cada %1$d día</item>
+        <item quantity="other">Cada %1$d días</item>
+    </plurals>
+    <plurals name="recurrence_every_n_weeks">
+        <item quantity="one">Cada %1$d semana</item>
+        <item quantity="other">Cada %1$d semanas</item>
+    </plurals>
+    <plurals name="recurrence_every_n_months">
+        <item quantity="one">Cada %1$d mes</item>
+        <item quantity="other">Cada %1$d meses</item>
+    </plurals>
     <string name="space_today_title">Hoy</string>
     <string name="space_more_title">Más</string>
     <string name="space_today_greeting_morning">Buenos días</string>
@@ -57,7 +66,14 @@
     <string name="home_my_day_eating">🍽 Comes: %1$s</string>
     <string name="home_my_day_events">📅 %1$s</string>
     <string name="home_workload_title">Reparto de tareas</string>
-    <string name="home_workload_counts">%1$d pendientes · %2$d hechas</string>
+    <plurals name="home_workload_pending">
+        <item quantity="one">%1$d pendiente</item>
+        <item quantity="other">%1$d pendientes</item>
+    </plurals>
+    <plurals name="home_workload_done">
+        <item quantity="one">%1$d hecha</item>
+        <item quantity="other">%1$d hechas</item>
+    </plurals>
     <string name="calendar_tasks_section">Tareas</string>
     <string name="space_settings_title">Ajustes del espacio</string>
     <string name="space_rename">Cambiar nombre</string>
@@ -485,7 +501,10 @@
     <string name="recipes_pantry_missing_three">Faltan 3: %1$s, %2$s y %3$s</string>
     <string name="recipes_pantry_missing_two_e">Faltan 2: %1$s e %2$s</string>
     <string name="recipes_pantry_missing_three_e">Faltan 3: %1$s, %2$s e %3$s</string>
-    <string name="recipes_pantry_missing_more">Faltan %1$d: %2$s, %3$s y %4$d más</string>
+    <plurals name="recipes_pantry_missing_more">
+        <item quantity="one">Falta %1$d: %2$s, %3$s y %4$d más</item>
+        <item quantity="other">Faltan %1$d: %2$s, %3$s y %4$d más</item>
+    </plurals>
     <string name="recipes_by">por %1$s</string>
     <string name="recipes_no_description">Sin descripción.</string>
     <string name="recipes_category">Categoría: %1$s</string>
@@ -592,7 +611,10 @@
     <string name="pantry_notice_already_listed">Ya estaba en la lista de la compra</string>
     <string name="pantry_others">Otros</string>
     <string name="pantry_picker_title">Añadir a la despensa</string>
-    <string name="pantry_picker_confirm">Añadir (%1$d)</string>
+    <plurals name="pantry_picker_confirm">
+        <item quantity="one">Añadir (%1$d)</item>
+        <item quantity="other">Añadir (%1$d)</item>
+    </plurals>
     <string name="pantry_picker_search">Buscar ingrediente</string>
     <string name="pantry_picker_free_text">Añadir «%1$s»</string>
     <string name="close">Cerrar</string>
@@ -610,7 +632,10 @@
     <string name="routines_no_results">Ninguna rutina coincide.</string>
     <string name="routines_mine">Mis rutinas</string>
     <string name="routines_common">Comunes</string>
-    <string name="routines_exercise_count">%1$d ejercicios</string>
+    <plurals name="routines_exercise_count">
+        <item quantity="one">%1$d ejercicio</item>
+        <item quantity="other">%1$d ejercicios</item>
+    </plurals>
     <string name="routines_no_exercises">Sin ejercicios.</string>
     <string name="routines_title_label">Título</string>
     <string name="routines_description_label">Descripción (opcional)</string>
@@ -631,7 +656,10 @@
     <string name="routines_notes_label">Notas (opcional)</string>
     <string name="routines_pick_exercise">Elegir ejercicio</string>
     <string name="routines_custom_exercise">Personalizado…</string>
-    <string name="routines_summary_strength">%1$s · %2$d series</string>
+    <plurals name="routines_summary_strength">
+        <item quantity="one">%1$s · %2$d serie</item>
+        <item quantity="other">%1$s · %2$d series</item>
+    </plurals>
     <string name="routines_summary_strength_reps">%1$s · %2$d × %3$d</string>
     <string name="routines_summary_strength_seconds">%1$s · %2$d × %3$d s</string>
     <string name="routines_summary_minutes">%1$d min</string>

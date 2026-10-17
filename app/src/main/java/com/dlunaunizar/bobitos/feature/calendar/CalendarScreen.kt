@@ -80,10 +80,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.BobitosDates
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
+import com.dlunaunizar.bobitos.core.designsystem.component.AppLocale
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
@@ -110,8 +112,6 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.YearMonth
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 import java.time.temporal.TemporalAdjusters
 
 @Composable
@@ -305,15 +305,13 @@ internal fun CalendarPeriodHeader(
     onNext: () -> Unit,
 ) {
     val label = when (mode) {
-        CalendarDisplayMode.DAY -> date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG))
+        CalendarDisplayMode.DAY -> BobitosDates.longDay(date)
         CalendarDisplayMode.WEEK -> {
             val monday = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
             val sunday = monday.plusDays(6)
-            "${monday.format(DateTimeFormatter.ofPattern("d MMM"))} – " +
-                sunday.format(DateTimeFormatter.ofPattern("d MMM yyyy"))
+            BobitosDates.weekRange(monday, sunday)
         }
-        CalendarDisplayMode.MONTH -> YearMonth.from(date)
-            .format(DateTimeFormatter.ofPattern("MMMM yyyy"))
+        CalendarDisplayMode.MONTH -> BobitosDates.month(YearMonth.from(date))
     }
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -397,7 +395,7 @@ internal fun MonthGrid(
     val today = LocalDate.now()
     Column(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth()) {
-            listOf("L", "M", "X", "J", "V", "S", "D").forEach { initial ->
+            DayOfWeek.entries.map(BobitosDates::dayInitial).forEach { initial ->
                 Text(
                     text = initial,
                     modifier = Modifier
@@ -440,7 +438,7 @@ private fun DayCell(
     val description = pluralStringResource(
         R.plurals.calendar_day_events,
         dayEvents.size,
-        date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)),
+        BobitosDates.accessibleDate(date),
         dayEvents.size,
     )
     val numberColor = when {
@@ -511,7 +509,7 @@ private fun WeekEventList(
             val date = monday.plusDays(offset)
             item("header-$date") {
                 Text(
-                    date.format(DateTimeFormatter.ofPattern("EEEE d")),
+                    BobitosDates.dayHeader(date),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -641,7 +639,7 @@ private fun HourRow(
         verticalAlignment = Alignment.Top,
     ) {
         Text(
-            text = LocalTime.of(hour, 0).format(hourFormatter),
+            text = BobitosDates.time(LocalTime.of(hour, 0)),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
@@ -658,8 +656,6 @@ private fun HourRow(
         }
     }
 }
-
-private val hourFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
 @Composable
 private fun EventRow(event: CalendarEvent, canWrite: Boolean, edit: () -> Unit, delete: () -> Unit) {
@@ -686,8 +682,7 @@ private fun EventRow(event: CalendarEvent, canWrite: Boolean, edit: () -> Unit, 
                     text = if (event.allDay) {
                         stringResource(R.string.calendar_all_day)
                     } else {
-                        event.startAt.atZone(ZoneId.systemDefault())
-                            .format(DateTimeFormatter.ofPattern("dd/MM HH:mm"))
+                        BobitosDates.dateTime(event.startAt.atZone(ZoneId.systemDefault()).toLocalDateTime())
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1004,16 +999,18 @@ private fun EventTimePickerDialog(initialTime: LocalTime, onConfirm: (LocalTime)
         initialMinute = initialTime.minute,
         is24Hour = true,
     )
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = { onConfirm(LocalTime.of(state.hour, state.minute)) }) {
-                Text(stringResource(R.string.accept))
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
-        text = { TimePicker(state = state) },
-    )
+    AppLocale {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            confirmButton = {
+                TextButton(onClick = { onConfirm(LocalTime.of(state.hour, state.minute)) }) {
+                    Text(stringResource(R.string.accept))
+                }
+            },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+            text = { TimePicker(state = state) },
+        )
+    }
 }
 
 // Reconstruye el input desde un evento existente, para re-crearlo al «Deshacer» un borrado.

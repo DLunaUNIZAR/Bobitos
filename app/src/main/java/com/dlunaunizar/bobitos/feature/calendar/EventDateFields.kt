@@ -22,10 +22,9 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.BobitosDates
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 
 // Inicio y fin del evento; el error de fechas va justo debajo, junto a los selectores a los que se refiere.
 @Composable
@@ -64,9 +63,6 @@ internal fun EventDateFields(
 
 internal enum class EventPicker { START_DATE, END_DATE, START_TIME, END_TIME }
 
-private val editorDateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
-private val editorTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-
 @Composable
 private fun DateTimeField(
     label: String,
@@ -89,7 +85,7 @@ private fun DateTimeField(
                     modifier = Modifier.size(18.dp),
                 )
                 Spacer(Modifier.size(8.dp))
-                Text(date.format(editorDateFormatter))
+                Text(BobitosDates.shortDate(date))
             }
             if (time != null) {
                 OutlinedButton(onClick = onTimeClick) {
@@ -99,7 +95,7 @@ private fun DateTimeField(
                         modifier = Modifier.size(18.dp),
                     )
                     Spacer(Modifier.size(8.dp))
-                    Text(time.format(editorTimeFormatter))
+                    Text(BobitosDates.time(time))
                 }
             }
         }

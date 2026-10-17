@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.BobitosDates
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
@@ -81,11 +82,8 @@ import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewDialog
 import com.dlunaunizar.bobitos.feature.common.MemberCheckboxes
 import com.dlunaunizar.bobitos.feature.common.formatted
-import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @Composable
 fun MealsScreen(
@@ -743,24 +741,13 @@ private fun DeleteMealDialog(meal: Meal, enabled: Boolean, onConfirm: () -> Unit
     )
 }
 
-private val HEADER_FORMAT = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Locale.forLanguageTag("es"))
-
 // Coincidencia por texto (nombre de la comida) para el buscador; en blanco no filtra.
 private fun Meal.matchesQuery(query: String): Boolean =
     query.isBlank() || name.contains(query.trim(), ignoreCase = true)
 
-private fun LocalDate.formatHeader(): String =
-    format(HEADER_FORMAT).replaceFirstChar { it.uppercase(Locale.forLanguageTag("es")) }
+private fun LocalDate.formatHeader(): String = BobitosDates.longDay(this)
 
-private fun LocalDate.dayInitial(): String = when (dayOfWeek) {
-    DayOfWeek.MONDAY -> "L"
-    DayOfWeek.TUESDAY -> "M"
-    DayOfWeek.WEDNESDAY -> "X"
-    DayOfWeek.THURSDAY -> "J"
-    DayOfWeek.FRIDAY -> "V"
-    DayOfWeek.SATURDAY -> "S"
-    DayOfWeek.SUNDAY -> "D"
-}
+private fun LocalDate.dayInitial(): String = BobitosDates.dayInitial(dayOfWeek)
 
 private val MealUiMessage.stringResourceId: Int
     get() = when (this) {

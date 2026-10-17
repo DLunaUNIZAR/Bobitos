@@ -50,12 +50,14 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.BobitosDates
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
@@ -90,8 +92,6 @@ import com.dlunaunizar.bobitos.feature.exercises.toExerciseDrafts
 import com.dlunaunizar.bobitos.feature.exercises.toRoutineExercises
 import com.dlunaunizar.bobitos.feature.routines.routineOriginRes
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @Composable
 fun SportScreen(
@@ -351,7 +351,11 @@ private fun ActivityCard(
                 )
                 if (activity.type == SportType.GIMNASIO && activity.session.isNotEmpty()) {
                     Text(
-                        text = stringResource(R.string.routines_exercise_count, activity.session.size),
+                        text = pluralStringResource(
+                            R.plurals.routines_exercise_count,
+                            activity.session.size,
+                            activity.session.size,
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -619,15 +623,9 @@ private fun RoutinePickerDialog(
     )
 }
 
-private fun LocalDate.formatHeader(): String {
-    val formatter = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Locale("es", "ES"))
-    return format(formatter).replaceFirstChar { it.uppercase() }
-}
+private fun LocalDate.formatHeader(): String = BobitosDates.longDay(this)
 
-private fun LocalDate.dayInitial(): String =
-    dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, Locale("es", "ES"))
-        .take(1)
-        .uppercase()
+private fun LocalDate.dayInitial(): String = BobitosDates.dayInitial(dayOfWeek)
 
 private val SportUiMessage.stringResourceId: Int
     get() = when (this) {

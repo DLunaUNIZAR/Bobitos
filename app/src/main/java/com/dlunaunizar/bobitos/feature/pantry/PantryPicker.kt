@@ -20,6 +20,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.window.Dialog
@@ -65,7 +66,13 @@ internal fun PantryPicker(
                     onBack = onDismiss,
                     actions = {
                         TextButton(onClick = onConfirm, enabled = picker.selection.isNotEmpty() && !saving) {
-                            Text(stringResource(R.string.pantry_picker_confirm, picker.selection.size))
+                            Text(
+                                pluralStringResource(
+                                    R.plurals.pantry_picker_confirm,
+                                    picker.selection.size,
+                                    picker.selection.size,
+                                ),
+                            )
                         }
                     },
                 )

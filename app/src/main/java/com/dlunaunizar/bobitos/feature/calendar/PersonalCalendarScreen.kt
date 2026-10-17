@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.BobitosDates
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
@@ -53,7 +54,6 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.YearMonth
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
 
 @Composable
@@ -311,7 +311,7 @@ private fun PersonalWeekEventList(
             val date = monday.plusDays(offset)
             item("header-$date") {
                 Text(
-                    date.format(DateTimeFormatter.ofPattern("EEEE d")),
+                    BobitosDates.dayHeader(date),
                     style = MaterialTheme.typography.titleMedium,
                 )
             }
@@ -339,8 +339,7 @@ private fun PersonalEventRow(item: PersonalCalendarEvent, onClick: () -> Unit) {
                 if (item.event.allDay) {
                     stringResource(R.string.calendar_all_day)
                 } else {
-                    item.event.startAt.atZone(ZoneId.systemDefault())
-                        .format(DateTimeFormatter.ofPattern("dd/MM HH:mm"))
+                    BobitosDates.dateTime(item.event.startAt.atZone(ZoneId.systemDefault()).toLocalDateTime())
                 },
             )
         }

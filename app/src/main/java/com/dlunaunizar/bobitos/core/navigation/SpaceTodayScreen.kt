@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.BobitosDates
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.data.repository.SpaceModuleCounts
@@ -31,9 +32,6 @@ import com.dlunaunizar.bobitos.feature.spaces.firstName
 import com.dlunaunizar.bobitos.feature.spaces.todayItemCount
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
-import java.util.Locale
 
 /**
  * «Hoy»: cabecera con saludo y resumen, fichas de contadores de cada módulo, «Mi día» y reparto.
@@ -72,9 +70,7 @@ private fun TodayHeader(displayName: String, digest: SpaceHomeDigest?) {
     )
     val name = firstName(displayName)
     val date = remember {
-        LocalDate.now()
-            .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(Locale.getDefault()))
-            .replaceFirstChar { it.titlecase(Locale.getDefault()) }
+        BobitosDates.longDay(LocalDate.now())
     }
     Card(
         modifier = Modifier.fillMaxWidth(),
