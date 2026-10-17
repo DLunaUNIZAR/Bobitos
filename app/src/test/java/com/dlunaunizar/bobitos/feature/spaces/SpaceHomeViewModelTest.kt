@@ -17,6 +17,7 @@ import com.dlunaunizar.bobitos.data.repository.SpaceModuleCounts
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceSummaryRepository
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flow
@@ -41,9 +42,11 @@ class SpaceHomeViewModelTest {
     private fun <T> MutableMap<String, MutableSharedFlow<T>>.of(space: String) =
         getOrPut(space) { MutableSharedFlow(replay = 1) }
 
+    private var countsBlock: suspend () -> SpaceModuleCounts = { SpaceModuleCounts() }
+
     private val viewModel = SpaceHomeViewModel(
         summaryRepository = object : SpaceSummaryRepository {
-            override suspend fun counts(spaceId: String) = SpaceModuleCounts()
+            override suspend fun counts(spaceId: String): SpaceModuleCounts = countsBlock()
         },
         taskRepository = object : TaskRepository by NoTasks {
             override fun tasks(spaceId: String): Flow<List<TaskItem>> =
@@ -78,6 +81,37 @@ class SpaceHomeViewModelTest {
 
         emitAll("b")
         assertNotNull(viewModel.digest.value)
+    }
+
+    @Test
+    fun reloadingTheSameSpaceKeepsWhatIsShown() {
+        emitAll("a")
+        viewModel.load("a", me)
+        assertNotNull(viewModel.digest.value)
+        assertNotNull(viewModel.counts.value)
+
+        // La recarga no recibe nada al instante: lo que había se queda.
+        tasks.of("a").resetReplayCache()
+        members.of("a").resetReplayCache()
+        meals.of("a").resetReplayCache()
+        events.of("a").resetReplayCache()
+        countsBlock = { awaitCancellation() }
+        viewModel.load("a", me)
+
+        assertNotNull(viewModel.digest.value)
+        assertNotNull(viewModel.counts.value)
+    }
+
+    @Test
+    fun aFailingCountsReloadOfTheSameSpaceKeepsTheLastCounts() {
+        emitAll("a")
+        viewModel.load("a", me)
+        assertNotNull(viewModel.counts.value)
+
+        countsBlock = { throw IllegalStateException("sin conexión") }
+        viewModel.load("a", me)
+
+        assertNotNull(viewModel.counts.value)
     }
 
     @Test

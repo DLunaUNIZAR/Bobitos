@@ -7,6 +7,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,7 +41,8 @@ internal fun CheckboxRow(label: String, checked: Boolean, onCheckedChange: (Bool
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .toggleable(value = checked, role = Role.Checkbox, onValueChange = onCheckedChange),
+            .toggleable(value = checked, role = Role.Checkbox, onValueChange = onCheckedChange)
+            .minimumInteractiveComponentSize(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Checkbox(checked = checked, onCheckedChange = null)

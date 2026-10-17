@@ -195,14 +195,7 @@ fun TasksScreen(
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(stringResource(R.string.tasks_list_title), style = MaterialTheme.typography.headlineSmall)
-                    Text(
-                        pluralStringResource(
-                            R.plurals.tasks_visible_count,
-                            visibleTasks.size,
-                            visibleTasks.size,
-                            allTasks.size,
-                        ),
-                    )
+                    TasksVisibleCount(visible = visibleTasks.size, total = allTasks.size)
                 }
                 if (canWrite) {
                     TextButton(onClick = { templatesVisible = true }) {
@@ -1089,4 +1082,10 @@ private fun TaskUiMessage.stringRes() = when (this) {
     TaskUiMessage.TaskCompleted -> R.string.tasks_notice_completed
     TaskUiMessage.TaskReopened -> R.string.tasks_notice_reopened
     TaskUiMessage.TaskDeleted -> R.string.tasks_notice_deleted
+}
+
+/** «1 de 2 tareas»: el plural sigue al total, que es lo que cierra la frase. */
+@Composable
+internal fun TasksVisibleCount(visible: Int, total: Int) {
+    Text(pluralStringResource(R.plurals.tasks_visible_count, total, visible, total))
 }

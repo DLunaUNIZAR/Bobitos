@@ -41,6 +41,9 @@ data class MealsUiState(
     val cookedErrorItem: String?
         get() = changedItemName.takeIf { error == MealUiMessage.CookedShoppingChanged }
 
+    // El error que va al aviso de la pantalla: con el diálogo «Has cocinado …» abierto el error es suyo y se queda aquí.
+    fun snackbarError(): MealUiMessage? = error.takeIf { cooked == null }
+
     private companion object {
         const val DAYS_IN_WEEK = 7L
     }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -87,6 +88,7 @@ private fun ScaffoldBody(
                 LinearProgressIndicator(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .padding(top = padding.calculateTopPadding())
                         .align(Alignment.TopCenter),
                 )
             }

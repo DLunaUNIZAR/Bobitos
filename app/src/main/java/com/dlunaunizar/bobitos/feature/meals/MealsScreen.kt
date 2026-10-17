@@ -132,7 +132,7 @@ fun MealsScreen(
     ) { padding ->
         val snackbar = LocalSnackbarHostState.current
         FeedbackSnackbarEffect(
-            error = state.error,
+            error = state.snackbarError(),
             notice = state.notice,
             editorSave = state.editorSave,
             editorOpen = editorOpen,

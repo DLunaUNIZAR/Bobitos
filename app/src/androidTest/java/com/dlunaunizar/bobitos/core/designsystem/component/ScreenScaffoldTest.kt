@@ -3,9 +3,11 @@ package com.dlunaunizar.bobitos.core.designsystem.component
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasProgressBarRangeInfo
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -49,5 +51,14 @@ class ScreenScaffoldTest {
             }
         }
         compose.onNodeWithText("Hola").assertIsDisplayed()
+    }
+
+    @Test
+    fun theSavingBarIsBelowTheTopBar() {
+        compose.setContent { BobitosTheme { ScreenScaffold(title = "T", onBack = {}, saving = true) { Text("x") } } }
+        val barNode = compose.onNode(hasProgressBarRangeInfo(ProgressBarRangeInfo.Indeterminate))
+        val bar = barNode.fetchSemanticsNode().boundsInWindow
+        val title = compose.onNodeWithText("T").fetchSemanticsNode().boundsInWindow
+        assertTrue("bar top ${bar.top} < title bottom ${title.bottom}", bar.top >= title.bottom)
     }
 }

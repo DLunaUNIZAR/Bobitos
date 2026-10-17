@@ -40,18 +40,23 @@ class SpaceHomeViewModel @Inject constructor(
     private val mutableDigest = MutableStateFlow<SpaceHomeDigest?>(null)
     val digest: StateFlow<SpaceHomeDigest?> = mutableDigest.asStateFlow()
     private var loadJob: Job? = null
+    private var loadedSpaceId: String? = null
 
     /**
      * Carga contadores y resumen del espacio. Una carga anterior aún en curso se cancela y lo que se
-     * mostraba se borra: «Hoy» espera a los datos del espacio nuevo en vez de enseñar los del anterior.
+     * mostraba se borra solo si el espacio cambia: «Hoy» espera a los datos del espacio nuevo en vez de enseñar
+     * los del anterior, pero al volver al mismo espacio lo que se ve se queda hasta que llegue lo nuevo.
      * El resumen observa los flujos, así que se corrige solo cuando llega el dato del servidor.
      */
     fun load(spaceId: String, userId: String) {
         loadJob?.cancel()
-        mutableCounts.value = null
-        mutableDigest.value = null
+        if (spaceId != loadedSpaceId) {
+            mutableCounts.value = null
+            mutableDigest.value = null
+        }
+        loadedSpaceId = spaceId
         loadJob = viewModelScope.launch {
-            launch { mutableCounts.value = loadOrNull { summaryRepository.counts(spaceId) } }
+            launch { mutableCounts.value = loadOrNull { summaryRepository.counts(spaceId) } ?: mutableCounts.value }
             launch { observeDigest(spaceId, userId) }
         }
     }
