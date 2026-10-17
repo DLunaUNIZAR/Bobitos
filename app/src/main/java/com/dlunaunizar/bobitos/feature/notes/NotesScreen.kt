@@ -142,6 +142,14 @@ fun NotesScreen(
                             NoteCard(
                                 note = note,
                                 enabled = enabled,
+                                onClick = if (enabled) {
+                                    {
+                                        editorNoteId = note.id
+                                        editorVisible = true
+                                    }
+                                } else {
+                                    null
+                                },
                                 onTogglePin = { viewModel.setPinned(note.id, !note.pinned) },
                                 onEdit = {
                                     editorNoteId = note.id
@@ -198,9 +206,17 @@ fun NotesScreen(
 }
 
 @Composable
-private fun NoteCard(note: Note, enabled: Boolean, onTogglePin: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
+internal fun NoteCard(
+    note: Note,
+    enabled: Boolean,
+    onClick: (() -> Unit)?,
+    onTogglePin: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
     var menu by remember { mutableStateOf(false) }
-    Card(modifier = Modifier.fillMaxWidth()) {
+    // Sin permiso de escritura es una Card normal: `enabled = false` cambiaría su color.
+    val content: @Composable () -> Unit = {
         Row(
             Modifier.padding(start = Spacing.md, top = Spacing.sm, bottom = Spacing.sm),
             verticalAlignment = Alignment.Top,
@@ -250,6 +266,11 @@ private fun NoteCard(note: Note, enabled: Boolean, onTogglePin: () -> Unit, onEd
                 }
             }
         }
+    }
+    if (onClick != null) {
+        Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) { content() }
+    } else {
+        Card(modifier = Modifier.fillMaxWidth()) { content() }
     }
 }
 

@@ -426,10 +426,14 @@
     <string name="meals_delete_body">¿Eliminar «%1$s»?</string>
     <string name="meals_name_label">Plato</string>
     <string name="meals_participants_label">¿Quiénes lo comen?</string>
+    <plurals name="meals_ingredient_count">
+        <item quantity="one">%1$d ingrediente</item>
+        <item quantity="other">%1$d ingredientes</item>
+    </plurals>
     <string name="meals_no_participants">Sin asignar</string>
     <string name="meals_cook_label">¿Quién cocina?</string>
     <string name="meals_no_cook">Sin cocinero</string>
-    <string name="meals_cook_value">🍳 %1$s</string>
+    <string name="meals_cook_value">Cocina %1$s</string>
     <string name="meals_week_previous">Semana anterior</string>
     <string name="meals_week_next">Semana siguiente</string>
     <string name="meals_error_name_required">Escribe qué vais a comer.</string>
@@ -446,7 +450,7 @@
     <string name="meals_add_ingredients_to_shopping">Añadir ingredientes a la Compra</string>
     <string name="meals_mark_cooked">Marcar como cocinada</string>
     <string name="meals_mark_uncooked">Marcar como no cocinada</string>
-    <string name="meals_cooked_label">✓ Cocinada</string>
+    <string name="meals_cooked_label">Cocinada</string>
     <string name="meals_cooked_title">Has cocinado %1$s</string>
     <string name="meals_cooked_cross_off">Tachar de la compra</string>
     <string name="meals_cooked_finished">¿Se ha acabado algo?</string>

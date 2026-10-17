@@ -104,6 +104,7 @@ fun ShoppingScreen(
     spaceId: String,
     canWrite: Boolean,
     modifier: Modifier = Modifier,
+    memberCount: Int? = null,
     prefillName: String? = null,
     onPrefillConsumed: () -> Unit = {},
     viewModel: ShoppingViewModel = hiltViewModel(),
@@ -262,6 +263,7 @@ fun ShoppingScreen(
                                 ) { accessibilityModifier ->
                                     ShoppingItemCard(
                                         item = item,
+                                        showAuthor = showsAuthor(memberCount),
                                         enabled = actionsEnabled,
                                         onCreateIngredient = { viewModel.createIngredientFromItem(item) },
                                         onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
@@ -315,6 +317,7 @@ fun ShoppingScreen(
                                     ) { accessibilityModifier ->
                                         ShoppingItemCard(
                                             item = item,
+                                            showAuthor = showsAuthor(memberCount),
                                             enabled = actionsEnabled,
                                             onCreateIngredient = { viewModel.createIngredientFromItem(item) },
                                             onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
@@ -463,6 +466,7 @@ private fun ShoppingEmptyState(modifier: Modifier = Modifier) {
 @Composable
 private fun ShoppingItemCard(
     item: ShoppingItem,
+    showAuthor: Boolean,
     enabled: Boolean,
     onCreateIngredient: () -> Unit,
     onSetPurchased: (Boolean) -> Unit,
@@ -511,18 +515,20 @@ private fun ShoppingItemCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Text(
-                    text = if (item.purchased) {
-                        stringResource(
-                            R.string.shopping_marked_by,
-                            item.purchasedByName ?: item.purchasedBy.orEmpty(),
-                        )
-                    } else {
-                        stringResource(R.string.shopping_added_by, item.createdByName)
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                if (showAuthor) {
+                    Text(
+                        text = if (item.purchased) {
+                            stringResource(
+                                R.string.shopping_marked_by,
+                                item.purchasedByName ?: item.purchasedBy.orEmpty(),
+                            )
+                        } else {
+                            stringResource(R.string.shopping_added_by, item.createdByName)
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             ShoppingItemMenu(enabled, onEdit, onCreateIngredient, onDelete)
         }

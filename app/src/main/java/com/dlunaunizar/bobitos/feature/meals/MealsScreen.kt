@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,11 +18,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Kitchen
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -46,6 +49,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -74,14 +80,12 @@ import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
-import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewDialog
 import com.dlunaunizar.bobitos.feature.common.MemberCheckboxes
-import com.dlunaunizar.bobitos.feature.common.formatted
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -397,7 +401,7 @@ private fun MealSlotSection(
     onAddToShopping: (Meal) -> Unit,
     onToggleCooked: (Meal) -> Unit,
 ) {
-    val ingredientsByRecipe = recipes.associate { it.id to it.ingredients }
+    val recipesById = recipes.associateBy(Recipe::id)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -420,9 +424,10 @@ private fun MealSlotSection(
             meals.forEach { meal ->
                 MealCard(
                     meal = meal,
-                    ingredients = meal.recipeId?.let { ingredientsByRecipe[it] },
+                    recipe = meal.recipeId?.let { recipesById[it] },
                     enabled = actionsEnabled,
                     canWrite = canWrite,
+                    onClick = if (canWrite && actionsEnabled) ({ onEdit(meal) }) else null,
                     onEdit = { onEdit(meal) },
                     onDelete = { onDelete(meal) },
                     onAddToShopping = { onAddToShopping(meal) },
@@ -434,18 +439,20 @@ private fun MealSlotSection(
 }
 
 @Composable
-private fun MealCard(
+internal fun MealCard(
     meal: Meal,
-    ingredients: List<Ingredient>?,
+    recipe: Recipe?,
     enabled: Boolean,
     canWrite: Boolean,
+    onClick: (() -> Unit)?,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onAddToShopping: () -> Unit,
     onToggleCooked: () -> Unit,
 ) {
-    var menuExpanded by remember { mutableStateOf(false) }
-    Card(modifier = Modifier.fillMaxWidth()) {
+    val ingredients = recipe?.ingredients
+    val summary = mealSummary(meal, recipe)
+    val cardContent: @Composable () -> Unit = {
         Row(
             modifier = Modifier.padding(start = 12.dp, top = 8.dp, end = 4.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -457,82 +464,121 @@ private fun MealCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
-                    text = meal.participantNames.takeIf(List<String>::isNotEmpty)?.joinToString(", ")
-                        ?: stringResource(R.string.meals_no_participants),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                meal.cookName?.let { cook ->
-                    Text(
-                        text = stringResource(R.string.meals_cook_value, cook),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                if (!ingredients.isNullOrEmpty()) {
-                    Text(
-                        text = ingredients.joinToString(", ") { it.formatted() },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                MealSummaryLine(summary)
+                if (meal.cookName != null || meal.cooked) {
+                    FlowRow(
                         modifier = Modifier.padding(top = 2.dp),
-                    )
-                }
-                if (meal.cooked) {
-                    Text(
-                        text = stringResource(R.string.meals_cooked_label),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 2.dp),
-                    )
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        meal.cookName?.let { cook ->
+                            MealFact(
+                                icon = Icons.Rounded.Restaurant,
+                                text = stringResource(R.string.meals_cook_value, cook),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        if (meal.cooked) {
+                            MealFact(
+                                icon = Icons.Rounded.CheckCircle,
+                                text = stringResource(R.string.meals_cooked_label),
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
                 }
             }
             if (canWrite) {
-                Box {
-                    IconButton(enabled = enabled, onClick = { menuExpanded = true }) {
-                        Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.more_options))
-                    }
-                    DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                        if (!ingredients.isNullOrEmpty()) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.meals_add_ingredients_to_shopping)) },
-                                onClick = {
-                                    menuExpanded = false
-                                    onAddToShopping()
-                                },
-                            )
-                        }
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    stringResource(
-                                        if (meal.cooked) R.string.meals_mark_uncooked else R.string.meals_mark_cooked,
-                                    ),
-                                )
-                            },
-                            onClick = {
-                                menuExpanded = false
-                                onToggleCooked()
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.meals_edit)) },
-                            onClick = {
-                                menuExpanded = false
-                                onEdit()
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.meals_delete)) },
-                            onClick = {
-                                menuExpanded = false
-                                onDelete()
-                            },
-                        )
-                    }
-                }
+                MealMenu(
+                    cooked = meal.cooked,
+                    canAddToShopping = !ingredients.isNullOrEmpty(),
+                    enabled = enabled,
+                    onAddToShopping = onAddToShopping,
+                    onToggleCooked = onToggleCooked,
+                    onEdit = onEdit,
+                    onDelete = onDelete,
+                )
             }
         }
+    }
+    // Sin permiso de escritura es una Card normal: `enabled = false` cambiaría su color.
+    if (onClick != null) {
+        Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) { cardContent() }
+    } else {
+        Card(modifier = Modifier.fillMaxWidth()) { cardContent() }
+    }
+}
+
+@Composable
+private fun MealMenu(
+    cooked: Boolean,
+    canAddToShopping: Boolean,
+    enabled: Boolean,
+    onAddToShopping: () -> Unit,
+    onToggleCooked: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(enabled = enabled, onClick = { menuExpanded = true }) {
+            Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.more_options))
+        }
+        DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+            if (canAddToShopping) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.meals_add_ingredients_to_shopping)) },
+                    onClick = {
+                        menuExpanded = false
+                        onAddToShopping()
+                    },
+                )
+            }
+            DropdownMenuItem(
+                text = {
+                    Text(stringResource(if (cooked) R.string.meals_mark_uncooked else R.string.meals_mark_cooked))
+                },
+                onClick = {
+                    menuExpanded = false
+                    onToggleCooked()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.meals_edit)) },
+                onClick = {
+                    menuExpanded = false
+                    onEdit()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.meals_delete)) },
+                onClick = {
+                    menuExpanded = false
+                    onDelete()
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun MealSummaryLine(summary: MealSummary) {
+    val people = summary.participantNames.takeIf(List<String>::isNotEmpty)?.joinToString(", ")
+        ?: stringResource(R.string.meals_no_participants)
+    val count = summary.ingredientCount?.let {
+        pluralStringResource(R.plurals.meals_ingredient_count, it, it)
+    }
+    Text(
+        text = listOfNotNull(count, people).joinToString(" · "),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+@Composable
+private fun MealFact(icon: ImageVector, text: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
+        Text(text = text, style = MaterialTheme.typography.labelMedium, color = color)
     }
 }
 

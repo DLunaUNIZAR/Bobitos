@@ -461,12 +461,9 @@ private fun RecipeCard(recipe: Recipe, pantryLine: PantryLine?, onClick: () -> U
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            listOfNotNull(
-                recipe.category,
-                recipe.createdByName.takeIf(String::isNotBlank)?.let { stringResource(R.string.recipes_by, it) },
-            ).joinToString(" · ").takeIf(String::isNotEmpty)?.let { line ->
+            recipe.category?.takeIf(String::isNotEmpty)?.let { category ->
                 Text(
-                    text = line,
+                    text = category,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

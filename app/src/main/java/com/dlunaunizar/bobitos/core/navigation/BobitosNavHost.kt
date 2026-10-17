@@ -322,6 +322,7 @@ fun BobitosNavHost(
                     ShoppingScreen(
                         spaceId = space.id,
                         canWrite = uiState.syncStatus.canWrite,
+                        memberCount = space.memberCount,
                         prefillName = prefill,
                         onPrefillConsumed = { entry.savedStateHandle[SHOPPING_PREFILL_KEY] = null },
                     )
