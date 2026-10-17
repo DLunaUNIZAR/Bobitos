@@ -53,7 +53,12 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
+import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
+import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
+import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
+import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
+import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.core.model.SyncStatus
@@ -118,6 +123,17 @@ private fun SpacesContent(
     var showJoinDialog by rememberSaveable { mutableStateOf(false) }
     var invitationCode by rememberSaveable { mutableStateOf("") }
 
+    val editorOpen = showCreateDialog || showJoinDialog
+    // Cerrar un diálogo tras un guardado fallido descarta ese error (ya se veía en el diálogo).
+    val closeCreate = {
+        managementState.editorSave.discardFailure(onClearFeedback)
+        showCreateDialog = false
+    }
+    val closeJoin = {
+        managementState.editorSave.discardFailure(onClearFeedback)
+        showJoinDialog = false
+    }
+
     LaunchedEffect(pendingInvitationCode) {
         pendingInvitationCode?.let { code ->
             invitationCode = code
@@ -131,6 +147,7 @@ private fun SpacesContent(
         onBack = onBack,
         modifier = modifier,
         syncStatus = syncStatus,
+        saving = savingOutsideEditor(managementState.writeStatus == WriteStatus.SAVING, editorOpen),
         actions = {
             IconButton(onClick = onProfileClick) {
                 Icon(
@@ -161,7 +178,13 @@ private fun SpacesContent(
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            SpaceFeedback(state = managementState, onDismiss = onClearFeedback)
+            val feedback = feedbackFor(
+                managementState.error,
+                managementState.notice,
+                managementState.editorSave,
+                editorOpen = editorOpen,
+            )?.let { Feedback(stringResource(it.message.stringResourceId), it.isError) }
+            FeedbackSnackbarEffect(feedback, onClearFeedback)
             OutlinedButton(
                 onClick = {
                     invitationCode = ""
@@ -198,7 +221,7 @@ private fun SpacesContent(
 
     EditorSaveEffect(
         status = managementState.editorSave,
-        editorOpen = showCreateDialog || showJoinDialog,
+        editorOpen = editorOpen,
         onClose = {
             showCreateDialog = false
             showJoinDialog = false
@@ -218,7 +241,7 @@ private fun SpacesContent(
             enabled = canWrite,
             saving = saving,
             errorMessage = editorError,
-            onDismiss = { showCreateDialog = false },
+            onDismiss = closeCreate,
             onConfirm = onCreateSpace,
         )
     }
@@ -229,7 +252,7 @@ private fun SpacesContent(
             enabled = canWrite,
             saving = saving,
             errorMessage = editorError,
-            onDismiss = { showJoinDialog = false },
+            onDismiss = closeJoin,
             onConfirm = onAcceptInvitation,
         )
     }

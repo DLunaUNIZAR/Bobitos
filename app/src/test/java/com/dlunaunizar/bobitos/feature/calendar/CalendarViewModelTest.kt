@@ -133,6 +133,23 @@ class CalendarViewModelTest {
     }
 
     @Test
+    fun `deleting leaves no notice because the undo snackbar already confirms it`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val repository = RecordingCalendarRepository()
+            val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
+            viewModel.observe("space-1")
+            var deleted = false
+
+            viewModel.delete("event-1") { deleted = true }
+            repository.pendingDelete.complete(Unit)
+            advanceUntilIdle()
+
+            assertEquals(true, deleted)
+            assertNull(viewModel.uiState.value.notice)
+            assertNull(viewModel.uiState.value.error)
+        }
+
+    @Test
     fun `editor save failure or timeout leaves FAILED`() = runTest(mainDispatcherRule.testDispatcher) {
         val repository = RecordingCalendarRepository()
         val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())

@@ -64,9 +64,13 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
+import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
+import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
+import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
+import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
@@ -128,6 +132,9 @@ fun SportScreen(
         },
     ) { padding ->
         val snackbar = LocalSnackbarHostState.current
+        val feedback = feedbackFor(state.error, state.notice, state.editorSave, editorOpen)
+            ?.let { Feedback(stringResource(it.message.stringResourceId), it.isError) }
+        FeedbackSnackbarEffect(feedback, viewModel::clearFeedback)
         val deleteWithUndo: (SportActivity) -> Unit = { activity ->
             viewModel.deleteActivity(activity.id)
             scope.launchUndo(snackbar, deletedMessage, undoLabel) {
@@ -164,7 +171,6 @@ fun SportScreen(
                     Text(stringResource(R.string.exercises_open))
                 }
             }
-            SportFeedback(state, viewModel::clearFeedback)
             when (val activities = state.activities) {
                 UiState.Loading -> LoadingState(Modifier.weight(1f))
                 is UiState.Error -> ErrorState(
@@ -222,6 +228,8 @@ fun SportScreen(
     }
 
     val closeEditor = {
+        // Cerrar tras un guardado fallido descarta ese error (ya se veía en la hoja).
+        state.editorSave.discardFailure(viewModel::clearFeedback)
         editorOpen = false
         editorActivityId = null
     }
@@ -297,24 +305,6 @@ private fun DayChip(date: LocalDate, selected: Boolean, modifier: Modifier = Mod
         ) {
             Text(date.dayInitial(), style = MaterialTheme.typography.labelSmall)
             Text(date.dayOfMonth.toString(), style = MaterialTheme.typography.titleSmall)
-        }
-    }
-}
-
-@Composable
-private fun SportFeedback(state: SportUiState, onDismiss: () -> Unit) {
-    val message = state.error ?: state.notice ?: return
-    Surface(
-        Modifier.fillMaxWidth().padding(vertical = Spacing.xs),
-        color = if (state.error != null) {
-            MaterialTheme.colorScheme.errorContainer
-        } else {
-            MaterialTheme.colorScheme.secondaryContainer
-        },
-    ) {
-        Row(Modifier.padding(start = Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(message.stringResourceId), Modifier.weight(1f))
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dismiss)) }
         }
     }
 }

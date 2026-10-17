@@ -38,7 +38,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -68,13 +67,18 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
+import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
+import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
+import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
+import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
+import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
@@ -129,6 +133,11 @@ fun ShoppingScreen(
             initialDraft = null
         }
     }
+    // Cerrar el editor tras un guardado fallido descarta ese error (ya se veía en la hoja).
+    val closeEditor: () -> Unit = {
+        state.editorSave.discardFailure(viewModel::clearFeedback)
+        editorVisible = false
+    }
     var itemToDelete by remember { mutableStateOf<ShoppingItem?>(null) }
     var clearConfirmationVisible by remember { mutableStateOf(false) }
     val content = state.items as? UiState.Content
@@ -146,6 +155,7 @@ fun ShoppingScreen(
     val actionsEnabled = canWrite && !state.isSaving
     ModuleScaffold(
         modifier = modifier.fillMaxSize(),
+        saving = savingOutsideEditor(state.isSaving, editorVisible),
         floatingActionButton = {
             if (canWrite) {
                 ExtendedFloatingActionButton(
@@ -162,6 +172,10 @@ fun ShoppingScreen(
     ) { padding ->
         val snackbar = LocalSnackbarHostState.current
         val scope = rememberCoroutineScope()
+        val feedback = feedbackFor(state.error, state.notice, state.editorSave, editorVisible)?.let {
+            Feedback(shoppingMessageText(it.message, state.lastClearedCount), it.isError)
+        }
+        FeedbackSnackbarEffect(feedback, viewModel::clearFeedback)
         val deletedMessage = stringResource(R.string.shopping_undo_deleted)
         val undoLabel = stringResource(R.string.undo)
         val deleteColor = MaterialTheme.colorScheme.error
@@ -210,7 +224,6 @@ fun ShoppingScreen(
                 )
             }
 
-            ShoppingFeedback(state, viewModel::clearFeedback)
             Spacer(modifier = Modifier.height(8.dp))
 
             when (val itemsState = state.items) {
@@ -361,7 +374,7 @@ fun ShoppingScreen(
         id = editedItemId,
         items = content?.value,
         idOf = ShoppingItem::id,
-        onGone = { editorVisible = false },
+        onGone = closeEditor,
     )?.let { slot ->
         val editedItem = slot.item
         ShoppingItemEditor(
@@ -374,7 +387,7 @@ fun ShoppingScreen(
             pantryIds = state.pantryIds,
             ingredientData = state.ingredientData,
             suggestions = { queryText -> catalogSuggestions(state.ingredientData.ingredients, queryText) },
-            onDismiss = { editorVisible = false },
+            onDismiss = closeEditor,
             onSave = { name, quantity, notes, supermarket, brand ->
                 val item = editedItem
                 if (item != null) {
@@ -440,48 +453,12 @@ fun ShoppingScreen(
 }
 
 @Composable
-private fun ShoppingFeedback(state: ShoppingUiState, onDismiss: () -> Unit) {
-    val message = state.error ?: state.notice
-    if (message == null && !state.isSaving) return
-    val isError = state.error != null
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp),
-        color = if (isError) {
-            MaterialTheme.colorScheme.errorContainer
-        } else {
-            MaterialTheme.colorScheme.secondaryContainer
-        },
-        shape = MaterialTheme.shapes.small,
-    ) {
-        Row(
-            modifier = Modifier.padding(start = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = if (state.isSaving) {
-                    stringResource(R.string.write_saving)
-                } else if (message == ShoppingUiMessage.PurchasedCleared) {
-                    pluralStringResource(
-                        R.plurals.shopping_notice_cleared,
-                        state.lastClearedCount,
-                        state.lastClearedCount,
-                    )
-                } else {
-                    stringResource(message!!.stringResourceId)
-                },
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            if (!state.isSaving) {
-                TextButton(onClick = onDismiss) {
-                    Text(stringResource(R.string.dismiss))
-                }
-            }
-        }
+private fun shoppingMessageText(message: ShoppingUiMessage, clearedCount: Int): String =
+    if (message == ShoppingUiMessage.PurchasedCleared) {
+        pluralStringResource(R.plurals.shopping_notice_cleared, clearedCount, clearedCount)
+    } else {
+        stringResource(message.stringResourceId)
     }
-}
 
 @Composable
 private fun ShoppingEmptyState(modifier: Modifier = Modifier) {

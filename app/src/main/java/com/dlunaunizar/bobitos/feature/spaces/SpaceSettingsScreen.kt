@@ -40,8 +40,13 @@ import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
+import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
+import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.QrCodeImage
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
+import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
+import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
+import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceRole
@@ -87,6 +92,7 @@ fun SpaceSettingsScreen(
         onBack = onBack,
         modifier = modifier,
         syncStatus = syncStatus,
+        saving = savingOutsideEditor(state.writeStatus == WriteStatus.SAVING, showRenameDialog),
     ) { padding ->
         Column(
             modifier = Modifier
@@ -109,7 +115,9 @@ fun SpaceSettingsScreen(
                 ),
                 style = MaterialTheme.typography.labelLarge,
             )
-            SpaceFeedback(state = state, onDismiss = onClearFeedback)
+            val feedback = feedbackFor(state.error, state.notice, state.editorSave, showRenameDialog)
+                ?.let { Feedback(stringResource(it.message.stringResourceId), it.isError) }
+            FeedbackSnackbarEffect(feedback, onClearFeedback)
 
             if (space.role == SpaceRole.OWNER) {
                 Button(
@@ -215,7 +223,11 @@ fun SpaceSettingsScreen(
             errorMessage = state.error
                 ?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
                 ?.let { stringResource(it.stringResourceId) },
-            onDismiss = { showRenameDialog = false },
+            onDismiss = {
+                // Cerrar tras un guardado fallido descarta ese error (ya se veía en el diálogo).
+                state.editorSave.discardFailure(onClearFeedback)
+                showRenameDialog = false
+            },
             onConfirm = { name -> onRenameSpace(space.id, name) },
         )
     }

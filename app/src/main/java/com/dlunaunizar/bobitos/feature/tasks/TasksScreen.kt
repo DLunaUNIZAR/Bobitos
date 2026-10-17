@@ -55,12 +55,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -92,12 +90,16 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
+import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
+import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
+import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
+import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
@@ -139,6 +141,11 @@ fun TasksScreen(
         editorTemplateIndex = templateIndex
         editorVisible = true
     }
+    // Cerrar el editor tras un guardado fallido descarta ese error (ya se veía en la hoja).
+    val closeEditor: () -> Unit = {
+        state.editorSave.discardFailure(viewModel::clearFeedback)
+        editorVisible = false
+    }
     val editorTemplate = homeTaskTemplates.getOrNull(editorTemplateIndex)
     var deleteTask by remember { mutableStateOf<TaskItem?>(null) }
     var templatesVisible by remember { mutableStateOf(false) }
@@ -161,13 +168,9 @@ fun TasksScreen(
     ) { padding ->
         val snackbar = LocalSnackbarHostState.current
         val scope = rememberCoroutineScope()
-        // Los avisos de éxito se muestran como snackbar efímero (el banner queda para errores).
-        val noticeMessage = state.notice?.let { stringResource(it.stringRes()) }
-        LaunchedEffect(state.notice) {
-            val text = noticeMessage ?: return@LaunchedEffect
-            snackbar?.showSnackbar(text)
-            viewModel.clearFeedback()
-        }
+        val feedback = feedbackFor(state.error, state.notice, state.editorSave, editorVisible)
+            ?.let { Feedback(stringResource(it.message.stringRes()), it.isError) }
+        FeedbackSnackbarEffect(feedback, viewModel::clearFeedback)
         val deletedMessage = stringResource(R.string.tasks_undo_deleted)
         val undoLabel = stringResource(R.string.undo)
         val deleteColor = MaterialTheme.colorScheme.error
@@ -203,7 +206,6 @@ fun TasksScreen(
                     }
                 }
             }
-            TaskFeedback(state, viewModel::clearFeedback)
             TaskFilterBar(state.filters, members, viewModel::setFilters)
             SearchField(
                 query = query,
@@ -337,7 +339,7 @@ fun TasksScreen(
         id = editorTaskId,
         items = (state.tasks as? UiState.Content)?.value,
         idOf = TaskItem::id,
-        onGone = { editorVisible = false },
+        onGone = closeEditor,
     )?.let { slot ->
         val editorTask = slot.item
         TaskEditor(
@@ -347,7 +349,7 @@ fun TasksScreen(
             saving = state.isSaving,
             errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
                 ?.let { stringResource(it.stringRes()) },
-            onDismiss = { editorVisible = false },
+            onDismiss = closeEditor,
             onInvalidDate = viewModel::showInvalidDate,
             onSave = { title, description, assignee, due, priority, type, recurrence, start ->
                 editorTask?.let {
@@ -1035,21 +1037,6 @@ private fun CustomRecurrenceFields(recurrence: TaskRecurrence, onSelect: (TaskRe
                     )
                 }
             }
-        }
-    }
-}
-
-// Banner solo para errores persistentes; los avisos de éxito van por snackbar (ver TasksScreen).
-@Composable
-private fun TaskFeedback(state: TasksUiState, onDismiss: () -> Unit) {
-    val error = state.error ?: return
-    Surface(
-        Modifier.fillMaxWidth().padding(vertical = Spacing.sm),
-        color = MaterialTheme.colorScheme.errorContainer,
-    ) {
-        Row(Modifier.padding(start = Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(error.stringRes()), Modifier.weight(1f))
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dismiss)) }
         }
     }
 }

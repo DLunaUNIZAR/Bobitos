@@ -11,9 +11,12 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,7 +26,10 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
+import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
+import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
+import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
@@ -42,15 +48,17 @@ internal fun PantryPicker(
     onQueryChange: (String) -> Unit,
     onToggle: (PantryEntry) -> Unit,
     onConfirm: () -> Unit,
-    error: PantryUiMessage?,
-    onDismissError: () -> Unit,
+    feedback: Feedback<String>?,
+    onFeedbackShown: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val content = remember(ingredients, pantryIds, picker.query) {
         pantryPickerContent(ingredients, pantryIds, picker.query)
     }
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        val snackbarHostState = remember { SnackbarHostState() }
         Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
             topBar = {
                 BobitosTopBar(
                     title = stringResource(R.string.pantry_picker_title),
@@ -63,8 +71,11 @@ internal fun PantryPicker(
                 )
             },
         ) { innerPadding ->
+            // El diálogo tapa el snackbar de la pantalla: el error de aquí sale en el suyo.
+            CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
+                FeedbackSnackbarEffect(feedback, onFeedbackShown)
+            }
             Column(Modifier.padding(innerPadding).fillMaxSize().padding(horizontal = Spacing.lg)) {
-                error?.let { message -> PantryErrorBanner(message, onDismissError) }
                 SearchField(
                     query = picker.query,
                     onQueryChange = onQueryChange,

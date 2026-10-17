@@ -83,15 +83,16 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
-import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
+import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
@@ -161,6 +162,7 @@ fun CalendarScreen(
         drilledFrom = null
     }
 
+    val editorOpen = creating || editorEventId != null || creatingAtText != null
     ModuleScaffold(
         modifier = modifier.fillMaxSize(),
         floatingActionButton = {
@@ -231,7 +233,14 @@ fun CalendarScreen(
                 )
             }
 
-            CalendarMessage(state.error, state.notice, state.editorSave, viewModel::clearMessage)
+            FeedbackSnackbarEffect(
+                error = state.error?.messageRes(),
+                notice = state.notice?.messageRes(),
+                editorSave = state.editorSave,
+                editorOpen = editorOpen,
+                onShown = viewModel::clearMessage,
+                text = { stringResource(it) },
+            )
         }
 
         eventToDelete?.let { event ->
@@ -252,13 +261,15 @@ fun CalendarScreen(
     }
 
     val closeEditor = {
+        // Cerrar tras un guardado fallido descarta ese error (ya se veía en la hoja).
+        state.editorSave.discardFailure(viewModel::clearMessage)
         creating = false
         editorEventId = null
         creatingAtText = null
     }
     EditorSaveEffect(
         status = state.editorSave,
-        editorOpen = creating || editorEventId != null || creatingAtText != null,
+        editorOpen = editorOpen,
         onClose = closeEditor,
         onConsume = viewModel::consumeEditorSave,
     )
@@ -279,29 +290,9 @@ fun CalendarScreen(
     )
 }
 
-// Si el editor abierto falló, el mensaje se ve dentro del formulario (no se descarta antes de tiempo).
-@Composable
-internal fun CalendarMessage(
-    error: FailureKind?,
-    notice: CalendarNotice?,
-    editorSave: EditorSaveStatus,
-    onShown: () -> Unit,
-) {
-    if (editorSave == EditorSaveStatus.FAILED) return
-    when {
-        error != null -> {
-            Text(stringResource(error.messageRes()), color = MaterialTheme.colorScheme.error)
-            LaunchedEffect(error) { onShown() }
-        }
-        notice != null -> {
-            val text = when (notice) {
-                CalendarNotice.SAVED -> R.string.calendar_notice_saved
-                CalendarNotice.DELETED -> R.string.calendar_undo_deleted
-            }
-            Text(stringResource(text))
-            LaunchedEffect(notice) { onShown() }
-        }
-    }
+private fun CalendarNotice.messageRes(): Int = when (this) {
+    CalendarNotice.SAVED -> R.string.calendar_notice_saved
+    CalendarNotice.DELETED -> R.string.calendar_undo_deleted
 }
 
 @Composable

@@ -149,7 +149,8 @@ class CalendarViewModel @Inject constructor(
 
     // onDeleted se llama solo si el borrado termina bien (y ya sin «guardando»): así el deshacer no se
     // ofrece para un borrado fallido ni se descarta por pulsarlo mientras el borrado sigue en curso.
-    fun delete(eventId: String, onDeleted: () -> Unit = {}) = action(onSuccess = onDeleted) {
+    // Sin aviso propio: el snackbar de «Deshacer» ya confirma el borrado.
+    fun delete(eventId: String, onDeleted: () -> Unit = {}) = action(notice = null, onSuccess = onDeleted) {
         repository.deleteEvent(spaceId ?: return@action, eventId)
     }
 
@@ -195,7 +196,12 @@ class CalendarViewModel @Inject constructor(
         }
     }
 
-    private fun action(editor: Boolean = false, onSuccess: () -> Unit = {}, block: suspend () -> Unit) {
+    private fun action(
+        editor: Boolean = false,
+        notice: CalendarNotice? = CalendarNotice.SAVED,
+        onSuccess: () -> Unit = {},
+        block: suspend () -> Unit,
+    ) {
         if (mutable.value.saving) return
         mutable.update {
             it.copy(saving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
@@ -207,7 +213,7 @@ class CalendarViewModel @Inject constructor(
                         it.copy(
                             saving = false,
                             error = null,
-                            notice = CalendarNotice.SAVED,
+                            notice = notice,
                             editorSave = it.editorSave.succeeded(editor),
                         )
                     }

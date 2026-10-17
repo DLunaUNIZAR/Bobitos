@@ -29,7 +29,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -55,10 +54,13 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
+import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
+import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewDialog
@@ -131,10 +133,19 @@ fun RecipesScreen(
     val deletedMessage = stringResource(R.string.recipes_undo_deleted)
     val undoLabel = stringResource(R.string.undo)
 
+    val closeEditor: () -> Unit = {
+        // Cerrar tras un guardado fallido descarta ese error (ya se veía en la hoja).
+        state.editorSave.discardFailure(viewModel::clearFeedback)
+        editorOpen = false
+        editorRecipeId = null
+        imported = null
+    }
+
     ScreenScaffold(
         title = stringResource(R.string.recipes_title),
         onBack = onBack,
         modifier = modifier,
+        saving = savingOutsideEditor(state.isSaving, editorOpen),
         actions = {
             if (canWrite) {
                 IconButton(onClick = { showImport = true }) {
@@ -172,7 +183,16 @@ fun RecipesScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp),
         ) {
-            RecipesFeedback(state, viewModel::clearFeedback)
+            // El error de la importación ya se ve dentro de su diálogo.
+            val error = state.visibleError(importDialogOpen = showImport)
+            FeedbackSnackbarEffect(
+                error = error,
+                notice = state.notice,
+                editorSave = state.editorSave,
+                editorOpen = editorOpen,
+                onShown = viewModel::clearFeedback,
+                text = { stringResource(it.stringResourceId) },
+            )
             OutlinedTextField(
                 value = state.query,
                 onValueChange = viewModel::setQuery,
@@ -215,11 +235,7 @@ fun RecipesScreen(
     EditorSaveEffect(
         status = state.editorSave,
         editorOpen = editorOpen,
-        onClose = {
-            editorOpen = false
-            editorRecipeId = null
-            imported = null
-        },
+        onClose = closeEditor,
         onConsume = viewModel::consumeEditorSave,
     )
     RecipeSheetsHost(
@@ -233,11 +249,7 @@ fun RecipesScreen(
         actions = remember(viewModel, spaceId) {
             RecipeSheetActions(
                 onCloseDetail = { detailRecipeId = null },
-                onCloseEditor = {
-                    editorOpen = false
-                    editorRecipeId = null
-                    imported = null
-                },
+                onCloseEditor = closeEditor,
                 onAddToShopping = { recipe ->
                     spaceId?.let { viewModel.addToShopping(it, recipe) }
                     detailRecipeId = null
@@ -520,43 +532,10 @@ private fun ImportUrlDialog(
     )
 }
 
-@Composable
-private fun RecipesFeedback(state: RecipesUiState, onDismiss: () -> Unit) {
-    val message = state.error ?: state.notice
-    if (message == null && !state.isSaving) return
-    val isError = state.error != null
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp),
-        color = if (isError) {
-            MaterialTheme.colorScheme.errorContainer
-        } else {
-            MaterialTheme.colorScheme.secondaryContainer
-        },
-        shape = MaterialTheme.shapes.small,
-    ) {
-        Row(
-            modifier = Modifier.padding(start = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = if (state.isSaving) {
-                    stringResource(R.string.write_saving)
-                } else {
-                    stringResource(message!!.stringResourceId)
-                },
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            if (!state.isSaving) {
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.dismiss)) }
-            }
-        }
-    }
-}
-
 private fun UiState<List<Recipe>>.contentOrEmpty(): List<Recipe> = (this as? UiState.Content)?.value.orEmpty()
+
+private fun RecipesUiState.visibleError(importDialogOpen: Boolean): RecipeUiMessage? =
+    error?.takeUnless { importDialogOpen && it.isImport() }
 
 private fun RecipeUiMessage.isImport(): Boolean = this in IMPORT_MESSAGES
 

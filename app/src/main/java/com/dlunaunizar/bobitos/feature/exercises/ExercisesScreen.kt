@@ -23,9 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -47,9 +45,13 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
+import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
+import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.InfoChip
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
+import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
+import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
@@ -77,6 +79,11 @@ fun ExercisesScreen(
     var typeFilter by rememberSaveable { mutableStateOf<ExerciseType?>(null) }
     var groupFilter by rememberSaveable { mutableStateOf<String?>(null) }
     val filter = ExerciseFilter(query, typeFilter, groupFilter)
+    val closeEditor: () -> Unit = {
+        // Cerrar tras un guardado fallido descarta ese error (ya se veía en la hoja).
+        state.editorSave.discardFailure(viewModel::clearFeedback)
+        editorOpen = false
+    }
 
     ScreenScaffold(
         title = stringResource(R.string.exercises_title),
@@ -94,8 +101,9 @@ fun ExercisesScreen(
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = Spacing.lg)) {
-            state.error?.let { ExercisesFeedback(it, isError = true, onDismiss = viewModel::clearFeedback) }
-            state.notice?.let { ExercisesFeedback(it, isError = false, onDismiss = viewModel::clearFeedback) }
+            val feedback = feedbackFor(state.error, state.notice, state.editorSave, editorOpen)
+                ?.let { Feedback(stringResource(it.message.stringResourceId), it.isError) }
+            FeedbackSnackbarEffect(feedback, viewModel::clearFeedback)
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
@@ -156,7 +164,7 @@ fun ExercisesScreen(
         id = editorExerciseId,
         items = (state.catalog as? UiState.Content)?.value,
         idOf = CatalogExercise::id,
-        onGone = { editorOpen = false },
+        onGone = closeEditor,
     )?.let { slot ->
         val editorExercise = slot.item
         ExerciseEditorSheet(
@@ -167,7 +175,7 @@ fun ExercisesScreen(
             saved = state.editorSave == EditorSaveStatus.SAVED,
             errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
                 ?.let { stringResource(it.stringResourceId) },
-            onDismiss = { editorOpen = false },
+            onDismiss = closeEditor,
             onSave = { input ->
                 editorExercise?.let { viewModel.updateExercise(it.id, input) }
                     ?: viewModel.createExercise(input)
@@ -315,20 +323,6 @@ private fun ExerciseRow(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun ExercisesFeedback(message: ExerciseUiMessage, isError: Boolean, onDismiss: () -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
-        color = if (isError) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer,
-        shape = MaterialTheme.shapes.small,
-    ) {
-        Row(Modifier.padding(start = Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(message.stringResourceId), Modifier.weight(1f))
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dismiss)) }
         }
     }
 }

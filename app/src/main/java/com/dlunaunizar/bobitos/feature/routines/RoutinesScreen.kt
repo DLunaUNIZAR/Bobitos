@@ -27,7 +27,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -53,8 +52,12 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosInfoSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
+import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
+import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
+import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
+import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Routine
@@ -83,6 +86,12 @@ fun RoutinesScreen(
     var deleteTarget by remember { mutableStateOf<Routine?>(null) }
     var query by rememberSaveable { mutableStateOf("") }
     LaunchedEffect(query) { viewModel.setQuery(query) }
+    val closeEditor = {
+        // Cerrar tras un guardado fallido descarta ese error (ya se veía en la hoja).
+        state.editorSave.discardFailure(viewModel::clearFeedback)
+        editorOpen = false
+        editorRoutineId = null
+    }
 
     ScreenScaffold(
         title = stringResource(R.string.routines_title),
@@ -102,8 +111,9 @@ fun RoutinesScreen(
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = Spacing.lg)) {
-            state.error?.let { RoutinesFeedback(it, isError = true, onDismiss = viewModel::clearFeedback) }
-            state.notice?.let { RoutinesFeedback(it, isError = false, onDismiss = viewModel::clearFeedback) }
+            val feedback = feedbackFor(state.error, state.notice, state.editorSave, editorOpen)
+                ?.let { Feedback(stringResource(it.message.stringResourceId), it.isError) }
+            FeedbackSnackbarEffect(feedback, viewModel::clearFeedback)
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
@@ -128,10 +138,7 @@ fun RoutinesScreen(
     EditorSaveEffect(
         status = state.editorSave,
         editorOpen = editorOpen,
-        onClose = {
-            editorOpen = false
-            editorRoutineId = null
-        },
+        onClose = closeEditor,
         onConsume = viewModel::consumeEditorSave,
     )
     RoutineSheetsHost(
@@ -146,10 +153,7 @@ fun RoutinesScreen(
             viewModel.fork(routine)
             detailRoutineId = null
         },
-        onCloseEditor = {
-            editorOpen = false
-            editorRoutineId = null
-        },
+        onCloseEditor = closeEditor,
         onSave = { routine, visibility, title, description, exercises ->
             routine?.let { viewModel.updateRoutine(it.id, title, description, exercises) }
                 ?: viewModel.createRoutine(visibility, title, description, exercises)
@@ -411,20 +415,6 @@ private fun RoutineDetailSheet(routine: Routine, canFork: Boolean, onFork: () ->
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun RoutinesFeedback(message: RoutineUiMessage, isError: Boolean, onDismiss: () -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
-        color = if (isError) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer,
-        shape = MaterialTheme.shapes.small,
-    ) {
-        Row(Modifier.padding(start = Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(message.stringResourceId), Modifier.weight(1f))
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dismiss)) }
         }
     }
 }

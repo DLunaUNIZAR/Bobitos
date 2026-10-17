@@ -1,45 +1,6 @@
 package com.dlunaunizar.bobitos.feature.spaces
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import com.dlunaunizar.bobitos.R
-
-@Composable
-internal fun SpaceFeedback(state: SpaceManagementUiState, onDismiss: () -> Unit) {
-    if (state.writeStatus == WriteStatus.SAVING) {
-        Text(
-            text = stringResource(R.string.write_saving),
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        return
-    }
-    val message = state.error ?: state.notice ?: return
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(
-            text = stringResource(message.stringResourceId),
-            color = if (state.error != null) {
-                MaterialTheme.colorScheme.error
-            } else {
-                MaterialTheme.colorScheme.primary
-            },
-            modifier = Modifier.weight(1f),
-        )
-        TextButton(onClick = onDismiss) {
-            Text(text = stringResource(R.string.dismiss))
-        }
-    }
-}
 
 internal val SpaceUiMessage.stringResourceId: Int
     get() = when (this) {

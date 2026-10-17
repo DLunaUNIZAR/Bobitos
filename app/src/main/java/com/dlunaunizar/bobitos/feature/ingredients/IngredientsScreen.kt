@@ -21,9 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -50,11 +48,16 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
+import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
+import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.InfoChip
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SwitchRow
+import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
+import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
+import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.Supermarket
@@ -82,11 +85,19 @@ fun IngredientsScreen(
     var createCommon by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
     IngredientsEvents(state, viewModel, onOpenIngredient, onOpenBrand) { showScanCreate = false }
+    val editorOpen = showEditor || showScanCreate || state.scanBrandTarget != null
+    val closeEditor: () -> Unit = {
+        // Cerrar tras un guardado fallido descarta ese error (ya se veía en el diálogo).
+        state.editorSave.discardFailure(viewModel::clearFeedback)
+        showEditor = false
+        showScanCreate = false
+    }
 
     ScreenScaffold(
         title = stringResource(R.string.ingredients_title),
         onBack = onBack,
         modifier = modifier,
+        saving = savingOutsideEditor(state.isSaving, editorOpen),
         actions = { ScanButton(enabled = !state.isLookingUp, onScanned = viewModel::lookupBarcode) },
         floatingActionButton = {
             ExtendedFloatingActionButton(
@@ -102,11 +113,12 @@ fun IngredientsScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp),
         ) {
-            IngredientsFeedback(
-                state.error,
-                state.notice,
-                state.isSaving,
-                viewModel::clearFeedback,
+            IngredientsMessageEffect(
+                error = state.error,
+                notice = state.notice,
+                editorSave = state.editorSave,
+                editorOpen = editorOpen,
+                onShown = viewModel::clearFeedback,
                 existingName = state.existingName,
             )
             SearchField(
@@ -122,7 +134,7 @@ fun IngredientsScreen(
 
     EditorSaveEffect(
         status = state.editorSave,
-        editorOpen = showEditor || showScanCreate || state.scanBrandTarget != null,
+        editorOpen = editorOpen,
         onClose = {
             showEditor = false
             showScanCreate = false
@@ -136,13 +148,13 @@ fun IngredientsScreen(
             ingredient = null,
             saving = state.isSaving,
             errorMessage = editorError,
-            onDismiss = { showEditor = false },
+            onDismiss = closeEditor,
             onSave = { name, category, unit -> viewModel.createIngredient(name, category, unit, createCommon) },
             commonToggle = if (state.isAdmin) CommonToggle(createCommon) { createCommon = it } else null,
         )
     }
 
-    ScanFlow(state, viewModel, showScanCreate, editorError) { showScanCreate = it }
+    ScanFlow(state, viewModel, showScanCreate, editorError, closeEditor) { showScanCreate = it }
 }
 
 @Composable
@@ -188,6 +200,7 @@ private fun ScanFlow(
     viewModel: IngredientsViewModel,
     showCreate: Boolean,
     editorError: String?,
+    closeCreate: () -> Unit,
     setShowCreate: (Boolean) -> Unit,
 ) {
     val pick = state.scanPick ?: return
@@ -206,7 +219,7 @@ private fun ScanFlow(
             initialName = pick.productName,
             saving = state.isSaving,
             errorMessage = editorError,
-            onDismiss = { setShowCreate(false) },
+            onDismiss = closeCreate,
             onSave = viewModel::createPersonalForScan,
         )
         else -> ScanPickDialog(
@@ -405,44 +418,23 @@ internal fun IngredientEditorDialog(
 /** Estado del interruptor «Común (catálogo)» del editor de ingredientes. */
 internal class CommonToggle(val checked: Boolean, val onChange: (Boolean) -> Unit)
 
+/** Resultado de una acción del catálogo, en el snackbar de la pantalla. */
 @Composable
-internal fun IngredientsFeedback(
+internal fun IngredientsMessageEffect(
     error: IngredientUiMessage?,
     notice: IngredientUiMessage?,
-    saving: Boolean,
-    onDismiss: () -> Unit,
+    editorSave: EditorSaveStatus,
+    editorOpen: Boolean,
+    onShown: () -> Unit,
     existingName: String? = null,
     barcodeConflict: BarcodeConflict? = null,
 ) {
-    val message = error ?: notice
-    val text = when {
-        saving -> stringResource(R.string.write_saving)
-        message != null -> ingredientMessageText(message, existingName, barcodeConflict)
-        else -> return
-    }
-    Surface(
-        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        color = if (error != null) {
-            MaterialTheme.colorScheme.errorContainer
-        } else {
-            MaterialTheme.colorScheme.secondaryContainer
-        },
-        shape = MaterialTheme.shapes.small,
-    ) {
-        Row(modifier = Modifier.padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = text,
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            if (!saving) {
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.dismiss)) }
-            }
-        }
-    }
+    val feedback = feedbackFor(error, notice, editorSave, editorOpen)
+        ?.let { Feedback(ingredientMessageText(it.message, existingName, barcodeConflict), it.isError) }
+    FeedbackSnackbarEffect(feedback, onShown)
 }
 
-/** El error del guardado del editor abierto (solo con FAILED); los demás se ven en el banner. */
+/** El error del guardado del editor abierto (solo con FAILED); los demás se ven en el snackbar. */
 @Composable
 internal fun editorErrorMessage(
     error: IngredientUiMessage?,

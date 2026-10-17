@@ -31,7 +31,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -59,12 +58,15 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
+import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
+import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
+import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Meal
@@ -117,6 +119,7 @@ fun MealsScreen(
 
     ModuleScaffold(
         modifier = modifier.fillMaxSize(),
+        saving = savingOutsideEditor(state.isSaving, editorOpen),
         floatingActionButton = {
             NewMealFab(
                 visible = canWrite,
@@ -125,6 +128,14 @@ fun MealsScreen(
         },
     ) { padding ->
         val snackbar = LocalSnackbarHostState.current
+        FeedbackSnackbarEffect(
+            error = state.error,
+            notice = state.notice,
+            editorSave = state.editorSave,
+            editorOpen = editorOpen,
+            onShown = viewModel::clearFeedback,
+            text = { stringResource(it.stringResourceId) },
+        )
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -191,7 +202,6 @@ fun MealsScreen(
                     }
                 }
             }
-            MealsFeedback(state, viewModel::clearFeedback)
             Spacer(Modifier.height(8.dp))
 
             when (val mealsState = state.meals) {
@@ -254,6 +264,8 @@ fun MealsScreen(
     }
 
     val closeEditor = {
+        // Cerrar tras un guardado fallido descarta ese error (ya se veía en la hoja).
+        state.editorSave.discardFailure(viewModel::clearFeedback)
         editorOpen = false
         editorMealId = null
     }
@@ -716,42 +728,6 @@ private fun DeleteMealDialog(meal: Meal, enabled: Boolean, onConfirm: () -> Unit
         onConfirm = onConfirm,
         onDismiss = onDismiss,
     )
-}
-
-@Composable
-private fun MealsFeedback(state: MealsUiState, onDismiss: () -> Unit) {
-    val message = state.error ?: state.notice
-    if (message == null && !state.isSaving) return
-    val isError = state.error != null
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp),
-        color = if (isError) {
-            MaterialTheme.colorScheme.errorContainer
-        } else {
-            MaterialTheme.colorScheme.secondaryContainer
-        },
-        shape = MaterialTheme.shapes.small,
-    ) {
-        Row(
-            modifier = Modifier.padding(start = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = if (state.isSaving) {
-                    stringResource(R.string.write_saving)
-                } else {
-                    stringResource(message!!.stringResourceId)
-                },
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            if (!state.isSaving) {
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.dismiss)) }
-            }
-        }
-    }
 }
 
 private val HEADER_FORMAT = DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", Locale.forLanguageTag("es"))

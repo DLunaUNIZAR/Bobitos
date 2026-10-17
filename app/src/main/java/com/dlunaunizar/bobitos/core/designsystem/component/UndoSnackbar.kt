@@ -16,7 +16,7 @@ val LocalSnackbarHostState = compositionLocalOf<SnackbarHostState?> { null }
 
 /** Muestra un aviso con acción «Deshacer»; devuelve true si el usuario pulsa la acción. */
 suspend fun SnackbarHostState.showUndo(message: String, actionLabel: String): Boolean =
-    showSnackbar(message = message, actionLabel = actionLabel, duration = SnackbarDuration.Short) ==
+    showSnackbar(message = message, actionLabel = actionLabel, duration = SnackbarDuration.Long) ==
         SnackbarResult.ActionPerformed
 
 /** Lanza un aviso «Deshacer» y ejecuta [onUndo] solo si el usuario pulsa la acción. No-op sin host. */

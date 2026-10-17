@@ -225,7 +225,14 @@ class IngredientsViewModel @Inject constructor(
     }
 
     fun cancelScan() {
-        mutableUiState.update { it.copy(scanPick = null, scanBrandTarget = null) }
+        // Un error del diálogo de marca que se cierra ya se vio en él: no reaparece como aviso.
+        mutableUiState.update {
+            it.copy(
+                scanPick = null,
+                scanBrandTarget = null,
+                error = if (it.editorSave == EditorSaveStatus.FAILED) null else it.error,
+            )
+        }
     }
 
     fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }

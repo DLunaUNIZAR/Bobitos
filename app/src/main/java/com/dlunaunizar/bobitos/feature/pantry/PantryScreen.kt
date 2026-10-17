@@ -19,7 +19,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -33,13 +32,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
+import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
+import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
+import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.PantryItem
 
@@ -83,13 +86,16 @@ fun PantryScreen(
             PantrySnackbars(
                 state = state,
                 host = host,
-                onNoticeShown = viewModel::clearFeedback,
                 onFinishedShown = viewModel::consumeFinished,
                 onRestock = viewModel::restock,
             )
         }
+        // Con el selector abierto, el error sale dentro del selector (el snackbar de aquí quedaría tapado).
+        FeedbackSnackbarEffect(
+            feedback = if (state.picker == null) pantryFeedback(state) else null,
+            onShown = viewModel::clearFeedback,
+        )
         Column(Modifier.padding(innerPadding).fillMaxSize()) {
-            state.error?.let { message -> PantryErrorBanner(message, viewModel::clearFeedback) }
             when (val loaded = state.items) {
                 UiState.Loading -> LoadingState(Modifier.weight(1f))
                 is UiState.Error -> ErrorState(
@@ -120,8 +126,8 @@ fun PantryScreen(
             onQueryChange = viewModel::setPickerQuery,
             onToggle = viewModel::togglePick,
             onConfirm = viewModel::confirmPicker,
-            error = state.error,
-            onDismissError = viewModel::clearFeedback,
+            feedback = pantryFeedback(state),
+            onFeedbackShown = viewModel::clearFeedback,
             onDismiss = viewModel::closePicker,
         )
     }
@@ -200,21 +206,20 @@ private fun PantryRow(item: PantryItem, enabled: Boolean, onFinished: () -> Unit
     }
 }
 
-// Avisos de éxito como Snackbar efímero; «Se acabó», con la acción «A la compra» durante más tiempo.
+@Composable
+private fun pantryFeedback(state: PantryUiState): Feedback<String>? {
+    val feedback = feedbackFor(state.error, state.notice, EditorSaveStatus.IDLE, editorOpen = false)
+    return feedback?.let { Feedback(stringResource(it.message.stringRes()), it.isError) }
+}
+
+// «Se acabó», con la acción «A la compra» durante más tiempo.
 @Composable
 private fun PantrySnackbars(
     state: PantryUiState,
     host: SnackbarHostState,
-    onNoticeShown: () -> Unit,
     onFinishedShown: () -> Unit,
     onRestock: (PantryItem) -> Unit,
 ) {
-    val noticeText = state.notice?.let { stringResource(it.stringRes()) }
-    LaunchedEffect(state.notice) {
-        val text = noticeText ?: return@LaunchedEffect
-        host.showSnackbar(text)
-        onNoticeShown()
-    }
     val finished = state.finished
     val finishedText = finished?.let { stringResource(R.string.pantry_finished_snackbar, it.name) }
     val toShopping = stringResource(R.string.pantry_to_shopping)
@@ -223,19 +228,6 @@ private fun PantrySnackbars(
         val result = host.showSnackbar(finishedText, actionLabel = toShopping, duration = SnackbarDuration.Long)
         onFinishedShown()
         if (result == SnackbarResult.ActionPerformed) onRestock(finished)
-    }
-}
-
-@Composable
-internal fun PantryErrorBanner(message: PantryUiMessage, onDismiss: () -> Unit) {
-    Surface(
-        Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-        color = MaterialTheme.colorScheme.errorContainer,
-    ) {
-        Row(Modifier.padding(start = Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(message.stringRes()), Modifier.weight(1f))
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dismiss)) }
-        }
     }
 }
 

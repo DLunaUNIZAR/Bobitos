@@ -40,7 +40,9 @@ import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
+import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
@@ -175,7 +177,14 @@ fun PersonalCalendarScreen(
                 )
             }
 
-            CalendarMessage(state.error, null, state.editorSave, viewModel::clearMessage)
+            FeedbackSnackbarEffect(
+                error = state.error?.messageRes(),
+                notice = null,
+                editorSave = state.editorSave,
+                editorOpen = editorOpen,
+                onShown = viewModel::clearMessage,
+                text = { stringResource(it) },
+            )
         }
     }
 
@@ -191,6 +200,8 @@ fun PersonalCalendarScreen(
     }
 
     val closeEditor = {
+        // Cerrar tras un guardado fallido descarta ese error (ya se veía en la hoja).
+        state.editorSave.discardFailure(viewModel::clearMessage)
         editorOpen = false
         editorEventId = null
         editorStartText = null

@@ -54,7 +54,9 @@ import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.InfoChip
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SwitchRow
+import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
+import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.Nutrition
@@ -100,6 +102,7 @@ fun IngredientDetailScreen(
         title = ingredient?.name ?: stringResource(R.string.ingredients_title),
         onBack = onBack,
         modifier = modifier,
+        saving = savingOutsideEditor(state.isSaving, showFichaEditor || brandInitial != null),
     ) { padding ->
         Column(
             modifier = Modifier
@@ -109,7 +112,14 @@ fun IngredientDetailScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            DetailFeedback(state, viewModel)
+            IngredientsMessageEffect(
+                error = state.error,
+                notice = state.notice,
+                editorSave = state.editorSave,
+                editorOpen = showFichaEditor || brandInitial != null,
+                onShown = viewModel::clearFeedback,
+                barcodeConflict = state.barcodeConflict,
+            )
             IngredientContent(
                 state = state,
                 ingredient = ingredient,
@@ -210,7 +220,10 @@ private fun DetailEditors(
             ingredient = fichaIngredient,
             saving = state.isSaving,
             errorMessage = editorError,
-            onDismiss = onCloseFicha,
+            onDismiss = {
+                state.editorSave.discardFailure(viewModel::clearFeedback)
+                onCloseFicha()
+            },
             onSave = viewModel::updateIngredient,
         )
     }
@@ -219,19 +232,11 @@ private fun DetailEditors(
         initial = brandInitial,
         saving = state.isSaving,
         errorMessage = editorError,
-        onClose = onCloseBrand,
+        onClose = {
+            state.editorSave.discardFailure(viewModel::clearFeedback)
+            onCloseBrand()
+        },
         onSave = viewModel::saveBrand,
-    )
-}
-
-@Composable
-private fun DetailFeedback(state: IngredientDetailUiState, viewModel: IngredientDetailViewModel) {
-    IngredientsFeedback(
-        state.error,
-        state.notice,
-        state.isSaving,
-        viewModel::clearFeedback,
-        barcodeConflict = state.barcodeConflict,
     )
 }
 

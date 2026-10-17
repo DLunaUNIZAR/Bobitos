@@ -24,12 +24,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,9 +47,12 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
+import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
+import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
-import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
+import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
+import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Note
@@ -78,6 +78,11 @@ fun NotesScreen(
     // Sin espacio activo no se puede escribir (las escrituras usan observedSpaceId): se desactivan
     // los controles para no perder cambios en silencio si el espacio deja de estar disponible.
     val enabled = canWrite && spaceId != null && !state.isSaving
+    val closeEditor: () -> Unit = {
+        // Cerrar tras un guardado fallido descarta ese error (ya se veía en la hoja).
+        state.editorSave.discardFailure(viewModel::clearFeedback)
+        editorVisible = false
+    }
 
     ScreenScaffold(
         title = stringResource(R.string.notes_title),
@@ -96,16 +101,10 @@ fun NotesScreen(
             }
         },
     ) { innerPadding ->
-        // Avisos de éxito como snackbar efímero (el banner queda para errores persistentes).
-        val snackbarHost = LocalSnackbarHostState.current
-        val noticeMessage = state.notice?.let { stringResource(it.stringRes()) }
-        LaunchedEffect(state.notice) {
-            val text = noticeMessage ?: return@LaunchedEffect
-            snackbarHost?.showSnackbar(text)
-            viewModel.clearFeedback()
-        }
+        val feedback = feedbackFor(state.error, state.notice, state.editorSave, editorVisible)
+            ?.let { Feedback(stringResource(it.message.stringRes()), it.isError) }
+        FeedbackSnackbarEffect(feedback, viewModel::clearFeedback)
         Column(Modifier.padding(innerPadding).fillMaxSize()) {
-            state.error?.let { message -> NoteFeedbackBanner(message, viewModel::clearFeedback) }
             when (val notes = state.notes) {
                 UiState.Loading -> LoadingState(Modifier.weight(1f))
                 is UiState.Error -> ErrorState(
@@ -160,14 +159,14 @@ fun NotesScreen(
         id = editorNoteId,
         items = (state.notes as? UiState.Content)?.value,
         idOf = Note::id,
-        onGone = { editorVisible = false },
+        onGone = closeEditor,
     )?.let { slot ->
         NoteEditor(
             note = slot.item,
             saving = state.isSaving,
             errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
                 ?.let { stringResource(it.stringRes()) },
-            onDismiss = { editorVisible = false },
+            onDismiss = closeEditor,
             onSave = { title, body ->
                 slot.item?.let { viewModel.updateNote(it.id, title, body) }
                     ?: viewModel.addNote(title, body)
@@ -283,19 +282,6 @@ private fun NoteEditor(
         )
         validation?.let {
             Text(stringResource(it.stringRes()), color = MaterialTheme.colorScheme.error)
-        }
-    }
-}
-
-@Composable
-private fun NoteFeedbackBanner(message: NoteUiMessage, onDismiss: () -> Unit) {
-    Surface(
-        Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-        color = MaterialTheme.colorScheme.errorContainer,
-    ) {
-        Row(Modifier.padding(start = Spacing.md), verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(message.stringRes()), Modifier.weight(1f))
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dismiss)) }
         }
     }
 }
