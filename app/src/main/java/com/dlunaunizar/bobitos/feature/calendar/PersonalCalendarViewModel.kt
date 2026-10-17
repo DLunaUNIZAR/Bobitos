@@ -93,6 +93,9 @@ class PersonalCalendarViewModel @Inject constructor(
         observeRange()
     }
 
+    // Vuelve a suscribir los eventos del periodo actual (muestra la carga y, si sigue fallando, el error otra vez).
+    fun retryEvents() = observeRange()
+
     fun previous() = move(-1)
 
     fun next() = move(1)

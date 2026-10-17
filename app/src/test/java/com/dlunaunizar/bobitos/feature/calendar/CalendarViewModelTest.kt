@@ -16,6 +16,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -131,6 +132,49 @@ class CalendarViewModelTest {
 
         assertEquals(CalendarNotice.SAVED, viewModel.uiState.value.notice)
         assertNull(viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun aFailedLoadLeavesEventsInError() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = RecordingCalendarRepository()
+        val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
+        repository.failingLoads = 1
+
+        viewModel.observe("space-1")
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.events is UiState.Error)
+    }
+
+    @Test
+    fun retryingResubscribesAndCanSucceed() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = RecordingCalendarRepository()
+        val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
+        repository.failingLoads = 1
+        repository.served = listOf(sampleEvent())
+        viewModel.observe("space-1")
+        advanceUntilIdle()
+
+        viewModel.retryEvents()
+        advanceUntilIdle()
+
+        val events = viewModel.uiState.value.events
+        assertTrue(events is UiState.Content)
+        assertEquals(1, (events as UiState.Content).value.size)
+    }
+
+    @Test
+    fun retryingWhileItStillFailsShowsTheErrorAgain() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = RecordingCalendarRepository()
+        val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
+        repository.failingLoads = 2
+        viewModel.observe("space-1")
+        advanceUntilIdle()
+
+        viewModel.retryEvents()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.events is UiState.Error)
     }
 
     @Test
@@ -260,7 +304,18 @@ private class RecordingCalendarRepository : CalendarRepository {
     var hang = false
 
     override fun events(spaceId: String, rangeStart: Instant, rangeEndExclusive: Instant): Flow<List<CalendarEvent>> =
-        loadFailure?.let { error -> flow { throw error } } ?: emptyFlow()
+        nextLoadFailure()?.let { error -> flow { throw error } } ?: served?.let { flowOf(it) } ?: emptyFlow()
+
+    // Los primeros `failingLoads` abrir la suscripción fallan; después, emite `served`.
+    var failingLoads = 0
+    var served: List<CalendarEvent>? = null
+
+    private fun nextLoadFailure(): Throwable? = loadFailure ?: if (failingLoads > 0) {
+        failingLoads--
+        RuntimeException("sin conexión")
+    } else {
+        null
+    }
 
     override suspend fun createEvent(spaceId: String, input: EventInput, eventId: String?): String {
         failure?.let { throw it }
@@ -306,3 +361,23 @@ private inline fun <reified T> emptyFlows(): T = Proxy.newProxyInstance(
         else -> error("${method.name} no usado")
     }
 } as T
+
+private fun sampleEvent() = CalendarEvent(
+    id = "event-1",
+    title = "Cena",
+    description = null,
+    allDay = false,
+    startAt = Instant.parse("2026-10-09T18:00:00Z"),
+    endAt = Instant.parse("2026-10-09T19:00:00Z"),
+    startDate = null,
+    endDateExclusive = null,
+    timeZone = "Europe/Madrid",
+    color = EventColor.BLUE,
+    participantIds = emptyList(),
+    participantNames = emptyList(),
+    createdBy = "ana",
+    createdByName = "Ana",
+    createdAt = Instant.parse("2026-10-01T10:00:00Z"),
+    updatedBy = "ana",
+    updatedAt = Instant.parse("2026-10-01T10:00:00Z"),
+)

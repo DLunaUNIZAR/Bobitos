@@ -43,7 +43,9 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
@@ -81,7 +83,8 @@ fun PersonalCalendarScreen(
     var spacePickerTime by remember { mutableStateOf<LocalTime?>(null) }
     var eventToDelete by remember { mutableStateOf<PersonalCalendarEvent?>(null) }
 
-    val events = (state.events as? UiState.Content)?.value.orEmpty()
+    val loadedEvents = (state.events as? UiState.Content)?.value
+    val events = loadedEvents.orEmpty()
         .filter { it.spaceId in state.selectedSpaceIds }
     val dayEvents = events.eventsOn(state.focusedDate)
     val dayEventsById = dayEvents.associateBy { it.event.id }
@@ -151,32 +154,36 @@ fun PersonalCalendarScreen(
                 onClear = viewModel::clearSpaceSelection,
             )
 
-            when (state.mode) {
-                CalendarDisplayMode.MONTH -> MonthGrid(
-                    month = YearMonth.from(state.focusedDate),
-                    selected = state.focusedDate,
-                    events = events.map(PersonalCalendarEvent::event),
-                    select = { date ->
-                        viewModel.select(date)
-                        drilledFrom = state.mode
-                        viewModel.setMode(CalendarDisplayMode.DAY)
-                    },
-                )
-                CalendarDisplayMode.DAY -> DayHourGrid(
-                    events = dayEvents.map(PersonalCalendarEvent::event),
-                    tasks = emptyList(),
-                    canWrite = canWrite,
-                    onEdit = { event -> dayEventsById[event.id]?.let { openEditor(it.spaceId, it.event, null) } },
-                    onDelete = { id -> dayEventsById[id]?.let { eventToDelete = it } },
-                    onCreateAt = onCreateAt,
-                    modifier = Modifier.weight(1f),
-                )
-                CalendarDisplayMode.WEEK -> PersonalWeekEventList(
-                    events = events,
-                    focusedDate = state.focusedDate,
-                    onSelected = onEventSelected,
-                    modifier = Modifier.weight(1f),
-                )
+            EventsLoadState(state.events, viewModel::retryEvents, Modifier.weight(1f)) {
+                when (state.mode) {
+                    CalendarDisplayMode.MONTH -> MonthGrid(
+                        month = YearMonth.from(state.focusedDate),
+                        selected = state.focusedDate,
+                        events = events.map(PersonalCalendarEvent::event),
+                        select = { date ->
+                            viewModel.select(date)
+                            drilledFrom = state.mode
+                            viewModel.setMode(CalendarDisplayMode.DAY)
+                        },
+                    )
+                    CalendarDisplayMode.DAY -> DayHourGrid(
+                        events = dayEvents.map(PersonalCalendarEvent::event),
+                        tasks = emptyList(),
+                        canWrite = canWrite,
+                        onEdit = { event ->
+                            dayEventsById[event.id]?.let { openEditor(it.spaceId, it.event, null) }
+                        },
+                        onDelete = { id -> dayEventsById[id]?.let { eventToDelete = it } },
+                        onCreateAt = onCreateAt,
+                        modifier = Modifier.weight(1f),
+                    )
+                    CalendarDisplayMode.WEEK -> PersonalWeekEventList(
+                        events = events,
+                        focusedDate = state.focusedDate,
+                        onSelected = onEventSelected,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
 
             FeedbackSnackbarEffect(
@@ -218,7 +225,7 @@ fun PersonalCalendarScreen(
     )
     CalendarEditorHost(
         editorEventId = editorEventId,
-        events = events.takeIf { state.events is UiState.Content }
+        events = loadedEvents
             ?.filter { it.spaceId == editorSpaceId }
             ?.map(PersonalCalendarEvent::event),
         creating = editorOpen && editorEventId == null,
@@ -408,3 +415,23 @@ private fun applyBackAction(action: BackAction, onRestoreMode: (CalendarDisplayM
 /** Con un día abierto desde otra vista se vuelve a ella; si no, se sale de la pantalla. */
 internal fun personalCalendarBackAction(drilledFrom: CalendarDisplayMode?): BackAction =
     if (drilledFrom != null) BackAction.ToPreviousMode(drilledFrom) else BackAction.Leave
+
+// Mientras los eventos cargan o fallan, el área bajo la cabecera muestra la carga o el error con «Reintentar»
+// en vez de un periodo vacío fingido.
+@Composable
+internal fun <T> EventsLoadState(
+    events: UiState<T>,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable (T) -> Unit,
+) {
+    when (events) {
+        UiState.Loading -> LoadingState(modifier)
+        is UiState.Error -> ErrorState(
+            modifier,
+            message = stringResource(events.failure.messageRes()),
+            onRetry = onRetry,
+        )
+        is UiState.Content -> content(events.value)
+    }
+}

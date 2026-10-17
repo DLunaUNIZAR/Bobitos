@@ -145,14 +145,14 @@ fun CalendarScreen(
         initialDate?.let(viewModel::goToDate)
     }
 
-    val events = (state.events as? UiState.Content)?.value.orEmpty()
-    val filteredEvents = events.forSelectedMembers(state.selectedMemberIds)
+    val loadedEvents = (state.events as? UiState.Content)?.value
+    val filteredEvents = loadedEvents.orEmpty().forSelectedMembers(state.selectedMemberIds)
     val members = (state.members as? UiState.Content)?.value.orEmpty()
     val creatingAt = creatingAtText?.let(LocalTime::parse)
 
-    LaunchedEffect(initialEventId, events) {
+    LaunchedEffect(initialEventId, loadedEvents) {
         if (initialEventId != null && !handledInitialEvent) {
-            events.firstOrNull { it.id == initialEventId }?.let {
+            loadedEvents?.firstOrNull { it.id == initialEventId }?.let {
                 editorEventId = it.id
                 handledInitialEvent = true
             }
@@ -208,31 +208,33 @@ fun CalendarScreen(
                 viewModel.select(date)
                 viewModel.setMode(CalendarDisplayMode.DAY)
             }
-            when (state.mode) {
-                CalendarDisplayMode.MONTH -> MonthGrid(
-                    month = YearMonth.from(state.focusedDate),
-                    selected = state.focusedDate,
-                    events = filteredEvents,
-                    select = onDayTap,
-                )
-                CalendarDisplayMode.DAY -> DayHourGrid(
-                    events = filteredEvents.eventsOn(state.focusedDate),
-                    tasks = state.tasks.tasksOn(state.focusedDate),
-                    canWrite = canWrite,
-                    onEdit = { editorEventId = it.id },
-                    onDelete = { id -> eventToDelete = filteredEvents.firstOrNull { it.id == id } },
-                    onCreateAt = { creatingAtText = it.toString() },
-                    modifier = Modifier.weight(1f),
-                )
-                CalendarDisplayMode.WEEK -> WeekEventList(
-                    focusedDate = state.focusedDate,
-                    events = filteredEvents,
-                    canWrite = canWrite,
-                    onEdit = { editorEventId = it.id },
-                    onDelete = { id -> eventToDelete = filteredEvents.firstOrNull { it.id == id } },
-                    onDayTap = onDayTap,
-                    modifier = Modifier.weight(1f),
-                )
+            EventsLoadState(state.events, viewModel::retryEvents, Modifier.weight(1f)) {
+                when (state.mode) {
+                    CalendarDisplayMode.MONTH -> MonthGrid(
+                        month = YearMonth.from(state.focusedDate),
+                        selected = state.focusedDate,
+                        events = filteredEvents,
+                        select = onDayTap,
+                    )
+                    CalendarDisplayMode.DAY -> DayHourGrid(
+                        events = filteredEvents.eventsOn(state.focusedDate),
+                        tasks = state.tasks.tasksOn(state.focusedDate),
+                        canWrite = canWrite,
+                        onEdit = { editorEventId = it.id },
+                        onDelete = { id -> eventToDelete = filteredEvents.firstOrNull { it.id == id } },
+                        onCreateAt = { creatingAtText = it.toString() },
+                        modifier = Modifier.weight(1f),
+                    )
+                    CalendarDisplayMode.WEEK -> WeekEventList(
+                        focusedDate = state.focusedDate,
+                        events = filteredEvents,
+                        canWrite = canWrite,
+                        onEdit = { editorEventId = it.id },
+                        onDelete = { id -> eventToDelete = filteredEvents.firstOrNull { it.id == id } },
+                        onDayTap = onDayTap,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
 
             FeedbackSnackbarEffect(
