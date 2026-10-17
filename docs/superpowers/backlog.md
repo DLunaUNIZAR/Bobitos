@@ -4,6 +4,20 @@ Menores que las revisiones de cada rama dejaron sin arreglar. Cada línea dice s
 
 Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalogo-ejercicios-wger`) se cerraron en la rama `agent/menores-aplazados` (plan `docs/superpowers/plans/2026-10-10-menores-aplazados.md`).
 
+## 2026-10-17 — `agent/evolucion-visual-fase-a`
+
+- **Efecto visible:** la ficha «Calendario» de Hoy cuenta los eventos con `startAt >= now`, así que un evento de todo el día (empieza a las 00:00) o uno ya empezado no cuentan: sale «Calendario 0» con eventos hoy. Viene de antes de la rama; la fase C («Hoy como agenda») sustituye los contadores (`FirestoreSpaceSummaryRepository.kt:27`).
+- **Efecto visible:** Calendario y Mi calendario no pintan el fallo de carga: con error salen vacíos («Sin eventos») en vez de `ErrorState` con «Reintentar», como pide A6. Viene de antes de la rama (`CalendarScreen.kt`, `PersonalCalendarScreen.kt`).
+- **Efecto visible:** «Mi día» sigue usando emoji (✅ 🍳 🍽 🎉) en sus cadenas, junto a la fila de eventos que ya lleva un icono de Material (`strings.xml`, cadenas `home_my_day_*`).
+- **Efecto visible:** en los diálogos de crear, unirse a y renombrar un espacio, el error llega del ViewModel: no desaparece al corregir el campo (solo al volver a pulsar) y no lleva el foco al campo (`SpacesScreen.kt`, `SpaceNameDialog`, `InvitationCodeDialog`).
+- **Efecto visible (raro):** Deshacer al añadir borra aunque otro miembro haya cambiado el elemento en los segundos del snackbar; la spec pide avisar (ruling R11 del plan). Arreglo: comprobar `updatedAt`/`updatedBy` en el borrado.
+- **Efecto visible (raro):** `showError(editor = true)` (p. ej. fecha inválida en Tareas) pone `isSaving = false` aunque otra acción siga guardando; al cerrar la hoja, `discardFailure` limpia también el aviso de esa acción («Tarea completada» no sale). Mismo patrón en Compra, Notas, Deporte y Ejercicios (`TasksViewModel.kt` `showError`).
+- **Interno:** Hoy mantiene cuatro escuchas de Firestore (miembros, tareas, comidas y eventos de hoy) abiertas en `viewModelScope` mientras se está en otras pestañas, y las recrea al volver. Cuesta lecturas y batería; mejor recoger solo con Hoy visible (`SpaceHomeViewModel.observeDigest`).
+- **Interno:** `PersonalCalendarViewModel.createdSpaces` solo crece (un id → espacio por alta); el espacio podría viajar con el elemento creado.
+- **Interno:** los `runAction`/`action` de 12 ViewModels devuelven `Any?` y hacen `result as? CreatedItem`; tiparlo obligaría a acabar en `null` cada lambda (ruling R19 del plan).
+- **Interno:** `ProfileScreenTest.privacyPolicyAndAccountDeletionAreReachable` (instrumentado) falla ya en `main` por Hilt: `ProfileScreen` crea sus `hiltViewModel()` por defecto y `ComponentActivity` no es `GeneratedComponent`. Pasarle ViewModels falsos o pasar el test a `@HiltAndroidTest`.
+- **Interno:** el deshacer forzado (`force = true`) solo tiene test propio en Tareas y Compra; las otras diez áreas llevan el mismo cambio sin test.
+
 ## 2026-10-14 — `agent/menores-listo-duplicado`
 
 - **Efecto visible (raro):** `applyWrites` tiene la misma ventana con sus `ShoppingWrite.Add`: si otro miembro apunta lo mismo mientras se guarda, sale duplicado. Afecta a la revisión de «Añadir a la compra» (recetas y comidas) y a «A la compra» de la Despensa. El arreglo sería el de `applyCooked` (`FirestoreShoppingRepository.applyWrites`, ruling 3 de `docs/superpowers/plans/2026-10-14-menores-listo-duplicado.md`).
