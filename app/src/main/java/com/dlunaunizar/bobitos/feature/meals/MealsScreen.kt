@@ -63,7 +63,6 @@ import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
-import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
@@ -114,7 +113,6 @@ fun MealsScreen(
         editorSlotName = slot.name
         editorOpen = true
     }
-    var mealToDelete by remember { mutableStateOf<Meal?>(null) }
     var query by rememberSaveable { mutableStateOf("") }
     var dayMenuExpanded by remember { mutableStateOf(false) }
     var duplicateDayPicker by remember { mutableStateOf(false) }
@@ -241,7 +239,15 @@ fun MealsScreen(
                                     canWrite = canWrite,
                                     actionsEnabled = actionsEnabled,
                                     onEdit = { meal -> openEditor(meal, meal.slot) },
-                                    onDelete = { mealToDelete = it },
+                                    onDelete = { meal ->
+                                        // El espacio se captura al borrar: «Deshacer» devuelve la comida a su espacio.
+                                        val deletedFrom = spaceId
+                                        viewModel.deleteMeal(meal.id) {
+                                            scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+                                                viewModel.restoreMeal(deletedFrom, meal)
+                                            }
+                                        }
+                                    },
                                     onAddToShopping = { viewModel.addIngredientsToShopping(it) },
                                     onToggleCooked = {
                                         if (it.cooked) viewModel.unmarkCooked(it) else viewModel.markCooked(it)
@@ -252,21 +258,6 @@ fun MealsScreen(
                     }
                 }
             }
-        }
-
-        mealToDelete?.let { meal ->
-            DeleteMealDialog(
-                meal = meal,
-                enabled = actionsEnabled,
-                onConfirm = {
-                    viewModel.deleteMeal(meal.id)
-                    mealToDelete = null
-                    scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                        viewModel.restoreMeal(meal)
-                    }
-                },
-                onDismiss = { mealToDelete = null },
-            )
         }
     }
 
@@ -762,19 +753,6 @@ private fun NewMealFab(visible: Boolean, onClick: () -> Unit) {
         onClick = onClick,
         icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
         text = { Text(stringResource(R.string.meals_add_title)) },
-    )
-}
-
-@Composable
-private fun DeleteMealDialog(meal: Meal, enabled: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    BobitosDialog(
-        title = stringResource(R.string.meals_delete_title),
-        message = stringResource(R.string.meals_delete_body, meal.name),
-        confirmLabel = stringResource(R.string.meals_delete),
-        destructive = true,
-        confirmEnabled = enabled,
-        onConfirm = onConfirm,
-        onDismiss = onDismiss,
     )
 }
 

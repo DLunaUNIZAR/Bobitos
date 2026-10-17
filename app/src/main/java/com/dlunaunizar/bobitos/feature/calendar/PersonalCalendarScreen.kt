@@ -29,6 +29,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -46,8 +47,10 @@ import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
+import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
+import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
@@ -81,7 +84,9 @@ fun PersonalCalendarScreen(
     var editorStartText by rememberSaveable { mutableStateOf<String?>(null) }
     var spacePickerOpen by remember { mutableStateOf(false) }
     var spacePickerTime by remember { mutableStateOf<LocalTime?>(null) }
-    var eventToDelete by remember { mutableStateOf<PersonalCalendarEvent?>(null) }
+    val scope = rememberCoroutineScope()
+    val deletedMessage = stringResource(R.string.calendar_undo_deleted)
+    val undoLabel = stringResource(R.string.undo)
 
     val loadedEvents = (state.events as? UiState.Content)?.value
     val events = loadedEvents.orEmpty()
@@ -129,6 +134,15 @@ fun PersonalCalendarScreen(
             NewEventFab(canWrite = canWrite, spaceCount = spaces.size, onClick = { onCreateAt(null) })
         },
     ) { padding ->
+        val snackbar = LocalSnackbarHostState.current
+        val deleteWithUndo: (PersonalCalendarEvent) -> Unit = { personal ->
+            // El espacio se captura al borrar: «Deshacer» devuelve el evento a su espacio.
+            viewModel.deleteEvent(personal.spaceId, personal.event.id) {
+                scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+                    viewModel.restore(personal.spaceId, personal.event.id, personal.event.toInput())
+                }
+            }
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -173,7 +187,7 @@ fun PersonalCalendarScreen(
                         onEdit = { event ->
                             dayEventsById[event.id]?.let { openEditor(it.spaceId, it.event, null) }
                         },
-                        onDelete = { id -> dayEventsById[id]?.let { eventToDelete = it } },
+                        onDelete = { id -> dayEventsById[id]?.let(deleteWithUndo) },
                         onCreateAt = onCreateAt,
                         modifier = Modifier.weight(1f),
                     )
@@ -240,18 +254,6 @@ fun PersonalCalendarScreen(
         onClose = closeEditor,
         onSave = { id, input -> editorSpaceId?.let { viewModel.saveEvent(it, id, input) } },
     )
-
-    eventToDelete?.let { personal ->
-        DeleteEventDialog(
-            event = personal.event,
-            enabled = canWrite && !state.saving,
-            onConfirm = {
-                viewModel.deleteEvent(personal.spaceId, personal.event.id)
-                eventToDelete = null
-            },
-            onDismiss = { eventToDelete = null },
-        )
-    }
 }
 
 @Composable

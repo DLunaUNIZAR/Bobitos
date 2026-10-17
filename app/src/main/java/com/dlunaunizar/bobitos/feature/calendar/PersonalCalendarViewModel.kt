@@ -151,7 +151,17 @@ class PersonalCalendarViewModel @Inject constructor(
         }
     }
 
-    fun deleteEvent(spaceId: String, eventId: String) = action { repository.deleteEvent(spaceId, eventId) }
+    // onDeleted se llama solo si el borrado termina bien: así el «Deshacer» no se ofrece para un borrado fallido.
+    // Sin aviso propio: el snackbar de «Deshacer» ya confirma el borrado.
+    fun deleteEvent(spaceId: String, eventId: String, onDeleted: () -> Unit = {}) =
+        action(onSuccess = onDeleted) { repository.deleteEvent(spaceId, eventId) }
+
+    // «Deshacer» el borrado: el evento vuelve con su id, al espacio en que estaba. No es un guardado del editor ni
+    // lleva aviso propio; si falla, sale el error.
+    fun restore(spaceId: String, eventId: String, input: EventInput) = action(force = true) {
+        repository.createEvent(spaceId, input, eventId)
+        null
+    }
 
     fun consumeCreated() = mutable.update { it.copy(created = null) }
 
@@ -165,7 +175,12 @@ class PersonalCalendarViewModel @Inject constructor(
 
     fun clearMessage() = mutable.update { it.copy(error = null) }
 
-    private fun action(editor: Boolean = false, force: Boolean = false, block: suspend () -> Any?) {
+    private fun action(
+        editor: Boolean = false,
+        force: Boolean = false,
+        onSuccess: () -> Unit = {},
+        block: suspend () -> Any?,
+    ) {
         if (mutable.value.saving && !force) return
         mutable.update { it.copy(saving = true, error = null, editorSave = it.editorSave.started(editor)) }
         viewModelScope.launch {
@@ -178,6 +193,7 @@ class PersonalCalendarViewModel @Inject constructor(
                             editorSave = it.editorSave.succeeded(editor),
                         )
                     }
+                    onSuccess()
                 }
                 .onFailure { error ->
                     if (error is CancellationException) throw error

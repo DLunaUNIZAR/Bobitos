@@ -61,7 +61,6 @@ import com.dlunaunizar.bobitos.core.common.BobitosDates
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
-import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
@@ -113,7 +112,6 @@ fun SportScreen(
     // El editor sobrevive a una rotación: se guarda el id de la actividad, no el objeto.
     var editorOpen by rememberSaveable { mutableStateOf(false) }
     var editorActivityId by rememberSaveable { mutableStateOf<String?>(null) }
-    var activityToDelete by remember { mutableStateOf<SportActivity?>(null) }
 
     ModuleScaffold(
         modifier = modifier.fillMaxSize(),
@@ -140,9 +138,12 @@ fun SportScreen(
         ) { stringResource(it.stringResourceId) }
         CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
         val deleteWithUndo: (SportActivity) -> Unit = { activity ->
-            viewModel.deleteActivity(activity.id)
-            scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                viewModel.restoreActivity(activity)
+            // El espacio se captura al borrar: «Deshacer» devuelve la actividad (y su evento) a su espacio.
+            val deletedFrom = spaceId
+            viewModel.deleteActivity(activity.id) { event ->
+                scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+                    viewModel.restoreActivity(deletedFrom, activity, event)
+                }
             }
         }
 
@@ -205,7 +206,7 @@ fun SportScreen(
                                         editorActivityId = activity.id
                                         editorOpen = true
                                     },
-                                    onDelete = { activityToDelete = activity },
+                                    onDelete = { deleteWithUndo(activity) },
                                     onToggleDone = { viewModel.setDone(activity.id, !activity.done) },
                                 )
                             }
@@ -213,21 +214,6 @@ fun SportScreen(
                     }
                 }
             }
-        }
-
-        activityToDelete?.let { activity ->
-            BobitosDialog(
-                title = stringResource(R.string.sport_delete_title),
-                message = stringResource(R.string.sport_delete_body, activity.name),
-                confirmLabel = stringResource(R.string.sport_delete),
-                destructive = true,
-                confirmEnabled = actionsEnabled,
-                onConfirm = {
-                    deleteWithUndo(activity)
-                    activityToDelete = null
-                },
-                onDismiss = { activityToDelete = null },
-            )
         }
     }
 

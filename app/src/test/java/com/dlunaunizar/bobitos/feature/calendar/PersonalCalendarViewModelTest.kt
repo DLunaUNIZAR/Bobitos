@@ -166,6 +166,43 @@ class PersonalCalendarViewModelTest {
         assertFalse(viewModel.uiState.value.saving)
     }
 
+    @Test
+    fun `undoing a delete recreates the event with its original id in its space`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel.restore("space-a", "event-9", input)
+            advanceUntilIdle()
+
+            assertEquals(listOf(Triple("space-a", "event-9", input)), repository.created)
+            assertNull(viewModel.uiState.value.created)
+            assertNull(viewModel.uiState.value.error)
+        }
+
+    @Test
+    fun `a failed undo surfaces the error`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.failure = IllegalStateException("sin permiso")
+
+        viewModel.restore("space-a", "event-9", input)
+        advanceUntilIdle()
+
+        assertEquals(FailureKind.UNKNOWN, viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `undo is offered only once the delete has finished`() = runTest(mainDispatcherRule.testDispatcher) {
+        var offered = 0
+        repository.deleteFailure = IllegalStateException("sin red")
+        viewModel.deleteEvent("space-1", "event-1") { offered++ }
+        advanceUntilIdle()
+        assertEquals(0, offered)
+        assertEquals(FailureKind.UNKNOWN, viewModel.uiState.value.error)
+
+        repository.deleteFailure = null
+        viewModel.deleteEvent("space-1", "event-1") { offered++ }
+        advanceUntilIdle()
+        assertEquals(1, offered)
+        assertEquals(listOf("event-1"), repository.deleted)
+    }
+
     private val input = EventInput(
         title = "Correr",
         description = null,
@@ -184,6 +221,8 @@ private class PersonalRecordingCalendarRepository : CalendarRepository {
     var createGate: CompletableDeferred<Unit>? = null
     val deleted = mutableListOf<String>()
     val deletedSpaces = mutableListOf<String>()
+    val created = mutableListOf<Triple<String, String?, EventInput>>()
+    var deleteFailure: Throwable? = null
     var failure: Throwable? = null
     var loadFailure: Throwable? = null
 
@@ -208,6 +247,7 @@ private class PersonalRecordingCalendarRepository : CalendarRepository {
         failure?.let { throw it }
         awaitIfHanging()
         createGate?.await()
+        created += Triple(spaceId, eventId, input)
         return eventId ?: "new-1"
     }
 
@@ -217,6 +257,7 @@ private class PersonalRecordingCalendarRepository : CalendarRepository {
     }
 
     override suspend fun deleteEvent(spaceId: String, eventId: String) {
+        deleteFailure?.let { throw it }
         deletedSpaces += spaceId
         deleted += eventId
     }

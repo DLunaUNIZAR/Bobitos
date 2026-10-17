@@ -50,7 +50,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
-import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
@@ -112,7 +111,6 @@ fun RecipesScreen(
     var editorOpen by rememberSaveable { mutableStateOf(false) }
     var editorRecipeId by rememberSaveable { mutableStateOf<String?>(null) }
     var imported by rememberSaveable { mutableStateOf<RecipeDraft?>(null) }
-    var recipeToDelete by remember { mutableStateOf<Recipe?>(null) }
     var showImport by remember { mutableStateOf(false) }
     var selectedCategory by rememberSaveable { mutableStateOf<String?>(null) }
     val pantryIds = state.pantryIds?.takeIf { state.pantryOnly }
@@ -264,7 +262,7 @@ fun RecipesScreen(
                     detailRecipeId = null
                 },
                 onDelete = { recipe ->
-                    recipeToDelete = recipe
+                    viewModel.deleteRecipe(recipe)
                     detailRecipeId = null
                 },
                 onFork = { recipe ->
@@ -285,21 +283,6 @@ fun RecipesScreen(
                 showImport = false
                 viewModel.clearFeedback()
             },
-        )
-    }
-
-    recipeToDelete?.let { recipe ->
-        BobitosDialog(
-            title = stringResource(R.string.recipes_delete_title),
-            message = stringResource(R.string.recipes_delete_body, recipe.title),
-            confirmLabel = stringResource(R.string.recipes_delete),
-            destructive = true,
-            confirmEnabled = canWrite && !state.isSaving,
-            onConfirm = {
-                viewModel.deleteRecipe(recipe)
-                recipeToDelete = null
-            },
-            onDismiss = { recipeToDelete = null },
         )
     }
 

@@ -163,6 +163,25 @@ class FirestoreMealRepository @Inject constructor(
         Unit
     }
 
+    override suspend fun restoreMeal(spaceId: String, meal: Meal) = runMealOperation {
+        val user = requireVerifiedUser()
+        val spaceReference = firestore.collection(SPACES).document(spaceId)
+        val reference = mealsCollection(spaceId).document(meal.id)
+        firestore.runTransaction { transaction ->
+            if (!transaction.get(spaceReference).exists()) {
+                throw MealRepositoryException(MealFailure.SpaceNotFound)
+            }
+            transaction.set(
+                reference,
+                mealData(
+                    user, meal.date, meal.slot, meal.name, meal.participantIds, meal.participantNames,
+                    meal.recipeId, meal.cookId, meal.cookName,
+                ) + (FIELD_COOKED to meal.cooked),
+            )
+        }.await()
+        Unit
+    }
+
     private fun mealsCollection(spaceId: String) = firestore
         .collection(SPACES)
         .document(spaceId)

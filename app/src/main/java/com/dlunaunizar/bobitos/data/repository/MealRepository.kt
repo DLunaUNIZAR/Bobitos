@@ -32,6 +32,10 @@ interface MealRepository {
     suspend fun setCooked(spaceId: String, mealId: String, cooked: Boolean)
 
     suspend fun deleteMeal(spaceId: String, mealId: String)
+
+    // «Deshacer» el borrado: la comida vuelve con su id y su estado (cocinada, receta, cocinero, participantes). La
+    // autoría y las fechas de creación pasan a ser de quien deshace, como exigen las reglas de alta.
+    suspend fun restoreMeal(spaceId: String, meal: Meal)
 }
 
 enum class MealFailure {

@@ -350,8 +350,6 @@
     <string name="calendar_save">Guardar</string>
     <string name="calendar_edit">Editar</string>
     <string name="calendar_delete">Eliminar</string>
-    <string name="calendar_delete_title">Eliminar evento</string>
-    <string name="calendar_delete_body">¿Eliminar «%1$s»?</string>
     <string name="calendar_date_error">Revisa las fechas y el intervalo</string>
     <string name="calendar_error_title_required">Introduce un título.</string>
     <string name="calendar_error_title_too_long">El título es demasiado largo.</string>
@@ -398,8 +396,6 @@
     <string name="sport_mark_pending">Marcar pendiente</string>
     <string name="sport_edit">Editar</string>
     <string name="sport_delete">Eliminar</string>
-    <string name="sport_delete_title">Eliminar actividad</string>
-    <string name="sport_delete_body">Se eliminará “%1$s” para todos los miembros.</string>
     <string name="sport_empty_day">No hay actividades este día.</string>
     <string name="sport_prev_week">Semana anterior</string>
     <string name="sport_next_week">Semana siguiente</string>
@@ -422,8 +418,6 @@
     <string name="meals_edit_title">Editar comida</string>
     <string name="meals_edit">Editar</string>
     <string name="meals_delete">Eliminar</string>
-    <string name="meals_delete_title">Eliminar comida</string>
-    <string name="meals_delete_body">¿Eliminar «%1$s»?</string>
     <string name="meals_name_label">Plato</string>
     <string name="meals_participants_label">¿Quiénes lo comen?</string>
     <plurals name="meals_ingredient_count">
@@ -535,8 +529,6 @@
     <string name="recipes_step_down">Bajar el paso %1$d</string>
     <string name="recipes_edit">Editar</string>
     <string name="recipes_delete">Eliminar</string>
-    <string name="recipes_delete_title">Eliminar receta</string>
-    <string name="recipes_delete_body">¿Eliminar «%1$s»?</string>
     <string name="recipes_fork">Guardar como mía</string>
     <string name="recipes_error_title_required">Escribe un nombre para la receta.</string>
     <string name="recipes_error_title_too_long">El nombre es demasiado largo.</string>

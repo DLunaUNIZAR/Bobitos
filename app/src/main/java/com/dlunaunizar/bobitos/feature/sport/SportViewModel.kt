@@ -11,6 +11,7 @@ import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.toFailureKind
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
+import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.RoutineExercise
 import com.dlunaunizar.bobitos.core.model.SportActivity
 import com.dlunaunizar.bobitos.core.model.SportType
@@ -156,20 +157,11 @@ class SportViewModel @Inject constructor(
         runAction(null, force = true) { repository.deleteActivity(spaceId, id) }
     }
 
-    // Recrea una actividad borrada («Deshacer»): no es un guardado del editor, no mueve su estado.
-    fun restoreActivity(activity: SportActivity) {
-        val spaceId = observedSpaceId ?: return
-        runAction(SportUiMessage.ActivityAdded) {
-            repository.addActivity(
-                spaceId,
-                activity.date,
-                activity.type,
-                activity.name,
-                activity.participantIds,
-                activity.routineId,
-                activity.session,
-            )
-        }
+    // «Deshacer» el borrado: la actividad vuelve con su id y su estado, y con ella su evento enlazado tal como estaba,
+    // al espacio en que estaba (no al que se esté viendo ahora). No es un guardado del editor ni lleva aviso propio;
+    // si falla, sale el error.
+    fun restoreActivity(spaceId: String, activity: SportActivity, event: CalendarEvent?) {
+        runAction(null, force = true) { repository.restoreActivity(spaceId, activity, event) }
     }
 
     fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
@@ -197,10 +189,14 @@ class SportViewModel @Inject constructor(
         }
     }
 
-    fun deleteActivity(activityId: String) {
+    // onDeleted recibe la foto del evento enlazado que ha borrado, y se llama solo si el borrado termina bien: así el
+    // «Deshacer» no se ofrece para un borrado fallido. Sin aviso propio: el snackbar de «Deshacer» ya confirma.
+    fun deleteActivity(activityId: String, onDeleted: (CalendarEvent?) -> Unit = {}) {
         val spaceId = observedSpaceId ?: return
-        // Sin notice: el feedback del borrado (con «Deshacer») lo da el Snackbar de la pantalla.
-        runAction(null) { repository.deleteActivity(spaceId, activityId) }
+        var deletedEvent: CalendarEvent? = null
+        runAction(null, onSuccess = { onDeleted(deletedEvent) }) {
+            deletedEvent = repository.deleteActivity(spaceId, activityId)
+        }
     }
 
     fun clearFeedback() = mutableUiState.update { it.copy(error = null, notice = null) }
@@ -220,6 +216,7 @@ class SportViewModel @Inject constructor(
         notice: SportUiMessage?,
         editor: Boolean = false,
         force: Boolean = false,
+        onSuccess: () -> Unit = {},
         action: suspend () -> Any?,
     ) {
         if (mutableUiState.value.isSaving && !force) return
@@ -237,6 +234,7 @@ class SportViewModel @Inject constructor(
                             editorSave = it.editorSave.succeeded(editor),
                         )
                     }
+                    onSuccess()
                 }
                 .onFailure { error ->
                     if (error is CancellationException) throw error

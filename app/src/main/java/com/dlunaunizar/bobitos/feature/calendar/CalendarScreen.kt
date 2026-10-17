@@ -86,7 +86,6 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.AppLocale
-import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
@@ -131,7 +130,6 @@ fun CalendarScreen(
     var handledInitialEvent by rememberSaveable(initialEventId) { mutableStateOf(false) }
     var drilledFrom by remember { mutableStateOf<CalendarDisplayMode?>(null) }
     var creatingAtText by rememberSaveable { mutableStateOf<String?>(null) }
-    var eventToDelete by remember { mutableStateOf<CalendarEvent?>(null) }
     val scope = rememberCoroutineScope()
     val deletedMessage = stringResource(R.string.calendar_undo_deleted)
     val undoLabel = stringResource(R.string.undo)
@@ -178,6 +176,13 @@ fun CalendarScreen(
         },
     ) { padding ->
         val snackbar = LocalSnackbarHostState.current
+        val deleteWithUndo: (CalendarEvent) -> Unit = { event ->
+            viewModel.delete(event.id) {
+                scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+                    viewModel.restore(event.id, event.toInput())
+                }
+            }
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -221,7 +226,7 @@ fun CalendarScreen(
                         tasks = state.tasks.tasksOn(state.focusedDate),
                         canWrite = canWrite,
                         onEdit = { editorEventId = it.id },
-                        onDelete = { id -> eventToDelete = filteredEvents.firstOrNull { it.id == id } },
+                        onDelete = { id -> filteredEvents.firstOrNull { it.id == id }?.let(deleteWithUndo) },
                         onCreateAt = { creatingAtText = it.toString() },
                         modifier = Modifier.weight(1f),
                     )
@@ -230,7 +235,7 @@ fun CalendarScreen(
                         events = filteredEvents,
                         canWrite = canWrite,
                         onEdit = { editorEventId = it.id },
-                        onDelete = { id -> eventToDelete = filteredEvents.firstOrNull { it.id == id } },
+                        onDelete = { id -> filteredEvents.firstOrNull { it.id == id }?.let(deleteWithUndo) },
                         onDayTap = onDayTap,
                         modifier = Modifier.weight(1f),
                     )
@@ -246,22 +251,6 @@ fun CalendarScreen(
                 text = { stringResource(it) },
             )
             CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
-        }
-
-        eventToDelete?.let { event ->
-            DeleteEventDialog(
-                event = event,
-                enabled = canWrite && !state.saving,
-                onConfirm = {
-                    viewModel.delete(event.id) {
-                        scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                            viewModel.restore(event.id, event.toInput())
-                        }
-                    }
-                    eventToDelete = null
-                },
-                onDismiss = { eventToDelete = null },
-            )
         }
     }
 
@@ -963,19 +952,6 @@ internal fun CalendarEditorHost(
     }
 }
 
-@Composable
-internal fun DeleteEventDialog(event: CalendarEvent, enabled: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    BobitosDialog(
-        title = stringResource(R.string.calendar_delete_title),
-        message = stringResource(R.string.calendar_delete_body, event.title),
-        confirmLabel = stringResource(R.string.calendar_delete),
-        destructive = true,
-        confirmEnabled = enabled,
-        onConfirm = onConfirm,
-        onDismiss = onDismiss,
-    )
-}
-
 // Cada opción es un botón de radio de 48 dp (círculo de 32 dp dentro): el seleccionado lleva un ✓ además
 // del borde, así no depende solo del color, y las opciones saltan de línea con fuentes grandes.
 @OptIn(ExperimentalLayoutApi::class)
@@ -1042,20 +1018,6 @@ private fun EventTimePickerDialog(initialTime: LocalTime, onConfirm: (LocalTime)
         )
     }
 }
-
-// Reconstruye el input desde un evento existente, para re-crearlo al «Deshacer» un borrado.
-private fun CalendarEvent.toInput(): EventInput = EventInput(
-    title = title,
-    description = description,
-    allDay = allDay,
-    startAt = startAt,
-    endAt = endAt,
-    startDate = startDate,
-    endDateExclusive = endDateExclusive,
-    timeZone = timeZone,
-    color = color,
-    participantIds = participantIds,
-)
 
 private fun EventDraft.toEventInput(zone: ZoneId): EventInput? = buildEventInput(
     title = title,

@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.data.repository
 
 import com.dlunaunizar.bobitos.core.model.AuthUser
+import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.EventColor
 import com.dlunaunizar.bobitos.core.model.RoutineExercise
 import com.dlunaunizar.bobitos.core.model.SportActivity
@@ -184,19 +185,51 @@ class FirestoreSportActivityRepository @Inject constructor(
         Unit
     }
 
-    override suspend fun deleteActivity(spaceId: String, activityId: String) = runActivityOperation {
+    override suspend fun deleteActivity(spaceId: String, activityId: String): CalendarEvent? = runActivityOperation {
         requireVerifiedUser()
         val reference = activitiesCollection(spaceId).document(activityId)
         firestore.runTransaction { transaction ->
             val snapshot = requireActivity(transaction.get(reference))
             val eventReference = snapshot.getString(FIELD_EVENT_ID)?.let { eventsCollection(spaceId).document(it) }
             // Se resuelve la existencia del evento antes de escribir (Firestore exige leer antes de escribir).
-            val eventToDelete = eventReference?.takeIf { transaction.get(it).exists() }
+            val eventSnapshot = eventReference?.let(transaction::get)?.takeIf { it.exists() }
             transaction.delete(reference)
-            eventToDelete?.let(transaction::delete)
+            eventReference?.takeIf { eventSnapshot != null }?.let(transaction::delete)
+            // La foto del evento tal como estaba al borrar, para que «Deshacer» lo devuelva igual.
+            eventSnapshot?.toLinkedEvent()
         }.await()
-        Unit
     }
+
+    override suspend fun restoreActivity(spaceId: String, activity: SportActivity, event: CalendarEvent?) =
+        runActivityOperation {
+            val user = requireVerifiedUser()
+            val spaceReference = firestore.collection(SPACES).document(spaceId)
+            val activityReference = activitiesCollection(spaceId).document(activity.id)
+            val gym = GymSession(activity.type, activity.routineId, activity.session)
+            firestore.runTransaction { transaction ->
+                if (!transaction.get(spaceReference).exists()) {
+                    throw SportRepositoryException(SportFailure.SpaceNotFound)
+                }
+                // La regla de alta exige `done == false`: la actividad se crea sin hacer y se marca después.
+                transaction.set(
+                    activityReference,
+                    activityData(
+                        user,
+                        activity.date,
+                        activity.type,
+                        activity.name,
+                        activity.participantIds,
+                        activity.participantNames,
+                        gym,
+                        activity.eventId,
+                    ),
+                )
+                event?.let {
+                    transaction.set(eventsCollection(spaceId).document(it.id), restoredEventData(user, it))
+                }
+            }.await()
+            if (activity.done) setDone(spaceId, activity.id, true)
+        }
 
     private fun activitiesCollection(spaceId: String) = firestore
         .collection(SPACES)
@@ -338,6 +371,27 @@ class FirestoreSportActivityRepository @Inject constructor(
         ) + dayFields(date, ZoneId.systemDefault())
     }
 
+    // El evento vuelve con los datos que tenía (título, horario, color…); solo la autoría y las fechas de creación
+    // son de quien deshace.
+    private fun restoredEventData(user: AuthUser, event: CalendarEvent): Map<String, Any?> = mapOf(
+        EV_TITLE to event.title,
+        EV_DESCRIPTION to event.description,
+        EV_ALL_DAY to event.allDay,
+        EV_START_AT to Timestamp(Date.from(event.startAt)),
+        EV_END_AT to Timestamp(Date.from(event.endAt)),
+        EV_START_DATE to event.startDate?.toString(),
+        EV_END_DATE_EXCLUSIVE to event.endDateExclusive?.toString(),
+        EV_TIME_ZONE to event.timeZone,
+        EV_COLOR to event.color.name,
+        FIELD_PARTICIPANT_IDS to event.participantIds,
+        FIELD_PARTICIPANT_NAMES to event.participantNames,
+        FIELD_CREATED_BY to user.id,
+        FIELD_CREATED_BY_NAME to user.sportDisplayName,
+        FIELD_CREATED_AT to FieldValue.serverTimestamp(),
+        FIELD_UPDATED_BY to user.id,
+        FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+    )
+
     // Al editar solo se tocan los campos que dependen de la actividad (título, participantes y, si
     // cambia el día, las fechas): la descripción, el color o el horario que el usuario haya puesto al
     // evento desde el calendario se conservan.
@@ -476,6 +530,29 @@ private fun DocumentSnapshot.toSportActivity(): SportActivity? {
         updatedAt = updatedAt,
     )
 }
+
+private fun DocumentSnapshot.toLinkedEvent(): CalendarEvent? = runCatching {
+    val createdAt = requireNotNull(getTimestamp("createdAt")).toDate().toInstant()
+    CalendarEvent(
+        id = id,
+        title = requireNotNull(getString("title")),
+        description = getString("description"),
+        allDay = requireNotNull(getBoolean("allDay")),
+        startAt = requireNotNull(getTimestamp("startAt")).toDate().toInstant(),
+        endAt = requireNotNull(getTimestamp("endAt")).toDate().toInstant(),
+        startDate = getString("startDate")?.let(LocalDate::parse),
+        endDateExclusive = getString("endDateExclusive")?.let(LocalDate::parse),
+        timeZone = requireNotNull(getString("timeZone")),
+        color = EventColor.valueOf(getString("color").orEmpty()),
+        participantIds = (get("participantIds") as? List<*>)?.filterIsInstance<String>().orEmpty(),
+        participantNames = (get("participantNames") as? List<*>)?.filterIsInstance<String>().orEmpty(),
+        createdBy = requireNotNull(getString("createdBy")),
+        createdByName = requireNotNull(getString("createdByName")),
+        createdAt = createdAt,
+        updatedBy = requireNotNull(getString("updatedBy")),
+        updatedAt = getTimestamp("updatedAt")?.toDate()?.toInstant() ?: createdAt,
+    )
+}.getOrNull()
 
 private fun Throwable.toSportRepositoryException(): SportRepositoryException = SportRepositoryException(
     failure = when ((this as? FirebaseFirestoreException)?.code) {

@@ -207,7 +207,7 @@ class MealsViewModelTest {
         viewModel.observe("home")
         advanceUntilIdle()
 
-        viewModel.restoreMeal(meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas"))
+        viewModel.restoreMeal("home", meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas"))
         advanceUntilIdle()
 
         assertNull(viewModel.uiState.value.created)
@@ -538,12 +538,12 @@ class MealsViewModelTest {
         viewModel.observe("home")
         advanceUntilIdle()
 
-        viewModel.restoreMeal(meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas"))
+        viewModel.restoreMeal("home", meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas"))
         advanceUntilIdle()
 
-        assertEquals("Lentejas", mealRepository.addedName)
+        assertEquals("Lentejas", mealRepository.restored.single().second.name)
         assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
-        assertEquals(MealUiMessage.MealAdded, viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.notice)
     }
 
     @Test
@@ -854,6 +854,13 @@ internal class FakeMealRepository : MealRepository {
         throwNextFailure()
         cookedMealId = mealId
         cookedValue = cooked
+    }
+
+    val restored = mutableListOf<Pair<String, Meal>>()
+
+    override suspend fun restoreMeal(spaceId: String, meal: Meal) {
+        throwNextFailure()
+        restored += spaceId to meal
     }
 
     val deleted = mutableListOf<String>()

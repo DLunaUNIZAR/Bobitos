@@ -159,20 +159,10 @@ class MealsViewModel @Inject constructor(
         runAction(null, force = true) { repository.deleteMeal(spaceId, id) }
     }
 
-    // Recrea una comida borrada («Deshacer»): no es un guardado del editor, no mueve su estado.
-    fun restoreMeal(meal: Meal) {
-        val spaceId = observedSpaceId ?: return
-        runAction(MealUiMessage.MealAdded) {
-            repository.addMeal(
-                spaceId,
-                meal.date,
-                meal.slot,
-                meal.name,
-                meal.participantIds,
-                meal.recipeId,
-                meal.cookId,
-            )
-        }
+    // «Deshacer» el borrado: la comida vuelve con su id y su estado, al espacio en que estaba (no al que se esté
+    // viendo ahora). No es un guardado del editor ni lleva aviso propio; si falla, sale el error.
+    fun restoreMeal(spaceId: String, meal: Meal) {
+        runAction(null, force = true) { repository.restoreMeal(spaceId, meal) }
     }
 
     fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
@@ -193,10 +183,11 @@ class MealsViewModel @Inject constructor(
         }
     }
 
-    fun deleteMeal(mealId: String) {
+    // onDeleted se llama solo si el borrado termina bien: así el «Deshacer» no se ofrece para un borrado fallido.
+    // Sin aviso propio: el snackbar de «Deshacer» ya confirma el borrado.
+    fun deleteMeal(mealId: String, onDeleted: () -> Unit = {}) {
         val spaceId = observedSpaceId ?: return
-        // Sin notice: el feedback del borrado (con «Deshacer») lo da el Snackbar de la pantalla.
-        runAction(null) {
+        runAction(null, onSuccess = onDeleted) {
             repository.deleteMeal(spaceId, mealId)
         }
     }
@@ -413,6 +404,7 @@ class MealsViewModel @Inject constructor(
         editor: Boolean = false,
         toMessage: (Throwable) -> MealUiMessage = Throwable::toUiMessage,
         force: Boolean = false,
+        onSuccess: () -> Unit = {},
         // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
         action: suspend () -> Any?,
     ) {
@@ -431,6 +423,7 @@ class MealsViewModel @Inject constructor(
                             editorSave = it.editorSave.succeeded(editor),
                         )
                     }
+                    onSuccess()
                 }
                 .onFailure { error ->
                     if (error is CancellationException) throw error

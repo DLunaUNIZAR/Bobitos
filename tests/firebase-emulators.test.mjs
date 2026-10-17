@@ -659,6 +659,56 @@ test("deshacer el borrado de un producto comprado lo devuelve con su id y compra
   assert.equal(restored.data().purchased, true);
 });
 
+test("deshacer el borrado de una comida cocinada la devuelve con su id y cocinada", async () => {
+  await seedSpace("meals-restore", "meal-restore-owner", ["meal-restore-member"]);
+  const owner = verifiedFirestore("meal-restore-owner");
+  const member = verifiedFirestore("meal-restore-member");
+  const reference = doc(owner, "spaces", "meals-restore", "meals", "cooked-meal");
+  await assertSucceeds(setDoc(reference, mealData("meal-restore-owner", { name: "Lentejas", cooked: true })));
+  await assertSucceeds(writeBatch(owner).delete(reference).commit());
+
+  const restoredReference = doc(member, "spaces", "meals-restore", "meals", "cooked-meal");
+  await assertSucceeds(setDoc(restoredReference, mealData("meal-restore-member", {
+    name: "Lentejas", cooked: true, recipeId: "receta-1",
+  })));
+  const restored = await getDoc(restoredReference);
+  assert.equal(restored.exists(), true);
+  assert.equal(restored.data().name, "Lentejas");
+  assert.equal(restored.data().cooked, true);
+  assert.equal(restored.data().recipeId, "receta-1");
+  assert.equal(restored.data().createdBy, "meal-restore-member");
+});
+
+test("deshacer el borrado de una actividad hecha devuelve actividad y evento con sus ids, y después se marca hecha", async () => {
+  await seedSpace("act-restore", "act-restore-owner", ["act-restore-member"]);
+  const owner = verifiedFirestore("act-restore-owner");
+  const member = verifiedFirestore("act-restore-member");
+  const activityRef = doc(owner, "spaces", "act-restore", "activities", "leg-day");
+  const eventRef = doc(owner, "spaces", "act-restore", "events", "leg-event");
+  await assertSucceeds(setDoc(activityRef, activityData("act-restore-owner", { name: "Pierna", eventId: "leg-event" })));
+  await assertSucceeds(setDoc(eventRef, eventData("act-restore-owner", { title: "Pierna (editado)" })));
+  await assertSucceeds(updateDoc(activityRef, { done: true, updatedBy: "act-restore-owner", updatedAt: serverTimestamp() }));
+  await assertSucceeds(writeBatch(owner).delete(activityRef).delete(eventRef).commit());
+
+  const restoredActivity = doc(member, "spaces", "act-restore", "activities", "leg-day");
+  const restoredEvent = doc(member, "spaces", "act-restore", "events", "leg-event");
+  await assertSucceeds(
+    writeBatch(member)
+      .set(restoredActivity, activityData("act-restore-member", { name: "Pierna", eventId: "leg-event" }))
+      .set(restoredEvent, eventData("act-restore-member", { title: "Pierna (editado)" }))
+      .commit(),
+  );
+  await assertSucceeds(updateDoc(restoredActivity, {
+    done: true, updatedBy: "act-restore-member", updatedAt: serverTimestamp(),
+  }));
+  const activity = await getDoc(restoredActivity);
+  const event = await getDoc(restoredEvent);
+  assert.equal(activity.data().done, true);
+  assert.equal(activity.data().eventId, "leg-event");
+  assert.equal(event.exists(), true);
+  assert.equal(event.data().title, "Pierna (editado)");
+});
+
 test("una atribución de completado falsa es rechazada", async () => {
   await seedSpace("tasks-attribution", "attribution-owner", ["attribution-member"]);
   const member = verifiedFirestore("attribution-member");
