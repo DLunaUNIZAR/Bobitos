@@ -151,6 +151,56 @@ class NotesViewModelTest {
     }
 
     @Test
+    fun `undo is offered only once the delete has finished`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        var offered = 0
+        repository.nextFailure = NoteRepositoryException(NoteFailure.Network)
+        viewModel.deleteNote("n1") { offered++ }
+        advanceUntilIdle()
+        assertEquals(0, offered)
+        assertEquals(NoteUiMessage.NetworkError, viewModel.uiState.value.error)
+
+        repository.nextFailure = null
+        viewModel.deleteNote("n1") { offered++ }
+        advanceUntilIdle()
+        assertEquals(1, offered)
+        assertNull(viewModel.uiState.value.notice)
+        assertEquals(listOf("n1"), repository.deleted)
+    }
+
+    @Test
+    fun `undoing a delete brings the note back with its id and pin`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        viewModel.restoreNote("space-a", note("n1", "Wifi").copy(pinned = true))
+        advanceUntilIdle()
+
+        val (space, restored) = repository.restored.single()
+        assertEquals("space-a", space)
+        assertEquals("n1", restored.id)
+        assertTrue(restored.pinned)
+    }
+
+    @Test
+    fun `undo writes to the note's own space`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("space-a")
+        viewModel.observe("space-b")
+        viewModel.restoreNote("space-a", note("n1", "Wifi"))
+        advanceUntilIdle()
+
+        assertEquals("space-a", repository.restored.single().first)
+    }
+
+    @Test
+    fun `a failed undo surfaces the error`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        repository.nextFailure = NoteRepositoryException(NoteFailure.SpaceNotFound)
+        viewModel.restoreNote("home", note("n1", "Wifi"))
+        advanceUntilIdle()
+
+        assertEquals(NoteUiMessage.SpaceNotFound, viewModel.uiState.value.error)
+    }
+
+    @Test
     fun `editor save failure or timeout leaves FAILED`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("home")
         repository.nextFailure = NoteRepositoryException(NoteFailure.Network)
@@ -175,6 +225,8 @@ class NotesViewModelTest {
 }
 
 private class FakeNoteRepository : NoteRepository {
+    val restored = mutableListOf<Pair<String, Note>>()
+
     var addGate: CompletableDeferred<Unit>? = null
 
     // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
@@ -216,6 +268,11 @@ private class FakeNoteRepository : NoteRepository {
     override suspend fun deleteNote(spaceId: String, noteId: String) {
         throwNextFailure()
         deleted += noteId
+    }
+
+    override suspend fun restoreNote(spaceId: String, note: Note) {
+        throwNextFailure()
+        restored += spaceId to note
     }
 
     private fun throwNextFailure() {

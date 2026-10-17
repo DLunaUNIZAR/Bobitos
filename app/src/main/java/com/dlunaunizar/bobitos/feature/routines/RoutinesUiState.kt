@@ -33,7 +33,6 @@ enum class RoutineUiMessage {
     UnexpectedError,
     SaveTimeout,
     Saved,
-    Deleted,
 }
 
 object RoutinesValidation {

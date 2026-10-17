@@ -2386,6 +2386,17 @@ test("ningún cliente crea una rutina con la fuente del catálogo", async () => 
   await assertFails(setDoc(doc(user, "routines", "falsa"), routineData("routine-fake-source", { source })));
 });
 
+test("deshacer el borrado de una rutina personal la devuelve con su id", async () => {
+  const trainer = verifiedFirestore("routine-restorer");
+  const reference = doc(trainer, "routines", "restorable");
+  await assertSucceeds(setDoc(reference, routineData("routine-restorer", { sourceRoutineId: "torso" })));
+  await assertSucceeds(writeBatch(trainer).delete(reference).commit());
+  await assertSucceeds(setDoc(reference, routineData("routine-restorer", { sourceRoutineId: "torso" })));
+  const restored = await getDoc(reference);
+  assert.equal(restored.exists(), true);
+  assert.equal(restored.data().sourceRoutineId, "torso");
+});
+
 test("una copia guarda el id de la común, válido e inmutable", async () => {
   const user = verifiedFirestore("routine-forker");
   const ref = doc(user, "routines", "copia");
@@ -2650,6 +2661,21 @@ test("todos los miembros crean, editan y eliminan notas del espacio", async () =
     setDoc(doc(outsider, "spaces", "notes-crud", "notes", "sneaky"), noteData("notes-outsider")),
   );
   await assertSucceeds(writeBatch(member).delete(reference).commit());
+});
+
+test("deshacer el borrado de una nota la devuelve con su id y fijada", async () => {
+  await seedSpace("notes-restore", "notes-restore-owner", ["notes-restore-member"]);
+  const owner = verifiedFirestore("notes-restore-owner");
+  const member = verifiedFirestore("notes-restore-member");
+  await assertSucceeds(
+    setDoc(doc(owner, "spaces", "notes-restore", "notes", "pinned"), noteData("notes-restore-owner", { pinned: true })),
+  );
+  const reference = doc(member, "spaces", "notes-restore", "notes", "pinned");
+  await assertSucceeds(writeBatch(member).delete(reference).commit());
+  await assertSucceeds(setDoc(reference, noteData("notes-restore-member", { pinned: true })));
+  const restored = await getDoc(reference);
+  assert.equal(restored.exists(), true);
+  assert.equal(restored.data().pinned, true);
 });
 
 test("las notas validan la forma y rechazan título vacío, cuerpo enorme o campos ajenos", async () => {

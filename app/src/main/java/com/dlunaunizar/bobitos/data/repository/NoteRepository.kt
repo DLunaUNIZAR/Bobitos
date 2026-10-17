@@ -13,6 +13,12 @@ interface NoteRepository {
     suspend fun setPinned(spaceId: String, noteId: String, pinned: Boolean)
 
     suspend fun deleteNote(spaceId: String, noteId: String)
+
+    /**
+     * «Deshacer» un borrado: vuelve a crear la nota con su id, título, cuerpo y fijado. La autoría y las fechas
+     * pasan a ser de quien deshace, porque las reglas de alta las exigen así.
+     */
+    suspend fun restoreNote(spaceId: String, note: Note)
 }
 
 enum class NoteFailure {

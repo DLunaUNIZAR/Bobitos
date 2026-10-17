@@ -112,8 +112,15 @@ class RoutinesViewModel @Inject constructor(
         }
     }
 
-    fun deleteRoutine(routineId: String) {
-        runAction(RoutineUiMessage.Deleted) { repository.deleteRoutine(routineId) }
+    // onDeleted se llama solo si el borrado termina bien: así el «Deshacer» no se ofrece para un borrado
+    // fallido. Sin aviso propio: lo da la pantalla (el snackbar de «Deshacer» o el aviso de una común).
+    fun deleteRoutine(routineId: String, onDeleted: () -> Unit = {}) {
+        runAction(null, onSuccess = onDeleted) { repository.deleteRoutine(routineId) }
+    }
+
+    // «Deshacer» el borrado de una rutina personal (con el mismo id; el dueño pasa a ser quien deshace).
+    fun restoreRoutine(routine: Routine) {
+        runAction(null, force = true) { repository.restoreRoutine(routine) }
     }
 
     // Copia privada de una común («Guardar como mía»), enlazada con la original por sourceRoutineId.
@@ -155,6 +162,7 @@ class RoutinesViewModel @Inject constructor(
         successNotice: RoutineUiMessage?,
         editor: Boolean = false,
         force: Boolean = false,
+        onSuccess: () -> Unit = {},
         action: suspend () -> Any?,
     ) {
         if (mutableUiState.value.isSaving && !force) return
@@ -172,6 +180,7 @@ class RoutinesViewModel @Inject constructor(
                             editorSave = it.editorSave.succeeded(editor),
                         )
                     }
+                    onSuccess()
                 }
                 .onFailure { error ->
                     if (error is CancellationException) throw error
@@ -180,6 +189,9 @@ class RoutinesViewModel @Inject constructor(
         }
     }
 }
+
+// Solo las personales se pueden devolver: las comunes las borra el admin y se confirman con un diálogo.
+internal fun Routine.canUndoDelete(): Boolean = visibility == RoutineVisibility.PRIVATE
 
 private fun String?.normalized() = this?.trim()?.takeIf(String::isNotEmpty)
 

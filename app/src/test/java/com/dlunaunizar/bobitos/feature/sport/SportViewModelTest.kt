@@ -445,6 +445,8 @@ private class FakeSportRoutineRepository : RoutineRepository {
     ) = Unit
 
     override suspend fun deleteRoutine(routineId: String) = Unit
+
+    override suspend fun restoreRoutine(routine: Routine) = Unit
 }
 
 private class FakeSportExerciseRepository : ExerciseRepository {

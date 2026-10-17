@@ -82,6 +82,32 @@ class FirestoreNoteRepository @Inject constructor(
         noteReference.id
     }
 
+    override suspend fun restoreNote(spaceId: String, note: Note) = runNoteOperation {
+        val user = requireVerifiedUser()
+        val values = validate(note.title, note.body)
+        val spaceReference = firestore.collection(SPACES).document(spaceId)
+        val noteReference = notesCollection(spaceId).document(note.id)
+        firestore.runTransaction { transaction ->
+            if (!transaction.get(spaceReference).exists()) {
+                throw NoteRepositoryException(NoteFailure.SpaceNotFound)
+            }
+            transaction.set(
+                noteReference,
+                mapOf(
+                    FIELD_TITLE to values.title,
+                    FIELD_BODY to values.body,
+                    FIELD_PINNED to note.pinned,
+                    FIELD_CREATED_BY to user.id,
+                    FIELD_CREATED_BY_NAME to user.noteDisplayName,
+                    FIELD_CREATED_AT to FieldValue.serverTimestamp(),
+                    FIELD_UPDATED_BY to user.id,
+                    FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+                ),
+            )
+        }.await()
+        Unit
+    }
+
     override suspend fun updateNote(spaceId: String, noteId: String, title: String, body: String?) = runNoteOperation {
         val user = requireVerifiedUser()
         val values = validate(title, body)

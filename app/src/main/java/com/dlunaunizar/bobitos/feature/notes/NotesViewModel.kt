@@ -11,6 +11,7 @@ import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.toFailureKind
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
+import com.dlunaunizar.bobitos.core.model.Note
 import com.dlunaunizar.bobitos.data.repository.NoteFailure
 import com.dlunaunizar.bobitos.data.repository.NoteRepository
 import com.dlunaunizar.bobitos.data.repository.NoteRepositoryException
@@ -75,10 +76,16 @@ class NotesViewModel @Inject constructor(private val repository: NoteRepository)
         }
     }
 
-    fun deleteNote(noteId: String) {
+    // onDeleted se llama solo si el borrado termina bien: así el «Deshacer» no se ofrece para un borrado
+    // fallido. Sin aviso propio: el snackbar de «Deshacer» ya confirma el borrado.
+    fun deleteNote(noteId: String, onDeleted: () -> Unit = {}) {
         val spaceId = observedSpaceId ?: return
-        // El borrado va tras un diálogo de confirmación; el aviso «Nota eliminada» lo da el snackbar.
-        runAction(NoteUiMessage.NoteDeleted) { repository.deleteNote(spaceId, noteId) }
+        runAction(null, onSuccess = onDeleted) { repository.deleteNote(spaceId, noteId) }
+    }
+
+    // «Deshacer» el borrado: el espacio es el de la nota al borrar, no el que se esté viendo ahora.
+    fun restoreNote(spaceId: String, note: Note) {
+        runAction(null, force = true) { repository.restoreNote(spaceId, note) }
     }
 
     fun consumeCreated() = mutableUiState.update { it.copy(created = null) }
@@ -108,6 +115,7 @@ class NotesViewModel @Inject constructor(private val repository: NoteRepository)
         notice: NoteUiMessage?,
         editor: Boolean = false,
         force: Boolean = false,
+        onSuccess: () -> Unit = {},
         action: suspend () -> Any?,
     ) {
         if (mutableUiState.value.isSaving && !force) return
@@ -125,6 +133,7 @@ class NotesViewModel @Inject constructor(private val repository: NoteRepository)
                             editorSave = it.editorSave.succeeded(editor),
                         )
                     }
+                    onSuccess()
                 }
                 .onFailure { error ->
                     if (error is CancellationException) throw error

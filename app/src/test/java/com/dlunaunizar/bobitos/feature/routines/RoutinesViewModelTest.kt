@@ -207,12 +207,47 @@ class RoutinesViewModelTest {
     }
 
     @Test
-    fun `deleting a routine reports success`() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.deleteRoutine("r1")
+    fun `undo is offered only once the delete has finished`() = runTest(mainDispatcherRule.testDispatcher) {
+        var offered = 0
+        repository.failure = RoutineFailure.Network
+        viewModel.deleteRoutine("r1") { offered++ }
+        advanceUntilIdle()
+        assertEquals(0, offered)
+        assertEquals(RoutineUiMessage.NetworkError, viewModel.uiState.value.error)
+
+        repository.failure = null
+        viewModel.deleteRoutine("r1") { offered++ }
         advanceUntilIdle()
 
         assertEquals("r1", repository.lastDeletedId)
-        assertEquals(RoutineUiMessage.Deleted, viewModel.uiState.value.notice)
+        assertEquals(1, offered)
+        assertNull(viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun `undoing a delete brings the routine back with its id and source`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val deleted = routine("r1", RoutineVisibility.PRIVATE, "Mi torso").copy(sourceRoutineId = "torso")
+            viewModel.restoreRoutine(deleted)
+            advanceUntilIdle()
+
+            assertEquals("r1", repository.lastRestored?.id)
+            assertEquals("torso", repository.lastRestored?.sourceRoutineId)
+        }
+
+    @Test
+    fun `a failed undo surfaces the error`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.failure = RoutineFailure.PermissionDenied
+        viewModel.restoreRoutine(routine("r1", RoutineVisibility.PRIVATE, "Mi torso"))
+        advanceUntilIdle()
+
+        assertEquals(RoutineUiMessage.PermissionDenied, viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `only personal routines can be undone after deleting`() {
+        assertTrue(routine("p", RoutineVisibility.PRIVATE, "Mía").canUndoDelete())
+        assertFalse(routine("g", RoutineVisibility.GLOBAL, "Común").canUndoDelete())
     }
 
     @Test
@@ -368,6 +403,7 @@ private class FakeRoutineRepository : RoutineRepository {
     var lastSourceRoutineId: String? = null
     var lastUpdatedId: String? = null
     var lastDeletedId: String? = null
+    var lastRestored: Routine? = null
     var admin = false
     var failure: RoutineFailure? = null
     var loadFailure: Throwable? = null
@@ -427,6 +463,11 @@ private class FakeRoutineRepository : RoutineRepository {
     override suspend fun deleteRoutine(routineId: String) {
         failure?.let { throw RoutineRepositoryException(it) }
         lastDeletedId = routineId
+    }
+
+    override suspend fun restoreRoutine(routine: Routine) {
+        failure?.let { throw RoutineRepositoryException(it) }
+        lastRestored = routine
     }
 }
 

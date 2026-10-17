@@ -26,6 +26,12 @@ interface RoutineRepository {
     suspend fun updateRoutine(routineId: String, title: String, description: String?, exercises: List<RoutineExercise>)
 
     suspend fun deleteRoutine(routineId: String)
+
+    /**
+     * «Deshacer» el borrado de una rutina personal: la vuelve a crear con su id, siempre PRIVATE y con el
+     * `sourceRoutineId` original. El dueño, la autoría y las fechas pasan a ser de quien deshace.
+     */
+    suspend fun restoreRoutine(routine: Routine)
 }
 
 enum class RoutineFailure {

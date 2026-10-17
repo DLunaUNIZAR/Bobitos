@@ -31,7 +31,6 @@ enum class NoteUiMessage {
     SaveTimeout,
     NoteAdded,
     NoteUpdated,
-    NoteDeleted,
     NotePinned,
     NoteUnpinned,
 }

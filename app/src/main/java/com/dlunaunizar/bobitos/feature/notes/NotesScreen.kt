@@ -30,6 +30,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -44,7 +45,6 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
-import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
@@ -52,9 +52,11 @@ import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
+import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
+import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
@@ -77,7 +79,6 @@ fun NotesScreen(
     // El editor sobrevive a una rotación: se guarda el id de la nota, no el objeto.
     var editorNoteId by rememberSaveable { mutableStateOf<String?>(null) }
     var editorVisible by rememberSaveable { mutableStateOf(false) }
-    var noteToDelete by remember { mutableStateOf<Note?>(null) }
     // Sin espacio activo no se puede escribir (las escrituras usan observedSpaceId): se desactivan
     // los controles para no perder cambios en silencio si el espacio deja de estar disponible.
     val enabled = canWrite && spaceId != null && !state.isSaving
@@ -104,6 +105,10 @@ fun NotesScreen(
             }
         },
     ) { innerPadding ->
+        val snackbar = LocalSnackbarHostState.current
+        val scope = rememberCoroutineScope()
+        val deletedMessage = stringResource(R.string.notes_notice_deleted)
+        val undoLabel = stringResource(R.string.undo)
         FeedbackSnackbarEffect(
             error = state.error,
             notice = state.notice,
@@ -155,7 +160,17 @@ fun NotesScreen(
                                     editorNoteId = note.id
                                     editorVisible = true
                                 },
-                                onDelete = { noteToDelete = note },
+                                onDelete = {
+                                    // El espacio se captura al borrar: «Deshacer» devuelve la nota a su espacio.
+                                    val deletedFrom = spaceId
+                                    if (deletedFrom != null) {
+                                        viewModel.deleteNote(note.id) {
+                                            scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+                                                viewModel.restoreNote(deletedFrom, note)
+                                            }
+                                        }
+                                    }
+                                },
                             )
                         }
                     }
@@ -187,20 +202,6 @@ fun NotesScreen(
                 slot.item?.let { viewModel.updateNote(it.id, title, body) }
                     ?: viewModel.addNote(title, body)
             },
-        )
-    }
-    noteToDelete?.let { note ->
-        BobitosDialog(
-            title = stringResource(R.string.notes_delete_title),
-            message = stringResource(R.string.notes_delete_body, note.title),
-            confirmLabel = stringResource(R.string.notes_delete),
-            destructive = true,
-            confirmEnabled = enabled,
-            onConfirm = {
-                viewModel.deleteNote(note.id)
-                noteToDelete = null
-            },
-            onDismiss = { noteToDelete = null },
         )
     }
 }
@@ -341,7 +342,6 @@ private fun NoteUiMessage.stringRes() = when (this) {
     NoteUiMessage.SaveTimeout -> R.string.write_timeout
     NoteUiMessage.NoteAdded -> R.string.notes_notice_added
     NoteUiMessage.NoteUpdated -> R.string.notes_notice_updated
-    NoteUiMessage.NoteDeleted -> R.string.notes_notice_deleted
     NoteUiMessage.NotePinned -> R.string.notes_notice_pinned
     NoteUiMessage.NoteUnpinned -> R.string.notes_notice_unpinned
 }

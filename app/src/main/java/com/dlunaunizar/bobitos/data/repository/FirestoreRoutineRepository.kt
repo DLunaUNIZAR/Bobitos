@@ -95,6 +95,28 @@ class FirestoreRoutineRepository @Inject constructor(
         Unit
     }
 
+    override suspend fun restoreRoutine(routine: Routine) = runRoutineOperation {
+        val user = requireVerifiedUser()
+        val values = validate(routine.title, routine.description)
+        val reference = routinesCollection().document(routine.id)
+        reference.set(
+            buildMap {
+                put(FIELD_OWNER_UID, user.id)
+                put(FIELD_VISIBILITY, RoutineVisibility.PRIVATE.name)
+                put(FIELD_TITLE, values.title)
+                put(FIELD_DESCRIPTION, values.description)
+                put(FIELD_EXERCISES, routine.exercises.orEmpty().toFirestoreExercises())
+                put(FIELD_CREATED_BY, user.id)
+                put(FIELD_CREATED_BY_NAME, user.routineDisplayName)
+                put(FIELD_CREATED_AT, FieldValue.serverTimestamp())
+                put(FIELD_UPDATED_BY, user.id)
+                put(FIELD_UPDATED_AT, FieldValue.serverTimestamp())
+                routine.sourceRoutineId?.let { put(FIELD_SOURCE_ROUTINE_ID, it) }
+            },
+        ).await()
+        Unit
+    }
+
     private fun routinesCollection() = firestore.collection(ROUTINES)
 
     private fun routinesQuery(scope: String, filter: (CollectionReference) -> Query): Flow<List<Routine>> =
