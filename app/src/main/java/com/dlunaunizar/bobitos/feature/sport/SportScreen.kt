@@ -1,6 +1,5 @@
 package com.dlunaunizar.bobitos.feature.sport
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,8 +20,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.ChevronLeft
-import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.AlertDialog
@@ -35,7 +32,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -70,6 +66,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffec
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
+import com.dlunaunizar.bobitos.core.designsystem.component.WeekDayStrip
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
@@ -153,12 +150,15 @@ fun SportScreen(
                 .padding(padding)
                 .padding(horizontal = Spacing.lg, vertical = Spacing.md),
         ) {
-            WeekSelector(
-                weekDays = state.weekDays,
-                focusedDate = state.focusedDate,
+            WeekDayStrip(
+                days = state.weekDays,
+                selected = state.focusedDate,
+                today = LocalDate.now(),
+                onSelect = viewModel::selectDay,
                 onPrevious = viewModel::previousWeek,
                 onNext = viewModel::nextWeek,
-                onSelectDay = viewModel::selectDay,
+                previousLabel = stringResource(R.string.sport_prev_week),
+                nextLabel = stringResource(R.string.sport_next_week),
             )
             Spacer(Modifier.height(Spacing.sm))
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -248,55 +248,6 @@ fun SportScreen(
             } ?: viewModel.addActivity(state.focusedDate, type, name, participantIds, routineId, session)
         },
     )
-}
-
-@Composable
-private fun WeekSelector(
-    weekDays: List<LocalDate>,
-    focusedDate: LocalDate,
-    onPrevious: () -> Unit,
-    onNext: () -> Unit,
-    onSelectDay: (LocalDate) -> Unit,
-) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onPrevious) {
-            Icon(Icons.Rounded.ChevronLeft, contentDescription = stringResource(R.string.sport_prev_week))
-        }
-        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            weekDays.forEach { day ->
-                DayChip(
-                    date = day,
-                    selected = day == focusedDate,
-                    modifier = Modifier.weight(1f),
-                    onClick = { onSelectDay(day) },
-                )
-            }
-        }
-        IconButton(onClick = onNext) {
-            Icon(Icons.Rounded.ChevronRight, contentDescription = stringResource(R.string.sport_next_week))
-        }
-    }
-}
-
-@Composable
-private fun DayChip(date: LocalDate, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Surface(
-        modifier = modifier.clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.small,
-        color = if (selected) {
-            MaterialTheme.colorScheme.primaryContainer
-        } else {
-            MaterialTheme.colorScheme.surfaceVariant
-        },
-    ) {
-        Column(
-            Modifier.padding(vertical = Spacing.sm),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(date.dayInitial(), style = MaterialTheme.typography.labelSmall)
-            Text(date.dayOfMonth.toString(), style = MaterialTheme.typography.titleSmall)
-        }
-    }
 }
 
 @Composable
@@ -618,8 +569,6 @@ private fun RoutinePickerDialog(
 }
 
 private fun LocalDate.formatHeader(): String = BobitosDates.longDay(this)
-
-private fun LocalDate.dayInitial(): String = BobitosDates.dayInitial(dayOfWeek)
 
 private val SportUiMessage.stringResourceId: Int
     get() = when (this) {

@@ -428,6 +428,7 @@
     <string name="meals_cook_label">¿Quién cocina?</string>
     <string name="meals_no_cook">Sin cocinero</string>
     <string name="meals_cook_value">Cocina %1$s</string>
+    <string name="today">hoy</string>
     <string name="meals_week_previous">Semana anterior</string>
     <string name="meals_week_next">Semana siguiente</string>
     <string name="meals_error_name_required">Escribe qué vais a comer.</string>

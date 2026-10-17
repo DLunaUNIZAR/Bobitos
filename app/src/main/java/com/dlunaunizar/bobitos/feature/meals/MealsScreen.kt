@@ -1,7 +1,5 @@
 package com.dlunaunizar.bobitos.feature.meals
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.ChevronLeft
-import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Kitchen
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.MoreVert
@@ -46,7 +42,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -72,6 +67,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
+import com.dlunaunizar.bobitos.core.designsystem.component.WeekDayStrip
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
@@ -148,12 +144,15 @@ fun MealsScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
-            WeekSelector(
-                weekDays = state.weekDays,
-                focusedDate = state.focusedDate,
+            WeekDayStrip(
+                days = state.weekDays,
+                selected = state.focusedDate,
+                today = LocalDate.now(),
+                onSelect = viewModel::selectDay,
                 onPrevious = viewModel::previousWeek,
                 onNext = viewModel::nextWeek,
-                onSelectDay = viewModel::selectDay,
+                previousLabel = stringResource(R.string.meals_week_previous),
+                nextLabel = stringResource(R.string.meals_week_next),
             )
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -330,54 +329,6 @@ private fun CookedReviewDialog(review: CookedReview, state: MealsUiState, viewMo
         onConfirm = viewModel::confirmCooked,
         onDismiss = viewModel::dismissCooked,
     )
-}
-
-@Composable
-private fun WeekSelector(
-    weekDays: List<LocalDate>,
-    focusedDate: LocalDate,
-    onPrevious: () -> Unit,
-    onNext: () -> Unit,
-    onSelectDay: (LocalDate) -> Unit,
-) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onPrevious) {
-            Icon(Icons.Rounded.ChevronLeft, contentDescription = stringResource(R.string.meals_week_previous))
-        }
-        Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            weekDays.forEach { day ->
-                DayChip(
-                    date = day,
-                    selected = day == focusedDate,
-                    modifier = Modifier.weight(1f),
-                    onClick = { onSelectDay(day) },
-                )
-            }
-        }
-        IconButton(onClick = onNext) {
-            Icon(Icons.Rounded.ChevronRight, contentDescription = stringResource(R.string.meals_week_next))
-        }
-    }
-}
-
-@Composable
-private fun DayChip(date: LocalDate, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    val container = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
-    val content = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-    Column(
-        modifier = modifier
-            .clip(MaterialTheme.shapes.medium)
-            .background(container)
-            .clickable(onClick = onClick)
-            .padding(vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(text = date.dayInitial(), style = MaterialTheme.typography.labelSmall, color = content)
-        Text(text = date.dayOfMonth.toString(), style = MaterialTheme.typography.titleMedium, color = content)
-    }
 }
 
 @Composable
@@ -761,8 +712,6 @@ private fun Meal.matchesQuery(query: String): Boolean =
     query.isBlank() || name.contains(query.trim(), ignoreCase = true)
 
 private fun LocalDate.formatHeader(): String = BobitosDates.longDay(this)
-
-private fun LocalDate.dayInitial(): String = BobitosDates.dayInitial(dayOfWeek)
 
 private val MealUiMessage.stringResourceId: Int
     get() = when (this) {
