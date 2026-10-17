@@ -28,7 +28,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -55,6 +54,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.InfoSheetAction
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
@@ -396,7 +396,7 @@ private fun RoutineDetailSheet(routine: Routine, canFork: Boolean, onFork: () ->
     BobitosInfoSheet(
         title = routine.title,
         onDismiss = onDismiss,
-        actions = { if (canFork) TextButton(onClick = onFork) { Text(stringResource(R.string.routines_fork)) } },
+        primaryAction = if (canFork) InfoSheetAction(stringResource(R.string.routines_fork), onFork) else null,
     ) {
         routine.description?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         val exercises = routine.exercises.orEmpty()

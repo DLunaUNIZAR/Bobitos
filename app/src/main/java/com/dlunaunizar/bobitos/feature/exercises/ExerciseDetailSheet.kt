@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -17,6 +16,7 @@ import androidx.compose.ui.text.withLink
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosInfoSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.InfoChip
+import com.dlunaunizar.bobitos.core.designsystem.component.InfoSheetAction
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberSafeLinks
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
@@ -37,11 +37,11 @@ internal fun ExerciseDetailSheet(
     BobitosInfoSheet(
         title = exercise.name,
         onDismiss = onDismiss,
-        actions = {
-            if (canEdit) {
-                TextButton(onClick = onDelete) { Text(stringResource(R.string.exercises_delete)) }
-                TextButton(onClick = onEdit) { Text(stringResource(R.string.exercises_edit)) }
-            }
+        primaryAction = if (canEdit) InfoSheetAction(stringResource(R.string.exercises_edit), onEdit) else null,
+        secondaryActions = if (canEdit) {
+            listOf(InfoSheetAction(stringResource(R.string.exercises_delete), onDelete))
+        } else {
+            emptyList()
         },
     ) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {

@@ -28,3 +28,24 @@ internal fun recipeDetailActions(recipe: Recipe, canWrite: Boolean, isAdmin: Boo
     val common = recipe.visibility == RecipeVisibility.GLOBAL
     return RecipeDetailActions(canEdit = canWrite && (!common || isAdmin), canFork = canWrite && common)
 }
+
+internal enum class RecipeSheetAction { ADD_TO_SHOPPING, FORK, EDIT, DELETE }
+
+// Una acción principal y el resto en el menú ⋮ de la hoja.
+internal data class SheetActions<A>(val primary: A?, val secondary: List<A>)
+
+// «Añadir a la compra» manda cuando se ofrece; si no, la primera de Guardar como mía o Editar. El resto, al ⋮.
+internal fun recipeSheetActions(
+    detail: RecipeDetailActions,
+    canAddToShopping: Boolean,
+): SheetActions<RecipeSheetAction> {
+    val all = buildList {
+        if (canAddToShopping) add(RecipeSheetAction.ADD_TO_SHOPPING)
+        if (detail.canFork) add(RecipeSheetAction.FORK)
+        if (detail.canEdit) {
+            add(RecipeSheetAction.EDIT)
+            add(RecipeSheetAction.DELETE)
+        }
+    }
+    return SheetActions(all.firstOrNull(), all.drop(1))
+}

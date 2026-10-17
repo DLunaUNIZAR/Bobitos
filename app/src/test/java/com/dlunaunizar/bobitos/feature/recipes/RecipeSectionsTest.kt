@@ -87,4 +87,44 @@ class RecipeSectionsTest {
         updatedBy = "u",
         updatedAt = Instant.EPOCH,
     )
+
+    @Test
+    fun `adding to the shopping list leads and a common recipe offers fork in the menu`() {
+        assertEquals(
+            SheetActions(RecipeSheetAction.ADD_TO_SHOPPING, listOf(RecipeSheetAction.FORK)),
+            recipeSheetActions(RecipeDetailActions(canEdit = false, canFork = true), canAddToShopping = true),
+        )
+    }
+
+    @Test
+    fun `adding to the shopping list leads and an own recipe offers edit and delete in the menu`() {
+        assertEquals(
+            SheetActions(RecipeSheetAction.ADD_TO_SHOPPING, listOf(RecipeSheetAction.EDIT, RecipeSheetAction.DELETE)),
+            recipeSheetActions(RecipeDetailActions(canEdit = true, canFork = false), canAddToShopping = true),
+        )
+    }
+
+    @Test
+    fun `without shopping a common recipe leads with fork and has no menu`() {
+        assertEquals(
+            SheetActions(RecipeSheetAction.FORK, emptyList()),
+            recipeSheetActions(RecipeDetailActions(canEdit = false, canFork = true), canAddToShopping = false),
+        )
+    }
+
+    @Test
+    fun `without shopping an own recipe leads with edit and deletes from the menu`() {
+        assertEquals(
+            SheetActions(RecipeSheetAction.EDIT, listOf(RecipeSheetAction.DELETE)),
+            recipeSheetActions(RecipeDetailActions(canEdit = true, canFork = false), canAddToShopping = false),
+        )
+    }
+
+    @Test
+    fun `with nothing to do there are no actions`() {
+        assertEquals(
+            SheetActions<RecipeSheetAction>(null, emptyList()),
+            recipeSheetActions(RecipeDetailActions(canEdit = false, canFork = false), canAddToShopping = false),
+        )
+    }
 }

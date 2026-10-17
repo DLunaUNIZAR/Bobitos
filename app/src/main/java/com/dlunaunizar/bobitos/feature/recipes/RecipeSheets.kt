@@ -2,6 +2,8 @@ package com.dlunaunizar.bobitos.feature.recipes
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -34,8 +36,11 @@ import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosInfoSheet
+import com.dlunaunizar.bobitos.core.designsystem.component.InfoChip
+import com.dlunaunizar.bobitos.core.designsystem.component.InfoSheetAction
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
+import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.feature.common.formatted
@@ -117,23 +122,28 @@ private fun RecipeDetailSheet(
     canAddToShopping: Boolean,
     actions: RecipeSheetActions,
 ) {
+    val sheetActions = recipeSheetActions(detailActions, canAddToShopping)
+    val labels = mapOf(
+        RecipeSheetAction.ADD_TO_SHOPPING to stringResource(R.string.recipes_add_to_shopping),
+        RecipeSheetAction.FORK to stringResource(R.string.recipes_fork),
+        RecipeSheetAction.EDIT to stringResource(R.string.recipes_edit),
+        RecipeSheetAction.DELETE to stringResource(R.string.recipes_delete),
+    )
+    val toInfoAction = { action: RecipeSheetAction ->
+        InfoSheetAction(labels.getValue(action)) {
+            when (action) {
+                RecipeSheetAction.ADD_TO_SHOPPING -> actions.onAddToShopping(recipe)
+                RecipeSheetAction.FORK -> actions.onFork(recipe)
+                RecipeSheetAction.EDIT -> actions.onEdit(recipe)
+                RecipeSheetAction.DELETE -> actions.onDelete(recipe)
+            }
+        }
+    }
     BobitosInfoSheet(
         title = recipe.title,
         onDismiss = actions.onCloseDetail,
-        actions = {
-            if (canAddToShopping) {
-                TextButton(onClick = { actions.onAddToShopping(recipe) }) {
-                    Text(stringResource(R.string.recipes_add_to_shopping))
-                }
-            }
-            if (detailActions.canEdit) {
-                TextButton(onClick = { actions.onEdit(recipe) }) { Text(stringResource(R.string.recipes_edit)) }
-                TextButton(onClick = { actions.onDelete(recipe) }) { Text(stringResource(R.string.recipes_delete)) }
-            }
-            if (detailActions.canFork) {
-                TextButton(onClick = { actions.onFork(recipe) }) { Text(stringResource(R.string.recipes_fork)) }
-            }
-        },
+        primaryAction = sheetActions.primary?.let(toInfoAction),
+        secondaryActions = sheetActions.secondary.map(toInfoAction),
     ) {
         RecipeSummary(recipe)
         // «Sin descripción.» solo si tampoco hay pasos: con pasos, la «Preparación» ya explica la receta.
@@ -143,16 +153,8 @@ private fun RecipeDetailSheet(
         } else if (recipe.steps.isNullOrEmpty()) {
             Text(stringResource(R.string.recipes_no_description))
         }
-        recipe.category?.let { Text(stringResource(R.string.recipes_category, it)) }
         IngredientsList(recipe.ingredients)
         StepsList(recipe.steps)
-        if (recipe.createdByName.isNotBlank()) {
-            Text(
-                text = stringResource(R.string.recipes_by, recipe.createdByName),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
 }
 
@@ -291,19 +293,15 @@ private fun IngredientsList(ingredients: List<Ingredient>?) {
     }
 }
 
-// «4 raciones · 40 min» bajo el título; cada parte sale sola si falta la otra, y nada si faltan las dos.
+// «4 raciones · 40 min» y la categoría, como fichas bajo el título; cada una sale sola si falta y nada si faltan todas.
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun RecipeSummary(recipe: Recipe) {
-    val parts = listOfNotNull(
-        recipe.servings?.let { pluralStringResource(R.plurals.recipes_servings, it, it) },
-        recipe.totalMinutes?.let { stringResource(R.string.recipes_minutes, it) },
-    )
+    val servings = recipe.servings?.let { pluralStringResource(R.plurals.recipes_servings, it, it) }
+    val minutes = recipe.totalMinutes?.let { stringResource(R.string.recipes_minutes, it) }
+    val parts = listOfNotNull(servings, minutes, recipe.category?.takeIf(String::isNotBlank))
     if (parts.isEmpty()) return
-    Text(
-        text = parts.joinToString(" · "),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) { parts.forEach { InfoChip(it) } }
 }
 
 @Composable

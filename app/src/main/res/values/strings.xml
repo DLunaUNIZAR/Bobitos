@@ -505,7 +505,6 @@
         <item quantity="one">Falta %1$d: %2$s, %3$s y %4$d más</item>
         <item quantity="other">Faltan %1$d: %2$s, %3$s y %4$d más</item>
     </plurals>
-    <string name="recipes_by">por %1$s</string>
     <string name="recipes_no_description">Sin descripción.</string>
     <string name="recipes_category">Categoría: %1$s</string>
     <string name="recipes_create">Crear receta</string>
@@ -616,6 +615,7 @@
     <string name="pantry_picker_search">Buscar ingrediente</string>
     <string name="pantry_picker_free_text">Añadir «%1$s»</string>
     <string name="close">Cerrar</string>
+    <string name="more_options_for">Más opciones de «%1$s»</string>
     <string name="routines_title">Rutinas</string>
     <string name="routines_open">Rutinas</string>
     <string name="routines_add">Nueva rutina</string>
