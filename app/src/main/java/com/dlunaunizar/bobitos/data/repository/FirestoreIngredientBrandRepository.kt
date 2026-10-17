@@ -68,6 +68,18 @@ class FirestoreIngredientBrandRepository @Inject constructor(
         Unit
     }
 
+    override suspend fun restoreBrand(brand: IngredientBrand) = runOperation {
+        val uid = requireVerifiedUid()
+        val values = validateBrandInput(
+            BrandInput(brand.ingredientId, brand.name, brand.barcode, brand.nutrition, brand.favorite, brand.stores),
+        )
+        val fields = values.toFirestoreFields().toMutableMap()
+        fields[FIELD_CREATED_AT] = FieldValue.serverTimestamp()
+        fields[FIELD_UPDATED_AT] = FieldValue.serverTimestamp()
+        brandsCollection(uid).document(brand.id).set(fields).await()
+        Unit
+    }
+
     private fun brandsCollection(uid: String): CollectionReference =
         firestore.collection(USERS).document(uid).collection(BRANDS)
 

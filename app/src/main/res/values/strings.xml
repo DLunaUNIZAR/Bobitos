@@ -780,15 +780,12 @@
     <string name="ingredients_brand_unfavorite">Quitar %1$s de favoritas</string>
     <string name="ingredients_nutrition_show">Ver nutrición</string>
     <string name="ingredients_nutrition_hide">Ocultar nutrición</string>
-    <string name="ingredients_delete_personal_body">¿Borrar «%1$s» y todas sus marcas?</string>
     <string name="ingredients_brands_empty">Aún no hay marcas para este ingrediente.</string>
     <string name="ingredients_brand_add">Añadir marca</string>
     <string name="ingredients_brand_add_title">Nueva marca</string>
     <string name="ingredients_brand_edit_title">Editar marca</string>
     <string name="ingredients_brand_name_label">Marca</string>
     <string name="ingredients_brand_barcode_label">Código de barras (opcional)</string>
-    <string name="ingredients_brand_delete_title">Borrar marca</string>
-    <string name="ingredients_brand_delete_body">¿Borrar la marca «%1$s»?</string>
     <string name="ingredients_brand_error_name_required">Escribe el nombre de la marca.</string>
     <string name="ingredients_brand_error_name_too_long">El nombre de la marca es demasiado largo.</string>
     <string name="ingredients_brand_error_barcode_too_long">El código de barras es demasiado largo.</string>

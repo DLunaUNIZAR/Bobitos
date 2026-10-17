@@ -2500,6 +2500,81 @@ test("borrar un ingrediente personal se acepta con y sin documento de preferenci
   assert.equal("otro" in entries, true);
 });
 
+test("deshacer el borrado de un ejercicio propio lo devuelve con su id y sube la versión del catálogo", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await deleteDoc(doc(context.firestore(), "catalogMeta", "exercises"));
+  });
+  const user = verifiedFirestore("ex-undo");
+  const metaRef = doc(user, "catalogMeta", "exercises");
+  const exerciseRef = doc(user, "exercises", "press-banca-2");
+  const withVersion = (write) =>
+    runTransaction(user, async (tx) => {
+      const snap = await tx.get(metaRef);
+      write(tx);
+      if (snap.exists()) tx.update(metaRef, metaData("ex-undo", snap.data().version + 1));
+      else tx.set(metaRef, metaData("ex-undo", 1));
+    });
+  await assertSucceeds(withVersion((tx) => tx.set(exerciseRef, exerciseData("ex-undo"))));
+  await assertSucceeds(withVersion((tx) => tx.delete(exerciseRef)));
+  assert.equal((await getDoc(exerciseRef)).exists(), false);
+  // Deshacer: mismo id, el dueño actual y sin source ni image.
+  await assertSucceeds(withVersion((tx) => tx.set(exerciseRef, exerciseData("ex-undo"))));
+  assert.equal((await getDoc(exerciseRef)).exists(), true);
+  assert.equal((await getDoc(metaRef)).data().version, 3);
+});
+
+test("deshacer el borrado de un ingrediente personal devuelve sus marcas y sus tiendas", async () => {
+  const user = verifiedFirestore("pi-undo");
+  const ingredientRef = doc(user, "users", "pi-undo", "ingredients", "salsa-casera");
+  const brandRef = doc(user, "users", "pi-undo", "brands", "marca-1");
+  const prefsRef = doc(user, "ingredientPrefs", "pi-undo");
+  await assertSucceeds(
+    writeBatch(user)
+      .set(ingredientRef, personalIngredient())
+      .set(brandRef, personalBrand({ ingredientId: "salsa-casera", stores: ["DIA"] }))
+      .set(prefsRef, { entries: { "salsa-casera": { stores: ["DIA", "MERCADONA"] } } }, { merge: true })
+      .commit(),
+  );
+  await assertSucceeds(
+    writeBatch(user)
+      .delete(brandRef)
+      .delete(ingredientRef)
+      .set(prefsRef, { entries: { "salsa-casera": deleteField() } }, { merge: true })
+      .commit(),
+  );
+  // Deshacer: un único lote con el ingrediente, cada marca con su id y la entrada de preferencias.
+  await assertSucceeds(
+    writeBatch(user)
+      .set(ingredientRef, personalIngredient())
+      .set(brandRef, personalBrand({ ingredientId: "salsa-casera", stores: ["DIA"] }))
+      .set(prefsRef, { entries: { "salsa-casera": { stores: ["DIA", "MERCADONA"] } } }, { merge: true })
+      .commit(),
+  );
+  assert.equal((await getDoc(ingredientRef)).exists(), true);
+  assert.equal((await getDoc(brandRef)).exists(), true);
+  assert.deepEqual((await getDoc(prefsRef)).data().entries["salsa-casera"].stores, ["DIA", "MERCADONA"]);
+});
+
+test("deshacer un ingrediente personal cuyo slug ya es común no escribe nada", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "ingredients", "salsa-ocupada"), importedIngredient());
+  });
+  const user = verifiedFirestore("pi-undo-taken");
+  const ingredientRef = doc(user, "users", "pi-undo-taken", "ingredients", "salsa-ocupada");
+  const brandRef = doc(user, "users", "pi-undo-taken", "brands", "marca-1");
+  const prefsRef = doc(user, "ingredientPrefs", "pi-undo-taken");
+  await assertFails(
+    writeBatch(user)
+      .set(ingredientRef, personalIngredient())
+      .set(brandRef, personalBrand({ ingredientId: "salsa-ocupada" }))
+      .set(prefsRef, { entries: { "salsa-ocupada": { stores: ["DIA"] } } }, { merge: true })
+      .commit(),
+  );
+  assert.equal((await getDoc(ingredientRef)).exists(), false);
+  assert.equal((await getDoc(brandRef)).exists(), false);
+  assert.equal((await getDoc(prefsRef)).exists(), false);
+});
+
 function exerciseData(userId, overrides = {}) {
   return {
     name: "Press banca",

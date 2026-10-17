@@ -110,8 +110,15 @@ class ExercisesViewModel @Inject constructor(
         }
     }
 
-    fun deleteExercise(id: String) {
-        runAction(ExerciseUiMessage.Deleted) { repository.deleteExercise(id) }
+    // onDeleted se llama solo si el borrado termina bien: así el «Deshacer» no se ofrece para un borrado fallido.
+    // Sin aviso propio: lo da la pantalla (el snackbar de «Deshacer» o el aviso de una ficha del catálogo común).
+    fun deleteExercise(id: String, onDeleted: () -> Unit = {}) {
+        runAction(null, onSuccess = onDeleted) { repository.deleteExercise(id) }
+    }
+
+    // «Deshacer» el borrado de un ejercicio propio (con el mismo id; el dueño pasa a ser quien deshace).
+    fun restoreExercise(exercise: CatalogExercise) {
+        runAction(null, force = true) { repository.restoreExercise(exercise) }
     }
 
     fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
@@ -130,6 +137,7 @@ class ExercisesViewModel @Inject constructor(
         successNotice: ExerciseUiMessage?,
         editor: Boolean = false,
         force: Boolean = false,
+        onSuccess: () -> Unit = {},
         action: suspend () -> Any?,
     ) {
         if (mutableUiState.value.isSaving && !force) return
@@ -147,6 +155,7 @@ class ExercisesViewModel @Inject constructor(
                             editorSave = it.editorSave.succeeded(editor),
                         )
                     }
+                    onSuccess()
                 }
                 .onFailure { error ->
                     if (error is CancellationException) throw error
@@ -155,6 +164,10 @@ class ExercisesViewModel @Inject constructor(
         }
     }
 }
+
+// Solo se devuelven los propios sin fuente ni imagen: lo que el admin borra del catálogo común se confirma con un diálogo.
+internal fun CatalogExercise.canUndoDelete(currentUid: String?): Boolean =
+    ownerUid == currentUid && source == null && image == null
 
 private fun Throwable.toUiMessage(): ExerciseUiMessage = if (this is SaveTimeoutException) {
     ExerciseUiMessage.SaveTimeout

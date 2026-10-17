@@ -13,6 +13,9 @@ import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffException
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffFailure
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffProduct
+import com.dlunaunizar.bobitos.data.repository.DeletedIngredient
+import com.dlunaunizar.bobitos.data.repository.IngredientFailure
+import com.dlunaunizar.bobitos.data.repository.IngredientRepositoryException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
@@ -36,8 +39,9 @@ class IngredientsViewModelTest {
     private val prefsRepository = FakeIngredientPrefsRepository()
     private val brandRepository = FakeIngredientBrandRepository()
     private val offClient = FakeOffClient()
+    private val relay = DeletedIngredientRelay()
     private val viewModel =
-        IngredientsViewModel(repository, personalRepository, prefsRepository, brandRepository, offClient)
+        IngredientsViewModel(repository, personalRepository, prefsRepository, brandRepository, offClient, relay)
 
     @Test
     fun `observe merges common and personal and carries brands and prefs`() =
@@ -60,6 +64,47 @@ class IngredientsViewModelTest {
             assertEquals(listOf(brand), state.brands)
             assertEquals(IngredientPref(listOf(Supermarket.DIA)), state.prefs["tomate"])
             assertTrue(state.isAdmin)
+        }
+
+    @Test
+    fun `restoreIngredient brings back brands and stores`() = runTest(mainDispatcherRule.testDispatcher) {
+        val deleted = DeletedIngredient(
+            ingredient = CatalogIngredient("canela", "Canela", personal = true),
+            brands = listOf(IngredientBrand(id = "b1", ingredientId = "canela", name = "Hida")),
+            stores = listOf(Supermarket.DIA, Supermarket.MERCADONA),
+        )
+
+        viewModel.restoreIngredient(deleted)
+        advanceUntilIdle()
+
+        assertEquals(deleted, personalRepository.restored)
+        assertNull(viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `a failed undo shows the error`() = runTest(mainDispatcherRule.testDispatcher) {
+        personalRepository.restoreError = IngredientRepositoryException(IngredientFailure.AlreadyExists)
+
+        val deleted =
+            DeletedIngredient(CatalogIngredient("canela", "Canela", personal = true), emptyList(), emptyList())
+        viewModel.restoreIngredient(deleted)
+        advanceUntilIdle()
+
+        assertEquals(IngredientUiMessage.AlreadyExists, viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `a deleted ingredient posted to the relay is exposed and consumed once`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val deleted =
+                DeletedIngredient(CatalogIngredient("canela", "Canela", personal = true), emptyList(), emptyList())
+
+            relay.post(deleted)
+            assertEquals(deleted, viewModel.deleted.value)
+
+            viewModel.consumeDeleted()
+            assertNull(viewModel.deleted.value)
+            assertNull(relay.deleted.value)
         }
 
     @Test

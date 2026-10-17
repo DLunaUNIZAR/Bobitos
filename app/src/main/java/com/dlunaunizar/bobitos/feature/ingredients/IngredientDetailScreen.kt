@@ -55,10 +55,12 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.InfoChip
+import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SwitchRow
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
+import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
@@ -95,8 +97,8 @@ fun IngredientDetailScreen(
         brandEditorId = id
         brandInitial = initial
     }
+    // Solo la ficha común (que borra el admin) se confirma con un diálogo; lo propio se borra y se deshace.
     var confirmDeleteIngredient by remember { mutableStateOf(false) }
-    var brandToDelete by remember { mutableStateOf<IngredientBrand?>(null) }
     val ingredient = state.ingredient
     // Se mantiene la ficha mientras el catálogo recarga (p. ej. al girar), para no perder el borrador.
     val editorIngredient = rememberEditorItem(ingredientId, ingredient, state.loaded)
@@ -131,9 +133,10 @@ fun IngredientDetailScreen(
                 ingredient = ingredient,
                 viewModel = viewModel,
                 onEditFicha = { showFichaEditor = true },
-                onDeleteIngredient = { confirmDeleteIngredient = true },
+                onDeleteIngredient = {
+                    if (ingredient?.personal == true) viewModel.deleteIngredient() else confirmDeleteIngredient = true
+                },
                 onOpenBrandEditor = openBrandEditor,
-                onDeleteBrand = { brandToDelete = it },
                 onAddToShopping = onAddToShopping,
             )
         }
@@ -149,53 +152,18 @@ fun IngredientDetailScreen(
         onCloseBrand = { brandInitial = null },
     )
 
-    DeleteConfirmations(
-        ingredient = ingredient.takeIf { confirmDeleteIngredient },
-        brand = brandToDelete,
-        saving = state.isSaving,
-        onDeleteIngredient = {
-            viewModel.deleteIngredient()
-            confirmDeleteIngredient = false
-        },
-        onDeleteBrand = {
-            viewModel.deleteBrand(it.id)
-            brandToDelete = null
-        },
-        onDismissIngredient = { confirmDeleteIngredient = false },
-        onDismissBrand = { brandToDelete = null },
-    )
-}
-
-@Composable
-private fun DeleteConfirmations(
-    ingredient: CatalogIngredient?,
-    brand: IngredientBrand?,
-    saving: Boolean,
-    onDeleteIngredient: () -> Unit,
-    onDeleteBrand: (IngredientBrand) -> Unit,
-    onDismissIngredient: () -> Unit,
-    onDismissBrand: () -> Unit,
-) {
-    if (ingredient != null) {
+    ingredient.takeIf { confirmDeleteIngredient }?.let { common ->
         BobitosDialog(
             title = stringResource(R.string.ingredients_delete_title),
-            message = stringResource(deleteBodyRes(ingredient), ingredient.name),
+            message = stringResource(R.string.ingredients_delete_body, common.name),
             confirmLabel = stringResource(R.string.ingredients_delete),
             destructive = true,
-            confirmEnabled = !saving,
-            onConfirm = onDeleteIngredient,
-            onDismiss = onDismissIngredient,
-        )
-    }
-    if (brand != null) {
-        BobitosDialog(
-            title = stringResource(R.string.ingredients_brand_delete_title),
-            message = stringResource(R.string.ingredients_brand_delete_body, brand.name),
-            confirmLabel = stringResource(R.string.ingredients_delete),
-            destructive = true,
-            confirmEnabled = !saving,
-            onConfirm = { onDeleteBrand(brand) },
-            onDismiss = onDismissBrand,
+            confirmEnabled = !state.isSaving,
+            onConfirm = {
+                viewModel.deleteIngredient()
+                confirmDeleteIngredient = false
+            },
+            onDismiss = { confirmDeleteIngredient = false },
         )
     }
 }
@@ -254,7 +222,6 @@ private fun IngredientContent(
     onEditFicha: () -> Unit,
     onDeleteIngredient: () -> Unit,
     onOpenBrandEditor: (String?, BrandDraft) -> Unit,
-    onDeleteBrand: (IngredientBrand) -> Unit,
     onAddToShopping: ((String) -> Unit)?,
 ) {
     if (ingredient == null) {
@@ -266,6 +233,9 @@ private fun IngredientContent(
     }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val snackbar = LocalSnackbarHostState.current
+    val brandDeletedMessage = stringResource(R.string.ingredients_brand_notice_deleted)
+    val undoLabel = stringResource(R.string.undo)
     FichaSection(
         ingredient = ingredient,
         canEdit = state.canEditIngredient,
@@ -286,7 +256,11 @@ private fun IngredientContent(
         onAdd = { onOpenBrandEditor(null, BrandDraft.of("", "", null)) },
         onScan = { scope.launch { scanBarcode(context)?.let(viewModel::lookupBarcode) } },
         onEdit = { onOpenBrandEditor(it.id, BrandDraft.of(it)) },
-        onDelete = onDeleteBrand,
+        onDelete = { brand ->
+            viewModel.deleteBrand(brand.id) {
+                scope.launchUndo(snackbar, brandDeletedMessage, undoLabel) { viewModel.restoreBrand(brand) }
+            }
+        },
     )
 }
 
@@ -563,9 +537,6 @@ private val NUTRITION_LABELS = listOf(
     R.string.nutrition_protein_label,
     R.string.nutrition_salt_label,
 )
-
-private fun deleteBodyRes(ingredient: CatalogIngredient) =
-    if (ingredient.personal) R.string.ingredients_delete_personal_body else R.string.ingredients_delete_body
 
 private fun favoriteDescriptionRes(favorite: Boolean) =
     if (favorite) R.string.ingredients_brand_unfavorite else R.string.ingredients_brand_favorite

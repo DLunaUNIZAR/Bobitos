@@ -9,6 +9,7 @@ import com.dlunaunizar.bobitos.data.openfoodfacts.OffException
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffProduct
 import com.dlunaunizar.bobitos.data.openfoodfacts.OpenFoodFactsClient
 import com.dlunaunizar.bobitos.data.repository.BrandInput
+import com.dlunaunizar.bobitos.data.repository.DeletedIngredient
 import com.dlunaunizar.bobitos.data.repository.IngredientBrandRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientRepository
@@ -74,6 +75,9 @@ internal class FakePersonalIngredientRepository : PersonalIngredientRepository {
     var createGate: CompletableDeferred<Unit>? = null
     var createError: Throwable? = null
     var deletedId: String? = null
+    var deleteError: Throwable? = null
+    var restored: DeletedIngredient? = null
+    var restoreError: Throwable? = null
     var updatedId: String? = null
     var hang = false
     var personalOverride: Flow<List<CatalogIngredient>>? = null
@@ -95,7 +99,13 @@ internal class FakePersonalIngredientRepository : PersonalIngredientRepository {
     }
 
     override suspend fun delete(id: String) {
+        deleteError?.let { throw it }
         deletedId = id
+    }
+
+    override suspend fun restore(deleted: DeletedIngredient) {
+        restoreError?.let { throw it }
+        restored = deleted
     }
 }
 
@@ -155,9 +165,18 @@ internal class FakeIngredientBrandRepository : IngredientBrandRepository {
     }
 
     val deleted = mutableListOf<String>()
+    var deleteError: Throwable? = null
+    var restoredBrand: IngredientBrand? = null
+    var restoreError: Throwable? = null
 
     override suspend fun deleteBrand(brandId: String) {
+        deleteError?.let { throw it }
         deleted += brandId
+    }
+
+    override suspend fun restoreBrand(brand: IngredientBrand) {
+        restoreError?.let { throw it }
+        restoredBrand = brand
     }
 }
 

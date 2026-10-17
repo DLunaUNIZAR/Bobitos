@@ -13,6 +13,7 @@ import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.findByKey
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffException
 import com.dlunaunizar.bobitos.data.openfoodfacts.OpenFoodFactsClient
+import com.dlunaunizar.bobitos.data.repository.DeletedIngredient
 import com.dlunaunizar.bobitos.data.repository.IngredientBrandRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientRepository
@@ -35,9 +36,19 @@ class IngredientsViewModel @Inject constructor(
     private val prefsRepository: IngredientPrefsRepository,
     private val brandRepository: IngredientBrandRepository,
     private val openFoodFactsClient: OpenFoodFactsClient,
+    private val deletedRelay: DeletedIngredientRelay,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(IngredientsUiState())
     val uiState: StateFlow<IngredientsUiState> = mutableUiState.asStateFlow()
+
+    // Ingrediente personal recién borrado desde su detalle: la pantalla ofrece «Deshacer» y lo consume.
+    val deleted: StateFlow<DeletedIngredient?> = deletedRelay.deleted
+
+    fun consumeDeleted() = deletedRelay.consume()
+
+    // «Deshacer» el borrado: devuelve el ingrediente con sus marcas y tiendas (si no puede, sale el error).
+    fun restoreIngredient(deleted: DeletedIngredient) =
+        runAction(null, force = true) { personalRepository.restore(deleted) }
 
     private var catalogJob: Job? = null
     private var personalJob: Job? = null

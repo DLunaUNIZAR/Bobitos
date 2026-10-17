@@ -54,11 +54,13 @@ import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.InfoChip
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
+import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SwitchRow
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
+import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
@@ -111,6 +113,7 @@ fun IngredientsScreen(
         },
     ) { padding ->
         CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
+        DeletedUndoEffect(viewModel)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -473,4 +476,19 @@ private fun ingredientMessageText(
             barcodeConflict.ingredientName,
         )
     else -> stringResource(message.stringResourceId)
+}
+
+/** Avisa «Ingrediente borrado» con «Deshacer» cuando el detalle publica un personal recién borrado. */
+@Composable
+private fun DeletedUndoEffect(viewModel: IngredientsViewModel) {
+    val deleted by viewModel.deleted.collectAsStateWithLifecycle()
+    val snackbar = LocalSnackbarHostState.current
+    val scope = rememberCoroutineScope()
+    val message = stringResource(R.string.ingredients_notice_deleted)
+    val undoLabel = stringResource(R.string.undo)
+    LaunchedEffect(deleted) {
+        val pending = deleted ?: return@LaunchedEffect
+        viewModel.consumeDeleted()
+        scope.launchUndo(snackbar, message, undoLabel) { viewModel.restoreIngredient(pending) }
+    }
 }

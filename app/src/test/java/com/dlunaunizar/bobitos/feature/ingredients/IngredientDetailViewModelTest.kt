@@ -14,6 +14,7 @@ import com.dlunaunizar.bobitos.data.openfoodfacts.OffFailure
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffProduct
 import com.dlunaunizar.bobitos.data.repository.BrandFailure
 import com.dlunaunizar.bobitos.data.repository.BrandRepositoryException
+import com.dlunaunizar.bobitos.data.repository.DeletedIngredient
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefFailure
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefsException
 import kotlinx.coroutines.CompletableDeferred
@@ -40,8 +41,9 @@ class IngredientDetailViewModelTest {
     private val prefsRepository = FakeIngredientPrefsRepository()
     private val brandRepository = FakeIngredientBrandRepository()
     private val offClient = FakeOffClient()
+    private val relay = DeletedIngredientRelay()
     private val viewModel =
-        IngredientDetailViewModel(repository, personalRepository, prefsRepository, brandRepository, offClient)
+        IngredientDetailViewModel(repository, personalRepository, prefsRepository, brandRepository, offClient, relay)
 
     @Test
     fun `observe resolves a common ingredient before a personal one with the same id`() =
@@ -366,6 +368,89 @@ class IngredientDetailViewModelTest {
             assertNull(repository.deletedId)
             assertTrue(viewModel.uiState.value.finished)
         }
+
+    @Test
+    fun `deleting a personal ingredient posts the snapshot`() = runTest(mainDispatcherRule.testDispatcher) {
+        val mine = detailIngredient("mio", "Mío", personal = true)
+        val brand = detailBrand("b1", "mio", "Hacendado")
+        personalRepository.state.value = listOf(mine)
+        brandRepository.brandsState.value = listOf(brand, detailBrand("b2", "otro", "Ajena"))
+        prefsRepository.state.value = mapOf("mio" to IngredientPref(listOf(Supermarket.DIA, Supermarket.EROSKI)))
+        viewModel.observe("mio")
+        advanceUntilIdle()
+
+        viewModel.deleteIngredient()
+        advanceUntilIdle()
+
+        assertEquals(
+            DeletedIngredient(mine, listOf(brand), listOf(Supermarket.DIA, Supermarket.EROSKI)),
+            relay.deleted.value,
+        )
+    }
+
+    @Test
+    fun `a failed delete posts nothing`() = runTest(mainDispatcherRule.testDispatcher) {
+        personalRepository.state.value = listOf(detailIngredient("mio", "Mío", personal = true))
+        personalRepository.deleteError = IllegalStateException("boom")
+        viewModel.observe("mio")
+        advanceUntilIdle()
+
+        viewModel.deleteIngredient()
+        advanceUntilIdle()
+
+        assertNull(relay.deleted.value)
+        assertFalse(viewModel.uiState.value.finished)
+    }
+
+    @Test
+    fun `deleting a common ingredient posts nothing`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.admin = true
+        repository.catalogState.value = listOf(detailIngredient("tomate", "Tomate"))
+        viewModel.observe("tomate")
+        advanceUntilIdle()
+
+        viewModel.deleteIngredient()
+        advanceUntilIdle()
+
+        assertEquals("tomate", repository.deletedId)
+        assertNull(relay.deleted.value)
+    }
+
+    @Test
+    fun `undoing a brand delete restores it with its id`() = runTest(mainDispatcherRule.testDispatcher) {
+        val brand = detailBrand("b1", "tomate", "Hacendado").copy(favorite = true, stores = listOf(Supermarket.DIA))
+
+        viewModel.restoreBrand(brand)
+        advanceUntilIdle()
+
+        assertEquals(brand, brandRepository.restoredBrand)
+        assertNull(viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `a failed brand undo shows the error`() = runTest(mainDispatcherRule.testDispatcher) {
+        brandRepository.restoreError = BrandRepositoryException(BrandFailure.Network)
+
+        viewModel.restoreBrand(detailBrand("b1", "tomate", "Hacendado"))
+        advanceUntilIdle()
+
+        assertEquals(IngredientUiMessage.NetworkError, viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `onDeleted of a brand runs only when the delete finished well`() = runTest(mainDispatcherRule.testDispatcher) {
+        var calls = 0
+        brandRepository.deleteError = BrandRepositoryException(BrandFailure.Network)
+        viewModel.deleteBrand("b1") { calls++ }
+        advanceUntilIdle()
+        assertEquals(0, calls)
+
+        brandRepository.deleteError = null
+        viewModel.deleteBrand("b1") { calls++ }
+        advanceUntilIdle()
+        assertEquals(1, calls)
+        assertEquals(listOf("b1"), brandRepository.deleted)
+    }
 
     @Test
     fun `deleting a common ingredient as admin uses the catalog repository`() =

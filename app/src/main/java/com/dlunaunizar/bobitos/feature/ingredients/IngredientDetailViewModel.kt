@@ -13,6 +13,7 @@ import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffException
 import com.dlunaunizar.bobitos.data.openfoodfacts.OpenFoodFactsClient
+import com.dlunaunizar.bobitos.data.repository.DeletedIngredient
 import com.dlunaunizar.bobitos.data.repository.IngredientBrandRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefFailure
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefsException
@@ -39,6 +40,7 @@ class IngredientDetailViewModel @Inject constructor(
     private val prefsRepository: IngredientPrefsRepository,
     private val brandRepository: IngredientBrandRepository,
     private val openFoodFactsClient: OpenFoodFactsClient,
+    private val deletedRelay: DeletedIngredientRelay,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(IngredientDetailUiState())
     val uiState: StateFlow<IngredientDetailUiState> = mutableUiState.asStateFlow()
@@ -156,9 +158,18 @@ class IngredientDetailViewModel @Inject constructor(
         }
     }
 
+    // Un personal se borra sin aviso propio: tras terminar bien, la lista (adonde vuelve la pantalla) ofrece el
+    // «Deshacer» con lo que se llevó por delante. El común (solo el admin) conserva su aviso y no se deshace.
     fun deleteIngredient() {
-        runAction(IngredientUiMessage.Deleted, finishOnSuccess = true) {
-            if (isPersonal()) personalRepository.delete(ingredientId) else repository.deleteIngredient(ingredientId)
+        val current = mutableUiState.value
+        val snapshot = current.ingredient?.takeIf(CatalogIngredient::personal)
+            ?.let { DeletedIngredient(it, current.brands, current.stores) }
+        runAction(
+            if (snapshot == null) IngredientUiMessage.Deleted else null,
+            finishOnSuccess = true,
+            onSuccess = { snapshot?.let(deletedRelay::post) },
+        ) {
+            if (snapshot != null) personalRepository.delete(ingredientId) else repository.deleteIngredient(ingredientId)
         }
     }
 
@@ -222,8 +233,14 @@ class IngredientDetailViewModel @Inject constructor(
     // «Deshacer» el alta de la marca: la borra con el borrado de siempre (sin aviso; si falla, sale el error).
     fun undoCreate(id: String) = runAction(null, force = true) { brandRepository.deleteBrand(id) }
 
-    fun deleteBrand(brandId: String) {
-        runAction(IngredientUiMessage.BrandDeleted) { brandRepository.deleteBrand(brandId) }
+    // onDeleted se llama solo si el borrado termina bien: así el «Deshacer» no se ofrece para un borrado fallido.
+    fun deleteBrand(brandId: String, onDeleted: () -> Unit = {}) {
+        runAction(null, onSuccess = onDeleted) { brandRepository.deleteBrand(brandId) }
+    }
+
+    // «Deshacer» el borrado de una marca (con el mismo id).
+    fun restoreBrand(brand: IngredientBrand) {
+        runAction(null, force = true) { brandRepository.restoreBrand(brand) }
     }
 
     /**
@@ -300,6 +317,7 @@ class IngredientDetailViewModel @Inject constructor(
         finishOnSuccess: Boolean = false,
         editor: Boolean = false,
         force: Boolean = false,
+        onSuccess: () -> Unit = {},
         // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
         action: suspend () -> Any?,
     ) {
@@ -319,6 +337,7 @@ class IngredientDetailViewModel @Inject constructor(
                             editorSave = it.editorSave.succeeded(editor),
                         )
                     }
+                    onSuccess()
                 }
                 .onFailure { error ->
                     if (error is CancellationException) throw error

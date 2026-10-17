@@ -20,6 +20,9 @@ interface IngredientBrandRepository {
     suspend fun setFavorite(brandId: String, favorite: Boolean)
 
     suspend fun deleteBrand(brandId: String)
+
+    /** «Deshacer» el borrado: vuelve a escribir la marca con su id original. */
+    suspend fun restoreBrand(brand: IngredientBrand)
 }
 
 enum class BrandFailure {

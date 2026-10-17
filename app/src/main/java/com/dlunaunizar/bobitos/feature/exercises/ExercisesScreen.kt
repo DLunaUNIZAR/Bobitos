@@ -26,9 +26,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -49,8 +51,10 @@ import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.InfoChip
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
+import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
+import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
@@ -74,6 +78,16 @@ fun ExercisesScreen(
     var detailOpen by rememberSaveable { mutableStateOf(false) }
     var detailExerciseId by rememberSaveable { mutableStateOf<String?>(null) }
     var deleteTarget by remember { mutableStateOf<CatalogExercise?>(null) }
+    // Un ejercicio propio recién borrado, para ofrecer «Deshacer»; una ficha común borrada por el admin solo avisa.
+    var undoable by remember { mutableStateOf<CatalogExercise?>(null) }
+    var commonDeleted by remember { mutableStateOf(false) }
+    val requestDelete: (CatalogExercise) -> Unit = { exercise ->
+        if (exercise.canUndoDelete(state.currentUid)) {
+            viewModel.deleteExercise(exercise.id) { undoable = exercise }
+        } else {
+            deleteTarget = exercise
+        }
+    }
     var query by rememberSaveable { mutableStateOf("") }
     var typeFilter by rememberSaveable { mutableStateOf<ExerciseType?>(null) }
     var groupFilter by rememberSaveable { mutableStateOf<String?>(null) }
@@ -99,6 +113,21 @@ fun ExercisesScreen(
             )
         },
     ) { padding ->
+        val snackbar = LocalSnackbarHostState.current
+        val scope = rememberCoroutineScope()
+        val deletedMessage = stringResource(R.string.exercises_notice_deleted)
+        val undoLabel = stringResource(R.string.undo)
+        LaunchedEffect(undoable) {
+            val exercise = undoable ?: return@LaunchedEffect
+            undoable = null
+            scope.launchUndo(snackbar, deletedMessage, undoLabel) { viewModel.restoreExercise(exercise) }
+        }
+        LaunchedEffect(commonDeleted) {
+            if (commonDeleted) {
+                commonDeleted = false
+                snackbar?.showSnackbar(deletedMessage)
+            }
+        }
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = Spacing.lg)) {
             FeedbackSnackbarEffect(
                 error = state.error,
@@ -129,7 +158,7 @@ fun ExercisesScreen(
                     editorExerciseId = it.id
                     editorOpen = true
                 },
-                onDelete = { deleteTarget = it },
+                onDelete = requestDelete,
             )
         }
     }
@@ -152,7 +181,7 @@ fun ExercisesScreen(
             },
             onDelete = {
                 detailOpen = false
-                deleteTarget = exercise
+                requestDelete(exercise)
             },
             onDismiss = { detailOpen = false },
         )
@@ -194,7 +223,7 @@ fun ExercisesScreen(
             destructive = true,
             confirmEnabled = !state.isSaving,
             onConfirm = {
-                viewModel.deleteExercise(exercise.id)
+                viewModel.deleteExercise(exercise.id) { commonDeleted = true }
                 deleteTarget = null
             },
             onDismiss = { deleteTarget = null },
@@ -347,5 +376,4 @@ private val ExerciseUiMessage.stringResourceId: Int
         ExerciseUiMessage.SaveTimeout -> R.string.write_timeout
         ExerciseUiMessage.CatalogUnavailable -> R.string.exercises_catalog_unavailable
         ExerciseUiMessage.Saved -> R.string.exercises_notice_saved
-        ExerciseUiMessage.Deleted -> R.string.exercises_notice_deleted
     }

@@ -37,5 +37,4 @@ enum class ExerciseUiMessage {
     SaveTimeout,
     CatalogUnavailable,
     Saved,
-    Deleted,
 }

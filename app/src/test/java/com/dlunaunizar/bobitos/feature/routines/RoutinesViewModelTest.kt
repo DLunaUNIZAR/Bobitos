@@ -385,6 +385,8 @@ private class FakeExerciseRepository : ExerciseRepository {
     override suspend fun createExercise(input: ExerciseInput): String = "new-1"
     override suspend fun updateExercise(id: String, input: ExerciseInput) = Unit
     override suspend fun deleteExercise(id: String) = Unit
+
+    override suspend fun restoreExercise(exercise: CatalogExercise) = Unit
 }
 
 private class FakeRoutineRepository : RoutineRepository {

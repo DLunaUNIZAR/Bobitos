@@ -88,6 +88,29 @@ class FirestoreExerciseRepository @Inject constructor(
         writeWithVersion(user.id, id) { transaction, ref -> transaction.delete(ref) }
     }
 
+    override suspend fun restoreExercise(exercise: CatalogExercise) = runOperation {
+        val user = requireVerifiedUser()
+        val values = validateExerciseInput(
+            ExerciseInput(
+                name = exercise.name,
+                type = exercise.type,
+                muscleGroup = exercise.muscleGroup,
+                description = exercise.description,
+                equipment = exercise.equipment,
+                measure = exercise.measure,
+            ),
+        )
+        val fields = values.toFirestoreFields() + mapOf(
+            FIELD_OWNER_UID to user.id,
+            FIELD_CREATED_BY to user.id,
+            FIELD_CREATED_BY_NAME to user.catalogDisplayName,
+            FIELD_CREATED_AT to FieldValue.serverTimestamp(),
+            FIELD_UPDATED_BY to user.id,
+            FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+        )
+        writeWithVersion(user.id, exercise.id, isCreate = true) { transaction, ref -> transaction.set(ref, fields) }
+    }
+
     private fun exercisesCollection() = firestore.collection(EXERCISES)
 
     /**

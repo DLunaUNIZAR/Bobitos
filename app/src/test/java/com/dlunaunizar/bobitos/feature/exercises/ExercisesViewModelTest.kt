@@ -9,6 +9,7 @@ import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseEquipment
 import com.dlunaunizar.bobitos.core.model.ExerciseImage
 import com.dlunaunizar.bobitos.core.model.ExerciseInput
+import com.dlunaunizar.bobitos.core.model.ExerciseSource
 import com.dlunaunizar.bobitos.core.model.ExerciseType
 import com.dlunaunizar.bobitos.core.model.slug
 import com.dlunaunizar.bobitos.data.repository.ExerciseFailure
@@ -199,7 +200,55 @@ class ExercisesViewModelTest {
         advanceUntilIdle()
 
         assertEquals("press-banca", repository.deletedId)
-        assertEquals(ExerciseUiMessage.Deleted, viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun `canUndoDelete only for the own exercises without source or image`() {
+        val own = exercise("press-banca", "Press banca", ExerciseType.PESO_LIBRE)
+        assertTrue(own.canUndoDelete("me"))
+        assertFalse(own.copy(source = ExerciseSource("wger", 1L, "CC-BY-SA-4.0", null, null)).canUndoDelete("me"))
+        assertFalse(own.copy(image = ExerciseImage("a".repeat(64), null, "CC-BY-SA-4.0", null)).canUndoDelete("me"))
+        // Aunque borre el admin, uno de otro dueño no se devuelve.
+        assertFalse(own.copy(ownerUid = "other").canUndoDelete("me"))
+        assertFalse(own.canUndoDelete(null))
+    }
+
+    @Test
+    fun `undoing a delete restores the exercise with its id`() = runTest(mainDispatcherRule.testDispatcher) {
+        val deleted = exercise("press-banca-2", "Press banca", ExerciseType.PESO_LIBRE)
+
+        viewModel.restoreExercise(deleted)
+        advanceUntilIdle()
+
+        assertEquals(deleted, repository.restored)
+        assertEquals("press-banca-2", repository.restored?.id)
+        assertNull(viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `a failed undo shows the error`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.restoreFailure = ExerciseRepositoryException(ExerciseFailure.Network)
+
+        viewModel.restoreExercise(exercise("press-banca", "Press banca", ExerciseType.PESO_LIBRE))
+        advanceUntilIdle()
+
+        assertEquals(ExerciseUiMessage.NetworkError, viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `onDeleted runs only when the delete finished well`() = runTest(mainDispatcherRule.testDispatcher) {
+        var deletedCalls = 0
+        repository.deleteFailure = ExerciseRepositoryException(ExerciseFailure.Network)
+        viewModel.deleteExercise("press-banca") { deletedCalls++ }
+        advanceUntilIdle()
+        assertEquals(0, deletedCalls)
+        assertEquals(ExerciseUiMessage.NetworkError, viewModel.uiState.value.error)
+
+        repository.deleteFailure = null
+        viewModel.deleteExercise("press-banca") { deletedCalls++ }
+        advanceUntilIdle()
+        assertEquals(1, deletedCalls)
     }
 
     @Test
@@ -276,6 +325,9 @@ private class FakeExerciseRepository : ExerciseRepository {
     val createdName: String? get() = createdInput?.name
     val createdType: ExerciseType? get() = createdInput?.type
     var deletedId: String? = null
+    var deleteFailure: Throwable? = null
+    var restored: CatalogExercise? = null
+    var restoreFailure: Throwable? = null
 
     var catalogFailure: Throwable? = null
 
@@ -302,7 +354,13 @@ private class FakeExerciseRepository : ExerciseRepository {
     override suspend fun updateExercise(id: String, input: ExerciseInput) = Unit
 
     override suspend fun deleteExercise(id: String) {
+        deleteFailure?.let { throw it }
         deletedId = id
+    }
+
+    override suspend fun restoreExercise(exercise: CatalogExercise) {
+        restoreFailure?.let { throw it }
+        restored = exercise
     }
 }
 
