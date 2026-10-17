@@ -234,6 +234,7 @@ fun CalendarScreen(
                         onDelete = { id -> filteredEvents.firstOrNull { it.id == id }?.let(deleteWithUndo) },
                         onCreateAt = { creatingAtText = it.toString() },
                         modifier = Modifier.weight(1f),
+                        deleteEnabled = !state.saving,
                     )
                     CalendarDisplayMode.WEEK -> WeekEventList(
                         focusedDate = state.focusedDate,
@@ -243,6 +244,7 @@ fun CalendarScreen(
                         onDelete = { id -> filteredEvents.firstOrNull { it.id == id }?.let(deleteWithUndo) },
                         onDayTap = onDayTap,
                         modifier = Modifier.weight(1f),
+                        deleteEnabled = !state.saving,
                     )
                 }
             }
@@ -499,6 +501,7 @@ private fun WeekEventList(
     onDelete: (String) -> Unit,
     onDayTap: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
+    deleteEnabled: Boolean = true,
 ) {
     val monday = focusedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
     val days = (0L..6L).map(monday::plusDays)
@@ -532,7 +535,7 @@ private fun WeekEventList(
                 }
             } else {
                 items(dayEvents, key = { "$date-${it.id}" }) { event ->
-                    EventRow(event, canWrite, { onEdit(event) }, { onDelete(event.id) })
+                    EventRow(event, canWrite, { onEdit(event) }, { onDelete(event.id) }, deleteEnabled)
                 }
             }
         }
@@ -610,6 +613,7 @@ internal fun DayHourGrid(
     onDelete: (String) -> Unit,
     onCreateAt: (LocalTime) -> Unit,
     modifier: Modifier = Modifier,
+    deleteEnabled: Boolean = true,
 ) {
     val zone = ZoneId.systemDefault()
     val allDay = events.filter(CalendarEvent::allDay)
@@ -627,7 +631,7 @@ internal fun DayHourGrid(
             }
             items(tasks, key = { "task-${it.id}" }) { task -> TaskOnDayRow(task) }
             items(allDay, key = { "allday-${it.id}" }) { event ->
-                EventRow(event, canWrite, { onEdit(event) }, { onDelete(event.id) })
+                EventRow(event, canWrite, { onEdit(event) }, { onDelete(event.id) }, deleteEnabled)
             }
             item(key = "hours-divider") { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
         }
@@ -639,6 +643,7 @@ internal fun DayHourGrid(
                 onEdit = onEdit,
                 onDelete = onDelete,
                 onLongPress = { onCreateAt(LocalTime.of(hour, 0)) },
+                deleteEnabled = deleteEnabled,
             )
         }
     }
@@ -652,6 +657,7 @@ internal fun HourRow(
     onEdit: (CalendarEvent) -> Unit,
     onDelete: (String) -> Unit,
     onLongPress: () -> Unit,
+    deleteEnabled: Boolean = true,
 ) {
     val createLabel = stringResource(R.string.calendar_create_at, BobitosDates.time(LocalTime.of(hour, 0)))
     Row(
@@ -689,14 +695,21 @@ internal fun HourRow(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             events.forEach { event ->
-                EventRow(event, canWrite, { onEdit(event) }, { onDelete(event.id) })
+                EventRow(event, canWrite, { onEdit(event) }, { onDelete(event.id) }, deleteEnabled)
             }
         }
     }
 }
 
 @Composable
-internal fun EventRow(event: CalendarEvent, canWrite: Boolean, edit: () -> Unit, delete: () -> Unit) {
+internal fun EventRow(
+    event: CalendarEvent,
+    canWrite: Boolean,
+    edit: () -> Unit,
+    delete: () -> Unit,
+    // Falso mientras otra escritura está en curso: borrar sería un toque que no hace nada.
+    deleteEnabled: Boolean = true,
+) {
     var menuExpanded by remember { mutableStateOf(false) }
     val content: @Composable ColumnScope.() -> Unit = {
         Row(
@@ -744,6 +757,7 @@ internal fun EventRow(event: CalendarEvent, canWrite: Boolean, edit: () -> Unit,
                         )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.calendar_delete)) },
+                            enabled = deleteEnabled,
                             onClick = {
                                 menuExpanded = false
                                 delete()

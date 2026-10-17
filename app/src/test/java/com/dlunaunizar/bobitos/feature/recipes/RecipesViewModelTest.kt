@@ -400,7 +400,7 @@ class RecipesViewModelTest {
 
         assertEquals("Tortilla", repository.restored?.title)
         assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
-        assertEquals(RecipeUiMessage.RecipeSaved, viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.notice)
     }
 
     @Test
@@ -585,6 +585,22 @@ class RecipesViewModelTest {
         viewModel.consumeDeletedRecipe()
         assertNull(viewModel.uiState.value.deletedRecipe)
     }
+
+    @Test
+    fun `undo runs even while another write is in flight, without a saved notice`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.deleteGate = CompletableDeferred()
+            viewModel.deleteRecipe(recipe("r2", RecipeVisibility.PRIVATE, "Sopa"))
+            runCurrent()
+            assertTrue(viewModel.uiState.value.isSaving)
+
+            val tortilla = recipe("r1", RecipeVisibility.PRIVATE, "Tortilla")
+            viewModel.restoreRecipe(tortilla)
+            runCurrent()
+
+            assertEquals(tortilla, repository.restored)
+            assertNull(viewModel.uiState.value.notice)
+        }
 
     @Test
     fun `a failed delete offers no undo and shows the error`() = runTest(mainDispatcherRule.testDispatcher) {

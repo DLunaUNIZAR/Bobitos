@@ -7,6 +7,8 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -27,7 +29,7 @@ class BobitosInfoSheetTest {
                 BobitosInfoSheet(
                     title = "Ensalada",
                     onDismiss = {},
-                    primaryAction = InfoSheetAction("Añadir a la compra") { calls++ },
+                    primaryAction = InfoSheetAction("Añadir a la compra", onClick = { calls++ }),
                 ) { Text("Contenido") }
             }
         }
@@ -43,13 +45,49 @@ class BobitosInfoSheetTest {
                 BobitosInfoSheet(
                     title = "Ensalada",
                     onDismiss = {},
-                    secondaryActions = listOf(InfoSheetAction("Editar") {}, InfoSheetAction("Eliminar") {}),
+                    secondaryActions = listOf(
+                        InfoSheetAction("Editar", onClick = {}),
+                        InfoSheetAction("Eliminar", onClick = {}),
+                    ),
                 ) { Text("Contenido") }
             }
         }
         compose.onNodeWithContentDescription("Más opciones de «Ensalada»").performClick()
         compose.onNodeWithText("Editar").assertIsDisplayed()
         compose.onNodeWithText("Eliminar").assertIsDisplayed()
+    }
+
+    @Test
+    fun aDisabledSecondaryActionShowsDisabledInTheMenu() {
+        compose.setContent {
+            BobitosTheme {
+                BobitosInfoSheet(
+                    title = "Ensalada",
+                    onDismiss = {},
+                    secondaryActions = listOf(
+                        InfoSheetAction("Editar", onClick = {}),
+                        InfoSheetAction("Eliminar", enabled = false, onClick = {}),
+                    ),
+                ) { Text("Contenido") }
+            }
+        }
+        compose.onNodeWithContentDescription("Más opciones de «Ensalada»").performClick()
+        compose.onNodeWithText("Editar").assertIsEnabled()
+        compose.onNodeWithText("Eliminar").assertIsNotEnabled()
+    }
+
+    @Test
+    fun aDisabledPrimaryActionShowsDisabled() {
+        compose.setContent {
+            BobitosTheme {
+                BobitosInfoSheet(
+                    title = "Ensalada",
+                    onDismiss = {},
+                    primaryAction = InfoSheetAction("Editar", enabled = false, onClick = {}),
+                ) { Text("Contenido") }
+            }
+        }
+        compose.onNodeWithText("Editar").assertIsNotEnabled()
     }
 
     @Test

@@ -182,9 +182,10 @@ fun TasksScreen(
         val deleteColor = MaterialTheme.colorScheme.error
         val checkColor = MaterialTheme.colorScheme.primary
         val deleteTaskWithUndo: (TaskItem) -> Unit = { task ->
-            viewModel.deleteTask(spaceId, task.id)
-            scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                viewModel.restoreTask(spaceId, task)
+            viewModel.deleteTask(spaceId, task.id) {
+                scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+                    viewModel.restoreTask(spaceId, task)
+                }
             }
         }
         Column(Modifier.fillMaxSize().padding(padding).padding(Spacing.lg)) {

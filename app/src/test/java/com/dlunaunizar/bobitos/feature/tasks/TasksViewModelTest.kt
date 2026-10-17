@@ -276,6 +276,21 @@ class TasksViewModelTest {
     }
 
     @Test
+    fun `undo is offered only once the delete has finished`() = runTest(mainDispatcherRule.testDispatcher) {
+        var offered = 0
+        taskRepository.nextFailure = TaskRepositoryException(TaskFailure.Network)
+        viewModel.deleteTask("home", "t1") { offered++ }
+        advanceUntilIdle()
+        assertEquals(0, offered)
+
+        taskRepository.nextFailure = null
+        viewModel.deleteTask("home", "t1") { offered++ }
+        advanceUntilIdle()
+        assertEquals(1, offered)
+        assertEquals(listOf("t1"), taskRepository.deleted)
+    }
+
+    @Test
     fun `consumeEditorSave returns to IDLE`() = runTest(mainDispatcherRule.testDispatcher) {
         editorCreate("Fregar")
         advanceUntilIdle()

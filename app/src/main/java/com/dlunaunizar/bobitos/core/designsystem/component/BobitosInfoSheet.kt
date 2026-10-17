@@ -34,8 +34,8 @@ import androidx.compose.ui.semantics.semantics
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 
-/** Acción de una hoja de detalle: su texto y lo que hace. */
-data class InfoSheetAction(val label: String, val onClick: () -> Unit)
+/** Acción de una hoja de detalle: su texto, lo que hace y si se puede pulsar (p. ej. no mientras se guarda). */
+data class InfoSheetAction(val label: String, val onClick: () -> Unit, val enabled: Boolean = true)
 
 /**
  * Sheet de solo lectura (detalle de una receta o una rutina): título, contenido con scroll y, abajo,
@@ -83,7 +83,7 @@ fun BobitosInfoSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) }
-                primaryAction?.let { Button(onClick = it.onClick) { Text(it.label) } }
+                primaryAction?.let { Button(onClick = it.onClick, enabled = it.enabled) { Text(it.label) } }
             }
         }
     }
@@ -98,6 +98,7 @@ private fun SecondaryActionsMenu(title: String, actions: List<InfoSheetAction>) 
             actions.forEach { action ->
                 DropdownMenuItem(
                     text = { Text(action.label) },
+                    enabled = action.enabled,
                     onClick = {
                         expanded = false
                         action.onClick()

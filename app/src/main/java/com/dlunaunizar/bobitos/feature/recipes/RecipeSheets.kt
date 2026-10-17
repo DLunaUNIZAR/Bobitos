@@ -85,6 +85,7 @@ internal fun RecipeSheetsHost(
             recipe = recipe,
             detailActions = recipeDetailActions(recipe, canWrite, state.isAdmin),
             canAddToShopping = canWrite && canAddToShopping,
+            deleteEnabled = !state.isSaving,
             actions = actions,
         )
     }
@@ -120,6 +121,8 @@ private fun RecipeDetailSheet(
     recipe: Recipe,
     detailActions: RecipeDetailActions,
     canAddToShopping: Boolean,
+    // Falso mientras otra escritura está en curso: borrar sería un toque que no hace nada y cerraría la hoja.
+    deleteEnabled: Boolean,
     actions: RecipeSheetActions,
 ) {
     val sheetActions = recipeSheetActions(detailActions, canAddToShopping)
@@ -130,14 +133,18 @@ private fun RecipeDetailSheet(
         RecipeSheetAction.DELETE to stringResource(R.string.recipes_delete),
     )
     val toInfoAction = { action: RecipeSheetAction ->
-        InfoSheetAction(labels.getValue(action)) {
-            when (action) {
-                RecipeSheetAction.ADD_TO_SHOPPING -> actions.onAddToShopping(recipe)
-                RecipeSheetAction.FORK -> actions.onFork(recipe)
-                RecipeSheetAction.EDIT -> actions.onEdit(recipe)
-                RecipeSheetAction.DELETE -> actions.onDelete(recipe)
-            }
-        }
+        InfoSheetAction(
+            label = labels.getValue(action),
+            onClick = {
+                when (action) {
+                    RecipeSheetAction.ADD_TO_SHOPPING -> actions.onAddToShopping(recipe)
+                    RecipeSheetAction.FORK -> actions.onFork(recipe)
+                    RecipeSheetAction.EDIT -> actions.onEdit(recipe)
+                    RecipeSheetAction.DELETE -> actions.onDelete(recipe)
+                }
+            },
+            enabled = action != RecipeSheetAction.DELETE || deleteEnabled,
+        )
     }
     BobitosInfoSheet(
         title = recipe.title,

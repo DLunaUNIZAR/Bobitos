@@ -398,6 +398,21 @@ class ShoppingViewModelTest {
     }
 
     @Test
+    fun `undo is offered only once the delete has finished`() = runTest(mainDispatcherRule.testDispatcher) {
+        var offered = 0
+        repository.nextFailure = ShoppingRepositoryException(ShoppingFailure.Network)
+        viewModel.deleteItem("home", "milk") { offered++ }
+        advanceUntilIdle()
+        assertEquals(0, offered)
+
+        repository.nextFailure = null
+        viewModel.deleteItem("home", "milk") { offered++ }
+        advanceUntilIdle()
+        assertEquals(1, offered)
+        assertEquals(listOf("milk"), repository.deleted)
+    }
+
+    @Test
     fun `restoreItem does not touch the editor status`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.restoreItem("home", shoppingItem())
         advanceUntilIdle()

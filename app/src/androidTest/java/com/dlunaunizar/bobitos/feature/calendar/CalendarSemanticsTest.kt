@@ -11,11 +11,14 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import com.dlunaunizar.bobitos.core.designsystem.theme.BobitosTheme
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.EventColor
@@ -113,6 +116,20 @@ class CalendarSemanticsTest {
     @Test fun anEventRowNamesItsMenu() {
         compose.setContent { BobitosTheme { EventRow(event, canWrite = true, edit = {}, delete = {}) } }
         compose.onNodeWithContentDescription("Más opciones de «Cena con Ana»").assertIsDisplayed()
+    }
+
+    @Test fun deletingAnEventIsDisabledWhileAnotherWriteIsInFlight() {
+        var deleteEnabled by androidx.compose.runtime.mutableStateOf(false)
+        compose.setContent {
+            BobitosTheme {
+                EventRow(event, canWrite = true, edit = {}, delete = {}, deleteEnabled = deleteEnabled)
+            }
+        }
+        compose.onNodeWithContentDescription("Más opciones de «Cena con Ana»").performClick()
+        compose.onNodeWithText("Eliminar").assertIsNotEnabled()
+        deleteEnabled = true
+        compose.waitForIdle()
+        compose.onNodeWithText("Eliminar").assertIsEnabled()
     }
 
     @Test fun anEventRowIsClickableOnlyWhenWritable() {

@@ -190,6 +190,7 @@ fun PersonalCalendarScreen(
                         onDelete = { id -> dayEventsById[id]?.let(deleteWithUndo) },
                         onCreateAt = onCreateAt,
                         modifier = Modifier.weight(1f),
+                        deleteEnabled = !state.saving,
                     )
                     CalendarDisplayMode.WEEK -> PersonalWeekEventList(
                         events = events,

@@ -300,7 +300,7 @@ class RecipesViewModel @Inject constructor(
     // no duplica una común recuperada y las comidas que la enlazaban la vuelven a encontrar. Si quien deshace ya no
     // puede publicar comunes, las reglas lo rechazan y sale el error (nunca se guarda como privada con el id del
     // catálogo). No es un guardado del editor, no mueve su estado.
-    fun restoreRecipe(recipe: Recipe) = runAction(RecipeUiMessage.RecipeSaved) { repository.restoreRecipe(recipe) }
+    fun restoreRecipe(recipe: Recipe) = runAction(null, force = true) { repository.restoreRecipe(recipe) }
 
     // Sin notice: el «Deshacer» lo ofrece la pantalla cuando el servidor confirma el borrado (deletedRecipe); si
     // falla, sale el error y no se ofrece.

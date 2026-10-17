@@ -190,9 +190,10 @@ fun ShoppingScreen(
         val deleteColor = MaterialTheme.colorScheme.error
         val checkColor = MaterialTheme.colorScheme.primary
         val deleteItemWithUndo: (ShoppingItem) -> Unit = { item ->
-            viewModel.deleteItem(spaceId, item.id)
-            scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                viewModel.restoreItem(spaceId, item)
+            viewModel.deleteItem(spaceId, item.id) {
+                scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+                    viewModel.restoreItem(spaceId, item)
+                }
             }
         }
 

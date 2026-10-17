@@ -137,9 +137,10 @@ class TasksViewModel @Inject constructor(
         if (completed) TaskUiMessage.TaskCompleted else TaskUiMessage.TaskReopened,
     ) { taskRepository.setCompleted(spaceId, taskId, completed) }
 
-    // Sin notice: el feedback del borrado (con «Deshacer») lo da el Snackbar de la pantalla.
-    fun deleteTask(spaceId: String, taskId: String) = runAction(null) {
-        taskRepository.deleteTask(spaceId, taskId)
+    // onDeleted se llama solo si el borrado termina bien: así el «Deshacer» no se ofrece para un borrado fallido ni
+    // se pulsa mientras el borrado sigue en curso. Sin notice: el feedback lo da el Snackbar de la pantalla.
+    fun deleteTask(spaceId: String, taskId: String, onDeleted: () -> Unit = {}) {
+        runAction(null, onSuccess = onDeleted) { taskRepository.deleteTask(spaceId, taskId) }
     }
 
     // «Deshacer» el borrado: la tarea vuelve con su id y su estado, al espacio en que estaba. No es un guardado del
@@ -178,6 +179,7 @@ class TasksViewModel @Inject constructor(
         notice: TaskUiMessage?,
         editor: Boolean = false,
         force: Boolean = false,
+        onSuccess: () -> Unit = {},
         action: suspend () -> Any?,
     ) {
         if (mutableUiState.value.isSaving && !force) return
@@ -195,6 +197,7 @@ class TasksViewModel @Inject constructor(
                             editorSave = it.editorSave.succeeded(editor),
                         )
                     }
+                    onSuccess()
                 }
                 .onFailure { error ->
                     if (error is CancellationException) throw error

@@ -158,6 +158,7 @@ fun ExercisesScreen(
                     editorOpen = true
                 },
                 onDelete = requestDelete,
+                deleteEnabled = !state.isSaving,
             )
         }
     }
@@ -183,6 +184,7 @@ fun ExercisesScreen(
                 requestDelete(exercise)
             },
             onDismiss = { detailOpen = false },
+            deleteEnabled = !state.isSaving,
         )
     }
     EditorSaveEffect(
@@ -239,6 +241,7 @@ private fun ExerciseCatalog(
     onOpen: (CatalogExercise) -> Unit,
     onEdit: (CatalogExercise) -> Unit,
     onDelete: (CatalogExercise) -> Unit,
+    deleteEnabled: Boolean,
     onRetry: () -> Unit,
 ) {
     when (val catalog = state.catalog) {
@@ -286,6 +289,7 @@ private fun ExerciseCatalog(
                             onOpen = { onOpen(exercise) },
                             onEdit = { onEdit(exercise) },
                             onDelete = { onDelete(exercise) },
+                            deleteEnabled = deleteEnabled,
                             modifier = Modifier.animateItem(),
                         )
                     }
@@ -302,6 +306,7 @@ private fun ExerciseRow(
     onOpen: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    deleteEnabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     var menu by remember { mutableStateOf(false) }
@@ -345,6 +350,7 @@ private fun ExerciseRow(
                         )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.exercises_delete)) },
+                            enabled = deleteEnabled,
                             onClick = {
                                 menu = false
                                 onDelete()

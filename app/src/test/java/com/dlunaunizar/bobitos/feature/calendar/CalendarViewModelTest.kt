@@ -47,6 +47,22 @@ class CalendarViewModelTest {
     }
 
     @Test
+    fun `undo runs even while another write is in flight`() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = RecordingCalendarRepository()
+        val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
+        viewModel.observe("space-1")
+
+        viewModel.delete("event-2")
+        runCurrent()
+        assertTrue(viewModel.uiState.value.saving)
+
+        viewModel.restore("event-1", input)
+        runCurrent()
+
+        assertEquals(listOf(Triple("space-1", "event-1", input)), repository.created)
+    }
+
+    @Test
     fun `saving a new event lets the repository choose the id`() = runTest(mainDispatcherRule.testDispatcher) {
         val repository = RecordingCalendarRepository()
         val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())

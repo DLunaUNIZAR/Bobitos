@@ -323,9 +323,10 @@ class ShoppingViewModel @Inject constructor(
         }.also { pantryLoad = it }
     }
 
-    fun deleteItem(spaceId: String, itemId: String) {
-        // Sin notice: el feedback del borrado (con «Deshacer») lo da el Snackbar de la pantalla.
-        runAction(null) {
+    // onDeleted se llama solo si el borrado termina bien: así el «Deshacer» no se ofrece para un borrado fallido ni
+    // se pulsa mientras el borrado sigue en curso. Sin notice: el feedback lo da el Snackbar de la pantalla.
+    fun deleteItem(spaceId: String, itemId: String, onDeleted: () -> Unit = {}) {
+        runAction(null, onSuccess = onDeleted) {
             repository.deleteItem(spaceId, itemId)
         }
     }
@@ -394,6 +395,7 @@ class ShoppingViewModel @Inject constructor(
         successNotice: ShoppingUiMessage?,
         editor: Boolean = false,
         force: Boolean = false,
+        onSuccess: () -> Unit = {},
         action: suspend () -> Any?,
     ) {
         if (mutableUiState.value.isSaving && !force) return
@@ -418,6 +420,7 @@ class ShoppingViewModel @Inject constructor(
                             created = result as? CreatedItem,
                         )
                     }
+                    onSuccess()
                 }
                 .onFailure { error ->
                     if (error is CancellationException) throw error

@@ -143,6 +143,7 @@ fun RoutinesScreen(
             RoutinesCatalog(
                 state = state,
                 canWrite = canWrite,
+                deleteEnabled = !state.isSaving,
                 onOpen = { detailRoutineId = it.id },
                 onEdit = {
                     editorRoutineId = it.id
@@ -206,6 +207,7 @@ fun RoutinesScreen(
 private fun RoutinesCatalog(
     state: RoutinesUiState,
     canWrite: Boolean,
+    deleteEnabled: Boolean,
     onOpen: (Routine) -> Unit,
     onEdit: (Routine) -> Unit,
     onDelete: (Routine) -> Unit,
@@ -220,6 +222,7 @@ private fun RoutinesCatalog(
             routines = state.mine,
             query = state.query,
             canEdit = canWrite,
+            deleteEnabled = deleteEnabled,
             onOpen = onOpen,
             onEdit = onEdit,
             onDelete = onDelete,
@@ -230,6 +233,7 @@ private fun RoutinesCatalog(
             routines = state.global,
             query = state.query,
             canEdit = canWrite && state.isAdmin,
+            deleteEnabled = deleteEnabled,
             onOpen = onOpen,
             onEdit = onEdit,
             onDelete = onDelete,
@@ -243,6 +247,7 @@ private fun LazyListScope.routinesSection(
     routines: UiState<List<Routine>>,
     query: String,
     canEdit: Boolean,
+    deleteEnabled: Boolean,
     onOpen: (Routine) -> Unit,
     onEdit: (Routine) -> Unit,
     onDelete: (Routine) -> Unit,
@@ -279,6 +284,7 @@ private fun LazyListScope.routinesSection(
                     RoutineCard(
                         routine = routine,
                         canEdit = canEdit,
+                        deleteEnabled = deleteEnabled,
                         onOpen = { onOpen(routine) },
                         onEdit = { onEdit(routine) },
                         onDelete = { onDelete(routine) },
@@ -290,12 +296,14 @@ private fun LazyListScope.routinesSection(
 }
 
 @Composable
-private fun RoutineCard(
+internal fun RoutineCard(
     routine: Routine,
     canEdit: Boolean,
     onOpen: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    // Falso mientras otra escritura está en curso: borrar sería un toque que no hace nada.
+    deleteEnabled: Boolean = true,
 ) {
     var menu by remember { mutableStateOf(false) }
     Card(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
@@ -338,6 +346,7 @@ private fun RoutineCard(
                         )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.routines_delete)) },
+                            enabled = deleteEnabled,
                             onClick = {
                                 menu = false
                                 onDelete()

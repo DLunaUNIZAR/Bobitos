@@ -33,13 +33,15 @@ internal fun ExerciseDetailSheet(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
+    // Falso mientras otra escritura está en curso: borrar sería un toque que no hace nada.
+    deleteEnabled: Boolean = true,
 ) {
     BobitosInfoSheet(
         title = exercise.name,
         onDismiss = onDismiss,
         primaryAction = if (canEdit) InfoSheetAction(stringResource(R.string.exercises_edit), onEdit) else null,
         secondaryActions = if (canEdit) {
-            listOf(InfoSheetAction(stringResource(R.string.exercises_delete), onDelete))
+            listOf(InfoSheetAction(stringResource(R.string.exercises_delete), onDelete, enabled = deleteEnabled))
         } else {
             emptyList()
         },

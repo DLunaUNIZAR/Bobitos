@@ -241,6 +241,7 @@ private fun IngredientContent(
         canEdit = state.canEditIngredient,
         onEdit = onEditFicha,
         onDelete = onDeleteIngredient,
+        deleteEnabled = !state.isSaving,
     )
     if (onAddToShopping != null) {
         OutlinedButton(onClick = { onAddToShopping(ingredient.name) }, modifier = Modifier.fillMaxWidth()) {
@@ -256,6 +257,7 @@ private fun IngredientContent(
         onAdd = { onOpenBrandEditor(null, BrandDraft.of("", "", null)) },
         onScan = { scope.launch { scanBarcode(context)?.let(viewModel::lookupBarcode) } },
         onEdit = { onOpenBrandEditor(it.id, BrandDraft.of(it)) },
+        deleteEnabled = !state.isSaving,
         onDelete = { brand ->
             viewModel.deleteBrand(brand.id) {
                 scope.launchUndo(snackbar, brandDeletedMessage, undoLabel) { viewModel.restoreBrand(brand) }
@@ -297,7 +299,14 @@ private fun BrandEvents(
 }
 
 @Composable
-private fun FichaSection(ingredient: CatalogIngredient, canEdit: Boolean, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun FichaSection(
+    ingredient: CatalogIngredient,
+    canEdit: Boolean,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    // Falso mientras otra escritura está en curso: borrar sería un toque que no hace nada.
+    deleteEnabled: Boolean,
+) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             ingredient.category?.let {
@@ -309,7 +318,9 @@ private fun FichaSection(ingredient: CatalogIngredient, canEdit: Boolean, onEdit
             if (canEdit) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton(onClick = onEdit) { Text(stringResource(R.string.ingredients_edit)) }
-                    TextButton(onClick = onDelete) { Text(stringResource(R.string.ingredients_delete)) }
+                    TextButton(onClick = onDelete, enabled = deleteEnabled) {
+                        Text(stringResource(R.string.ingredients_delete))
+                    }
                 }
             }
         }
@@ -337,6 +348,7 @@ private fun BrandsSection(
     onScan: () -> Unit,
     onEdit: (IngredientBrand) -> Unit,
     onDelete: (IngredientBrand) -> Unit,
+    deleteEnabled: Boolean,
 ) {
     Text(
         text = stringResource(R.string.ingredients_brands_section),
@@ -365,6 +377,7 @@ private fun BrandsSection(
                 onFavorite = { onFavorite(brand.id, it) },
                 onEdit = { onEdit(brand) },
                 onDelete = { onDelete(brand) },
+                deleteEnabled = deleteEnabled,
             )
         }
     }
@@ -377,6 +390,7 @@ private fun BrandCard(
     onFavorite: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    deleteEnabled: Boolean,
 ) {
     var showNutrition by rememberSaveable(brand.id) { mutableStateOf(false) }
     Card(Modifier.fillMaxWidth()) {
@@ -408,7 +422,9 @@ private fun BrandCard(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = onEdit) { Text(stringResource(R.string.ingredients_edit)) }
-                TextButton(onClick = onDelete) { Text(stringResource(R.string.ingredients_delete)) }
+                TextButton(onClick = onDelete, enabled = deleteEnabled) {
+                    Text(stringResource(R.string.ingredients_delete))
+                }
             }
         }
     }
