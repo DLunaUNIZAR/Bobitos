@@ -143,7 +143,7 @@
     <string name="accept">Aceptar</string>
     <string name="confirm">Confirmar</string>
     <string name="save">Guardar</string>
-    <string name="calendar_create_at_hour">Crear evento a esta hora</string>
+    <string name="calendar_create_at">Crear evento a las %1$s</string>
     <string name="swipe_task_complete">Completar tarea</string>
     <string name="swipe_task_reopen">Reabrir tarea</string>
     <string name="swipe_item_purchased">Marcar como comprado</string>
@@ -154,7 +154,6 @@
     <string name="discard_changes_keep_editing">Seguir editando</string>
     <string name="dismiss">Cerrar</string>
     <string name="change_space">Cambiar de espacio</string>
-    <string name="more_options">Más opciones</string>
     <string name="generic_loading">Cargando…</string>
     <string name="generic_error">No se ha podido cargar la información.</string>
     <string name="failure_permission">No tienes permiso para hacer esto en este espacio.</string>

@@ -1,7 +1,6 @@
 package com.dlunaunizar.bobitos.feature.recipes
 
 import androidx.annotation.StringRes
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -433,9 +432,8 @@ private fun RecipeFilters(
 @Composable
 private fun RecipeCard(recipe: Recipe, pantryLine: PantryLine?, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(

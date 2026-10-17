@@ -13,7 +13,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.StickyNote2
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -53,6 +52,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
@@ -246,9 +246,7 @@ internal fun NoteCard(
                 )
             }
             Box {
-                IconButton(onClick = { menu = true }, enabled = enabled) {
-                    Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.more_options))
-                }
+                MoreOptionsButton(itemName = note.title, onClick = { menu = true }, enabled = enabled)
                 DropdownMenu(menu, { menu = false }) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.notes_edit)) },

@@ -19,7 +19,6 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Kitchen
 import androidx.compose.material.icons.rounded.MenuBook
-import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -66,6 +65,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffec
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
+import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.WeekDayStrip
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
@@ -171,9 +171,10 @@ fun MealsScreen(
                 }
                 if (canWrite) {
                     Box {
-                        IconButton(onClick = { dayMenuExpanded = true }) {
-                            Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.more_options))
-                        }
+                        MoreOptionsButton(
+                            itemName = BobitosDates.longDay(state.focusedDate),
+                            onClick = { dayMenuExpanded = true },
+                        )
                         DropdownMenu(expanded = dayMenuExpanded, onDismissRequest = { dayMenuExpanded = false }) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.meals_duplicate_day)) },
@@ -431,6 +432,7 @@ internal fun MealCard(
             }
             if (canWrite) {
                 MealMenu(
+                    mealName = meal.name,
                     cooked = meal.cooked,
                     canAddToShopping = !ingredients.isNullOrEmpty(),
                     enabled = enabled,
@@ -452,6 +454,7 @@ internal fun MealCard(
 
 @Composable
 private fun MealMenu(
+    mealName: String,
     cooked: Boolean,
     canAddToShopping: Boolean,
     enabled: Boolean,
@@ -462,9 +465,7 @@ private fun MealMenu(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     Box {
-        IconButton(enabled = enabled, onClick = { menuExpanded = true }) {
-            Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.more_options))
-        }
+        MoreOptionsButton(itemName = mealName, onClick = { menuExpanded = true }, enabled = enabled)
         DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
             if (canAddToShopping) {
                 DropdownMenuItem(

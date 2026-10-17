@@ -368,7 +368,7 @@ private fun PersonalWeekEventList(
 
 @Composable
 private fun PersonalEventRow(item: PersonalCalendarEvent, onClick: () -> Unit) {
-    Card(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(item.event.title, style = MaterialTheme.typography.titleMedium)
             Text(item.spaceName, color = MaterialTheme.colorScheme.primary)

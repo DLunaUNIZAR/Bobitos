@@ -1,14 +1,14 @@
 package com.dlunaunizar.bobitos.feature.calendar
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -32,7 +32,6 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
@@ -67,11 +66,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -92,6 +96,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
+import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
@@ -417,7 +422,7 @@ internal fun MonthGrid(
 }
 
 @Composable
-private fun DayCell(
+internal fun DayCell(
     date: LocalDate,
     dayEvents: List<CalendarEvent>,
     isSelected: Boolean,
@@ -426,12 +431,13 @@ private fun DayCell(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val description = pluralStringResource(
+    val eventsDescription = pluralStringResource(
         R.plurals.calendar_day_events,
         dayEvents.size,
         BobitosDates.accessibleDate(date),
         dayEvents.size,
     )
+    val description = if (isToday) "$eventsDescription, ${stringResource(R.string.today)}" else eventsDescription
     val numberColor = when {
         isSelected -> MaterialTheme.colorScheme.onPrimary
         !inMonth -> MaterialTheme.colorScheme.onSurfaceVariant
@@ -442,7 +448,11 @@ private fun DayCell(
             .aspectRatio(1f)
             .clip(RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
-            .semantics { contentDescription = description },
+            .semantics {
+                contentDescription = description
+                role = Role.Button
+                selected = isSelected
+            },
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -634,9 +644,8 @@ internal fun DayHourGrid(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun HourRow(
+internal fun HourRow(
     hour: Int,
     events: List<CalendarEvent>,
     canWrite: Boolean,
@@ -644,14 +653,25 @@ private fun HourRow(
     onDelete: (String) -> Unit,
     onLongPress: () -> Unit,
 ) {
+    val createLabel = stringResource(R.string.calendar_create_at, BobitosDates.time(LocalTime.of(hour, 0)))
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .combinedClickable(
-                enabled = canWrite,
-                onClick = {},
-                onLongClickLabel = stringResource(R.string.calendar_create_at_hour),
-                onLongClick = onLongPress,
+            .then(
+                if (canWrite) {
+                    Modifier
+                        .pointerInput(onLongPress) { detectTapGestures(onLongPress = { onLongPress() }) }
+                        .semantics(mergeDescendants = true) {
+                            customActions = listOf(
+                                CustomAccessibilityAction(createLabel) {
+                                    onLongPress()
+                                    true
+                                },
+                            )
+                        }
+                } else {
+                    Modifier
+                },
             )
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.Top,
@@ -676,13 +696,9 @@ private fun HourRow(
 }
 
 @Composable
-private fun EventRow(event: CalendarEvent, canWrite: Boolean, edit: () -> Unit, delete: () -> Unit) {
+internal fun EventRow(event: CalendarEvent, canWrite: Boolean, edit: () -> Unit, delete: () -> Unit) {
     var menuExpanded by remember { mutableStateOf(false) }
-    Card(
-        Modifier
-            .fillMaxWidth()
-            .clickable(enabled = canWrite, onClick = edit),
-    ) {
+    val content: @Composable ColumnScope.() -> Unit = {
         Row(
             Modifier.padding(12.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -717,12 +733,7 @@ private fun EventRow(event: CalendarEvent, canWrite: Boolean, edit: () -> Unit, 
             }
             if (canWrite) {
                 Box {
-                    IconButton(onClick = { menuExpanded = true }) {
-                        Icon(
-                            Icons.Rounded.MoreVert,
-                            contentDescription = stringResource(R.string.more_options),
-                        )
-                    }
+                    MoreOptionsButton(itemName = event.title, onClick = { menuExpanded = true })
                     DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.calendar_edit)) },
@@ -742,6 +753,11 @@ private fun EventRow(event: CalendarEvent, canWrite: Boolean, edit: () -> Unit, 
                 }
             }
         }
+    }
+    if (canWrite) {
+        Card(onClick = edit, modifier = Modifier.fillMaxWidth(), content = content)
+    } else {
+        Card(modifier = Modifier.fillMaxWidth(), content = content)
     }
 }
 

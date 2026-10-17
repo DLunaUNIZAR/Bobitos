@@ -22,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -35,7 +34,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -76,6 +74,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffec
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
+import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
@@ -514,13 +513,14 @@ private fun ShoppingItemCard(
                     )
                 }
             }
-            ShoppingItemMenu(enabled, onEdit, onCreateIngredient, onDelete)
+            ShoppingItemMenu(item.name, enabled, onEdit, onCreateIngredient, onDelete)
         }
     }
 }
 
 @Composable
 private fun ShoppingItemMenu(
+    itemName: String,
     enabled: Boolean,
     onEdit: () -> Unit,
     onCreateIngredient: () -> Unit,
@@ -528,9 +528,7 @@ private fun ShoppingItemMenu(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     Box {
-        IconButton(enabled = enabled, onClick = { menuExpanded = true }) {
-            Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.more_options))
-        }
+        MoreOptionsButton(itemName = itemName, onClick = { menuExpanded = true }, enabled = enabled)
         DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.shopping_edit)) },

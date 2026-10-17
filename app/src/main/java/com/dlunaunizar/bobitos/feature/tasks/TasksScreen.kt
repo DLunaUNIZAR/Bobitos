@@ -33,7 +33,6 @@ import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Flag
-import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material3.AlertDialog
@@ -96,6 +95,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffec
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
+import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
@@ -611,18 +611,16 @@ private fun TaskCard(
                 }
                 TaskMetaRow(task, overdue, done)
             }
-            TaskCardMenu(enabled = enabled, onEdit = onEdit, onDelete = onDelete)
+            TaskCardMenu(taskTitle = task.title, enabled = enabled, onEdit = onEdit, onDelete = onDelete)
         }
     }
 }
 
 @Composable
-private fun TaskCardMenu(enabled: Boolean, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun TaskCardMenu(taskTitle: String, enabled: Boolean, onEdit: () -> Unit, onDelete: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { expanded = true }, enabled = enabled) {
-            Icon(Icons.Rounded.MoreVert, contentDescription = stringResource(R.string.more_options))
-        }
+        MoreOptionsButton(itemName = taskTitle, onClick = { expanded = true }, enabled = enabled)
         DropdownMenu(expanded, { expanded = false }) {
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.tasks_edit)) },
