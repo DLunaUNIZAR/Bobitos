@@ -6,6 +6,7 @@ import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.RecurrenceUnit
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceRole
@@ -232,9 +233,46 @@ class TasksViewModelTest {
         viewModel.restoreTask("home", task("t1", "Fregar", TaskType.LIMPIEZA))
         advanceUntilIdle()
 
-        assertEquals("Fregar", taskRepository.createdTitle)
+        assertEquals("Fregar", taskRepository.restored.single().title)
         assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
-        assertEquals(TaskUiMessage.TaskCreated, viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.created)
+    }
+
+    @Test
+    fun `undoing a delete keeps the id and the completed state`() = runTest(mainDispatcherRule.testDispatcher) {
+        val done = task("t1", "Fregar", TaskType.LIMPIEZA).copy(status = TaskStatus.DONE)
+
+        viewModel.restoreTask("home", done)
+        advanceUntilIdle()
+
+        assertEquals("home", taskRepository.restoredSpaceId)
+        assertEquals("t1", taskRepository.restored.single().id)
+        assertEquals(TaskStatus.DONE, taskRepository.restored.single().status)
+    }
+
+    @Test
+    fun `undoing a completed recurring task does not advance it`() = runTest(mainDispatcherRule.testDispatcher) {
+        val done = task("t1", "Regar", null).copy(
+            status = TaskStatus.DONE,
+            recurrence = TaskRecurrence(RecurrenceUnit.WEEK, 1),
+        )
+
+        viewModel.restoreTask("home", done)
+        advanceUntilIdle()
+
+        assertEquals(done, taskRepository.restored.single())
+        assertNull(taskRepository.completedChange)
+        assertNull(taskRepository.createdTitle)
+    }
+
+    @Test
+    fun `a failed undo shows the error instead of staying silent`() = runTest(mainDispatcherRule.testDispatcher) {
+        taskRepository.nextFailure = TaskRepositoryException(TaskFailure.PermissionDenied)
+
+        viewModel.restoreTask("home", task("t1", "Fregar", null))
+        advanceUntilIdle()
+
+        assertEquals(TaskUiMessage.PermissionDenied, viewModel.uiState.value.error)
     }
 
     @Test
@@ -305,6 +343,8 @@ private class FakeTaskRepository : TaskRepository {
     var loadFailure: Throwable? = null
     var createGate: CompletableDeferred<Unit>? = null
     val deleted = mutableListOf<String>()
+    val restored = mutableListOf<TaskItem>()
+    var restoredSpaceId: String? = null
 
     // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
     var hang = false
@@ -366,6 +406,12 @@ private class FakeTaskRepository : TaskRepository {
     override suspend fun deleteTask(spaceId: String, taskId: String) {
         throwNextFailure()
         deleted += taskId
+    }
+
+    override suspend fun restoreTask(spaceId: String, task: TaskItem) {
+        throwNextFailure()
+        restoredSpaceId = spaceId
+        restored += task
     }
 
     private fun throwNextFailure() {

@@ -402,9 +402,32 @@ class ShoppingViewModelTest {
         viewModel.restoreItem("home", shoppingItem())
         advanceUntilIdle()
 
-        assertEquals("Leche", repository.addedName)
+        assertEquals("Leche", repository.restored.single().name)
         assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
-        assertEquals(ShoppingUiMessage.ItemAdded, viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.created)
+    }
+
+    @Test
+    fun `undoing a delete keeps the id and the purchased state`() = runTest(mainDispatcherRule.testDispatcher) {
+        val bought = shoppingItem().copy(purchased = true, purchasedBy = "owner", purchasedByName = "David")
+
+        viewModel.restoreItem("home", bought)
+        advanceUntilIdle()
+
+        assertEquals("home", repository.restoredSpaceId)
+        assertEquals("milk", repository.restored.single().id)
+        assertTrue(repository.restored.single().purchased)
+        assertNull(repository.addedName)
+    }
+
+    @Test
+    fun `a failed undo shows the error instead of staying silent`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.nextFailure = ShoppingRepositoryException(ShoppingFailure.PermissionDenied)
+
+        viewModel.restoreItem("home", shoppingItem())
+        advanceUntilIdle()
+
+        assertEquals(ShoppingUiMessage.PermissionDenied, viewModel.uiState.value.error)
     }
 
     @Test
@@ -811,6 +834,8 @@ internal class FakeShoppingRepository : ShoppingRepository {
     var observedSpaceId: String? = null
     var addedName: String? = null
     val deleted = mutableListOf<String>()
+    val restored = mutableListOf<ShoppingItem>()
+    var restoredSpaceId: String? = null
     var addedQuantity: String? = null
     var addedNotes: String? = null
     var addedSupermarket: Supermarket? = null
@@ -936,6 +961,12 @@ internal class FakeShoppingRepository : ShoppingRepository {
     override suspend fun deleteItem(spaceId: String, itemId: String) {
         throwNextFailure()
         deleted += itemId
+    }
+
+    override suspend fun restoreItem(spaceId: String, item: ShoppingItem) {
+        throwNextFailure()
+        restoredSpaceId = spaceId
+        restored += item
     }
 
     override suspend fun clearPurchased(spaceId: String): Int {

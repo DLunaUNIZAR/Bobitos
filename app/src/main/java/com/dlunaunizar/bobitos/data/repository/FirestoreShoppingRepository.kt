@@ -301,6 +301,30 @@ class FirestoreShoppingRepository @Inject constructor(
         Unit
     }
 
+    override suspend fun restoreItem(spaceId: String, item: ShoppingItem) = runShoppingOperation {
+        val user = requireVerifiedUser()
+        val values = validateItem(item.name, item.quantity, item.notes, item.supermarket, item.brand)
+        val spaceReference = firestore.collection(SPACES).document(spaceId)
+        val reference = itemsCollection(spaceId).document(item.id)
+        firestore.runTransaction { transaction ->
+            if (!transaction.get(spaceReference).exists()) {
+                throw ShoppingRepositoryException(ShoppingFailure.SpaceNotFound)
+            }
+            transaction.set(reference, newItemFields(user, values))
+        }.await()
+        if (item.purchased) {
+            reference.update(
+                FIELD_PURCHASED, true,
+                FIELD_PURCHASED_BY, user.id,
+                FIELD_PURCHASED_BY_NAME, user.shoppingDisplayName,
+                FIELD_PURCHASED_AT, FieldValue.serverTimestamp(),
+                FIELD_UPDATED_BY, user.id,
+                FIELD_UPDATED_AT, FieldValue.serverTimestamp(),
+            ).await()
+        }
+        Unit
+    }
+
     override suspend fun clearPurchased(spaceId: String): Int = runShoppingOperation {
         requireVerifiedUser()
         val candidates = itemsCollection(spaceId)

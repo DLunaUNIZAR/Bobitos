@@ -87,7 +87,6 @@ import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
-import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
@@ -150,7 +149,6 @@ fun TasksScreen(
         editorVisible = false
     }
     val editorTemplate = homeTaskTemplates.getOrNull(editorTemplateIndex)
-    var deleteTask by remember { mutableStateOf<TaskItem?>(null) }
     var templatesVisible by remember { mutableStateOf(false) }
     var completedExpanded by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
@@ -275,7 +273,7 @@ fun TasksScreen(
                                 onEdit = {
                                     openEditor(task.id, -1)
                                 },
-                                onDelete = { deleteTask = task },
+                                onDelete = { deleteTaskWithUndo(task) },
                                 modifier = accessibilityModifier,
                             )
                         }
@@ -308,21 +306,6 @@ fun TasksScreen(
                     }
                 }
             }
-        }
-
-        deleteTask?.let { task ->
-            BobitosDialog(
-                title = stringResource(R.string.tasks_delete_title),
-                message = stringResource(R.string.tasks_delete_body, task.title),
-                confirmLabel = stringResource(R.string.tasks_delete),
-                destructive = true,
-                confirmEnabled = enabled,
-                onConfirm = {
-                    deleteTaskWithUndo(task)
-                    deleteTask = null
-                },
-                onDismiss = { deleteTask = null },
-            )
         }
     }
 

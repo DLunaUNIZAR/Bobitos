@@ -142,19 +142,10 @@ class TasksViewModel @Inject constructor(
         taskRepository.deleteTask(spaceId, taskId)
     }
 
-    // Recrea una tarea borrada («Deshacer»): no es un guardado del editor, no mueve su estado.
-    fun restoreTask(spaceId: String, task: TaskItem) = runAction(TaskUiMessage.TaskCreated) {
-        taskRepository.createTask(
-            spaceId,
-            task.title,
-            task.description,
-            task.assigneeId,
-            task.dueAt,
-            task.priority,
-            task.type,
-            task.recurrence,
-            task.startAt,
-        )
+    // «Deshacer» el borrado: la tarea vuelve con su id y su estado, al espacio en que estaba. No es un guardado del
+    // editor ni lleva aviso propio; si falla, sale el error.
+    fun restoreTask(spaceId: String, task: TaskItem) = runAction(null, force = true) {
+        taskRepository.restoreTask(spaceId, task)
     }
 
     fun consumeCreated() = mutableUiState.update { it.copy(created = null) }

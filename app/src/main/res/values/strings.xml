@@ -209,8 +209,6 @@
     <string name="shopping_edit">Editar</string>
     <string name="shopping_edit_title">Editar producto</string>
     <string name="shopping_delete">Eliminar</string>
-    <string name="shopping_delete_title">Eliminar producto</string>
-    <string name="shopping_delete_body">Se eliminará “%1$s” de la lista compartida.</string>
     <string name="shopping_name_label">Producto</string>
     <string name="shopping_quantity_label">Cantidad (opcional)</string>
     <string name="shopping_notes_label">Observaciones (opcionales)</string>
@@ -276,8 +274,6 @@
     <string name="tasks_edit">Editar</string>
     <string name="tasks_edit_title">Editar tarea</string>
     <string name="tasks_delete">Eliminar</string>
-    <string name="tasks_delete_title">Eliminar tarea</string>
-    <string name="tasks_delete_body">Se eliminará “%1$s” para todos los miembros.</string>
     <string name="tasks_empty">Todavía no hay tareas.</string>
     <string name="tasks_empty_description">Crea la primera tarea del hogar y repártela entre los miembros.</string>
     <string name="tasks_no_results">Ninguna tarea coincide con los filtros.</string>

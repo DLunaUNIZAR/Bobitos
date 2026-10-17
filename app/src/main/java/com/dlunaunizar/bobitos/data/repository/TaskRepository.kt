@@ -38,6 +38,14 @@ interface TaskRepository {
     suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean)
 
     suspend fun deleteTask(spaceId: String, taskId: String)
+
+    /**
+     * «Deshacer» un borrado: devuelve [task] con su id y su estado. Las reglas obligan a dar de alta una tarea
+     * pendiente, así que una completada se escribe después con una actualización directa del estado (nunca por
+     * [setCompleted], que en una tarea recurrente avanzaría las fechas). Autoría y fecha de creación son las de quien
+     * deshace.
+     */
+    suspend fun restoreTask(spaceId: String, task: TaskItem)
 }
 
 enum class TaskFailure {

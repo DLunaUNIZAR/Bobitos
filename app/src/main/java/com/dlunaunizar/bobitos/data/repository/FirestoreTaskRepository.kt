@@ -189,6 +189,43 @@ class FirestoreTaskRepository @Inject constructor(
         Unit
     }
 
+    override suspend fun restoreTask(spaceId: String, task: TaskItem) = runTaskOperation {
+        val user = requireVerifiedUser()
+        val values = validate(task.title, task.description, task.assigneeId)
+        val spaceReference = firestore.collection(SPACES).document(spaceId)
+        val taskReference = tasksCollection(spaceId).document(task.id)
+        firestore.runTransaction { transaction ->
+            if (!transaction.get(spaceReference).exists()) {
+                throw TaskRepositoryException(TaskFailure.SpaceNotFound)
+            }
+            transaction.set(
+                taskReference,
+                taskData(
+                    values = values,
+                    assigneeName = resolveAssigneeName(transaction, spaceId, values.assigneeId),
+                    dueAt = task.dueAt,
+                    priority = task.priority,
+                    type = task.type,
+                    recurrence = task.recurrence,
+                    startAt = task.startAt,
+                    user = user,
+                ),
+            )
+        }.await()
+        if (task.status == TaskStatus.DONE) {
+            // Escritura directa del estado: no pasa por setCompleted, que con recurrencia avanzaría las fechas.
+            taskReference.update(
+                FIELD_STATUS, STATUS_DONE,
+                FIELD_COMPLETED_BY, user.id,
+                FIELD_COMPLETED_BY_NAME, user.taskDisplayName,
+                FIELD_COMPLETED_AT, FieldValue.serverTimestamp(),
+                FIELD_UPDATED_BY, user.id,
+                FIELD_UPDATED_AT, FieldValue.serverTimestamp(),
+            ).await()
+        }
+        Unit
+    }
+
     private fun tasksCollection(spaceId: String) = firestore.collection(SPACES)
         .document(spaceId).collection(TASKS)
 

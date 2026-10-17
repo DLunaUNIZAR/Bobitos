@@ -79,6 +79,7 @@
     <ID>TooGenericExceptionCaught:MealsViewModel.kt$MealsViewModel$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:ShoppingViewModel.kt$ShoppingViewModel$error: Throwable</ID>
     <ID>TooManyFunctions:DataModule.kt$DataModule</ID>
+    <ID>TooManyFunctions:FirestoreShoppingRepository.kt$FirestoreShoppingRepository : ShoppingRepository</ID>
     <ID>TooManyFunctions:MealsViewModel.kt$MealsViewModel : ViewModel</ID>
     <ID>TooManyFunctions:RecipesViewModel.kt$RecipesViewModel : ViewModel</ID>
     <ID>TooManyFunctions:ShoppingViewModel.kt$ShoppingViewModel : ViewModel</ID>

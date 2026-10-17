@@ -66,6 +66,13 @@ interface ShoppingRepository {
 
     suspend fun deleteItem(spaceId: String, itemId: String)
 
+    /**
+     * «Deshacer» un borrado: devuelve [item] con su id y su estado. Las reglas obligan a dar de alta un artículo
+     * pendiente, así que uno comprado se marca después con una actualización. Autoría y fecha de creación son las de
+     * quien deshace.
+     */
+    suspend fun restoreItem(spaceId: String, item: ShoppingItem)
+
     suspend fun clearPurchased(spaceId: String): Int
 }
 

@@ -609,6 +609,56 @@ test("cualquier miembro completa y reabre una tarea con atribución coherente", 
   }));
 });
 
+test("deshacer el borrado de una tarea completada la devuelve con su id y completada (alta y actualización)", async () => {
+  await seedSpace("tasks-restore", "task-restore-owner", ["task-restore-member"]);
+  const owner = verifiedFirestore("task-restore-owner");
+  const member = verifiedFirestore("task-restore-member");
+  const reference = doc(owner, "spaces", "tasks-restore", "tasks", "done-task");
+  await assertSucceeds(setDoc(reference, taskData("task-restore-owner", null, { title: "Fregar" })));
+  await assertSucceeds(completeTask(owner, "tasks-restore", "done-task", "task-restore-owner"));
+  await assertSucceeds(writeBatch(owner).delete(reference).commit());
+
+  const restoredReference = doc(member, "spaces", "tasks-restore", "tasks", "done-task");
+  await assertSucceeds(setDoc(restoredReference, taskData("task-restore-member", null, { title: "Fregar" })));
+  await assertSucceeds(updateDoc(restoredReference, {
+    status: "DONE",
+    completedBy: "task-restore-member",
+    completedByName: "task-restore-member",
+    completedAt: serverTimestamp(),
+    updatedBy: "task-restore-member",
+    updatedAt: serverTimestamp(),
+  }));
+  const restored = await getDoc(restoredReference);
+  assert.equal(restored.exists(), true);
+  assert.equal(restored.data().title, "Fregar");
+  assert.equal(restored.data().status, "DONE");
+  assert.equal(restored.data().createdBy, "task-restore-member");
+});
+
+test("deshacer el borrado de un producto comprado lo devuelve con su id y comprado (alta y actualización)", async () => {
+  await seedSpace("shopping-restore", "shop-restore-owner", ["shop-restore-member"]);
+  const owner = verifiedFirestore("shop-restore-owner");
+  const member = verifiedFirestore("shop-restore-member");
+  const reference = doc(owner, "spaces", "shopping-restore", "shoppingItems", "bought");
+  await assertSucceeds(setDoc(reference, shoppingItem("shop-restore-owner", { name: "Pan" })));
+  await assertSucceeds(writeBatch(owner).delete(reference).commit());
+
+  const restoredReference = doc(member, "spaces", "shopping-restore", "shoppingItems", "bought");
+  await assertSucceeds(setDoc(restoredReference, shoppingItem("shop-restore-member", { name: "Pan" })));
+  await assertSucceeds(updateDoc(restoredReference, {
+    purchased: true,
+    purchasedBy: "shop-restore-member",
+    purchasedByName: "shop-restore-member",
+    purchasedAt: serverTimestamp(),
+    updatedBy: "shop-restore-member",
+    updatedAt: serverTimestamp(),
+  }));
+  const restored = await getDoc(restoredReference);
+  assert.equal(restored.exists(), true);
+  assert.equal(restored.data().name, "Pan");
+  assert.equal(restored.data().purchased, true);
+});
+
 test("una atribución de completado falsa es rechazada", async () => {
   await seedSpace("tasks-attribution", "attribution-owner", ["attribution-member"]);
   const member = verifiedFirestore("attribution-member");

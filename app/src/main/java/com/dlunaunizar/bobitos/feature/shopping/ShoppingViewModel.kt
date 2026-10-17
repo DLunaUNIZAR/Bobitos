@@ -251,9 +251,10 @@ class ShoppingViewModel @Inject constructor(
         }
     }
 
-    // Recrea un ítem borrado («Deshacer»): no es un guardado del editor, no mueve su estado.
-    fun restoreItem(spaceId: String, item: ShoppingItem) = runAction(ShoppingUiMessage.ItemAdded) {
-        repository.addItem(spaceId, item.name, item.quantity, item.notes, item.supermarket, item.brand)
+    // «Deshacer» el borrado: el artículo vuelve con su id y su estado, al espacio en que estaba. No es un guardado
+    // del editor ni lleva aviso propio; si falla, sale el error.
+    fun restoreItem(spaceId: String, item: ShoppingItem) = runAction(null, force = true) {
+        repository.restoreItem(spaceId, item)
     }
 
     fun consumeCreated() = mutableUiState.update { it.copy(created = null) }

@@ -145,7 +145,6 @@ fun ShoppingScreen(
         state.editorSave.discardFailure(viewModel::clearFeedback)
         editorVisible = false
     }
-    var itemToDelete by remember { mutableStateOf<ShoppingItem?>(null) }
     var clearConfirmationVisible by remember { mutableStateOf(false) }
     val content = state.items as? UiState.Content
     val allItems = content?.value.orEmpty()
@@ -274,7 +273,7 @@ fun ShoppingScreen(
                                                 editorVisible = true
                                             }
                                         },
-                                        onDelete = { itemToDelete = item },
+                                        onDelete = { deleteItemWithUndo(item) },
                                         modifier = accessibilityModifier,
                                     )
                                 }
@@ -328,7 +327,7 @@ fun ShoppingScreen(
                                                     editorVisible = true
                                                 }
                                             },
-                                            onDelete = { itemToDelete = item },
+                                            onDelete = { deleteItemWithUndo(item) },
                                             modifier = accessibilityModifier,
                                         )
                                     }
@@ -338,21 +337,6 @@ fun ShoppingScreen(
                     }
                 }
             }
-        }
-
-        itemToDelete?.let { item ->
-            BobitosDialog(
-                title = stringResource(R.string.shopping_delete_title),
-                message = stringResource(R.string.shopping_delete_body, item.name),
-                confirmLabel = stringResource(R.string.shopping_delete),
-                destructive = true,
-                confirmEnabled = actionsEnabled,
-                onConfirm = {
-                    deleteItemWithUndo(item)
-                    itemToDelete = null
-                },
-                onDismiss = { itemToDelete = null },
-            )
         }
     }
 
