@@ -396,6 +396,23 @@ private fun CurrentOptionCheck() {
     Icon(Icons.Rounded.Check, contentDescription = null)
 }
 
+/** Elemento de menú que marca la opción vigente con una marca y como seleccionado para TalkBack. */
+@Composable
+private fun CheckedMenuItem(
+    text: String,
+    current: Boolean,
+    onClick: () -> Unit,
+    leadingIcon: (@Composable () -> Unit)? = null,
+) {
+    DropdownMenuItem(
+        text = { Text(text) },
+        leadingIcon = leadingIcon,
+        trailingIcon = if (current) ({ CurrentOptionCheck() }) else null,
+        modifier = if (current) Modifier.semantics { selected = true } else Modifier,
+        onClick = onClick,
+    )
+}
+
 @Composable
 private fun TaskStatusFilterChip(filters: TaskFilters, onChange: (TaskFilters) -> Unit) {
     var menu by remember { mutableStateOf(false) }
@@ -419,10 +436,9 @@ private fun TaskStatusFilterChip(filters: TaskFilters, onChange: (TaskFilters) -
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
             options.forEach { (status, labelRes) ->
                 val current = filters.status == status
-                DropdownMenuItem(
-                    text = { Text(stringResource(labelRes)) },
-                    trailingIcon = if (current) ({ CurrentOptionCheck() }) else null,
-                    modifier = if (current) Modifier.semantics { selected = true } else Modifier,
+                CheckedMenuItem(
+                    text = stringResource(labelRes),
+                    current = current,
                     onClick = {
                         onChange(filters.copy(status = status))
                         menu = false
@@ -447,13 +463,12 @@ private fun TaskPriorityFilterChip(filters: TaskFilters, onChange: (TaskFilters)
             val options = listOf<TaskPriority?>(null) + TaskPriority.entries.reversed()
             options.forEach { priority ->
                 val current = filters.priority == priority
-                DropdownMenuItem(
-                    text = { Text(priority?.label() ?: stringResource(R.string.tasks_filter_all)) },
+                CheckedMenuItem(
+                    text = priority?.label() ?: stringResource(R.string.tasks_filter_all),
                     leadingIcon = priority?.let { p ->
                         { Icon(Icons.Rounded.Flag, contentDescription = null, tint = p.accent()) }
                     },
-                    trailingIcon = if (current) ({ CurrentOptionCheck() }) else null,
-                    modifier = if (current) Modifier.semantics { selected = true } else Modifier,
+                    current = current,
                     onClick = {
                         onChange(filters.copy(priority = priority))
                         menu = false
@@ -477,21 +492,19 @@ private fun TaskTypeFilterChip(filters: TaskFilters, onChange: (TaskFilters) -> 
             trailingIcon = { Icon(Icons.Rounded.ArrowDropDown, contentDescription = null) },
         )
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.tasks_filter_all)) },
-                trailingIcon = if (filters.type == null) ({ CurrentOptionCheck() }) else null,
-                modifier = if (filters.type == null) Modifier.semantics { selected = true } else Modifier,
+            CheckedMenuItem(
+                text = stringResource(R.string.tasks_filter_all),
+                current = filters.type == null,
                 onClick = {
                     onChange(filters.copy(type = null))
                     menu = false
                 },
             )
             TaskType.entries.forEach { taskType ->
-                DropdownMenuItem(
-                    text = { Text(stringResource(taskType.labelRes)) },
+                CheckedMenuItem(
+                    text = stringResource(taskType.labelRes),
                     leadingIcon = { Icon(taskType.icon, contentDescription = null, tint = taskType.accent()) },
-                    trailingIcon = if (filters.type == taskType) ({ CurrentOptionCheck() }) else null,
-                    modifier = if (filters.type == taskType) Modifier.semantics { selected = true } else Modifier,
+                    current = filters.type == taskType,
                     onClick = {
                         onChange(filters.copy(type = taskType))
                         menu = false
@@ -521,33 +534,26 @@ private fun TaskAssigneeFilterChip(filters: TaskFilters, members: List<SpaceMemb
             trailingIcon = { Icon(Icons.Rounded.ArrowDropDown, contentDescription = null) },
         )
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.tasks_filter_all)) },
-                trailingIcon = if (!anyAssignee) ({ CurrentOptionCheck() }) else null,
-                modifier = if (!anyAssignee) Modifier.semantics { selected = true } else Modifier,
+            CheckedMenuItem(
+                text = stringResource(R.string.tasks_filter_all),
+                current = !anyAssignee,
                 onClick = {
                     onChange(filters.copy(assigneeId = null, unassignedOnly = false))
                     menu = false
                 },
             )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.tasks_unassigned)) },
-                trailingIcon = if (filters.unassignedOnly) ({ CurrentOptionCheck() }) else null,
-                modifier = if (filters.unassignedOnly) Modifier.semantics { selected = true } else Modifier,
+            CheckedMenuItem(
+                text = stringResource(R.string.tasks_unassigned),
+                current = filters.unassignedOnly,
                 onClick = {
                     onChange(filters.copy(assigneeId = null, unassignedOnly = true))
                     menu = false
                 },
             )
             members.forEach { member ->
-                DropdownMenuItem(
-                    text = { Text(member.displayName) },
-                    trailingIcon = if (filters.assigneeId == member.userId) ({ CurrentOptionCheck() }) else null,
-                    modifier = if (filters.assigneeId == member.userId) {
-                        Modifier.semantics { selected = true }
-                    } else {
-                        Modifier
-                    },
+                CheckedMenuItem(
+                    text = member.displayName,
+                    current = filters.assigneeId == member.userId,
                     onClick = {
                         onChange(filters.copy(assigneeId = member.userId, unassignedOnly = false))
                         menu = false

@@ -59,6 +59,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -91,6 +92,7 @@ import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.AppLocale
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
+import com.dlunaunizar.bobitos.core.designsystem.component.ClickableCard
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
@@ -504,10 +506,7 @@ private fun WeekEventList(
     deleteEnabled: Boolean = true,
 ) {
     val monday = focusedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-    val days = (0L..6L).map(monday::plusDays)
-    val rows = remember(monday, events) {
-        weekRows(days, days.filterTo(mutableSetOf()) { events.eventsOn(it).isNotEmpty() }, LocalDate.now())
-    }
+    val rows = rememberWeekRows(monday, events) { events.eventsOn(it).isNotEmpty() }
     var expandedRuns by rememberExpandedRuns(monday)
     LazyColumn(
         modifier,
@@ -539,29 +538,15 @@ private fun WeekEventList(
                 }
             }
         }
-        rows.forEach { row ->
-            when (row) {
-                is WeekRow.Day -> dayItems(row.date)
-                is WeekRow.EmptyRun -> {
-                    val open = row.start in expandedRuns
-                    item("run-${row.start}") {
-                        FoldedDaysRow(
-                            start = row.start,
-                            end = row.end,
-                            expanded = open,
-                            onToggle = {
-                                expandedRuns = if (open) expandedRuns - row.start else expandedRuns + row.start
-                            },
-                        )
-                    }
-                    if (open) {
-                        generateSequence(row.start) { it.plusDays(1) }
-                            .takeWhile { !it.isAfter(row.end) }
-                            .forEach { dayItems(it) }
-                    }
-                }
-            }
-        }
+        weekRowItems(
+            rows,
+            expandedRuns,
+            onToggle = { start ->
+                expandedRuns =
+                    if (start in expandedRuns) expandedRuns - start else expandedRuns + start
+            },
+            dayItems = { date -> dayItems(date) },
+        )
     }
 }
 
@@ -660,13 +645,14 @@ internal fun HourRow(
     deleteEnabled: Boolean = true,
 ) {
     val createLabel = stringResource(R.string.calendar_create_at, BobitosDates.time(LocalTime.of(hour, 0)))
+    val currentOnLongPress by rememberUpdatedState(onLongPress)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .then(
                 if (canWrite) {
                     Modifier
-                        .pointerInput(onLongPress) { detectTapGestures(onLongPress = { onLongPress() }) }
+                        .pointerInput(Unit) { detectTapGestures(onLongPress = { currentOnLongPress() }) }
                         .semantics(mergeDescendants = true) {
                             customActions = listOf(
                                 CustomAccessibilityAction(createLabel) {
@@ -768,11 +754,7 @@ internal fun EventRow(
             }
         }
     }
-    if (canWrite) {
-        Card(onClick = edit, modifier = Modifier.fillMaxWidth(), content = content)
-    } else {
-        Card(modifier = Modifier.fillMaxWidth(), content = content)
-    }
+    ClickableCard(edit.takeIf { canWrite }, Modifier.fillMaxWidth(), content = content)
 }
 
 private fun List<TaskItem>.tasksOn(date: LocalDate): List<TaskItem> {

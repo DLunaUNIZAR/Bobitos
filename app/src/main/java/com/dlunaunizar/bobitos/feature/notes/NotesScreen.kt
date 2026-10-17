@@ -14,7 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.StickyNote2
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.PushPin
-import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,6 +44,7 @@ import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
+import com.dlunaunizar.bobitos.core.designsystem.component.ClickableCard
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
@@ -144,22 +144,16 @@ fun NotesScreen(
                         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                     ) {
                         items(notes.value, key = Note::id) { note ->
+                            val openEditor = {
+                                editorNoteId = note.id
+                                editorVisible = true
+                            }
                             NoteCard(
                                 note = note,
                                 enabled = enabled,
-                                onClick = if (enabled) {
-                                    {
-                                        editorNoteId = note.id
-                                        editorVisible = true
-                                    }
-                                } else {
-                                    null
-                                },
+                                onClick = openEditor.takeIf { enabled },
                                 onTogglePin = { viewModel.setPinned(note.id, !note.pinned) },
-                                onEdit = {
-                                    editorNoteId = note.id
-                                    editorVisible = true
-                                },
+                                onEdit = openEditor,
                                 onDelete = {
                                     // El espacio se captura al borrar: «Deshacer» devuelve la nota a su espacio.
                                     val deletedFrom = spaceId
@@ -266,11 +260,7 @@ internal fun NoteCard(
             }
         }
     }
-    if (onClick != null) {
-        Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) { content() }
-    } else {
-        Card(modifier = Modifier.fillMaxWidth()) { content() }
-    }
+    ClickableCard(onClick, Modifier.fillMaxWidth()) { content() }
 }
 
 @Composable

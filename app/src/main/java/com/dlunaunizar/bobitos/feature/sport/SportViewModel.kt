@@ -193,9 +193,8 @@ class SportViewModel @Inject constructor(
     // «Deshacer» no se ofrece para un borrado fallido. Sin aviso propio: el snackbar de «Deshacer» ya confirma.
     fun deleteActivity(activityId: String, onDeleted: (CalendarEvent?) -> Unit = {}) {
         val spaceId = observedSpaceId ?: return
-        var deletedEvent: CalendarEvent? = null
-        runAction(null, onSuccess = { onDeleted(deletedEvent) }) {
-            deletedEvent = repository.deleteActivity(spaceId, activityId)
+        runAction(null, onSuccess = { deletedEvent -> onDeleted(deletedEvent as CalendarEvent?) }) {
+            repository.deleteActivity(spaceId, activityId)
         }
     }
 
@@ -216,7 +215,7 @@ class SportViewModel @Inject constructor(
         notice: SportUiMessage?,
         editor: Boolean = false,
         force: Boolean = false,
-        onSuccess: () -> Unit = {},
+        onSuccess: (Any?) -> Unit = {},
         action: suspend () -> Any?,
     ) {
         if (mutableUiState.value.isSaving && !force) return
@@ -234,7 +233,7 @@ class SportViewModel @Inject constructor(
                             editorSave = it.editorSave.succeeded(editor),
                         )
                     }
-                    onSuccess()
+                    onSuccess(result)
                 }
                 .onFailure { error ->
                     if (error is CancellationException) throw error

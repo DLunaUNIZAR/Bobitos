@@ -263,11 +263,15 @@ private fun SpacesContent(
 }
 
 /** Los fallos que dependen del código escrito van bajo el campo; el resto, como texto del diálogo. */
-private fun SpaceUiMessage.isInvitationCodeError(): Boolean = this == SpaceUiMessage.InvalidInvitationCode ||
-    this == SpaceUiMessage.InvitationNotFound ||
-    this == SpaceUiMessage.InvitationAlreadyUsed ||
-    this == SpaceUiMessage.InvitationRevoked ||
-    this == SpaceUiMessage.InvitationExpired
+private val invitationCodeErrors = setOf(
+    SpaceUiMessage.InvalidInvitationCode,
+    SpaceUiMessage.InvitationNotFound,
+    SpaceUiMessage.InvitationAlreadyUsed,
+    SpaceUiMessage.InvitationRevoked,
+    SpaceUiMessage.InvitationExpired,
+)
+
+private fun SpaceUiMessage.isInvitationCodeError(): Boolean = this in invitationCodeErrors
 
 @Composable
 internal fun InvitationCodeDialog(

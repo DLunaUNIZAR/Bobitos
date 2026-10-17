@@ -20,7 +20,6 @@ import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Kitchen
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Restaurant
-import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -58,6 +57,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
+import com.dlunaunizar.bobitos.core.designsystem.component.ClickableCard
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -445,11 +445,7 @@ internal fun MealCard(
         }
     }
     // Sin permiso de escritura es una Card normal: `enabled = false` cambiaría su color.
-    if (onClick != null) {
-        Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) { cardContent() }
-    } else {
-        Card(modifier = Modifier.fillMaxWidth()) { cardContent() }
-    }
+    ClickableCard(onClick, Modifier.fillMaxWidth()) { cardContent() }
 }
 
 @Composable

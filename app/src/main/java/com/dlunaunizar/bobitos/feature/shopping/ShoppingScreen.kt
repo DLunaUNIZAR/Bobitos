@@ -109,6 +109,7 @@ fun ShoppingScreen(
     viewModel: ShoppingViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val showAuthor = showsAuthor(memberCount)
 
     DisposableEffect(spaceId) {
         viewModel.observe(spaceId)
@@ -262,7 +263,7 @@ fun ShoppingScreen(
                                 ) { accessibilityModifier ->
                                     ShoppingItemCard(
                                         item = item,
-                                        showAuthor = showsAuthor(memberCount),
+                                        showAuthor = showAuthor,
                                         enabled = actionsEnabled,
                                         onCreateIngredient = { viewModel.createIngredientFromItem(item) },
                                         onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
@@ -316,7 +317,7 @@ fun ShoppingScreen(
                                     ) { accessibilityModifier ->
                                         ShoppingItemCard(
                                             item = item,
-                                            showAuthor = showsAuthor(memberCount),
+                                            showAuthor = showAuthor,
                                             enabled = actionsEnabled,
                                             onCreateIngredient = { viewModel.createIngredientFromItem(item) },
                                             onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },

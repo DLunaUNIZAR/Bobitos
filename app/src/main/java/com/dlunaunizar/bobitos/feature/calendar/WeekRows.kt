@@ -1,8 +1,10 @@
 package com.dlunaunizar.bobitos.feature.calendar
 
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import java.time.LocalDate
@@ -47,4 +49,43 @@ internal fun weekRows(days: List<LocalDate>, daysWithEvents: Set<LocalDate>, tod
     }
     closeRun()
     return rows
+}
+
+/** Filas de la semana que empieza en [monday]; se recalculan cuando cambian [monday] o [events]. */
+@Composable
+internal fun rememberWeekRows(monday: LocalDate, events: Any?, hasEvents: (LocalDate) -> Boolean): List<WeekRow> =
+    remember(monday, events) {
+        val days = (0L..6L).map(monday::plusDays)
+        weekRows(days, days.filterTo(mutableSetOf(), hasEvents), LocalDate.now())
+    }
+
+/** Añade las filas de la semana: cada día con [dayItems] y los grupos de días vacíos plegables. */
+internal fun LazyListScope.weekRowItems(
+    rows: List<WeekRow>,
+    expandedRuns: Set<LocalDate>,
+    onToggle: (LocalDate) -> Unit,
+    dayItems: LazyListScope.(LocalDate) -> Unit,
+) {
+    rows.forEach { row ->
+        when (row) {
+            is WeekRow.Day -> dayItems(row.date)
+            is WeekRow.EmptyRun -> emptyRunItems(row, row.start in expandedRuns, onToggle, dayItems)
+        }
+    }
+}
+
+private fun LazyListScope.emptyRunItems(
+    run: WeekRow.EmptyRun,
+    open: Boolean,
+    onToggle: (LocalDate) -> Unit,
+    dayItems: LazyListScope.(LocalDate) -> Unit,
+) {
+    item("run-${run.start}") {
+        FoldedDaysRow(start = run.start, end = run.end, expanded = open, onToggle = { onToggle(run.start) })
+    }
+    if (open) {
+        generateSequence(run.start) { it.plusDays(1) }
+            .takeWhile { !it.isAfter(run.end) }
+            .forEach { dayItems(it) }
+    }
 }

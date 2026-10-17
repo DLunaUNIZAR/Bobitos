@@ -194,7 +194,7 @@ class FirestoreSportActivityRepository @Inject constructor(
             // Se resuelve la existencia del evento antes de escribir (Firestore exige leer antes de escribir).
             val eventSnapshot = eventReference?.let(transaction::get)?.takeIf { it.exists() }
             transaction.delete(reference)
-            eventReference?.takeIf { eventSnapshot != null }?.let(transaction::delete)
+            eventSnapshot?.let { transaction.delete(it.reference) }
             // La foto del evento tal como estaba al borrar, para que «Deshacer» lo devuelva igual.
             eventSnapshot?.toLinkedEvent()
         }.await()

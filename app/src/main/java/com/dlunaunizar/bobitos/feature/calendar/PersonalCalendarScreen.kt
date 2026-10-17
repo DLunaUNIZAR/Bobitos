@@ -313,10 +313,7 @@ private fun PersonalWeekEventList(
     modifier: Modifier = Modifier,
 ) {
     val monday = focusedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-    val days = (0L..6L).map(monday::plusDays)
-    val rows = remember(monday, events) {
-        weekRows(days, days.filterTo(mutableSetOf()) { events.eventsOn(it).isNotEmpty() }, LocalDate.now())
-    }
+    val rows = rememberWeekRows(monday, events) { events.eventsOn(it).isNotEmpty() }
     var expandedRuns by rememberExpandedRuns(monday)
     LazyColumn(
         modifier,
@@ -341,29 +338,15 @@ private fun PersonalWeekEventList(
                 }
             }
         }
-        rows.forEach { row ->
-            when (row) {
-                is WeekRow.Day -> dayItems(row.date)
-                is WeekRow.EmptyRun -> {
-                    val open = row.start in expandedRuns
-                    item("run-${row.start}") {
-                        FoldedDaysRow(
-                            start = row.start,
-                            end = row.end,
-                            expanded = open,
-                            onToggle = {
-                                expandedRuns = if (open) expandedRuns - row.start else expandedRuns + row.start
-                            },
-                        )
-                    }
-                    if (open) {
-                        generateSequence(row.start) { it.plusDays(1) }
-                            .takeWhile { !it.isAfter(row.end) }
-                            .forEach { dayItems(it) }
-                    }
-                }
-            }
-        }
+        weekRowItems(
+            rows,
+            expandedRuns,
+            onToggle = { start ->
+                expandedRuns =
+                    if (start in expandedRuns) expandedRuns - start else expandedRuns + start
+            },
+            dayItems = { date -> dayItems(date) },
+        )
     }
 }
 
