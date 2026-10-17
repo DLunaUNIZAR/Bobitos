@@ -65,3 +65,7 @@ fun buildHomeDigest(
     }
     return SpaceHomeDigest(myTasksToday, myCookingToday, myEatingToday, myEventsToday, workload)
 }
+
+/** Agrupa los eventos por título, en orden de primera aparición, contando las repeticiones. */
+internal fun groupTitles(events: List<CalendarEvent>): List<Pair<String, Int>> =
+    events.groupingBy { it.title }.eachCount().toList()

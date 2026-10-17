@@ -20,6 +20,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.BobitosDates
+import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.data.repository.SpaceModuleCounts
@@ -35,7 +36,7 @@ import java.time.LocalDateTime
 
 /**
  * «Hoy»: cabecera con saludo y resumen, fichas de contadores de cada módulo, «Mi día» y reparto.
- * Mientras [digest] o [counts] no han cargado (o sin conexión) solo se ve el saludo.
+ * Mientras [digest] no ha cargado se ve un estado de carga; [counts] null solo oculta las fichas.
  */
 @Composable
 internal fun SpaceTodayScreen(
@@ -44,6 +45,11 @@ internal fun SpaceTodayScreen(
     digest: SpaceHomeDigest?,
     onOpen: (BobitosDestination) -> Unit,
 ) {
+    if (digest == null) {
+        // Hasta tener los datos no se afirma nada («Hoy no tienes nada pendiente», «Calendario 0»).
+        LoadingState(modifier = Modifier.fillMaxSize())
+        return
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -53,13 +59,13 @@ internal fun SpaceTodayScreen(
     ) {
         TodayHeader(displayName = displayName, digest = digest)
         counts?.let { CounterTiles(counts = it, onOpen = onOpen) }
-        digest?.takeUnless { it.myDayEmpty }?.let { MyDayCard(it) }
-        digest?.workload?.let { WorkloadSection(it) }
+        digest.takeUnless { it.myDayEmpty }?.let { MyDayCard(it) }
+        WorkloadSection(digest.workload)
     }
 }
 
 @Composable
-private fun TodayHeader(displayName: String, digest: SpaceHomeDigest?) {
+private fun TodayHeader(displayName: String, digest: SpaceHomeDigest) {
     val now = remember { LocalDateTime.now() }
     val greeting = stringResource(
         when (dayPeriodFor(now.hour)) {
@@ -99,18 +105,16 @@ private fun TodayHeader(displayName: String, digest: SpaceHomeDigest?) {
                 style = MaterialTheme.typography.headlineLarge,
             )
             Text(text = date, style = MaterialTheme.typography.bodyLarge)
-            digest?.let {
-                val count = it.todayItemCount()
-                Text(
-                    text = if (count == 0) {
-                        stringResource(R.string.space_today_nothing)
-                    } else {
-                        pluralStringResource(R.plurals.space_today_summary, count, count)
-                    },
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = Spacing.sm),
-                )
-            }
+            val count = digest.todayItemCount()
+            Text(
+                text = if (count == 0) {
+                    stringResource(R.string.space_today_nothing)
+                } else {
+                    pluralStringResource(R.plurals.space_today_summary, count, count)
+                },
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(top = Spacing.sm),
+            )
         }
     }
 }

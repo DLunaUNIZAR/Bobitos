@@ -1,5 +1,7 @@
 package com.dlunaunizar.bobitos.feature.spaces
 
+import com.dlunaunizar.bobitos.core.model.CalendarEvent
+import com.dlunaunizar.bobitos.core.model.EventColor
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
 import com.dlunaunizar.bobitos.core.model.SpaceMember
@@ -63,7 +65,34 @@ class SpaceHomeDigestTest {
         assertEquals(1, leo.pending)
         assertEquals(0, leo.doneThisWeek)
     }
+
+    @Test
+    fun `groupTitles merges equal titles keeping first appearance order`() {
+        val grouped = groupTitles(listOf(ev("Gimnasio"), ev("Cena"), ev("Gimnasio")))
+
+        assertEquals(listOf("Gimnasio" to 2, "Cena" to 1), grouped)
+    }
 }
+
+private fun ev(title: String) = CalendarEvent(
+    id = title + System.nanoTime(),
+    title = title,
+    description = null,
+    allDay = false,
+    startAt = Instant.EPOCH,
+    endAt = Instant.EPOCH.plusSeconds(3600),
+    startDate = null,
+    endDateExclusive = null,
+    timeZone = "UTC",
+    color = EventColor.BLUE,
+    participantIds = emptyList(),
+    participantNames = emptyList(),
+    createdBy = "owner",
+    createdByName = "Owner",
+    createdAt = Instant.EPOCH,
+    updatedBy = "owner",
+    updatedAt = Instant.EPOCH,
+)
 
 private fun task(
     id: String,

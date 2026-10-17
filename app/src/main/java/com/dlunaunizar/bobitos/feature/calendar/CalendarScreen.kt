@@ -35,7 +35,6 @@ import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -105,6 +104,7 @@ import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.TaskItem
 import com.dlunaunizar.bobitos.core.model.TaskStatus
 import com.dlunaunizar.bobitos.data.repository.EventInput
+import com.dlunaunizar.bobitos.feature.common.CheckboxRow
 import com.dlunaunizar.bobitos.feature.common.MemberCheckboxes
 import java.time.DayOfWeek
 import java.time.Instant
@@ -811,10 +811,11 @@ internal fun EventEditor(
             supportingText = errorSupportingText(descriptionError?.let { stringResource(it.stringResourceId) }),
             modifier = Modifier.fillMaxWidth().focusRequester(descriptionFocus),
         )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(draft.allDay, { draft = draft.copy(allDay = it) })
-            Text(stringResource(R.string.calendar_all_day))
-        }
+        CheckboxRow(
+            label = stringResource(R.string.calendar_all_day),
+            checked = draft.allDay,
+            onCheckedChange = { draft = draft.copy(allDay = it) },
+        )
         EventDateFields(
             draft = draft,
             error = datesError,

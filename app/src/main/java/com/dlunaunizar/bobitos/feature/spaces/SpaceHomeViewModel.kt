@@ -11,12 +11,11 @@ import com.dlunaunizar.bobitos.data.repository.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
@@ -24,7 +23,7 @@ import javax.inject.Inject
 
 /**
  * Carga los contadores «de vistazo» del hub (agregación `count()`, una lectura por módulo) y el
- * resumen personal + reparto ([SpaceHomeDigest]) mediante lecturas puntuales agregadas en cliente.
+ * resumen personal + reparto ([SpaceHomeDigest]) agregado en cliente a partir de los flujos de cada módulo.
  * Se recarga cada vez que «Hoy» se muestra (para no enseñar contadores de antes de editar en otro módulo)
  * y degrada a null si falla (sin conexión), dejando el hub sin adornos.
  */
@@ -42,26 +41,40 @@ class SpaceHomeViewModel @Inject constructor(
     val digest: StateFlow<SpaceHomeDigest?> = mutableDigest.asStateFlow()
     private var loadJob: Job? = null
 
-    /** Carga contadores y resumen del espacio. Una carga anterior aún en curso se cancela. */
+    /**
+     * Carga contadores y resumen del espacio. Una carga anterior aún en curso se cancela y lo que se
+     * mostraba se borra: «Hoy» espera a los datos del espacio nuevo en vez de enseñar los del anterior.
+     * El resumen observa los flujos, así que se corrige solo cuando llega el dato del servidor.
+     */
     fun load(spaceId: String, userId: String) {
         loadJob?.cancel()
+        mutableCounts.value = null
+        mutableDigest.value = null
         loadJob = viewModelScope.launch {
             launch { mutableCounts.value = loadOrNull { summaryRepository.counts(spaceId) } }
-            launch { mutableDigest.value = loadOrNull { loadDigest(spaceId, userId) } }
+            launch { observeDigest(spaceId, userId) }
         }
     }
 
-    private suspend fun loadDigest(spaceId: String, userId: String): SpaceHomeDigest = coroutineScope {
+    private suspend fun observeDigest(spaceId: String, userId: String) {
         val zone = ZoneId.systemDefault()
         val today = LocalDate.now(zone)
         val dayStart = today.atStartOfDay(zone).toInstant()
         val dayEnd = today.plusDays(1).atStartOfDay(zone).toInstant()
-        // Las cuatro lecturas son independientes: en paralelo.
-        val members = async { spaceRepository.members(spaceId).first() }
-        val tasks = async { taskRepository.tasks(spaceId).first() }
-        val meals = async { mealRepository.meals(spaceId, today, today.plusDays(1)).first() }
-        val events = async { calendarRepository.events(spaceId, dayStart, dayEnd).first() }
-        buildHomeDigest(userId, today, zone, tasks.await(), meals.await(), events.await(), members.await())
+        combine(
+            spaceRepository.members(spaceId),
+            taskRepository.tasks(spaceId),
+            mealRepository.meals(spaceId, today, today.plusDays(1)),
+            calendarRepository.events(spaceId, dayStart, dayEnd),
+        ) { members, tasks, meals, events ->
+            buildHomeDigest(userId, today, zone, tasks, meals, events, members)
+        }
+            // Si una fuente falla, «Hoy» no se queda cargando: pasa a un resumen vacío (saludo sin adornos).
+            .catch {
+                if (it is CancellationException) throw it
+                emit(SpaceHomeDigest(emptyList(), emptyList(), emptyList(), emptyList(), emptyList()))
+            }
+            .collect { mutableDigest.value = it }
     }
 }
 

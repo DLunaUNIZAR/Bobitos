@@ -23,6 +23,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
@@ -69,9 +70,11 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
@@ -232,7 +235,7 @@ fun ShoppingScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             when (val itemsState = state.items) {
-                UiState.Loading -> Text(stringResource(R.string.generic_loading))
+                UiState.Loading -> LoadingState(modifier = Modifier.weight(1f))
                 is UiState.Error -> ErrorState(
                     modifier = Modifier.weight(1f),
                     message = stringResource(R.string.shopping_error_list_read),
@@ -467,17 +470,12 @@ private fun shoppingMessageText(message: ShoppingUiMessage, clearedCount: Int): 
 
 @Composable
 private fun ShoppingEmptyState(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = stringResource(R.string.shopping_empty),
-            style = MaterialTheme.typography.titleMedium,
-        )
-        Text(text = stringResource(R.string.shopping_empty_description))
-    }
+    EmptyState(
+        title = stringResource(R.string.shopping_empty),
+        modifier = modifier,
+        icon = Icons.Rounded.ShoppingCart,
+        description = stringResource(R.string.shopping_empty_description),
+    )
 }
 
 @Composable

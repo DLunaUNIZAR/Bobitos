@@ -312,7 +312,44 @@ private fun DayChip(date: LocalDate, selected: Boolean, modifier: Modifier = Mod
 }
 
 @Composable
-private fun ActivityCard(
+private fun ActivityInfo(activity: SportActivity, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(
+            text = activity.name,
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = activity.participantNames.takeIf(List<String>::isNotEmpty)?.joinToString(", ")
+                ?: stringResource(R.string.sport_no_participants),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (activity.type == SportType.GIMNASIO && activity.session.isNotEmpty()) {
+            Text(
+                text = pluralStringResource(
+                    R.plurals.routines_exercise_count,
+                    activity.session.size,
+                    activity.session.size,
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (activity.done) {
+            Text(
+                text = stringResource(R.string.sport_done_label),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = Spacing.xxs),
+            )
+        }
+    }
+}
+
+@Composable
+internal fun ActivityCard(
     activity: SportActivity,
     enabled: Boolean,
     canWrite: Boolean,
@@ -322,6 +359,7 @@ private fun ActivityCard(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     Card(
+        onClick = onEdit,
         modifier = Modifier.fillMaxWidth(),
         colors = categoryCardColors(activity.type.accent()),
     ) {
@@ -336,39 +374,7 @@ private fun ActivityCard(
                 modifier = Modifier.size(24.dp),
             )
             Spacer(Modifier.width(Spacing.md))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = activity.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = activity.participantNames.takeIf(List<String>::isNotEmpty)?.joinToString(", ")
-                        ?: stringResource(R.string.sport_no_participants),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                if (activity.type == SportType.GIMNASIO && activity.session.isNotEmpty()) {
-                    Text(
-                        text = pluralStringResource(
-                            R.plurals.routines_exercise_count,
-                            activity.session.size,
-                            activity.session.size,
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                if (activity.done) {
-                    Text(
-                        text = stringResource(R.string.sport_done_label),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = Spacing.xxs),
-                    )
-                }
-            }
+            ActivityInfo(activity, modifier = Modifier.weight(1f))
             if (canWrite) {
                 Box {
                     IconButton(enabled = enabled, onClick = { menuExpanded = true }) {
