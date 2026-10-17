@@ -60,10 +60,10 @@
     </plurals>
     <string name="space_home_catalog_section">Recetario e ingredientes</string>
     <string name="home_my_day_title">Mi día</string>
-    <string name="home_my_day_empty">Nada tuyo para hoy 🎉</string>
-    <string name="home_my_day_tasks">✅ Hoy: %1$s</string>
-    <string name="home_my_day_cooking">🍳 Cocinas: %1$s</string>
-    <string name="home_my_day_eating">🍽 Comes: %1$s</string>
+    <string name="home_my_day_empty">Nada tuyo para hoy.</string>
+    <string name="home_my_day_tasks">Tareas de hoy: %1$s</string>
+    <string name="home_my_day_cooking">Cocinas: %1$s</string>
+    <string name="home_my_day_eating">Comes: %1$s</string>
     <string name="home_my_day_events">%1$s</string>
     <string name="home_my_day_event_repeated">%1$s (%2$d)</string>
     <string name="home_workload_title">Reparto de tareas</string>
@@ -850,6 +850,10 @@
     <string name="auth_sign_out">Cerrar sesión</string>
     <string name="auth_show_password">Ver</string>
     <string name="auth_hide_password">Ocultar</string>
+    <string name="profile_section_account">Cuenta</string>
+    <string name="profile_section_appearance">Apariencia</string>
+    <string name="profile_section_reminders">Recordatorios</string>
+    <string name="profile_section_info">Información</string>
     <string name="profile_title">Perfil</string>
     <string name="profile_email_value">Correo: %1$s</string>
     <string name="profile_verified">Correo verificado</string>

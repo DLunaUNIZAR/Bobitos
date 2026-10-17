@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -49,6 +51,7 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.InitialsAvatar
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
+import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.SwitchRow
 import com.dlunaunizar.bobitos.core.designsystem.theme.ThemeMode
 import com.dlunaunizar.bobitos.core.model.AuthUser
@@ -111,9 +114,9 @@ fun ProfileScreen(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            SectionHeader(title = stringResource(R.string.profile_section_account))
             InitialsAvatar(
                 initials = user.initials,
                 modifier = Modifier.size(96.dp),
@@ -125,7 +128,6 @@ fun ProfileScreen(
                 ),
             )
             Text(text = stringResource(R.string.profile_verified))
-            AuthFeedback(actionState)
             OutlinedTextField(
                 value = displayName,
                 onValueChange = {
@@ -143,11 +145,12 @@ fun ProfileScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 if (actionState.isLoading) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 } else {
                     Text(stringResource(R.string.profile_save))
                 }
             }
+            AuthFeedback(actionState)
             OutlinedButton(
                 onClick = onSignOut,
                 enabled = !actionState.isLoading,
@@ -155,10 +158,14 @@ fun ProfileScreen(
             ) {
                 Text(stringResource(R.string.auth_sign_out))
             }
+            Spacer(Modifier.height(16.dp))
+            SectionHeader(title = stringResource(R.string.profile_section_appearance))
             ThemeModeSelector(
                 selected = themeMode,
                 onSelect = themeViewModel::setThemeMode,
             )
+            Spacer(Modifier.height(16.dp))
+            SectionHeader(title = stringResource(R.string.profile_section_reminders))
             SwitchRow(
                 label = stringResource(R.string.profile_reminders_label),
                 checked = remindersEnabled,
@@ -170,7 +177,10 @@ fun ProfileScreen(
                     onSelect = remindersViewModel::setLeadTime,
                 )
             }
+            Spacer(Modifier.height(16.dp))
+            SectionHeader(title = stringResource(R.string.profile_section_info))
             LegalButtons()
+            Spacer(Modifier.height(32.dp))
             TextButton(enabled = !actionState.isLoading && canWrite, onClick = { showDeleteAccount = true }) {
                 Text(stringResource(R.string.account_delete), color = MaterialTheme.colorScheme.error)
             }
