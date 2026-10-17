@@ -27,7 +27,6 @@ import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -51,9 +50,9 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.formatDecimal
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
-import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.InfoChip
+import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SwitchRow
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
@@ -97,14 +96,10 @@ fun IngredientDetailScreen(
 
     BrandEvents(brandId, state, viewModel, openBrandEditor)
 
-    Scaffold(
+    ScreenScaffold(
+        title = ingredient?.name ?: stringResource(R.string.ingredients_title),
+        onBack = onBack,
         modifier = modifier,
-        topBar = {
-            BobitosTopBar(
-                title = ingredient?.name ?: stringResource(R.string.ingredients_title),
-                onBack = onBack,
-            )
-        },
     ) { padding ->
         Column(
             modifier = Modifier

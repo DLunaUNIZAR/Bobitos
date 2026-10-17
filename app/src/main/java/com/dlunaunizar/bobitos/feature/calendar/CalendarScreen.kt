@@ -90,6 +90,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
@@ -127,7 +128,6 @@ fun CalendarScreen(
     var drilledFrom by remember { mutableStateOf<CalendarDisplayMode?>(null) }
     var creatingAtText by rememberSaveable { mutableStateOf<String?>(null) }
     var eventToDelete by remember { mutableStateOf<CalendarEvent?>(null) }
-    val snackbar = LocalSnackbarHostState.current
     val scope = rememberCoroutineScope()
     val deletedMessage = stringResource(R.string.calendar_undo_deleted)
     val undoLabel = stringResource(R.string.undo)
@@ -160,10 +160,23 @@ fun CalendarScreen(
         drilledFrom = null
     }
 
-    Box(modifier.fillMaxSize()) {
+    ModuleScaffold(
+        modifier = modifier.fillMaxSize(),
+        floatingActionButton = {
+            if (canWrite) {
+                ExtendedFloatingActionButton(
+                    onClick = { creating = true },
+                    icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                    text = { Text(stringResource(R.string.calendar_new_event)) },
+                )
+            }
+        },
+    ) { padding ->
+        val snackbar = LocalSnackbarHostState.current
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(padding)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
@@ -220,14 +233,19 @@ fun CalendarScreen(
             CalendarMessage(state.message, state.editorSave, viewModel::clearMessage)
         }
 
-        if (canWrite) {
-            ExtendedFloatingActionButton(
-                onClick = { creating = true },
-                icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
-                text = { Text(stringResource(R.string.calendar_new_event)) },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp),
+        eventToDelete?.let { event ->
+            DeleteEventDialog(
+                event = event,
+                enabled = canWrite && !state.saving,
+                onConfirm = {
+                    viewModel.delete(event.id) {
+                        scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+                            viewModel.restore(event.id, event.toInput())
+                        }
+                    }
+                    eventToDelete = null
+                },
+                onDismiss = { eventToDelete = null },
             )
         }
     }
@@ -256,22 +274,6 @@ fun CalendarScreen(
         onClose = closeEditor,
         onSave = { id, input -> viewModel.save(id, input) },
     )
-
-    eventToDelete?.let { event ->
-        DeleteEventDialog(
-            event = event,
-            enabled = canWrite && !state.saving,
-            onConfirm = {
-                viewModel.delete(event.id) {
-                    scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                        viewModel.restore(event.id, event.toInput())
-                    }
-                }
-                eventToDelete = null
-            },
-            onDismiss = { eventToDelete = null },
-        )
-    }
 }
 
 // Si el editor abierto falló, el mensaje se ve dentro del formulario (no se descarta antes de tiempo).
@@ -490,7 +492,7 @@ private fun WeekEventList(
     LazyColumn(
         modifier,
         verticalArrangement = Arrangement.spacedBy(6.dp),
-        contentPadding = PaddingValues(bottom = 88.dp),
+        contentPadding = PaddingValues(bottom = Spacing.fabClearance),
     ) {
         (0L..6L).forEach { offset ->
             val date = monday.plusDays(offset)
@@ -574,7 +576,7 @@ internal fun DayHourGrid(
     val allDay = events.filter(CalendarEvent::allDay)
     val timedByHour = events.filterNot(CalendarEvent::allDay)
         .groupBy { it.startAt.atZone(zone).toLocalTime().hour }
-    LazyColumn(modifier, contentPadding = PaddingValues(bottom = 88.dp)) {
+    LazyColumn(modifier, contentPadding = PaddingValues(bottom = Spacing.fabClearance)) {
         if (allDay.isNotEmpty() || tasks.isNotEmpty()) {
             item(key = "allday-header") {
                 Text(

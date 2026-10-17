@@ -14,4 +14,7 @@ object Spacing {
     val lg = 16.dp
     val xl = 24.dp
     val xxl = 32.dp
+
+    /** Hueco al final de toda lista con FAB: FAB extendido (56) + margen (16) + aire (16). */
+    val fabClearance = 88.dp
 }

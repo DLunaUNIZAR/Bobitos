@@ -65,6 +65,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
@@ -102,7 +103,6 @@ fun SportScreen(
     }
     val members = (state.members as? UiState.Content)?.value.orEmpty()
     val actionsEnabled = canWrite && !state.isSaving
-    val snackbar = LocalSnackbarHostState.current
     val scope = rememberCoroutineScope()
     val deletedMessage = stringResource(R.string.sport_undo_deleted)
     val undoLabel = stringResource(R.string.undo)
@@ -111,15 +111,35 @@ fun SportScreen(
     var editorActivityId by rememberSaveable { mutableStateOf<String?>(null) }
     var activityToDelete by remember { mutableStateOf<SportActivity?>(null) }
 
-    val deleteWithUndo: (SportActivity) -> Unit = { activity ->
-        viewModel.deleteActivity(activity.id)
-        scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-            viewModel.restoreActivity(activity)
+    ModuleScaffold(
+        modifier = modifier.fillMaxSize(),
+        floatingActionButton = {
+            if (canWrite) {
+                ExtendedFloatingActionButton(
+                    onClick = {
+                        editorActivityId = null
+                        editorOpen = true
+                    },
+                    icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                    text = { Text(stringResource(R.string.sport_add)) },
+                )
+            }
+        },
+    ) { padding ->
+        val snackbar = LocalSnackbarHostState.current
+        val deleteWithUndo: (SportActivity) -> Unit = { activity ->
+            viewModel.deleteActivity(activity.id)
+            scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+                viewModel.restoreActivity(activity)
+            }
         }
-    }
 
-    Box(modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        ) {
             WeekSelector(
                 weekDays = state.weekDays,
                 focusedDate = state.focusedDate,
@@ -159,7 +179,7 @@ fun SportScreen(
                         LazyColumn(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                            contentPadding = PaddingValues(bottom = 88.dp),
+                            contentPadding = PaddingValues(bottom = Spacing.fabClearance),
                         ) {
                             items(dayActivities, key = SportActivity::id) { activity ->
                                 ActivityCard(
@@ -179,17 +199,19 @@ fun SportScreen(
                 }
             }
         }
-        if (canWrite) {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    editorActivityId = null
-                    editorOpen = true
+
+        activityToDelete?.let { activity ->
+            BobitosDialog(
+                title = stringResource(R.string.sport_delete_title),
+                message = stringResource(R.string.sport_delete_body, activity.name),
+                confirmLabel = stringResource(R.string.sport_delete),
+                destructive = true,
+                confirmEnabled = actionsEnabled,
+                onConfirm = {
+                    deleteWithUndo(activity)
+                    activityToDelete = null
                 },
-                icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
-                text = { Text(stringResource(R.string.sport_add)) },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(Spacing.lg),
+                onDismiss = { activityToDelete = null },
             )
         }
     }
@@ -223,20 +245,6 @@ fun SportScreen(
             } ?: viewModel.addActivity(state.focusedDate, type, name, participantIds, routineId, session)
         },
     )
-    activityToDelete?.let { activity ->
-        BobitosDialog(
-            title = stringResource(R.string.sport_delete_title),
-            message = stringResource(R.string.sport_delete_body, activity.name),
-            confirmLabel = stringResource(R.string.sport_delete),
-            destructive = true,
-            confirmEnabled = actionsEnabled,
-            onConfirm = {
-                deleteWithUndo(activity)
-                activityToDelete = null
-            },
-            onDismiss = { activityToDelete = null },
-        )
-    }
 }
 
 @Composable

@@ -29,9 +29,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -54,12 +51,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
-import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
+import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewDialog
 import com.dlunaunizar.bobitos.feature.common.PantryLine
@@ -127,36 +126,23 @@ fun RecipesScreen(
         .mapNotNull { it.category?.trim()?.takeIf(String::isNotEmpty) }
         .distinct()
         .sorted()
-    val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val deletedMessage = stringResource(R.string.recipes_undo_deleted)
     val undoLabel = stringResource(R.string.undo)
 
-    // «Deshacer» solo cuando el servidor ha confirmado el borrado: si falla, sale el error y no se ofrece.
-    LaunchedEffect(state.deletedRecipe) {
-        val deleted = state.deletedRecipe ?: return@LaunchedEffect
-        viewModel.consumeDeletedRecipe()
-        scope.launchUndo(snackbarHostState, deletedMessage, undoLabel) { viewModel.restoreRecipe(deleted) }
-    }
-
-    Scaffold(
+    ScreenScaffold(
+        title = stringResource(R.string.recipes_title),
+        onBack = onBack,
         modifier = modifier,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            BobitosTopBar(
-                title = stringResource(R.string.recipes_title),
-                onBack = onBack,
-                actions = {
-                    if (canWrite) {
-                        IconButton(onClick = { showImport = true }) {
-                            Icon(
-                                Icons.Rounded.Link,
-                                contentDescription = stringResource(R.string.recipes_import_title),
-                            )
-                        }
-                    }
-                },
-            )
+        actions = {
+            if (canWrite) {
+                IconButton(onClick = { showImport = true }) {
+                    Icon(
+                        Icons.Rounded.Link,
+                        contentDescription = stringResource(R.string.recipes_import_title),
+                    )
+                }
+            }
         },
         floatingActionButton = {
             if (canWrite) {
@@ -172,6 +158,13 @@ fun RecipesScreen(
             }
         },
     ) { padding ->
+        // «Deshacer» solo cuando el servidor ha confirmado el borrado: si falla, sale el error y no se ofrece.
+        val snackbarHost = LocalSnackbarHostState.current
+        LaunchedEffect(state.deletedRecipe) {
+            val deleted = state.deletedRecipe ?: return@LaunchedEffect
+            viewModel.consumeDeletedRecipe()
+            scope.launchUndo(snackbarHost, deletedMessage, undoLabel) { viewModel.restoreRecipe(deleted) }
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -206,7 +199,7 @@ fun RecipesScreen(
             LazyColumn(
                 state = listState,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(bottom = 88.dp),
+                contentPadding = PaddingValues(bottom = Spacing.fabClearance),
             ) {
                 recipesSection(R.string.recipes_section_mine, state.mine, mineRows, filtering) {
                     detailRecipeId = it.id

@@ -16,9 +16,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
@@ -32,15 +30,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
-import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
+import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.PantryItem
@@ -60,29 +58,16 @@ fun PantryScreen(
         if (spaceId != null) viewModel.observe(spaceId)
         onDispose { viewModel.stopObserving() }
     }
-    val snackbarHostState = remember { SnackbarHostState() }
-    PantrySnackbars(
-        state = state,
-        host = snackbarHostState,
-        onNoticeShown = viewModel::clearFeedback,
-        onFinishedShown = viewModel::consumeFinished,
-        onRestock = viewModel::restock,
-    )
     // Sin espacio activo no se puede escribir (las escrituras usan el espacio observado).
     val canEdit = canWrite && spaceId != null
     val items = (state.items as? UiState.Content)?.value.orEmpty()
 
-    Scaffold(
+    ScreenScaffold(
+        title = stringResource(R.string.pantry_title),
+        onBack = onBack,
         modifier = modifier,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            BobitosTopBar(
-                title = stringResource(R.string.pantry_title),
-                onBack = onBack,
-                actions = {
-                    TextButton(onClick = onWhatToCook) { Text(stringResource(R.string.pantry_what_to_cook)) }
-                },
-            )
+        actions = {
+            TextButton(onClick = onWhatToCook) { Text(stringResource(R.string.pantry_what_to_cook)) }
         },
         floatingActionButton = {
             if (canEdit) {
@@ -94,6 +79,15 @@ fun PantryScreen(
             }
         },
     ) { innerPadding ->
+        LocalSnackbarHostState.current?.let { host ->
+            PantrySnackbars(
+                state = state,
+                host = host,
+                onNoticeShown = viewModel::clearFeedback,
+                onFinishedShown = viewModel::consumeFinished,
+                onRestock = viewModel::restock,
+            )
+        }
         Column(Modifier.padding(innerPadding).fillMaxSize()) {
             state.error?.let { message -> PantryErrorBanner(message, viewModel::clearFeedback) }
             when (val loaded = state.items) {
@@ -173,7 +167,12 @@ private fun PantryContent(
         }
         LazyColumn(
             // Abajo deja sitio al botón flotante para no tapar «Se acabó» de la última fila.
-            contentPadding = PaddingValues(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg, bottom = 88.dp),
+            contentPadding = PaddingValues(
+                start = Spacing.lg,
+                top = Spacing.lg,
+                end = Spacing.lg,
+                bottom = Spacing.fabClearance,
+            ),
             verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             sections.forEach { section ->

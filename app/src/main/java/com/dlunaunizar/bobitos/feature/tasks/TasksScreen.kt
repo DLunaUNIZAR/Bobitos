@@ -92,6 +92,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
@@ -127,25 +128,6 @@ fun TasksScreen(
     val allTasks = (state.tasks as? UiState.Content)?.value.orEmpty()
     val visibleTasks = state.filters.apply(allTasks)
     val enabled = canWrite && !state.isSaving
-    val snackbar = LocalSnackbarHostState.current
-    val scope = rememberCoroutineScope()
-    // Los avisos de éxito se muestran como snackbar efímero (el banner queda para errores).
-    val noticeMessage = state.notice?.let { stringResource(it.stringRes()) }
-    LaunchedEffect(state.notice) {
-        val text = noticeMessage ?: return@LaunchedEffect
-        snackbar?.showSnackbar(text)
-        viewModel.clearFeedback()
-    }
-    val deletedMessage = stringResource(R.string.tasks_undo_deleted)
-    val undoLabel = stringResource(R.string.undo)
-    val deleteColor = MaterialTheme.colorScheme.error
-    val checkColor = MaterialTheme.colorScheme.primary
-    val deleteTaskWithUndo: (TaskItem) -> Unit = { task ->
-        viewModel.deleteTask(spaceId, task.id)
-        scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-            viewModel.restoreTask(spaceId, task)
-        }
-    }
     // El editor sobrevive a una rotación: se guarda el id de la tarea (no el objeto) y el índice de la plantilla.
     var editorTaskId by rememberSaveable { mutableStateOf<String?>(null) }
     var editorTemplateIndex by rememberSaveable { mutableStateOf(-1) }
@@ -161,8 +143,40 @@ fun TasksScreen(
     var completedExpanded by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
 
-    Box(modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().padding(Spacing.lg)) {
+    ModuleScaffold(
+        modifier = modifier.fillMaxSize(),
+        floatingActionButton = {
+            if (canWrite) {
+                ExtendedFloatingActionButton(
+                    onClick = {
+                        openEditor(null, -1)
+                    },
+                    icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                    text = { Text(stringResource(R.string.tasks_add)) },
+                )
+            }
+        },
+    ) { padding ->
+        val snackbar = LocalSnackbarHostState.current
+        val scope = rememberCoroutineScope()
+        // Los avisos de éxito se muestran como snackbar efímero (el banner queda para errores).
+        val noticeMessage = state.notice?.let { stringResource(it.stringRes()) }
+        LaunchedEffect(state.notice) {
+            val text = noticeMessage ?: return@LaunchedEffect
+            snackbar?.showSnackbar(text)
+            viewModel.clearFeedback()
+        }
+        val deletedMessage = stringResource(R.string.tasks_undo_deleted)
+        val undoLabel = stringResource(R.string.undo)
+        val deleteColor = MaterialTheme.colorScheme.error
+        val checkColor = MaterialTheme.colorScheme.primary
+        val deleteTaskWithUndo: (TaskItem) -> Unit = { task ->
+            viewModel.deleteTask(spaceId, task.id)
+            scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+                viewModel.restoreTask(spaceId, task)
+            }
+        }
+        Column(Modifier.fillMaxSize().padding(padding).padding(Spacing.lg)) {
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -259,7 +273,7 @@ fun TasksScreen(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                         // Deja hueco para que el FAB no tape el último elemento.
-                        contentPadding = PaddingValues(bottom = 88.dp),
+                        contentPadding = PaddingValues(bottom = Spacing.fabClearance),
                     ) {
                         sections.forEach { (section, sectionTasks) ->
                             val collapsible = section == TaskSection.COMPLETED
@@ -280,16 +294,19 @@ fun TasksScreen(
                 }
             }
         }
-        if (canWrite) {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    openEditor(null, -1)
+
+        deleteTask?.let { task ->
+            BobitosDialog(
+                title = stringResource(R.string.tasks_delete_title),
+                message = stringResource(R.string.tasks_delete_body, task.title),
+                confirmLabel = stringResource(R.string.tasks_delete),
+                destructive = true,
+                confirmEnabled = enabled,
+                onConfirm = {
+                    deleteTaskWithUndo(task)
+                    deleteTask = null
                 },
-                icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
-                text = { Text(stringResource(R.string.tasks_add)) },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(Spacing.lg),
+                onDismiss = { deleteTask = null },
             )
         }
     }
@@ -337,20 +354,6 @@ fun TasksScreen(
                     )
                 }
             },
-        )
-    }
-    deleteTask?.let { task ->
-        BobitosDialog(
-            title = stringResource(R.string.tasks_delete_title),
-            message = stringResource(R.string.tasks_delete_body, task.title),
-            confirmLabel = stringResource(R.string.tasks_delete),
-            destructive = true,
-            confirmEnabled = enabled,
-            onConfirm = {
-                deleteTaskWithUndo(task)
-                deleteTask = null
-            },
-            onDismiss = { deleteTask = null },
         )
     }
 }

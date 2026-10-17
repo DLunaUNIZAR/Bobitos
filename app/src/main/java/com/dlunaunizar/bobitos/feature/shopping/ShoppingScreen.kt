@@ -69,11 +69,13 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
+import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
@@ -142,23 +144,39 @@ fun ShoppingScreen(
     val pending = filteredItems.filterNot(ShoppingItem::purchased)
     val purchased = filteredItems.filter(ShoppingItem::purchased)
     val actionsEnabled = canWrite && !state.isSaving
-    val snackbar = LocalSnackbarHostState.current
-    val scope = rememberCoroutineScope()
-    val deletedMessage = stringResource(R.string.shopping_undo_deleted)
-    val undoLabel = stringResource(R.string.undo)
-    val deleteColor = MaterialTheme.colorScheme.error
-    val checkColor = MaterialTheme.colorScheme.primary
-    val deleteItemWithUndo: (ShoppingItem) -> Unit = { item ->
-        viewModel.deleteItem(spaceId, item.id)
-        scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-            viewModel.restoreItem(spaceId, item)
+    ModuleScaffold(
+        modifier = modifier.fillMaxSize(),
+        floatingActionButton = {
+            if (canWrite) {
+                ExtendedFloatingActionButton(
+                    onClick = {
+                        editedItemId = null
+                        initialDraft = null
+                        editorVisible = true
+                    },
+                    icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                    text = { Text(stringResource(R.string.shopping_add)) },
+                )
+            }
+        },
+    ) { padding ->
+        val snackbar = LocalSnackbarHostState.current
+        val scope = rememberCoroutineScope()
+        val deletedMessage = stringResource(R.string.shopping_undo_deleted)
+        val undoLabel = stringResource(R.string.undo)
+        val deleteColor = MaterialTheme.colorScheme.error
+        val checkColor = MaterialTheme.colorScheme.primary
+        val deleteItemWithUndo: (ShoppingItem) -> Unit = { item ->
+            viewModel.deleteItem(spaceId, item.id)
+            scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+                viewModel.restoreItem(spaceId, item)
+            }
         }
-    }
 
-    Box(modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(padding)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
             Column {
@@ -209,7 +227,7 @@ fun ShoppingScreen(
                         LazyColumn(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
-                            contentPadding = PaddingValues(bottom = 88.dp),
+                            contentPadding = PaddingValues(bottom = Spacing.fabClearance),
                         ) {
                             item(key = "pending-heading") {
                                 ShoppingSectionTitle(
@@ -316,18 +334,18 @@ fun ShoppingScreen(
             }
         }
 
-        if (canWrite) {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    editedItemId = null
-                    initialDraft = null
-                    editorVisible = true
+        itemToDelete?.let { item ->
+            BobitosDialog(
+                title = stringResource(R.string.shopping_delete_title),
+                message = stringResource(R.string.shopping_delete_body, item.name),
+                confirmLabel = stringResource(R.string.shopping_delete),
+                destructive = true,
+                confirmEnabled = actionsEnabled,
+                onConfirm = {
+                    deleteItemWithUndo(item)
+                    itemToDelete = null
                 },
-                icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
-                text = { Text(stringResource(R.string.shopping_add)) },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp),
+                onDismiss = { itemToDelete = null },
             )
         }
     }
@@ -402,21 +420,6 @@ fun ShoppingScreen(
                     editorVisible = false
                 }) { Text(stringResource(R.string.shopping_duplicate_skip)) }
             },
-        )
-    }
-
-    itemToDelete?.let { item ->
-        BobitosDialog(
-            title = stringResource(R.string.shopping_delete_title),
-            message = stringResource(R.string.shopping_delete_body, item.name),
-            confirmLabel = stringResource(R.string.shopping_delete),
-            destructive = true,
-            confirmEnabled = actionsEnabled,
-            onConfirm = {
-                deleteItemWithUndo(item)
-                itemToDelete = null
-            },
-            onDismiss = { itemToDelete = null },
         )
     }
 

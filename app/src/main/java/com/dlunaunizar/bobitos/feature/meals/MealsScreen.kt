@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -61,6 +60,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
@@ -110,15 +110,24 @@ fun MealsScreen(
     var duplicateDayPicker by remember { mutableStateOf(false) }
     val members = (state.members as? UiState.Content)?.value.orEmpty()
     val actionsEnabled = canWrite && !state.isSaving
-    val snackbar = LocalSnackbarHostState.current
     val scope = rememberCoroutineScope()
     val deletedMessage = stringResource(R.string.meals_undo_deleted)
     val undoLabel = stringResource(R.string.undo)
 
-    Box(modifier.fillMaxSize()) {
+    ModuleScaffold(
+        modifier = modifier.fillMaxSize(),
+        floatingActionButton = {
+            NewMealFab(
+                visible = canWrite,
+                onClick = { openEditor(null, defaultMealSlot(LocalTime.now().hour)) },
+            )
+        },
+    ) { padding ->
+        val snackbar = LocalSnackbarHostState.current
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(padding)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
             WeekSelector(
@@ -198,7 +207,7 @@ fun MealsScreen(
                     val queriedMeals = dayMeals.filter { it.matchesQuery(query) }
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(top = 8.dp, bottom = 88.dp),
+                        contentPadding = PaddingValues(top = 8.dp, bottom = Spacing.fabClearance),
                     ) {
                         MealSlot.entries.forEach { slot ->
                             item(key = slot.name) {
@@ -222,10 +231,21 @@ fun MealsScreen(
                 }
             }
         }
-        NewMealFab(
-            visible = canWrite,
-            onClick = { openEditor(null, defaultMealSlot(LocalTime.now().hour)) },
-        )
+
+        mealToDelete?.let { meal ->
+            DeleteMealDialog(
+                meal = meal,
+                enabled = actionsEnabled,
+                onConfirm = {
+                    viewModel.deleteMeal(meal.id)
+                    mealToDelete = null
+                    scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+                        viewModel.restoreMeal(meal)
+                    }
+                },
+                onDismiss = { mealToDelete = null },
+            )
+        }
     }
 
     val closeEditor = {
@@ -260,21 +280,6 @@ fun MealsScreen(
             }
         },
     )
-
-    mealToDelete?.let { meal ->
-        DeleteMealDialog(
-            meal = meal,
-            enabled = actionsEnabled,
-            onConfirm = {
-                viewModel.deleteMeal(meal.id)
-                mealToDelete = null
-                scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                    viewModel.restoreMeal(meal)
-                }
-            },
-            onDismiss = { mealToDelete = null },
-        )
-    }
 
     if (duplicateDayPicker) {
         AppDatePickerDialog(
@@ -686,15 +691,12 @@ private fun MealParticipants(members: List<SpaceMember>, draft: MealDraft, onDra
 }
 
 @Composable
-private fun BoxScope.NewMealFab(visible: Boolean, onClick: () -> Unit) {
+private fun NewMealFab(visible: Boolean, onClick: () -> Unit) {
     if (!visible) return
     ExtendedFloatingActionButton(
         onClick = onClick,
         icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
         text = { Text(stringResource(R.string.meals_add_title)) },
-        modifier = Modifier
-            .align(Alignment.BottomEnd)
-            .padding(16.dp),
     )
 }
 

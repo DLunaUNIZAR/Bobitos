@@ -21,7 +21,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -47,14 +46,15 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
-import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.InfoChip
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
+import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SwitchRow
+import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.feature.shopping.SupermarketIcon
@@ -82,15 +82,11 @@ fun IngredientsScreen(
     var query by rememberSaveable { mutableStateOf("") }
     IngredientsEvents(state, viewModel, onOpenIngredient, onOpenBrand) { showScanCreate = false }
 
-    Scaffold(
+    ScreenScaffold(
+        title = stringResource(R.string.ingredients_title),
+        onBack = onBack,
         modifier = modifier,
-        topBar = {
-            BobitosTopBar(
-                title = stringResource(R.string.ingredients_title),
-                onBack = onBack,
-                actions = { ScanButton(enabled = !state.isLookingUp, onScanned = viewModel::lookupBarcode) },
-            )
-        },
+        actions = { ScanButton(enabled = !state.isLookingUp, onScanned = viewModel::lookupBarcode) },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { showEditor = true },
@@ -254,7 +250,7 @@ private fun IngredientCatalog(
             } else {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(bottom = 88.dp),
+                    contentPadding = PaddingValues(bottom = Spacing.fabClearance),
                 ) {
                     items(filtered, key = CatalogIngredient::id) { ingredient ->
                         IngredientRow(

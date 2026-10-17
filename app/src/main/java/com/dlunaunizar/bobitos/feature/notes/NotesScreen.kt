@@ -24,9 +24,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -49,11 +46,12 @@ import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
-import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
+import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Note
@@ -72,14 +70,6 @@ fun NotesScreen(
         if (spaceId != null) viewModel.observe(spaceId)
         onDispose { viewModel.stopObserving() }
     }
-    val snackbarHostState = remember { SnackbarHostState() }
-    // Avisos de éxito como snackbar efímero (el banner queda para errores persistentes).
-    val noticeMessage = state.notice?.let { stringResource(it.stringRes()) }
-    LaunchedEffect(state.notice) {
-        val text = noticeMessage ?: return@LaunchedEffect
-        snackbarHostState.showSnackbar(text)
-        viewModel.clearFeedback()
-    }
     // El editor sobrevive a una rotación: se guarda el id de la nota, no el objeto.
     var editorNoteId by rememberSaveable { mutableStateOf<String?>(null) }
     var editorVisible by rememberSaveable { mutableStateOf(false) }
@@ -88,12 +78,10 @@ fun NotesScreen(
     // los controles para no perder cambios en silencio si el espacio deja de estar disponible.
     val enabled = canWrite && spaceId != null && !state.isSaving
 
-    Scaffold(
+    ScreenScaffold(
+        title = stringResource(R.string.notes_title),
+        onBack = onBack,
         modifier = modifier,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            BobitosTopBar(title = stringResource(R.string.notes_title), onBack = onBack)
-        },
         floatingActionButton = {
             if (canWrite && spaceId != null) {
                 ExtendedFloatingActionButton(
@@ -107,6 +95,14 @@ fun NotesScreen(
             }
         },
     ) { innerPadding ->
+        // Avisos de éxito como snackbar efímero (el banner queda para errores persistentes).
+        val snackbarHost = LocalSnackbarHostState.current
+        val noticeMessage = state.notice?.let { stringResource(it.stringRes()) }
+        LaunchedEffect(state.notice) {
+            val text = noticeMessage ?: return@LaunchedEffect
+            snackbarHost?.showSnackbar(text)
+            viewModel.clearFeedback()
+        }
         Column(Modifier.padding(innerPadding).fillMaxSize()) {
             state.error?.let { message -> NoteFeedbackBanner(message, viewModel::clearFeedback) }
             when (val notes = state.notes) {
@@ -122,7 +118,12 @@ fun NotesScreen(
                 } else {
                     LazyColumn(
                         modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(Spacing.lg),
+                        contentPadding = PaddingValues(
+                            start = Spacing.lg,
+                            top = Spacing.lg,
+                            end = Spacing.lg,
+                            bottom = Spacing.fabClearance,
+                        ),
                         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                     ) {
                         items(notes.value, key = Note::id) { note ->
