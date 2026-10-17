@@ -302,6 +302,7 @@
     <string name="tasks_pending">Pendientes</string>
     <string name="tasks_done">Completadas</string>
     <string name="tasks_filter_all">Todas</string>
+    <string name="tasks_filter_status">Estado</string>
     <string name="tasks_filter_priority">Prioridad</string>
     <string name="tasks_filter_type">Tipo</string>
     <string name="tasks_priority_low">Baja</string>

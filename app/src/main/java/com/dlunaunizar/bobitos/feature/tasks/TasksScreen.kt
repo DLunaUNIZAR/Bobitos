@@ -73,6 +73,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
@@ -381,11 +382,11 @@ private val TaskSection.titleRes: Int
         TaskSection.COMPLETED -> R.string.tasks_done
     }
 
-// Barra de filtros con FilterChip de estado visible. Estado y prioridad son chips directos
-// (single-select con toggle: tocar el activo lo desmarca); tipo y responsable abren un menú.
-// La dimensión fecha ya la cubren las secciones de la lista (B3).
+// Barra de filtros: cuatro chips con menú (estado, prioridad, tipo y responsable). Sin filtro el chip
+// dice su nombre; con filtro dice el valor y queda seleccionado. La dimensión fecha ya la cubren las
+// secciones de la lista (B3).
 @Composable
-private fun TaskFilterBar(
+internal fun TaskFilterBar(
     filters: TaskFilters,
     members: List<SpaceMember>,
     onChange: (TaskFilters) -> Unit,
@@ -398,32 +399,84 @@ private fun TaskFilterBar(
             .padding(top = Spacing.sm),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        FilterChip(
-            selected = filters.status == TaskStatus.TODO,
-            onClick = {
-                onChange(filters.copy(status = if (filters.status == TaskStatus.TODO) null else TaskStatus.TODO))
-            },
-            label = { Text(stringResource(R.string.tasks_pending)) },
-        )
-        FilterChip(
-            selected = filters.status == TaskStatus.DONE,
-            onClick = {
-                onChange(filters.copy(status = if (filters.status == TaskStatus.DONE) null else TaskStatus.DONE))
-            },
-            label = { Text(stringResource(R.string.tasks_done)) },
-        )
-        TaskPriority.entries.forEach { option ->
-            FilterChip(
-                selected = filters.priority == option,
-                onClick = {
-                    onChange(filters.copy(priority = if (filters.priority == option) null else option))
-                },
-                label = { Text(option.label()) },
-            )
-        }
+        TaskStatusFilterChip(filters, onChange)
+        TaskPriorityFilterChip(filters, onChange)
         TaskTypeFilterChip(filters, onChange)
         TaskAssigneeFilterChip(filters, members, onChange)
         trailing?.invoke()
+    }
+}
+
+@Composable
+private fun CurrentOptionCheck() {
+    Icon(Icons.Rounded.Check, contentDescription = null)
+}
+
+@Composable
+private fun TaskStatusFilterChip(filters: TaskFilters, onChange: (TaskFilters) -> Unit) {
+    var menu by remember { mutableStateOf(false) }
+    val options = listOf(
+        TaskStatus.TODO to R.string.tasks_pending,
+        TaskStatus.DONE to R.string.tasks_done,
+        null to R.string.tasks_filter_all,
+    )
+    Box {
+        FilterChip(
+            selected = filters.status != null,
+            onClick = { menu = true },
+            label = {
+                Text(
+                    filters.status?.let { status -> stringResource(options.first { it.first == status }.second) }
+                        ?: stringResource(R.string.tasks_filter_status),
+                )
+            },
+            trailingIcon = { Icon(Icons.Rounded.ArrowDropDown, contentDescription = null) },
+        )
+        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            options.forEach { (status, labelRes) ->
+                val current = filters.status == status
+                DropdownMenuItem(
+                    text = { Text(stringResource(labelRes)) },
+                    trailingIcon = if (current) ({ CurrentOptionCheck() }) else null,
+                    modifier = if (current) Modifier.semantics { selected = true } else Modifier,
+                    onClick = {
+                        onChange(filters.copy(status = status))
+                        menu = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TaskPriorityFilterChip(filters: TaskFilters, onChange: (TaskFilters) -> Unit) {
+    var menu by remember { mutableStateOf(false) }
+    Box {
+        FilterChip(
+            selected = filters.priority != null,
+            onClick = { menu = true },
+            label = { Text(filters.priority?.label() ?: stringResource(R.string.tasks_filter_priority)) },
+            trailingIcon = { Icon(Icons.Rounded.ArrowDropDown, contentDescription = null) },
+        )
+        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            val options = listOf<TaskPriority?>(null) + TaskPriority.entries.reversed()
+            options.forEach { priority ->
+                val current = filters.priority == priority
+                DropdownMenuItem(
+                    text = { Text(priority?.label() ?: stringResource(R.string.tasks_filter_all)) },
+                    leadingIcon = priority?.let { p ->
+                        { Icon(Icons.Rounded.Flag, contentDescription = null, tint = p.accent()) }
+                    },
+                    trailingIcon = if (current) ({ CurrentOptionCheck() }) else null,
+                    modifier = if (current) Modifier.semantics { selected = true } else Modifier,
+                    onClick = {
+                        onChange(filters.copy(priority = priority))
+                        menu = false
+                    },
+                )
+            }
+        }
     }
 }
 
@@ -442,6 +495,8 @@ private fun TaskTypeFilterChip(filters: TaskFilters, onChange: (TaskFilters) -> 
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.tasks_filter_all)) },
+                trailingIcon = if (filters.type == null) ({ CurrentOptionCheck() }) else null,
+                modifier = if (filters.type == null) Modifier.semantics { selected = true } else Modifier,
                 onClick = {
                     onChange(filters.copy(type = null))
                     menu = false
@@ -451,6 +506,8 @@ private fun TaskTypeFilterChip(filters: TaskFilters, onChange: (TaskFilters) -> 
                 DropdownMenuItem(
                     text = { Text(stringResource(taskType.labelRes)) },
                     leadingIcon = { Icon(taskType.icon, contentDescription = null, tint = taskType.accent()) },
+                    trailingIcon = if (filters.type == taskType) ({ CurrentOptionCheck() }) else null,
+                    modifier = if (filters.type == taskType) Modifier.semantics { selected = true } else Modifier,
                     onClick = {
                         onChange(filters.copy(type = taskType))
                         menu = false
@@ -471,9 +528,10 @@ private fun TaskAssigneeFilterChip(filters: TaskFilters, members: List<SpaceMemb
                 ?: stringResource(R.string.tasks_assignee)
         else -> stringResource(R.string.tasks_assignee)
     }
+    val anyAssignee = filters.assigneeId != null || filters.unassignedOnly
     Box {
         FilterChip(
-            selected = filters.assigneeId != null || filters.unassignedOnly,
+            selected = anyAssignee,
             onClick = { menu = true },
             label = { Text(label) },
             trailingIcon = { Icon(Icons.Rounded.ArrowDropDown, contentDescription = null) },
@@ -481,6 +539,8 @@ private fun TaskAssigneeFilterChip(filters: TaskFilters, members: List<SpaceMemb
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.tasks_filter_all)) },
+                trailingIcon = if (!anyAssignee) ({ CurrentOptionCheck() }) else null,
+                modifier = if (!anyAssignee) Modifier.semantics { selected = true } else Modifier,
                 onClick = {
                     onChange(filters.copy(assigneeId = null, unassignedOnly = false))
                     menu = false
@@ -488,6 +548,8 @@ private fun TaskAssigneeFilterChip(filters: TaskFilters, members: List<SpaceMemb
             )
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.tasks_unassigned)) },
+                trailingIcon = if (filters.unassignedOnly) ({ CurrentOptionCheck() }) else null,
+                modifier = if (filters.unassignedOnly) Modifier.semantics { selected = true } else Modifier,
                 onClick = {
                     onChange(filters.copy(assigneeId = null, unassignedOnly = true))
                     menu = false
@@ -496,6 +558,12 @@ private fun TaskAssigneeFilterChip(filters: TaskFilters, members: List<SpaceMemb
             members.forEach { member ->
                 DropdownMenuItem(
                     text = { Text(member.displayName) },
+                    trailingIcon = if (filters.assigneeId == member.userId) ({ CurrentOptionCheck() }) else null,
+                    modifier = if (filters.assigneeId == member.userId) {
+                        Modifier.semantics { selected = true }
+                    } else {
+                        Modifier
+                    },
                     onClick = {
                         onChange(filters.copy(assigneeId = member.userId, unassignedOnly = false))
                         menu = false
