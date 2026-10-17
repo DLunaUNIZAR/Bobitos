@@ -156,7 +156,7 @@ class MealsViewModel @Inject constructor(
     // «Deshacer» el alta: borra justo esa comida con el borrado de siempre (sin aviso; si falla, sale el error).
     fun undoCreate(id: String) {
         val spaceId = observedSpaceId ?: return
-        runAction(null) { repository.deleteMeal(spaceId, id) }
+        runAction(null, force = true) { repository.deleteMeal(spaceId, id) }
     }
 
     // Recrea una comida borrada («Deshacer»): no es un guardado del editor, no mueve su estado.
@@ -412,10 +412,11 @@ class MealsViewModel @Inject constructor(
         successNotice: MealUiMessage?,
         editor: Boolean = false,
         toMessage: (Throwable) -> MealUiMessage = Throwable::toUiMessage,
+        force: Boolean = false,
         // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
         action: suspend () -> Any?,
     ) {
-        if (mutableUiState.value.isSaving) return
+        if (mutableUiState.value.isSaving && !force) return
         mutableUiState.update {
             it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
         }

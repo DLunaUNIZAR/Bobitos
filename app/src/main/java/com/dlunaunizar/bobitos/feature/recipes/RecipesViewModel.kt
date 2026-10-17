@@ -332,7 +332,7 @@ class RecipesViewModel @Inject constructor(
 
     // «Deshacer» el alta: borra justo esa receta con el borrado de siempre, sin ofrecer otro «Deshacer» (sin aviso; si
     // falla, sale el error).
-    fun undoCreate(id: String) = runAction(null) { repository.deleteRecipe(id) }
+    fun undoCreate(id: String) = runAction(null, force = true) { repository.deleteRecipe(id) }
 
     fun consumeEditorSave() {
         mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
@@ -374,10 +374,11 @@ class RecipesViewModel @Inject constructor(
         successNotice: RecipeUiMessage?,
         editor: Boolean = false,
         onSuccess: (RecipesUiState) -> RecipesUiState = { it },
+        force: Boolean = false,
         // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
         action: suspend () -> Any?,
     ) {
-        if (mutableUiState.value.isSaving) return
+        if (mutableUiState.value.isSaving && !force) return
         mutableUiState.update {
             it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
         }

@@ -1,7 +1,10 @@
 package com.dlunaunizar.bobitos.core.common
 
+import com.dlunaunizar.bobitos.data.repository.CalendarFailure
+import com.dlunaunizar.bobitos.data.repository.CalendarRepositoryException
 import com.dlunaunizar.bobitos.data.repository.TaskFailure
 import com.dlunaunizar.bobitos.data.repository.TaskRepositoryException
+import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.FirebaseFirestoreException.Code
 import org.junit.Assert.assertEquals
@@ -43,6 +46,24 @@ class FailureKindTest {
     fun `anything else is UNKNOWN`() {
         assertEquals(FailureKind.UNKNOWN, IllegalStateException("boom").toFailureKind())
         assertEquals(FailureKind.UNKNOWN, FirebaseFirestoreException("x", Code.ABORTED).toFailureKind())
+    }
+
+    @Test
+    fun writeNotAllowedIsOffline() {
+        assertEquals(FailureKind.OFFLINE, WriteNotAllowedException().toFailureKind())
+    }
+
+    @Test
+    fun calendarEventNotFoundIsNotFound() {
+        val error = CalendarRepositoryException(CalendarFailure.EventNotFound)
+
+        assertEquals(FailureKind.NOT_FOUND, error.toFailureKind())
+        assertEquals(FailureKind.NOT_FOUND, CalendarRepositoryException(CalendarFailure.SpaceNotFound).toFailureKind())
+    }
+
+    @Test
+    fun calendarNetworkIsOffline() {
+        assertEquals(FailureKind.OFFLINE, CalendarRepositoryException(CalendarFailure.Network).toFailureKind())
     }
 
     @Test

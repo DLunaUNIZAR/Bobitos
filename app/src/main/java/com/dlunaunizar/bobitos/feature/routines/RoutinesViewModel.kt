@@ -134,7 +134,7 @@ class RoutinesViewModel @Inject constructor(
     fun consumeCreated() = mutableUiState.update { it.copy(created = null) }
 
     // «Deshacer» el alta: borra justo esa rutina con el borrado de siempre (sin aviso; si falla, sale el error).
-    fun undoCreate(id: String) = runAction(null) { repository.deleteRoutine(id) }
+    fun undoCreate(id: String) = runAction(null, force = true) { repository.deleteRoutine(id) }
 
     fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
 
@@ -151,8 +151,13 @@ class RoutinesViewModel @Inject constructor(
     }
 
     // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
-    private fun runAction(successNotice: RoutineUiMessage?, editor: Boolean = false, action: suspend () -> Any?) {
-        if (mutableUiState.value.isSaving) return
+    private fun runAction(
+        successNotice: RoutineUiMessage?,
+        editor: Boolean = false,
+        force: Boolean = false,
+        action: suspend () -> Any?,
+    ) {
+        if (mutableUiState.value.isSaving && !force) return
         mutableUiState.update {
             it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
         }

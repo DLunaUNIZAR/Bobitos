@@ -86,7 +86,7 @@ class NotesViewModel @Inject constructor(private val repository: NoteRepository)
     // «Deshacer» el alta: borra justo esa nota con el borrado de siempre (sin aviso; si falla, sale el error).
     fun undoCreate(id: String) {
         val spaceId = observedSpaceId ?: return
-        runAction(null) { repository.deleteNote(spaceId, id) }
+        runAction(null, force = true) { repository.deleteNote(spaceId, id) }
     }
 
     fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
@@ -104,8 +104,13 @@ class NotesViewModel @Inject constructor(private val repository: NoteRepository)
     }
 
     // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
-    private fun runAction(notice: NoteUiMessage?, editor: Boolean = false, action: suspend () -> Any?) {
-        if (mutableUiState.value.isSaving) return
+    private fun runAction(
+        notice: NoteUiMessage?,
+        editor: Boolean = false,
+        force: Boolean = false,
+        action: suspend () -> Any?,
+    ) {
+        if (mutableUiState.value.isSaving && !force) return
         mutableUiState.update {
             it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
         }

@@ -153,7 +153,7 @@ class SportViewModel @Inject constructor(
     // falla, sale el error).
     fun undoCreate(id: String) {
         val spaceId = observedSpaceId ?: return
-        runAction(null) { repository.deleteActivity(spaceId, id) }
+        runAction(null, force = true) { repository.deleteActivity(spaceId, id) }
     }
 
     // Recrea una actividad borrada («Deshacer»): no es un guardado del editor, no mueve su estado.
@@ -216,8 +216,13 @@ class SportViewModel @Inject constructor(
     }
 
     // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
-    private fun runAction(notice: SportUiMessage?, editor: Boolean = false, action: suspend () -> Any?) {
-        if (mutableUiState.value.isSaving) return
+    private fun runAction(
+        notice: SportUiMessage?,
+        editor: Boolean = false,
+        force: Boolean = false,
+        action: suspend () -> Any?,
+    ) {
+        if (mutableUiState.value.isSaving && !force) return
         mutableUiState.update {
             it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
         }

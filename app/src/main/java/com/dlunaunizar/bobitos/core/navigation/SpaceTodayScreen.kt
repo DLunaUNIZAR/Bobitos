@@ -36,7 +36,7 @@ import java.time.LocalDateTime
 
 /**
  * «Hoy»: cabecera con saludo y resumen, fichas de contadores de cada módulo, «Mi día» y reparto.
- * Mientras [digest] no ha cargado se ve un estado de carga; [counts] null solo oculta las fichas.
+ * Mientras [digest] no ha cargado se ve un estado de carga; si está `unavailable` solo se ve el saludo; [counts] null solo oculta las fichas.
  */
 @Composable
 internal fun SpaceTodayScreen(
@@ -59,8 +59,10 @@ internal fun SpaceTodayScreen(
     ) {
         TodayHeader(displayName = displayName, digest = digest)
         counts?.let { CounterTiles(counts = it, onOpen = onOpen) }
-        digest.takeUnless { it.myDayEmpty }?.let { MyDayCard(it) }
-        WorkloadSection(digest.workload)
+        if (!digest.unavailable) {
+            digest.takeUnless { it.myDayEmpty }?.let { MyDayCard(it) }
+            WorkloadSection(digest.workload)
+        }
     }
 }
 
@@ -105,16 +107,18 @@ private fun TodayHeader(displayName: String, digest: SpaceHomeDigest) {
                 style = MaterialTheme.typography.headlineLarge,
             )
             Text(text = date, style = MaterialTheme.typography.bodyLarge)
-            val count = digest.todayItemCount()
-            Text(
-                text = if (count == 0) {
-                    stringResource(R.string.space_today_nothing)
-                } else {
-                    pluralStringResource(R.plurals.space_today_summary, count, count)
-                },
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = Spacing.sm),
-            )
+            if (!digest.unavailable) {
+                val count = digest.todayItemCount()
+                Text(
+                    text = if (count == 0) {
+                        stringResource(R.string.space_today_nothing)
+                    } else {
+                        pluralStringResource(R.plurals.space_today_summary, count, count)
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(top = Spacing.sm),
+                )
+            }
         }
     }
 }

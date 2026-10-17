@@ -254,6 +254,19 @@ class TasksViewModelTest {
     }
 
     @Test
+    fun undoWhileAnotherActionIsSavingStillDeletes() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        taskRepository.createGate = CompletableDeferred()
+        editorCreate("Fregar")
+        assertTrue(viewModel.uiState.value.isSaving)
+
+        viewModel.undoCreate("new-1")
+        advanceUntilIdle()
+
+        assertEquals(listOf("new-1"), taskRepository.deleted)
+    }
+
+    @Test
     fun editingDoesNotOfferUndo() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.updateTask("home", "t1", "Leche", null, "ana", null, TaskPriority.MEDIUM, null, null, null)
         advanceUntilIdle()

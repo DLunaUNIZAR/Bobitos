@@ -164,7 +164,9 @@ class CalendarViewModel @Inject constructor(
     fun consumeCreated() = mutable.update { it.copy(created = null) }
 
     // «Deshacer» el alta: borra justo ese evento con el borrado de siempre (sin aviso; si falla, sale el error).
-    fun undoCreate(id: String) = delete(id)
+    fun undoCreate(id: String) = action(notice = null, force = true) {
+        repository.deleteEvent(spaceId ?: return@action null, id)
+    }
 
     fun consumeEditorSave() = mutable.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
 
@@ -212,9 +214,10 @@ class CalendarViewModel @Inject constructor(
         editor: Boolean = false,
         notice: CalendarNotice? = CalendarNotice.SAVED,
         onSuccess: () -> Unit = {},
+        force: Boolean = false,
         block: suspend () -> Any?,
     ) {
-        if (mutable.value.saving) return
+        if (mutable.value.saving && !force) return
         mutable.update {
             it.copy(saving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
         }

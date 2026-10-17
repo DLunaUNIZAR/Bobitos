@@ -16,6 +16,8 @@ data class SpaceHomeDigest(
     val myEatingToday: List<Meal>,
     val myEventsToday: List<CalendarEvent>,
     val workload: List<MemberWorkload>,
+    // Cierto si no se pudo leer alguna fuente: Hoy no afirma nada (ni «nada pendiente» ni reparto).
+    val unavailable: Boolean = false,
 ) {
     // Cierto si «Mi día» no tiene nada que mostrar (para ocultar el bloque).
     val myDayEmpty: Boolean

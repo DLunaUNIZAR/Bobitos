@@ -155,15 +155,15 @@ class PersonalCalendarViewModel @Inject constructor(
     // «Deshacer» el alta: borra justo ese evento, en el espacio donde se creó, con el borrado de siempre.
     fun undoCreate(id: String) {
         val spaceId = createdSpaces[id] ?: return
-        action { repository.deleteEvent(spaceId, id) }
+        action(force = true) { repository.deleteEvent(spaceId, id) }
     }
 
     fun consumeEditorSave() = mutable.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
 
     fun clearMessage() = mutable.update { it.copy(error = null) }
 
-    private fun action(editor: Boolean = false, block: suspend () -> Any?) {
-        if (mutable.value.saving) return
+    private fun action(editor: Boolean = false, force: Boolean = false, block: suspend () -> Any?) {
+        if (mutable.value.saving && !force) return
         mutable.update { it.copy(saving = true, error = null, editorSave = it.editorSave.started(editor)) }
         viewModelScope.launch {
             runCatching { withEditorSaveTimeout(editor) { block() } }

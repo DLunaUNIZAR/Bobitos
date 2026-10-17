@@ -151,7 +151,7 @@ class IngredientsViewModel @Inject constructor(
     fun consumeCreated() = mutableUiState.update { it.copy(created = null) }
 
     // «Deshacer» el alta del ingrediente personal: lo borra con el borrado de siempre (sin aviso; si falla, sale el error).
-    fun undoCreate(id: String) = runAction(null) { personalRepository.delete(id) }
+    fun undoCreate(id: String) = runAction(null, force = true) { personalRepository.delete(id) }
 
     fun consumeOpenIngredient() {
         mutableUiState.update { it.copy(openIngredientId = null) }
@@ -258,8 +258,13 @@ class IngredientsViewModel @Inject constructor(
     }
 
     // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
-    private fun runAction(successNotice: IngredientUiMessage?, editor: Boolean = false, action: suspend () -> Any?) {
-        if (mutableUiState.value.isSaving) return
+    private fun runAction(
+        successNotice: IngredientUiMessage?,
+        editor: Boolean = false,
+        force: Boolean = false,
+        action: suspend () -> Any?,
+    ) {
+        if (mutableUiState.value.isSaving && !force) return
         mutableUiState.update {
             it.copy(
                 isSaving = true,

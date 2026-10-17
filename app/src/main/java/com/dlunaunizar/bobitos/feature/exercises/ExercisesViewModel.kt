@@ -98,7 +98,7 @@ class ExercisesViewModel @Inject constructor(
     fun consumeCreated() = mutableUiState.update { it.copy(created = null) }
 
     // «Deshacer» el alta: borra justo ese ejercicio con el borrado de siempre (sin aviso; si falla, sale el error).
-    fun undoCreate(id: String) = runAction(null) { repository.deleteExercise(id) }
+    fun undoCreate(id: String) = runAction(null, force = true) { repository.deleteExercise(id) }
 
     fun updateExercise(id: String, input: ExerciseInput) {
         if (input.name.trim().isEmpty()) {
@@ -126,8 +126,13 @@ class ExercisesViewModel @Inject constructor(
     }
 
     // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
-    private fun runAction(successNotice: ExerciseUiMessage?, editor: Boolean = false, action: suspend () -> Any?) {
-        if (mutableUiState.value.isSaving) return
+    private fun runAction(
+        successNotice: ExerciseUiMessage?,
+        editor: Boolean = false,
+        force: Boolean = false,
+        action: suspend () -> Any?,
+    ) {
+        if (mutableUiState.value.isSaving && !force) return
         mutableUiState.update {
             it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
         }

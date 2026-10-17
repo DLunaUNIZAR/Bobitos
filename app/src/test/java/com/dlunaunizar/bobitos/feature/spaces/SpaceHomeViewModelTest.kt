@@ -20,6 +20,7 @@ import com.dlunaunizar.bobitos.data.repository.TaskRepository
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -42,6 +43,7 @@ class SpaceHomeViewModelTest {
     private fun <T> MutableMap<String, MutableSharedFlow<T>>.of(space: String) =
         getOrPut(space) { MutableSharedFlow(replay = 1) }
 
+    private val fakeToday = MutableStateFlow(LocalDate.now())
     private var countsBlock: suspend () -> SpaceModuleCounts = { SpaceModuleCounts() }
 
     private val viewModel = SpaceHomeViewModel(
@@ -60,6 +62,9 @@ class SpaceHomeViewModelTest {
         },
         spaceRepository = object : SpaceRepository by NoSpaces {
             override fun members(spaceId: String): Flow<List<SpaceMember>> = members.of(spaceId)
+        },
+        dayProvider = object : CurrentDayProvider() {
+            override fun today(zone: ZoneId): Flow<LocalDate> = fakeToday
         },
     )
 
@@ -129,12 +134,33 @@ class SpaceHomeViewModelTest {
         emitAll("bad")
         viewModel.load("bad", me)
 
-        val digest = viewModel.digest.value
-        assertNotNull(digest)
-        assertEquals(0, digest?.todayItemCount())
+        assertNotNull(viewModel.digest.value)
     }
 
-    private fun myTaskDueToday(): TaskItem {
+    @Test
+    fun aFailingDigestSourceIsNotShownAsAnEmptyDay() {
+        emitAll("bad")
+        viewModel.load("bad", me)
+
+        assertEquals(true, viewModel.digest.value?.unavailable)
+    }
+
+    @Test
+    fun theDigestMovesToTheNewDayAtMidnight() {
+        val day = LocalDate.now()
+        fakeToday.value = day
+        emitAll("a", listOf(myTaskDueOn(day.plusDays(1))))
+        viewModel.load("a", me)
+        assertEquals(0, viewModel.digest.value?.todayItemCount())
+
+        fakeToday.value = day.plusDays(1)
+
+        assertEquals(1, viewModel.digest.value?.todayItemCount())
+    }
+
+    private fun myTaskDueToday(): TaskItem = myTaskDueOn(LocalDate.now())
+
+    private fun myTaskDueOn(day: LocalDate): TaskItem {
         val zone = ZoneId.systemDefault()
         return TaskItem(
             id = "t1",
@@ -142,7 +168,7 @@ class SpaceHomeViewModelTest {
             description = null,
             assigneeId = me,
             assigneeName = "Yo",
-            dueAt = LocalDate.now(zone).atStartOfDay(zone).toInstant(),
+            dueAt = day.atStartOfDay(zone).toInstant(),
             priority = TaskPriority.MEDIUM,
             status = TaskStatus.TODO,
             createdBy = me,

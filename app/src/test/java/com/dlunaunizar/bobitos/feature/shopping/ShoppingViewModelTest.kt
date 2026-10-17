@@ -504,6 +504,23 @@ class ShoppingViewModelTest {
     }
 
     @Test
+    fun undoWhileAnotherActionIsSavingStillDeletes() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.itemState.value = emptyList()
+        viewModel.observe("home")
+        advanceUntilIdle()
+        val gate = CompletableDeferred<Unit>()
+        repository.addGate = gate
+        viewModel.addItem("home", "Leche", null, null, null, null)
+        assertTrue(viewModel.uiState.value.isSaving)
+
+        viewModel.undoCreate("new-1")
+        advanceUntilIdle()
+
+        assertEquals(listOf("new-1"), repository.deleted)
+        gate.complete(Unit)
+    }
+
+    @Test
     fun editingDoesNotOfferUndo() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("home")
         advanceUntilIdle()

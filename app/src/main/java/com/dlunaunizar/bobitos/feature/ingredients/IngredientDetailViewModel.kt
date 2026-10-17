@@ -220,7 +220,7 @@ class IngredientDetailViewModel @Inject constructor(
     fun consumeCreated() = mutableUiState.update { it.copy(created = null) }
 
     // «Deshacer» el alta de la marca: la borra con el borrado de siempre (sin aviso; si falla, sale el error).
-    fun undoCreate(id: String) = runAction(null) { brandRepository.deleteBrand(id) }
+    fun undoCreate(id: String) = runAction(null, force = true) { brandRepository.deleteBrand(id) }
 
     fun deleteBrand(brandId: String) {
         runAction(IngredientUiMessage.BrandDeleted) { brandRepository.deleteBrand(brandId) }
@@ -299,10 +299,11 @@ class IngredientDetailViewModel @Inject constructor(
         notice: IngredientUiMessage?,
         finishOnSuccess: Boolean = false,
         editor: Boolean = false,
+        force: Boolean = false,
         // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
         action: suspend () -> Any?,
     ) {
-        if (mutableUiState.value.isSaving) return
+        if (mutableUiState.value.isSaving && !force) return
         mutableUiState.update {
             it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
         }

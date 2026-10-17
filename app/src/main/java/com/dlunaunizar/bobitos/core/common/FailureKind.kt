@@ -2,6 +2,9 @@ package com.dlunaunizar.bobitos.core.common
 
 import androidx.annotation.StringRes
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.data.repository.CalendarFailure
+import com.dlunaunizar.bobitos.data.repository.CalendarRepositoryException
+import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.firestore.FirebaseFirestoreException
 import java.io.IOException
@@ -22,6 +25,8 @@ fun Throwable.toFailureKind(): FailureKind {
 
 private fun Throwable.directFailureKind(): FailureKind? = when (this) {
     is SaveTimeoutException -> FailureKind.TIMEOUT
+    is WriteNotAllowedException -> FailureKind.OFFLINE
+    is CalendarRepositoryException -> failure.failureKind()
     is FirebaseFirestoreException -> when (code) {
         FirebaseFirestoreException.Code.PERMISSION_DENIED -> FailureKind.PERMISSION
         FirebaseFirestoreException.Code.UNAVAILABLE,
@@ -31,6 +36,13 @@ private fun Throwable.directFailureKind(): FailureKind? = when (this) {
         else -> null
     }
     is FirebaseNetworkException, is IOException -> FailureKind.OFFLINE
+    else -> null
+}
+
+private fun CalendarFailure.failureKind(): FailureKind? = when (this) {
+    CalendarFailure.Network -> FailureKind.OFFLINE
+    CalendarFailure.EventNotFound, CalendarFailure.SpaceNotFound -> FailureKind.NOT_FOUND
+    CalendarFailure.PermissionDenied -> FailureKind.PERMISSION
     else -> null
 }
 

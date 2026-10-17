@@ -261,7 +261,7 @@ class ShoppingViewModel @Inject constructor(
     // «Deshacer» el alta: borra justo ese artículo con el borrado de siempre (sin aviso; si falla, sale el error).
     fun undoCreate(id: String) {
         val spaceId = observedSpaceId ?: return
-        deleteItem(spaceId, id)
+        runAction(null, force = true) { repository.deleteItem(spaceId, id) }
     }
 
     fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
@@ -389,8 +389,13 @@ class ShoppingViewModel @Inject constructor(
     }
 
     // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
-    private fun runAction(successNotice: ShoppingUiMessage?, editor: Boolean = false, action: suspend () -> Any?) {
-        if (mutableUiState.value.isSaving) return
+    private fun runAction(
+        successNotice: ShoppingUiMessage?,
+        editor: Boolean = false,
+        force: Boolean = false,
+        action: suspend () -> Any?,
+    ) {
+        if (mutableUiState.value.isSaving && !force) return
         mutableUiState.update {
             it.copy(
                 isSaving = true,
