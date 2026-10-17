@@ -1,0 +1,381 @@
+<!-- Maquetas de la fase B (2026-10-17). Elegidas por el usuario: Tareas C, Semana A, Detalle de receta A. Ilustrativas: si difieren de la spec, manda la spec. -->
+<h1>Fase B · maquetas</h1>
+<p class="subtitle">Elegidas: filtros de Tareas <b>C</b>, semana <b>A</b>, detalle de receta <b>A</b>.</p>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL@24,400,0..1&display=swap" rel="stylesheet">
+<style>
+  .row{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start;margin-top:18px}
+  .col{display:flex;flex-direction:column;gap:8px;align-items:center;max-width:270px}
+  .tag{font:600 13px Nunito,sans-serif;padding:2px 10px;border-radius:99px}
+  .tag.antes{background:#5a1f1c;color:#F2B8B5}
+  .tag.despues{background:#004d44;color:#A0F2E7}
+  .ph{width:260px;height:500px;background:#141513;border-radius:30px;border:6px solid #2b2b2b;overflow:hidden;position:relative;font-family:Nunito,sans-serif;color:#E5E3DE;font-size:13px;line-height:1.35}
+  .sb{height:24px;display:flex;justify-content:space-between;align-items:center;padding:0 16px;font-size:10px;font-weight:600}
+  .ms{font-family:'Material Symbols Rounded';font-size:18px;line-height:1;vertical-align:middle;font-weight:normal}
+  .tb{padding:2px 12px 6px;display:flex;justify-content:space-between;align-items:center}
+  .tb .t1{font-size:16px;font-weight:700}
+  .tb .t2{font-size:10.5px;color:#CBC8C2}
+  .pad{padding:0 12px}
+  .h1{font-size:19px;font-weight:700;margin:6px 0 0}
+  .cnt{font-size:11px;color:#CBC8C2}
+  .chips{display:flex;gap:6px;overflow:hidden;white-space:nowrap;margin:8px 0}
+  .fc{border:1px solid #94918B;border-radius:8px;padding:4px 9px;font-size:11px;flex:none;display:flex;align-items:center;gap:3px}
+  .fc.on{background:#2f4f4b;border-color:#2f4f4b}
+  .seg{display:flex;border:1px solid #94918B;border-radius:99px;overflow:hidden;margin:8px 0 6px}
+  .seg div{flex:1;text-align:center;padding:5px 0;font-size:11px}
+  .seg .on{background:#2f4f4b;font-weight:700}
+  .search{border:1px solid #94918B;border-radius:6px;padding:8px 10px;color:#CBC8C2;margin:4px 0 8px;font-size:12px}
+  .sec{font-weight:700;font-size:13px;margin:8px 0 6px}
+  .card{background:#2B2C29;border-radius:12px;padding:9px 10px;margin-bottom:6px;display:flex;align-items:flex-start;gap:9px}
+  .box{width:14px;height:14px;border:2px solid #CBC8C2;border-radius:3px;flex:none;margin-top:2px}
+  .sub{font-size:10.5px;color:#CBC8C2;margin-top:2px}
+  .flag{color:#F2A173}
+  .txtbtn{color:#5FD9CC;font-weight:700;font-size:11.5px;display:flex;align-items:center;gap:2px}
+  .fab{position:absolute;right:12px;bottom:62px;background:#005048;color:#A0F2E7;border-radius:14px;padding:10px 14px;font-weight:700;font-size:12px;display:flex;gap:6px;align-items:center}
+  .nav{position:absolute;left:0;right:0;bottom:0;height:52px;background:#1E1F1C;display:flex;justify-content:space-around;align-items:center;font-size:9.5px;text-align:center}
+  .nav div{width:52px}
+  .note{font:13px/1.4 Nunito,sans-serif;opacity:.85}
+  .hl{outline:2px dashed #F2A173;outline-offset:2px;border-radius:8px}
+</style>
+
+<h2>Tareas · título y filtros</h2>
+<p class="subtitle">Fuera «Tareas compartidas» (la barra ya dice «Tareas») en las tres propuestas. Lo que cambia entre A, B y C es cómo se separan el estado y la prioridad, que hoy van en la misma fila y cortan «Alta». Pulsa la que prefieras.</p>
+
+<div class="row">
+  <div class="col"><span class="tag antes">Hoy</span>
+    <div class="ph">
+      <div class="sb"><span>10:28</span><span class="ms" style="font-size:12px">wifi battery_full</span></div>
+      <div class="tb"><div><div class="t1">Casa Bobitos ▾</div><div class="t2">Tareas</div></div><span class="ms">account_circle</span></div>
+      <div class="pad">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div><div class="h1">Tareas compartidas</div><div class="cnt">3 de 5 tareas</div></div>
+          <span class="txtbtn" style="margin-top:8px"><span class="ms" style="font-size:14px">bolt</span>Plantillas</span>
+        </div>
+        <div class="chips"><span class="fc on">✓ Pendientes</span><span class="fc">Completadas</span><span class="fc">Baja</span><span class="fc">Media</span><span class="fc hl">Al</span></div>
+        <div class="search"><span class="ms" style="font-size:14px">search</span> Buscar tareas</div>
+        <div class="sec">Hoy · 2</div>
+        <div class="card"><div class="box"></div><div>Sacar la basura<div class="sub"><span class="flag">⚑</span> Media · David Demo</div></div></div>
+        <div class="card"><div class="box"></div><div>Poner lavadora<div class="sub"><span class="flag">⚑</span> Alta · Ana</div></div></div>
+      </div>
+      <div class="fab"><span class="ms" style="font-size:16px">add</span>Nueva tarea</div>
+      <div class="nav"><div>Hoy</div><div>Calendario</div><div style="color:#A0F2E7;font-weight:700">Tareas</div><div>Compra</div><div>Más</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="options" style="margin-top:28px">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Estado segmentado, prioridad en menú (recomendada)</h3>
+      <p>Estado en botones segmentados de una opción (Pendientes · Completadas · Todas). Prioridad pasa a un chip con menú, como Tipo y Responsable. Todo cabe sin deslizar.</p>
+      <div class="ph" style="margin-top:10px">
+        <div class="sb"><span>10:28</span><span class="ms" style="font-size:12px">wifi battery_full</span></div>
+        <div class="tb"><div><div class="t1">Casa Bobitos ▾</div><div class="t2">Tareas</div></div><span class="ms">account_circle</span></div>
+        <div class="pad">
+          <div class="seg"><div class="on">✓ Pendientes</div><div>Completadas</div><div>Todas</div></div>
+          <div class="chips"><span class="fc">Prioridad <span class="ms" style="font-size:14px">arrow_drop_down</span></span><span class="fc">Tipo <span class="ms" style="font-size:14px">arrow_drop_down</span></span><span class="fc">Responsable <span class="ms" style="font-size:14px">arrow_drop_down</span></span></div>
+          <div class="search"><span class="ms" style="font-size:14px">search</span> Buscar tareas</div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><div class="sec">Hoy · 2</div><span class="txtbtn"><span class="ms" style="font-size:14px">bolt</span>Plantillas</span></div>
+          <div class="card"><div class="box"></div><div>Sacar la basura<div class="sub"><span class="flag">⚑</span> Media · David Demo</div></div></div>
+          <div class="card"><div class="box"></div><div>Poner lavadora<div class="sub"><span class="flag">⚑</span> Alta · Ana</div></div></div>
+        </div>
+        <div class="fab"><span class="ms" style="font-size:16px">add</span>Nueva tarea</div>
+        <div class="nav"><div>Hoy</div><div>Calendario</div><div style="color:#A0F2E7;font-weight:700">Tareas</div><div>Compra</div><div>Más</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Dos filas de chips</h3>
+      <p>Estado arriba; prioridad, tipo y responsable debajo. Se ven las tres prioridades de un vistazo, pero la segunda fila sigue deslizando.</p>
+      <div class="ph" style="margin-top:10px">
+        <div class="sb"><span>10:28</span><span class="ms" style="font-size:12px">wifi battery_full</span></div>
+        <div class="tb"><div><div class="t1">Casa Bobitos ▾</div><div class="t2">Tareas</div></div><span class="ms">account_circle</span></div>
+        <div class="pad">
+          <div class="chips" style="margin-bottom:4px"><span class="fc on">✓ Pendientes</span><span class="fc">Completadas</span></div>
+          <div class="chips" style="margin-top:0"><span class="fc">Alta</span><span class="fc">Media</span><span class="fc">Baja</span><span class="fc">Tipo ▾</span><span class="fc">Resp</span></div>
+          <div class="search"><span class="ms" style="font-size:14px">search</span> Buscar tareas</div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><div class="sec">Hoy · 2</div><span class="txtbtn"><span class="ms" style="font-size:14px">bolt</span>Plantillas</span></div>
+          <div class="card"><div class="box"></div><div>Sacar la basura<div class="sub"><span class="flag">⚑</span> Media · David Demo</div></div></div>
+          <div class="card"><div class="box"></div><div>Poner lavadora<div class="sub"><span class="flag">⚑</span> Alta · Ana</div></div></div>
+        </div>
+        <div class="fab"><span class="ms" style="font-size:16px">add</span>Nueva tarea</div>
+        <div class="nav"><div>Hoy</div><div>Calendario</div><div style="color:#A0F2E7;font-weight:700">Tareas</div><div>Compra</div><div>Más</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Todo en chips con menú</h3>
+      <p>Una sola fila corta: cada chip abre su menú, también el de estado. La más compacta, pero el estado queda escondido tras un toque más.</p>
+      <div class="ph" style="margin-top:10px">
+        <div class="sb"><span>10:28</span><span class="ms" style="font-size:12px">wifi battery_full</span></div>
+        <div class="tb"><div><div class="t1">Casa Bobitos ▾</div><div class="t2">Tareas</div></div><span class="ms">account_circle</span></div>
+        <div class="pad">
+          <div class="chips"><span class="fc on">Pendientes ▾</span><span class="fc">Prioridad ▾</span><span class="fc">Tipo ▾</span><span class="fc">Resp. ▾</span></div>
+          <div class="search"><span class="ms" style="font-size:14px">search</span> Buscar tareas</div>
+          <div style="display:flex;justify-content:space-between;align-items:center"><div class="sec">Hoy · 2</div><span class="txtbtn"><span class="ms" style="font-size:14px">bolt</span>Plantillas</span></div>
+          <div class="card"><div class="box"></div><div>Sacar la basura<div class="sub"><span class="flag">⚑</span> Media · David Demo</div></div></div>
+          <div class="card"><div class="box"></div><div>Poner lavadora<div class="sub"><span class="flag">⚑</span> Alta · Ana</div></div></div>
+        </div>
+        <div class="fab"><span class="ms" style="font-size:16px">add</span>Nueva tarea</div>
+        <div class="nav"><div>Hoy</div><div>Calendario</div><div style="color:#A0F2E7;font-weight:700">Tareas</div><div>Compra</div><div>Más</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="note" style="margin-top:20px">En las tres, «3 de 5 tareas» desaparece como línea propia: el número ya va en cada sección («Hoy · 2»). «Plantillas» pasa junto a la primera sección. Si los filtros esconden tareas, la sección vacía lo dice («Ninguna tarea con estos filtros · Quitar filtros»).</p>
+
+<hr>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL@24,400,0..1&display=swap" rel="stylesheet">
+<style>
+  .row{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start;margin-top:18px}
+  .col{display:flex;flex-direction:column;gap:8px;align-items:center}
+  .tag{font:600 13px Nunito,sans-serif;padding:2px 10px;border-radius:99px}
+  .tag.antes{background:#5a1f1c;color:#F2B8B5}
+  .ph{width:260px;height:520px;background:#141513;border-radius:30px;border:6px solid #2b2b2b;overflow:hidden;position:relative;font-family:Nunito,sans-serif;color:#E5E3DE;font-size:13px;line-height:1.35}
+  .sb{height:24px;display:flex;justify-content:space-between;align-items:center;padding:0 16px;font-size:10px;font-weight:600}
+  .ms{font-family:'Material Symbols Rounded';font-size:18px;line-height:1;vertical-align:middle;font-weight:normal}
+  .tb{padding:2px 12px 4px;display:flex;justify-content:space-between;align-items:center}
+  .tb .t1{font-size:16px;font-weight:700}
+  .tb .t2{font-size:10.5px;color:#CBC8C2}
+  .pad{padding:0 12px}
+  .per{display:flex;justify-content:space-between;align-items:center;font-weight:700;margin:2px 0}
+  .seg{display:flex;border:1px solid #94918B;border-radius:99px;overflow:hidden;margin:4px 0 8px}
+  .seg div{flex:1;text-align:center;padding:4px 0;font-size:11px}
+  .seg .on{background:#2f4f4b;font-weight:700}
+  .day{font-weight:700;font-size:12.5px;margin:7px 0 4px}
+  .empty{color:#CBC8C2;font-size:11.5px;margin-bottom:2px}
+  .ev{background:#2B2C29;border-radius:10px;padding:7px 9px;border-left:4px solid #3B82F6;margin-bottom:5px;font-size:12px}
+  .ev .sub{font-size:10.5px;color:#CBC8C2}
+  .ev.g{border-left-color:#E08A5B}
+  .ev.p{border-left-color:#B58BE0}
+  .fold{display:flex;justify-content:space-between;align-items:center;color:#CBC8C2;font-size:11.5px;padding:7px 0;border-radius:8px}
+  .fold b{color:#E5E3DE;font-weight:600}
+  .mini{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;padding:5px 0;color:#CBC8C2}
+  .mini b{color:#E5E3DE;font-weight:700}
+  .fab{position:absolute;right:12px;bottom:62px;background:#005048;color:#A0F2E7;border-radius:14px;padding:10px 14px;font-weight:700;font-size:12px;display:flex;gap:6px;align-items:center}
+  .nav{position:absolute;left:0;right:0;bottom:0;height:52px;background:#1E1F1C;display:flex;justify-content:space-around;align-items:center;font-size:9.5px;text-align:center}
+  .nav div{width:52px}
+  .note{font:13px/1.4 Nunito,sans-serif;opacity:.85}
+</style>
+
+<h2>Calendario · semana con días vacíos</h2>
+<p class="subtitle">Semana del 12 al 18 de octubre con eventos solo el lunes y el sábado. Hoy salen cinco «Sin eventos». Pulsa la que prefieras.</p>
+
+<div class="row">
+  <div class="col"><span class="tag antes">Hoy</span>
+    <div class="ph">
+      <div class="sb"><span>10:28</span><span class="ms" style="font-size:12px">wifi battery_full</span></div>
+      <div class="tb"><div><div class="t1">Casa Bobitos ▾</div><div class="t2">Calendario</div></div><span class="ms">account_circle</span></div>
+      <div class="pad">
+        <div class="per"><span class="ms">chevron_left</span>12 – 18 oct<span class="ms">chevron_right</span></div>
+        <div class="seg"><div>Día</div><div class="on">✓ Semana</div><div>Mes</div></div>
+        <div class="day">lunes, 12 de octubre</div><div class="ev">Cena con Ana<div class="sub">21:00 – 23:00</div></div>
+        <div class="day">martes, 13 de octubre</div><div class="empty">Sin eventos</div>
+        <div class="day">miércoles, 14 de octubre</div><div class="empty">Sin eventos</div>
+        <div class="day">jueves, 15 de octubre</div><div class="empty">Sin eventos</div>
+        <div class="day">viernes, 16 de octubre</div><div class="empty">Sin eventos</div>
+        <div class="day">sábado, 17 de octubre</div><div class="ev g">Gimnasio<div class="sub">10:00 – 11:30</div></div>
+      </div>
+      <div class="fab"><span class="ms" style="font-size:16px">add</span>Nuevo evento</div>
+      <div class="nav"><div>Hoy</div><div style="color:#A0F2E7;font-weight:700">Calendario</div><div>Tareas</div><div>Compra</div><div>Más</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="options" style="margin-top:28px">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Días vacíos seguidos, en una línea (recomendada)</h3>
+      <p>Los días vacíos consecutivos se juntan en una sola línea atenuada: «mar 13 – vie 16 · Sin eventos». Al tocarla se despliegan los días, cada uno con su toque para ir al día.</p>
+      <div class="ph" style="margin-top:10px">
+        <div class="sb"><span>10:28</span><span class="ms" style="font-size:12px">wifi battery_full</span></div>
+        <div class="tb"><div><div class="t1">Casa Bobitos ▾</div><div class="t2">Calendario</div></div><span class="ms">account_circle</span></div>
+        <div class="pad">
+          <div class="per"><span class="ms">chevron_left</span>12 – 18 oct<span class="ms">chevron_right</span></div>
+          <div class="seg"><div>Día</div><div class="on">✓ Semana</div><div>Mes</div></div>
+          <div class="day">lunes, 12 de octubre</div><div class="ev">Cena con Ana<div class="sub">21:00 – 23:00</div></div>
+          <div class="fold"><span><b>mar 13 – vie 16</b> · Sin eventos</span><span class="ms" style="font-size:16px">expand_more</span></div>
+          <div class="day">sábado, 17 de octubre</div>
+          <div class="ev p">Cumple de Marta<div class="sub">Todo el día</div></div>
+          <div class="ev g">Gimnasio<div class="sub">10:00 – 11:30</div></div>
+          <div class="fold"><span><b>dom 18</b> · Sin eventos</span><span class="ms" style="font-size:16px">expand_more</span></div>
+        </div>
+        <div class="fab"><span class="ms" style="font-size:16px">add</span>Nuevo evento</div>
+        <div class="nav"><div>Hoy</div><div style="color:#A0F2E7;font-weight:700">Calendario</div><div>Tareas</div><div>Compra</div><div>Más</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Cada día vacío en una línea corta</h3>
+      <p>Se quedan los siete días, pero el vacío ocupa una sola línea atenuada («mié 14 · Sin eventos»). Cada día sigue siendo tocable. Menos ahorro de espacio.</p>
+      <div class="ph" style="margin-top:10px">
+        <div class="sb"><span>10:28</span><span class="ms" style="font-size:12px">wifi battery_full</span></div>
+        <div class="tb"><div><div class="t1">Casa Bobitos ▾</div><div class="t2">Calendario</div></div><span class="ms">account_circle</span></div>
+        <div class="pad">
+          <div class="per"><span class="ms">chevron_left</span>12 – 18 oct<span class="ms">chevron_right</span></div>
+          <div class="seg"><div>Día</div><div class="on">✓ Semana</div><div>Mes</div></div>
+          <div class="day">lunes, 12 de octubre</div><div class="ev">Cena con Ana<div class="sub">21:00 – 23:00</div></div>
+          <div class="mini"><span><b>mar 13</b> · Sin eventos</span></div>
+          <div class="mini"><span><b>mié 14</b> · Sin eventos</span></div>
+          <div class="mini"><span><b>jue 15</b> · Sin eventos</span></div>
+          <div class="mini"><span><b>vie 16</b> · Sin eventos</span></div>
+          <div class="day">sábado, 17 de octubre</div>
+          <div class="ev p">Cumple de Marta<div class="sub">Todo el día</div></div>
+          <div class="ev g">Gimnasio<div class="sub">10:00 – 11:30</div></div>
+          <div class="mini"><span><b>dom 18</b> · Sin eventos</span></div>
+        </div>
+        <div class="fab"><span class="ms" style="font-size:16px">add</span>Nuevo evento</div>
+        <div class="nav"><div>Hoy</div><div style="color:#A0F2E7;font-weight:700">Calendario</div><div>Tareas</div><div>Compra</div><div>Más</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Solo los días con eventos</h3>
+      <p>Los días vacíos desaparecen y abajo queda una nota: «Sin eventos el resto de la semana». La más limpia, pero no se ve qué días están libres.</p>
+      <div class="ph" style="margin-top:10px">
+        <div class="sb"><span>10:28</span><span class="ms" style="font-size:12px">wifi battery_full</span></div>
+        <div class="tb"><div><div class="t1">Casa Bobitos ▾</div><div class="t2">Calendario</div></div><span class="ms">account_circle</span></div>
+        <div class="pad">
+          <div class="per"><span class="ms">chevron_left</span>12 – 18 oct<span class="ms">chevron_right</span></div>
+          <div class="seg"><div>Día</div><div class="on">✓ Semana</div><div>Mes</div></div>
+          <div class="day">lunes, 12 de octubre</div><div class="ev">Cena con Ana<div class="sub">21:00 – 23:00</div></div>
+          <div class="day">sábado, 17 de octubre</div>
+          <div class="ev p">Cumple de Marta<div class="sub">Todo el día</div></div>
+          <div class="ev g">Gimnasio<div class="sub">10:00 – 11:30</div></div>
+          <div class="empty" style="margin-top:10px">Sin eventos el resto de la semana.</div>
+        </div>
+        <div class="fab"><span class="ms" style="font-size:16px">add</span>Nuevo evento</div>
+        <div class="nav"><div>Hoy</div><div style="color:#A0F2E7;font-weight:700">Calendario</div><div>Tareas</div><div>Compra</div><div>Más</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="note" style="margin-top:20px">Vale igual para el Calendario del espacio y para Mi calendario.</p>
+
+<hr>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL@24,400,0..1&display=swap" rel="stylesheet">
+<style>
+  .row{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start;margin-top:18px}
+  .col{display:flex;flex-direction:column;gap:8px;align-items:center}
+  .tag{font:600 13px Nunito,sans-serif;padding:2px 10px;border-radius:99px}
+  .tag.antes{background:#5a1f1c;color:#F2B8B5}
+  .ph{width:260px;height:520px;background:#141513;border-radius:30px;border:6px solid #2b2b2b;overflow:hidden;position:relative;font-family:Nunito,sans-serif;color:#E5E3DE;font-size:12.5px;line-height:1.35}
+  .ms{font-family:'Material Symbols Rounded';font-size:18px;line-height:1;vertical-align:middle;font-weight:normal}
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+  .sheet{position:absolute;left:0;right:0;bottom:0;top:46px;background:#20211F;border-radius:22px 22px 0 0;padding:10px 14px}
+  .handle{width:30px;height:4px;border-radius:2px;background:#94918B;margin:0 auto 10px}
+  .title{font-size:17px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+  .meta{color:#CBC8C2;font-size:11.5px;margin:4px 0 8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .chip{background:#2f4f4b;color:#A0F2E7;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:600}
+  .h{font-weight:700;margin:8px 0 3px}
+  .li{margin:0 0 2px;font-size:12px}
+  .by{color:#CBC8C2;font-size:10.5px;margin-top:8px}
+  .actions{position:absolute;left:14px;right:14px;bottom:14px;display:flex;justify-content:flex-end;gap:10px;align-items:center;flex-wrap:wrap}
+  .btn{padding:7px 12px;border-radius:99px;font-weight:700;font-size:11.5px}
+  .btn.fill{background:#5FD9CC;color:#003731}
+  .btn.out{border:1px solid #94918B;color:#5FD9CC}
+  .btn.text{color:#5FD9CC;padding:7px 6px}
+  .btn.danger{color:#F2B8B5;padding:7px 6px}
+  .btn.wide{flex:1;text-align:center}
+  .menu{position:absolute;right:12px;top:84px;background:#2B2C29;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.4);padding:4px 0;font-size:12px;min-width:150px}
+  .menu div{padding:8px 12px}
+  .note{font:13px/1.4 Nunito,sans-serif;opacity:.85}
+</style>
+
+<h2>Recetario · detalle de una receta común</h2>
+<p class="subtitle">Hoy salen tres botones de texto iguales, más «Cerrar», y la categoría va como frase. En las tres propuestas la categoría pasa a etiqueta junto a raciones y tiempo. Pulsa la que prefieras.</p>
+
+<div class="row">
+  <div class="col"><span class="tag antes">Hoy</span>
+    <div class="ph"><div class="scrim"></div><div class="sheet"><div class="handle"></div>
+      <div class="title">Ensalada de garbanzos</div>
+      <div class="meta">2 raciones · 15 min</div>
+      <div>Fresca y rápida, para llevar al trabajo.</div>
+      <div style="margin-top:4px">Categoría: Saludables</div>
+      <div class="h">Ingredientes</div>
+      <div class="li">400 g garbanzos cocidos</div><div class="li">1 pepino</div><div class="li">2 tomates</div><div class="li">½ cebolla morada</div><div class="li">Aceite y vinagre</div>
+      <div class="h">Preparación</div>
+      <div class="li">1. Escurre y lava los garbanzos…</div>
+      <div class="by">por Catálogo Bobitos</div>
+      <div class="actions"><span class="btn text">Añadir a la compra</span><span class="btn text">Guardar como mía</span><span class="btn text">Cerrar</span></div>
+    </div></div>
+  </div>
+</div>
+
+<div class="options" style="margin-top:28px">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Una acción principal y el resto en ⋮ (recomendada)</h3>
+      <p>«Añadir a la compra» es el botón relleno. «Guardar como mía», «Editar» y «Eliminar» van al menú ⋮ junto al título. «Cerrar» queda como botón de texto.</p>
+      <div class="ph" style="margin-top:10px"><div class="scrim"></div><div class="sheet"><div class="handle"></div>
+        <div class="title">Ensalada de garbanzos <span class="ms">more_vert</span></div>
+        <div class="meta">2 raciones · 15 min <span class="chip">Saludables</span></div>
+        <div>Fresca y rápida, para llevar al trabajo.</div>
+        <div class="h">Ingredientes</div>
+        <div class="li">400 g garbanzos cocidos</div><div class="li">1 pepino</div><div class="li">2 tomates</div><div class="li">½ cebolla morada</div><div class="li">Aceite y vinagre</div>
+        <div class="h">Preparación</div>
+        <div class="li">1. Escurre y lava los garbanzos…</div>
+        <div class="actions"><span class="btn text">Cerrar</span><span class="btn fill"><span class="ms" style="font-size:14px">add_shopping_cart</span> Añadir a la compra</span></div>
+      </div>
+      <div class="menu"><div>Guardar como mía</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Principal rellena y secundarias a la vista</h3>
+      <p>«Añadir a la compra» rellena y «Guardar como mía» (o «Editar») con contorno, las dos abajo. «Eliminar», en rojo, solo en las tuyas. Sin «Cerrar»: se cierra deslizando o con Atrás.</p>
+      <div class="ph" style="margin-top:10px"><div class="scrim"></div><div class="sheet"><div class="handle"></div>
+        <div class="title">Ensalada de garbanzos</div>
+        <div class="meta">2 raciones · 15 min <span class="chip">Saludables</span></div>
+        <div>Fresca y rápida, para llevar al trabajo.</div>
+        <div class="h">Ingredientes</div>
+        <div class="li">400 g garbanzos cocidos</div><div class="li">1 pepino</div><div class="li">2 tomates</div><div class="li">½ cebolla morada</div><div class="li">Aceite y vinagre</div>
+        <div class="h">Preparación</div>
+        <div class="li">1. Escurre y lava los garbanzos…</div>
+        <div class="actions"><span class="btn out wide">Guardar como mía</span><span class="btn fill wide">Añadir a la compra</span></div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Acciones como iconos en la cabecera</h3>
+      <p>Carrito, guardar y (en las tuyas) editar y borrar como iconos junto al título. Sin fila de botones abajo. La más compacta, pero los iconos sin texto se entienden peor.</p>
+      <div class="ph" style="margin-top:10px"><div class="scrim"></div><div class="sheet"><div class="handle"></div>
+        <div class="title">Ensalada de garbanzos <span><span class="ms">add_shopping_cart</span> <span class="ms">bookmark_add</span></span></div>
+        <div class="meta">2 raciones · 15 min <span class="chip">Saludables</span></div>
+        <div>Fresca y rápida, para llevar al trabajo.</div>
+        <div class="h">Ingredientes</div>
+        <div class="li">400 g garbanzos cocidos</div><div class="li">1 pepino</div><div class="li">2 tomates</div><div class="li">½ cebolla morada</div><div class="li">Aceite y vinagre</div>
+        <div class="h">Preparación</div>
+        <div class="li">1. Escurre y lava los garbanzos…</div>
+        <div class="li">2. Pica el pepino, el tomate y la cebolla…</div>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<p class="note" style="margin-top:20px">«por Catálogo Bobitos» desaparece en las tres. Rutinas y Ejercicios usan la misma hoja y seguirían la regla elegida: en una rutina común, la principal es «Guardar como mía», y en un ejercicio tuyo, «Editar».</p>

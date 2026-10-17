@@ -50,7 +50,7 @@ El informe de la crítica está en `.impeccable/critique/2026-10-17T08-52-25Z__a
   - `lintDebug` falla ya en `main` por `RestrictedApi currentBackStack` en `BobitosNavHost`: es un problema previo, no de este plan.
 - **Dependencias:** ninguna nueva salvo que una tarea lo justifique.
 
-## Fase A — Defectos visibles (este plan)
+## Fase A — Defectos visibles (hecha: mergeada en `main`, ddfa827)
 
 Rutas relativas a `app/src/main/java/com/dlunaunizar/bobitos/`.
 
@@ -225,6 +225,8 @@ Empujan la lista y en Rutinas y Recetario no se cierran solos. Además, `ErrorSt
 ## Fases siguientes (apuntadas; cada una con su propio plan cuando el usuario lo pida)
 
 ### Fase B — Jerarquía, ruido y accesibilidad no visual
+
+> **Diseño detallado:** `docs/superpowers/specs/2026-10-17-evolucion-visual-fase-b-design.md` (2026-10-17). Allí manda lo decidido; esta lista es el esbozo original.
 
 - **Un título por pantalla.**
   - La barra superior ya dice «Casa Bobitos / Tareas»: sobran «Tareas compartidas» (`TasksScreen.kt:172`) y «Lista compartida» (`ShoppingScreen.kt:167`).
