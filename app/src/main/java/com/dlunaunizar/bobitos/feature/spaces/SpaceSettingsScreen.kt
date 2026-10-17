@@ -221,9 +221,10 @@ fun SpaceSettingsScreen(
             initialName = space.name,
             enabled = canWrite,
             saving = state.editorSave == EditorSaveStatus.SAVING,
-            errorMessage = state.error
+            serverError = state.error
                 ?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
                 ?.let { stringResource(it.stringResourceId) },
+            onEdited = onClearFeedback,
             onDismiss = {
                 // Cerrar tras un guardado fallido descarta ese error (ya se veía en el diálogo).
                 state.editorSave.discardFailure(onClearFeedback)
@@ -329,7 +330,7 @@ private fun OwnerInvitations(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun InvitationCard(
+internal fun InvitationCard(
     invitation: SpaceInvitation,
     actionsEnabled: Boolean,
     onRevoke: () -> Unit,
@@ -338,6 +339,7 @@ private fun InvitationCard(
     val expired = invitation.isExpired()
     val clipboard = LocalClipboardManager.current
     var showQr by remember { mutableStateOf(false) }
+    var confirmRevoke by remember { mutableStateOf(false) }
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(14.dp),
@@ -387,11 +389,25 @@ private fun InvitationCard(
                 ) {
                     Text(text = stringResource(R.string.invitation_share))
                 }
-                TextButton(onClick = onRevoke, enabled = actionsEnabled) {
+                TextButton(onClick = { confirmRevoke = true }, enabled = actionsEnabled) {
                     Text(text = stringResource(R.string.invitation_revoke))
                 }
             }
         }
+    }
+
+    if (confirmRevoke) {
+        BobitosDialog(
+            title = stringResource(R.string.invitation_revoke_title),
+            message = stringResource(R.string.invitation_revoke_message),
+            confirmLabel = stringResource(R.string.invitation_revoke),
+            destructive = true,
+            onConfirm = {
+                confirmRevoke = false
+                onRevoke()
+            },
+            onDismiss = { confirmRevoke = false },
+        )
     }
 
     if (showQr) {

@@ -33,14 +33,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
@@ -54,8 +60,10 @@ import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffec
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
+import com.dlunaunizar.bobitos.core.model.InvitationCode
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.core.model.SyncStatus
 
@@ -233,7 +241,8 @@ private fun SpacesContent(
             initialName = "",
             enabled = canWrite,
             saving = saving,
-            errorMessage = editorError,
+            serverError = editorError,
+            onEdited = onClearFeedback,
             onDismiss = closeCreate,
             onConfirm = onCreateSpace,
         )
@@ -244,23 +253,42 @@ private fun SpacesContent(
             initialCode = invitationCode,
             enabled = canWrite,
             saving = saving,
-            errorMessage = editorError,
+            serverError = editorError,
+            serverErrorOnField = managementState.error?.isInvitationCodeError() == true,
+            onEdited = onClearFeedback,
             onDismiss = closeJoin,
             onConfirm = onAcceptInvitation,
         )
     }
 }
 
+/** Los fallos que dependen del código escrito van bajo el campo; el resto, como texto del diálogo. */
+private fun SpaceUiMessage.isInvitationCodeError(): Boolean = this == SpaceUiMessage.InvalidInvitationCode ||
+    this == SpaceUiMessage.InvitationNotFound ||
+    this == SpaceUiMessage.InvitationAlreadyUsed ||
+    this == SpaceUiMessage.InvitationRevoked ||
+    this == SpaceUiMessage.InvitationExpired
+
 @Composable
-private fun InvitationCodeDialog(
+internal fun InvitationCodeDialog(
     initialCode: String,
     enabled: Boolean,
     saving: Boolean,
-    errorMessage: String?,
+    serverError: String?,
+    onEdited: () -> Unit,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
+    serverErrorOnField: Boolean = false,
 ) {
     var code by rememberSaveable(initialCode) { mutableStateOf(initialCode) }
+    val form = rememberFormValidationState()
+    val codeFocus = remember { FocusRequester() }
+    val codeInvalid = InvitationCode.normalize(code) == null
+    val fieldError = if (form.attempted && codeInvalid) {
+        stringResource(R.string.invitation_error_invalid_code)
+    } else {
+        serverError.takeIf { serverErrorOnField }
+    }
     AlertDialog(
         // Mientras guarda no se puede cerrar: el resultado llega al diálogo.
         onDismissRequest = { if (!saving) onDismiss() },
@@ -270,17 +298,30 @@ private fun InvitationCodeDialog(
                 Text(text = stringResource(R.string.invitation_join_description))
                 OutlinedTextField(
                     value = code,
-                    onValueChange = { code = it },
+                    onValueChange = {
+                        code = it
+                        if (serverError != null) onEdited()
+                    },
                     label = { Text(text = stringResource(R.string.invitation_code_label)) },
                     singleLine = true,
-                    isError = errorMessage != null,
-                    supportingText = errorSupportingText(errorMessage),
-                    modifier = Modifier.fillMaxWidth(),
+                    isError = fieldError != null,
+                    supportingText = errorSupportingText(fieldError),
+                    modifier = Modifier.fillMaxWidth().focusRequester(codeFocus),
                 )
+                if (!serverErrorOnField) DialogServerError(serverError)
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(code) }, enabled = enabled && !saving) {
+            TextButton(
+                onClick = {
+                    form.submit(
+                        isValid = !codeInvalid,
+                        onValid = { onConfirm(code) },
+                        onInvalid = { codeFocus.requestFocus() },
+                    )
+                },
+                enabled = enabled && !saving,
+            ) {
                 Text(
                     text = if (saving) {
                         stringResource(R.string.write_saving)
@@ -295,6 +336,18 @@ private fun InvitationCodeDialog(
                 Text(text = stringResource(R.string.cancel))
             }
         },
+    )
+}
+
+/** Error del servidor que no es del campo (sin permiso, sin conexión, espacio lleno): texto del diálogo. */
+@Composable
+private fun DialogServerError(message: String?) {
+    if (message == null) return
+    Text(
+        text = message,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.error,
+        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
     )
 }
 
@@ -370,11 +423,16 @@ internal fun SpaceNameDialog(
     initialName: String,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
+    serverError: String?,
+    onEdited: () -> Unit,
     enabled: Boolean = true,
     saving: Boolean = false,
-    errorMessage: String? = null,
 ) {
     var name by rememberSaveable(initialName) { mutableStateOf(initialName) }
+    val form = rememberFormValidationState()
+    val nameFocus = remember { FocusRequester() }
+    val nameError = SpaceValidation.validateName(name)
+    val fieldError = form.visible(nameError)?.let { stringResource(it.stringResourceId) }
     AlertDialog(
         // Mientras guarda no se puede cerrar: el resultado llega al diálogo.
         onDismissRequest = { if (!saving) onDismiss() },
@@ -383,17 +441,30 @@ internal fun SpaceNameDialog(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = name,
-                    onValueChange = { name = it },
+                    onValueChange = {
+                        name = it
+                        if (serverError != null) onEdited()
+                    },
                     label = { Text(text = stringResource(R.string.space_name_label)) },
                     singleLine = true,
-                    isError = errorMessage != null,
-                    supportingText = errorSupportingText(errorMessage),
-                    modifier = Modifier.fillMaxWidth(),
+                    isError = fieldError != null,
+                    supportingText = errorSupportingText(fieldError),
+                    modifier = Modifier.fillMaxWidth().focusRequester(nameFocus),
                 )
+                DialogServerError(serverError)
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(name) }, enabled = enabled && !saving) {
+            TextButton(
+                onClick = {
+                    form.submit(
+                        isValid = nameError == null,
+                        onValid = { onConfirm(name) },
+                        onInvalid = { nameFocus.requestFocus() },
+                    )
+                },
+                enabled = enabled && !saving,
+            ) {
                 Text(text = if (saving) stringResource(R.string.write_saving) else confirmLabel)
             }
         },

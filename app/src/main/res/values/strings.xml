@@ -123,6 +123,8 @@
     <string name="invitation_expires_value">Caduca: %1$s</string>
     <string name="invitation_share">Compartir</string>
     <string name="invitation_revoke">Revocar</string>
+    <string name="invitation_revoke_title">¿Revocar la invitación?</string>
+    <string name="invitation_revoke_message">Quien tenga este código o enlace ya no podrá usarlo para unirse al espacio.</string>
     <string name="invitation_copy_code">Copiar código</string>
     <string name="invitation_show_qr">Mostrar QR</string>
     <string name="invitation_qr_title">Código QR</string>
