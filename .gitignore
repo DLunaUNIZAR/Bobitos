@@ -33,3 +33,7 @@ distribution/.last-distributed.json
 # Cuentas de servicio (nunca versionar)
 *firebase-adminsdk*.json
 *service-account*.json
+
+# Herramientas de diseño locales
+.superpowers/
+.impeccable/hook.cache.json

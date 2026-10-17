@@ -1,0 +1,98 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          ".superpowers/brainstorm/64487-1792227610/content/fase-a-defectos.html"
+        ],
+        "createdAt": "2026-10-17T09:01:42.524Z",
+        "reason": "Claude: the 'Antes' mockups intentionally reproduce the app's current low-contrast colors from the screenshots"
+      },
+      {
+        "rule": "tiny-text",
+        "value": "*",
+        "files": [
+          ".superpowers/brainstorm/64487-1792227610/content/fase-a-defectos.html"
+        ],
+        "createdAt": "2026-10-17T09:01:42.549Z",
+        "reason": "Claude: phone mockups are drawn at ~0.63 scale of a 411dp screen; text sizes are scaled fixtures, not page body text"
+      },
+      {
+        "rule": "undersized-ui-text",
+        "value": "*",
+        "files": [
+          ".superpowers/brainstorm/64487-1792227610/content/fase-a-defectos.html"
+        ],
+        "createdAt": "2026-10-17T09:01:58.622Z",
+        "reason": "Claude: phone mockups drawn at ~0.63 scale of a 411dp screen; sizes and paddings are scaled fixtures of the real app"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".superpowers/brainstorm/64487-1792227610/content/fase-a-defectos.html"
+        ],
+        "createdAt": "2026-10-17T09:01:58.651Z",
+        "reason": "Claude: phone mockups drawn at ~0.63 scale of a 411dp screen; sizes and paddings are scaled fixtures of the real app"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          ".superpowers/brainstorm/64487-1792227610/content/fase-a-defectos.html"
+        ],
+        "createdAt": "2026-10-17T09:01:58.680Z",
+        "reason": "Claude: reproduces the app's existing calendar event card (left color bar) from the screenshots, shown as documentation of current UI"
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          "docs/superpowers/specs/2026-10-17-evolucion-visual-maquetas-fase-a.html"
+        ],
+        "createdAt": "2026-10-17T09:17:27.949Z",
+        "reason": "Claude: approved Phase A mockups; 'Antes' panels reproduce the app's current defects and phones are drawn at ~0.63 scale"
+      },
+      {
+        "rule": "tiny-text",
+        "value": "*",
+        "files": [
+          "docs/superpowers/specs/2026-10-17-evolucion-visual-maquetas-fase-a.html"
+        ],
+        "createdAt": "2026-10-17T09:17:27.974Z",
+        "reason": "Claude: approved Phase A mockups; 'Antes' panels reproduce the app's current defects and phones are drawn at ~0.63 scale"
+      },
+      {
+        "rule": "undersized-ui-text",
+        "value": "*",
+        "files": [
+          "docs/superpowers/specs/2026-10-17-evolucion-visual-maquetas-fase-a.html"
+        ],
+        "createdAt": "2026-10-17T09:17:27.998Z",
+        "reason": "Claude: approved Phase A mockups; 'Antes' panels reproduce the app's current defects and phones are drawn at ~0.63 scale"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "docs/superpowers/specs/2026-10-17-evolucion-visual-maquetas-fase-a.html"
+        ],
+        "createdAt": "2026-10-17T09:17:28.023Z",
+        "reason": "Claude: approved Phase A mockups; 'Antes' panels reproduce the app's current defects and phones are drawn at ~0.63 scale"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "docs/superpowers/specs/2026-10-17-evolucion-visual-maquetas-fase-a.html"
+        ],
+        "createdAt": "2026-10-17T09:17:28.048Z",
+        "reason": "Claude: approved Phase A mockups; 'Antes' panels reproduce the app's current defects and phones are drawn at ~0.63 scale"
+      }
+    ]
+  }
+}
