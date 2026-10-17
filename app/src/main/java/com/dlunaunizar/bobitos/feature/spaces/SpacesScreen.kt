@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Groups
@@ -52,7 +51,7 @@ import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
-import com.dlunaunizar.bobitos.core.designsystem.component.SyncStatusBanner
+import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.core.model.SyncStatus
 
@@ -124,43 +123,41 @@ private fun SpacesContent(
         }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    ScreenScaffold(
+        title = stringResource(R.string.spaces_title),
+        onBack = onBack,
+        modifier = modifier,
+        syncStatus = syncStatus,
+        actions = {
+            IconButton(onClick = onProfileClick) {
+                Icon(
+                    imageVector = Icons.Rounded.Person,
+                    contentDescription = stringResource(R.string.profile_open),
+                )
+            }
+        },
+        floatingActionButton = {
+            if (canWrite) {
+                ExtendedFloatingActionButton(
+                    onClick = { showCreateDialog = true },
+                    icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                    text = { Text(stringResource(R.string.space_create)) },
+                )
+            }
+        },
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(padding)
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (onBack != null) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = stringResource(R.string.navigate_back),
-                        )
-                    }
-                }
-                Text(
-                    text = stringResource(R.string.spaces_title),
-                    style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.weight(1f),
-                )
-                IconButton(onClick = onProfileClick) {
-                    Icon(
-                        imageVector = Icons.Rounded.Person,
-                        contentDescription = stringResource(R.string.profile_open),
-                    )
-                }
-            }
             Text(
                 text = stringResource(R.string.spaces_description),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            SyncStatusBanner(status = syncStatus)
             SpaceFeedback(state = managementState, onDismiss = onClearFeedback)
             OutlinedButton(
                 onClick = {
@@ -193,17 +190,6 @@ private fun SpacesContent(
                     }
                 }
             }
-        }
-
-        if (canWrite) {
-            ExtendedFloatingActionButton(
-                onClick = { showCreateDialog = true },
-                icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
-                text = { Text(stringResource(R.string.space_create)) },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp),
-            )
         }
     }
 

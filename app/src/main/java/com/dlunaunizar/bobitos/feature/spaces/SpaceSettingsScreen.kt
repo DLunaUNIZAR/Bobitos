@@ -28,7 +28,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringResource
@@ -40,7 +39,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.QrCodeImage
-import com.dlunaunizar.bobitos.core.designsystem.component.SyncStatusBanner
+import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceRole
@@ -81,125 +80,118 @@ fun SpaceSettingsScreen(
         onDispose(onStopObservingSpaceSettings)
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+    ScreenScaffold(
+        title = stringResource(R.string.space_settings_title),
+        onBack = onBack,
+        modifier = modifier,
+        syncStatus = syncStatus,
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            TextButton(onClick = onBack) {
-                Text(text = stringResource(R.string.navigate_back))
-            }
             Text(
-                text = stringResource(R.string.space_settings_title),
-                style = MaterialTheme.typography.headlineSmall,
+                text = space.name,
+                style = MaterialTheme.typography.headlineMedium,
             )
-        }
+            Text(
+                text = stringResource(
+                    if (space.role == SpaceRole.OWNER) {
+                        R.string.space_role_owner
+                    } else {
+                        R.string.space_role_member
+                    },
+                ),
+                style = MaterialTheme.typography.labelLarge,
+            )
+            SpaceFeedback(state = state, onDismiss = onClearFeedback)
 
-        Text(
-            text = space.name,
-            style = MaterialTheme.typography.headlineMedium,
-        )
-        SyncStatusBanner(status = syncStatus)
-        Text(
-            text = stringResource(
-                if (space.role == SpaceRole.OWNER) {
-                    R.string.space_role_owner
-                } else {
-                    R.string.space_role_member
-                },
-            ),
-            style = MaterialTheme.typography.labelLarge,
-        )
-        SpaceFeedback(state = state, onDismiss = onClearFeedback)
+            if (space.role == SpaceRole.OWNER) {
+                Button(
+                    onClick = { showRenameDialog = true },
+                    enabled = !state.isLoading && canWrite,
+                ) {
+                    Text(text = stringResource(R.string.space_rename))
+                }
 
-        if (space.role == SpaceRole.OWNER) {
-            Button(
-                onClick = { showRenameDialog = true },
-                enabled = !state.isLoading && canWrite,
-            ) {
-                Text(text = stringResource(R.string.space_rename))
+                HorizontalDivider()
+                OwnerInvitations(
+                    invitations = state.invitations,
+                    spaceIsFull = space.memberCount >= 10,
+                    actionsEnabled = !state.isLoading && canWrite,
+                    onCreateInvitation = { onCreateInvitation(space.id) },
+                    onRevokeInvitation = onRevokeInvitation,
+                    onShareInvitation = onShareInvitation,
+                )
             }
 
             HorizontalDivider()
-            OwnerInvitations(
-                invitations = state.invitations,
-                spaceIsFull = space.memberCount >= 10,
-                actionsEnabled = !state.isLoading && canWrite,
-                onCreateInvitation = { onCreateInvitation(space.id) },
-                onRevokeInvitation = onRevokeInvitation,
-                onShareInvitation = onShareInvitation,
+            Text(
+                text = stringResource(R.string.space_members_title),
+                style = MaterialTheme.typography.titleLarge,
             )
-        }
 
-        HorizontalDivider()
-        Text(
-            text = stringResource(R.string.space_members_title),
-            style = MaterialTheme.typography.titleLarge,
-        )
-
-        when (val members = state.members) {
-            UiState.Loading -> CircularProgressIndicator()
-            is UiState.Error -> Text(
-                text = members.message ?: stringResource(R.string.generic_error),
-                color = MaterialTheme.colorScheme.error,
-            )
-            is UiState.Content -> LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.weight(1f),
-            ) {
-                items(members.value, key = SpaceMember::userId) { member ->
-                    MemberCard(
-                        member = member,
-                        isCurrentUser = member.userId == currentUserId,
-                        canManage = space.role == SpaceRole.OWNER,
-                        actionsEnabled = !state.isLoading && canWrite,
-                        onTransfer = {
-                            pendingAction = MemberAction(
-                                type = MemberActionType.Transfer,
-                                memberId = member.userId,
-                                memberName = member.displayName,
-                            )
-                        },
-                        onRemove = {
-                            pendingAction = MemberAction(
-                                type = MemberActionType.Remove,
-                                memberId = member.userId,
-                                memberName = member.displayName,
-                            )
-                        },
-                    )
+            when (val members = state.members) {
+                UiState.Loading -> CircularProgressIndicator()
+                is UiState.Error -> Text(
+                    text = members.message ?: stringResource(R.string.generic_error),
+                    color = MaterialTheme.colorScheme.error,
+                )
+                is UiState.Content -> LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    items(members.value, key = SpaceMember::userId) { member ->
+                        MemberCard(
+                            member = member,
+                            isCurrentUser = member.userId == currentUserId,
+                            canManage = space.role == SpaceRole.OWNER,
+                            actionsEnabled = !state.isLoading && canWrite,
+                            onTransfer = {
+                                pendingAction = MemberAction(
+                                    type = MemberActionType.Transfer,
+                                    memberId = member.userId,
+                                    memberName = member.displayName,
+                                )
+                            },
+                            onRemove = {
+                                pendingAction = MemberAction(
+                                    type = MemberActionType.Remove,
+                                    memberId = member.userId,
+                                    memberName = member.displayName,
+                                )
+                            },
+                        )
+                    }
                 }
             }
-        }
 
-        if (space.role == SpaceRole.MEMBER) {
-            TextButton(
-                onClick = {
-                    pendingAction = MemberAction(
-                        type = MemberActionType.Leave,
-                        memberId = currentUserId,
-                        memberName = "",
-                    )
-                },
-                enabled = !state.isLoading && canWrite,
-            ) {
-                Text(text = stringResource(R.string.space_leave))
+            if (space.role == SpaceRole.MEMBER) {
+                TextButton(
+                    onClick = {
+                        pendingAction = MemberAction(
+                            type = MemberActionType.Leave,
+                            memberId = currentUserId,
+                            memberName = "",
+                        )
+                    },
+                    enabled = !state.isLoading && canWrite,
+                ) {
+                    Text(text = stringResource(R.string.space_leave))
+                }
+            } else {
+                Text(
+                    text = stringResource(R.string.space_owner_leave_explanation),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                TextButton(
+                    onClick = { showDeleteSpaceDialog = true },
+                    enabled = !state.isLoading && canWrite,
+                ) { Text(stringResource(R.string.space_delete), color = MaterialTheme.colorScheme.error) }
             }
-        } else {
-            Text(
-                text = stringResource(R.string.space_owner_leave_explanation),
-                style = MaterialTheme.typography.bodySmall,
-            )
-            TextButton(
-                onClick = { showDeleteSpaceDialog = true },
-                enabled = !state.isLoading && canWrite,
-            ) { Text(stringResource(R.string.space_delete), color = MaterialTheme.colorScheme.error) }
         }
     }
 

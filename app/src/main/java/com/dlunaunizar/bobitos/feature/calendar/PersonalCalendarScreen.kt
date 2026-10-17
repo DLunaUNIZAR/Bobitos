@@ -3,11 +3,8 @@ package com.dlunaunizar.bobitos.feature.calendar
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,7 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -23,7 +19,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,7 +30,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -45,7 +39,7 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
-import com.dlunaunizar.bobitos.core.designsystem.component.SyncStatusBanner
+import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.core.model.SyncStatus
@@ -105,30 +99,34 @@ fun PersonalCalendarScreen(
     }
 
     // Atrás desde la vista diaria a la que se llegó pulsando un día → vuelve al modo anterior.
-    BackHandler(enabled = drilledFrom != null) {
-        drilledFrom?.let(viewModel::setMode)
-        drilledFrom = null
+    val onBackAction: () -> Unit = {
+        applyBackAction(
+            action = personalCalendarBackAction(drilledFrom),
+            onRestoreMode = {
+                viewModel.setMode(it)
+                drilledFrom = null
+            },
+            onLeave = { onBack?.invoke() },
+        )
     }
+    BackHandler(enabled = drilledFrom != null, onBack = onBackAction)
 
-    Box(modifier.fillMaxSize()) {
+    ScreenScaffold(
+        title = stringResource(R.string.my_calendar_title),
+        onBack = onBack?.let { onBackAction },
+        modifier = modifier,
+        syncStatus = syncStatus,
+        floatingActionButton = {
+            NewEventFab(canWrite = canWrite, spaceCount = spaces.size, onClick = { onCreateAt(null) })
+        },
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(padding)
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (onBack != null) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = stringResource(R.string.navigate_back),
-                        )
-                    }
-                }
-                Text(stringResource(R.string.my_calendar_title), style = MaterialTheme.typography.headlineMedium)
-            }
-            SyncStatusBanner(syncStatus)
             CalendarPeriodHeader(
                 date = state.focusedDate,
                 mode = state.mode,
@@ -177,7 +175,6 @@ fun PersonalCalendarScreen(
 
             CalendarMessage(state.message, state.editorSave, viewModel::clearMessage)
         }
-        NewEventFab(canWrite = canWrite, spaceCount = spaces.size, onClick = { onCreateAt(null) })
     }
 
     if (spacePickerOpen) {
@@ -342,14 +339,28 @@ private fun List<PersonalCalendarEvent>.eventsOn(date: LocalDate): List<Personal
 
 // Sin conexión o sin espacios no hay dónde crear el evento: no se muestra.
 @Composable
-private fun BoxScope.NewEventFab(canWrite: Boolean, spaceCount: Int, onClick: () -> Unit) {
+private fun NewEventFab(canWrite: Boolean, spaceCount: Int, onClick: () -> Unit) {
     if (!canWrite || spaceCount == 0) return
     ExtendedFloatingActionButton(
         onClick = onClick,
         icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
         text = { Text(stringResource(R.string.calendar_new_event)) },
-        modifier = Modifier
-            .align(Alignment.BottomEnd)
-            .padding(16.dp),
     )
 }
+
+/** Resultado de pulsar Atrás en Mi calendario: la flecha de la barra y el Atrás del sistema comparten esta decisión. */
+internal sealed interface BackAction {
+    data class ToPreviousMode(val mode: CalendarDisplayMode) : BackAction
+    data object Leave : BackAction
+}
+
+private fun applyBackAction(action: BackAction, onRestoreMode: (CalendarDisplayMode) -> Unit, onLeave: () -> Unit) {
+    when (action) {
+        is BackAction.ToPreviousMode -> onRestoreMode(action.mode)
+        BackAction.Leave -> onLeave()
+    }
+}
+
+/** Con un día abierto desde otra vista se vuelve a ella; si no, se sale de la pantalla. */
+internal fun personalCalendarBackAction(drilledFrom: CalendarDisplayMode?): BackAction =
+    if (drilledFrom != null) BackAction.ToPreviousMode(drilledFrom) else BackAction.Leave
