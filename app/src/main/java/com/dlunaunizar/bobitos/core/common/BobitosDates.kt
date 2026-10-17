@@ -11,6 +11,7 @@ import java.util.Locale
  * Único punto de formato de fechas de la app: siempre en español, sea cual sea el idioma del dispositivo. Los nombres
  * van en tablas propias para que no dependan de la versión del JDK (el `MMM` cambia entre «sep.» y «sept»).
  */
+@Suppress("TooManyFunctions")
 object BobitosDates {
     val locale: Locale = Locale.forLanguageTag("es-ES")
 
@@ -22,6 +23,7 @@ object BobitosDates {
         "ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sept", "oct", "nov", "dic",
     )
     private val days = listOf("lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo")
+    private val shortDays = listOf("lun", "mar", "mié", "jue", "vie", "sáb", "dom")
     private val initials = listOf("L", "M", "X", "J", "V", "S", "D")
 
     /** «Sábado, 17 de octubre». */
@@ -43,6 +45,13 @@ object BobitosDates {
 
     /** «Lunes 12». */
     fun dayHeader(date: LocalDate): String = capitalize("${days[date.dayOfWeek.value - 1]} ${date.dayOfMonth}")
+
+    /** «mar 13». */
+    fun shortDay(date: LocalDate): String = "${shortDays[date.dayOfWeek.value - 1]} ${date.dayOfMonth}"
+
+    /** «mar 13 – vie 16»; si es un solo día, «mar 13». */
+    fun shortDayRange(start: LocalDate, end: LocalDate): String =
+        if (start == end) shortDay(start) else "${shortDay(start)} – ${shortDay(end)}"
 
     /** «17 oct 2026». */
     fun shortDate(date: LocalDate): String = "${date.dayOfMonth} ${shortMonths[date.monthValue - 1]} ${date.year}"

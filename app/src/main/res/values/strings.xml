@@ -337,6 +337,8 @@
     <string name="calendar_all">Todas</string>
     <string name="calendar_none">Ninguna</string>
     <string name="calendar_no_events">Sin eventos</string>
+    <string name="calendar_empty_run">%1$s · Sin eventos</string>
+    <string name="calendar_empty_run_description">Del %1$s al %2$s, sin eventos</string>
     <string name="calendar_general_event">Evento general</string>
     <string name="calendar_all_day">Todo el día</string>
     <string name="calendar_event_title_label">Título</string>

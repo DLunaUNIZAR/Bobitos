@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
@@ -499,13 +500,17 @@ private fun WeekEventList(
     modifier: Modifier = Modifier,
 ) {
     val monday = focusedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+    val days = (0L..6L).map(monday::plusDays)
+    val rows = remember(monday, events) {
+        weekRows(days, days.filterTo(mutableSetOf()) { events.eventsOn(it).isNotEmpty() }, LocalDate.now())
+    }
+    var expandedRuns by rememberExpandedRuns(monday)
     LazyColumn(
         modifier,
         verticalArrangement = Arrangement.spacedBy(6.dp),
         contentPadding = PaddingValues(bottom = Spacing.fabClearance),
     ) {
-        (0L..6L).forEach { offset ->
-            val date = monday.plusDays(offset)
+        fun LazyListScope.dayItems(date: LocalDate) {
             item("header-$date") {
                 Text(
                     BobitosDates.dayHeader(date),
@@ -527,6 +532,29 @@ private fun WeekEventList(
             } else {
                 items(dayEvents, key = { "$date-${it.id}" }) { event ->
                     EventRow(event, canWrite, { onEdit(event) }, { onDelete(event.id) })
+                }
+            }
+        }
+        rows.forEach { row ->
+            when (row) {
+                is WeekRow.Day -> dayItems(row.date)
+                is WeekRow.EmptyRun -> {
+                    val open = row.start in expandedRuns
+                    item("run-${row.start}") {
+                        FoldedDaysRow(
+                            start = row.start,
+                            end = row.end,
+                            expanded = open,
+                            onToggle = {
+                                expandedRuns = if (open) expandedRuns - row.start else expandedRuns + row.start
+                            },
+                        )
+                    }
+                    if (open) {
+                        generateSequence(row.start) { it.plusDays(1) }
+                            .takeWhile { !it.isAfter(row.end) }
+                            .forEach { dayItems(it) }
+                    }
                 }
             }
         }

@@ -72,4 +72,22 @@ class BobitosDatesTest {
     fun `day initials use X for Wednesday`() {
         assertEquals(listOf("L", "M", "X", "J", "V", "S", "D"), DayOfWeek.entries.map(BobitosDates::dayInitial))
     }
+
+    @Test
+    fun `shortDay abbreviates the weekday in Spanish`() {
+        assertEquals("mar 13", BobitosDates.shortDay(LocalDate.of(2026, 10, 13)))
+        assertEquals("mié 14", BobitosDates.shortDay(LocalDate.of(2026, 10, 14)))
+    }
+
+    @Test
+    fun `shortDayRange joins both ends and collapses a single day`() {
+        assertEquals(
+            "mar 13 – vie 16",
+            BobitosDates.shortDayRange(LocalDate.of(2026, 10, 13), LocalDate.of(2026, 10, 16)),
+        )
+        assertEquals(
+            "dom 18",
+            BobitosDates.shortDayRange(LocalDate.of(2026, 10, 18), LocalDate.of(2026, 10, 18)),
+        )
+    }
 }
