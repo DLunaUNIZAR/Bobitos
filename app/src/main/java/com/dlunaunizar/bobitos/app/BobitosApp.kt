@@ -24,9 +24,9 @@ import com.dlunaunizar.bobitos.feature.auth.EmailVerificationScreen
 import com.dlunaunizar.bobitos.feature.auth.WelcomeScreen
 import com.dlunaunizar.bobitos.feature.auth.WelcomeViewModel
 import com.dlunaunizar.bobitos.feature.betaupdate.BetaUpdateActions
-import com.dlunaunizar.bobitos.feature.betaupdate.BetaUpdatePrompt
-import com.dlunaunizar.bobitos.feature.betaupdate.BetaUpdateSheet
+import com.dlunaunizar.bobitos.feature.betaupdate.BetaUpdateOverlays
 import com.dlunaunizar.bobitos.feature.betaupdate.BetaUpdateUiState
+import com.dlunaunizar.bobitos.feature.betaupdate.rememberProfileBetaState
 import com.dlunaunizar.bobitos.feature.reminders.RemindersViewModel
 import com.dlunaunizar.bobitos.feature.spaces.SpaceManagementUiState
 
@@ -74,6 +74,7 @@ fun BobitosApp(
     betaUpdateState: BetaUpdateUiState,
     betaUpdateActions: BetaUpdateActions,
 ) {
+    val profileBetaState = rememberProfileBetaState(betaUpdateState)
     when (val authState = uiState.authUser) {
         UiState.Loading -> FullScreenLoading()
         is UiState.Error -> AppLoadError()
@@ -148,7 +149,7 @@ fun BobitosApp(
                                 onSignOut = onSignOut,
                                 onDeleteAccount = onDeleteAccount,
                                 onClearAuthFeedback = onClearAuthFeedback,
-                                betaUpdateState = betaUpdateState,
+                                betaUpdateState = profileBetaState,
                                 onCheckForBetaUpdate = betaUpdateActions::checkManually,
                             )
                         }
@@ -157,21 +158,7 @@ fun BobitosApp(
             }
         }
     }
-    betaUpdateState.prompt?.let { release ->
-        BetaUpdatePrompt(
-            release = release,
-            onUpdate = betaUpdateActions::acceptPrompt,
-            onLater = betaUpdateActions::postponePrompt,
-            onDismiss = betaUpdateActions::dismissPrompt,
-        )
-    }
-    betaUpdateState.sheet?.let { sheet ->
-        BetaUpdateSheet(
-            state = sheet,
-            onStartDownload = betaUpdateActions::startDownload,
-            onClose = betaUpdateActions::closeSheet,
-        )
-    }
+    BetaUpdateOverlays(state = betaUpdateState, actions = betaUpdateActions)
 }
 
 // Error al arrancar o al leer los espacios: un texto fijo, nunca el de la excepción (técnico y en inglés).

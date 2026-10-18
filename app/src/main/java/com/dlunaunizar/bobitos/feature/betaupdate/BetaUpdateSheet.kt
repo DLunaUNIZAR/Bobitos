@@ -13,21 +13,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.BobitosDates
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosInfoSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.InfoSheetAction
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.data.betaupdate.BetaUpdateError
 import com.dlunaunizar.bobitos.data.betaupdate.BetaUpdateProgress
-import java.util.Locale
 
 private const val BYTES_PER_MB = 1024f * 1024f
-private val SpanishLocale: Locale = Locale.forLanguageTag("es-ES")
 
 /** Mensaje en palabras normales de cada fallo; nunca el texto de la excepción. */
 @StringRes
@@ -106,9 +103,7 @@ private fun DownloadStatus(progress: BetaUpdateProgress.Downloading) {
         } else {
             LinearProgressIndicator(
                 progress = { fraction },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics { progressBarRangeInfo = ProgressBarRangeInfo(fraction, 0f..1f) },
+                modifier = Modifier.fillMaxWidth(),
             )
             // Sin región viva: el avance lo anuncia la barra y no habría que repetirlo en cada cambio.
             Text(
@@ -130,4 +125,4 @@ private fun DownloadStatus(progress: BetaUpdateProgress.Downloading) {
     }
 }
 
-private fun megabytes(bytes: Long): String = String.format(SpanishLocale, "%.1f", bytes / BYTES_PER_MB)
+private fun megabytes(bytes: Long): String = String.format(BobitosDates.locale, "%.1f", bytes / BYTES_PER_MB)
