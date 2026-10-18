@@ -67,6 +67,25 @@ object BobitosDates {
     fun accessibleDate(date: LocalDate): String =
         "${days[date.dayOfWeek.value - 1]}, ${date.dayOfMonth} de ${months[date.monthValue - 1]} de ${date.year}"
 
+    /** «domingo, 18 de octubre», sin año ni mayúscula, para leer un día suelto en voz alta. */
+    fun accessibleDay(date: LocalDate): String =
+        "${days[date.dayOfWeek.value - 1]}, ${date.dayOfMonth} de ${months[date.monthValue - 1]}"
+
+    /**
+     * «del martes 13 al viernes 16 de octubre»; si cambia el mes, «del jueves 29 de octubre al lunes 2 de noviembre»
+     * (con el año en cada extremo si cambia el año). Para descripciones de accesibilidad.
+     */
+    fun accessibleRange(start: LocalDate, end: LocalDate): String {
+        val first = "${days[start.dayOfWeek.value - 1]} ${start.dayOfMonth}"
+        val last = "${days[end.dayOfWeek.value - 1]} ${end.dayOfMonth} de ${months[end.monthValue - 1]}"
+        return when {
+            start.year != end.year ->
+                "del $first de ${months[start.monthValue - 1]} de ${start.year} al $last de ${end.year}"
+            start.month != end.month -> "del $first de ${months[start.monthValue - 1]} al $last"
+            else -> "del $first al $last"
+        }
+    }
+
     /** L, M, X, J, V, S, D. */
     fun dayInitial(day: DayOfWeek): String = initials[day.value - 1]
 }

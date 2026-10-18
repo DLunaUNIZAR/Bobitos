@@ -51,13 +51,17 @@ internal fun weekRows(days: List<LocalDate>, daysWithEvents: Set<LocalDate>, tod
     return rows
 }
 
-/** Filas de la semana que empieza en [monday]; se recalculan cuando cambian [monday] o [events]. */
+/** Filas de la semana que empieza en [monday]; se recalculan cuando cambian [monday], [events] o [today]. */
 @Composable
-internal fun rememberWeekRows(monday: LocalDate, events: Any?, hasEvents: (LocalDate) -> Boolean): List<WeekRow> =
-    remember(monday, events) {
-        val days = (0L..6L).map(monday::plusDays)
-        weekRows(days, days.filterTo(mutableSetOf(), hasEvents), LocalDate.now())
-    }
+internal fun rememberWeekRows(
+    monday: LocalDate,
+    events: Any?,
+    today: LocalDate,
+    hasEvents: (LocalDate) -> Boolean,
+): List<WeekRow> = remember(monday, events, today) {
+    val days = (0L..6L).map(monday::plusDays)
+    weekRows(days, days.filterTo(mutableSetOf(), hasEvents), today)
+}
 
 /** Añade las filas de la semana: cada día con [dayItems] y los grupos de días vacíos plegables. */
 internal fun LazyListScope.weekRowItems(

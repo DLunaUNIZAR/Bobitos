@@ -17,6 +17,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -203,6 +204,28 @@ class PersonalCalendarViewModelTest {
         assertEquals(listOf("event-1"), repository.deleted)
     }
 
+    @Test
+    fun cambiarDePeriodoConContenidoNoVuelveACargando() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.served = listOf(sampleEvent().copy(participantIds = listOf("ana")))
+        viewModel.observe("ana", listOf(SpaceSummary("home", "Casa", 2, SpaceRole.OWNER)))
+        advanceUntilIdle()
+        assertFalse(viewModel.uiState.value.refreshing)
+        val next = MutableSharedFlow<List<CalendarEvent>>()
+        repository.source = next
+
+        viewModel.next()
+        runCurrent()
+
+        assertTrue(viewModel.uiState.value.events is UiState.Content)
+        assertTrue(viewModel.uiState.value.refreshing)
+
+        next.emit(emptyList())
+        advanceUntilIdle()
+
+        assertEquals(UiState.Content(emptyList<PersonalCalendarEvent>()), viewModel.uiState.value.events)
+        assertFalse(viewModel.uiState.value.refreshing)
+    }
+
     private val input = EventInput(
         title = "Correr",
         description = null,
@@ -229,8 +252,11 @@ private class PersonalRecordingCalendarRepository : CalendarRepository {
     // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
     var hang = false
 
+    // Si hay fuente, las suscripciones nuevas la reciben en vez de `served`.
+    var source: Flow<List<CalendarEvent>>? = null
+
     override fun events(spaceId: String, rangeStart: Instant, rangeEndExclusive: Instant): Flow<List<CalendarEvent>> =
-        nextLoadFailure()?.let { error -> flow { throw error } } ?: served?.let { flowOf(it) } ?: emptyFlow()
+        nextLoadFailure()?.let { error -> flow { throw error } } ?: source ?: served?.let { flowOf(it) } ?: emptyFlow()
 
     // Los primeros `failingLoads` abrir la suscripción fallan; después, emite `served`.
     var failingLoads = 0

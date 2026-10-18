@@ -39,11 +39,32 @@ class FoldedDaysRowTest {
         node.assert(
             SemanticsMatcher("describes the folded range") {
                 val description = it.config[SemanticsProperties.ContentDescription].joinToString(" ")
-                "13 de octubre" in description && "16 de octubre" in description && "sin eventos" in description
+                description == "del martes 13 al viernes 16 de octubre, sin eventos"
             },
         )
         node.performClick()
         assertEquals(1, toggles)
+    }
+
+    @Test fun unSoloDiaNoRepiteLaFecha() {
+        val day = LocalDate.of(2026, 10, 18)
+        compose.setContent { BobitosTheme { FoldedDaysRow(day, day, expanded = false, onToggle = {}) } }
+        compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.Role)).assert(
+            SemanticsMatcher.expectValue(
+                SemanticsProperties.ContentDescription,
+                listOf("domingo, 18 de octubre, sin eventos"),
+            ),
+        )
+    }
+
+    @Test fun unRangoVaEnMinuscula() {
+        show(expanded = false)
+        compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.Role)).assert(
+            SemanticsMatcher.expectValue(
+                SemanticsProperties.ContentDescription,
+                listOf("del martes 13 al viernes 16 de octubre, sin eventos"),
+            ),
+        )
     }
 
     @Test fun theVisibleTextIsTheShortRange() {

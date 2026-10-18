@@ -1,10 +1,14 @@
 package com.dlunaunizar.bobitos.feature.calendar
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +27,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -64,7 +69,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -72,8 +79,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -105,6 +111,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
+import com.dlunaunizar.bobitos.core.designsystem.rememberToday
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.EventColor
@@ -228,7 +235,7 @@ fun CalendarScreen(
                     viewModel.select(date)
                     viewModel.setMode(CalendarDisplayMode.DAY)
                 }
-                EventsLoadState(state.events, viewModel::retryEvents, Modifier.weight(1f)) {
+                EventsLoadState(state.events, state.refreshing, viewModel::retryEvents, Modifier.weight(1f)) {
                     when (state.mode) {
                         CalendarDisplayMode.MONTH -> MonthGrid(
                             month = YearMonth.from(state.focusedDate),
@@ -412,8 +419,8 @@ internal fun MonthGrid(
     val zone = ZoneId.systemDefault()
     val interval = month.visibleInterval(zone)
     val first = interval.start.atZone(zone).toLocalDate()
-    val today = LocalDate.now()
-    Column(Modifier.fillMaxWidth()) {
+    val today = rememberToday()
+    Column(Modifier.fillMaxWidth().selectableGroup()) {
         Row(Modifier.fillMaxWidth()) {
             DayOfWeek.entries.map(BobitosDates::dayInitial).forEach { initial ->
                 Text(
@@ -471,12 +478,8 @@ internal fun DayCell(
         modifier = modifier
             .aspectRatio(1f)
             .clip(RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick)
-            .semantics {
-                contentDescription = description
-                role = Role.Button
-                selected = isSelected
-            },
+            .selectable(selected = isSelected, role = Role.RadioButton, onClick = onClick)
+            .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -515,7 +518,7 @@ internal fun DayCell(
 }
 
 @Composable
-private fun WeekEventList(
+internal fun WeekEventList(
     focusedDate: LocalDate,
     events: List<CalendarEvent>,
     canWrite: Boolean,
@@ -526,7 +529,7 @@ private fun WeekEventList(
     deleteEnabled: Boolean = true,
 ) {
     val monday = focusedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-    val rows = rememberWeekRows(monday, events) { events.eventsOn(it).isNotEmpty() }
+    val rows = rememberWeekRows(monday, events, rememberToday()) { events.eventsOn(it).isNotEmpty() }
     var expandedRuns by rememberExpandedRuns(monday)
     LazyColumn(
         modifier,
@@ -540,6 +543,7 @@ private fun WeekEventList(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .semantics { heading() }
                         .clickable { onDayTap(date) }
                         .padding(vertical = 4.dp),
                 )
@@ -625,6 +629,16 @@ internal fun DayHourGrid(
     val timedByHour = events.filterNot(CalendarEvent::allDay)
         .groupBy { it.startAt.atZone(zone).toLocalTime().hour }
     LazyColumn(modifier, contentPadding = PaddingValues(bottom = Spacing.fabClearance)) {
+        if (canWrite) {
+            item(key = "hold-hint") {
+                Text(
+                    text = stringResource(R.string.calendar_hold_hint),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = Spacing.sm),
+                )
+            }
+        }
         if (allDay.isNotEmpty() || tasks.isNotEmpty()) {
             item(key = "allday-header") {
                 Text(
@@ -666,13 +680,38 @@ internal fun HourRow(
 ) {
     val createLabel = stringResource(R.string.calendar_create_at, BobitosDates.time(LocalTime.of(hour, 0)))
     val currentOnLongPress by rememberUpdatedState(onLongPress)
+    val haptics = LocalHapticFeedback.current
+    val pressSource = remember { MutableInteractionSource() }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .then(
                 if (canWrite) {
+                    // Al pulsar la fila se ilumina y, al completar el mantenido, vibra: así se nota que va a crear.
                     Modifier
-                        .pointerInput(Unit) { detectTapGestures(onLongPress = { currentOnLongPress() }) }
+                        .indication(pressSource, LocalIndication.current)
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onPress = { offset ->
+                                    val press = PressInteraction.Press(offset)
+                                    pressSource.emit(press)
+                                    val released = tryAwaitRelease()
+                                    pressSource.emit(
+                                        if (released) {
+                                            PressInteraction.Release(
+                                                press,
+                                            )
+                                        } else {
+                                            PressInteraction.Cancel(press)
+                                        },
+                                    )
+                                },
+                                onLongPress = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    currentOnLongPress()
+                                },
+                            )
+                        }
                         .semantics(mergeDescendants = true) {
                             customActions = listOf(
                                 CustomAccessibilityAction(createLabel) {

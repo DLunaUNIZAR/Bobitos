@@ -37,6 +37,8 @@ data class PersonalCalendarUiState(
     val focusedDate: LocalDate = LocalDate.now(),
     val mode: CalendarDisplayMode = CalendarDisplayMode.MONTH,
     val events: UiState<List<PersonalCalendarEvent>> = UiState.Loading,
+    // Hay otro periodo en camino y `events` conserva el anterior hasta que llegue.
+    val refreshing: Boolean = false,
     val selectedSpaceIds: Set<String> = emptySet(),
     val knownSpaceIds: Set<String> = emptySet(),
     // Miembros del espacio para el que está abierto el editor (para elegir participantes).
@@ -47,6 +49,10 @@ data class PersonalCalendarUiState(
     // Alta recién hecha desde la hoja: la pantalla la avisa con «Deshacer» y la consume.
     val created: CreatedItem? = null,
 )
+
+// Con eventos ya a la vista se conservan mientras llega el periodo nuevo; solo la primera carga es «Cargando».
+private fun PersonalCalendarUiState.loadingPeriod(): PersonalCalendarUiState =
+    if (events is UiState.Content) copy(refreshing = true) else copy(events = UiState.Loading, refreshing = false)
 
 @HiltViewModel
 class PersonalCalendarViewModel @Inject constructor(
@@ -219,13 +225,13 @@ class PersonalCalendarViewModel @Inject constructor(
         val currentUserId = userId ?: return
         eventJob?.cancel()
         if (spaces.isEmpty()) {
-            mutable.update { it.copy(events = UiState.Content(emptyList())) }
+            mutable.update { it.copy(events = UiState.Content(emptyList()), refreshing = false) }
             return
         }
 
         val state = mutable.value
         val interval = state.focusedDate.visibleInterval(state.mode, ZoneId.systemDefault())
-        mutable.update { it.copy(events = UiState.Loading) }
+        mutable.update { it.loadingPeriod() }
         val observedSpaces = spaces
         val sources = observedSpaces.map { space ->
             repository.events(space.id, interval.start, interval.endExclusive)
@@ -238,9 +244,9 @@ class PersonalCalendarViewModel @Inject constructor(
                     eventsBySpace.toList(),
                 )
             }.catch { error ->
-                mutable.update { it.copy(events = UiState.Error(error.toFailureKind())) }
+                mutable.update { it.copy(events = UiState.Error(error.toFailureKind()), refreshing = false) }
             }.collect { events ->
-                mutable.update { it.copy(events = UiState.Content(events)) }
+                mutable.update { it.copy(events = UiState.Content(events), refreshing = false) }
             }
         }
     }

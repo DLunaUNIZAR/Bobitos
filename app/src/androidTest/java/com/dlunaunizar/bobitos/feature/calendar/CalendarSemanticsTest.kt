@@ -54,11 +54,11 @@ class CalendarSemanticsTest {
         updatedAt = Instant.EPOCH,
     )
 
-    private fun hasButtonRole() = SemanticsMatcher("is a button") {
-        it.config.getOrNull(SemanticsProperties.Role) == Role.Button
+    private fun hasRadioRole() = SemanticsMatcher("is a radio button") {
+        it.config.getOrNull(SemanticsProperties.Role) == Role.RadioButton
     }
 
-    @Test fun aMonthCellIsAButtonWithSelectionAndToday() {
+    @Test fun laCeldaDelMesEsUnaOpcionUnicaConHoy() {
         compose.setContent {
             BobitosTheme {
                 androidx.compose.foundation.layout.Column {
@@ -75,13 +75,33 @@ class CalendarSemanticsTest {
             }
         }
         val todayCell = compose.onNode(hasContentDescriptionContaining("17 de octubre"))
-        todayCell.assert(hasButtonRole())
+        todayCell.assert(hasRadioRole())
         todayCell.assertIsSelected()
         todayCell.assert(hasContentDescriptionContaining("hoy"))
         val other = compose.onNode(hasContentDescriptionContaining("16 de octubre"))
-        other.assert(hasButtonRole())
+        other.assert(hasRadioRole())
         other.assertIsNotSelected()
         other.assert(SemanticsMatcher("no today") { !descriptionOf(it).contains("hoy") })
+    }
+
+    @Test fun lasCabecerasDeDiaDeLaSemanaSonEncabezados() {
+        compose.setContent {
+            BobitosTheme {
+                WeekEventList(
+                    focusedDate = today,
+                    events = listOf(event),
+                    canWrite = true,
+                    onEdit = {},
+                    onDelete = {},
+                    onDayTap = {},
+                )
+            }
+        }
+        compose.onNode(hasChildText("Sábado 17")).assert(
+            SemanticsMatcher("is a heading") {
+                it.config.getOrNull(SemanticsProperties.Heading) != null
+            },
+        )
     }
 
     @Test fun anHourRowIsNotAnEmptyButton() {

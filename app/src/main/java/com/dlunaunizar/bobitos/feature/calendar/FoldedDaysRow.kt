@@ -28,11 +28,12 @@ internal fun FoldedDaysRow(
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val description = stringResource(
-        R.string.calendar_empty_run_description,
-        BobitosDates.longDay(start),
-        BobitosDates.longDay(end),
-    )
+    // Un solo día se lee con su fecha; un rango, de un extremo al otro y en minúscula.
+    val description = if (start == end) {
+        stringResource(R.string.calendar_empty_day_description, BobitosDates.accessibleDay(start))
+    } else {
+        stringResource(R.string.calendar_empty_run_description, BobitosDates.accessibleRange(start, end))
+    }
     val state = stringResource(if (expanded) R.string.state_expanded else R.string.state_collapsed)
     Box(
         modifier = modifier

@@ -90,4 +90,25 @@ class BobitosDatesTest {
             BobitosDates.shortDayRange(LocalDate.of(2026, 10, 18), LocalDate.of(2026, 10, 18)),
         )
     }
+
+    @Test
+    fun `rangoAccesibleEnElMismoMes`() {
+        assertEquals(
+            "del martes 13 al viernes 16 de octubre",
+            BobitosDates.accessibleRange(LocalDate.of(2026, 10, 13), LocalDate.of(2026, 10, 16)),
+        )
+    }
+
+    @Test
+    fun `rangoAccesibleEntreMeses`() {
+        assertEquals(
+            "del jueves 29 de octubre al lunes 2 de noviembre",
+            BobitosDates.accessibleRange(LocalDate.of(2026, 10, 29), LocalDate.of(2026, 11, 2)),
+        )
+    }
+
+    @Test
+    fun `accessibleDay is lowercase and has no year`() {
+        assertEquals("domingo, 18 de octubre", BobitosDates.accessibleDay(LocalDate.of(2026, 10, 18)))
+    }
 }
