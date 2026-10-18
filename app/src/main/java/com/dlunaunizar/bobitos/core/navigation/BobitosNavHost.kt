@@ -83,6 +83,7 @@ fun BobitosNavHost(
     authActionState: AuthActionUiState,
     spaceManagementState: SpaceManagementUiState,
     onSpaceSelected: (String) -> Unit,
+    onRetrySpaces: () -> Unit,
     onRealtimeScopeChanged: (RealtimeScope) -> Unit,
     onCreateSpace: (String) -> Unit,
     onObserveSpaceSettings: (String, Boolean) -> Unit,
@@ -213,6 +214,7 @@ fun BobitosNavHost(
                     navController.navigate(BobitosDestination.SpaceHome.route) { launchSingleTop = true }
                 },
                 onManageSpaces = navController::navigateToSpaces,
+                onRetrySpaces = onRetrySpaces,
                 onOpen = { destination -> navController.navigate(destination.route) },
                 onProfile = {
                     onClearAuthFeedback()

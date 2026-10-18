@@ -149,6 +149,29 @@ class AppViewModelTest {
     }
 
     @Test
+    fun reintentarTrasUnFalloVuelveACargarLosEspacios() = runTest(mainDispatcherRule.testDispatcher) {
+        val spaceRepository = FakeAppSpaceRepository(loadFailure = RuntimeException("sin red"))
+        val viewModel = AppViewModel(
+            authRepository = FakeAppAuthRepository(),
+            spaceRepository = spaceRepository,
+            activeSpaceRepository = FakeActiveSpaceRepository("home"),
+            connectivityRepository = FakeConnectivityRepository(),
+            syncRepository = FakeSyncRepository(),
+        )
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect()
+        }
+        advanceUntilIdle()
+        assertEquals(UiState.Error(FailureKind.UNKNOWN), viewModel.uiState.value.spaces)
+
+        spaceRepository.loadFailure = null
+        viewModel.retrySpaces()
+        advanceUntilIdle()
+
+        assertEquals(listOf("home"), (viewModel.uiState.value.spaces as UiState.Content).value.map { it.id })
+    }
+
+    @Test
     fun `selects immediately while persisting in background`() = runTest(mainDispatcherRule.testDispatcher) {
         val activeRepository = FakeActiveSpaceRepository(null, saveDelayMillis = 1_000)
         val viewModel = AppViewModel(
@@ -273,7 +296,7 @@ private class FakeAppAuthRepository(
 
 private class FakeAppSpaceRepository(
     private val trackCollectors: Boolean = false,
-    private val loadFailure: Throwable? = null,
+    var loadFailure: Throwable? = null,
 ) : SpaceRepository {
     private val summaries = listOf(
         SpaceSummary("home", "Casa", 2, SpaceRole.OWNER),

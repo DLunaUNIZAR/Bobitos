@@ -55,6 +55,7 @@ class AppViewModel @Inject constructor(
 ) : ViewModel() {
     private val requestedSelection = MutableStateFlow<RequestedSelection?>(null)
     private val realtimeScope = MutableStateFlow(RealtimeScope.AUTOMATIC)
+    private val spacesAttempt = MutableStateFlow(0)
     private val sessionUser: StateFlow<UiState<AuthUser?>> = authRepository.currentUser
         .flatMapLatest { cachedUser ->
             if (cachedUser == null) {
@@ -100,9 +101,10 @@ class AppViewModel @Inject constructor(
         sessionUser,
         selectedSpaceId,
         realtimeScope,
-    ) { authState, selectedId, scope ->
+        spacesAttempt,
+    ) { authState, selectedId, scope, attempt ->
         val user = (authState as? UiState.Content)?.value
-        ObservationRequest(user, selectedId, scope)
+        ObservationRequest(user, selectedId, scope, attempt)
     }.distinctUntilChanged()
         .flatMapLatest { request -> request.observe() }
 
@@ -167,6 +169,11 @@ class AppViewModel @Inject constructor(
         realtimeScope.value = scope
     }
 
+    // Suma un intento a la petición observada: la lista de espacios se vuelve a suscribir.
+    fun retrySpaces() {
+        spacesAttempt.value += 1
+    }
+
     private fun ObservationRequest.observe(): Flow<UiState<List<SpaceSummary>>> {
         if (user == null || !user.isEmailVerified) {
             return flowOf(UiState.Content(emptyList()))
@@ -190,7 +197,12 @@ class AppViewModel @Inject constructor(
 
     private data class RequestedSelection(val userId: String, val spaceId: String)
 
-    private data class ObservationRequest(val user: AuthUser?, val selectedId: String?, val scope: RealtimeScope)
+    private data class ObservationRequest(
+        val user: AuthUser?,
+        val selectedId: String?,
+        val scope: RealtimeScope,
+        val attempt: Int,
+    )
 
     private data class SyncRequest(val user: AuthUser?, val spaceId: String?, val networkStatus: NetworkStatus)
 

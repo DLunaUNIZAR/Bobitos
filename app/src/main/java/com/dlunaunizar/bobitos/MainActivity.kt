@@ -74,6 +74,7 @@ class MainActivity : ComponentActivity() {
                     authActionState = authActionState,
                     spaceManagementState = spaceManagementState,
                     onSpaceSelected = viewModel::selectSpace,
+                    onRetrySpaces = viewModel::retrySpaces,
                     onRealtimeScopeChanged = viewModel::setRealtimeScope,
                     onCreateSpace = spacesViewModel::createSpace,
                     onObserveSpaceSettings = spacesViewModel::observeSpaceSettings,

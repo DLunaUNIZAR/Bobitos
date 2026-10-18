@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -30,6 +31,7 @@ class MainMenuScreenTest {
         spaces: UiState<List<SpaceSummary>>,
         onEnterSpace: (SpaceSummary) -> Unit = {},
         onManageSpaces: () -> Unit = {},
+        onRetrySpaces: () -> Unit = {},
     ) {
         BobitosTheme {
             MainMenuScreen(
@@ -37,6 +39,7 @@ class MainMenuScreenTest {
                 syncStatus = SyncStatus.ONLINE,
                 onEnterSpace = onEnterSpace,
                 onManageSpaces = onManageSpaces,
+                onRetrySpaces = onRetrySpaces,
                 onOpen = {},
                 onProfile = {},
             )
@@ -84,6 +87,25 @@ class MainMenuScreenTest {
         compose.onNodeWithText(compose.activity.getString(FailureKind.OFFLINE.messageRes())).assertExists()
         compose.onNodeWithText("Gestionar").performClick()
 
+        assertEquals(1, gestionados)
+    }
+
+    @Test
+    fun siLaListaFallaOfreceReintentar() {
+        var reintentos = 0
+        var gestionados = 0
+        compose.setContent {
+            Menu(
+                UiState.Error(FailureKind.OFFLINE),
+                onManageSpaces = { gestionados++ },
+                onRetrySpaces = { reintentos++ },
+            )
+        }
+
+        compose.onNodeWithText("Reintentar").assertHasClickAction().performClick()
+        compose.onNodeWithText("Gestionar").performClick()
+
+        assertEquals(1, reintentos)
         assertEquals(1, gestionados)
     }
 

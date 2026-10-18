@@ -57,6 +57,7 @@ internal fun MainMenuScreen(
     syncStatus: SyncStatus,
     onEnterSpace: (SpaceSummary) -> Unit,
     onManageSpaces: () -> Unit,
+    onRetrySpaces: () -> Unit,
     onOpen: (BobitosDestination) -> Unit,
     onProfile: () -> Unit,
 ) {
@@ -91,7 +92,12 @@ internal fun MainMenuScreen(
                 .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            SpacesRows(spaces = spaces, onEnterSpace = onEnterSpace, onManageSpaces = onManageSpaces)
+            SpacesRows(
+                spaces = spaces,
+                onEnterSpace = onEnterSpace,
+                onManageSpaces = onManageSpaces,
+                onRetrySpaces = onRetrySpaces,
+            )
             ModuleRows(
                 title = stringResource(R.string.main_menu_mine),
                 destinations = listOf(BobitosDestination.MyCalendar),
@@ -110,6 +116,7 @@ private fun SpacesRows(
     spaces: UiState<List<SpaceSummary>>,
     onEnterSpace: (SpaceSummary) -> Unit,
     onManageSpaces: () -> Unit,
+    onRetrySpaces: () -> Unit,
 ) {
     val list = (spaces as? UiState.Content)?.value.orEmpty()
     Column {
@@ -128,6 +135,7 @@ private fun SpacesRows(
             spaces is UiState.Error -> ErrorState(
                 Modifier.fillMaxWidth().padding(vertical = Spacing.lg),
                 message = stringResource(spaces.failure.messageRes()),
+                onRetry = onRetrySpaces,
             )
             spaces is UiState.Content -> GroupedRow(position = RowPosition.SINGLE, onClick = onManageSpaces) {
                 Icon(Icons.Rounded.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
