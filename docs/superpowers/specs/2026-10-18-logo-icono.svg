@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="432" height="432">
+  <title>Bobitos: icono de la app (lienzo adaptable de 108 × 108)</title>
+  <!-- Capa de fondo -->
+  <rect id="fondo" width="108" height="108" fill="#FBFAF8"/>
+  <!-- Capa frontal: tejado teal y cuatro bloques blandos, cada uno con un ligero giro -->
+  <g id="frontal">
+    <path id="tejado" d="M54 30 L74 45 H34 Z" fill="#0F766E" stroke="#0F766E" stroke-width="6" stroke-linejoin="round"/>
+    <rect id="compra" x="36" y="51" width="16" height="13" rx="5" fill="#A9461A" transform="rotate(-5 44 57.5)"/>
+    <rect id="tareas" x="56" y="51" width="16" height="13" rx="5" fill="#6C43B2" transform="rotate(4 64 57.5)"/>
+    <rect id="comidas" x="36" y="67" width="16" height="13" rx="5" fill="#AD1457" transform="rotate(3 44 73.5)"/>
+    <rect id="deporte" x="56" y="67" width="16" height="13" rx="5" fill="#1565C0" transform="rotate(-4 64 73.5)"/>
+  </g>
+</svg>

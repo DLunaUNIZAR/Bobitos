@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bobitos · Tablero de marca</title>
+<style>
+  @font-face { font-family: "Nunito"; src: url("../../../app/src/main/res/font/nunito_variable.ttf") format("truetype"); font-weight: 200 1000; }
+  :root {
+    --canvas: #101110; --panel: #1C1D1A; --panel-2: #202220; --ink: #E5E3DE; --muted: #94918B; --line: #363734;
+    --teal: #0F766E; --teal-light: #5FD9CC; --cream: #FBFAF8; --night: #141513;
+    --compra: #A9461A; --tareas: #6C43B2; --comidas: #AD1457; --deporte: #1565C0;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--canvas); color: var(--ink); font-family: "Nunito", system-ui, sans-serif; }
+  .board { max-width: 1320px; margin: 0 auto; padding: 32px 16px 48px; }
+  .head { display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px 18px; color: var(--muted); font-size: 13px; }
+  .head b { color: var(--ink); font-weight: 800; letter-spacing: .02em; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 980px) { .grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+  .p { position: relative; aspect-ratio: 4 / 3; background: var(--panel); border-radius: 14px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+  .p .n { position: absolute; left: 16px; bottom: 12px; font-size: 11px; color: var(--muted); letter-spacing: .08em; }
+  .p .t { position: absolute; right: 16px; bottom: 12px; font-size: 11px; color: var(--muted); }
+  .ico { display: block; overflow: hidden; border-radius: 28%; }
+  .ico.circle { border-radius: 50%; }
+  .ico.square { border-radius: 14%; }
+  .ico.drop { border-radius: 50% 50% 50% 14%; }
+  /* 1 · Portada */
+  .cover { flex-direction: column; gap: 18px; background: var(--cream); }
+  .cover .word { font-size: 44px; font-weight: 800; color: var(--night); letter-spacing: -.01em; }
+  .cover .n, .cover .t { color: #7A7873; }
+  /* 3 · Pantalla de inicio */
+  .home { background: linear-gradient(160deg, #2a3936, #121614); flex-direction: column; gap: 22px; }
+  .row { display: flex; gap: 26px; }
+  .app { display: flex; flex-direction: column; align-items: center; gap: 7px; font-size: 12px; color: #E5E3DE; }
+  .ghost { width: 56px; height: 56px; border-radius: 28%; background: rgba(255,255,255,.13); }
+  /* 4 · Lema */
+  .essence { background: var(--teal); justify-content: flex-start; padding: 0 36px; }
+  .essence p { margin: 0; font-size: 40px; line-height: 1.08; font-weight: 800; color: #fff; }
+  .essence .n, .essence .t { color: #CFF3EE; }
+  /* 5 · Color */
+  .colors { padding: 22px 22px 38px; display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: 1fr 1fr; gap: 8px; align-items: stretch; justify-content: stretch; }
+  .sw { border-radius: 10px; padding: 10px; display: flex; flex-direction: column; justify-content: flex-end; font-size: 11px; line-height: 1.3; color: #fff; }
+  .sw b { font-size: 13px; font-weight: 800; }
+  .sw.wide { grid-column: span 2; }
+  /* 6 · Tipografía */
+  .type { flex-direction: column; align-items: flex-start; justify-content: center; padding: 0 30px; gap: 6px; }
+  .type .aa { font-size: 76px; font-weight: 800; line-height: 1; }
+  .type .alpha { font-size: 16px; color: var(--muted); letter-spacing: .04em; }
+  .type .w { font-size: 15px; } .type .w span { margin-right: 14px; }
+  /* 7 · Formas */
+  .shapes { gap: 18px; flex-wrap: wrap; padding: 0 20px; }
+  .shape { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
+  /* 8 · Temático */
+  .themed { gap: 0; }
+  .themed > div { flex: 1; height: 100%; display: flex; align-items: center; justify-content: center; gap: 16px; }
+  .themed .light { background: #E8EFEC; } .themed .dark { background: #172220; }
+  /* 9 · Arranque */
+  .boot { background: var(--panel-2); }
+  .phone { width: 128px; height: 208px; border-radius: 22px; background: var(--night); border: 3px solid #3a3b38; display: flex; align-items: center; justify-content: center; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="mark">
+      <path d="M54 30 L74 45 H34 Z" fill="#0F766E" stroke="#0F766E" stroke-width="6" stroke-linejoin="round"/>
+      <rect x="36" y="51" width="16" height="13" rx="5" fill="#A9461A" transform="rotate(-5 44 57.5)"/>
+      <rect x="56" y="51" width="16" height="13" rx="5" fill="#6C43B2" transform="rotate(4 64 57.5)"/>
+      <rect x="36" y="67" width="16" height="13" rx="5" fill="#AD1457" transform="rotate(3 44 73.5)"/>
+      <rect x="56" y="67" width="16" height="13" rx="5" fill="#1565C0" transform="rotate(-4 64 73.5)"/>
+    </g>
+    <g id="mono">
+      <path d="M54 30 L74 45 H34 Z" stroke="currentColor" stroke-width="6" stroke-linejoin="round"/>
+      <rect x="36" y="51" width="16" height="13" rx="5" transform="rotate(-5 44 57.5)"/>
+      <rect x="56" y="51" width="16" height="13" rx="5" transform="rotate(4 64 57.5)"/>
+      <rect x="36" y="67" width="16" height="13" rx="5" transform="rotate(3 44 73.5)"/>
+      <rect x="56" y="67" width="16" height="13" rx="5" transform="rotate(-4 64 73.5)"/>
+    </g>
+    <g id="icon"><rect width="108" height="108" fill="#FBFAF8"/><use href="#mark"/></g>
+  </defs>
+</svg>
+
+<main class="board">
+  <div class="head"><b>Bobitos · Icono de la app</b><span>Tablero de marca · 18-10-2026</span></div>
+  <div class="grid">
+
+    <section class="p cover">
+      <svg class="ico" width="168" height="168" viewBox="18 18 72 72" role="img" aria-label="Icono de Bobitos"><use href="#icon"/></svg>
+      <div class="word">Bobitos</div>
+      <span class="n">01 · LOGO</span><span class="t">Casa de bloques</span>
+    </section>
+
+    <section class="p">
+      <svg width="250" height="250" viewBox="0 0 108 108" role="img" aria-label="Construcción del icono sobre el lienzo adaptable">
+        <rect x="0.25" y="0.25" width="107.5" height="107.5" fill="none" stroke="#494844" stroke-width=".5"/>
+        <rect x="18" y="18" width="72" height="72" fill="#FBFAF8" opacity=".07"/>
+        <rect x="18" y="18" width="72" height="72" fill="none" stroke="#94918B" stroke-width=".4" stroke-dasharray="1.5 1.5"/>
+        <circle cx="54" cy="54" r="33" fill="none" stroke="#5FD9CC" stroke-width=".5"/>
+        <line x1="54" y1="4" x2="54" y2="104" stroke="#363734" stroke-width=".3"/>
+        <line x1="4" y1="54" x2="104" y2="54" stroke="#363734" stroke-width=".3"/>
+        <use href="#mark"/>
+        <g font-size="3.4" fill="#94918B" font-family="Nunito, sans-serif">
+          <text x="20" y="23">72 visible</text>
+          <text x="2" y="106">108 lienzo</text>
+          <text x="70" y="24" fill="#5FD9CC">zona segura · Ø66</text>
+          <text x="24" y="58">−5°</text><text x="77" y="58">4°</text>
+          <text x="27" y="75">3°</text><text x="77" y="75">−4°</text>
+        </g>
+      </svg>
+      <span class="n">02 · CONSTRUCCIÓN</span><span class="t">Tejado + 4 bloques</span>
+    </section>
+
+    <section class="p home">
+      <div class="row">
+        <div class="app"><div class="ghost"></div>Fotos</div>
+        <div class="app"><svg class="ico" width="56" height="56" viewBox="18 18 72 72"><use href="#icon"/></svg>Bobitos</div>
+        <div class="app"><div class="ghost"></div>Mapas</div>
+        <div class="app"><div class="ghost"></div>Reloj</div>
+      </div>
+      <div class="row">
+        <div class="app"><div class="ghost"></div>Correo</div>
+        <div class="app"><div class="ghost"></div>Música</div>
+        <div class="app"><div class="ghost"></div>Notas</div>
+        <div class="app"><div class="ghost"></div>Tiempo</div>
+      </div>
+      <span class="n">03 · PANTALLA DE INICIO</span>
+    </section>
+
+    <section class="p essence">
+      <p>La casa,<br>entre todos.</p>
+      <span class="n">04 · IDEA</span><span class="t">Todo lo de casa, en un sitio</span>
+    </section>
+
+    <section class="p colors">
+      <div class="sw wide" style="background:var(--teal)"><b>Teal</b>#0F766E · tejado</div>
+      <div class="sw wide" style="background:var(--cream);color:#1B1B19"><b>Crema</b>#FBFAF8 · fondo</div>
+      <div class="sw" style="background:var(--compra)"><b>Compra</b>#A9461A</div>
+      <div class="sw" style="background:var(--tareas)"><b>Tareas</b>#6C43B2</div>
+      <div class="sw" style="background:var(--comidas)"><b>Comidas</b>#AD1457</div>
+      <div class="sw" style="background:var(--deporte)"><b>Deporte</b>#1565C0</div>
+      <span class="n">05 · COLOR</span>
+    </section>
+
+    <section class="p type">
+      <div class="aa">Aa</div>
+      <div class="w"><span style="font-weight:400">Regular</span><span style="font-weight:700">Negrita</span><span style="font-weight:800">Extra</span></div>
+      <div class="alpha">ABCDEFGHIJKLMNÑOPQRSTUVWXYZ</div>
+      <span class="n">06 · TIPOGRAFÍA</span><span class="t">Nunito</span>
+    </section>
+
+    <section class="p shapes">
+      <div class="shape"><svg class="ico circle" width="64" height="64" viewBox="18 18 72 72"><use href="#icon"/></svg>círculo</div>
+      <div class="shape"><svg class="ico" width="64" height="64" viewBox="18 18 72 72"><use href="#icon"/></svg>squircle</div>
+      <div class="shape"><svg class="ico square" width="64" height="64" viewBox="18 18 72 72"><use href="#icon"/></svg>cuadrado</div>
+      <div class="shape"><svg class="ico drop" width="64" height="64" viewBox="18 18 72 72"><use href="#icon"/></svg>gota</div>
+      <span class="n">07 · FORMAS DEL LANZADOR</span>
+    </section>
+
+    <section class="p themed">
+      <div class="light">
+        <svg class="ico circle" width="72" height="72" viewBox="18 18 72 72"><rect width="108" height="108" fill="#CFE7E2"/><use href="#mono" style="color:#1F3D39" fill="#1F3D39"/></svg>
+        <svg class="ico circle" width="40" height="40" viewBox="18 18 72 72"><rect width="108" height="108" fill="#CFE7E2"/><use href="#mono" style="color:#1F3D39" fill="#1F3D39"/></svg>
+      </div>
+      <div class="dark">
+        <svg class="ico circle" width="72" height="72" viewBox="18 18 72 72"><rect width="108" height="108" fill="#1F3D39"/><use href="#mono" style="color:#CFE7E2" fill="#CFE7E2"/></svg>
+        <svg class="ico circle" width="40" height="40" viewBox="18 18 72 72"><rect width="108" height="108" fill="#1F3D39"/><use href="#mono" style="color:#CFE7E2" fill="#CFE7E2"/></svg>
+      </div>
+      <span class="n">08 · ICONO TEMÁTICO</span><span class="t">Android 13+</span>
+    </section>
+
+    <section class="p boot">
+      <div class="phone"><svg class="ico circle" width="72" height="72" viewBox="18 18 72 72"><use href="#icon"/></svg></div>
+      <span class="n">09 · AL ABRIR LA APP</span><span class="t">Fondo oscuro de la app</span>
+    </section>
+
+  </div>
+</main>
+</body>
+</html>
