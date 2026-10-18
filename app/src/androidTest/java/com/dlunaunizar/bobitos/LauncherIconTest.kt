@@ -4,12 +4,13 @@ import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
-import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -18,7 +19,8 @@ class LauncherIconTest {
 
     private fun appIcon(): Drawable {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        return context.packageManager.getApplicationIcon(context.packageName)
+        // El recurso del android:icon del manifiesto: getApplicationIcon puede venir envuelto por el fabricante.
+        return checkNotNull(ContextCompat.getDrawable(context, R.mipmap.ic_launcher)) { "Falta R.mipmap.ic_launcher" }
     }
 
     @Test
@@ -28,13 +30,18 @@ class LauncherIconTest {
 
     @Test
     fun appIconBackgroundIsCream() {
-        val background = (appIcon() as AdaptiveIconDrawable).background
-        assertEquals(0xFFFBFAF8.toInt(), (background as ColorDrawable).color)
+        val icon = appIcon() as? AdaptiveIconDrawable
+        assertNotNull("El icono no es adaptativo", icon)
+        val background = icon!!.background as? ColorDrawable
+        assertNotNull("El fondo del icono no es un ColorDrawable", background)
+        assertEquals(0xFFFBFAF8.toInt(), background!!.color)
     }
 
     @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
     fun appIconHasMonochromeLayer() {
-        assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-        assertNotNull((appIcon() as AdaptiveIconDrawable).monochrome)
+        val icon = appIcon() as? AdaptiveIconDrawable
+        assertNotNull("El icono no es adaptativo", icon)
+        assertNotNull("Falta la capa monocroma", icon!!.monochrome)
     }
 }

@@ -46,7 +46,7 @@ class WorkspaceNavigationBarTest {
             val action = node.config.getOrNull(SemanticsActions.GetTextLayoutResult)?.action
             assertNotNull("$title sin GetTextLayoutResult", action)
             action!!(results)
-            assertFalse("$title cortada", results.first().isLineEllipsized(0))
+            assertCabeEntera(title, results.first())
         }
     }
 
@@ -55,9 +55,7 @@ class WorkspaceNavigationBarTest {
         var labelMedium = TextUnit.Unspecified
         // A 130 % no caben a labelMedium: encogen todas juntas y ninguna se corta.
         val a130 = tamanosDeEtiquetas(1.3f) { labelMedium = it }
-        a130.forEach { (title, layout) ->
-            assertFalse("$title cortada", layout.isLineEllipsized(0))
-        }
+        a130.forEach { (title, layout) -> assertCabeEntera(title, layout) }
         val tamanos130 = a130.map { (title, layout) -> title to tamanoEfectivo(title, layout, labelMedium) }
         val (min, max) = tamanos130.minOf { it.second } to tamanos130.maxOf { it.second }
         assertTrue("Tamaños a 130 %: $tamanos130", max - min < 0.3f)
@@ -68,9 +66,18 @@ class WorkspaceNavigationBarTest {
         var labelMedium = TextUnit.Unspecified
         val a100 = tamanosDeEtiquetas(1f) { labelMedium = it }
         a100.forEach { (title, layout) ->
+            assertCabeEntera(title, layout)
             val tamano = tamanoEfectivo(title, layout, labelMedium)
             assertEquals("$title no va en labelMedium", labelMedium.value, tamano, 0.3f)
         }
+    }
+
+    // La etiqueta lleva maxLines = 1 y Clip: isLineEllipsized nunca sería true. Se mira el recorte real.
+    // hasVisualOverflow no sirve: didOverflowWidth sale true siempre que el texto es más estrecho que el máximo.
+    private fun assertCabeEntera(title: String, layout: TextLayoutResult) {
+        assertFalse("$title cortada", layout.didOverflowHeight)
+        assertTrue("$title cortada", layout.getLineRight(0) <= layout.layoutInput.constraints.maxWidth)
+        assertEquals("$title cortada", title.length, layout.getLineEnd(0))
     }
 
     // Con autoSize el estilo del layout no trae el tamaño resuelto: se deduce del ancho pintado.

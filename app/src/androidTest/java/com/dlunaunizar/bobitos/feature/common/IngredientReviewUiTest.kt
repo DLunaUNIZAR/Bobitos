@@ -47,8 +47,8 @@ class IngredientReviewUiTest {
     @Test fun brandAndStoreFitOnOneLineInTheNarrowestReview() {
         compose.setContent {
             BobitosTheme {
-                // 280 dp: el ancho mínimo del contenido de un AlertDialog.
-                Box(Modifier.width(280.dp)) {
+                // 232 dp: los 280 dp mínimos de un AlertDialog menos sus 24 dp de margen a cada lado.
+                Box(Modifier.width(232.dp)) {
                     ReviewRowContent(row, row.initialState()) {}
                 }
             }
