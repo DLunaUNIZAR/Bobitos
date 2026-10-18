@@ -1,32 +1,42 @@
-Beta de Bobitos — llega la Despensa: apunta lo que hay en casa y la Compra, las Comidas y el Recetario lo tienen en cuenta.
+Beta de Bobitos — cara nueva: icono nuevo, un color para cada área, «Hoy» como agenda de toda la casa y «Deshacer» en todas partes.
 
 Novedades desde la beta anterior:
 
-Despensa (nueva, en «Más»)
-- Apunta lo que hay en casa, compartido con todo el espacio. Solo indica si hay algo o no: sin cantidades ni caducidades.
-- «Llenar la despensa» permite marcar varios ingredientes del catálogo a la vez o escribir uno a mano. La lista se agrupa por categorías y tiene buscador.
-- Lo que marcas como comprado en la Compra entra solo en la despensa si es un ingrediente; si lo desmarcas, sale.
-- «Se acabó» quita algo de la despensa y el aviso ofrece «A la compra» para apuntarlo.
-- «¿Qué cocino?» abre el Recetario con las recetas que puedes hacer con lo que hay.
+Icono nuevo
+- La «B» deja paso a una casa de bloques: el tejado de Bobitos y un bloque por área (Compra, Tareas, Comidas y Deporte).
+- Se ve también al abrir la app y, en Android 13 o superior, con los iconos temáticos.
 
-Compra
-- Al añadir una receta o una comida, lo que ya está en la despensa sale como «Hay en la despensa» con «Omitir» marcado.
-- Al apuntar a mano algo que está en la despensa, se avisa.
-- Si la lista no se ha podido leer, se dice y se ofrece «Reintentar».
-- Una marca de más de 60 caracteres no deja guardar el producto.
-- Al sumar cantidades, el singular sale bien: «1 limón», «1 nuez», «1 pan alemán».
+Aspecto
+- Cada área tiene su color en la cabecera, en las filas y en los avisos. Notas va en ámbar y la Despensa en verde.
+- Las pantallas empiezan con un título grande que se encoge al desplazar la lista. Los filtros y el buscador van dentro de la cabecera.
+- Tareas, Compra, el Recetario, Ingredientes, Ejercicios y Rutinas son listas agrupadas por categoría, con el título de cada grupo fijo arriba.
+- Los filtros son desplegables con su nombre en todas las áreas. En el Calendario también los de Personas y Espacios.
+- «Más» y la pantalla de inicio son listas, y los catálogos están todos en un mismo sitio.
+- Más movimiento: transiciones, una celebración al terminar las tareas y listas que entran en cascada. Si activas «Quitar animaciones» en Android, se aplica al momento.
 
-Comidas
-- Al marcar una comida como cocinada, «Has cocinado …» pregunta también «¿Se ha acabado algo?»: lo que marques sale de la despensa y, si quieres, se apunta a la compra.
-- «Listo» lo guarda todo a la vez. Si otro miembro cambia la lista mientras tanto, no se guarda nada: el aviso nombra el producto que ha cambiado, si se sabe cuál, y lo marcado se conserva para volver a pulsar «Listo».
-- Lo marcado en «Has cocinado …» y el selector «Elegir receta» siguen ahí al girar el móvil.
-- El selector «Elegir receta» tiene el filtro «Con lo que hay».
+Hoy
+- Es la agenda de toda la casa: tareas, eventos, deporte, comidas y compra juntos, cada fila con el color de su área.
+- Cambia de día a medianoche. Si no hay nada, dice «Sin eventos ni deporte hoy».
+
+Deshacer
+- Borrar ya no pregunta: el aviso ofrece «Deshacer» y lo deja todo como estaba. Vale para tareas, compra, notas, calendario, comidas, deporte, recetas, rutinas, ejercicios, ingredientes y marcas. Lo que no tiene vuelta atrás, como borrar un espacio, sigue pidiendo confirmación.
+- También se puede deshacer lo que acabas de añadir y una tarea que acabas de completar. Si otro miembro la ha cambiado entretanto, se avisa.
+
+Comidas y Deporte
+- La tira de días se desliza para cambiar de semana, y la fecha se puede pulsar para saltar a otro día.
+- En Comidas, toca una franja vacía para añadir.
+
+Calendario
+- Carga sin parpadeos. La semana junta los días vacíos en una línea y se puede crear un evento manteniendo pulsado.
+- Si falla, muestra el error con «Reintentar».
 
 Recetario
-- Filtro «Con lo que hay»: solo salen las recetas con ingredientes, primero las que tienen menos por comprar, y cada una dice lo que falta («Falta: huevos», «Faltan 2: sal e higos»).
+- 100 recetas comunes más (de 60 a 160) y una categoría nueva: «Saludables».
 
-Espacios
-- Si dejas de ser miembro de un espacio mientras lo usas, la app vuelve a «Espacios» sin mostrar un error.
-- Al borrar un espacio se borran también sus notas, sus sesiones de deporte y su despensa.
+Avisos y accesibilidad
+- Los errores se explican con palabras normales, en avisos que se cierran solos. Al guardar un formulario incompleto, el error sale bajo su campo.
+- Funciona mejor con TalkBack: el calendario, la tira de días, los filtros y los botones dicen qué son y en qué estado están.
+- Las fechas salen en español y siempre con el mismo formato.
+- Si al abrir la app no se puede leer la lista de espacios, se ofrece «Reintentar».
 
 Comunica cualquier error indicando el modelo del dispositivo, la versión de Android y los pasos para reproducirlo.
