@@ -24,6 +24,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import com.dlunaunizar.bobitos.core.common.BobitosDates
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.theme.BobitosTheme
 import com.dlunaunizar.bobitos.core.model.Meal
@@ -267,5 +268,33 @@ class SpaceTodayScreenTest {
         compose.onNodeWithContentDescription("Cena: Sin planificar").performClick()
 
         assertEquals(listOf(BobitosDestination.Meals), abiertos)
+    }
+
+    @Test
+    fun diaVacioDiceSinEventosNiDeporte() {
+        mostrar(agenda(entradas = MealSlot.entries.map { AgendaEntry.Meal(it, meal = null, cook = null, eaters = 0) }))
+
+        compose.onNodeWithText("Sin eventos ni deporte hoy").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Cena: Sin planificar").assertIsDisplayed()
+    }
+
+    @Test
+    fun unaTareaVencidaDiceCuandoVencio() {
+        val desde = LocalDate.now().minusDays(6)
+        mostrar(agendaConVencida(desde))
+
+        compose.onNode(hasText("Venció el ${BobitosDates.dayMonth(desde, LocalDate.now())}", substring = true))
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun ayerDiceVencioAyer() {
+        mostrar(agendaConVencida(LocalDate.now().minusDays(1)))
+
+        compose.onNode(hasText("Venció ayer", substring = true)).assertIsDisplayed()
+    }
+
+    private fun agendaConVencida(desde: LocalDate) = agenda().let {
+        it.copy(tasks = listOf(AgendaTask(tarea("t1", "Fregar"), overdueSince = desde, owner = AgendaPerson.Nobody)))
     }
 }

@@ -30,6 +30,12 @@ object BobitosDates {
     fun longDay(date: LocalDate): String =
         capitalize("${days[date.dayOfWeek.value - 1]}, ${date.dayOfMonth} de ${months[date.monthValue - 1]}")
 
+    /** «12 de octubre»; si no es del año de [today], «30 de diciembre de 2025». */
+    fun dayMonth(date: LocalDate, today: LocalDate): String {
+        val dayMonth = "${date.dayOfMonth} de ${months[date.monthValue - 1]}"
+        return if (date.year == today.year) dayMonth else "$dayMonth de ${date.year}"
+    }
+
     /** «Octubre de 2026». */
     fun month(month: YearMonth): String = capitalize("${months[month.monthValue - 1]} de ${month.year}")
 

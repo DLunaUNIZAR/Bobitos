@@ -30,12 +30,15 @@ data class TodayAgenda(
     val spaceId: String,
 )
 
+/** La agenda leída para [spaceId] (el espacio que se pidió, también en `Loading` y en `Error`). */
+data class ScopedAgenda(val spaceId: String?, val state: UiState<TodayAgenda>)
+
 /**
- * Lo que debe pintar la pantalla de [spaceId]: una agenda que es de otro espacio (el que acaba de dejarse atrás, hasta
- * que el ViewModel empieza a leer el nuevo) se ve como `Loading`, nunca bajo el nombre del espacio nuevo.
+ * Lo que debe pintar la pantalla de [spaceId]: una agenda, o un error, que es de otro espacio (el que acaba de dejarse
+ * atrás, hasta que el ViewModel empieza a leer el nuevo) se ve como `Loading`, nunca bajo el nombre del espacio nuevo.
  */
-fun UiState<TodayAgenda>.forSpace(spaceId: String?): UiState<TodayAgenda> =
-    if (this is UiState.Content && value.spaceId != spaceId) UiState.Loading else this
+fun ScopedAgenda.forSpace(spaceId: String?): UiState<TodayAgenda> =
+    if (this.spaceId == spaceId) state else UiState.Loading
 
 /** Una tarea de la agenda; [overdueSince] es el día en que venció si ya venció, y null si vence hoy. */
 data class AgendaTask(val task: TaskItem, val overdueSince: LocalDate?, val owner: AgendaPerson)
@@ -46,6 +49,9 @@ sealed interface AgendaPerson {
     data class Member(val name: String) : AgendaPerson
 
     data object Nobody : AgendaPerson
+
+    // Hay responsable, pero no se sabe cómo se llama.
+    data object Unknown : AgendaPerson
 }
 
 sealed interface AgendaTime {
@@ -105,12 +111,12 @@ fun buildTodayAgenda(
         .sortedWith(compareBy<TaskItem>({ it.dueAt }, { it.title }))
         .map { task ->
             val dueDay = requireNotNull(task.dueAt).atZone(zone).toLocalDate()
-            AgendaTask(task, overdueSince = dueDay.takeIf { it < today }, owner = ownerOf(task, userId))
+            AgendaTask(task, overdueSince = dueDay.takeIf { it < today }, owner = ownerOf(task, userId, members))
         }
     return TodayAgenda(
         tasks = dueTasks.take(AGENDA_MAX_TASKS),
         hiddenTasks = (dueTasks.size - AGENDA_MAX_TASKS).coerceAtLeast(0),
-        entries = agendaEntries(userId, today, zone, meals, events, activities),
+        entries = agendaEntries(userId, today, zone, meals, events, activities, members),
         shopping = shopping.filterNot { it.purchased }.let { pending ->
             ShoppingGlance(pending.size, pending.take(SHOPPING_GLANCE_NAMES).map { it.name })
         },
@@ -129,17 +135,31 @@ fun pendingDueTodayOrEarlier(tasks: List<TaskItem>, today: LocalDate, zone: Zone
 private fun TaskItem.isPendingDueTodayOrEarlier(today: LocalDate, zone: ZoneId): Boolean =
     status == TaskStatus.TODO && dueAt?.atZone(zone)?.toLocalDate()?.let { it <= today } == true
 
-private fun ownerOf(task: TaskItem, userId: String): AgendaPerson = when {
+private fun ownerOf(task: TaskItem, userId: String, members: List<SpaceMember>): AgendaPerson = when {
     task.assigneeId == null -> AgendaPerson.Nobody
     task.assigneeId == userId -> AgendaPerson.You
-    // Aunque ya no esté en el espacio: se usa el nombre guardado en la tarea.
-    else -> AgendaPerson.Member(task.assigneeName.orEmpty())
+    // Aunque ya no esté en el espacio: se usa el nombre guardado en la tarea; sin él, el del miembro.
+    else -> nameOf(task.assigneeId, task.assigneeName, members)?.let(AgendaPerson::Member) ?: AgendaPerson.Unknown
 }
 
-private fun peopleOf(userId: String, ids: List<String>, names: List<String>): List<AgendaPerson> =
-    ids.mapIndexed { index, id ->
-        if (id == userId) AgendaPerson.You else AgendaPerson.Member(names.getOrNull(index).orEmpty())
+// El nombre guardado, o el del miembro con ese id si el guardado falta; null si no se sabe.
+private fun nameOf(id: String, stored: String?, members: List<SpaceMember>): String? =
+    stored?.takeIf { it.isNotBlank() }
+        ?: members.firstOrNull { it.userId == id }?.displayName?.takeIf { it.isNotBlank() }
+
+// Un participante sin nombre que no está en los miembros no sale.
+private fun peopleOf(
+    userId: String,
+    ids: List<String>,
+    names: List<String>,
+    members: List<SpaceMember>,
+): List<AgendaPerson> = ids.mapIndexedNotNull { index, id ->
+    if (id == userId) {
+        AgendaPerson.You
+    } else {
+        nameOf(id, names.getOrNull(index), members)?.let(AgendaPerson::Member)
     }
+}
 
 private fun agendaEntries(
     userId: String,
@@ -148,6 +168,7 @@ private fun agendaEntries(
     meals: List<MealModel>,
     events: List<CalendarEvent>,
     activities: List<SportActivity>,
+    members: List<SpaceMember>,
 ): List<AgendaEntry> {
     val eventsById = events.associateBy { it.id }
     // El evento enlazado de una actividad sale una sola vez, como actividad.
@@ -158,7 +179,7 @@ private fun agendaEntries(
             event.startAt.atZone(zone).toLocalDate() < today -> AgendaTime.Continues
             else -> AgendaTime.At(event.startAt.atZone(zone).toLocalTime())
         }
-        AgendaEntry.Event(event, time, peopleOf(userId, event.participantIds, event.participantNames))
+        AgendaEntry.Event(event, time, peopleOf(userId, event.participantIds, event.participantNames, members))
     }
     val activityEntries = activities.map { activity ->
         val linked = activity.eventId?.let(eventsById::get)
@@ -167,7 +188,11 @@ private fun agendaEntries(
         } else {
             AgendaTime.NoTime
         }
-        AgendaEntry.Activity(activity, time, peopleOf(userId, activity.participantIds, activity.participantNames))
+        AgendaEntry.Activity(
+            activity,
+            time,
+            peopleOf(userId, activity.participantIds, activity.participantNames, members),
+        )
     }
     val todayMeals = meals.filter { it.date == today }
     val mealEntries = MealSlot.entries.flatMap { slot ->
@@ -186,7 +211,7 @@ private fun agendaEntries(
 private fun cookOf(meal: MealModel, userId: String): AgendaPerson? = when {
     meal.cookId == null -> null
     meal.cookId == userId -> AgendaPerson.You
-    else -> meal.cookName?.let { AgendaPerson.Member(it) }
+    else -> meal.cookName?.takeIf { it.isNotBlank() }?.let { AgendaPerson.Member(it) }
 }
 
 // Primero todo el día, después sin hora, después lo que sigue de ayer y al final lo que tiene hora.

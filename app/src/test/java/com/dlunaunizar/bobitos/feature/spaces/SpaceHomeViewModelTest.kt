@@ -145,7 +145,8 @@ class SpaceHomeViewModelTest {
     @Test
     fun cambiarDeEspacioNoMezclaDatos() = runTest {
         val seen = mutableListOf<UiState<TodayAgenda>>()
-        val collector = launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.agenda.collect { seen += it } }
+        val collector =
+            launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.agenda.collect { seen += it.state } }
         emitAll("a", listOf(taskDueToday("de-a")))
         viewModel.show("a", me)
         runCurrent()
@@ -196,7 +197,7 @@ class SpaceHomeViewModelTest {
 
         // Hoy -> Tareas -> Hoy: se conserva lo último y se vuelve a escuchar sin pasar por «Cargando».
         val seen = mutableListOf<UiState<TodayAgenda>>()
-        val second = launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.agenda.collect { seen += it } }
+        val second = launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.agenda.collect { seen += it.state } }
         runCurrent()
 
         assertEquals(6, active)
@@ -210,7 +211,8 @@ class SpaceHomeViewModelTest {
         emitAll("a")
         viewModel.show("a", me)
         val seen = mutableListOf<UiState<TodayAgenda>>()
-        val collector = launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.agenda.collect { seen += it } }
+        val collector =
+            launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.agenda.collect { seen += it.state } }
         runCurrent()
         val before = seen.size
 
@@ -226,7 +228,8 @@ class SpaceHomeViewModelTest {
         emitAll("a", listOf(taskDueToday("de-a")))
         viewModel.show("a", me)
         val seen = mutableListOf<UiState<TodayAgenda>>()
-        val collector = launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.agenda.collect { seen += it } }
+        val collector =
+            launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.agenda.collect { seen += it.state } }
         runCurrent()
 
         assertEquals("a", (seen.last() as UiState.Content).value.spaceId)
@@ -235,14 +238,25 @@ class SpaceHomeViewModelTest {
 
     @Test
     fun unaAgendaDeOtroEspacioSeMuestraComoCargando() {
-        val deA = UiState.Content(
-            TodayAgenda(emptyList(), 0, emptyList(), ShoppingGlance(0, emptyList()), emptyList(), spaceId = "a"),
+        val deA = ScopedAgenda(
+            "a",
+            UiState.Content(
+                TodayAgenda(emptyList(), 0, emptyList(), ShoppingGlance(0, emptyList()), emptyList(), spaceId = "a"),
+            ),
         )
 
-        assertEquals(deA, deA.forSpace("a"))
+        assertEquals(deA.state, deA.forSpace("a"))
         assertEquals(UiState.Loading, deA.forSpace("b"))
         assertEquals(UiState.Loading, deA.forSpace(null))
-        assertEquals(UiState.Loading, UiState.Loading.forSpace("b"))
+        assertEquals(UiState.Loading, ScopedAgenda("a", UiState.Loading).forSpace("b"))
+    }
+
+    @Test
+    fun unErrorDeOtroEspacioSeMuestraComoCargando() {
+        val errorDeA = ScopedAgenda("a", UiState.Error(FailureKind.OFFLINE))
+
+        assertEquals(UiState.Error(FailureKind.OFFLINE), errorDeA.forSpace("a"))
+        assertEquals(UiState.Loading, errorDeA.forSpace("b"))
     }
 
     @Test
@@ -325,9 +339,11 @@ class SpaceHomeViewModelTest {
         failTasksOf = "bad"
         viewModel.show("bad", me)
         val seen = mutableListOf<UiState<TodayAgenda>>()
-        val collector = launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.agenda.collect { seen += it } }
+        val collector =
+            launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.agenda.collect { seen += it.state } }
         runCurrent()
         assertEquals(UiState.Error(FailureKind.OFFLINE), seen.last())
+        assertEquals("bad", viewModel.agenda.value.spaceId)
 
         failTasksOf = null
         viewModel.retry()

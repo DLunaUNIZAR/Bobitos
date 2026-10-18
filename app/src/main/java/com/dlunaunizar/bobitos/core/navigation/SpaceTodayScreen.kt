@@ -43,6 +43,7 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.BobitosDates
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
+import com.dlunaunizar.bobitos.core.designsystem.component.CASCADE_WINDOW_MS
 import com.dlunaunizar.bobitos.core.designsystem.component.Celebration
 import com.dlunaunizar.bobitos.core.designsystem.component.CompletingItems
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -73,13 +74,9 @@ import com.dlunaunizar.bobitos.feature.spaces.WorkloadSection
 import com.dlunaunizar.bobitos.feature.tasks.label
 import kotlinx.coroutines.delay
 import java.time.LocalDate
-import java.time.format.TextStyle
 
 private val TimeColumnWidth = 72.dp
 private val FlagSize = 16.dp
-
-// Lo que dura la ventana de la cascada de entrada: pasada, las filas que aparecen entran ya puestas.
-private const val CASCADE_WINDOW_MS = 1_200L
 
 /**
  * «Hoy»: la agenda de toda la casa. Tareas que vencen (con casilla para completarlas sin salir), lo de hoy en el
@@ -229,7 +226,7 @@ private fun TaskRow(
 private fun TaskMeta(item: AgendaTask, today: LocalDate, accent: Color) {
     val error = MaterialTheme.colorScheme.error
     val overdue = item.overdueSince?.let { overdueText(it, today) }
-    val rest = listOf(item.task.priority.label(), item.owner.label()).joinToString(" · ")
+    val rest = listOf(item.task.priority.label(), item.owner.label()).filter { it.isNotEmpty() }.joinToString(" · ")
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = Icons.Rounded.Flag,
@@ -255,8 +252,7 @@ private fun TaskMeta(item: AgendaTask, today: LocalDate, accent: Color) {
 private fun overdueText(since: LocalDate, today: LocalDate): String = if (since == today.minusDays(1)) {
     stringResource(R.string.agenda_overdue_yesterday)
 } else {
-    val month = since.month.getDisplayName(TextStyle.FULL, BobitosDates.locale)
-    stringResource(R.string.agenda_overdue_date, "${since.dayOfMonth} de $month")
+    stringResource(R.string.agenda_overdue_date, BobitosDates.dayMonth(since, today))
 }
 
 @Composable
@@ -422,6 +418,7 @@ private fun AgendaPerson.label(): String = when (this) {
     AgendaPerson.You -> stringResource(R.string.agenda_you)
     is AgendaPerson.Member -> name
     AgendaPerson.Nobody -> stringResource(R.string.agenda_unassigned)
+    AgendaPerson.Unknown -> stringResource(R.string.agenda_unknown_member)
 }
 
 @Composable

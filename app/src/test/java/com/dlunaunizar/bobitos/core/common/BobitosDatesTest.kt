@@ -111,4 +111,17 @@ class BobitosDatesTest {
     fun `accessibleDay is lowercase and has no year`() {
         assertEquals("domingo, 18 de octubre", BobitosDates.accessibleDay(LocalDate.of(2026, 10, 18)))
     }
+
+    @Test
+    fun dayMonthSinAnioSiEsEsteAnio() {
+        assertEquals("12 de octubre", BobitosDates.dayMonth(LocalDate.of(2026, 10, 12), LocalDate.of(2026, 10, 18)))
+    }
+
+    @Test
+    fun dayMonthConAnioSiEsDeOtroAnio() {
+        assertEquals(
+            "30 de diciembre de 2025",
+            BobitosDates.dayMonth(LocalDate.of(2025, 12, 30), LocalDate.of(2026, 1, 1)),
+        )
+    }
 }

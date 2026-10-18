@@ -65,9 +65,13 @@ class SpaceHomeViewModel @Inject constructor(
     val error: StateFlow<TaskUiMessage?> = mutableError.asStateFlow()
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val agenda: StateFlow<UiState<TodayAgenda>> = request
+    val agenda: StateFlow<ScopedAgenda> = request
         .flatMapLatest { it?.let(::observe) ?: emptyFlow() }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), UiState.Loading)
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            ScopedAgenda(null, UiState.Loading),
+        )
 
     /** Fija el espacio y el usuario de la agenda. Con los mismos de antes no hace nada. */
     fun show(spaceId: String, userId: String) {
@@ -117,7 +121,7 @@ class SpaceHomeViewModel @Inject constructor(
 
     // El día actual manda: a medianoche se vuelve a consultar el día nuevo.
     @OptIn(ExperimentalCoroutinesApi::class)
-    private fun observe(request: Request): Flow<UiState<TodayAgenda>> {
+    private fun observe(request: Request): Flow<ScopedAgenda> {
         val zone = ZoneId.systemDefault()
         val spaceId = request.spaceId
         return dayProvider.today(zone)
@@ -142,18 +146,18 @@ class SpaceHomeViewModel @Inject constructor(
                     )
                 }
             }
-            .map<TodayAgenda, UiState<TodayAgenda>> { UiState.Content(it) }
+            .map<TodayAgenda, ScopedAgenda> { ScopedAgenda(spaceId, UiState.Content(it)) }
             // Sin datos del espacio anterior ni de antes de un reintento: se empieza en `Loading`. Volver a recoger la
             // misma petición (Hoy -> Tareas -> Hoy) conserva lo último en vez de pasar por «Cargando».
             .onStart {
                 if (lastObserved != request) {
                     lastObserved = request
-                    emit(UiState.Loading)
+                    emit(ScopedAgenda(spaceId, UiState.Loading))
                 }
             }
             .catch {
                 if (it is CancellationException) throw it
-                emit(UiState.Error(it.toFailureKind()))
+                emit(ScopedAgenda(spaceId, UiState.Error(it.toFailureKind())))
             }
     }
 }

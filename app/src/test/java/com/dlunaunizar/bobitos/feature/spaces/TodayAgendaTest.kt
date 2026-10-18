@@ -284,6 +284,30 @@ class TodayAgendaTest {
         assertEquals(setOf("vencida"), pendingDueTodayOrEarlier(adelantada, today, zone))
     }
 
+    @Test
+    fun unNombreVacioNoDejaHuecos() {
+        val agenda = build(
+            tasks = listOf(
+                task("sin-nombre", due = at(today, 8), assignee = "ex", assigneeName = ""),
+                task("con-id", due = at(today, 9), assignee = "leo", assigneeName = ""),
+            ),
+            events = listOf(
+                event("e", start = at(today, 10), people = listOf(me, "leo")).copy(
+                    participantIds = listOf("ana", "otra"),
+                    participantNames = listOf("Ana", ""),
+                ),
+            ),
+            meals = listOf(meal("m", MealSlot.COMIDA, cook = "ex", participants = emptyList()).copy(cookName = "")),
+        )
+
+        assertEquals(listOf(AgendaPerson.Unknown, AgendaPerson.Member("Leo")), agenda.tasks.map { it.owner })
+        assertEquals(
+            listOf(AgendaPerson.Member("Ana")),
+            agenda.entries.filterIsInstance<AgendaEntry.Event>().single().people,
+        )
+        assertNull(agenda.entries.filterIsInstance<AgendaEntry.Meal>().single { it.meal != null }.cook)
+    }
+
     private fun at(day: LocalDate, hour: Int, minute: Int = 0): Instant =
         day.atTime(hour, minute).atZone(zone).toInstant()
 
