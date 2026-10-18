@@ -61,7 +61,6 @@ import com.dlunaunizar.bobitos.feature.betaupdate.AppVersionRow
 import com.dlunaunizar.bobitos.feature.betaupdate.BetaUpdateUiState
 import com.dlunaunizar.bobitos.feature.reminders.RemindersViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     user: AuthUser,
@@ -96,6 +95,51 @@ fun ProfileScreen(
             else -> remindersViewModel.setEnabled(true)
         }
     }
+    ProfileContent(
+        user = user,
+        actionState = actionState,
+        syncStatus = syncStatus,
+        canWrite = canWrite,
+        onUpdateDisplayName = onUpdateDisplayName,
+        onSignOut = onSignOut,
+        onDeleteAccount = onDeleteAccount,
+        onBack = onBack,
+        onClearFeedback = onClearFeedback,
+        betaUpdateState = betaUpdateState,
+        onCheckForBetaUpdate = onCheckForBetaUpdate,
+        themeMode = themeMode,
+        onThemeModeChange = themeViewModel::setThemeMode,
+        remindersEnabled = remindersEnabled,
+        onRemindersChange = onRemindersChange,
+        remindersLeadTime = remindersLeadTime,
+        onRemindersLeadTimeChange = remindersViewModel::setLeadTime,
+        modifier = modifier,
+    )
+}
+
+// Contenido de Perfil sin ViewModels ni permisos: así se prueba sin Hilt.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun ProfileContent(
+    user: AuthUser,
+    actionState: AuthActionUiState,
+    syncStatus: SyncStatus,
+    canWrite: Boolean,
+    onUpdateDisplayName: (String) -> Unit,
+    onSignOut: () -> Unit,
+    onDeleteAccount: (String) -> Unit,
+    onBack: () -> Unit,
+    onClearFeedback: () -> Unit,
+    betaUpdateState: BetaUpdateUiState,
+    onCheckForBetaUpdate: () -> Unit,
+    themeMode: ThemeMode,
+    onThemeModeChange: (ThemeMode) -> Unit,
+    remindersEnabled: Boolean,
+    onRemindersChange: (Boolean) -> Unit,
+    remindersLeadTime: ReminderLeadTime,
+    onRemindersLeadTimeChange: (ReminderLeadTime) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     var displayName by rememberSaveable(user.id) {
         mutableStateOf(user.displayName)
     }
@@ -166,7 +210,7 @@ fun ProfileScreen(
             SectionHeader(title = stringResource(R.string.profile_section_appearance))
             ThemeModeSelector(
                 selected = themeMode,
-                onSelect = themeViewModel::setThemeMode,
+                onSelect = onThemeModeChange,
             )
             Spacer(Modifier.height(16.dp))
             SectionHeader(title = stringResource(R.string.profile_section_reminders))
@@ -178,7 +222,7 @@ fun ProfileScreen(
             if (remindersEnabled) {
                 ReminderLeadTimeSelector(
                     selected = remindersLeadTime,
-                    onSelect = remindersViewModel::setLeadTime,
+                    onSelect = onRemindersLeadTimeChange,
                 )
             }
             Spacer(Modifier.height(16.dp))
