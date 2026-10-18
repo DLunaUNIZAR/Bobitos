@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.core.navigation
 
 import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
@@ -23,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -195,36 +197,12 @@ fun BobitosNavHost(
         startDestination = BobitosDestination.Home.route,
         modifier = modifier.fillMaxSize(),
         enterTransition = {
-            when {
-                reduceMotion -> EnterTransition.None
-                navMotionFor(initialState.destination.route, targetState.destination.route) == NavMotion.FADE_THROUGH ->
-                    fadeIn(tween(FADE_MS)) + scaleIn(tween(NAV_ANIM_MS), initialScale = FADE_SCALE)
-                else -> slideInHorizontally(tween(NAV_ANIM_MS)) { it } + fadeIn(tween(NAV_ANIM_MS))
-            }
+            enterFor(reduceMotion) { slideInHorizontally(tween(NAV_ANIM_MS)) { it } + fadeIn(tween(NAV_ANIM_MS)) }
         },
-        exitTransition = {
-            when {
-                reduceMotion -> ExitTransition.None
-                navMotionFor(initialState.destination.route, targetState.destination.route) == NavMotion.FADE_THROUGH ->
-                    fadeOut(tween(FADE_MS))
-                else -> fadeOut(tween(NAV_ANIM_MS))
-            }
-        },
-        popEnterTransition = {
-            when {
-                reduceMotion -> EnterTransition.None
-                navMotionFor(initialState.destination.route, targetState.destination.route) == NavMotion.FADE_THROUGH ->
-                    fadeIn(tween(FADE_MS)) + scaleIn(tween(NAV_ANIM_MS), initialScale = FADE_SCALE)
-                else -> fadeIn(tween(NAV_ANIM_MS))
-            }
-        },
+        exitTransition = { exitFor(reduceMotion) { fadeOut(tween(NAV_ANIM_MS)) } },
+        popEnterTransition = { enterFor(reduceMotion) { fadeIn(tween(NAV_ANIM_MS)) } },
         popExitTransition = {
-            when {
-                reduceMotion -> ExitTransition.None
-                navMotionFor(initialState.destination.route, targetState.destination.route) == NavMotion.FADE_THROUGH ->
-                    fadeOut(tween(FADE_MS))
-                else -> slideOutHorizontally(tween(NAV_ANIM_MS)) { it } + fadeOut(tween(NAV_ANIM_MS))
-            }
+            exitFor(reduceMotion) { slideOutHorizontally(tween(NAV_ANIM_MS)) { it } + fadeOut(tween(NAV_ANIM_MS)) }
         },
     ) {
         composable(BobitosDestination.Home.route) {
@@ -410,11 +388,12 @@ fun BobitosNavHost(
                 onClearAuthFeedback = onClearAuthFeedback,
             ) {
                 uiState.selectedSpace?.let { space ->
-                    val today = rememberToday()
                     CalendarScreen(
                         spaceId = space.id,
                         canWrite = uiState.syncStatus.canWrite,
-                        initialDate = remember { today.takeIf { todayFocus.take(BobitosDestination.Calendar) } },
+                        initialDate = remember {
+                            if (todayFocus.take(BobitosDestination.Calendar)) LocalDate.now() else null
+                        },
                     )
                 }
             }
@@ -433,11 +412,12 @@ fun BobitosNavHost(
                 onClearAuthFeedback = onClearAuthFeedback,
             ) {
                 uiState.selectedSpace?.let { space ->
-                    val today = rememberToday()
                     MealsScreen(
                         spaceId = space.id,
                         canWrite = uiState.syncStatus.canWrite,
-                        initialDate = remember { today.takeIf { todayFocus.take(BobitosDestination.Meals) } },
+                        initialDate = remember {
+                            if (todayFocus.take(BobitosDestination.Meals)) LocalDate.now() else null
+                        },
                     )
                 }
             }
@@ -456,11 +436,12 @@ fun BobitosNavHost(
                 onClearAuthFeedback = onClearAuthFeedback,
             ) {
                 uiState.selectedSpace?.let { space ->
-                    val today = rememberToday()
                     SportScreen(
                         spaceId = space.id,
                         canWrite = uiState.syncStatus.canWrite,
-                        initialDate = remember { today.takeIf { todayFocus.take(BobitosDestination.Sport) } },
+                        initialDate = remember {
+                            if (todayFocus.take(BobitosDestination.Sport)) LocalDate.now() else null
+                        },
                     )
                 }
             }
@@ -646,6 +627,28 @@ private fun SpaceScaffold(
         supportingText = supportingText,
         content = content,
     )
+}
+
+// Entre pestañas del mismo nivel la transición es un fundido con escala; el resto, la de cada dirección.
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.isFadeThrough(): Boolean =
+    navMotionFor(initialState.destination.route, targetState.destination.route) == NavMotion.FADE_THROUGH
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.enterFor(
+    reduceMotion: Boolean,
+    other: () -> EnterTransition,
+): EnterTransition = when {
+    reduceMotion -> EnterTransition.None
+    isFadeThrough() -> fadeIn(tween(FADE_MS)) + scaleIn(tween(NAV_ANIM_MS), initialScale = FADE_SCALE)
+    else -> other()
+}
+
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.exitFor(
+    reduceMotion: Boolean,
+    other: () -> ExitTransition,
+): ExitTransition = when {
+    reduceMotion -> ExitTransition.None
+    isFadeThrough() -> fadeOut(tween(FADE_MS))
+    else -> other()
 }
 
 private fun greetingRes(period: DayPeriod): Int = when (period) {

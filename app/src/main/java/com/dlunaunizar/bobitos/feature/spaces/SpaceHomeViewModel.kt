@@ -125,9 +125,9 @@ class SpaceHomeViewModel @Inject constructor(
         val spaceId = request.spaceId
         return dayProvider.today(zone)
             .flatMapLatest { today ->
-                val dayStart = today.atStartOfDay(zone).toInstant()
-                val dayEnd = today.plusDays(1).atStartOfDay(zone).toInstant()
                 val tomorrow = today.plusDays(1)
+                val dayStart = today.atStartOfDay(zone).toInstant()
+                val dayEnd = tomorrow.atStartOfDay(zone).toInstant()
                 combine(
                     combine(
                         taskRepository.tasks(spaceId),
@@ -141,8 +141,8 @@ class SpaceHomeViewModel @Inject constructor(
                     ) { activities, shopping, members -> Triple(activities, shopping, members) },
                 ) { (tasks, meals, events), (activities, shopping, members) ->
                     buildTodayAgenda(
-                        request.userId, today, zone, tasks, meals, events, activities, shopping, members,
-                    ).copy(spaceId = spaceId)
+                        spaceId, request.userId, today, zone, tasks, meals, events, activities, shopping, members,
+                    )
                 }
             }
             .map<TodayAgenda, UiState<TodayAgenda>> { UiState.Content(it) }

@@ -7,8 +7,8 @@ import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.repository.sortedForBrands
 import com.dlunaunizar.bobitos.data.repository.sortedForIngredientCatalog
-import java.text.Collator
-import java.util.Locale
+import com.dlunaunizar.bobitos.feature.common.CategoryCollator
+import com.dlunaunizar.bobitos.feature.common.categoryKey
 
 /** Comunes y personales en una lista: el personal cuyo id ya es común se oculta. */
 internal fun mergeIngredients(
@@ -55,17 +55,12 @@ internal fun ingredientRowLines(
     }
 }
 
-// Compartido entre llamadas: RuleBasedCollator.compare está sincronizado.
-private val CATEGORY_COLLATOR: Collator = Collator.getInstance(Locale.forLanguageTag("es-ES"))
-
-private fun String.categoryKey(): String = trim().lowercase(Locale.forLanguageTag("es-ES"))
-
 /** Categorías del catálogo sin repetir (las que solo difieren en mayúsculas se juntan) ni vacías, ordenadas. */
 internal fun List<CatalogIngredient>.categories(): List<String> = mapNotNull {
     it.category?.trim()?.takeIf(String::isNotEmpty)
 }
     .distinctBy { it.categoryKey() }
-    .sortedWith(CATEGORY_COLLATOR)
+    .sortedWith(CategoryCollator)
 
 /** Con [category] null devuelve todo; si no, los de esa categoría sin mayúsculas ni espacios en los extremos. */
 internal fun List<CatalogIngredient>.inCategory(category: String?): List<CatalogIngredient> {

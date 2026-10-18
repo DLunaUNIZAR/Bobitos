@@ -14,12 +14,8 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,7 +31,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -48,16 +43,14 @@ import com.dlunaunizar.bobitos.core.common.BobitosDates
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
+import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
-import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
-import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
-import com.dlunaunizar.bobitos.core.designsystem.component.MultiSelectFilterDropdown
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
@@ -199,7 +192,7 @@ fun PersonalCalendarScreen(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = Spacing.lg)
                     .padding(top = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
@@ -329,26 +322,17 @@ internal fun SpacesFilter(
     onSelectAll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val value = multiFilterValue(selectedIds, spaces.map { it.id to it.name })
-    val allText = stringResource(R.string.my_calendar_all_spaces)
-    FilterDropdownRow(modifier) {
-        MultiSelectFilterDropdown(
-            label = stringResource(R.string.my_calendar_spaces),
-            value = when (value) {
-                MultiFilterValue.All -> allText
-                is MultiFilterValue.One -> value.name
-                is MultiFilterValue.Some ->
-                    pluralStringResource(R.plurals.my_calendar_spaces_count, value.count, value.count)
-            },
-            options = listOf(FilterOption(allText, value == MultiFilterValue.All, onSelectAll)) +
-                spaces.map { space ->
-                    FilterOption(space.name, space.id in selectedIds) { onToggle(space.id) }
-                },
-            active = value != MultiFilterValue.All,
-            modifier = Modifier.weight(1f),
-            tag = "filtro_espacios",
-        )
-    }
+    MultiFilter(
+        label = stringResource(R.string.my_calendar_spaces),
+        allText = stringResource(R.string.my_calendar_all_spaces),
+        countPlural = R.plurals.my_calendar_spaces_count,
+        items = spaces.map { it.id to it.name },
+        selectedIds = selectedIds,
+        onToggle = onToggle,
+        onSelectAll = onSelectAll,
+        tag = "filtro_espacios",
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -427,16 +411,10 @@ private fun List<PersonalCalendarEvent>.eventsOn(date: LocalDate): List<Personal
 @Composable
 private fun NewEventFab(canWrite: Boolean, spaceCount: Int, expanded: Boolean, onClick: () -> Unit) {
     if (!canWrite || spaceCount == 0) return
-    ExtendedFloatingActionButton(
+    AddFab(
+        label = R.string.calendar_new_event,
         expanded = expanded,
         onClick = onClick,
-        icon = {
-            Icon(
-                Icons.Rounded.Add,
-                contentDescription = if (expanded) null else stringResource(R.string.calendar_new_event),
-            )
-        },
-        text = { Text(stringResource(R.string.calendar_new_event)) },
     )
 }
 

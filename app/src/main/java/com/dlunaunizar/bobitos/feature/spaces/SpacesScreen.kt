@@ -15,14 +15,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -55,6 +53,7 @@ import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
+import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
@@ -166,16 +165,10 @@ private fun SpacesContent(
         floatingActionButton = {
             if (canWrite) {
                 val fabExpanded = rememberFabExpanded(listState)
-                ExtendedFloatingActionButton(
+                AddFab(
+                    label = R.string.space_create,
                     expanded = fabExpanded,
                     onClick = { showCreateDialog = true },
-                    icon = {
-                        Icon(
-                            Icons.Rounded.Add,
-                            contentDescription = if (fabExpanded) null else stringResource(R.string.space_create),
-                        )
-                    },
-                    text = { Text(stringResource(R.string.space_create)) },
                 )
             }
         },

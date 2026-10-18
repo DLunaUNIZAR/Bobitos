@@ -14,13 +14,11 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,6 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
+import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.DeclareHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
@@ -172,20 +171,14 @@ fun RecipesScreen(
         floatingActionButton = {
             if (canWrite) {
                 val fabExpanded = rememberFabExpanded(listState)
-                ExtendedFloatingActionButton(
+                AddFab(
+                    label = R.string.recipes_create,
                     expanded = fabExpanded,
                     onClick = {
                         editorRecipeId = null
                         imported = null
                         editorOpen = true
                     },
-                    icon = {
-                        Icon(
-                            Icons.Rounded.Add,
-                            contentDescription = if (fabExpanded) null else stringResource(R.string.recipes_create),
-                        )
-                    },
-                    text = { Text(stringResource(R.string.recipes_create)) },
                 )
             }
         },

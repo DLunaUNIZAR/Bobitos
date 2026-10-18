@@ -88,7 +88,7 @@ fun FilterDropdownRow(modifier: Modifier = Modifier, content: @Composable FlowRo
 /** Ancho mínimo de un desplegable dentro de [FilterDropdownRow]; por debajo de él pasa a su propia fila. */
 private val FilterMinWidth = 150.dp
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FilterDropdownBase(
     label: String,

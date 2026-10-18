@@ -22,7 +22,6 @@ import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -55,6 +54,7 @@ import com.dlunaunizar.bobitos.core.common.BobitosDates
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
+import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.ClickableCard
@@ -710,16 +710,10 @@ private fun MealParticipants(members: List<SpaceMember>, draft: MealDraft, onDra
 @Composable
 private fun NewMealFab(visible: Boolean, expanded: Boolean, onClick: () -> Unit) {
     if (!visible) return
-    ExtendedFloatingActionButton(
+    AddFab(
+        label = R.string.meals_add_title,
         expanded = expanded,
         onClick = onClick,
-        icon = {
-            Icon(
-                Icons.Rounded.Add,
-                contentDescription = if (expanded) null else stringResource(R.string.meals_add_title),
-            )
-        },
-        text = { Text(stringResource(R.string.meals_add_title)) },
     )
 }
 

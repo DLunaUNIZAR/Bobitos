@@ -15,13 +15,10 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,6 +40,7 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
+import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.DeclareHeaderBand
@@ -119,19 +117,13 @@ fun ExercisesScreen(
         modifier = modifier,
         floatingActionButton = {
             val fabExpanded = rememberFabExpanded(listState)
-            ExtendedFloatingActionButton(
+            AddFab(
+                label = R.string.exercises_add,
                 expanded = fabExpanded,
                 onClick = {
                     editorExerciseId = null
                     editorOpen = true
                 },
-                icon = {
-                    Icon(
-                        Icons.Rounded.Add,
-                        contentDescription = if (fabExpanded) null else stringResource(R.string.exercises_add),
-                    )
-                },
-                text = { Text(stringResource(R.string.exercises_add)) },
             )
         },
     ) { padding ->

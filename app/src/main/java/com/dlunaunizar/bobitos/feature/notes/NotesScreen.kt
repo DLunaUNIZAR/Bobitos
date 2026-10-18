@@ -13,12 +13,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.StickyNote2
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +42,7 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
+import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.ClickableCard
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
@@ -100,19 +99,13 @@ fun NotesScreen(
         floatingActionButton = {
             if (canWrite && spaceId != null) {
                 val fabExpanded = rememberFabExpanded(listState)
-                ExtendedFloatingActionButton(
+                AddFab(
+                    label = R.string.notes_add,
                     expanded = fabExpanded,
                     onClick = {
                         editorNoteId = null
                         editorVisible = true
                     },
-                    icon = {
-                        Icon(
-                            Icons.Rounded.Add,
-                            contentDescription = if (fabExpanded) null else stringResource(R.string.notes_add),
-                        )
-                    },
-                    text = { Text(stringResource(R.string.notes_add)) },
                 )
             }
         },

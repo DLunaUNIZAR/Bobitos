@@ -5,11 +5,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BreakfastDining
 import androidx.compose.material.icons.rounded.DinnerDining
 import androidx.compose.material.icons.rounded.LunchDining
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.dlunaunizar.bobitos.R
-import com.dlunaunizar.bobitos.core.designsystem.theme.LocalDarkTheme
 import com.dlunaunizar.bobitos.core.designsystem.theme.themedColor
 import com.dlunaunizar.bobitos.core.model.MealSlot
 
@@ -34,6 +32,3 @@ internal fun MealSlot.accent(dark: Boolean): Color = when (this) {
     MealSlot.COMIDA -> themedColor(dark, 0xFF256528, 0xFF68C76D)
     MealSlot.CENA -> themedColor(dark, 0xFF5E35B1, 0xFFBEABE6)
 }
-
-@Composable
-internal fun MealSlot.accent(): Color = accent(LocalDarkTheme.current)

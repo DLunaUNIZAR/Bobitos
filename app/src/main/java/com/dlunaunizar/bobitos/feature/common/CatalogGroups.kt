@@ -1,8 +1,5 @@
 package com.dlunaunizar.bobitos.feature.common
 
-import java.text.Collator
-import java.util.Locale
-
 /** Cabecera de un grupo de catálogo; la pantalla decide el texto de [Mine] y [Other]. */
 sealed interface CatalogHeader {
     data object Mine : CatalogHeader
@@ -15,8 +12,6 @@ sealed interface CatalogHeader {
 data class CatalogGroup<T>(val header: CatalogHeader?, val items: List<T>)
 
 enum class CatalogLayout { BY_CATEGORY, FLAT }
-
-private val spanish = Locale.Builder().setLanguage("es").setRegion("ES").build()
 
 /**
  * Agrupa un catálogo ya filtrado por la búsqueda y ordenado. En [CatalogLayout.FLAT] devuelve un
@@ -31,12 +26,12 @@ fun <T> groupCatalog(
     layout: CatalogLayout,
     selectedCategory: String? = null,
 ): List<CatalogGroup<T>> {
-    fun key(item: T) = categoryOf(item)?.trim()?.lowercase(spanish)?.takeIf { it.isNotEmpty() }
+    fun key(item: T) = categoryOf(item)?.categoryKey()?.takeIf { it.isNotEmpty() }
     val (mine, others) = items.partition(isMine)
     val groups = when {
         layout == CatalogLayout.FLAT -> listOf(CatalogGroup(null, mine + others))
         selectedCategory != null -> {
-            val wanted = selectedCategory.trim().lowercase(spanish)
+            val wanted = selectedCategory.categoryKey()
             listOf(
                 CatalogGroup(
                     CatalogHeader.Category(selectedCategory.trim()),
@@ -48,11 +43,10 @@ fun <T> groupCatalog(
             )
         }
         else -> {
-            val collator = Collator.getInstance(spanish)
             val byCategory = others.filter { key(it) != null }.groupBy { key(it) }.values
                 .map { CatalogGroup(CatalogHeader.Category(categoryOf(it.first())!!.trim()), it) }
                 .sortedWith { a, b ->
-                    collator.compare(
+                    CategoryCollator.compare(
                         (a.header as CatalogHeader.Category).name,
                         (b.header as CatalogHeader.Category).name,
                     )

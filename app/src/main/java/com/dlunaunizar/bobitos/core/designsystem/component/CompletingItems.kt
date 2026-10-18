@@ -87,6 +87,18 @@ class CompletingItems internal constructor(private val scope: CoroutineScope, pr
         result.complete(success)
     }
 
+    /**
+     * Completa [id] con vida: la marca antes de que la escritura pueda acabar y lanza la escritura con [launch], que
+     * recibe el aviso de que acabó y devuelve si llegó a lanzarse. Si se lanzó, [celebration] sabe que lo completó el
+     * usuario; si no, la fila vuelve a su estado. Volver a tocar una que se está completando no hace nada.
+     */
+    fun begin(id: String, celebration: CelebrationState, launch: (onFinished: (Boolean) -> Unit) -> Boolean) {
+        if (isCompleting(id)) return
+        start(id)
+        val launched = launch { ok -> finish(id, ok) }
+        if (launched) celebration.userCompleted(id) else finish(id, false)
+    }
+
     fun isCompleting(id: String): Boolean = id in phases
 
     internal fun isLeaving(id: String): Boolean = phases[id] == true

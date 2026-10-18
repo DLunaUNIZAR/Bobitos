@@ -19,7 +19,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.ShoppingCart
@@ -29,7 +28,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -61,6 +59,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.Celebration
@@ -164,9 +163,13 @@ fun ShoppingScreen(
     }
     var query by rememberSaveable { mutableStateOf("") }
     var selectedSupermarket by remember { mutableStateOf<Supermarket?>(null) }
-    val presentSupermarkets = allItems.presentSupermarkets()
-    val activeSupermarket = resolveSupermarket(selectedSupermarket, presentSupermarkets)
-    val filteredItems = allItems.filter { it.matchesQuery(query) }.forSupermarket(activeSupermarket)
+    val presentSupermarkets = remember(allItems) { allItems.presentSupermarkets() }
+    val activeSupermarket = remember(selectedSupermarket, presentSupermarkets) {
+        resolveSupermarket(selectedSupermarket, presentSupermarkets)
+    }
+    val filteredItems = remember(allItems, query, activeSupermarket) {
+        allItems.filter { it.matchesQuery(query) }.forSupermarket(activeSupermarket)
+    }
     val completing = rememberCompletingItems()
     // Lo que acaba de marcarse sigue unos instantes entre las pendientes, y no se repite entre las compradas.
     val pending = completing.retain(filteredItems.filterNot(ShoppingItem::purchased), ShoppingItem::id)
@@ -180,11 +183,8 @@ fun ShoppingScreen(
     // Marcar y desmarcar no esperan a la puerta de `isSaving`: cada producto escribe al suyo, y un segundo toque sobre
     // el mismo mientras se marca no hace nada. Si era el último producto, se celebra.
     val markPurchased: (ShoppingItem) -> Unit = { item ->
-        if (!completing.isCompleting(item.id)) {
-            // La fila se marca antes de que la escritura pueda acabar; si no llega a lanzarse, se devuelve.
-            completing.start(item.id)
-            val launched = viewModel.setPurchased(spaceId, item.id, true) { ok -> completing.finish(item.id, ok) }
-            if (launched) celebration.userCompleted(item.id) else completing.finish(item.id, false)
+        completing.begin(item.id, celebration) { onFinished ->
+            viewModel.setPurchased(spaceId, item.id, true, onFinished)
         }
     }
     val unmarkPurchased: (ShoppingItem) -> Unit = { item ->
@@ -196,20 +196,14 @@ fun ShoppingScreen(
         floatingActionButton = {
             if (canWrite) {
                 val fabExpanded = rememberFabExpanded(listState)
-                ExtendedFloatingActionButton(
+                AddFab(
+                    label = R.string.shopping_add,
                     expanded = fabExpanded,
                     onClick = {
                         editedItemId = null
                         initialDraft = null
                         editorVisible = true
                     },
-                    icon = {
-                        Icon(
-                            Icons.Rounded.Add,
-                            contentDescription = if (fabExpanded) null else stringResource(R.string.shopping_add),
-                        )
-                    },
-                    text = { Text(stringResource(R.string.shopping_add)) },
                 )
             }
         },

@@ -37,7 +37,7 @@ class TodayAgendaTest {
         events: List<CalendarEvent> = emptyList(),
         activities: List<SportActivity> = emptyList(),
         shopping: List<ShoppingItem> = emptyList(),
-    ) = buildTodayAgenda(me, today, zone, tasks, meals, events, activities, shopping, members)
+    ) = buildTodayAgenda("casa", me, today, zone, tasks, meals, events, activities, shopping, members)
 
     @Test
     fun tareasVencidasPrimeroYLuegoLasDeHoy() {

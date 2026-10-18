@@ -98,6 +98,7 @@ class SpaceTodayScreenTest {
         entries = entradas,
         shopping = compra,
         workload = listOf(MemberWorkload("u1", "Ana", pending = 2, doneThisWeek = 1)),
+        spaceId = "casa",
     )
 
     private fun mostrar(agenda: TodayAgenda = agenda(), canWrite: Boolean = true) {

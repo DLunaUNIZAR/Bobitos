@@ -2,7 +2,6 @@ package com.dlunaunizar.bobitos.feature.spaces
 
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
-import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.SpaceMember
@@ -13,6 +12,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.temporal.ChronoField
+import com.dlunaunizar.bobitos.core.model.Meal as MealModel
 
 /** Tareas que caben en «Tareas para hoy»; el resto se cuenta en [TodayAgenda.hiddenTasks]. */
 const val AGENDA_MAX_TASKS = 5
@@ -26,8 +26,8 @@ data class TodayAgenda(
     val entries: List<AgendaEntry>,
     val shopping: ShoppingGlance,
     val workload: List<MemberWorkload>,
-    /** De qué espacio es esta agenda; vacío si no se sabe. */
-    val spaceId: String = "",
+    /** De qué espacio es esta agenda. */
+    val spaceId: String,
 )
 
 /**
@@ -71,12 +71,7 @@ sealed interface AgendaEntry {
         AgendaEntry
 
     // [meal] null es una franja sin planificar.
-    data class Meal(
-        val slot: MealSlot,
-        val meal: com.dlunaunizar.bobitos.core.model.Meal?,
-        val cook: AgendaPerson?,
-        val eaters: Int,
-    ) : AgendaEntry {
+    data class Meal(val slot: MealSlot, val meal: MealModel?, val cook: AgendaPerson?, val eaters: Int) : AgendaEntry {
         override val time: AgendaTime = AgendaTime.Slot(slot)
     }
 }
@@ -93,11 +88,12 @@ data class MemberWorkload(val userId: String, val displayName: String, val pendi
  * se agrega en cliente, sin consultas extra ni índices.
  */
 fun buildTodayAgenda(
+    spaceId: String,
     userId: String,
     today: LocalDate,
     zone: ZoneId,
     tasks: List<TaskItem>,
-    meals: List<Meal>,
+    meals: List<MealModel>,
     events: List<CalendarEvent>,
     activities: List<SportActivity>,
     shopping: List<ShoppingItem>,
@@ -119,6 +115,7 @@ fun buildTodayAgenda(
             ShoppingGlance(pending.size, pending.take(SHOPPING_GLANCE_NAMES).map { it.name })
         },
         workload = workloadOf(today, zone, tasks, members),
+        spaceId = spaceId,
     )
 }
 
@@ -148,7 +145,7 @@ private fun agendaEntries(
     userId: String,
     today: LocalDate,
     zone: ZoneId,
-    meals: List<Meal>,
+    meals: List<MealModel>,
     events: List<CalendarEvent>,
     activities: List<SportActivity>,
 ): List<AgendaEntry> {
@@ -186,7 +183,7 @@ private fun agendaEntries(
     )
 }
 
-private fun cookOf(meal: Meal, userId: String): AgendaPerson? = when {
+private fun cookOf(meal: MealModel, userId: String): AgendaPerson? = when {
     meal.cookId == null -> null
     meal.cookId == userId -> AgendaPerson.You
     else -> meal.cookName?.let { AgendaPerson.Member(it) }

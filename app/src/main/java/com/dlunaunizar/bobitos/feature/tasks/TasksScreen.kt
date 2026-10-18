@@ -24,7 +24,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Check
@@ -39,7 +38,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -81,6 +79,7 @@ import com.dlunaunizar.bobitos.core.common.BobitosDates
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
+import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.Celebration
@@ -145,7 +144,7 @@ fun TasksScreen(
     }
     val members = (state.members as? UiState.Content)?.value.orEmpty()
     val allTasks = (state.tasks as? UiState.Content)?.value.orEmpty()
-    val visibleTasks = state.filters.apply(allTasks)
+    val visibleTasks = remember(allTasks, state.filters) { state.filters.apply(allTasks) }
     val enabled = canWrite && !state.isSaving
     // El editor sobrevive a una rotación: se guarda el id de la tarea (no el objeto) y el índice de la plantilla.
     var editorTaskId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -178,18 +177,12 @@ fun TasksScreen(
         floatingActionButton = {
             if (canWrite) {
                 val fabExpanded = rememberFabExpanded(listState)
-                ExtendedFloatingActionButton(
+                AddFab(
+                    label = R.string.tasks_add,
                     expanded = fabExpanded,
                     onClick = {
                         openEditor(null, -1)
                     },
-                    icon = {
-                        Icon(
-                            Icons.Rounded.Add,
-                            contentDescription = if (fabExpanded) null else stringResource(R.string.tasks_add),
-                        )
-                    },
-                    text = { Text(stringResource(R.string.tasks_add)) },
                 )
             }
         },
@@ -221,27 +214,21 @@ fun TasksScreen(
         val setCompletedWithUndo: (TaskItem, Boolean) -> Unit = { task, completed ->
             if (!completing.isCompleting(task.id)) {
                 val animate = completed && task.status != TaskStatus.DONE
-                // La fila se marca antes de que la escritura pueda acabar; si no llega a lanzarse, se devuelve.
-                if (animate) completing.start(task.id)
-                val launched = viewModel.setCompleted(
-                    spaceId,
-                    task,
-                    completed,
-                    onFinished = { ok -> if (animate) completing.finish(task.id, ok) },
-                ) {
-                    scope.launchUndo(snackbar, completedMessage, undoLabel) {
-                        viewModel.undoCompletion(spaceId, it)
+                val write: (onFinished: (Boolean) -> Unit) -> Boolean = { onFinished ->
+                    viewModel.setCompleted(spaceId, task, completed, onFinished = onFinished) {
+                        scope.launchUndo(snackbar, completedMessage, undoLabel) {
+                            viewModel.undoCompletion(spaceId, it)
+                        }
                     }
                 }
-                if (animate) {
-                    // Si era la última de hoy, se celebra.
-                    if (launched) celebration.userCompleted(task.id) else completing.finish(task.id, false)
-                }
+                // Solo se anima al completar una que no estaba hecha; si era la última de hoy, se celebra.
+                if (animate) completing.begin(task.id, celebration, write) else write {}
             }
         }
         Box(Modifier.fillMaxSize().padding(padding)) {
             Column(Modifier.fillMaxSize()) {
-                val queried = completing.retain(visibleTasks.filter { it.matchesQuery(query) }, TaskItem::id)
+                val matching = remember(visibleTasks, query) { visibleTasks.filter { it.matchesQuery(query) } }
+                val queried = completing.retain(matching, TaskItem::id)
                 val sections = queried.groupIntoSections()
                 if (canWrite) {
                     TopBarActions {

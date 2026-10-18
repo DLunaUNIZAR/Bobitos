@@ -68,14 +68,13 @@ internal fun ExerciseThumbnail(
             load()?.let { loaded -> withContext(Dispatchers.Default) { decodeThumbnail(loaded.bytes, targetPx) } }
         }
     }
+    val hasImage = bitmap != null
     Box(
         modifier = modifier
             .size(ThumbnailSize)
             .clip(RoundedCornerShape(ThumbnailCorner))
             .background(
-                if (bitmap !=
-                    null
-                ) {
+                if (hasImage) {
                     exerciseImageBackground(LocalDarkTheme.current)
                 } else {
                     MaterialTheme.colorScheme.surfaceContainerHighest

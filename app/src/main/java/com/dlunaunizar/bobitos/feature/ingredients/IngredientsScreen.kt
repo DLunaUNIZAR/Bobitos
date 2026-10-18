@@ -13,11 +13,9 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Kitchen
 import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -47,6 +45,7 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
+import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.DeclareHeaderBand
@@ -123,16 +122,10 @@ fun IngredientsScreen(
         actions = { ScanButton(enabled = !state.isLookingUp, onScanned = viewModel::lookupBarcode) },
         floatingActionButton = {
             val fabExpanded = rememberFabExpanded(listState)
-            ExtendedFloatingActionButton(
+            AddFab(
+                label = R.string.ingredients_add,
                 expanded = fabExpanded,
                 onClick = { showEditor = true },
-                icon = {
-                    Icon(
-                        Icons.Rounded.Add,
-                        contentDescription = if (fabExpanded) null else stringResource(R.string.ingredients_add),
-                    )
-                },
-                text = { Text(stringResource(R.string.ingredients_add)) },
             )
         },
     ) { padding ->

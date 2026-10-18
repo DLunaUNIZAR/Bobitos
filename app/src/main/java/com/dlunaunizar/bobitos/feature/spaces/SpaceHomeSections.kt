@@ -16,7 +16,7 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 
-// D2 — Reparto: pendientes y hechas esta semana por miembro, con barra de equilibrio.
+// Reparto de la casa: pendientes y hechas esta semana por miembro, con barra de equilibrio.
 @Composable
 fun WorkloadSection(workload: List<MemberWorkload>, modifier: Modifier = Modifier) {
     if (workload.isEmpty()) return

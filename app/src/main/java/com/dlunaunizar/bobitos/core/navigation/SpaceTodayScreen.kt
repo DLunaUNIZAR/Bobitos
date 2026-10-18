@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -106,10 +107,9 @@ internal fun SpaceTodayScreen(
     // Varias casillas seguidas escriben todas, cada una a la suya; volver a tocar una que se está completando no hace
     // nada. La fila sale cuando la escritura se confirma, y si falla vuelve a su estado.
     val toggle: (TaskItem) -> Unit = { task ->
-        if (!completing.isCompleting(task.id)) {
-            completing.start(task.id)
-            celebration.userCompleted(task.id)
-            onToggleTask(task) { ok -> completing.finish(task.id, ok) }
+        completing.begin(task.id, celebration) { onFinished ->
+            onToggleTask(task, onFinished)
+            true
         }
     }
     Box(Modifier.fillMaxSize()) {
@@ -127,12 +127,12 @@ internal fun SpaceTodayScreen(
                     .padding(start = Spacing.lg, end = Spacing.lg, top = Spacing.sm, bottom = Spacing.xl),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xl),
             ) {
-                val today = agenda.value
-                val tasks = completing.retain(today.tasks) { it.task.id }
-                TasksSection(tasks, today.hiddenTasks, canWrite, completing, cascade, toggle, onOpen)
-                AgendaSection(today.entries, tasks.size, cascade, onOpen)
-                ShoppingRow(today.shopping, tasks.size + today.entries.size, cascade, onOpen)
-                WorkloadSection(today.workload)
+                val content = agenda.value
+                val tasks = completing.retain(content.tasks) { it.task.id }
+                TasksSection(tasks, content.hiddenTasks, canWrite, completing, cascade, toggle, onOpen)
+                AgendaSection(content.entries, tasks.size, cascade, onOpen)
+                ShoppingRow(content.shopping, tasks.size + content.entries.size, cascade, onOpen)
+                WorkloadSection(content.workload)
             }
         }
         Celebration(
@@ -222,14 +222,14 @@ private fun TaskRow(
                 style = MaterialTheme.typography.bodyLarge,
                 textDecoration = if (done) TextDecoration.LineThrough else null,
             )
-            TaskMeta(item, today)
+            TaskMeta(item, today, accent)
         }
     }
 }
 
 // «Venció ayer · Alta · Tú», con la bandera delante; lo vencido, en el color de error.
 @Composable
-private fun TaskMeta(item: AgendaTask, today: LocalDate) {
+private fun TaskMeta(item: AgendaTask, today: LocalDate, accent: Color) {
     val error = MaterialTheme.colorScheme.error
     val overdue = item.overdueSince?.let { overdueText(it, today) }
     val rest = listOf(item.task.priority.label(), item.owner.label()).joinToString(" · ")
@@ -237,7 +237,7 @@ private fun TaskMeta(item: AgendaTask, today: LocalDate) {
         Icon(
             imageVector = Icons.Rounded.Flag,
             contentDescription = null,
-            tint = moduleColors(AppModule.TASKS).accent,
+            tint = accent,
             modifier = Modifier.padding(end = Spacing.xs).size(FlagSize),
         )
         Text(

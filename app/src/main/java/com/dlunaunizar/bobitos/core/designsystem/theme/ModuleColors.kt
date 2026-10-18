@@ -23,13 +23,9 @@ object ModulePalette {
         if (dark) darkColors.getValue(module) else lightColors.getValue(module)
 
     /** Tinte opaco de fila y de cabecera: el acento sobre el fondo, como `categoryCardColors` pero sin alfa. */
-    fun tint(module: AppModule, dark: Boolean): Color {
-        val alpha = if (dark) TINT_ALPHA_DARK else TINT_ALPHA_LIGHT
-        return colors(
-            module,
-            dark,
-        ).accent.copy(alpha = alpha).compositeOver(if (dark) backgroundDark else backgroundLight)
-    }
+    fun tint(module: AppModule, dark: Boolean): Color = colors(module, dark).accent
+        .copy(alpha = if (dark) TINT_ALPHA_DARK else TINT_ALPHA_LIGHT)
+        .compositeOver(if (dark) backgroundDark else backgroundLight)
 
     private const val TINT_ALPHA_DARK = 0.16f
     private const val TINT_ALPHA_LIGHT = 0.12f

@@ -511,7 +511,6 @@
     <string name="meals_recipe_origin_mine">Mía</string>
     <string name="meals_recipe_origin_common">Común</string>
     <string name="recipes_title">Recetario</string>
-    <string name="recipes_open">Recetario</string>
     <string name="recipes_search_label">Buscar receta</string>
     <string name="recipes_section_mine">Mis recetas</string>
     <string name="recipes_group_other">Otras</string>
@@ -639,7 +638,6 @@
     <string name="close">Cerrar</string>
     <string name="more_options_for">Más opciones de «%1$s»</string>
     <string name="routines_title">Rutinas</string>
-    <string name="routines_open">Rutinas</string>
     <string name="routines_add">Nueva rutina</string>
     <string name="routines_add_title">Crear rutina</string>
     <string name="routines_edit_title">Editar rutina</string>
@@ -691,7 +689,6 @@
     <string name="routines_notice_deleted">Rutina eliminada</string>
     <string name="routines_fork">Guardar como mía</string>
     <string name="exercises_title">Ejercicios</string>
-    <string name="exercises_open">Ejercicios</string>
     <string name="exercises_add">Nuevo ejercicio</string>
     <string name="exercises_add_title">Crear ejercicio</string>
     <string name="exercises_edit_title">Editar ejercicio</string>
@@ -768,7 +765,6 @@
     <string name="exercises_notice_saved">Ejercicio guardado</string>
     <string name="exercises_notice_deleted">Ejercicio eliminado</string>
     <string name="ingredients_title">Ingredientes</string>
-    <string name="ingredients_open">Ingredientes</string>
     <string name="ingredients_search_label">Buscar ingrediente</string>
     <string name="ingredients_empty">Aún no hay ingredientes. Añade el primero.</string>
     <string name="ingredients_filter_category_label">Categoría</string>

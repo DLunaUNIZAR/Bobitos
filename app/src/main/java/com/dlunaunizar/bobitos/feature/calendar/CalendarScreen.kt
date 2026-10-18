@@ -35,7 +35,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.ChevronLeft
@@ -45,7 +44,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -96,6 +94,7 @@ import com.dlunaunizar.bobitos.core.common.BobitosDates
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
+import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.AppLocale
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
@@ -103,13 +102,10 @@ import com.dlunaunizar.bobitos.core.designsystem.component.ClickableCard
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
-import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
-import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
-import com.dlunaunizar.bobitos.core.designsystem.component.MultiSelectFilterDropdown
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
@@ -197,16 +193,10 @@ fun CalendarScreen(
         floatingActionButton = {
             if (canWrite) {
                 val fabExpanded = rememberFabExpanded(fabListState)
-                ExtendedFloatingActionButton(
+                AddFab(
+                    label = R.string.calendar_new_event,
                     expanded = fabExpanded,
                     onClick = { creating = true },
-                    icon = {
-                        Icon(
-                            Icons.Rounded.Add,
-                            contentDescription = if (fabExpanded) null else stringResource(R.string.calendar_new_event),
-                        )
-                    },
-                    text = { Text(stringResource(R.string.calendar_new_event)) },
                 )
             }
         },
@@ -407,29 +397,17 @@ internal fun PeopleFilter(
     onSelectAll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val value = multiFilterValue(selectedIds, members.map { it.userId to it.displayName })
-    val allText = stringResource(R.string.calendar_all)
-    FilterDropdownRow(modifier) {
-        MultiSelectFilterDropdown(
-            label = stringResource(R.string.calendar_people),
-            value = when (value) {
-                MultiFilterValue.All -> allText
-                is MultiFilterValue.One -> value.name
-                is MultiFilterValue.Some -> pluralStringResource(
-                    R.plurals.calendar_people_count,
-                    value.count,
-                    value.count,
-                )
-            },
-            options = listOf(FilterOption(allText, value == MultiFilterValue.All, onSelectAll)) +
-                members.map { member ->
-                    FilterOption(member.displayName, member.userId in selectedIds) { onToggle(member.userId) }
-                },
-            active = value != MultiFilterValue.All,
-            modifier = Modifier.weight(1f),
-            tag = "filtro_personas",
-        )
-    }
+    MultiFilter(
+        label = stringResource(R.string.calendar_people),
+        allText = stringResource(R.string.calendar_all),
+        countPlural = R.plurals.calendar_people_count,
+        items = members.map { it.userId to it.displayName },
+        selectedIds = selectedIds,
+        onToggle = onToggle,
+        onSelectAll = onSelectAll,
+        tag = "filtro_personas",
+        modifier = modifier,
+    )
 }
 
 @Composable

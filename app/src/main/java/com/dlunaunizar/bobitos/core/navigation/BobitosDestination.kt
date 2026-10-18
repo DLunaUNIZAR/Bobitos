@@ -19,12 +19,9 @@ import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.ShoppingCart
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
-import com.dlunaunizar.bobitos.core.designsystem.theme.moduleColors
 
 enum class BobitosDestination(val route: String, @param:StringRes val titleRes: Int, val icon: ImageVector) {
     Home(
@@ -130,18 +127,6 @@ enum class BobitosDestination(val route: String, @param:StringRes val titleRes: 
         // Módulos agrupados bajo la pestaña «Más».
         val moreDestinations = listOf(Meals, Sport, Notes, Pantry)
     }
-}
-
-// Color de módulo dentro de un espacio, para dar identidad de color al hub y a la barra
-// inferior. Solo los cinco módulos del workspace tienen color; el resto, null (neutro).
-@Composable
-fun BobitosDestination.moduleColor(): Color? = when (this) {
-    BobitosDestination.Shopping -> moduleColors(AppModule.SHOPPING).accent
-    BobitosDestination.Tasks -> moduleColors(AppModule.TASKS).accent
-    BobitosDestination.Calendar -> moduleColors(AppModule.CALENDAR).accent
-    BobitosDestination.Meals -> moduleColors(AppModule.MEALS).accent
-    BobitosDestination.Sport -> moduleColors(AppModule.SPORT).accent
-    else -> null
 }
 
 /** Módulo de color de la pestaña o destino; null en Hoy, Más y el resto de pantallas sin módulo. */
