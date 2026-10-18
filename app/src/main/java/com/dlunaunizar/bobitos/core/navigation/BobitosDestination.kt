@@ -7,6 +7,7 @@ import androidx.compose.material.icons.automirrored.rounded.StickyNote2
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.Dashboard
+import androidx.compose.material.icons.rounded.DirectionsRun
 import androidx.compose.material.icons.rounded.Event
 import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.rounded.Groups
@@ -74,7 +75,7 @@ enum class BobitosDestination(val route: String, @param:StringRes val titleRes: 
     Sport(
         route = "sport",
         titleRes = R.string.sport_title,
-        icon = Icons.Rounded.FitnessCenter,
+        icon = Icons.Rounded.DirectionsRun,
     ),
     Recipes(
         route = "recipes",
@@ -119,8 +120,8 @@ enum class BobitosDestination(val route: String, @param:StringRes val titleRes: 
     ;
 
     companion object {
-        // Tarjetas del menú principal (al abrir la app): espacios + catálogos globales + calendario personal.
-        val mainMenuDestinations = listOf(Spaces, Recipes, Ingredients, Routines, Exercises, MyCalendar)
+        // Catálogos (en «Más» y en el inicio): son globales y solo se abren desde ahí.
+        val catalogDestinations = listOf(Recipes, Ingredients, Exercises, Routines)
         val workspaceDestinations = listOf(Shopping, Tasks, Calendar, Meals, Sport)
 
         // Pestañas de la barra inferior dentro de un espacio. Comidas, Deporte, Notas y Despensa cuelgan de «Más».

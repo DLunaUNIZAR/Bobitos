@@ -413,7 +413,7 @@ private fun MonogramAvatar(name: String, containerColor: Color, contentColor: Co
     }
 }
 
-private fun initialsOf(name: String): String = name.trim()
+internal fun initialsOf(name: String): String = name.trim()
     .split(Regex("\\s+"))
     .filter(String::isNotBlank)
     .take(2)

@@ -90,8 +90,6 @@ import java.time.LocalDate
 fun SportScreen(
     spaceId: String,
     canWrite: Boolean,
-    onOpenExercises: () -> Unit,
-    onOpenRoutines: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SportViewModel = hiltViewModel(),
 ) {
@@ -166,14 +164,6 @@ fun SportScreen(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = onOpenRoutines) {
-                    Text(stringResource(R.string.routines_open))
-                }
-                TextButton(onClick = onOpenExercises) {
-                    Icon(Icons.Rounded.FitnessCenter, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(Spacing.xs))
-                    Text(stringResource(R.string.exercises_open))
-                }
             }
             when (val activities = state.activities) {
                 UiState.Loading -> LoadingState(Modifier.weight(1f))

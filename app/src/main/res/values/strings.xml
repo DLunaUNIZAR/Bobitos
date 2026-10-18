@@ -49,6 +49,12 @@
     </plurals>
     <string name="space_today_title">Hoy</string>
     <string name="space_more_title">Más</string>
+    <string name="more_group_space">Del espacio</string>
+    <string name="more_group_catalogs">Catálogos</string>
+    <string name="main_menu_manage_spaces">Gestionar</string>
+    <string name="main_menu_mine">Lo tuyo</string>
+    <string name="main_menu_my_calendar_hint">Los eventos de todos tus espacios</string>
+    <string name="main_menu_space_row">%1$s · %2$s</string>
     <string name="space_today_greeting_morning">Buenos días</string>
     <string name="space_today_greeting_afternoon">Buenas tardes</string>
     <string name="space_today_greeting_evening">Buenas noches</string>

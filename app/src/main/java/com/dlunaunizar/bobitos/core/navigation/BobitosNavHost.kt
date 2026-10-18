@@ -7,20 +7,7 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AccountCircle
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -30,7 +17,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -44,8 +30,6 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.app.AppUiState
 import com.dlunaunizar.bobitos.app.RealtimeScope
 import com.dlunaunizar.bobitos.core.common.UiState
-import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
-import com.dlunaunizar.bobitos.core.designsystem.component.SyncStatusBanner
 import com.dlunaunizar.bobitos.core.designsystem.rememberReduceMotion
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.model.AuthUser
@@ -198,7 +182,13 @@ fun BobitosNavHost(
     ) {
         composable(BobitosDestination.Home.route) {
             MainMenuScreen(
+                spaces = uiState.spaces,
                 syncStatus = uiState.syncStatus,
+                onEnterSpace = {
+                    onSpaceSelected(it.id)
+                    navController.navigate(BobitosDestination.SpaceHome.route) { launchSingleTop = true }
+                },
+                onManageSpaces = navController::navigateToSpaces,
                 onOpen = { destination -> navController.navigate(destination.route) },
                 onProfile = {
                     onClearAuthFeedback()
@@ -389,8 +379,6 @@ fun BobitosNavHost(
                     MealsScreen(
                         spaceId = space.id,
                         canWrite = uiState.syncStatus.canWrite,
-                        onOpenRecipes = { navController.navigate(BobitosDestination.Recipes.route) },
-                        onOpenIngredients = { navController.navigate(BobitosDestination.Ingredients.route) },
                     )
                 }
             }
@@ -412,8 +400,6 @@ fun BobitosNavHost(
                     SportScreen(
                         spaceId = space.id,
                         canWrite = uiState.syncStatus.canWrite,
-                        onOpenExercises = { navController.navigate(BobitosDestination.Exercises.route) },
-                        onOpenRoutines = { navController.navigate(BobitosDestination.Routines.route) },
                     )
                 }
             }
@@ -559,49 +545,6 @@ fun BobitosNavHost(
                     onEditorSaveConsumed = onEditorSaveConsumed,
                     onBack = { navController.popBackStack() },
                 )
-            }
-        }
-    }
-}
-
-// Menú principal (al abrir la app): espacios + catálogos globales (recetario, ingredientes, rutinas,
-// ejercicios) + calendario personal. Los catálogos no dependen de ningún espacio.
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun MainMenuScreen(syncStatus: SyncStatus, onOpen: (BobitosDestination) -> Unit, onProfile: () -> Unit) {
-    Scaffold(
-        topBar = {
-            Column {
-                BobitosTopBar(
-                    titleContent = {
-                        Text(
-                            text = stringResource(R.string.app_name),
-                            style = MaterialTheme.typography.headlineSmall,
-                        )
-                    },
-                    actions = {
-                        IconButton(onClick = onProfile) {
-                            Icon(
-                                Icons.Rounded.AccountCircle,
-                                contentDescription = stringResource(R.string.profile_open),
-                            )
-                        }
-                    },
-                )
-                SyncStatusBanner(syncStatus)
-            }
-        },
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            BobitosDestination.mainMenuDestinations.forEach { destination ->
-                ModuleCard(destination = destination, onClick = { onOpen(destination) })
             }
         }
     }

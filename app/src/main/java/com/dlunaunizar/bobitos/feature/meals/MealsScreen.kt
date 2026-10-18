@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.Kitchen
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material3.DropdownMenu
@@ -25,7 +24,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -88,8 +86,6 @@ import java.time.LocalTime
 fun MealsScreen(
     spaceId: String,
     canWrite: Boolean,
-    onOpenRecipes: () -> Unit,
-    onOpenIngredients: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: MealsViewModel = hiltViewModel(),
 ) {
@@ -161,14 +157,6 @@ fun MealsScreen(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f),
                 )
-                IconButton(onClick = onOpenIngredients) {
-                    Icon(Icons.Rounded.Kitchen, contentDescription = stringResource(R.string.ingredients_open))
-                }
-                TextButton(onClick = onOpenRecipes) {
-                    Icon(Icons.Rounded.MenuBook, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(stringResource(R.string.recipes_open))
-                }
                 if (canWrite) {
                     Box {
                         MoreOptionsButton(
