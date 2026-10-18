@@ -4,6 +4,26 @@ Menores que las revisiones de cada rama dejaron sin arreglar. Cada línea dice s
 
 Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalogo-ejercicios-wger`) se cerraron en la rama `agent/menores-aplazados` (plan `docs/superpowers/plans/2026-10-10-menores-aplazados.md`).
 
+## 2026-10-18 — `agent/avisos-beta`
+
+- **Efecto visible:** la fila «Versión» en «Buscando…» solo muestra texto, sin indicador de progreso (la spec lo pide); con red lenta parece colgada (`AppVersionRow.kt`).
+- **Efecto visible:** los estados de la hoja (descarga, «Android te pide confirmar», error, «No se ha instalado») y el primer estado de la fila son nodos nuevos con `liveRegion` en cada rama: puede que TalkBack no los anuncie. Hace falta un nodo de estado estable con el texto cambiante, y comprobarlo con TalkBack (`BetaUpdateSheet.kt`, `AppVersionRow.kt`).
+- **Efecto visible:** la fila «Versión» y su valor no fusionan su semántica: TalkBack los lee en dos focos (`AppVersionRow.kt`).
+- **Efecto visible:** textos (`strings.xml`): `API_DISABLED` culpa a la cuenta («no está disponible para esta cuenta»), cuando falta activar la API; «No hemos podido iniciar sesión» es la única primera persona del plural (el resto dice «No se ha podido»); la línea de ayuda sin sesión suena a iniciar sesión en otro sitio («La primera vez se te pedirá la cuenta de Google…»); la línea al cerrar durante la descarga no dice que Android pedirá instalar al terminar (R3), y con `updateApp()` el SDK no muestra ninguna notificación.
+- **Efecto visible:** «Perfil» no vuelve a `Idle` tras «Tienes la última versión.» o un error: sigue diciéndolo aunque después el aviso automático encuentre una beta nueva o vuelva la red (`BetaUpdateViewModel.kt`).
+- **Efecto visible:** una búsqueda manual que termina bien no gasta el día: tras buscar en «Perfil» y cerrar la hoja, al volver a la app sale «Hay una beta nueva» de esa misma versión (`BetaUpdateViewModel.kt`).
+- **Efecto visible:** «Actualizar» con una descarga viva de otra versión abre la hoja con «Descargar e instalar» sin efecto (muy raro: dos betas distintas en curso) (`BetaUpdateViewModel.kt`).
+- **Efecto visible:** «Buscar actualizaciones» mide 48 dp visibles por `defaultMinSize(minHeight = 48.dp)`, más alto que los demás `OutlinedButton` (que ya tienen 48 dp de destino táctil): quitar el modificador (`AppVersionRow.kt`).
+- **Efecto visible:** «N %» lleva un espacio normal y puede partirse en dos líneas con letra grande (usar un espacio fino no separable) (`strings.xml`, `beta_update_progress_percent`).
+- **Efecto visible:** la zona de estado fija de la hoja puede dejar poco alto a «Novedades» en apaisado o con la letra al 130 % (`BobitosInfoSheet.kt`, `header`).
+- **Efecto visible:** el aviso dice «Actualizar» y la hoja «Descargar e instalar»: valorar una etiqueta coherente.
+- **Interno:** el estado de la descarga vive en campos privados (`downloadJob`, `downloadRelease`, `lastProgress`) y solo se copia a la UI con la hoja abierta; un `download: DownloadState?` en `BetaUpdateUiState` unificaría `acceptPrompt`, `checkManually` e `isBusy` (`BetaUpdateViewModel.kt`).
+- **Interno:** `isTesterSignedIn` se lee en el constructor del ViewModel (SharedPreferences en el hilo principal).
+- **Interno:** el cableado de `downloaded` en `FirebaseBetaDistribution.updateApp()` no tiene test (solo la función pura `afterDownload`): quitar `afterDownload` del listener final reabriría el fallo de «cancelar sale como error» con la suite en verde.
+- **Interno:** tests del ViewModel: el de la automática con la sesión cerrada por el SDK no comprueba `signInCalls == 0`; `si la descarga falla por la sesion se vuelve a pedir` solo mira `testerSignedIn`; los nombres nuevos van entre comillas invertidas frente al camelCase del fichero; la lectura tolerante del repositorio solo se prueba con la extensión `tolerateReadErrors()`, sin DataStore real.
+- **Interno:** la hoja repite `releaseNotes?.takeIf { it.isNotBlank() }` además de `releaseNotesOrNull` (`BetaUpdateSheet.kt`).
+- **Interno:** documentación: «Actualizar desde la app» va sin número entre la 5 y la 6 de `BETA_DISTRIBUTION.md`; falta avisar de que, si la clave de API de Android de `bobitos-dev` tiene restricciones, debe permitir la Firebase App Testers API; `BETA_TEST_PLAN.md` no prueba cancelar el instalador, una cuenta que no está en la beta, cancelar el inicio de sesión, girar durante la descarga, TalkBack ni la letra al 130 %; la spec habla de una notificación de progreso del SDK que con `updateApp()` no existe.
+
 ## 2026-10-18 — `agent/logo`
 
 - **Efecto visible (por verificar):** el icono al abrir la app sale sobre su círculo crema solo por el comportamiento por defecto del sistema, comprobado solo en Android 37. Si el sistema dejara de dibujar la capa de fondo (en Android 12-16, en la capa de un fabricante, o porque alguien pase `ic_launcher_background` a un gris puro R=G=B), Tareas y Comidas quedarían a ~2,7:1 sobre `#141513`. Para no depender de eso, fijar `android:windowSplashScreenIconBackgroundColor` en un `values-v31/themes.xml` (`colors.xml`).
