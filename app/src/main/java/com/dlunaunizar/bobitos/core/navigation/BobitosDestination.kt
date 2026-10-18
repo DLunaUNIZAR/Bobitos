@@ -147,9 +147,11 @@ fun BobitosDestination.moduleColor(): Color? = when (this) {
 internal fun BobitosDestination.appModule(): AppModule? = when (this) {
     BobitosDestination.Shopping -> AppModule.SHOPPING
     BobitosDestination.Tasks -> AppModule.TASKS
-    BobitosDestination.Calendar -> AppModule.CALENDAR
-    BobitosDestination.Meals -> AppModule.MEALS
-    BobitosDestination.Sport -> AppModule.SPORT
+    BobitosDestination.Calendar, BobitosDestination.MyCalendar -> AppModule.CALENDAR
+    BobitosDestination.Meals, BobitosDestination.Recipes, BobitosDestination.Ingredients -> AppModule.MEALS
+    BobitosDestination.Sport, BobitosDestination.Exercises, BobitosDestination.Routines -> AppModule.SPORT
+    BobitosDestination.Notes -> AppModule.NOTES
+    BobitosDestination.Pantry -> AppModule.PANTRY
     else -> null
 }
 

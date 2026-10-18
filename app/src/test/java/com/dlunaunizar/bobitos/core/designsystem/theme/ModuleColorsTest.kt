@@ -5,33 +5,55 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ModuleColorsTest {
-    private fun channel(v: Float): Float =
-        if (v <= 0.03928f) v / 12.92f else Math.pow(((v + 0.055f) / 1.055f).toDouble(), 2.4).toFloat()
+    private val temas = listOf(false, true)
 
-    private fun luminance(c: Color): Float =
-        0.2126f * channel(c.red) + 0.7152f * channel(c.green) + 0.0722f * channel(c.blue)
+    private fun fondo(dark: Boolean) = if (dark) backgroundDark else backgroundLight
+    private fun onSurface(dark: Boolean) = if (dark) onSurfaceDark else onSurfaceLight
+    private fun onSurfaceVariant(dark: Boolean) = if (dark) onSurfaceVariantDark else onSurfaceVariantLight
 
-    private fun contrast(a: Color, b: Color): Float {
-        val la = luminance(a)
-        val lb = luminance(b)
-        return (maxOf(la, lb) + 0.05f) / (minOf(la, lb) + 0.05f)
+    private fun paraCadaModuloYTema(comprobar: (AppModule, Boolean, ModuleColors, Color) -> Unit) {
+        for (dark in temas) {
+            for (module in AppModule.entries) {
+                comprobar(module, dark, ModulePalette.colors(module, dark), ModulePalette.tint(module, dark))
+            }
+        }
     }
 
     @Test
-    fun todosLosParesCumplenContraste() {
-        val backgrounds = mapOf(false to Color(0xFFFBFAF8), true to Color(0xFF141513))
-        for (dark in listOf(false, true)) {
-            for (module in AppModule.entries) {
-                val c = ModulePalette.colors(module, dark)
-                assertTrue(
-                    "$module dark=$dark texto sobre contenedor",
-                    contrast(c.onContainer, c.container) >= 4.5f,
-                )
-                assertTrue(
-                    "$module dark=$dark acento sobre fondo",
-                    contrast(c.accent, backgrounds.getValue(dark)) >= 3f,
-                )
-            }
+    fun losSieteModulosTienenColor() {
+        assertTrue(AppModule.entries.contains(AppModule.NOTES))
+        assertTrue(AppModule.entries.contains(AppModule.PANTRY))
+        assertTrue(AppModule.entries.size == 7)
+        paraCadaModuloYTema { module, dark, c, _ ->
+            assertTrue("$module dark=$dark", c.accent != Color.Unspecified && c.onAccent != Color.Unspecified)
         }
+    }
+
+    @Test
+    fun onContainerSeLeeSobreContainer() = paraCadaModuloYTema { module, dark, c, _ ->
+        assertTrue("$module dark=$dark", contrast(c.onContainer, c.container) >= 4.5)
+    }
+
+    @Test
+    fun elAcentoSeLeeComoTextoSobreElFondoYSobreSuTinte() = paraCadaModuloYTema { module, dark, c, tint ->
+        assertTrue("$module dark=$dark fondo", contrast(c.accent, fondo(dark)) >= 4.5)
+        assertTrue("$module dark=$dark tinte", contrast(c.accent, tint) >= 4.5)
+    }
+
+    @Test
+    fun loQueVaSobreElAcentoSeLee() = paraCadaModuloYTema { module, dark, c, _ ->
+        assertTrue("$module dark=$dark", contrast(c.onAccent, c.accent) >= 4.5)
+    }
+
+    @Test
+    fun elTextoSeLeeSobreElTinte() = paraCadaModuloYTema { module, dark, _, tint ->
+        assertTrue("$module dark=$dark onSurface", contrast(onSurface(dark), tint) >= 4.5)
+        assertTrue("$module dark=$dark onSurfaceVariant", contrast(onSurfaceVariant(dark), tint) >= 4.5)
+    }
+
+    @Test
+    fun elAcentoComoContornoSeVe() = paraCadaModuloYTema { module, dark, c, tint ->
+        assertTrue("$module dark=$dark fondo", contrast(c.accent, fondo(dark)) >= 3.0)
+        assertTrue("$module dark=$dark tinte", contrast(c.accent, tint) >= 3.0)
     }
 }
