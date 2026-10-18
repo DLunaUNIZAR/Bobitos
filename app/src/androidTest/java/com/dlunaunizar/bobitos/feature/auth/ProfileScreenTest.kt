@@ -29,7 +29,12 @@ class ProfileScreenTest {
 
     private fun string(id: Int) = InstrumentationRegistry.getInstrumentation().targetContext.getString(id)
 
-    @Test fun privacyPolicyAndAccountDeletionAreReachable() {
+    private fun setProfile(
+        themeMode: ThemeMode = ThemeMode.SYSTEM,
+        onThemeModeChange: (ThemeMode) -> Unit = {},
+        remindersEnabled: () -> Boolean = { false },
+        onRemindersChange: (Boolean) -> Unit = {},
+    ) {
         compose.setContent {
             BobitosTheme {
                 ProfileContent(
@@ -39,12 +44,16 @@ class ProfileScreenTest {
                     onDeleteAccount = {}, onBack = {}, onClearFeedback = {},
                     betaUpdateState = BetaUpdateUiState("0.1.0-beta.24", available = false, testerSignedIn = false),
                     onCheckForBetaUpdate = {},
-                    themeMode = ThemeMode.SYSTEM, onThemeModeChange = {},
-                    remindersEnabled = false, onRemindersChange = {},
+                    themeMode = themeMode, onThemeModeChange = onThemeModeChange,
+                    remindersEnabled = remindersEnabled(), onRemindersChange = onRemindersChange,
                     remindersLeadTime = ReminderLeadTime.AT_TIME, onRemindersLeadTimeChange = {},
                 )
             }
         }
+    }
+
+    @Test fun privacyPolicyAndAccountDeletionAreReachable() {
+        setProfile()
         compose.onNodeWithText("Política de privacidad").performScrollTo().performClick()
         compose.onNodeWithText("Bobitos usa tu correo", substring = true).assertIsDisplayed()
     }
@@ -53,21 +62,11 @@ class ProfileScreenTest {
         val enabled = mutableStateOf(true)
         var theme: ThemeMode? = null
         var reminders: Boolean? = null
-        compose.setContent {
-            BobitosTheme {
-                ProfileContent(
-                    user = AuthUser("user", "David", "david@example.com", true),
-                    actionState = AuthActionUiState(), syncStatus = SyncStatus.ONLINE,
-                    canWrite = true, onUpdateDisplayName = {}, onSignOut = {},
-                    onDeleteAccount = {}, onBack = {}, onClearFeedback = {},
-                    betaUpdateState = BetaUpdateUiState("0.1.0-beta.24", available = false, testerSignedIn = false),
-                    onCheckForBetaUpdate = {},
-                    themeMode = ThemeMode.SYSTEM, onThemeModeChange = { theme = it },
-                    remindersEnabled = enabled.value, onRemindersChange = { reminders = it },
-                    remindersLeadTime = ReminderLeadTime.AT_TIME, onRemindersLeadTimeChange = {},
-                )
-            }
-        }
+        setProfile(
+            onThemeModeChange = { theme = it },
+            remindersEnabled = { enabled.value },
+            onRemindersChange = { reminders = it },
+        )
         compose.onNodeWithText(string(R.string.settings_theme_dark)).performScrollTo().performClick()
         assertEquals(ThemeMode.DARK, theme)
 

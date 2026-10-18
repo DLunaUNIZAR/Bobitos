@@ -23,6 +23,12 @@ class LauncherIconTest {
         return checkNotNull(ContextCompat.getDrawable(context, R.mipmap.ic_launcher)) { "Falta R.mipmap.ic_launcher" }
     }
 
+    private fun adaptiveIcon(): AdaptiveIconDrawable {
+        val icon = appIcon() as? AdaptiveIconDrawable
+        assertNotNull("El icono no es adaptativo", icon)
+        return icon as AdaptiveIconDrawable
+    }
+
     @Test
     fun appIconIsAdaptive() {
         assertTrue(appIcon() is AdaptiveIconDrawable)
@@ -30,9 +36,7 @@ class LauncherIconTest {
 
     @Test
     fun appIconBackgroundIsCream() {
-        val icon = appIcon() as? AdaptiveIconDrawable
-        assertNotNull("El icono no es adaptativo", icon)
-        val background = icon!!.background as? ColorDrawable
+        val background = adaptiveIcon().background as? ColorDrawable
         assertNotNull("El fondo del icono no es un ColorDrawable", background)
         assertEquals(0xFFFBFAF8.toInt(), background!!.color)
     }
@@ -40,8 +44,6 @@ class LauncherIconTest {
     @Test
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
     fun appIconHasMonochromeLayer() {
-        val icon = appIcon() as? AdaptiveIconDrawable
-        assertNotNull("El icono no es adaptativo", icon)
-        assertNotNull("Falta la capa monocroma", icon!!.monochrome)
+        assertNotNull("Falta la capa monocroma", adaptiveIcon().monochrome)
     }
 }
