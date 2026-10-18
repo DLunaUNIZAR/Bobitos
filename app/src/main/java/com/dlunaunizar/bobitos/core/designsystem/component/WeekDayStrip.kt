@@ -65,8 +65,8 @@ data class WeekDayStripColors(val selectedContainer: Color, val selectedContent:
 object WeekDayStripDefaults {
     @Composable
     fun colors(): WeekDayStripColors = WeekDayStripColors(
-        selectedContainer = MaterialTheme.colorScheme.secondaryContainer,
-        selectedContent = MaterialTheme.colorScheme.onSecondaryContainer,
+        selectedContainer = MaterialTheme.colorScheme.primary,
+        selectedContent = MaterialTheme.colorScheme.onPrimary,
         todayOutline = MaterialTheme.colorScheme.primary,
     )
 }
@@ -225,7 +225,15 @@ private fun WeekDay(
         shape = MaterialTheme.shapes.medium,
         color = Color.Transparent,
         contentColor = content,
-        border = if (isToday) BorderStroke(2.dp, colors.todayOutline) else null,
+        // Hoy elegido: el anillo del color del relleno no se vería, va del color del texto.
+        border = if (isToday) {
+            BorderStroke(
+                2.dp,
+                if (isSelected) colors.selectedContent else colors.todayOutline,
+            )
+        } else {
+            null
+        },
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),

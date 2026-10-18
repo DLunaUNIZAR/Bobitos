@@ -136,6 +136,14 @@ class BobitosLargeTopBarTest {
     }
 
     @Test
+    fun sinFranjaLaZonaTeñidaOcupaTodoElAncho() {
+        show("Notas")
+        val barra = compose.onNodeWithTag("barra-Notas").fetchSemanticsNode().size.width
+        val zona = compose.onNodeWithTag("collapsingZone").fetchSemanticsNode().size.width
+        assertEquals("ancho de la zona abierta", barra.toFloat(), zona.toFloat(), compose.density.density)
+    }
+
+    @Test
     fun elSelectorVaEnLaFilaDeLosIconos() {
         show("Tareas", withSelector = true, twoActions = true)
         val selector = compose.onNodeWithContentDescription(selectorLabel).fetchSemanticsNode().boundsInWindow

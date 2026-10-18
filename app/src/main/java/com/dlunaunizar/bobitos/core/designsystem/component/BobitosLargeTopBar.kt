@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -35,6 +36,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
@@ -129,9 +131,10 @@ fun BobitosLargeTopBar(
             colors = TopAppBarDefaults.topAppBarColors(containerColor = container, scrolledContainerColor = container),
         )
         CollapsingZone(state, container) {
-            Column {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier
+                        .fillMaxWidth()
                         .padding(horizontal = Spacing.lg)
                         .padding(bottom = if (band == null) Spacing.lg else Spacing.sm),
                 ) {
@@ -211,12 +214,15 @@ private fun Modifier.titleSemantics(isHeading: Boolean): Modifier =
 private fun CollapsingZone(state: TopAppBarState, container: Color, content: @Composable () -> Unit) {
     Layout(
         content = content,
-        modifier = Modifier.background(container).clipToBounds(),
+        modifier = Modifier.testTag("collapsingZone").background(container).clipToBounds(),
     ) { measurables, constraints ->
-        val placeable = measurables.single().measure(constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity))
+        // La zona teñida ocupa siempre todo el ancho de la barra, tenga o no franja.
+        val placeable = measurables.single().measure(
+            constraints.copy(minWidth = constraints.maxWidth, minHeight = 0, maxHeight = Constraints.Infinity),
+        )
         val limit = -placeable.height.toFloat()
         if (state.heightOffsetLimit != limit) state.heightOffsetLimit = limit
         val offset = state.heightOffset.coerceIn(limit, 0f).roundToInt()
-        layout(placeable.width, placeable.height + offset) { placeable.place(0, offset) }
+        layout(constraints.maxWidth, placeable.height + offset) { placeable.place(0, offset) }
     }
 }

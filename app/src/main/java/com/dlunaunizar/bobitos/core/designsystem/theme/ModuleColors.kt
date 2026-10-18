@@ -27,6 +27,13 @@ object ModulePalette {
         .copy(alpha = if (dark) TINT_ALPHA_DARK else TINT_ALPHA_LIGHT)
         .compositeOver(if (dark) backgroundDark else backgroundLight)
 
+    /**
+     * Relleno del día elegido de la tira de la semana y el color de lo que va encima: el acento del módulo
+     * (3:1 o más contra su tinte) y [ModuleColors.onAccent], para que no se pierda sobre la franja.
+     */
+    fun selectedDay(module: AppModule, dark: Boolean): Pair<Color, Color> =
+        colors(module, dark).let { it.accent to it.onAccent }
+
     private const val TINT_ALPHA_DARK = 0.16f
     private const val TINT_ALPHA_LIGHT = 0.07f
 
