@@ -1,5 +1,8 @@
 package com.dlunaunizar.bobitos.feature.betaupdate
 
+import androidx.datastore.core.CorruptionException
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
 import com.dlunaunizar.bobitos.BuildConfig
 import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.CurrentDayProvider
@@ -9,11 +12,13 @@ import com.dlunaunizar.bobitos.data.betaupdate.BetaUpdateError
 import com.dlunaunizar.bobitos.data.betaupdate.BetaUpdateException
 import com.dlunaunizar.bobitos.data.betaupdate.BetaUpdateProgress
 import com.dlunaunizar.bobitos.data.repository.BetaUpdatePreferenceRepository
+import com.dlunaunizar.bobitos.data.repository.tolerateReadErrors
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -21,6 +26,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import java.io.IOException
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -70,11 +76,15 @@ private class FakeBetaUpdatePreferenceRepository : BetaUpdatePreferenceRepositor
     override val lastAutoCheckDate: Flow<LocalDate?> = last
     override val postponedVersionCode: Flow<Long?> = postponed
 
+    var writeError: IOException? = null
+
     override suspend fun setLastAutoCheckDate(date: LocalDate) {
+        writeError?.let { throw it }
         last.value = date
     }
 
     override suspend fun setPostponedVersionCode(versionCode: Long) {
+        writeError?.let { throw it }
         postponed.value = versionCode
     }
 }
@@ -410,5 +420,82 @@ class BetaUpdateViewModelTest {
         vm.startDownload()
         distribution.updates.emit(BetaUpdateProgress.Failed(BetaUpdateError.SIGN_IN_FAILED))
         assertEquals(false, vm.state.testerSignedIn)
+    }
+
+    @Test
+    fun `si las preferencias no se pueden guardar abrir la app no se cierra ni muestra nada`() = runTest {
+        preferences.writeError = IOException("disco")
+        val vm = viewModel()
+        vm.onAppForeground()
+        assertNull(vm.state.prompt)
+        distribution.checkResult = r25
+        days.day.value = today.plusDays(1)
+        vm.onAppForeground()
+        assertEquals(r25, vm.state.prompt)
+    }
+
+    @Test
+    fun `si las preferencias no se pueden leer se leen como vacias`() = runTest {
+        val unreadable = flow<Preferences> { throw CorruptionException("corrupto") }
+        assertEquals(emptyPreferences(), unreadable.tolerateReadErrors().first())
+        val plain = flow<Preferences> { throw IOException("disco") }
+        assertEquals(emptyPreferences(), plain.tolerateReadErrors().first())
+    }
+
+    @Test
+    fun `si no se puede guardar la version pospuesta mas tarde cierra el aviso igualmente`() = runTest {
+        distribution.checkResult = r25
+        val vm = viewModel()
+        vm.onAppForeground()
+        preferences.writeError = IOException("disco")
+        vm.postponePrompt()
+        assertNull(vm.state.prompt)
+        assertNull(preferences.postponed.value)
+    }
+
+    @Test
+    fun `con una descarga en curso volver a la app no avisa de la misma version`() = runTest {
+        distribution.checkResult = r25
+        val vm = viewModel()
+        vm.checkManually()
+        vm.startDownload()
+        distribution.updates.emit(BetaUpdateProgress.Downloading(3, 10))
+        vm.closeSheet()
+        vm.onAppForeground()
+        assertNull(vm.state.prompt)
+        assertEquals(1, distribution.checkCalls)
+    }
+
+    @Test
+    fun `actualizar con una descarga en curso reabre la hoja con su progreso`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        distribution.checkGate = gate
+        distribution.checkResult = r25
+        val vm = viewModel()
+        vm.onAppForeground()
+        distribution.checkGate = null
+        vm.checkManually()
+        vm.startDownload()
+        distribution.updates.emit(BetaUpdateProgress.Downloading(3, 10))
+        vm.closeSheet()
+        gate.complete(Unit)
+        assertEquals(r25, vm.state.prompt)
+        vm.acceptPrompt()
+        assertNull(vm.state.prompt)
+        assertEquals(BetaUpdateProgress.Downloading(3, 10), vm.state.sheet?.progress)
+        assertEquals(1, distribution.updateCalls)
+    }
+
+    @Test
+    fun `abrir la hoja desde Perfil cierra el aviso`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        distribution.checkGate = gate
+        distribution.checkResult = r25
+        val vm = viewModel()
+        vm.onAppForeground()
+        vm.checkManually()
+        gate.complete(Unit)
+        assertEquals(r25, vm.state.sheet?.release)
+        assertNull(vm.state.prompt)
     }
 }

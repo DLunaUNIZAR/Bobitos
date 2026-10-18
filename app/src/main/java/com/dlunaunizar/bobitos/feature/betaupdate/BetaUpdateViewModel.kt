@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.IOException
 import java.time.ZoneId
 import javax.inject.Inject
 
@@ -88,7 +89,7 @@ class BetaUpdateViewModel @Inject constructor(
 
     /** La app pasó a primer plano: comprueba en silencio si toca (como mucho una vez al día). */
     fun onAppForeground() {
-        if (autoChecking || isBusy(_uiState.value)) return
+        if (autoChecking || downloadInProgress() || isBusy(_uiState.value)) return
         autoChecking = true
         viewModelScope.launch {
             try {
@@ -99,11 +100,12 @@ class BetaUpdateViewModel @Inject constructor(
         }
     }
 
-    /** Con el aviso o la hoja abiertos, o una comprobación manual en curso, no se comprueba. */
+    /** Con el aviso o la hoja abiertos, una comprobación manual en curso o una descarga viva, no se comprueba. */
     private fun isBusy(state: BetaUpdateUiState): Boolean =
         state.prompt != null || state.sheet != null || state.manualCheck == ManualCheckState.Checking
 
     private suspend fun autoCheck() {
+        if (!distribution.isAvailable || !_uiState.value.testerSignedIn) return
         val today = currentDay.today(ZoneId.systemDefault()).first()
         val lastCheck = preferences.lastAutoCheckDate.first()
         if (!shouldAutoCheck(distribution.isAvailable, _uiState.value.testerSignedIn, today, lastCheck)) return
@@ -118,7 +120,7 @@ class BetaUpdateViewModel @Inject constructor(
             } catch (_: Exception) {
                 return
             }
-        preferences.setLastAutoCheckDate(today)
+        saveQuietly { preferences.setLastAutoCheckDate(today) }
         val state = _uiState.value
         if (state.sheet == null &&
             state.prompt == null &&
@@ -131,7 +133,16 @@ class BetaUpdateViewModel @Inject constructor(
     override fun postponePrompt() {
         val release = _uiState.value.prompt ?: return
         _uiState.update { it.copy(prompt = null) }
-        viewModelScope.launch { preferences.setPostponedVersionCode(release.versionCode) }
+        viewModelScope.launch { saveQuietly { preferences.setPostponedVersionCode(release.versionCode) } }
+    }
+
+    /** Un fallo al guardar ([IOException]) no debe cerrar la app: se pierde la preferencia y nada más. */
+    private suspend fun saveQuietly(save: suspend () -> Unit) {
+        try {
+            save()
+        } catch (_: IOException) {
+            // Sin guardar: la comprobación automática vuelve a tocar y «Más tarde» ya cerró el aviso.
+        }
     }
 
     override fun dismissPrompt() {
@@ -140,7 +151,7 @@ class BetaUpdateViewModel @Inject constructor(
 
     override fun acceptPrompt() {
         val release = _uiState.value.prompt ?: return
-        _uiState.update { it.copy(prompt = null, sheet = BetaUpdateSheetState(release)) }
+        _uiState.update { it.withSheet(release) }
         startDownload()
     }
 
@@ -148,9 +159,7 @@ class BetaUpdateViewModel @Inject constructor(
         val state = _uiState.value
         if (!state.available || state.manualCheck == ManualCheckState.Checking) return
         if (downloadInProgress()) {
-            downloadRelease?.let { release ->
-                _uiState.update { it.copy(sheet = BetaUpdateSheetState(release, lastProgress)) }
-            }
+            downloadRelease?.let { release -> _uiState.update { it.withSheet(release) } }
             return
         }
         _uiState.update { it.copy(manualCheck = ManualCheckState.Checking) }
@@ -165,7 +174,7 @@ class BetaUpdateViewModel @Inject constructor(
                     if (release == null) {
                         it.copy(manualCheck = ManualCheckState.UpToDate)
                     } else {
-                        it.copy(manualCheck = ManualCheckState.Idle, sheet = BetaUpdateSheetState(release))
+                        it.copy(manualCheck = ManualCheckState.Idle).withSheet(release)
                     }
                 }
             } catch (e: BetaUpdateException) {
@@ -189,6 +198,15 @@ class BetaUpdateViewModel @Inject constructor(
      */
     private fun markSignedOut() {
         _uiState.update { it.copy(testerSignedIn = false) }
+    }
+
+    /**
+     * Abre la hoja de [release] y cierra el aviso. Si la descarga viva es de esa misma versión,
+     * la hoja arranca con su último progreso (sin lanzar otra recogida).
+     */
+    private fun BetaUpdateUiState.withSheet(release: BetaRelease): BetaUpdateUiState {
+        val live = downloadInProgress() && downloadRelease?.versionCode == release.versionCode
+        return copy(prompt = null, sheet = BetaUpdateSheetState(release, if (live) lastProgress else null))
     }
 
     /** Hay una recogida viva que no ha acabado en cancelación ni en fallo. */
