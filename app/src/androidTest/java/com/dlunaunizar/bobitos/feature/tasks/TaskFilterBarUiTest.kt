@@ -14,8 +14,10 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isPopup
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -25,11 +27,13 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import com.dlunaunizar.bobitos.core.designsystem.component.FilterOptionIconTag
 import com.dlunaunizar.bobitos.core.designsystem.theme.BobitosTheme
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceRole
 import com.dlunaunizar.bobitos.core.model.TaskPriority
 import com.dlunaunizar.bobitos.core.model.TaskStatus
+import com.dlunaunizar.bobitos.core.model.TaskType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -80,6 +84,17 @@ class TaskFilterBarUiTest {
         pickInMenu("Alta")
         compose.onNodeWithText("Alta").assertIsDisplayed()
         assertEquals(TaskPriority.HIGH, filters.priority)
+    }
+
+    @Test fun prioridadYTipoLlevanSuIcono() {
+        show()
+        compose.onNodeWithText("Todas").performClick()
+        compose.onAllNodes(hasTestTag(FilterOptionIconTag), useUnmergedTree = true)
+            .assertCountEquals(TaskPriority.entries.size)
+        compose.onNode(hasText("Todas") and hasAnyAncestor(isPopup())).performClick()
+        compose.onAllNodesWithText("Todos")[0].performClick() // el primero es Tipo
+        compose.onAllNodes(hasTestTag(FilterOptionIconTag), useUnmergedTree = true)
+            .assertCountEquals(TaskType.entries.size)
     }
 
     @Test fun theAssigneeDropdownOffersUnassigned() {

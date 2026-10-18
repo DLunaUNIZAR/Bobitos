@@ -481,7 +481,12 @@ internal fun TaskFilterBar(filters: TaskFilters, members: List<SpaceMember>, onC
             label = stringResource(R.string.tasks_filter_priority),
             value = filters.priority?.label() ?: all,
             options = priorityOptions.map { priority ->
-                FilterOption(priority?.label() ?: all, filters.priority == priority) {
+                FilterOption(
+                    text = priority?.label() ?: all,
+                    selected = filters.priority == priority,
+                    icon = priority?.let { Icons.Rounded.Flag },
+                    iconTint = priority?.accent(),
+                ) {
                     onChange(filters.copy(priority = priority))
                 }
             },
@@ -493,7 +498,12 @@ internal fun TaskFilterBar(filters: TaskFilters, members: List<SpaceMember>, onC
             value = filters.type?.let { stringResource(it.labelRes) } ?: any,
             options = listOf(FilterOption(any, filters.type == null) { onChange(filters.copy(type = null)) }) +
                 TaskType.entries.map { taskType ->
-                    FilterOption(stringResource(taskType.labelRes), filters.type == taskType) {
+                    FilterOption(
+                        text = stringResource(taskType.labelRes),
+                        selected = filters.type == taskType,
+                        icon = taskType.icon,
+                        iconTint = taskType.accent(),
+                    ) {
                         onChange(filters.copy(type = taskType))
                     }
                 },

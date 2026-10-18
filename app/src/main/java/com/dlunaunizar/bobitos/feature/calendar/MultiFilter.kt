@@ -33,7 +33,7 @@ internal fun MultiFilter(
                 is MultiFilterValue.One -> value.name
                 is MultiFilterValue.Some -> pluralStringResource(countPlural, value.count, value.count)
             },
-            options = listOf(FilterOption(allText, value == MultiFilterValue.All, onSelectAll)) +
+            options = listOf(FilterOption(allText, value == MultiFilterValue.All, onSelect = onSelectAll)) +
                 items.map { (id, name) -> FilterOption(name, id in selectedIds) { onToggle(id) } },
             active = value != MultiFilterValue.All,
             modifier = Modifier.weight(1f),

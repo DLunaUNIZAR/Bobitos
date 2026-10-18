@@ -3,6 +3,8 @@ package com.dlunaunizar.bobitos.core.designsystem.component
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,6 +19,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -24,6 +27,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.core.designsystem.theme.BobitosTheme
@@ -149,6 +153,46 @@ class FilterDropdownTest {
         assertEquals(tops[0], tops[1], 1f)
         assertEquals(tops[2], tops[3], 1f)
         assertTrue(tops[2] > tops[0])
+    }
+
+    @Test
+    fun unaOpcionConIconoLoMuestra() {
+        compose.setContent {
+            BobitosTheme {
+                FilterDropdown(
+                    label = "Prioridad",
+                    value = "Todas",
+                    options = listOf(
+                        FilterOption("Todas", true) {},
+                        FilterOption("Alta", false, icon = Icons.Rounded.Flag) {},
+                    ),
+                    tag = "prioridad",
+                )
+            }
+        }
+        compose.onNodeWithTag("prioridad").performClick()
+        compose.onAllNodes(hasTestTag(FilterOptionIconTag), useUnmergedTree = true).assertCountEquals(1)
+    }
+
+    @Test
+    fun conValorElegidoElValorVaEnNegrita() {
+        compose.setContent {
+            BobitosTheme {
+                FilterDropdownRow {
+                    FilterDropdown("Estado", "Pendientes", opciones(), active = true, tag = "activo")
+                    FilterDropdown("Estado", "Pendientes", opciones(), active = false, tag = "inactivo")
+                }
+            }
+        }
+        assertEquals(FontWeight.SemiBold, pesoDelValor("activo"))
+        assertTrue(pesoDelValor("inactivo") != FontWeight.SemiBold)
+    }
+
+    private fun pesoDelValor(tag: String): FontWeight? {
+        val resultados = mutableListOf<TextLayoutResult>()
+        compose.onNodeWithTag(tag).fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult]
+            .action?.invoke(resultados)
+        return resultados.first().layoutInput.style.fontWeight
     }
 
     private fun Set<String>.toggle(x: String) = if (x in this) this - x else this + x

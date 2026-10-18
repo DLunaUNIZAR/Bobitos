@@ -355,7 +355,7 @@ internal fun MealSlotSection(
 ) {
     val recipesById = recipes.associateBy(Recipe::id)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SectionHeader(title = stringResource(slot.labelRes), icon = slot.icon)
+        SectionHeader(title = stringResource(slot.labelRes), icon = slot.icon, iconTint = slot.accent())
         if (meals.isEmpty()) {
             if (canWrite) {
                 GroupedRow(position = RowPosition.SINGLE, onClick = { onAdd(slot) }) {

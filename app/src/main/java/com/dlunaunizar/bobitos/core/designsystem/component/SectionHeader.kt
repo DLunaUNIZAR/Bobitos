@@ -11,11 +11,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -30,7 +32,8 @@ import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 /**
  * Cabecera de sección común: «Título · N». Con [onToggle] la parte del título es pulsable
  * (plegable) y anuncia su estado; [action] queda al final, fuera del área pulsable. Con [sticky]
- * lleva fondo opaco para usarse en un `stickyHeader`; [icon] es decorativo y va delante del título.
+ * lleva fondo opaco para usarse en un `stickyHeader`; [icon] es decorativo, va delante del título y
+ * toma [iconTint] si se da.
  * [horizontalPadding] se aplica tras el fondo, para que la cabecera fija sea opaca a todo el ancho.
  */
 @Composable
@@ -43,6 +46,7 @@ fun SectionHeader(
     action: (@Composable () -> Unit)? = null,
     sticky: Boolean = false,
     icon: ImageVector? = null,
+    iconTint: Color? = null,
     horizontalPadding: Dp = 0.dp,
 ) {
     val label = if (count != null) stringResource(R.string.section_header_count, title, count) else title
@@ -70,7 +74,12 @@ fun SectionHeader(
         }
         Row(toggleModifier, verticalAlignment = Alignment.CenterVertically) {
             if (icon != null) {
-                Icon(imageVector = icon, contentDescription = null, modifier = Modifier.padding(end = Spacing.sm))
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint ?: LocalContentColor.current,
+                    modifier = Modifier.padding(end = Spacing.sm),
+                )
             }
             Text(
                 label,
