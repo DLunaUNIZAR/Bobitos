@@ -42,6 +42,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.SyncStatusBanner
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.LocalDarkTheme
 import com.dlunaunizar.bobitos.core.designsystem.theme.ModulePalette
+import com.dlunaunizar.bobitos.core.designsystem.theme.ModuleTheme
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.onSurfaceDark
 import com.dlunaunizar.bobitos.core.designsystem.theme.onSurfaceLight
@@ -50,11 +51,13 @@ import com.dlunaunizar.bobitos.core.model.SyncStatus
 /**
  * Marco común de las pantallas de un espacio: barra superior con el chip del espacio (cambiar de
  * espacio), ajustes y perfil, y barra inferior con las pestañas Hoy, Calendario, Tareas, Compra y Más.
- * [screenTitle] es el subtítulo del módulo abierto (null en Hoy y Más).
+ * [screenTitle] es el subtítulo del módulo abierto (null en Hoy y Más). [module] tiñe la barra superior y el
+ * contenido, no la barra inferior, que ya usa el color de cada pestaña.
  */
 @Composable
 internal fun WorkspaceScaffold(
     selectedTab: BobitosDestination,
+    module: AppModule?,
     screenTitle: String?,
     spaceName: String,
     onTabSelected: (BobitosDestination) -> Unit,
@@ -69,27 +72,29 @@ internal fun WorkspaceScaffold(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            Column {
-                BobitosTopBar(
-                    titleContent = {
-                        SpaceTitle(spaceName, screenTitle, onClick = { switcher.onPickerOpenChange(true) })
-                    },
-                    actions = {
-                        IconButton(onClick = onSpaceSettings) {
-                            Icon(
-                                imageVector = Icons.Rounded.Settings,
-                                contentDescription = stringResource(R.string.space_settings),
-                            )
-                        }
-                        IconButton(onClick = onProfile) {
-                            Icon(
-                                imageVector = Icons.Rounded.AccountCircle,
-                                contentDescription = stringResource(R.string.profile_open),
-                            )
-                        }
-                    },
-                )
-                SyncStatusBanner(syncStatus)
+            ModuleTheme(module) {
+                Column {
+                    BobitosTopBar(
+                        titleContent = {
+                            SpaceTitle(spaceName, screenTitle, onClick = { switcher.onPickerOpenChange(true) })
+                        },
+                        actions = {
+                            IconButton(onClick = onSpaceSettings) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Settings,
+                                    contentDescription = stringResource(R.string.space_settings),
+                                )
+                            }
+                            IconButton(onClick = onProfile) {
+                                Icon(
+                                    imageVector = Icons.Rounded.AccountCircle,
+                                    contentDescription = stringResource(R.string.profile_open),
+                                )
+                            }
+                        },
+                    )
+                    SyncStatusBanner(syncStatus)
+                }
             }
         },
         bottomBar = {
@@ -101,8 +106,10 @@ internal fun WorkspaceScaffold(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
-                content()
+            ModuleTheme(module) {
+                CompositionLocalProvider(LocalSnackbarHostState provides snackbarHostState) {
+                    content()
+                }
             }
         }
     }

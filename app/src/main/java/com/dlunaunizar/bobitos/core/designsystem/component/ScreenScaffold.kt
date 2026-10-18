@@ -16,13 +16,15 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
+import com.dlunaunizar.bobitos.core.designsystem.theme.ModuleTheme
 import com.dlunaunizar.bobitos.core.model.SyncStatus
 
 /**
  * Andamio común de las pantallas a pantalla completa: barra superior con título (y atrás opcional),
  * estado de sincronización bajo la barra, FAB en su hueco y host de avisos propio, publicado en
  * [LocalSnackbarHostState] para el contenido. Con [saving] superpone una barra de progreso arriba
- * del contenido sin desplazarlo.
+ * del contenido sin desplazarlo. Con [module] toda la pantalla (FAB, hojas…) toma el color del módulo.
  */
 @Composable
 fun ScreenScaffold(
@@ -32,22 +34,25 @@ fun ScreenScaffold(
     syncStatus: SyncStatus? = null,
     actions: @Composable RowScope.() -> Unit = {},
     floatingActionButton: @Composable () -> Unit = {},
+    module: AppModule? = null,
     saving: Boolean = false,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            Column {
-                BobitosTopBar(title = title, onBack = onBack, actions = actions)
-                syncStatus?.let { SyncStatusBanner(status = it) }
-            }
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        floatingActionButton = floatingActionButton,
-    ) { padding ->
-        ScaffoldBody(snackbarHostState, saving, padding, content)
+    ModuleTheme(module) {
+        Scaffold(
+            modifier = modifier,
+            topBar = {
+                Column {
+                    BobitosTopBar(title = title, onBack = onBack, actions = actions)
+                    syncStatus?.let { SyncStatusBanner(status = it) }
+                }
+            },
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            floatingActionButton = floatingActionButton,
+        ) { padding ->
+            ScaffoldBody(snackbarHostState, saving, padding, content)
+        }
     }
 }
 

@@ -59,6 +59,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
+import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Note
 
@@ -89,6 +90,7 @@ fun NotesScreen(
     }
 
     ScreenScaffold(
+        module = AppModule.NOTES,
         title = stringResource(R.string.notes_title),
         onBack = onBack,
         modifier = modifier,

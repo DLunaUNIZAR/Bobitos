@@ -61,6 +61,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
+import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Routine
 import com.dlunaunizar.bobitos.core.model.RoutineExercise
@@ -96,6 +97,7 @@ fun RoutinesScreen(
     }
 
     ScreenScaffold(
+        module = AppModule.SPORT,
         title = stringResource(R.string.routines_title),
         onBack = onBack,
         modifier = modifier,

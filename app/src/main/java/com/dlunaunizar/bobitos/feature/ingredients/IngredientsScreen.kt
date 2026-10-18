@@ -62,6 +62,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
+import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.Supermarket
@@ -98,6 +99,7 @@ fun IngredientsScreen(
     }
 
     ScreenScaffold(
+        module = AppModule.MEALS,
         title = stringResource(R.string.ingredients_title),
         onBack = onBack,
         modifier = modifier,

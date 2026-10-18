@@ -61,6 +61,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
+import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewDialog
@@ -141,6 +142,7 @@ fun RecipesScreen(
     }
 
     ScreenScaffold(
+        module = AppModule.MEALS,
         title = stringResource(R.string.recipes_title),
         onBack = onBack,
         modifier = modifier,

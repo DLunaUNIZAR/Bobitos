@@ -45,6 +45,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostStat
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
+import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.PantryItem
 
@@ -68,6 +69,7 @@ fun PantryScreen(
     val items = (state.items as? UiState.Content)?.value.orEmpty()
 
     ScreenScaffold(
+        module = AppModule.PANTRY,
         title = stringResource(R.string.pantry_title),
         onBack = onBack,
         modifier = modifier,

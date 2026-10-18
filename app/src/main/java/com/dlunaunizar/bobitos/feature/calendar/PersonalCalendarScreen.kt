@@ -51,6 +51,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostStat
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
@@ -126,6 +127,7 @@ fun PersonalCalendarScreen(
     BackHandler(enabled = drilledFrom != null, onBack = onBackAction)
 
     ScreenScaffold(
+        module = AppModule.CALENDAR,
         title = stringResource(R.string.my_calendar_title),
         onBack = onBack?.let { onBackAction },
         modifier = modifier,

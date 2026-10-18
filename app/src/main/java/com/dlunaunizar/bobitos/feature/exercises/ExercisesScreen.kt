@@ -55,6 +55,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
+import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseType
@@ -97,6 +98,7 @@ fun ExercisesScreen(
     }
 
     ScreenScaffold(
+        module = AppModule.SPORT,
         title = stringResource(R.string.exercises_title),
         onBack = onBack,
         modifier = modifier,

@@ -64,6 +64,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
+import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.Nutrition
@@ -106,6 +107,7 @@ fun IngredientDetailScreen(
     BrandEvents(brandId, state, viewModel, openBrandEditor)
 
     ScreenScaffold(
+        module = AppModule.MEALS,
         title = ingredient?.name ?: stringResource(R.string.ingredients_title),
         onBack = onBack,
         modifier = modifier,

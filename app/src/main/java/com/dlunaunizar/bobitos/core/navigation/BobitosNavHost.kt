@@ -47,6 +47,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
 import com.dlunaunizar.bobitos.core.designsystem.component.SyncStatusBanner
 import com.dlunaunizar.bobitos.core.designsystem.rememberReduceMotion
+import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SyncStatus
@@ -268,6 +269,7 @@ fun BobitosNavHost(
             SpaceScaffold(
                 navController = navController,
                 selectedTab = BobitosDestination.SpaceHome,
+                module = null,
                 screenTitle = null,
                 spaceName = spaceName,
                 switcher = spaceSwitcher,
@@ -294,6 +296,7 @@ fun BobitosNavHost(
             SpaceScaffold(
                 navController = navController,
                 selectedTab = BobitosDestination.SpaceMore,
+                module = null,
                 screenTitle = null,
                 spaceName = spaceName,
                 switcher = spaceSwitcher,
@@ -311,6 +314,7 @@ fun BobitosNavHost(
             SpaceScaffold(
                 navController = navController,
                 selectedTab = workspaceTabFor(BobitosDestination.Shopping.route) ?: BobitosDestination.Shopping,
+                module = AppModule.SHOPPING,
                 screenTitle = stringResource(BobitosDestination.Shopping.titleRes),
                 spaceName = spaceName,
                 switcher = spaceSwitcher,
@@ -334,6 +338,7 @@ fun BobitosNavHost(
             SpaceScaffold(
                 navController = navController,
                 selectedTab = workspaceTabFor(BobitosDestination.Tasks.route) ?: BobitosDestination.Tasks,
+                module = AppModule.TASKS,
                 screenTitle = stringResource(BobitosDestination.Tasks.titleRes),
                 spaceName = spaceName,
                 switcher = spaceSwitcher,
@@ -354,6 +359,7 @@ fun BobitosNavHost(
             SpaceScaffold(
                 navController = navController,
                 selectedTab = workspaceTabFor(BobitosDestination.Calendar.route) ?: BobitosDestination.Calendar,
+                module = AppModule.CALENDAR,
                 screenTitle = stringResource(BobitosDestination.Calendar.titleRes),
                 spaceName = spaceName,
                 switcher = spaceSwitcher,
@@ -371,6 +377,7 @@ fun BobitosNavHost(
             SpaceScaffold(
                 navController = navController,
                 selectedTab = workspaceTabFor(BobitosDestination.Meals.route) ?: BobitosDestination.Meals,
+                module = AppModule.MEALS,
                 screenTitle = stringResource(BobitosDestination.Meals.titleRes),
                 spaceName = spaceName,
                 switcher = spaceSwitcher,
@@ -393,6 +400,7 @@ fun BobitosNavHost(
             SpaceScaffold(
                 navController = navController,
                 selectedTab = workspaceTabFor(BobitosDestination.Sport.route) ?: BobitosDestination.Sport,
+                module = AppModule.SPORT,
                 screenTitle = stringResource(BobitosDestination.Sport.titleRes),
                 spaceName = spaceName,
                 switcher = spaceSwitcher,
@@ -421,6 +429,7 @@ fun BobitosNavHost(
             SpaceScaffold(
                 navController = navController,
                 selectedTab = workspaceTabFor(BobitosDestination.Calendar.route) ?: BobitosDestination.Calendar,
+                module = AppModule.CALENDAR,
                 screenTitle = stringResource(BobitosDestination.Calendar.titleRes),
                 spaceName = spaceName,
                 switcher = spaceSwitcher,
@@ -603,6 +612,7 @@ private fun MainMenuScreen(syncStatus: SyncStatus, onOpen: (BobitosDestination) 
 private fun SpaceScaffold(
     navController: NavHostController,
     selectedTab: BobitosDestination,
+    module: AppModule?,
     screenTitle: String?,
     spaceName: String,
     switcher: SpaceSwitcher,
@@ -613,6 +623,7 @@ private fun SpaceScaffold(
 ) {
     WorkspaceScaffold(
         selectedTab = selectedTab,
+        module = module,
         screenTitle = screenTitle,
         spaceName = spaceName,
         onTabSelected = navController::navigateToTab,
