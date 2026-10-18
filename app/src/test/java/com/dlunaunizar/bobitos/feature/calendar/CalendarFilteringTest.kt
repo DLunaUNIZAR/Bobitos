@@ -24,11 +24,21 @@ class CalendarFilteringTest {
     }
 
     @Test
-    fun `space filter with no members keeps only general events`() {
+    fun `space filter with no members behaves as all people`() {
         assertEquals(
-            listOf("general"),
+            listOf("general", "david", "shared", "ana"),
             events.forSelectedMembers(emptySet()).map(CalendarEvent::id),
         )
+    }
+
+    @Test
+    fun `personal calendar with no spaces selected behaves as all spaces`() {
+        val all = listOf(
+            PersonalCalendarEvent("home", "Casa", david),
+            PersonalCalendarEvent("work", "Trabajo", ana),
+        )
+        assertEquals(all, all.forSelectedSpaces(emptySet()))
+        assertEquals(listOf(all[1]), all.forSelectedSpaces(setOf("work")))
     }
 
     @Test

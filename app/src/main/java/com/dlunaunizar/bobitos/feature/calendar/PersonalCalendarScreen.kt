@@ -10,15 +10,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -33,6 +30,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -46,8 +44,12 @@ import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
+import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
+import com.dlunaunizar.bobitos.core.designsystem.component.MultiSelectFilterDropdown
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
@@ -90,8 +92,7 @@ fun PersonalCalendarScreen(
     val undoLabel = stringResource(R.string.undo)
 
     val loadedEvents = (state.events as? UiState.Content)?.value
-    val events = loadedEvents.orEmpty()
-        .filter { it.spaceId in state.selectedSpaceIds }
+    val events = loadedEvents.orEmpty().forSelectedSpaces(state.selectedSpaceIds)
     val dayEvents = events.eventsOn(state.focusedDate)
     val dayEventsById = dayEvents.associateBy { it.event.id }
 
@@ -145,73 +146,82 @@ fun PersonalCalendarScreen(
                 }
             }
         }
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            CalendarPeriodHeader(
-                date = state.focusedDate,
-                mode = state.mode,
-                onPrevious = viewModel::previous,
-                onNext = viewModel::next,
-            )
-            CalendarModeSelector(state.mode) { mode ->
-                drilledFrom = null
-                viewModel.setMode(mode)
-            }
-            SpaceFilters(
-                spaces = spaces,
-                selectedIds = state.selectedSpaceIds,
-                onToggle = viewModel::toggleSpace,
-                onSelectAll = viewModel::selectAllSpaces,
-                onClear = viewModel::clearSpaceSelection,
-            )
-
-            EventsLoadState(state.events, viewModel::retryEvents, Modifier.weight(1f)) {
-                when (state.mode) {
-                    CalendarDisplayMode.MONTH -> MonthGrid(
-                        month = YearMonth.from(state.focusedDate),
-                        selected = state.focusedDate,
-                        events = events.map(PersonalCalendarEvent::event),
-                        select = { date ->
-                            viewModel.select(date)
-                            drilledFrom = state.mode
-                            viewModel.setMode(CalendarDisplayMode.DAY)
-                        },
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            // Periodo, vista y espacios fijos en la franja: el calendario es navegación, no se desplaza.
+            ModuleHeaderBand {
+                Column(
+                    Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.sm, bottom = Spacing.md),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    CalendarPeriodHeader(
+                        date = state.focusedDate,
+                        mode = state.mode,
+                        onPrevious = viewModel::previous,
+                        onNext = viewModel::next,
                     )
-                    CalendarDisplayMode.DAY -> DayHourGrid(
-                        events = dayEvents.map(PersonalCalendarEvent::event),
-                        tasks = emptyList(),
-                        canWrite = canWrite,
-                        onEdit = { event ->
-                            dayEventsById[event.id]?.let { openEditor(it.spaceId, it.event, null) }
-                        },
-                        onDelete = { id -> dayEventsById[id]?.let(deleteWithUndo) },
-                        onCreateAt = onCreateAt,
-                        modifier = Modifier.weight(1f),
-                        deleteEnabled = !state.saving,
-                    )
-                    CalendarDisplayMode.WEEK -> PersonalWeekEventList(
-                        events = events,
-                        focusedDate = state.focusedDate,
-                        onSelected = onEventSelected,
-                        modifier = Modifier.weight(1f),
+                    CalendarModeSelector(state.mode) { mode ->
+                        drilledFrom = null
+                        viewModel.setMode(mode)
+                    }
+                    SpacesFilter(
+                        spaces = spaces,
+                        selectedIds = state.selectedSpaceIds,
+                        onToggle = viewModel::toggleSpace,
+                        onSelectAll = viewModel::selectAllSpaces,
                     )
                 }
             }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                EventsLoadState(state.events, viewModel::retryEvents, Modifier.weight(1f)) {
+                    when (state.mode) {
+                        CalendarDisplayMode.MONTH -> MonthGrid(
+                            month = YearMonth.from(state.focusedDate),
+                            selected = state.focusedDate,
+                            events = events.map(PersonalCalendarEvent::event),
+                            select = { date ->
+                                viewModel.select(date)
+                                drilledFrom = state.mode
+                                viewModel.setMode(CalendarDisplayMode.DAY)
+                            },
+                        )
+                        CalendarDisplayMode.DAY -> DayHourGrid(
+                            events = dayEvents.map(PersonalCalendarEvent::event),
+                            tasks = emptyList(),
+                            canWrite = canWrite,
+                            onEdit = { event ->
+                                dayEventsById[event.id]?.let { openEditor(it.spaceId, it.event, null) }
+                            },
+                            onDelete = { id -> dayEventsById[id]?.let(deleteWithUndo) },
+                            onCreateAt = onCreateAt,
+                            modifier = Modifier.weight(1f),
+                            deleteEnabled = !state.saving,
+                        )
+                        CalendarDisplayMode.WEEK -> PersonalWeekEventList(
+                            events = events,
+                            focusedDate = state.focusedDate,
+                            onSelected = onEventSelected,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
 
-            FeedbackSnackbarEffect(
-                error = state.error?.messageRes(),
-                notice = null,
-                editorSave = state.editorSave,
-                editorOpen = editorOpen,
-                onShown = viewModel::clearMessage,
-                text = { stringResource(it) },
-            )
-            CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
+                FeedbackSnackbarEffect(
+                    error = state.error?.messageRes(),
+                    notice = null,
+                    editorSave = state.editorSave,
+                    editorOpen = editorOpen,
+                    onShown = viewModel::clearMessage,
+                    text = { stringResource(it) },
+                )
+                CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
+            }
         }
     }
 
@@ -286,24 +296,32 @@ private fun SpacePickerDialog(spaces: List<SpaceSummary>, onPick: (String) -> Un
 }
 
 @Composable
-private fun SpaceFilters(
+internal fun SpacesFilter(
     spaces: List<SpaceSummary>,
     selectedIds: Set<String>,
     onToggle: (String) -> Unit,
     onSelectAll: () -> Unit,
-    onClear: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Text(stringResource(R.string.my_calendar_spaces), style = MaterialTheme.typography.titleSmall)
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        item { AssistChip(onClick = onSelectAll, label = { Text(stringResource(R.string.my_calendar_all_spaces)) }) }
-        item { AssistChip(onClick = onClear, label = { Text(stringResource(R.string.my_calendar_none_spaces)) }) }
-        items(spaces, key = SpaceSummary::id) { space ->
-            FilterChip(
-                selected = space.id in selectedIds,
-                onClick = { onToggle(space.id) },
-                label = { Text(space.name) },
-            )
-        }
+    val value = multiFilterValue(selectedIds, spaces.map { it.id to it.name })
+    val allText = stringResource(R.string.my_calendar_all_spaces)
+    FilterDropdownRow(modifier) {
+        MultiSelectFilterDropdown(
+            label = stringResource(R.string.my_calendar_spaces),
+            value = when (value) {
+                MultiFilterValue.All -> allText
+                is MultiFilterValue.One -> value.name
+                is MultiFilterValue.Some ->
+                    pluralStringResource(R.plurals.my_calendar_spaces_count, value.count, value.count)
+            },
+            options = listOf(FilterOption(allText, value == MultiFilterValue.All, onSelectAll)) +
+                spaces.map { space ->
+                    FilterOption(space.name, space.id in selectedIds) { onToggle(space.id) }
+                },
+            active = value != MultiFilterValue.All,
+            modifier = Modifier.weight(1f),
+            tag = "filtro_espacios",
+        )
     }
 }
 

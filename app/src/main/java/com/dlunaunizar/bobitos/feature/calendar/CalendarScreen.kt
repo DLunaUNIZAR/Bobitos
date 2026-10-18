@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
@@ -33,13 +32,11 @@ import androidx.compose.material.icons.rounded.Checklist
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -96,9 +93,13 @@ import com.dlunaunizar.bobitos.core.designsystem.component.ClickableCard
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
+import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
+import com.dlunaunizar.bobitos.core.designsystem.component.MultiSelectFilterDropdown
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
@@ -190,76 +191,84 @@ fun CalendarScreen(
                 }
             }
         }
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            CalendarPeriodHeader(
-                date = state.focusedDate,
-                mode = state.mode,
-                onPrevious = viewModel::previous,
-                onNext = viewModel::next,
-            )
-            CalendarModeSelector(state.mode) { mode ->
-                drilledFrom = null
-                viewModel.setMode(mode)
-            }
-            MemberFilters(
-                members = members,
-                selectedIds = state.selectedMemberIds,
-                onToggle = viewModel::toggleMember,
-                onSelectAll = viewModel::selectAllMembers,
-                onClear = viewModel::clearMemberSelection,
-            )
-
-            val onDayTap: (LocalDate) -> Unit = { date ->
-                drilledFrom = state.mode
-                viewModel.select(date)
-                viewModel.setMode(CalendarDisplayMode.DAY)
-            }
-            EventsLoadState(state.events, viewModel::retryEvents, Modifier.weight(1f)) {
-                when (state.mode) {
-                    CalendarDisplayMode.MONTH -> MonthGrid(
-                        month = YearMonth.from(state.focusedDate),
-                        selected = state.focusedDate,
-                        events = filteredEvents,
-                        select = onDayTap,
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            // Periodo, vista y personas fijos en la franja: el calendario es navegación, no se desplaza.
+            ModuleHeaderBand {
+                Column(
+                    Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.sm, bottom = Spacing.md),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    CalendarPeriodHeader(
+                        date = state.focusedDate,
+                        mode = state.mode,
+                        onPrevious = viewModel::previous,
+                        onNext = viewModel::next,
                     )
-                    CalendarDisplayMode.DAY -> DayHourGrid(
-                        events = filteredEvents.eventsOn(state.focusedDate),
-                        tasks = state.tasks.tasksOn(state.focusedDate),
-                        canWrite = canWrite,
-                        onEdit = { editorEventId = it.id },
-                        onDelete = { id -> filteredEvents.firstOrNull { it.id == id }?.let(deleteWithUndo) },
-                        onCreateAt = { creatingAtText = it.toString() },
-                        modifier = Modifier.weight(1f),
-                        deleteEnabled = !state.saving,
-                    )
-                    CalendarDisplayMode.WEEK -> WeekEventList(
-                        focusedDate = state.focusedDate,
-                        events = filteredEvents,
-                        canWrite = canWrite,
-                        onEdit = { editorEventId = it.id },
-                        onDelete = { id -> filteredEvents.firstOrNull { it.id == id }?.let(deleteWithUndo) },
-                        onDayTap = onDayTap,
-                        modifier = Modifier.weight(1f),
-                        deleteEnabled = !state.saving,
+                    CalendarModeSelector(state.mode) { mode ->
+                        drilledFrom = null
+                        viewModel.setMode(mode)
+                    }
+                    PeopleFilter(
+                        members = members,
+                        selectedIds = state.selectedMemberIds,
+                        onToggle = viewModel::toggleMember,
+                        onSelectAll = viewModel::selectAllMembers,
                     )
                 }
             }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                val onDayTap: (LocalDate) -> Unit = { date ->
+                    drilledFrom = state.mode
+                    viewModel.select(date)
+                    viewModel.setMode(CalendarDisplayMode.DAY)
+                }
+                EventsLoadState(state.events, viewModel::retryEvents, Modifier.weight(1f)) {
+                    when (state.mode) {
+                        CalendarDisplayMode.MONTH -> MonthGrid(
+                            month = YearMonth.from(state.focusedDate),
+                            selected = state.focusedDate,
+                            events = filteredEvents,
+                            select = onDayTap,
+                        )
+                        CalendarDisplayMode.DAY -> DayHourGrid(
+                            events = filteredEvents.eventsOn(state.focusedDate),
+                            tasks = state.tasks.tasksOn(state.focusedDate),
+                            canWrite = canWrite,
+                            onEdit = { editorEventId = it.id },
+                            onDelete = { id -> filteredEvents.firstOrNull { it.id == id }?.let(deleteWithUndo) },
+                            onCreateAt = { creatingAtText = it.toString() },
+                            modifier = Modifier.weight(1f),
+                            deleteEnabled = !state.saving,
+                        )
+                        CalendarDisplayMode.WEEK -> WeekEventList(
+                            focusedDate = state.focusedDate,
+                            events = filteredEvents,
+                            canWrite = canWrite,
+                            onEdit = { editorEventId = it.id },
+                            onDelete = { id -> filteredEvents.firstOrNull { it.id == id }?.let(deleteWithUndo) },
+                            onDayTap = onDayTap,
+                            modifier = Modifier.weight(1f),
+                            deleteEnabled = !state.saving,
+                        )
+                    }
+                }
 
-            FeedbackSnackbarEffect(
-                error = state.error?.messageRes(),
-                notice = state.notice?.messageRes(),
-                editorSave = state.editorSave,
-                editorOpen = editorOpen,
-                onShown = viewModel::clearMessage,
-                text = { stringResource(it) },
-            )
-            CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
+                FeedbackSnackbarEffect(
+                    error = state.error?.messageRes(),
+                    notice = state.notice?.messageRes(),
+                    editorSave = state.editorSave,
+                    editorOpen = editorOpen,
+                    onShown = viewModel::clearMessage,
+                    text = { stringResource(it) },
+                )
+                CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
+            }
         }
     }
 
@@ -361,24 +370,35 @@ internal fun CalendarModeSelector(selected: CalendarDisplayMode, onSelected: (Ca
 }
 
 @Composable
-private fun MemberFilters(
+internal fun PeopleFilter(
     members: List<SpaceMember>,
     selectedIds: Set<String>,
     onToggle: (String) -> Unit,
     onSelectAll: () -> Unit,
-    onClear: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Text(stringResource(R.string.calendar_people), style = MaterialTheme.typography.titleSmall)
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        item { AssistChip(onClick = onSelectAll, label = { Text(stringResource(R.string.calendar_all)) }) }
-        item { AssistChip(onClick = onClear, label = { Text(stringResource(R.string.calendar_none)) }) }
-        items(members, key = SpaceMember::userId) { member ->
-            FilterChip(
-                selected = member.userId in selectedIds,
-                onClick = { onToggle(member.userId) },
-                label = { Text(member.displayName) },
-            )
-        }
+    val value = multiFilterValue(selectedIds, members.map { it.userId to it.displayName })
+    val allText = stringResource(R.string.calendar_all)
+    FilterDropdownRow(modifier) {
+        MultiSelectFilterDropdown(
+            label = stringResource(R.string.calendar_people),
+            value = when (value) {
+                MultiFilterValue.All -> allText
+                is MultiFilterValue.One -> value.name
+                is MultiFilterValue.Some -> pluralStringResource(
+                    R.plurals.calendar_people_count,
+                    value.count,
+                    value.count,
+                )
+            },
+            options = listOf(FilterOption(allText, value == MultiFilterValue.All, onSelectAll)) +
+                members.map { member ->
+                    FilterOption(member.displayName, member.userId in selectedIds) { onToggle(member.userId) }
+                },
+            active = value != MultiFilterValue.All,
+            modifier = Modifier.weight(1f),
+            tag = "filtro_personas",
+        )
     }
 }
 
