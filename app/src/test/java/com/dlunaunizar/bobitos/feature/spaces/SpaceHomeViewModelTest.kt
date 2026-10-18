@@ -214,6 +214,7 @@ private object NoTasks : TaskRepository {
     override suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean): Unit = error("no usado")
     override suspend fun deleteTask(spaceId: String, taskId: String): Unit = error("no usado")
     override suspend fun restoreTask(spaceId: String, task: TaskItem): Unit = error("no usado")
+    override suspend fun restoreCompletion(spaceId: String, previous: TaskItem): Unit = error("no usado")
 }
 
 private object NoMeals : MealRepository {

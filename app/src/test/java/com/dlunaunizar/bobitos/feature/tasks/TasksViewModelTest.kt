@@ -116,11 +116,54 @@ class TasksViewModelTest {
 
     @Test
     fun `marking a task delegates to the repository`() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.setCompleted("home", "t1", true)
+        viewModel.setCompleted("home", task("t1", "Leche", null), true)
         advanceUntilIdle()
 
         assertEquals(Triple("home", "t1", true), taskRepository.completedChange)
-        assertEquals(TaskUiMessage.TaskCompleted, viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun completarOfreceDeshacerConLaFotoDeAntes() = runTest(mainDispatcherRule.testDispatcher) {
+        val start = Instant.parse("2026-10-01T08:00:00Z")
+        val due = Instant.parse("2026-10-02T08:00:00Z")
+        val antes = task("t1", "Regar", null).copy(startAt = start, dueAt = due)
+        var ofrecida: TaskItem? = null
+
+        viewModel.setCompleted("home", antes, true) { ofrecida = it }
+        advanceUntilIdle()
+
+        assertEquals(antes, ofrecida)
+        assertEquals(start, ofrecida?.startAt)
+        assertEquals(due, ofrecida?.dueAt)
+        assertNull(viewModel.uiState.value.notice)
+    }
+
+    @Test
+    fun deshacerDevuelveLaTareaConSuEstadoYSusFechas() = runTest(mainDispatcherRule.testDispatcher) {
+        val start = Instant.parse("2026-10-01T08:00:00Z")
+        val due = Instant.parse("2026-10-02T08:00:00Z")
+        val antes = task("t1", "Regar", null).copy(
+            startAt = start,
+            dueAt = due,
+            recurrence = TaskRecurrence(RecurrenceUnit.WEEK, 1),
+        )
+
+        viewModel.undoCompletion("home", antes)
+        advanceUntilIdle()
+
+        assertEquals("home", taskRepository.completionRestoredSpaceId)
+        assertEquals(antes, taskRepository.completionRestored.single())
+        assertNull(taskRepository.completedChange)
+    }
+
+    @Test
+    fun deshacerSiLaTareaYaNoExisteAvisa() = runTest(mainDispatcherRule.testDispatcher) {
+        taskRepository.nextFailure = TaskRepositoryException(TaskFailure.TaskNotFound)
+
+        viewModel.undoCompletion("home", task("t1", "Regar", null))
+        advanceUntilIdle()
+
+        assertEquals(TaskUiMessage.TaskNotFound, viewModel.uiState.value.error)
     }
 
     @Test
@@ -360,6 +403,8 @@ private class FakeTaskRepository : TaskRepository {
     val deleted = mutableListOf<String>()
     val restored = mutableListOf<TaskItem>()
     var restoredSpaceId: String? = null
+    val completionRestored = mutableListOf<TaskItem>()
+    var completionRestoredSpaceId: String? = null
 
     // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
     var hang = false
@@ -427,6 +472,12 @@ private class FakeTaskRepository : TaskRepository {
         throwNextFailure()
         restoredSpaceId = spaceId
         restored += task
+    }
+
+    override suspend fun restoreCompletion(spaceId: String, previous: TaskItem) {
+        throwNextFailure()
+        completionRestoredSpaceId = spaceId
+        completionRestored += previous
     }
 
     private fun throwNextFailure() {

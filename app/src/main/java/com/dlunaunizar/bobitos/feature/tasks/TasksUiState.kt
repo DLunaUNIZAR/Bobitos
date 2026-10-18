@@ -101,7 +101,6 @@ enum class TaskUiMessage {
     SaveTimeout,
     TaskCreated,
     TaskUpdated,
-    TaskCompleted,
     TaskReopened,
     TaskDeleted,
 }

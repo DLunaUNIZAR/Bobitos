@@ -133,9 +133,20 @@ class TasksViewModel @Inject constructor(
         }
     }
 
-    fun setCompleted(spaceId: String, taskId: String, completed: Boolean) = runAction(
-        if (completed) TaskUiMessage.TaskCompleted else TaskUiMessage.TaskReopened,
-    ) { taskRepository.setCompleted(spaceId, taskId, completed) }
+    // Al completar no hay aviso propio: onCompleted recibe la tarea tal como estaba (estado y fechas) solo si termina
+    // bien, y la pantalla ofrece «Deshacer» con ella. Al reabrir, aviso de siempre.
+    fun setCompleted(spaceId: String, task: TaskItem, completed: Boolean, onCompleted: (TaskItem) -> Unit = {}) {
+        runAction(
+            if (completed) null else TaskUiMessage.TaskReopened,
+            onSuccess = { if (completed) onCompleted(task) },
+        ) { taskRepository.setCompleted(spaceId, task.id, completed) }
+    }
+
+    // «Deshacer» completar: la tarea vuelve a pendiente con las fechas de [previous]. Sin aviso; si falla (también si
+    // la tarea ya no existe), sale el error.
+    fun undoCompletion(spaceId: String, previous: TaskItem) = runAction(null, force = true) {
+        taskRepository.restoreCompletion(spaceId, previous)
+    }
 
     // onDeleted se llama solo si el borrado termina bien: así el «Deshacer» no se ofrece para un borrado fallido ni
     // se pulsa mientras el borrado sigue en curso. Sin notice: el feedback lo da el Snackbar de la pantalla.

@@ -37,6 +37,13 @@ interface TaskRepository {
 
     suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean)
 
+    /**
+     * «Deshacer» completar: deja [previous] (la tarea tal como estaba antes, siempre en TODO) otra vez pendiente con
+     * sus fechas de entonces, en una sola escritura. Vale para una normal, que quedó en DONE, y para una recurrente,
+     * que siguió en TODO con las fechas adelantadas. Si la tarea ya no existe, lanza [TaskFailure.TaskNotFound].
+     */
+    suspend fun restoreCompletion(spaceId: String, previous: TaskItem)
+
     suspend fun deleteTask(spaceId: String, taskId: String)
 
     /**

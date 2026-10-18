@@ -187,6 +187,7 @@
     <string name="created_undo_message">Has añadido «%1$s»</string>
     <string name="shopping_undo_deleted">Producto eliminado</string>
     <string name="tasks_undo_deleted">Tarea eliminada</string>
+    <string name="tasks_undo_completed">Tarea completada</string>
     <string name="meals_undo_deleted">Comida eliminada</string>
     <string name="recipes_undo_deleted">Receta eliminada</string>
     <string name="calendar_undo_deleted">Evento eliminado</string>
@@ -330,7 +331,6 @@
     <string name="tasks_error_not_found">La tarea ya no existe.</string>
     <string name="tasks_notice_created">Tarea creada.</string>
     <string name="tasks_notice_updated">Tarea actualizada.</string>
-    <string name="tasks_notice_completed">Tarea completada.</string>
     <string name="tasks_notice_reopened">Tarea reabierta.</string>
     <string name="tasks_notice_deleted">Tarea eliminada.</string>
     <string name="calendar_title">Calendario</string>

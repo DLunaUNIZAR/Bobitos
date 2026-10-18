@@ -609,6 +609,44 @@ test("cualquier miembro completa y reabre una tarea con atribución coherente", 
   }));
 });
 
+test("deshacer completar devuelve estado y fechas en una escritura", async () => {
+  await seedSpace("tasks-undo-complete", "undo-owner", ["undo-member"]);
+  const owner = verifiedFirestore("undo-owner");
+  const member = verifiedFirestore("undo-member");
+  const start = Timestamp.fromDate(new Date("2026-10-01T08:00:00Z"));
+  const due = Timestamp.fromDate(new Date("2026-10-02T08:00:00Z"));
+
+  // Tarea normal completada: un miembro la reabre y devuelve las fechas en el mismo updateDoc.
+  const done = doc(owner, "spaces", "tasks-undo-complete", "tasks", "done");
+  await assertSucceeds(setDoc(done, taskData("undo-owner", null, { startAt: Timestamp.now(), dueAt: Timestamp.now() })));
+  await assertSucceeds(completeTask(owner, "tasks-undo-complete", "done", "undo-owner"));
+  await assertSucceeds(updateDoc(doc(member, "spaces", "tasks-undo-complete", "tasks", "done"), {
+    status: "TODO",
+    completedBy: null,
+    completedByName: null,
+    completedAt: null,
+    startAt: start,
+    dueAt: due,
+    updatedBy: "undo-member",
+    updatedAt: serverTimestamp(),
+  }));
+  const reopened = (await getDoc(done)).data();
+  assert.equal(reopened.status, "TODO");
+  assert.equal(reopened.completedBy, null);
+  assert.deepEqual(reopened.startAt, start);
+  assert.deepEqual(reopened.dueAt, due);
+
+  // Tarea recurrente que sigue en TODO con las fechas adelantadas: solo cambian las fechas.
+  const repeating = doc(owner, "spaces", "tasks-undo-complete", "tasks", "repeating");
+  await assertSucceeds(setDoc(repeating, taskData("undo-owner", null, { startAt: Timestamp.now(), dueAt: Timestamp.now() })));
+  await assertSucceeds(updateDoc(doc(member, "spaces", "tasks-undo-complete", "tasks", "repeating"), {
+    startAt: start,
+    dueAt: due,
+    updatedBy: "undo-member",
+    updatedAt: serverTimestamp(),
+  }));
+});
+
 test("deshacer el borrado de una tarea completada la devuelve con su id y completada (alta y actualización)", async () => {
   await seedSpace("tasks-restore", "task-restore-owner", ["task-restore-member"]);
   const owner = verifiedFirestore("task-restore-owner");

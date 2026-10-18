@@ -182,12 +182,20 @@ fun TasksScreen(
         CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
         val deletedMessage = stringResource(R.string.tasks_undo_deleted)
         val undoLabel = stringResource(R.string.undo)
+        val completedMessage = stringResource(R.string.tasks_undo_completed)
         val deleteColor = MaterialTheme.colorScheme.error
         val checkColor = MaterialTheme.colorScheme.primary
         val deleteTaskWithUndo: (TaskItem) -> Unit = { task ->
             viewModel.deleteTask(spaceId, task.id) {
                 scope.launchUndo(snackbar, deletedMessage, undoLabel) {
                     viewModel.restoreTask(spaceId, task)
+                }
+            }
+        }
+        val setCompletedWithUndo: (TaskItem, Boolean) -> Unit = { task, completed ->
+            viewModel.setCompleted(spaceId, task, completed) {
+                scope.launchUndo(snackbar, completedMessage, undoLabel) {
+                    viewModel.undoCompletion(spaceId, it)
                 }
             }
         }
@@ -246,7 +254,7 @@ fun TasksScreen(
                                     },
                                 ),
                             ) {
-                                viewModel.setCompleted(spaceId, task.id, task.status != TaskStatus.DONE)
+                                setCompletedWithUndo(task, task.status != TaskStatus.DONE)
                             }.takeIf { enabled },
                             endAction = SwipeAction(
                                 Icons.Rounded.Delete,
@@ -261,7 +269,7 @@ fun TasksScreen(
                                 task,
                                 position,
                                 enabled,
-                                onSetCompleted = { viewModel.setCompleted(spaceId, task.id, it) },
+                                onSetCompleted = { setCompletedWithUndo(task, it) },
                                 onEdit = {
                                     openEditor(task.id, -1)
                                 },
@@ -1028,7 +1036,6 @@ private fun TaskUiMessage.stringRes() = when (this) {
     TaskUiMessage.SaveTimeout -> R.string.write_timeout
     TaskUiMessage.TaskCreated -> R.string.tasks_notice_created
     TaskUiMessage.TaskUpdated -> R.string.tasks_notice_updated
-    TaskUiMessage.TaskCompleted -> R.string.tasks_notice_completed
     TaskUiMessage.TaskReopened -> R.string.tasks_notice_reopened
     TaskUiMessage.TaskDeleted -> R.string.tasks_notice_deleted
 }

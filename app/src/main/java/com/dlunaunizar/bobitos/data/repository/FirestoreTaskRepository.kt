@@ -179,6 +179,27 @@ class FirestoreTaskRepository @Inject constructor(
         Unit
     }
 
+    override suspend fun restoreCompletion(spaceId: String, previous: TaskItem) = runTaskOperation {
+        require(previous.status == TaskStatus.TODO) { "La foto de antes de completar debe estar pendiente" }
+        val user = requireVerifiedUser()
+        val taskReference = tasksCollection(spaceId).document(previous.id)
+        firestore.runTransaction { transaction ->
+            requireTask(transaction.get(taskReference))
+            transaction.update(
+                taskReference,
+                FIELD_STATUS, STATUS_TODO,
+                FIELD_COMPLETED_BY, null,
+                FIELD_COMPLETED_BY_NAME, null,
+                FIELD_COMPLETED_AT, null,
+                FIELD_START_AT, previous.startAt?.toTimestamp(),
+                FIELD_DUE_AT, previous.dueAt?.toTimestamp(),
+                FIELD_UPDATED_BY, user.id,
+                FIELD_UPDATED_AT, FieldValue.serverTimestamp(),
+            )
+        }.await()
+        Unit
+    }
+
     override suspend fun deleteTask(spaceId: String, taskId: String) = runTaskOperation {
         requireVerifiedUser()
         val taskReference = tasksCollection(spaceId).document(taskId)
