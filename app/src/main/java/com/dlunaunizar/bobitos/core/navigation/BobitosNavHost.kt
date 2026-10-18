@@ -13,6 +13,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -29,7 +30,10 @@ import androidx.navigation.navArgument
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.app.AppUiState
 import com.dlunaunizar.bobitos.app.RealtimeScope
+import com.dlunaunizar.bobitos.core.common.BobitosDates
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.rememberReduceMotion
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.model.AuthUser
@@ -49,13 +53,19 @@ import com.dlunaunizar.bobitos.feature.pantry.PantryScreen
 import com.dlunaunizar.bobitos.feature.recipes.RecipesScreen
 import com.dlunaunizar.bobitos.feature.routines.RoutinesScreen
 import com.dlunaunizar.bobitos.feature.shopping.ShoppingScreen
+import com.dlunaunizar.bobitos.feature.spaces.DayPeriod
 import com.dlunaunizar.bobitos.feature.spaces.SpaceHomeViewModel
 import com.dlunaunizar.bobitos.feature.spaces.SpaceManagementUiState
 import com.dlunaunizar.bobitos.feature.spaces.SpaceSettingsScreen
 import com.dlunaunizar.bobitos.feature.spaces.SpacesScreen
+import com.dlunaunizar.bobitos.feature.spaces.TodayAgenda
+import com.dlunaunizar.bobitos.feature.spaces.dayPeriodFor
+import com.dlunaunizar.bobitos.feature.spaces.firstName
 import com.dlunaunizar.bobitos.feature.sport.SportScreen
 import com.dlunaunizar.bobitos.feature.tasks.TasksScreen
+import com.dlunaunizar.bobitos.feature.tasks.stringRes
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 @Composable
 fun BobitosNavHost(
@@ -253,21 +263,31 @@ fun BobitosNavHost(
             LaunchedEffect(uiState.selectedSpace?.id) {
                 uiState.selectedSpace?.id?.let { summaryViewModel.show(it, authUser.id) }
             }
+            // Fecha y saludo se fijan con la agenda: a medianoche llega una nueva y se renuevan.
+            val now = remember(agenda) { LocalDateTime.now() }
+            val greeting = stringResource(greetingRes(dayPeriodFor(now.hour)))
+            val name = firstName(authUser.displayName)
             SpaceScaffold(
                 navController = navController,
                 selectedTab = BobitosDestination.SpaceHome,
                 module = null,
-                title = stringResource(BobitosDestination.SpaceHome.titleRes),
+                title = BobitosDates.longDay(now.toLocalDate()),
+                supportingText = if (name.isBlank()) {
+                    greeting
+                } else {
+                    stringResource(R.string.space_today_greeting_named, greeting, name)
+                },
                 spaceName = spaceName,
                 switcher = spaceSwitcher,
                 syncStatus = uiState.syncStatus,
                 onClearSpaceFeedback = onClearSpaceFeedback,
                 onClearAuthFeedback = onClearAuthFeedback,
             ) {
-                SpaceTodayScreen(
-                    displayName = authUser.displayName,
+                SpaceHomeContent(
+                    viewModel = summaryViewModel,
                     agenda = agenda,
-                    onRetry = summaryViewModel::retry,
+                    canWrite = uiState.syncStatus.canWrite,
+                    onOpen = { navController.navigateToWorkspace(it) },
                 )
             }
         }
@@ -552,6 +572,7 @@ private fun SpaceScaffold(
     syncStatus: SyncStatus,
     onClearSpaceFeedback: () -> Unit,
     onClearAuthFeedback: () -> Unit,
+    supportingText: String? = null,
     content: @Composable () -> Unit,
 ) {
     WorkspaceScaffold(
@@ -571,7 +592,47 @@ private fun SpaceScaffold(
             navController.navigateToProfile()
         },
         syncStatus = syncStatus,
+        supportingText = supportingText,
         content = content,
+    )
+}
+
+private fun greetingRes(period: DayPeriod): Int = when (period) {
+    DayPeriod.MORNING -> R.string.space_today_greeting_morning
+    DayPeriod.AFTERNOON -> R.string.space_today_greeting_afternoon
+    DayPeriod.EVENING -> R.string.space_today_greeting_evening
+}
+
+// Va dentro del marco para leer su snackbar: completar avisa con «Deshacer» y los errores salen por el mismo sitio.
+@Composable
+private fun SpaceHomeContent(
+    viewModel: SpaceHomeViewModel,
+    agenda: UiState<TodayAgenda>,
+    canWrite: Boolean,
+    onOpen: (BobitosDestination) -> Unit,
+) {
+    val snackbar = LocalSnackbarHostState.current
+    val scope = rememberCoroutineScope()
+    val completedMessage = stringResource(R.string.tasks_undo_completed)
+    val undoLabel = stringResource(R.string.undo)
+    val error by viewModel.error.collectAsStateWithLifecycle()
+    error?.let { message ->
+        val text = stringResource(message.stringRes())
+        LaunchedEffect(message) {
+            snackbar?.showSnackbar(text)
+            viewModel.clearError()
+        }
+    }
+    SpaceTodayScreen(
+        agenda = agenda,
+        canWrite = canWrite,
+        onToggleTask = { task ->
+            viewModel.complete(task) {
+                scope.launchUndo(snackbar, completedMessage, undoLabel) { viewModel.undoCompletion(it) }
+            }
+        },
+        onRetry = viewModel::retry,
+        onOpen = onOpen,
     )
 }
 

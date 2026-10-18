@@ -60,6 +60,27 @@
     <string name="space_today_greeting_evening">Buenas noches</string>
     <string name="space_today_greeting_named">%1$s, %2$s</string>
     <string name="space_home_catalog_section">Recetario e ingredientes</string>
+    <string name="agenda_tasks_title">Tareas para hoy</string>
+    <string name="agenda_tasks_more">Ver las %1$d en Tareas</string>
+    <string name="agenda_title">Agenda</string>
+    <string name="agenda_empty">Hoy no hay nada en la agenda</string>
+    <string name="agenda_time_no_time">Sin hora</string>
+    <string name="agenda_time_continues">Sigue hoy</string>
+    <string name="agenda_overdue_yesterday">Venció ayer</string>
+    <string name="agenda_overdue_date">Venció el %1$s</string>
+    <string name="agenda_you">Tú</string>
+    <string name="agenda_unassigned">Sin asignar</string>
+    <string name="agenda_cook_you">Cocinas tú</string>
+    <string name="agenda_done">Hecha</string>
+    <plurals name="agenda_eaters">
+        <item quantity="one">come %1$d</item>
+        <item quantity="other">comen %1$d</item>
+    </plurals>
+    <string name="agenda_row_description">%1$s: %2$s</string>
+    <string name="agenda_row_description_with_who">%1$s: %2$s, %3$s</string>
+    <string name="agenda_shopping_empty">La compra está al día</string>
+    <string name="agenda_shopping_more">%1$s y %2$d más</string>
+    <string name="agenda_list_and">%1$s y %2$s</string>
     <string name="home_workload_title">Reparto de tareas</string>
     <plurals name="home_workload_pending">
         <item quantity="one">%1$d pendiente</item>

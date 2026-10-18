@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 
 // D2 — Reparto: pendientes y hechas esta semana por miembro, con barra de equilibrio.
@@ -24,7 +25,7 @@ fun WorkloadSection(workload: List<MemberWorkload>, modifier: Modifier = Modifie
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Text(stringResource(R.string.home_workload_title), style = MaterialTheme.typography.titleMedium)
+        SectionHeader(title = stringResource(R.string.home_workload_title))
         workload.forEach { member ->
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

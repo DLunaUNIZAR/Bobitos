@@ -1009,7 +1009,7 @@ private fun CustomRecurrenceFields(recurrence: TaskRecurrence, onSelect: (TaskRe
     }
 }
 
-@Composable private fun TaskPriority.label() = stringResource(
+@Composable internal fun TaskPriority.label() = stringResource(
     when (this) {
         TaskPriority.LOW -> R.string.tasks_priority_low
         TaskPriority.MEDIUM -> R.string.tasks_priority_medium
@@ -1020,7 +1020,7 @@ private fun CustomRecurrenceFields(recurrence: TaskRecurrence, onSelect: (TaskRe
 private fun Instant.formatDate() = BobitosDates.shortDate(atZone(ZoneId.systemDefault()).toLocalDate())
 internal fun Instant.formatIsoDate() = atZone(ZoneId.systemDefault()).toLocalDate().toString()
 
-private fun TaskUiMessage.stringRes() = when (this) {
+internal fun TaskUiMessage.stringRes() = when (this) {
     TaskUiMessage.TitleRequired -> R.string.tasks_error_title_required
     TaskUiMessage.TitleTooLong -> R.string.tasks_error_title_too_long
     TaskUiMessage.DescriptionTooLong -> R.string.tasks_error_description_too_long
