@@ -51,13 +51,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
-import com.dlunaunizar.bobitos.core.common.BobitosDates
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.DayTitleButton
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -163,17 +163,13 @@ fun SportScreen(
                     onNext = viewModel::nextWeek,
                     previousLabel = stringResource(R.string.sport_prev_week),
                     nextLabel = stringResource(R.string.sport_next_week),
-                    modifier = Modifier.padding(horizontal = Spacing.sm),
+                    modifier = Modifier.padding(horizontal = Spacing.xs),
                 )
             }
             Column(Modifier.weight(1f).padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
                 Spacer(Modifier.height(Spacing.sm))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = state.focusedDate.formatHeader(),
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.weight(1f),
-                    )
+                    DayTitleButton(state.focusedDate, viewModel::selectDay, Modifier.weight(1f))
                 }
                 when (val activities = state.activities) {
                     UiState.Loading -> LoadingState(Modifier.weight(1f))
@@ -569,8 +565,6 @@ private fun RoutinePickerDialog(
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }
-
-private fun LocalDate.formatHeader(): String = BobitosDates.longDay(this)
 
 private val SportUiMessage.stringResourceId: Int
     get() = when (this) {

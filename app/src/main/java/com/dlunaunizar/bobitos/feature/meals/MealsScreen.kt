@@ -59,6 +59,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.ClickableCard
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.DayTitleButton
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -161,17 +162,13 @@ fun MealsScreen(
                     onNext = viewModel::nextWeek,
                     previousLabel = stringResource(R.string.meals_week_previous),
                     nextLabel = stringResource(R.string.meals_week_next),
-                    modifier = Modifier.padding(horizontal = Spacing.sm),
+                    modifier = Modifier.padding(horizontal = Spacing.xs),
                 )
             }
             Column(modifier = Modifier.weight(1f).padding(horizontal = 16.dp, vertical = 12.dp)) {
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = state.focusedDate.formatHeader(),
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.weight(1f),
-                    )
+                    DayTitleButton(state.focusedDate, viewModel::selectDay, Modifier.weight(1f))
                     if (canWrite) {
                         Box {
                             MoreOptionsButton(
@@ -726,8 +723,6 @@ private fun NewMealFab(visible: Boolean, expanded: Boolean, onClick: () -> Unit)
         onClick = onClick,
     )
 }
-
-private fun LocalDate.formatHeader(): String = BobitosDates.longDay(this)
 
 private val MealUiMessage.stringResourceId: Int
     get() = when (this) {

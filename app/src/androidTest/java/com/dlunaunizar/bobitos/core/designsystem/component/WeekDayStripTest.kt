@@ -1,7 +1,13 @@
 package com.dlunaunizar.bobitos.core.designsystem.component
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
@@ -10,11 +16,18 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipe
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.core.designsystem.theme.BobitosTheme
 import org.junit.Assert.assertEquals
@@ -29,19 +42,21 @@ class WeekDayStripTest {
     private val selected = LocalDate.of(2026, 10, 14)
     private val today = LocalDate.of(2026, 10, 17)
 
-    private fun show(onSelect: (LocalDate) -> Unit = {}) {
+    private fun show(onSelect: (LocalDate) -> Unit = {}, onPrevious: () -> Unit = {}, onNext: () -> Unit = {}) {
         compose.setContent {
             BobitosTheme {
-                WeekDayStrip(
-                    days = days,
-                    selected = selected,
-                    today = today,
-                    onSelect = onSelect,
-                    onPrevious = {},
-                    onNext = {},
-                    previousLabel = "Semana anterior",
-                    nextLabel = "Semana siguiente",
-                )
+                Box(Modifier.width(360.dp).testTag("tira")) {
+                    WeekDayStrip(
+                        days = days,
+                        selected = selected,
+                        today = today,
+                        onSelect = onSelect,
+                        onPrevious = onPrevious,
+                        onNext = onNext,
+                        previousLabel = "Semana anterior",
+                        nextLabel = "Semana siguiente",
+                    )
+                }
             }
         }
     }
@@ -74,7 +89,7 @@ class WeekDayStripTest {
     @Test
     fun tappingADaySelectsIt() {
         var picked: LocalDate? = null
-        show { picked = it }
+        show(onSelect = { picked = it })
         compose.onNodeWithContentDescription("martes, 13 de octubre", substring = true).performClick()
         assertEquals(LocalDate.of(2026, 10, 13), picked)
     }
@@ -101,5 +116,74 @@ class WeekDayStripTest {
             compose.onNode(hasContentDescription("${it.dayOfMonth} de octubre", substring = true))
                 .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
         }
+    }
+
+    @Test
+    fun cadaDiaMideAlMenos48dpDeAncho() {
+        show()
+        days.forEach {
+            compose.onNode(hasContentDescription("${it.dayOfMonth} de octubre", substring = true))
+                .assertWidthIsAtLeast(48.dp)
+        }
+    }
+
+    @Test
+    fun noHayFlechas() {
+        show()
+        compose.onAllNodes(hasClickAction() and hasContentDescription("Semana anterior")).assertCountEquals(0)
+        compose.onAllNodes(hasClickAction() and hasContentDescription("Semana siguiente")).assertCountEquals(0)
+    }
+
+    @Test
+    fun deslizarALaIzquierdaPasaALaSemanaSiguiente() {
+        var next = 0
+        var previous = 0
+        show(onPrevious = { previous++ }, onNext = { next++ })
+        compose.onNodeWithTag("tira").performTouchInput { swipeLeft() }
+        assertEquals(1, next)
+        assertEquals(0, previous)
+    }
+
+    @Test
+    fun deslizarALaDerechaVuelveALaAnterior() {
+        var next = 0
+        var previous = 0
+        show(onPrevious = { previous++ }, onNext = { next++ })
+        compose.onNodeWithTag("tira").performTouchInput { swipeRight() }
+        assertEquals(1, previous)
+        assertEquals(0, next)
+    }
+
+    @Test
+    fun unArrastreCortoNoCambiaDeSemana() {
+        var calls = 0
+        show(onPrevious = { calls++ }, onNext = { calls++ })
+        compose.onNodeWithTag("tira").performTouchInput {
+            swipe(start = center, end = center - Offset(24.dp.toPx(), 0f), durationMillis = 200)
+        }
+        assertEquals(0, calls)
+    }
+
+    @Test
+    fun unArrastreMasVerticalQueHorizontalNoCambiaDeSemana() {
+        var calls = 0
+        show(onPrevious = { calls++ }, onNext = { calls++ })
+        compose.onNodeWithTag("tira").performTouchInput {
+            swipe(start = center, end = center - Offset(80.dp.toPx(), 160.dp.toPx()), durationMillis = 200)
+        }
+        assertEquals(0, calls)
+    }
+
+    @Test
+    fun talkBackTieneSemanaAnteriorYSiguiente() {
+        var next = 0
+        var previous = 0
+        show(onPrevious = { previous++ }, onNext = { next++ })
+        val strip = compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions))
+        val actions = strip.fetchSemanticsNode().config[SemanticsActions.CustomActions]
+        assertEquals(listOf("Semana anterior", "Semana siguiente"), actions.map { it.label })
+        compose.runOnUiThread { actions.forEach { it.action() } }
+        assertEquals(1, previous)
+        assertEquals(1, next)
     }
 }
