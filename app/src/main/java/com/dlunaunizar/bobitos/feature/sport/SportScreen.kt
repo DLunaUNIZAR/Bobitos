@@ -71,6 +71,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.WeekDayStrip
 import com.dlunaunizar.bobitos.core.designsystem.component.cascadeIn
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberDayCascade
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
 import com.dlunaunizar.bobitos.core.designsystem.rememberToday
@@ -171,6 +172,8 @@ fun SportScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     DayTitleButton(state.focusedDate, viewModel::selectDay, Modifier.weight(1f))
                 }
+                // Fuera del when: al cambiar de semana pasa por Loading y el seguimiento no debe perderse.
+                val cascade = rememberDayCascade(state.focusedDate, ready = state.activities is UiState.Content)
                 when (val activities = state.activities) {
                     UiState.Loading -> LoadingState(Modifier.weight(1f))
                     is UiState.Error -> ErrorState(
@@ -194,8 +197,8 @@ fun SportScreen(
                                 contentPadding = PaddingValues(bottom = Spacing.fabClearance),
                             ) {
                                 itemsIndexed(dayActivities, key = { _, a -> a.id }) { index, activity ->
-                                    // La cascada se repite al cambiar de día.
-                                    Box(Modifier.cascadeIn(index, key = state.focusedDate)) {
+                                    // La cascada suena solo al cambiar de día.
+                                    Box(Modifier.cascadeIn(index, key = state.focusedDate, play = cascade)) {
                                         ActivityCard(
                                             activity = activity,
                                             enabled = actionsEnabled,

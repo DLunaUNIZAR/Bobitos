@@ -9,8 +9,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedback
@@ -26,6 +28,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import java.time.LocalDate
 
 private const val HOLD_MS = 450L
 
@@ -189,4 +192,36 @@ fun Modifier.cascadeIn(index: Int, key: Any? = Unit, play: Boolean = true): Modi
         alpha = progress.value.coerceIn(0f, 1f)
         translationY = (1f - progress.value) * shift
     }
+}
+
+// Lo que dura la cascada de un día: pasada, las filas que aparecen entran ya puestas.
+internal const val CASCADE_WINDOW_MS = 1_200L
+
+/** Decide si la cascada suena: solo cuando se muestra un día distinto del anterior, nunca la primera vez. */
+internal class DayCascade {
+    private var lastDay: LocalDate? = null
+
+    fun onContentShown(day: LocalDate): Boolean {
+        val changed = lastDay != null && lastDay != day
+        lastDay = day
+        return changed
+    }
+}
+
+/**
+ * true durante [CASCADE_WINDOW_MS] desde que se muestra el contenido de un día nuevo ([ready]); no en la primera carga,
+ * ni al volver a ver una fila, ni con un alta en tiempo real del mismo día.
+ */
+@Composable
+fun rememberDayCascade(day: LocalDate, ready: Boolean): Boolean {
+    val tracker = remember { DayCascade() }
+    val animate = remember(day, ready) { ready && tracker.onContentShown(day) }
+    var expired by remember(day, ready) { mutableStateOf(false) }
+    LaunchedEffect(animate) {
+        if (animate) {
+            delay(CASCADE_WINDOW_MS)
+            expired = true
+        }
+    }
+    return animate && !expired
 }

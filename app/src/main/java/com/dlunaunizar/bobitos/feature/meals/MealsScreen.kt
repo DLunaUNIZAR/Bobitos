@@ -78,6 +78,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.cascadeIn
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberDayCascade
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
@@ -210,6 +211,8 @@ fun MealsScreen(
                 }
                 Spacer(Modifier.height(8.dp))
 
+                // Fuera del when: al cambiar de semana pasa por Loading y el seguimiento no debe perderse.
+                val cascade = rememberDayCascade(state.focusedDate, ready = state.meals is UiState.Content)
                 when (val mealsState = state.meals) {
                     UiState.Loading -> LoadingState(Modifier.weight(1f))
                     is UiState.Error -> ErrorState(
@@ -242,8 +245,8 @@ fun MealsScreen(
                             }
                             slots.forEachIndexed { index, (slot, slotMeals) ->
                                 item(key = slot.name) {
-                                    // La cascada se repite al cambiar de día.
-                                    Box(Modifier.cascadeIn(index, key = state.focusedDate)) {
+                                    // La cascada suena solo al cambiar de día.
+                                    Box(Modifier.cascadeIn(index, key = state.focusedDate, play = cascade)) {
                                         MealSlotSection(
                                             slot = slot,
                                             meals = slotMeals,

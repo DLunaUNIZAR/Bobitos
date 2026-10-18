@@ -4,11 +4,11 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -20,6 +20,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -163,20 +164,22 @@ private fun CelebrationContent(message: String, onFinished: () -> Unit, modifier
         } else {
             TEXT_FROM_SCALE + (1f - TEXT_FROM_SCALE) * min(progress.value / TEXT_SCALE_SHARE, 1f)
         }
-        Surface(
-            shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surfaceContainerHighest,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-            shadowElevation = 6.dp,
-            modifier = Modifier.graphicsLayer {
-                alpha = fade
-                scaleX = scale
-                scaleY = scale
-            },
+        // Un Box y no un Surface: el Surface consume los toques y taparía lo de debajo durante la celebración.
+        val shape = MaterialTheme.shapes.extraLarge
+        Box(
+            Modifier
+                .graphicsLayer {
+                    alpha = fade
+                    scaleX = scale
+                    scaleY = scale
+                }
+                .shadow(6.dp, shape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest, shape),
         ) {
             Text(
                 text = message,
                 style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .padding(horizontal = Spacing.xl, vertical = Spacing.md)

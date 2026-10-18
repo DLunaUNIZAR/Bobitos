@@ -1,5 +1,9 @@
 package com.dlunaunizar.bobitos.core.designsystem.theme
 
+import android.database.ContentObserver
+import android.os.Handler
+import android.os.Looper
+import android.provider.Settings
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -7,6 +11,14 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import com.dlunaunizar.bobitos.core.designsystem.LocalReduceMotion
+import com.dlunaunizar.bobitos.core.designsystem.reduceMotionUpdates
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 
 private val LightColorScheme = lightColorScheme(
     primary = primaryLight,
@@ -88,7 +100,8 @@ private val DarkColorScheme = darkColorScheme(
  */
 @Composable
 fun BobitosTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalDarkTheme provides darkTheme) {
+    val reduceMotion = rememberSystemReduceMotion()
+    CompositionLocalProvider(LocalDarkTheme provides darkTheme, LocalReduceMotion provides reduceMotion) {
         MaterialTheme(
             colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
             typography = BobitosTypography,
@@ -101,4 +114,28 @@ fun BobitosTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composabl
             )
         }
     }
+}
+
+/** true si «Quitar animaciones» está activo; un observador de la escala de animación lo mantiene al día. */
+@Composable
+private fun rememberSystemReduceMotion(): Boolean {
+    val resolver = LocalContext.current.contentResolver
+    val changes =
+        remember { MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST) }
+    DisposableEffect(resolver) {
+        val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                changes.tryEmit(Unit)
+            }
+        }
+        resolver.registerContentObserver(
+            Settings.Global.getUriFor(Settings.Global.ANIMATOR_DURATION_SCALE),
+            false,
+            observer,
+        )
+        onDispose { resolver.unregisterContentObserver(observer) }
+    }
+    val readScale = { Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) }
+    val updates = remember(resolver) { reduceMotionUpdates(readScale, changes) }
+    return updates.collectAsState(initial = readScale() == 0f).value
 }
