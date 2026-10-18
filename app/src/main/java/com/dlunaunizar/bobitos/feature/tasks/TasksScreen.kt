@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -34,8 +34,6 @@ import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -92,11 +90,13 @@ import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffec
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdown
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
+import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
+import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
@@ -107,8 +107,9 @@ import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
+import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
-import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
+import com.dlunaunizar.bobitos.core.designsystem.theme.categoryRowTint
 import com.dlunaunizar.bobitos.core.model.RecurrenceUnit
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.TaskItem
@@ -230,7 +231,7 @@ fun TasksScreen(
                     )
                 }
                 is UiState.Content -> {
-                    val taskRow: @Composable LazyItemScope.(TaskItem) -> Unit = { task ->
+                    val taskRow: @Composable LazyItemScope.(TaskItem, RowPosition) -> Unit = { task, position ->
                         SwipeActionsBox(
                             startAction = SwipeAction(
                                 Icons.Rounded.Check,
@@ -256,8 +257,9 @@ fun TasksScreen(
                             }.takeIf { enabled },
                             modifier = Modifier.padding(horizontal = Spacing.lg).animateItem(),
                         ) { accessibilityModifier ->
-                            TaskCard(
+                            TaskListRow(
                                 task,
+                                position,
                                 enabled,
                                 onSetCompleted = { viewModel.setCompleted(spaceId, task.id, it) },
                                 onEdit = {
@@ -270,7 +272,6 @@ fun TasksScreen(
                     }
                     LazyColumn(
                         modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                         // Deja hueco para que el FAB no tape el último elemento.
                         contentPadding = PaddingValues(bottom = Spacing.fabClearance),
                     ) {
@@ -302,11 +303,13 @@ fun TasksScreen(
                                     } else {
                                         null
                                     },
-                                    modifier = Modifier.padding(horizontal = Spacing.lg),
+                                    modifier = Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.sm),
                                 )
                             }
                             if (!collapsible || completedExpanded) {
-                                items(sectionTasks, key = TaskItem::id) { task -> taskRow(task) }
+                                itemsIndexed(sectionTasks, key = { _, task -> task.id }) { index, task ->
+                                    taskRow(task, rowPosition(index, sectionTasks.size))
+                                }
                             }
                         }
                     }
@@ -479,8 +482,9 @@ internal fun TaskFilterBar(filters: TaskFilters, members: List<SpaceMember>, onC
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TaskCard(
+private fun TaskListRow(
     task: TaskItem,
+    position: RowPosition,
     enabled: Boolean,
     onSetCompleted: (Boolean) -> Unit,
     onEdit: () -> Unit,
@@ -493,46 +497,39 @@ private fun TaskCard(
             ?.atZone(ZoneId.systemDefault())
             ?.toLocalDate()
             ?.isBefore(LocalDate.now()) == true
-    Card(
-        // No se usa `enabled` de la Card: la atenuaría (y la anunciaría «desactivada») sin conexión o al guardar.
+    GroupedRow(
+        position = position,
+        modifier = modifier,
+        tint = task.type?.let { categoryRowTint(it.accent()) },
+        // No se usa `enabled` de la fila: la atenuaría (y la anunciaría «desactivada») sin conexión o al guardar.
         onClick = { if (enabled) onEdit() },
-        modifier = modifier.fillMaxWidth(),
-        colors = task.type?.let { categoryCardColors(it.accent()) } ?: CardDefaults.cardColors(),
     ) {
-        Row(
-            Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Checkbox(
-                checked = done,
-                onCheckedChange = onSetCompleted,
-                enabled = enabled,
-                modifier = Modifier.semantics { contentDescription = task.title },
+        Checkbox(
+            checked = done,
+            onCheckedChange = onSetCompleted,
+            enabled = enabled,
+            modifier = Modifier.semantics { contentDescription = task.title },
+        )
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Text(
+                task.title,
+                style = MaterialTheme.typography.bodyLarge,
+                textDecoration = if (done) TextDecoration.LineThrough else null,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        task.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        textDecoration = if (done) TextDecoration.LineThrough else null,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                task.description?.let {
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                TaskMetaRow(task, overdue, done)
+            task.description?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
-            TaskCardMenu(taskTitle = task.title, enabled = enabled, onEdit = onEdit, onDelete = onDelete)
+            TaskMetaRow(task, overdue, done)
         }
+        TaskCardMenu(taskTitle = task.title, enabled = enabled, onEdit = onEdit, onDelete = onDelete)
     }
 }
 

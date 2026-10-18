@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
@@ -23,8 +24,6 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -71,11 +70,13 @@ import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffec
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdown
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
+import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
+import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
@@ -84,9 +85,10 @@ import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
+import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
-import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
+import com.dlunaunizar.bobitos.core.designsystem.theme.categoryRowTint
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
@@ -217,7 +219,6 @@ fun ShoppingScreen(
                     } else {
                         LazyColumn(
                             modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
                             contentPadding = PaddingValues(bottom = Spacing.fabClearance),
                         ) {
                             // Búsqueda y filtro en la franja teñida: primer elemento, se va con la lista.
@@ -244,7 +245,7 @@ fun ShoppingScreen(
                                     modifier = Modifier.padding(horizontal = Spacing.lg),
                                 )
                             }
-                            items(pending, key = ShoppingItem::id) { item ->
+                            itemsIndexed(pending, key = { _, item -> item.id }) { index, item ->
                                 SwipeActionsBox(
                                     startAction = SwipeAction(
                                         Icons.Rounded.Check,
@@ -262,8 +263,9 @@ fun ShoppingScreen(
                                     }.takeIf { actionsEnabled },
                                     modifier = Modifier.padding(horizontal = Spacing.lg).animateItem(),
                                 ) { accessibilityModifier ->
-                                    ShoppingItemCard(
+                                    ShoppingItemRow(
                                         item = item,
+                                        position = rowPosition(index, pending.size),
                                         showAuthor = showAuthor,
                                         enabled = actionsEnabled,
                                         onCreateIngredient = { viewModel.createIngredientFromItem(item) },
@@ -298,7 +300,7 @@ fun ShoppingScreen(
                                         )
                                     }
                                 }
-                                items(purchased, key = ShoppingItem::id) { item ->
+                                itemsIndexed(purchased, key = { _, item -> item.id }) { index, item ->
                                     SwipeActionsBox(
                                         startAction = SwipeAction(
                                             Icons.Rounded.Check,
@@ -316,8 +318,9 @@ fun ShoppingScreen(
                                         }.takeIf { actionsEnabled },
                                         modifier = Modifier.padding(horizontal = Spacing.lg).animateItem(),
                                     ) { accessibilityModifier ->
-                                        ShoppingItemCard(
+                                        ShoppingItemRow(
                                             item = item,
+                                            position = rowPosition(index, purchased.size),
                                             showAuthor = showAuthor,
                                             enabled = actionsEnabled,
                                             onCreateIngredient = { viewModel.createIngredientFromItem(item) },
@@ -450,8 +453,9 @@ private fun ShoppingEmptyState(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ShoppingItemCard(
+private fun ShoppingItemRow(
     item: ShoppingItem,
+    position: RowPosition,
     showAuthor: Boolean,
     enabled: Boolean,
     onCreateIngredient: () -> Unit,
@@ -460,64 +464,59 @@ private fun ShoppingItemCard(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
-        // No se usa `enabled` de la Card (la atenuaría y la anunciaría «desactivada»): quien la usa
+    GroupedRow(
+        position = position,
+        modifier = modifier,
+        tint = item.supermarket?.let { categoryRowTint(it.brandColor()) },
+        // No se usa `enabled` de la fila (la atenuaría y la anunciaría «desactivada»): quien la usa
         // pasa un `onEdit` que no hace nada si no se puede editar.
         onClick = onEdit,
-        modifier = modifier.fillMaxWidth(),
-        colors = item.supermarket?.let { categoryCardColors(it.brandColor()) }
-            ?: CardDefaults.cardColors(),
     ) {
-        Row(
-            modifier = Modifier.padding(start = 12.dp, top = 8.dp, end = 4.dp, bottom = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Checkbox(
-                checked = item.purchased,
-                enabled = enabled,
-                onCheckedChange = onSetPurchased,
-                modifier = Modifier.semantics { contentDescription = item.name },
+        Checkbox(
+            checked = item.purchased,
+            enabled = enabled,
+            onCheckedChange = onSetPurchased,
+            modifier = Modifier.semantics { contentDescription = item.name },
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = listOfNotNull(item.name, item.quantity?.let { "· $it" })
+                    .joinToString(" "),
+                style = MaterialTheme.typography.bodyLarge,
+                textDecoration = if (item.purchased) {
+                    TextDecoration.LineThrough
+                } else {
+                    TextDecoration.None
+                },
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = listOfNotNull(item.name, item.quantity?.let { "· $it" })
-                        .joinToString(" "),
-                    style = MaterialTheme.typography.titleMedium,
-                    textDecoration = if (item.purchased) {
-                        TextDecoration.LineThrough
-                    } else {
-                        TextDecoration.None
-                    },
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (item.supermarket != null || !item.brand.isNullOrBlank()) {
-                    SupermarketBrandLine(supermarket = item.supermarket, brand = item.brand)
-                }
-                item.notes?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                if (showAuthor) {
-                    Text(
-                        text = if (item.purchased) {
-                            stringResource(
-                                R.string.shopping_marked_by,
-                                item.purchasedByName ?: item.purchasedBy.orEmpty(),
-                            )
-                        } else {
-                            stringResource(R.string.shopping_added_by, item.createdByName)
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+            if (item.supermarket != null || !item.brand.isNullOrBlank()) {
+                SupermarketBrandLine(supermarket = item.supermarket, brand = item.brand)
             }
-            ShoppingItemMenu(item.name, enabled, onEdit, onCreateIngredient, onDelete)
+            item.notes?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (showAuthor) {
+                Text(
+                    text = if (item.purchased) {
+                        stringResource(
+                            R.string.shopping_marked_by,
+                            item.purchasedByName ?: item.purchasedBy.orEmpty(),
+                        )
+                    } else {
+                        stringResource(R.string.shopping_added_by, item.createdByName)
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
+        ShoppingItemMenu(item.name, enabled, onEdit, onCreateIngredient, onDelete)
     }
 }
 
