@@ -17,9 +17,11 @@ import com.dlunaunizar.bobitos.data.recipeimport.RecipeImporter
 import com.dlunaunizar.bobitos.data.repository.AccountRepository
 import com.dlunaunizar.bobitos.data.repository.ActiveSpaceRepository
 import com.dlunaunizar.bobitos.data.repository.AuthRepository
+import com.dlunaunizar.bobitos.data.repository.BetaUpdatePreferenceRepository
 import com.dlunaunizar.bobitos.data.repository.CalendarRepository
 import com.dlunaunizar.bobitos.data.repository.CatalogSyncStore
 import com.dlunaunizar.bobitos.data.repository.DataStoreActiveSpaceRepository
+import com.dlunaunizar.bobitos.data.repository.DataStoreBetaUpdatePreferenceRepository
 import com.dlunaunizar.bobitos.data.repository.DataStoreCatalogSyncStore
 import com.dlunaunizar.bobitos.data.repository.DataStoreOnboardingPreferenceRepository
 import com.dlunaunizar.bobitos.data.repository.DataStoreReminderPreferenceRepository
@@ -161,6 +163,12 @@ abstract class DataModule {
     abstract fun bindOnboardingPreferenceRepository(
         repository: DataStoreOnboardingPreferenceRepository,
     ): OnboardingPreferenceRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindBetaUpdatePreferenceRepository(
+        repository: DataStoreBetaUpdatePreferenceRepository,
+    ): BetaUpdatePreferenceRepository
 
     @Binds
     @Singleton
