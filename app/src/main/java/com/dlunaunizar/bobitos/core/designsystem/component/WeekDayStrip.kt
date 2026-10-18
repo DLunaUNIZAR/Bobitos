@@ -34,6 +34,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.res.stringResource
@@ -50,6 +51,9 @@ import com.dlunaunizar.bobitos.core.common.BobitosDates
 import com.dlunaunizar.bobitos.core.designsystem.BouncySpring
 import com.dlunaunizar.bobitos.core.designsystem.motionSpec
 import com.dlunaunizar.bobitos.core.designsystem.rememberReduceMotion
+import com.dlunaunizar.bobitos.core.designsystem.theme.LocalAppModule
+import com.dlunaunizar.bobitos.core.designsystem.theme.LocalDarkTheme
+import com.dlunaunizar.bobitos.core.designsystem.theme.ModulePalette
 import java.time.LocalDate
 import kotlin.math.abs
 
@@ -64,11 +68,19 @@ data class WeekDayStripColors(val selectedContainer: Color, val selectedContent:
 
 object WeekDayStripDefaults {
     @Composable
-    fun colors(): WeekDayStripColors = WeekDayStripColors(
-        selectedContainer = MaterialTheme.colorScheme.primary,
-        selectedContent = MaterialTheme.colorScheme.onPrimary,
-        todayOutline = MaterialTheme.colorScheme.primary,
-    )
+    fun colors(): WeekDayStripColors {
+        val module = LocalAppModule.current
+        val (container, content) = if (module == null) {
+            MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimary
+        } else {
+            ModulePalette.selectedDay(module, LocalDarkTheme.current)
+        }
+        return WeekDayStripColors(
+            selectedContainer = container,
+            selectedContent = content,
+            todayOutline = MaterialTheme.colorScheme.primary,
+        )
+    }
 }
 
 /**
@@ -174,23 +186,26 @@ private fun WeekRow(
     }
 }
 
-/** Detecta el deslizamiento horizontal de la tira sin consumir los toques de los días. */
+/** Detecta el deslizamiento horizontal de la tira; un toque o un arrastre vertical siguen su camino. */
 private fun Modifier.weekSwipe(onPrevious: () -> Unit, onNext: () -> Unit): Modifier = pointerInput(Unit) {
     val distanceThreshold = SwipeDistance.toPx()
     val velocityThreshold = SwipeVelocity.toPx()
     awaitEachGesture {
-        val down = awaitFirstDown(requireUnconsumed = false)
+        val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
         val tracker = VelocityTracker()
         tracker.addPosition(down.uptimeMillis, down.position)
         var last = down.position
         var dx = 0f
         var dy = 0f
         do {
-            val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
+            // Pasada inicial: así el gesto se consume antes de que lo vea el toque del día.
+            val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id } ?: break
             tracker.addPosition(change.uptimeMillis, change.position)
             dx += change.position.x - last.x
             dy += change.position.y - last.y
             last = change.position
+            // Ya es un deslizamiento horizontal: se consume para que el día de debajo no se elija.
+            if (abs(dx) > viewConfiguration.touchSlop && abs(dx) > abs(dy)) change.consume()
         } while (change.pressed)
         val fast = abs(tracker.calculateVelocity().x) >= velocityThreshold && abs(dx) > viewConfiguration.touchSlop
         val horizontal = abs(dx) > abs(dy)

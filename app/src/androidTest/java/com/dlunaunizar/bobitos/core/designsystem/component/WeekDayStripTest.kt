@@ -29,7 +29,10 @@ import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.unit.dp
+import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.BobitosTheme
+import com.dlunaunizar.bobitos.core.designsystem.theme.ModulePalette
+import com.dlunaunizar.bobitos.core.designsystem.theme.ModuleTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -192,5 +195,41 @@ class WeekDayStripTest {
         assertEquals(1, next)
         // El contenedor no las repite.
         compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions)).assertCountEquals(7)
+    }
+
+    @Test
+    fun unGestoRapidoDentroDeUnDiaSoloCambiaDeSemana() {
+        var next = 0
+        var previous = 0
+        var picked: LocalDate? = null
+        show(onSelect = { picked = it }, onPrevious = { previous++ }, onNext = { next++ })
+        // 30 dp en 30 ms (1000 dp/s) que empiezan y acaban dentro de la celda de un día (~50 dp).
+        compose.onNodeWithContentDescription("martes, 13 de octubre", substring = true).performTouchInput {
+            val y = center.y
+            swipe(start = Offset(40.dp.toPx(), y), end = Offset(10.dp.toPx(), y), durationMillis = 30)
+        }
+        assertEquals(1, next)
+        assertEquals(0, previous)
+        assertEquals(null, picked)
+    }
+
+    @Test
+    fun losColoresDelDiaElegidoSonLosDelTestDeContraste() {
+        val modules = listOf(AppModule.MEALS, AppModule.TASKS, AppModule.PANTRY)
+        listOf(false, true).forEach { dark ->
+            modules.forEach { module ->
+                compose.activityRule.scenario.recreate()
+                var seen: WeekDayStripColors? = null
+                compose.setContent {
+                    BobitosTheme(darkTheme = dark) {
+                        ModuleTheme(module) { seen = WeekDayStripDefaults.colors() }
+                    }
+                }
+                compose.waitForIdle()
+                val (container, content) = ModulePalette.selectedDay(module, dark)
+                assertEquals(container, seen?.selectedContainer)
+                assertEquals(content, seen?.selectedContent)
+            }
+        }
     }
 }
