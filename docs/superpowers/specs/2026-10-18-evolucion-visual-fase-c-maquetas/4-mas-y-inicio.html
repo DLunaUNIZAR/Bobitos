@@ -1,0 +1,145 @@
+<!-- Maqueta de la fase C (2026-10-18). Aprobada tal cual. Ilustrativa: si difiere de la spec, manda la spec. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL@24,400,0..1&display=swap" rel="stylesheet">
+<style>
+  .row{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;margin-top:14px}
+  .col{display:flex;flex-direction:column;gap:6px;align-items:center}
+  .tag{font:600 12px Nunito,sans-serif;padding:2px 10px;border-radius:99px}
+  .tag.antes{background:#5a1f1c;color:#F2B8B5}
+  .tag.despues{background:#004d44;color:#A0F2E7}
+  .ph{width:250px;height:500px;background:var(--bg);border-radius:28px;border:6px solid #2b2b2b;overflow:hidden;position:relative;font-family:Nunito,sans-serif;color:var(--on);font-size:12px;line-height:1.35;text-align:left}
+  .ph.dk{--bg:#141513;--row:#202220;--on:#E5E3DE;--onv:#CBC8C2;--navbg:#1E1F1C;--pill:#33413E;--pc:#005048;--onpc:#CFF3EE;--pA:#5FD9CC;
+    --shopA:#F2A173;--shopC:#5A2A0E;--taskA:#B9A0EA;--taskC:#3D2A66;--calA:#55CDBF;--calC:#004D44;--mealA:#F08DB5;--mealC:#63123A;--sportA:#7FB2F0;--sportC:#173F6E;--noteA:#E8C35A;--noteC:#4D3B00;--panA:#8FD18A;--panC:#1F4D1C}
+  .ph.lt{--bg:#FBFAF8;--row:#EFEDE9;--on:#1B1B19;--onv:#494844;--navbg:#EFEDE9;--pill:#DBE7E4;--pc:#CFF3EE;--onpc:#00201C;--pA:#0F766E;
+    --shopA:#C05621;--shopC:#FBE3D4;--taskA:#7E57C2;--taskC:#E8DEF8;--calA:#00897B;--calC:#D0F0EB;--mealA:#AD1457;--mealC:#F9DCE8;--sportA:#1565C0;--sportC:#D6E6FA;--noteA:#8A6A00;--noteC:#FFE9A8;--panA:#2E7D32;--panC:#CDEFC8}
+  .sb{height:22px;display:flex;justify-content:space-between;align-items:center;padding:0 14px;font-size:9.5px;font-weight:600}
+  .ms{font-family:'Material Symbols Rounded';font-size:17px;line-height:1;vertical-align:middle;font-weight:normal;font-style:normal}
+  .tb{padding:3px 11px;display:flex;justify-content:space-between;align-items:center}
+  .tb .t1{font-size:15px;font-weight:700}
+  .pad{padding:0 10px}
+  .sh{font-weight:700;font-size:12px;margin:12px 2px 5px;color:var(--onv)}
+  .grp{display:flex;flex-direction:column;gap:2px}
+  .it{background:var(--row);display:flex;gap:10px;padding:9px 10px;align-items:center}
+  .it.big{padding:12px 10px}
+  .grp .it:first-child{border-radius:14px 14px 4px 4px}
+  .grp .it:last-child{border-radius:4px 4px 14px 14px}
+  .grp .it:only-child{border-radius:14px}
+  .ttl{font-size:12.5px;font-weight:600;flex:1}
+  .sub{font-size:10px;color:var(--onv);font-weight:400}
+  .pi{width:26px;height:26px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex:none}
+  .pi .ms{font-size:16px}
+  .t{background:color-mix(in srgb,var(--c) 16%,var(--bg))}
+  .lt .t{background:color-mix(in srgb,var(--c) 13%,var(--bg))}
+  .av{width:26px;height:26px;border-radius:50%;background:var(--pc);color:var(--onpc);font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none}
+  .link{color:var(--pA);font-weight:700;font-size:11.5px}
+  .nav{position:absolute;left:0;right:0;bottom:0;height:46px;background:var(--navbg);display:flex;justify-content:space-around;align-items:center;font-size:8.5px;text-align:center}
+  .nav div{width:46px;display:flex;flex-direction:column;align-items:center;gap:1px}
+  .nav .on .pill{background:var(--pill);border-radius:99px;padding:2px 10px}
+  .slab{background:#363734;border-radius:14px;padding:16px 12px;margin-bottom:6px;font-size:14px;font-weight:700;display:flex;gap:10px;align-items:center}
+  .sw{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .s{font:600 12px Nunito,sans-serif;display:flex;align-items:center;gap:6px;padding:4px 10px 4px 4px;border-radius:99px;background:#202220;color:#E5E3DE}
+  .s i{width:18px;height:18px;border-radius:50%;display:inline-block}
+</style>
+
+<h2>Más e inicio · listas en vez de losas</h2>
+<p class="subtitle">Propuesta, no opciones. Más separa «Del espacio» (filas teñidas, como en Hoy) de «Catálogos» (filas neutras con el icono en color). La pantalla de inicio lista tus espacios para entrar con un toque. Los catálogos se abren desde estas dos listas, siempre igual, y salen de las cabeceras de Comidas y Deporte.</p>
+
+<h3 style="margin-top:18px">Paleta propuesta</h3>
+<div class="sw">
+  <span class="s"><i style="background:#5FD9CC"></i>Marca y Calendario (teal)</span>
+  <span class="s"><i style="background:#F2A173"></i>Compra</span>
+  <span class="s"><i style="background:#B9A0EA"></i>Tareas</span>
+  <span class="s"><i style="background:#F08DB5"></i>Comidas, Recetario, Ingredientes</span>
+  <span class="s"><i style="background:#7FB2F0"></i>Deporte, Ejercicios, Rutinas</span>
+  <span class="s"><i style="background:#E8C35A"></i>Notas (nuevo, ámbar)</span>
+  <span class="s"><i style="background:#8FD18A"></i>Despensa (nuevo, verde)</span>
+</div>
+
+<div class="row">
+  <div class="col"><span class="tag antes">Más · hoy</span>
+    <div class="ph lt">
+      <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+      <div class="tb"><div class="t1">Casa Bobitos ▾</div><span><span class="ms">settings</span> <span class="ms">account_circle</span></span></div>
+      <div class="pad" style="margin-top:8px">
+        <div class="slab" style="background:#F2DDE5"><span class="ms" style="color:#AD1457">restaurant</span>Comidas</div>
+        <div class="slab" style="background:#DFE7F1"><span class="ms" style="color:#1565C0">fitness_center</span>Deporte</div>
+        <div class="slab" style="background:#E4E1DB"><span class="ms">sticky_note_2</span>Notas</div>
+        <div class="slab" style="background:#E4E1DB"><span class="ms">inventory_2</span>Despensa</div>
+      </div>
+      <div class="nav"><div><span class="ms">dashboard</span>Hoy</div><div><span class="ms">event</span>Calendario</div><div><span class="ms">checklist</span>Tareas</div><div><span class="ms">shopping_cart</span>Compra</div><div class="on"><span class="pill ms">more_horiz</span>Más</div></div>
+    </div>
+  </div>
+
+  <div class="col"><span class="tag despues">Más · oscuro</span>
+    <div class="ph dk">
+      <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+      <div class="tb"><div class="t1">Casa Bobitos ▾</div><span><span class="ms">settings</span> <span class="ms">account_circle</span></span></div>
+      <div class="pad">
+        <div class="sh">Del espacio</div>
+        <div class="grp">
+          <div class="it big t" style="--c:var(--mealA)"><span class="ms" style="color:var(--mealA)">restaurant</span><div class="ttl">Comidas</div><span class="ms">chevron_right</span></div>
+          <div class="it big t" style="--c:var(--sportA)"><span class="ms" style="color:var(--sportA)">directions_run</span><div class="ttl">Deporte</div><span class="ms">chevron_right</span></div>
+          <div class="it big t" style="--c:var(--noteA)"><span class="ms" style="color:var(--noteA)">sticky_note_2</span><div class="ttl">Notas</div><span class="ms">chevron_right</span></div>
+          <div class="it big t" style="--c:var(--panA)"><span class="ms" style="color:var(--panA)">inventory_2</span><div class="ttl">Despensa</div><span class="ms">chevron_right</span></div>
+        </div>
+        <div class="sh">Catálogos</div>
+        <div class="grp">
+          <div class="it"><div class="pi" style="background:var(--mealC)"><span class="ms" style="color:var(--mealA)">menu_book</span></div><div class="ttl">Recetario</div></div>
+          <div class="it"><div class="pi" style="background:var(--mealC)"><span class="ms" style="color:var(--mealA)">egg_alt</span></div><div class="ttl">Ingredientes</div></div>
+          <div class="it"><div class="pi" style="background:var(--sportC)"><span class="ms" style="color:var(--sportA)">fitness_center</span></div><div class="ttl">Ejercicios</div></div>
+          <div class="it"><div class="pi" style="background:var(--sportC)"><span class="ms" style="color:var(--sportA)">list_alt</span></div><div class="ttl">Rutinas</div></div>
+        </div>
+      </div>
+      <div class="nav"><div><span class="ms">dashboard</span>Hoy</div><div><span class="ms">event</span>Calendario</div><div><span class="ms">checklist</span>Tareas</div><div><span class="ms">shopping_cart</span>Compra</div><div class="on"><span class="pill ms">more_horiz</span>Más</div></div>
+    </div>
+  </div>
+
+  <div class="col"><span class="tag despues">Más · claro</span>
+    <div class="ph lt">
+      <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+      <div class="tb"><div class="t1">Casa Bobitos ▾</div><span><span class="ms">settings</span> <span class="ms">account_circle</span></span></div>
+      <div class="pad">
+        <div class="sh">Del espacio</div>
+        <div class="grp">
+          <div class="it big t" style="--c:var(--mealA)"><span class="ms" style="color:var(--mealA)">restaurant</span><div class="ttl">Comidas</div><span class="ms">chevron_right</span></div>
+          <div class="it big t" style="--c:var(--sportA)"><span class="ms" style="color:var(--sportA)">directions_run</span><div class="ttl">Deporte</div><span class="ms">chevron_right</span></div>
+          <div class="it big t" style="--c:var(--noteA)"><span class="ms" style="color:var(--noteA)">sticky_note_2</span><div class="ttl">Notas</div><span class="ms">chevron_right</span></div>
+          <div class="it big t" style="--c:var(--panA)"><span class="ms" style="color:var(--panA)">inventory_2</span><div class="ttl">Despensa</div><span class="ms">chevron_right</span></div>
+        </div>
+        <div class="sh">Catálogos</div>
+        <div class="grp">
+          <div class="it"><div class="pi" style="background:var(--mealC)"><span class="ms" style="color:var(--mealA)">menu_book</span></div><div class="ttl">Recetario</div></div>
+          <div class="it"><div class="pi" style="background:var(--mealC)"><span class="ms" style="color:var(--mealA)">egg_alt</span></div><div class="ttl">Ingredientes</div></div>
+          <div class="it"><div class="pi" style="background:var(--sportC)"><span class="ms" style="color:var(--sportA)">fitness_center</span></div><div class="ttl">Ejercicios</div></div>
+          <div class="it"><div class="pi" style="background:var(--sportC)"><span class="ms" style="color:var(--sportA)">list_alt</span></div><div class="ttl">Rutinas</div></div>
+        </div>
+      </div>
+      <div class="nav"><div><span class="ms">dashboard</span>Hoy</div><div><span class="ms">event</span>Calendario</div><div><span class="ms">checklist</span>Tareas</div><div><span class="ms">shopping_cart</span>Compra</div><div class="on"><span class="pill ms">more_horiz</span>Más</div></div>
+    </div>
+  </div>
+
+  <div class="col"><span class="tag despues">Inicio (fuera de un espacio)</span>
+    <div class="ph dk">
+      <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+      <div class="tb"><div class="t1">Bobitos</div><span class="ms">account_circle</span></div>
+      <div class="pad">
+        <div class="sh" style="display:flex;justify-content:space-between">Tus espacios <span class="link">Gestionar</span></div>
+        <div class="grp">
+          <div class="it big"><div class="av">CB</div><div class="ttl">Casa Bobitos<div class="sub">3 miembros</div></div><span class="ms">chevron_right</span></div>
+          <div class="it big"><div class="av">PZ</div><div class="ttl">Piso de Zaragoza<div class="sub">2 miembros</div></div><span class="ms">chevron_right</span></div>
+        </div>
+        <div class="sh">Lo tuyo</div>
+        <div class="grp">
+          <div class="it big t" style="--c:var(--calA)"><span class="ms" style="color:var(--calA)">calendar_month</span><div class="ttl">Mi calendario<div class="sub">Los eventos de todos tus espacios</div></div><span class="ms">chevron_right</span></div>
+        </div>
+        <div class="sh">Catálogos</div>
+        <div class="grp">
+          <div class="it"><div class="pi" style="background:var(--mealC)"><span class="ms" style="color:var(--mealA)">menu_book</span></div><div class="ttl">Recetario</div></div>
+          <div class="it"><div class="pi" style="background:var(--mealC)"><span class="ms" style="color:var(--mealA)">egg_alt</span></div><div class="ttl">Ingredientes</div></div>
+          <div class="it"><div class="pi" style="background:var(--sportC)"><span class="ms" style="color:var(--sportA)">fitness_center</span></div><div class="ttl">Ejercicios</div></div>
+          <div class="it"><div class="pi" style="background:var(--sportC)"><span class="ms" style="color:var(--sportA)">list_alt</span></div><div class="ttl">Rutinas</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

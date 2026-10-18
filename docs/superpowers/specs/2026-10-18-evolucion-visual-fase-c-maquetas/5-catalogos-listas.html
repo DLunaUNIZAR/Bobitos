@@ -1,0 +1,160 @@
+<!-- Maqueta de la fase C (2026-10-18). Elegida: A (por categoría); los filtros pasan a desplegables (ver 6). Ilustrativa: si difiere de la spec, manda la spec. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL@24,400,0..1&display=swap" rel="stylesheet">
+<style>
+  .pair{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px}
+  .ph{width:246px;height:500px;background:var(--bg);border-radius:28px;border:6px solid #2b2b2b;overflow:hidden;position:relative;font-family:Nunito,sans-serif;color:var(--on);font-size:12px;line-height:1.35;text-align:left}
+  .ph.dk{--bg:#141513;--row:#202220;--on:#E5E3DE;--onv:#CBC8C2;--ol:#94918B}
+  .m-meal{--mA:#F08DB5;--mC:#63123A;--mO:#F9DCE8}
+  .m-sport{--mA:#7FB2F0;--mC:#173F6E;--mO:#D6E6FA}
+  .sb{height:22px;display:flex;justify-content:space-between;align-items:center;padding:0 14px;font-size:9.5px;font-weight:600}
+  .ms{font-family:'Material Symbols Rounded';font-size:17px;line-height:1;vertical-align:middle;font-weight:normal;font-style:normal}
+  .tb{padding:3px 11px;display:flex;justify-content:space-between;align-items:center}
+  .tb .t1{font-size:15px;font-weight:700;display:flex;gap:10px;align-items:center}
+  .pad{padding:0 10px}
+  .band{background:color-mix(in srgb,var(--mA) 16%,var(--bg));padding-bottom:8px;border-radius:0 0 20px 20px}
+  .search{background:color-mix(in srgb,var(--on) 8%,transparent);border-radius:99px;padding:7px 10px;color:var(--onv);margin:4px 0 6px;font-size:10.5px}
+  .chips{display:flex;gap:5px;overflow:hidden;white-space:nowrap}
+  .fc{background:color-mix(in srgb,var(--on) 8%,transparent);border-radius:8px;padding:4px 8px;font-size:10px;flex:none}
+  .fc.on{background:var(--mC);color:var(--mO);font-weight:700}
+  .hd{position:relative;font-weight:700;font-size:11.5px;margin:9px 2px 4px;display:flex;justify-content:space-between}
+  .hd .n{color:var(--onv);font-weight:600}
+  .hd.stuck{margin:0 -10px 4px;padding:6px 12px;background:var(--bg);box-shadow:0 1px 0 color-mix(in srgb,var(--on) 10%,transparent)}
+  .grp{display:flex;flex-direction:column;gap:2px}
+  .it{background:var(--row);display:flex;gap:9px;padding:7px 9px;align-items:center}
+  .grp .it:first-child{border-radius:13px 13px 4px 4px}
+  .grp .it:last-child{border-radius:4px 4px 13px 13px}
+  .grp .it:only-child{border-radius:13px}
+  .ttl{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sub{font-size:9.5px;color:var(--onv);margin-top:1px}
+  .grow{flex:1;min-width:0}
+  .th{width:34px;height:34px;border-radius:9px;background:#D9D6CF;flex:none;display:flex;align-items:center;justify-content:center;color:#5a5853}
+  .th .ms{font-size:20px}
+  .idx{position:absolute;right:2px;top:150px;display:flex;flex-direction:column;gap:1px;font-size:7.5px;font-weight:700;color:var(--mA);text-align:center;width:12px}
+  .fab{position:absolute;right:10px;bottom:14px;background:var(--mC);color:var(--mO);border-radius:14px;padding:9px 12px;font-weight:700;font-size:11px;display:flex;gap:5px;align-items:center}
+  .lbl{font:600 12px Nunito,sans-serif;opacity:.75;margin-bottom:4px}
+  .warn{color:#F2B8B5}
+</style>
+
+<h2>Catálogos · cómo se agrupa una lista larga</h2>
+<p class="subtitle">En las dos, las tarjetas pasan a filas agrupadas (separadas por tono, sin líneas) y la cabecera va teñida del color heredado. La etiqueta «Peso libre» deja de ser un chip a la derecha que corta el nombre: pasa a la línea de debajo. Las fotos de los ejercicios salen como miniatura. Lo que cambia es cómo se ordena la lista. Pulsa la que prefieras.</p>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Por categoría, con cabeceras fijas (recomendada)</h3>
+      <p>Recetario por categoría (Arroces, Carnes…), Ejercicios por grupo muscular e Ingredientes por su categoría. La cabecera se queda fija arriba mientras recorres su grupo. «Mis recetas» va primero. Rutinas (29) es una sola lista. Al buscar, desaparecen las cabeceras y sale la lista de resultados.</p>
+      <div class="pair">
+        <div><div class="lbl">Recetario</div>
+        <div class="ph dk m-meal">
+          <div class="band">
+            <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+            <div class="tb"><div class="t1"><span class="ms">arrow_back</span>Recetario</div><span class="ms">link</span></div>
+            <div class="pad"><div class="search"><span class="ms" style="font-size:13px">search</span> Buscar receta</div>
+            <div class="chips"><span class="fc">Con lo que hay</span><span class="fc on">Todas</span><span class="fc">Arroces</span><span class="fc">Carnes</span></div></div>
+          </div>
+          <div class="pad">
+            <div class="hd">Mis recetas <span class="n">2</span></div>
+            <div class="grp">
+              <div class="it"><div class="grow"><div class="ttl">Lentejas de la abuela</div><div class="sub">45 min · 4 raciones</div></div></div>
+              <div class="it"><div class="grow"><div class="ttl">Pollo al curry</div><div class="sub">30 min · Faltan 2: coco y curry</div></div></div>
+            </div>
+            <div class="hd stuck">Arroces <span class="n">8</span></div>
+            <div class="grp">
+              <div class="it"><div class="grow"><div class="ttl">Arroz a la cubana</div><div class="sub">25 min · 2 raciones</div></div></div>
+              <div class="it"><div class="grow"><div class="ttl">Arroz negro</div><div class="sub">50 min · 4 raciones</div></div></div>
+              <div class="it"><div class="grow"><div class="ttl">Paella valenciana</div><div class="sub">60 min · Tienes todo</div></div></div>
+            </div>
+            <div class="hd">Carnes <span class="n">14</span></div>
+            <div class="grp">
+              <div class="it"><div class="grow"><div class="ttl">Albóndigas en salsa</div><div class="sub">50 min · 4 raciones</div></div></div>
+            </div>
+          </div>
+          <div class="fab"><span class="ms" style="font-size:15px">add</span>Crear receta</div>
+        </div></div>
+        <div><div class="lbl">Ejercicios</div>
+        <div class="ph dk m-sport">
+          <div class="band">
+            <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+            <div class="tb"><div class="t1"><span class="ms">arrow_back</span>Ejercicios</div></div>
+            <div class="pad"><div class="search"><span class="ms" style="font-size:13px">search</span> Buscar ejercicio</div>
+            <div class="chips"><span class="fc">Tipo ▾</span><span class="fc">Grupo muscular ▾</span><span class="fc">Material ▾</span></div></div>
+          </div>
+          <div class="pad">
+            <div class="hd stuck">Abdomen <span class="n">18</span></div>
+            <div class="grp">
+              <div class="it"><div class="th"><span class="ms">sports_gymnastics</span></div><div class="grow"><div class="ttl">Plancha frontal</div><div class="sub">Peso corporal · Segundos</div></div></div>
+              <div class="it"><div class="th"><span class="ms">sports_gymnastics</span></div><div class="grow"><div class="ttl">Toques de talón</div><div class="sub">Peso corporal</div></div></div>
+            </div>
+            <div class="hd">Cuádriceps <span class="n">23</span></div>
+            <div class="grp">
+              <div class="it"><div class="th"><span class="ms">fitness_center</span></div><div class="grow"><div class="ttl">Zancada hacia atrás con mancuernas</div><div class="sub">Peso libre · Mancuernas</div></div></div>
+              <div class="it"><div class="th"><span class="ms">fitness_center</span></div><div class="grow"><div class="ttl">Zancadas con barra</div><div class="sub">Peso libre · Barra</div></div></div>
+              <div class="it"><div class="th"><span class="ms">directions_walk</span></div><div class="grow"><div class="ttl">Zancada con peso corporal</div><div class="sub">Peso corporal</div></div></div>
+            </div>
+          </div>
+          <div class="fab"><span class="ms" style="font-size:15px">add</span>Nuevo ejercicio</div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>De la A a la Z, con índice lateral</h3>
+      <p>Todo en orden alfabético con una cabecera fija por letra y un índice a la derecha para saltar. La categoría o el grupo muscular pasan a la línea de debajo. Va bien cuando sabes el nombre, pero eso ya lo hace la búsqueda; para curiosear («¿qué arroz hago?») obliga a filtrar.</p>
+      <div class="pair">
+        <div><div class="lbl">Recetario</div>
+        <div class="ph dk m-meal">
+          <div class="band">
+            <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+            <div class="tb"><div class="t1"><span class="ms">arrow_back</span>Recetario</div><span class="ms">link</span></div>
+            <div class="pad"><div class="search"><span class="ms" style="font-size:13px">search</span> Buscar receta</div>
+            <div class="chips"><span class="fc">Con lo que hay</span><span class="fc on">Todas</span><span class="fc">Arroces</span><span class="fc">Carnes</span></div></div>
+          </div>
+          <div class="pad" style="padding-right:18px">
+            <div class="hd stuck" style="margin-right:-18px">A</div>
+            <div class="grp">
+              <div class="it"><div class="grow"><div class="ttl">Albóndigas en salsa</div><div class="sub">Carnes · 50 min</div></div></div>
+              <div class="it"><div class="grow"><div class="ttl">Arroz a la cubana</div><div class="sub">Arroces · 25 min</div></div></div>
+              <div class="it"><div class="grow"><div class="ttl">Arroz negro</div><div class="sub">Arroces · 50 min</div></div></div>
+            </div>
+            <div class="hd">B</div>
+            <div class="grp">
+              <div class="it"><div class="grow"><div class="ttl">Bacalao al pil-pil</div><div class="sub">Pescados · 40 min</div></div></div>
+              <div class="it"><div class="grow"><div class="ttl">Bizcocho de yogur</div><div class="sub">Desayunos y meriendas · 50 min</div></div></div>
+            </div>
+            <div class="hd">C</div>
+            <div class="grp"><div class="it"><div class="grow"><div class="ttl">Crema de calabaza</div><div class="sub">Saludables · 35 min</div></div></div></div>
+          </div>
+          <div class="idx"><span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span><span>G</span><span>H</span><span>L</span><span>M</span><span>P</span><span>R</span><span>S</span><span>T</span><span>V</span></div>
+          <div class="fab"><span class="ms" style="font-size:15px">add</span>Crear receta</div>
+        </div></div>
+        <div><div class="lbl">Ejercicios</div>
+        <div class="ph dk m-sport">
+          <div class="band">
+            <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+            <div class="tb"><div class="t1"><span class="ms">arrow_back</span>Ejercicios</div></div>
+            <div class="pad"><div class="search"><span class="ms" style="font-size:13px">search</span> Buscar ejercicio</div>
+            <div class="chips"><span class="fc">Tipo ▾</span><span class="fc">Grupo muscular ▾</span><span class="fc">Material ▾</span></div></div>
+          </div>
+          <div class="pad" style="padding-right:18px">
+            <div class="hd stuck" style="margin-right:-18px">Z</div>
+            <div class="grp">
+              <div class="it"><div class="th"><span class="ms">directions_walk</span></div><div class="grow"><div class="ttl">Zancada con peso corporal</div><div class="sub">Cuádriceps · Peso corporal</div></div></div>
+              <div class="it"><div class="th"><span class="ms">fitness_center</span></div><div class="grow"><div class="ttl">Zancada hacia atrás con barra</div><div class="sub">Cuádriceps · Peso libre</div></div></div>
+              <div class="it"><div class="th"><span class="ms">fitness_center</span></div><div class="grow"><div class="ttl">Zancadas caminando con barra</div><div class="sub">Glúteos · Peso libre</div></div></div>
+              <div class="it"><div class="th"><span class="ms">fitness_center</span></div><div class="grow"><div class="ttl">Zancadas con mancuernas</div><div class="sub">Cuádriceps · Peso libre</div></div></div>
+            </div>
+          </div>
+          <div class="idx"><span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span><span>G</span><span>H</span><span>J</span><span>L</span><span>M</span><span>P</span><span>R</span><span>S</span><span>T</span><span>Z</span></div>
+          <div class="fab"><span class="ms" style="font-size:15px">add</span>Nuevo ejercicio</div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+</div>

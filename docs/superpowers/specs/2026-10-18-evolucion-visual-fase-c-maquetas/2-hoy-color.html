@@ -1,0 +1,222 @@
+<!-- Maqueta de la fase C (2026-10-18). Elegida: 3 (filas teñidas por módulo). Ilustrativa: si difiere de la spec, manda la spec. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL@24,400,0..1&display=swap" rel="stylesheet">
+<style>
+  .pair{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}
+  .ph{width:236px;height:470px;background:var(--bg);border-radius:28px;border:6px solid #2b2b2b;overflow:hidden;position:relative;font-family:Nunito,sans-serif;color:var(--on);font-size:12px;line-height:1.35;text-align:left}
+  .ph.dk{--bg:#141513;--row:#202220;--on:#E5E3DE;--onv:#CBC8C2;--mut:#94918B;--navbg:#1E1F1C;--pill:#33413E;--pc:#005048;--onpc:#CFF3EE;--pck:#A0F2E7;
+    --calA:#55CDBF;--calC:#004D44;--mealA:#F08DB5;--mealC:#63123A;--sportA:#7FB2F0;--sportC:#173F6E;--taskA:#B9A0EA;--taskC:#3D2A66;--shopA:#F2A173;--shopC:#5A2A0E;--late:#F2B8B5}
+  .ph.lt{--bg:#FBFAF8;--row:#EFEDE9;--on:#1B1B19;--onv:#494844;--mut:#7A7873;--navbg:#EFEDE9;--pill:#DBE7E4;--pc:#CFF3EE;--onpc:#00201C;--pck:#0F766E;
+    --calA:#00897B;--calC:#D0F0EB;--mealA:#AD1457;--mealC:#F9DCE8;--sportA:#1565C0;--sportC:#D6E6FA;--taskA:#7E57C2;--taskC:#E8DEF8;--shopA:#C05621;--shopC:#FBE3D4;--late:#B3261E}
+  .sb{height:22px;display:flex;justify-content:space-between;align-items:center;padding:0 14px;font-size:9.5px;font-weight:600}
+  .ms{font-family:'Material Symbols Rounded';font-size:17px;line-height:1;vertical-align:middle;font-weight:normal;font-style:normal}
+  .tb{padding:3px 11px;display:flex;justify-content:space-between;align-items:center}
+  .tb .t1{font-size:14.5px;font-weight:700}
+  .pad{padding:0 10px}
+  .hello{font-size:10.5px;color:var(--onv);margin-top:4px}
+  .date{font-size:17px;font-weight:800;margin:0 0 2px}
+  .band{background:var(--pc);color:var(--onpc);margin:0;padding:2px 11px 12px;border-radius:0 0 22px 22px}
+  .band .hello{color:var(--onpc);opacity:.85}
+  .band .tb{padding:3px 0 2px}
+  .band .sum{font-size:10.5px;margin-top:2px;color:var(--pck);font-weight:700}
+  .sh{font-weight:700;font-size:12px;margin:10px 2px 5px;display:flex;justify-content:space-between;align-items:center}
+  .sh .n{color:var(--onv);font-weight:600}
+  .grp{display:flex;flex-direction:column;gap:2px}
+  .it{background:var(--row);display:flex;gap:8px;padding:6px 8px;align-items:center;min-height:30px}
+  .grp .it:first-child{border-radius:13px 13px 4px 4px}
+  .grp .it:last-child{border-radius:4px 4px 13px 13px}
+  .grp .it:only-child{border-radius:13px}
+  .tm{width:44px;flex:none;font-size:9.5px;color:var(--onv);font-weight:600}
+  .ttl{font-size:11.5px}
+  .sub{font-size:9.5px;color:var(--onv);margin-top:1px}
+  .muted{color:var(--mut)}
+  .box{width:13px;height:13px;border:2px solid var(--onv);border-radius:4px;flex:none}
+  .box.c{border-color:var(--taskA)}
+  .late{color:var(--late)}
+  .pi{width:24px;height:24px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex:none}
+  .pi .ms{font-size:15px}
+  .cal{color:var(--calA)}.meal{color:var(--mealA)}.sport{color:var(--sportA)}.task{color:var(--taskA)}.shop{color:var(--shopA)}
+  .pi.cal{background:var(--calC)}.pi.meal{background:var(--mealC)}.pi.sport{background:var(--sportC)}.pi.shop{background:var(--shopC)}
+  .tint .it.t-task{background:color-mix(in srgb,var(--taskA) 16%,var(--bg))}
+  .tint .it.t-cal{background:color-mix(in srgb,var(--calA) 16%,var(--bg))}
+  .tint .it.t-meal{background:color-mix(in srgb,var(--mealA) 16%,var(--bg))}
+  .tint .it.t-sport{background:color-mix(in srgb,var(--sportA) 16%,var(--bg))}
+  .tint .it.t-shop{background:color-mix(in srgb,var(--shopA) 16%,var(--bg))}
+  .nav{position:absolute;left:0;right:0;bottom:0;height:46px;background:var(--navbg);display:flex;justify-content:space-around;align-items:center;font-size:8.5px;text-align:center}
+  .nav div{width:46px;display:flex;flex-direction:column;align-items:center;gap:1px}
+  .nav .on .pill{background:var(--pill);border-radius:99px;padding:2px 10px}
+  .lbl{font:600 12px Nunito,sans-serif;opacity:.75;margin-bottom:4px}
+</style>
+
+<h2>Hoy (A) · cuánto color</h2>
+<p class="subtitle">La misma pantalla A con tres niveles de color, cada uno en oscuro (el de por defecto) y en claro. El color de cada fila es el de su módulo: morado Tareas, teal Calendario, rosa Comidas, azul Deporte y naranja Compra. Pulsa la que prefieras.</p>
+
+<div class="options">
+
+  <div class="option" data-choice="1" onclick="toggleSelect(this)">
+    <div class="letter">1</div>
+    <div class="content">
+      <h3>Iconos en pastilla de color</h3>
+      <p>Las filas siguen neutras. El icono va dentro de una pastilla del color de su módulo y las casillas de las tareas, en morado. Se distingue de un vistazo qué es comida, evento o deporte.</p>
+      <div class="pair">
+        <div><div class="lbl">Oscuro</div>
+        <div class="ph dk">
+          <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+          <div class="tb"><div class="t1">Casa Bobitos ▾</div><span><span class="ms">settings</span> <span class="ms">account_circle</span></span></div>
+          <div class="pad">
+            <div class="hello">Buenas tardes, David</div><div class="date">Sábado, 17 de octubre</div>
+            <div class="sh">Tareas para hoy <span class="n">2</span></div>
+            <div class="grp">
+              <div class="it"><div class="box c"></div><div><div class="ttl">Sacar la basura</div><div class="sub"><span class="ms task" style="font-size:11px">flag</span> Media · Ana</div></div></div>
+              <div class="it"><div class="box c"></div><div><div class="ttl">Poner lavadora</div><div class="sub"><span class="late">Venció ayer</span> · Tú</div></div></div>
+            </div>
+            <div class="sh">Agenda</div>
+            <div class="grp">
+              <div class="it"><div class="tm">Todo el día</div><div class="pi cal"><span class="ms cal">cake</span></div><div class="ttl">Cumpleaños de Lucía</div></div>
+              <div class="it"><div class="tm">Comida</div><div class="pi meal"><span class="ms meal">restaurant</span></div><div><div class="ttl">Albóndigas en salsa</div><div class="sub">Cocinas tú</div></div></div>
+              <div class="it"><div class="tm">18:00</div><div class="pi cal"><span class="ms cal">event</span></div><div class="ttl">Dentista · Ana</div></div>
+              <div class="it"><div class="tm">19:30</div><div class="pi sport"><span class="ms sport">directions_run</span></div><div class="ttl">Gimnasio · Tú</div></div>
+            </div>
+            <div class="grp" style="margin-top:8px"><div class="it"><div class="pi shop"><span class="ms shop">shopping_cart</span></div><div style="flex:1"><div class="ttl">Compra · 5</div><div class="sub">Leche, pan, huevos y 2 más</div></div><span class="ms">chevron_right</span></div></div>
+          </div>
+          <div class="nav"><div class="on"><span class="pill ms">dashboard</span>Hoy</div><div><span class="ms">event</span>Calendario</div><div><span class="ms">checklist</span>Tareas</div><div><span class="ms">shopping_cart</span>Compra</div><div><span class="ms">more_horiz</span>Más</div></div>
+        </div></div>
+        <div><div class="lbl">Claro</div>
+        <div class="ph lt">
+          <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+          <div class="tb"><div class="t1">Casa Bobitos ▾</div><span><span class="ms">settings</span> <span class="ms">account_circle</span></span></div>
+          <div class="pad">
+            <div class="hello">Buenas tardes, David</div><div class="date">Sábado, 17 de octubre</div>
+            <div class="sh">Tareas para hoy <span class="n">2</span></div>
+            <div class="grp">
+              <div class="it"><div class="box c"></div><div><div class="ttl">Sacar la basura</div><div class="sub"><span class="ms task" style="font-size:11px">flag</span> Media · Ana</div></div></div>
+              <div class="it"><div class="box c"></div><div><div class="ttl">Poner lavadora</div><div class="sub"><span class="late">Venció ayer</span> · Tú</div></div></div>
+            </div>
+            <div class="sh">Agenda</div>
+            <div class="grp">
+              <div class="it"><div class="tm">Todo el día</div><div class="pi cal"><span class="ms cal">cake</span></div><div class="ttl">Cumpleaños de Lucía</div></div>
+              <div class="it"><div class="tm">Comida</div><div class="pi meal"><span class="ms meal">restaurant</span></div><div><div class="ttl">Albóndigas en salsa</div><div class="sub">Cocinas tú</div></div></div>
+              <div class="it"><div class="tm">18:00</div><div class="pi cal"><span class="ms cal">event</span></div><div class="ttl">Dentista · Ana</div></div>
+              <div class="it"><div class="tm">19:30</div><div class="pi sport"><span class="ms sport">directions_run</span></div><div class="ttl">Gimnasio · Tú</div></div>
+            </div>
+            <div class="grp" style="margin-top:8px"><div class="it"><div class="pi shop"><span class="ms shop">shopping_cart</span></div><div style="flex:1"><div class="ttl">Compra · 5</div><div class="sub">Leche, pan, huevos y 2 más</div></div><span class="ms">chevron_right</span></div></div>
+          </div>
+          <div class="nav"><div class="on"><span class="pill ms">dashboard</span>Hoy</div><div><span class="ms">event</span>Calendario</div><div><span class="ms">checklist</span>Tareas</div><div><span class="ms">shopping_cart</span>Compra</div><div><span class="ms">more_horiz</span>Más</div></div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="2" onclick="toggleSelect(this)">
+    <div class="letter">2</div>
+    <div class="content">
+      <h3>Pastillas y cabecera de la marca (recomendada)</h3>
+      <p>Como la 1, y además el saludo y la fecha van sobre una franja teal de la marca que nace bajo la barra superior, con un resumen corto. Es el acento fuerte de Hoy, que no tiene FAB. El resto, igual de tranquilo.</p>
+      <div class="pair">
+        <div><div class="lbl">Oscuro</div>
+        <div class="ph dk">
+          <div class="band">
+            <div class="sb" style="padding:0 3px"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+            <div class="tb"><div class="t1">Casa Bobitos ▾</div><span><span class="ms">settings</span> <span class="ms">account_circle</span></span></div>
+            <div class="hello">Buenas tardes, David</div><div class="date">Sábado, 17 de octubre</div>
+            <div class="sum">2 tareas · 4 cosas en la agenda</div>
+          </div>
+          <div class="pad">
+            <div class="sh">Tareas para hoy <span class="n">2</span></div>
+            <div class="grp">
+              <div class="it"><div class="box c"></div><div><div class="ttl">Sacar la basura</div><div class="sub"><span class="ms task" style="font-size:11px">flag</span> Media · Ana</div></div></div>
+              <div class="it"><div class="box c"></div><div><div class="ttl">Poner lavadora</div><div class="sub"><span class="late">Venció ayer</span> · Tú</div></div></div>
+            </div>
+            <div class="sh">Agenda</div>
+            <div class="grp">
+              <div class="it"><div class="tm">Todo el día</div><div class="pi cal"><span class="ms cal">cake</span></div><div class="ttl">Cumpleaños de Lucía</div></div>
+              <div class="it"><div class="tm">Comida</div><div class="pi meal"><span class="ms meal">restaurant</span></div><div><div class="ttl">Albóndigas en salsa</div><div class="sub">Cocinas tú</div></div></div>
+              <div class="it"><div class="tm">18:00</div><div class="pi cal"><span class="ms cal">event</span></div><div class="ttl">Dentista · Ana</div></div>
+              <div class="it"><div class="tm">19:30</div><div class="pi sport"><span class="ms sport">directions_run</span></div><div class="ttl">Gimnasio · Tú</div></div>
+            </div>
+          </div>
+          <div class="nav"><div class="on"><span class="pill ms">dashboard</span>Hoy</div><div><span class="ms">event</span>Calendario</div><div><span class="ms">checklist</span>Tareas</div><div><span class="ms">shopping_cart</span>Compra</div><div><span class="ms">more_horiz</span>Más</div></div>
+        </div></div>
+        <div><div class="lbl">Claro</div>
+        <div class="ph lt">
+          <div class="band">
+            <div class="sb" style="padding:0 3px"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+            <div class="tb"><div class="t1">Casa Bobitos ▾</div><span><span class="ms">settings</span> <span class="ms">account_circle</span></span></div>
+            <div class="hello">Buenas tardes, David</div><div class="date">Sábado, 17 de octubre</div>
+            <div class="sum">2 tareas · 4 cosas en la agenda</div>
+          </div>
+          <div class="pad">
+            <div class="sh">Tareas para hoy <span class="n">2</span></div>
+            <div class="grp">
+              <div class="it"><div class="box c"></div><div><div class="ttl">Sacar la basura</div><div class="sub"><span class="ms task" style="font-size:11px">flag</span> Media · Ana</div></div></div>
+              <div class="it"><div class="box c"></div><div><div class="ttl">Poner lavadora</div><div class="sub"><span class="late">Venció ayer</span> · Tú</div></div></div>
+            </div>
+            <div class="sh">Agenda</div>
+            <div class="grp">
+              <div class="it"><div class="tm">Todo el día</div><div class="pi cal"><span class="ms cal">cake</span></div><div class="ttl">Cumpleaños de Lucía</div></div>
+              <div class="it"><div class="tm">Comida</div><div class="pi meal"><span class="ms meal">restaurant</span></div><div><div class="ttl">Albóndigas en salsa</div><div class="sub">Cocinas tú</div></div></div>
+              <div class="it"><div class="tm">18:00</div><div class="pi cal"><span class="ms cal">event</span></div><div class="ttl">Dentista · Ana</div></div>
+              <div class="it"><div class="tm">19:30</div><div class="pi sport"><span class="ms sport">directions_run</span></div><div class="ttl">Gimnasio · Tú</div></div>
+            </div>
+          </div>
+          <div class="nav"><div class="on"><span class="pill ms">dashboard</span>Hoy</div><div><span class="ms">event</span>Calendario</div><div><span class="ms">checklist</span>Tareas</div><div><span class="ms">shopping_cart</span>Compra</div><div><span class="ms">more_horiz</span>Más</div></div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="3" onclick="toggleSelect(this)">
+    <div class="letter">3</div>
+    <div class="content">
+      <h3>Filas teñidas por módulo</h3>
+      <p>Cada fila se tiñe un poco del color de su módulo. Es la que más color tiene, pero la agenda se vuelve un arcoíris de franjas, y en claro roza las «baldosas pastel» que el programa quiere quitar.</p>
+      <div class="pair">
+        <div><div class="lbl">Oscuro</div>
+        <div class="ph dk tint">
+          <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+          <div class="tb"><div class="t1">Casa Bobitos ▾</div><span><span class="ms">settings</span> <span class="ms">account_circle</span></span></div>
+          <div class="pad">
+            <div class="hello">Buenas tardes, David</div><div class="date">Sábado, 17 de octubre</div>
+            <div class="sh">Tareas para hoy <span class="n">2</span></div>
+            <div class="grp">
+              <div class="it t-task"><div class="box c"></div><div><div class="ttl">Sacar la basura</div><div class="sub">Media · Ana</div></div></div>
+              <div class="it t-task"><div class="box c"></div><div><div class="ttl">Poner lavadora</div><div class="sub"><span class="late">Venció ayer</span> · Tú</div></div></div>
+            </div>
+            <div class="sh">Agenda</div>
+            <div class="grp">
+              <div class="it t-cal"><div class="tm">Todo el día</div><span class="ms cal">cake</span><div class="ttl">Cumpleaños de Lucía</div></div>
+              <div class="it t-meal"><div class="tm">Comida</div><span class="ms meal">restaurant</span><div><div class="ttl">Albóndigas en salsa</div><div class="sub">Cocinas tú</div></div></div>
+              <div class="it t-cal"><div class="tm">18:00</div><span class="ms cal">event</span><div class="ttl">Dentista · Ana</div></div>
+              <div class="it t-sport"><div class="tm">19:30</div><span class="ms sport">directions_run</span><div class="ttl">Gimnasio · Tú</div></div>
+            </div>
+            <div class="grp" style="margin-top:8px"><div class="it t-shop"><span class="ms shop">shopping_cart</span><div style="flex:1"><div class="ttl">Compra · 5</div><div class="sub">Leche, pan, huevos y 2 más</div></div><span class="ms">chevron_right</span></div></div>
+          </div>
+          <div class="nav"><div class="on"><span class="pill ms">dashboard</span>Hoy</div><div><span class="ms">event</span>Calendario</div><div><span class="ms">checklist</span>Tareas</div><div><span class="ms">shopping_cart</span>Compra</div><div><span class="ms">more_horiz</span>Más</div></div>
+        </div></div>
+        <div><div class="lbl">Claro</div>
+        <div class="ph lt tint">
+          <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+          <div class="tb"><div class="t1">Casa Bobitos ▾</div><span><span class="ms">settings</span> <span class="ms">account_circle</span></span></div>
+          <div class="pad">
+            <div class="hello">Buenas tardes, David</div><div class="date">Sábado, 17 de octubre</div>
+            <div class="sh">Tareas para hoy <span class="n">2</span></div>
+            <div class="grp">
+              <div class="it t-task"><div class="box c"></div><div><div class="ttl">Sacar la basura</div><div class="sub">Media · Ana</div></div></div>
+              <div class="it t-task"><div class="box c"></div><div><div class="ttl">Poner lavadora</div><div class="sub"><span class="late">Venció ayer</span> · Tú</div></div></div>
+            </div>
+            <div class="sh">Agenda</div>
+            <div class="grp">
+              <div class="it t-cal"><div class="tm">Todo el día</div><span class="ms cal">cake</span><div class="ttl">Cumpleaños de Lucía</div></div>
+              <div class="it t-meal"><div class="tm">Comida</div><span class="ms meal">restaurant</span><div><div class="ttl">Albóndigas en salsa</div><div class="sub">Cocinas tú</div></div></div>
+              <div class="it t-cal"><div class="tm">18:00</div><span class="ms cal">event</span><div class="ttl">Dentista · Ana</div></div>
+              <div class="it t-sport"><div class="tm">19:30</div><span class="ms sport">directions_run</span><div class="ttl">Gimnasio · Tú</div></div>
+            </div>
+            <div class="grp" style="margin-top:8px"><div class="it t-shop"><span class="ms shop">shopping_cart</span><div style="flex:1"><div class="ttl">Compra · 5</div><div class="sub">Leche, pan, huevos y 2 más</div></div><span class="ms">chevron_right</span></div></div>
+          </div>
+          <div class="nav"><div class="on"><span class="pill ms">dashboard</span>Hoy</div><div><span class="ms">event</span>Calendario</div><div><span class="ms">checklist</span>Tareas</div><div><span class="ms">shopping_cart</span>Compra</div><div><span class="ms">more_horiz</span>Más</div></div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+</div>

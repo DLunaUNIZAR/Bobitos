@@ -43,7 +43,7 @@ El informe de la crítica está en `.impeccable/critique/2026-10-17T08-52-25Z__a
 - **Idioma:** la app solo tiene textos en español (`res/values/strings.xml`). Todo texto nuevo va en `strings.xml`. Los conteos van con `<plurals>`.
 - **Tema:** el tema oscuro sigue siendo el de por defecto (`ThemeMode`). Todo cambio de color se comprueba en claro y en oscuro.
 - **Tests:** tests JVM (`./gradlew testDebugUnitTest`).
-  - Ya existe el patrón de tests de contraste: `feature/shopping/SupermarketContrastTest.kt`, `core/designsystem/theme/ModuleColorsTest.kt`.
+  - Ya existe el patrón de tests de contraste: `core/designsystem/theme/CategoryContrastTest.kt` (en `app/src/test`), `core/designsystem/theme/ModuleColorsTest.kt`.
   - Ya existen tests de validación y de ViewModel por área.
 - **Verificación y lint:** `./gradlew ktlintCheck detekt testDebugUnitTest lintDebug assembleDebug` con `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"`.
   - Si cambian firmas que están en `config/detekt/baseline.xml`, se regenera con `./gradlew detektBaseline`.
@@ -112,7 +112,7 @@ La prioridad de una tarea solo se comunica con un punto de color (`TasksScreen.k
 - **Prioridad:** el punto de color se sustituye por un **icono de bandera, teñido con el color de la prioridad, más el nombre** («Alta», «Media», «Baja») en la línea de metadatos de la tarea, como en la maqueta: «⚑ Media · David Demo».
 - **Imagen de ejercicio** (`ExerciseImageBlock.kt:79`): deja de ir sobre blanco puro en tema oscuro. Usa un tono claro atenuado que siga sirviendo de fondo a los dibujos con transparencia. En claro puede seguir en blanco.
 
-**Hecho cuando** un test recorre **todas** las categorías de todas las tablas en los dos temas y comprueba esos umbrales contra sus fondos reales (extendiendo el patrón de `SupermarketContrastTest`).
+**Hecho cuando** un test recorre **todas** las categorías de todas las tablas en los dos temas y comprueba esos umbrales contra sus fondos reales (extendiendo el patrón de `CategoryContrastTest`).
 
 ### A4. Barra inferior legible
 
@@ -251,6 +251,8 @@ Empujan la lista y en Rutinas y Recetario no se cierran solos. Además, `ErrorSt
 - **Deshacer** en Notas, Rutinas, Ejercicios, Ingredientes, Despensa y Espacios, y un solo camino para borrar en Tareas y Compra.
 
 ### Fase C — Identidad («evolucionar»)
+
+> **Diseño detallado:** `docs/superpowers/specs/2026-10-18-evolucion-visual-fase-c-design.md` (2026-10-18). Allí manda lo decidido; esta lista es el esbozo original.
 
 - **Cada módulo es dueño de su color en toda su pantalla:** FAB, selección (día, chips), indicadores y acentos usan `ModuleColors` (`accent`/`container`/`onContainer`, hoy casi sin usar). El teal queda como color de marca en las pantallas globales y en Hoy.
 - **Listas en vez de losas.**

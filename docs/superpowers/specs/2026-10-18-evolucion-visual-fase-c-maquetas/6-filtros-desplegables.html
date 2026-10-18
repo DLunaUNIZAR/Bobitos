@@ -1,0 +1,99 @@
+<!-- Maqueta de la fase C (2026-10-18). Aprobada, también en Compra y Tareas. Ilustrativa: si difiere de la spec, manda la spec. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL@24,400,0..1&display=swap" rel="stylesheet">
+<style>
+  .row{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;margin-top:14px}
+  .col{display:flex;flex-direction:column;gap:6px;align-items:center}
+  .tag{font:600 12px Nunito,sans-serif;padding:2px 10px;border-radius:99px;background:#004d44;color:#A0F2E7}
+  .ph{width:246px;height:440px;background:var(--bg);border-radius:28px;border:6px solid #2b2b2b;overflow:hidden;position:relative;font-family:Nunito,sans-serif;color:var(--on);font-size:12px;line-height:1.35;text-align:left}
+  .ph{--bg:#141513;--row:#202220;--on:#E5E3DE;--onv:#CBC8C2;--ol:#94918B}
+  .m-meal{--mA:#F08DB5;--mC:#63123A;--mO:#F9DCE8}
+  .m-shop{--mA:#F2A173;--mC:#5A2A0E;--mO:#FBE3D4}
+  .m-task{--mA:#B9A0EA;--mC:#3D2A66;--mO:#E8DEF8}
+  .sb{height:22px;display:flex;justify-content:space-between;align-items:center;padding:0 14px;font-size:9.5px;font-weight:600}
+  .ms{font-family:'Material Symbols Rounded';font-size:17px;line-height:1;vertical-align:middle;font-weight:normal;font-style:normal}
+  .tb{padding:3px 11px;display:flex;justify-content:space-between;align-items:center}
+  .tb .t1{font-size:15px;font-weight:700;display:flex;gap:10px;align-items:center}
+  .tb .t2{font-size:9.5px}
+  .pad{padding:0 10px}
+  .band{background:color-mix(in srgb,var(--mA) 16%,var(--bg));padding-bottom:9px;border-radius:0 0 20px 20px}
+  .search{background:color-mix(in srgb,var(--on) 8%,transparent);border-radius:99px;padding:7px 10px;color:var(--onv);margin:4px 0 8px;font-size:10.5px}
+  .dd{position:relative;border:1px solid var(--ol);border-radius:6px;padding:8px 8px 6px;font-size:11px;display:flex;justify-content:space-between;align-items:center;flex:1;min-width:0}
+  .dd.on{border-color:var(--mA);border-width:1.5px}
+  .dd .l{position:absolute;top:-7px;left:6px;font-size:8.5px;padding:0 3px;background:color-mix(in srgb,var(--mA) 16%,var(--bg));color:var(--onv)}
+  .dd.on .l{color:var(--mA);font-weight:700}
+  .ddr{display:flex;gap:6px;margin-top:6px}
+  .tog{border:1px solid var(--ol);border-radius:8px;padding:7px 8px;font-size:10px;flex:none;display:flex;align-items:center;gap:3px}
+  .hd{font-weight:700;font-size:11.5px;margin:9px 2px 4px;display:flex;justify-content:space-between}
+  .hd .n{color:var(--onv);font-weight:600}
+  .grp{display:flex;flex-direction:column;gap:2px}
+  .it{background:var(--row);display:flex;gap:9px;padding:7px 9px;align-items:center}
+  .grp .it:first-child{border-radius:13px 13px 4px 4px}
+  .grp .it:last-child{border-radius:4px 4px 13px 13px}
+  .ttl{font-size:11.5px}.sub{font-size:9.5px;color:var(--onv);margin-top:1px}
+  .box{width:12px;height:12px;border:2px solid var(--onv);border-radius:4px;flex:none}
+</style>
+
+<h2>Filtros · el desplegable de Ejercicios en todas partes</h2>
+<p class="subtitle">Un solo tipo de filtro en toda la app: el desplegable con su nombre siempre a la vista («Categoría», «Supermercado», «Prioridad»…), como el de Ejercicios. Cuando eliges algo, se marca con el color del módulo. Así se ve en las tres pantallas donde hoy hay una fila de chips.</p>
+
+<div class="row">
+  <div class="col"><span class="tag">Recetario</span>
+    <div class="ph m-meal">
+      <div class="band">
+        <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+        <div class="tb"><div class="t1"><span class="ms">arrow_back</span>Recetario</div><span class="ms">link</span></div>
+        <div class="pad"><div class="search"><span class="ms" style="font-size:13px">search</span> Buscar receta</div>
+          <div class="ddr"><div class="dd on"><span class="l">Categoría</span>Arroces<span class="ms" style="font-size:14px">arrow_drop_down</span></div><div class="tog"><span class="ms" style="font-size:13px">kitchen</span>Con lo que hay</div></div>
+        </div>
+      </div>
+      <div class="pad">
+        <div class="hd">Arroces <span class="n">8</span></div>
+        <div class="grp">
+          <div class="it"><div><div class="ttl">Arroz a la cubana</div><div class="sub">25 min · 2 raciones</div></div></div>
+          <div class="it"><div><div class="ttl">Arroz negro</div><div class="sub">50 min · 4 raciones</div></div></div>
+          <div class="it"><div><div class="ttl">Paella valenciana</div><div class="sub">60 min · Tienes todo</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col"><span class="tag">Compra</span>
+    <div class="ph m-shop">
+      <div class="band">
+        <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+        <div class="tb"><div><div class="t1">Casa Bobitos ▾</div><div class="t2">Compra</div></div><span><span class="ms">settings</span> <span class="ms">account_circle</span></span></div>
+        <div class="pad"><div class="ddr"><div class="dd"><span class="l">Supermercado</span>Todos<span class="ms" style="font-size:14px">arrow_drop_down</span></div></div></div>
+      </div>
+      <div class="pad">
+        <div class="hd">Pendientes <span class="n">5</span></div>
+        <div class="grp">
+          <div class="it"><div class="box"></div><div><div class="ttl">Leche</div><div class="sub">2 l · Mercadona</div></div></div>
+          <div class="it"><div class="box"></div><div><div class="ttl">Pan</div><div class="sub">1 ud</div></div></div>
+          <div class="it"><div class="box"></div><div><div class="ttl">Huevos</div><div class="sub">12 ud · Carrefour</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col"><span class="tag">Tareas (4 filtros, en dos filas)</span>
+    <div class="ph m-task">
+      <div class="band">
+        <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+        <div class="tb"><div><div class="t1">Casa Bobitos ▾</div><div class="t2">Tareas</div></div><span><span class="ms">settings</span> <span class="ms">account_circle</span></span></div>
+        <div class="pad">
+          <div class="ddr"><div class="dd on"><span class="l">Estado</span>Pendientes<span class="ms" style="font-size:14px">arrow_drop_down</span></div><div class="dd"><span class="l">Prioridad</span>Todas<span class="ms" style="font-size:14px">arrow_drop_down</span></div></div>
+          <div class="ddr" style="margin-top:10px"><div class="dd"><span class="l">Tipo</span>Todos<span class="ms" style="font-size:14px">arrow_drop_down</span></div><div class="dd"><span class="l">Responsable</span>Todos<span class="ms" style="font-size:14px">arrow_drop_down</span></div></div>
+        </div>
+      </div>
+      <div class="pad">
+        <div class="search" style="margin-top:8px"><span class="ms" style="font-size:13px">search</span> Buscar tareas</div>
+        <div class="hd">Hoy <span class="n">2</span></div>
+        <div class="grp">
+          <div class="it"><div class="box"></div><div><div class="ttl">Sacar la basura</div><div class="sub">Media · Ana</div></div></div>
+          <div class="it"><div class="box"></div><div><div class="ttl">Pedir cita del pediatra</div><div class="sub">Alta · Tú</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

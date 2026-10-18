@@ -1,0 +1,155 @@
+<!-- Maqueta de la fase C (2026-10-18). Aprobada. Ilustrativa: si difiere de la spec, manda la spec. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Material+Symbols+Rounded:opsz,wght,FILL@24,400,0..1&display=swap" rel="stylesheet">
+<style>
+  .row{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;margin-top:14px}
+  .col{display:flex;flex-direction:column;gap:6px;align-items:center}
+  .tag{font:600 12px Nunito,sans-serif;padding:2px 10px;border-radius:99px}
+  .tag.antes{background:#5a1f1c;color:#F2B8B5}
+  .tag.despues{background:#004d44;color:#A0F2E7}
+  .ph{width:246px;height:470px;background:var(--bg);border-radius:28px;border:6px solid #2b2b2b;overflow:hidden;position:relative;font-family:Nunito,sans-serif;color:var(--on);font-size:12px;line-height:1.35;text-align:left}
+  .ph{--bg:#141513;--row:#202220;--on:#E5E3DE;--onv:#CBC8C2;--ol:#94918B}
+  .m-task{--mA:#B9A0EA;--mC:#3D2A66;--mO:#E8DEF8}
+  .m-meal{--mA:#F08DB5;--mC:#63123A;--mO:#F9DCE8}
+  .sb{height:22px;display:flex;justify-content:space-between;align-items:center;padding:0 14px;font-size:9.5px;font-weight:600}
+  .ms{font-family:'Material Symbols Rounded';font-size:17px;line-height:1;vertical-align:middle;font-weight:normal;font-style:normal}
+  .tb{padding:3px 11px;display:flex;justify-content:space-between;align-items:center}
+  .pad{padding:0 10px}
+  .band{background:color-mix(in srgb,var(--mA) 16%,var(--bg));padding-bottom:9px;border-radius:0 0 20px 20px}
+  .sp{font-size:11px;font-weight:700;color:var(--onv)}
+  .big{font-size:25px;font-weight:900;letter-spacing:-.01em;line-height:1.1;margin:2px 11px 6px}
+  .small1{font-size:15px;font-weight:700}
+  .small2{font-size:9.5px;color:var(--onv)}
+  .dd{position:relative;border:1px solid var(--ol);border-radius:6px;padding:8px 8px 6px;font-size:11px;display:flex;justify-content:space-between;align-items:center;flex:1;min-width:0}
+  .dd.on{border-color:var(--mA);border-width:1.5px}
+  .dd .l{position:absolute;top:-7px;left:6px;font-size:8.5px;padding:0 3px;background:color-mix(in srgb,var(--mA) 16%,var(--bg));color:var(--onv)}
+  .dd.on .l{color:var(--mA);font-weight:700}
+  .ddr{display:flex;gap:6px;margin-top:8px}
+  .search{background:color-mix(in srgb,var(--on) 8%,transparent);border-radius:99px;padding:7px 10px;color:var(--onv);margin:8px 0 2px;font-size:10.5px}
+  .hd{font-weight:700;font-size:12px;margin:10px 2px 4px;display:flex;justify-content:space-between}
+  .hd .n{color:var(--onv);font-weight:600}
+  .grp{display:flex;flex-direction:column;gap:2px}
+  .it{background:var(--row);display:flex;gap:9px;padding:8px 9px;align-items:center}
+  .grp .it:first-child{border-radius:13px 13px 4px 4px}
+  .grp .it:last-child{border-radius:4px 4px 13px 13px}
+  .ttl{font-size:12.5px}.sub{font-size:10px;color:var(--onv);margin-top:1px}
+  .box{width:12px;height:12px;border:2px solid var(--onv);border-radius:4px;flex:none}
+  .fab{position:absolute;right:10px;bottom:56px;background:var(--mC);color:var(--mO);border-radius:14px;padding:9px 12px;font-weight:700;font-size:11px;display:flex;gap:5px;align-items:center}
+  .nav{position:absolute;left:0;right:0;bottom:0;height:46px;background:#1E1F1C;display:flex;justify-content:space-around;align-items:center;font-size:8.5px;text-align:center}
+  .nav div{width:46px;display:flex;flex-direction:column;align-items:center;gap:1px}
+  .nav .on .pill{background:var(--mC);color:var(--mO);border-radius:99px;padding:2px 10px}
+  .scale{font-family:Nunito,sans-serif;margin-top:22px;display:grid;grid-template-columns:150px 1fr;gap:6px 16px;align-items:baseline;max-width:640px}
+  .scale .k{font-size:12px;opacity:.7}
+</style>
+
+<h2>Tipografía · de quién es el título</h2>
+<p class="subtitle">Hoy el título grande es el nombre del espacio («Casa Bobitos») y la pantalla en la que estás va en letra pequeña debajo. La propuesta le da la vuelta: el título grande es la pantalla («Tareas») y el espacio pasa a un selector pequeño encima. Al desplazar la lista, el título grande se encoge a una barra normal y los filtros se van con la lista, para dejar sitio a las tareas.</p>
+
+<div class="row">
+  <div class="col"><span class="tag antes">Ahora (con la cabecera teñida)</span>
+    <div class="ph m-task">
+      <div class="band">
+        <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+        <div class="tb"><div><div class="small1">Casa Bobitos ▾</div><div class="small2">Tareas</div></div><span><span class="ms">auto_awesome</span> <span class="ms">settings</span> <span class="ms">account_circle</span></span></div>
+        <div class="pad">
+          <div class="ddr"><div class="dd on"><span class="l">Estado</span>Pendientes<span class="ms" style="font-size:14px">arrow_drop_down</span></div><div class="dd"><span class="l">Prioridad</span>Todas<span class="ms" style="font-size:14px">arrow_drop_down</span></div></div>
+          <div class="ddr" style="margin-top:10px"><div class="dd"><span class="l">Tipo</span>Todos<span class="ms" style="font-size:14px">arrow_drop_down</span></div><div class="dd"><span class="l">Responsable</span>Todos<span class="ms" style="font-size:14px">arrow_drop_down</span></div></div>
+        </div>
+      </div>
+      <div class="pad">
+        <div class="search"><span class="ms" style="font-size:13px">search</span> Buscar tareas</div>
+        <div class="hd">Hoy <span class="n">2</span></div>
+        <div class="grp">
+          <div class="it"><div class="box"></div><div><div class="ttl">Sacar la basura</div><div class="sub">Media · Ana</div></div></div>
+          <div class="it"><div class="box"></div><div><div class="ttl">Pedir cita del pediatra</div><div class="sub">Alta · Tú</div></div></div>
+        </div>
+      </div>
+      <div class="fab"><span class="ms" style="font-size:15px">add</span>Nueva tarea</div>
+      <div class="nav"><div><span class="ms">dashboard</span>Hoy</div><div><span class="ms">event</span>Calendario</div><div class="on"><span class="pill ms">checklist</span>Tareas</div><div><span class="ms">shopping_cart</span>Compra</div><div><span class="ms">more_horiz</span>Más</div></div>
+    </div>
+  </div>
+
+  <div class="col"><span class="tag despues">Propuesta · al abrir</span>
+    <div class="ph m-task">
+      <div class="band">
+        <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+        <div class="tb"><div class="sp">Casa Bobitos ▾</div><span><span class="ms">auto_awesome</span> <span class="ms">settings</span> <span class="ms">account_circle</span></span></div>
+        <div class="big">Tareas</div>
+        <div class="pad">
+          <div class="ddr"><div class="dd on"><span class="l">Estado</span>Pendientes<span class="ms" style="font-size:14px">arrow_drop_down</span></div><div class="dd"><span class="l">Prioridad</span>Todas<span class="ms" style="font-size:14px">arrow_drop_down</span></div></div>
+          <div class="ddr" style="margin-top:10px"><div class="dd"><span class="l">Tipo</span>Todos<span class="ms" style="font-size:14px">arrow_drop_down</span></div><div class="dd"><span class="l">Responsable</span>Todos<span class="ms" style="font-size:14px">arrow_drop_down</span></div></div>
+        </div>
+      </div>
+      <div class="pad">
+        <div class="search"><span class="ms" style="font-size:13px">search</span> Buscar tareas</div>
+        <div class="hd">Hoy <span class="n">2</span></div>
+        <div class="grp">
+          <div class="it"><div class="box"></div><div><div class="ttl">Sacar la basura</div><div class="sub">Media · Ana</div></div></div>
+        </div>
+      </div>
+      <div class="fab"><span class="ms" style="font-size:15px">add</span>Nueva tarea</div>
+      <div class="nav"><div><span class="ms">dashboard</span>Hoy</div><div><span class="ms">event</span>Calendario</div><div class="on"><span class="pill ms">checklist</span>Tareas</div><div><span class="ms">shopping_cart</span>Compra</div><div><span class="ms">more_horiz</span>Más</div></div>
+    </div>
+  </div>
+
+  <div class="col"><span class="tag despues">Propuesta · al desplazar</span>
+    <div class="ph m-task">
+      <div class="band" style="padding-bottom:4px;border-radius:0">
+        <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+        <div class="tb"><div class="small1">Tareas</div><span><span class="ms">auto_awesome</span> <span class="ms">settings</span> <span class="ms">account_circle</span></span></div>
+      </div>
+      <div class="pad">
+        <div class="grp" style="margin-top:6px">
+          <div class="it"><div class="box"></div><div><div class="ttl">Pedir cita del pediatra</div><div class="sub">Alta · Tú</div></div></div>
+        </div>
+        <div class="hd">Esta semana <span class="n">4</span></div>
+        <div class="grp">
+          <div class="it"><div class="box"></div><div><div class="ttl">Poner lavadora</div><div class="sub">Baja · Sin asignar</div></div></div>
+          <div class="it"><div class="box"></div><div><div class="ttl">Limpiar el horno</div><div class="sub">Media · Ana</div></div></div>
+          <div class="it"><div class="box"></div><div><div class="ttl">Bajar el reciclaje</div><div class="sub">Baja · Tú</div></div></div>
+          <div class="it"><div class="box"></div><div><div class="ttl">Cambiar sábanas</div><div class="sub">Media · Ana</div></div></div>
+        </div>
+        <div class="hd">Más adelante <span class="n">3</span></div>
+        <div class="grp">
+          <div class="it"><div class="box"></div><div><div class="ttl">ITV del coche</div><div class="sub">Alta · Tú</div></div></div>
+          <div class="it"><div class="box"></div><div><div class="ttl">Revisar caldera</div><div class="sub">Media · Sin asignar</div></div></div>
+        </div>
+      </div>
+      <div class="fab"><span class="ms" style="font-size:15px">add</span>Nueva tarea</div>
+      <div class="nav"><div><span class="ms">dashboard</span>Hoy</div><div><span class="ms">event</span>Calendario</div><div class="on"><span class="pill ms">checklist</span>Tareas</div><div><span class="ms">shopping_cart</span>Compra</div><div><span class="ms">more_horiz</span>Más</div></div>
+    </div>
+  </div>
+
+  <div class="col"><span class="tag despues">Igual en un catálogo</span>
+    <div class="ph m-meal">
+      <div class="band">
+        <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+        <div class="tb"><span class="ms">arrow_back</span><span class="ms">link</span></div>
+        <div class="big">Recetario</div>
+        <div class="pad">
+          <div class="search" style="margin-top:0"><span class="ms" style="font-size:13px">search</span> Buscar receta</div>
+        </div>
+      </div>
+      <div class="pad">
+        <div class="hd">Mis recetas <span class="n">2</span></div>
+        <div class="grp">
+          <div class="it"><div><div class="ttl">Lentejas de la abuela</div><div class="sub">45 min · 4 raciones</div></div></div>
+          <div class="it"><div><div class="ttl">Pollo al curry</div><div class="sub">30 min · Faltan 2: coco y curry</div></div></div>
+        </div>
+        <div class="hd">Arroces <span class="n">8</span></div>
+        <div class="grp">
+          <div class="it"><div><div class="ttl">Arroz a la cubana</div><div class="sub">25 min · 2 raciones</div></div></div>
+          <div class="it"><div><div class="ttl">Arroz negro</div><div class="sub">50 min · 4 raciones</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top:26px">Escala propuesta: cuatro tamaños, nada más</h3>
+<div class="scale">
+  <span class="k">Título de pantalla</span><span style="font-size:26px;font-weight:900">Tareas · Sábado, 17 de octubre</span>
+  <span class="k">Cabecera de sección</span><span style="font-size:14px;font-weight:700">Hoy · 2</span>
+  <span class="k">Fila</span><span style="font-size:16px">Sacar la basura</span>
+  <span class="k">Dato secundario</span><span style="font-size:14px;opacity:.8">Media · Ana</span>
+</div>

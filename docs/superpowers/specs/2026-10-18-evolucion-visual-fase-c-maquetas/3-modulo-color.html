@@ -1,0 +1,172 @@
+<!-- Maqueta de la fase C (2026-10-18). Elegida: 2 (acentos y cabecera teñida). Ilustrativa: si difiere de la spec, manda la spec. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL@24,400,0..1&display=swap" rel="stylesheet">
+<style>
+  .pair{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}
+  .ph{width:236px;height:470px;background:var(--bg);border-radius:28px;border:6px solid #2b2b2b;overflow:hidden;position:relative;font-family:Nunito,sans-serif;color:var(--on);font-size:12px;line-height:1.35;text-align:left}
+  .ph.dk{--bg:#141513;--row:#2B2C29;--on:#E5E3DE;--onv:#CBC8C2;--mut:#94918B;--navbg:#1E1F1C;--ol:#94918B}
+  .ph.lt{--bg:#FBFAF8;--row:#EAE7E2;--on:#1B1B19;--onv:#494844;--mut:#7A7873;--navbg:#EFEDE9;--ol:#7A7873}
+  .dk.m-task{--mA:#B9A0EA;--mC:#3D2A66;--mO:#E8DEF8}
+  .dk.m-meal{--mA:#F08DB5;--mC:#63123A;--mO:#F9DCE8}
+  .lt.m-meal{--mA:#AD1457;--mC:#F9DCE8;--mO:#3E0721}
+  .lt.m-task{--mA:#7E57C2;--mC:#E8DEF8;--mO:#241046}
+  .sb{height:22px;display:flex;justify-content:space-between;align-items:center;padding:0 14px;font-size:9.5px;font-weight:600}
+  .ms{font-family:'Material Symbols Rounded';font-size:17px;line-height:1;vertical-align:middle;font-weight:normal;font-style:normal}
+  .tb{padding:3px 11px;display:flex;justify-content:space-between;align-items:center}
+  .tb .t1{font-size:14.5px;font-weight:700}.tb .t2{font-size:9.5px;color:var(--onv)}
+  .band .tb .t2{color:var(--on)}
+  .pad{padding:0 10px}
+  .band{padding-bottom:8px;border-radius:0 0 20px 20px}
+  .dk .band{background:color-mix(in srgb,var(--mA) 16%,var(--bg))}
+  .lt .band{background:color-mix(in srgb,var(--mA) 12%,var(--bg))}
+  .chips{display:flex;gap:5px;overflow:hidden;white-space:nowrap;margin:6px 0 2px}
+  .fc{border:1px solid var(--ol);border-radius:8px;padding:3px 7px;font-size:10px;flex:none;display:flex;align-items:center;gap:2px}
+  .fc.on{background:var(--mC);border-color:var(--mC);color:var(--mO);font-weight:700}
+  .search{border:1px solid var(--ol);border-radius:6px;padding:6px 8px;color:var(--onv);margin:6px 0 2px;font-size:10.5px}
+  .sh{font-weight:700;font-size:12px;margin:9px 2px 5px;display:flex;justify-content:space-between;align-items:center}
+  .sh .n{color:var(--onv);font-weight:600}
+  .act{color:var(--mA);font-weight:700;font-size:10.5px}
+  .card{background:var(--row);border-radius:12px;padding:7px 9px;margin-bottom:5px;display:flex;gap:8px;align-items:flex-start}
+  .ttl{font-size:11.5px}.sub{font-size:9.5px;color:var(--onv);margin-top:1px}
+  .box{width:12px;height:12px;border:2px solid var(--onv);border-radius:4px;flex:none;margin-top:1px}
+  .days{display:flex;align-items:center;gap:3px;margin:4px 0 2px}
+  .d{flex:1;text-align:center;border-radius:12px;padding:3px 0;font-size:9px;color:var(--onv)}
+  .d b{display:block;font-size:12px;color:var(--on)}
+  .d.today{box-shadow:inset 0 0 0 1.5px var(--mA)}
+  .d.on{background:var(--mC);color:var(--mO)}.d.on b{color:var(--mO)}
+  .dateline{display:flex;justify-content:space-between;align-items:center;margin:6px 2px 0;font-weight:700;font-size:12px}
+  .slot{display:flex;align-items:center;gap:6px;font-weight:700;font-size:12px;margin:9px 2px 4px}
+  .empty{font-size:10.5px;color:var(--onv);margin:0 2px 2px}
+  .fab{position:absolute;right:10px;bottom:56px;background:var(--mC);color:var(--mO);border-radius:14px;padding:9px 12px;font-weight:700;font-size:11px;display:flex;gap:5px;align-items:center}
+  .nav{position:absolute;left:0;right:0;bottom:0;height:46px;background:var(--navbg);display:flex;justify-content:space-around;align-items:center;font-size:8.5px;text-align:center}
+  .nav div{width:46px;display:flex;flex-direction:column;align-items:center;gap:1px}
+  .nav .on .pill{background:var(--mC);color:var(--mO);border-radius:99px;padding:2px 10px}
+  .nav .on{font-weight:700}
+  .lbl{font:600 12px Nunito,sans-serif;opacity:.75;margin-bottom:4px}
+  .tl{background:color-mix(in srgb,var(--c) 12%,var(--row))}
+</style>
+
+<h2>Color por módulo · dentro de cada pantalla</h2>
+<p class="subtitle">Dentro de un módulo, las tarjetas ya se tiñen por su categoría: el tipo de tarea, el supermercado o el deporte. Eso se queda, porque el tinte dice «de qué tipo es», igual que en Hoy. Lo nuevo es que el color del módulo sustituye al teal en el FAB, el día elegido, los chips elegidos y los enlaces, como ya hace la barra inferior. Pulsa la que prefieras.</p>
+
+<div class="options">
+
+  <div class="option" data-choice="1" onclick="toggleSelect(this)">
+    <div class="letter">1</div>
+    <div class="content">
+      <h3>Acentos del módulo</h3>
+      <p>El FAB, el día elegido, el chip elegido, el contorno de «hoy» y los enlaces van en el color del módulo. La cabecera sigue neutra.</p>
+      <div class="pair">
+        <div><div class="lbl">Tareas · oscuro</div>
+        <div class="ph dk m-task">
+          <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+          <div class="tb"><div><div class="t1">Casa Bobitos ▾</div><div class="t2">Tareas</div></div><span><span class="ms">settings</span> <span class="ms">account_circle</span></span></div>
+          <div class="pad">
+            <div class="chips"><span class="fc on">Pendientes ▾</span><span class="fc">Prioridad ▾</span><span class="fc">Tipo ▾</span><span class="fc">Respons</span></div>
+            <div class="search"><span class="ms" style="font-size:13px">search</span> Buscar tareas</div>
+            <div class="sh">Hoy · 2 <span class="act">Plantillas</span></div>
+            <div class="card tl" style="--c:#00C7B3"><div class="box"></div><div><div class="ttl">Sacar la basura</div><div class="sub"><span class="ms" style="font-size:11px;color:#F9A927">flag</span> Media · Ana</div></div></div>
+            <div class="card tl" style="--c:#ECA0A0"><div class="box"></div><div><div class="ttl">Pedir cita del pediatra</div><div class="sub"><span class="ms" style="font-size:11px;color:#EBA0A0">flag</span> Alta · Tú</div></div></div>
+            <div class="sh">Esta semana · 1</div>
+            <div class="card tl" style="--c:#AAB2E1"><div class="box"></div><div><div class="ttl">Poner lavadora</div><div class="sub"><span class="ms" style="font-size:11px;color:#B4B4B4">flag</span> Baja · Sin asignar</div></div></div>
+          </div>
+          <div class="fab"><span class="ms" style="font-size:15px">add</span>Nueva tarea</div>
+          <div class="nav"><div><span class="ms">dashboard</span>Hoy</div><div><span class="ms">event</span>Calendario</div><div class="on"><span class="pill ms">checklist</span>Tareas</div><div><span class="ms">shopping_cart</span>Compra</div><div><span class="ms">more_horiz</span>Más</div></div>
+        </div></div>
+        <div><div class="lbl">Comidas · oscuro</div>
+        <div class="ph dk m-meal">
+          <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+          <div class="tb"><div><div class="t1">Casa Bobitos ▾</div><div class="t2">Comidas</div></div><span><span class="ms">settings</span> <span class="ms">account_circle</span></span></div>
+          <div class="pad">
+            <div class="days"><span class="ms" style="font-size:14px">chevron_left</span><div class="d">L<b>12</b></div><div class="d">M<b>13</b></div><div class="d">X<b>14</b></div><div class="d">J<b>15</b></div><div class="d">V<b>16</b></div><div class="d on today">S<b>17</b></div><div class="d">D<b>18</b></div><span class="ms" style="font-size:14px">chevron_right</span></div>
+            <div class="dateline">Sábado, 17 de octubre <span class="act"><span class="ms" style="font-size:13px">menu_book</span> Recetario</span></div>
+            <div class="slot">Desayuno</div><div class="empty">Sin planificar</div>
+            <div class="slot">Comida</div>
+            <div class="card"><div><div class="ttl">Albóndigas en salsa</div><div class="sub">12 ingredientes · Ana, Tú</div><div class="sub"><span class="ms" style="font-size:11px">skillet</span> Cocinas tú</div></div></div>
+            <div class="slot">Cena</div><div class="empty">Sin planificar</div>
+          </div>
+          <div class="fab"><span class="ms" style="font-size:15px">add</span>Nueva comida</div>
+          <div class="nav"><div><span class="ms">dashboard</span>Hoy</div><div><span class="ms">event</span>Calendario</div><div><span class="ms">checklist</span>Tareas</div><div><span class="ms">shopping_cart</span>Compra</div><div class="on"><span class="pill ms" style="background:var(--row);color:var(--on)">more_horiz</span>Más</div></div>
+        </div></div>
+        <div><div class="lbl">Comidas · claro</div>
+        <div class="ph lt m-meal">
+          <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+          <div class="tb"><div><div class="t1">Casa Bobitos ▾</div><div class="t2">Comidas</div></div><span><span class="ms">settings</span> <span class="ms">account_circle</span></span></div>
+          <div class="pad">
+            <div class="days"><span class="ms" style="font-size:14px">chevron_left</span><div class="d">L<b>12</b></div><div class="d">M<b>13</b></div><div class="d">X<b>14</b></div><div class="d">J<b>15</b></div><div class="d">V<b>16</b></div><div class="d on today">S<b>17</b></div><div class="d">D<b>18</b></div><span class="ms" style="font-size:14px">chevron_right</span></div>
+            <div class="dateline">Sábado, 17 de octubre <span class="act"><span class="ms" style="font-size:13px">menu_book</span> Recetario</span></div>
+            <div class="slot">Desayuno</div><div class="empty">Sin planificar</div>
+            <div class="slot">Comida</div>
+            <div class="card"><div><div class="ttl">Albóndigas en salsa</div><div class="sub">12 ingredientes · Ana, Tú</div><div class="sub"><span class="ms" style="font-size:11px">skillet</span> Cocinas tú</div></div></div>
+            <div class="slot">Cena</div><div class="empty">Sin planificar</div>
+          </div>
+          <div class="fab"><span class="ms" style="font-size:15px">add</span>Nueva comida</div>
+          <div class="nav"><div><span class="ms">dashboard</span>Hoy</div><div><span class="ms">event</span>Calendario</div><div><span class="ms">checklist</span>Tareas</div><div><span class="ms">shopping_cart</span>Compra</div><div class="on"><span class="pill ms" style="background:var(--row);color:var(--on)">more_horiz</span>Más</div></div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="2" onclick="toggleSelect(this)">
+    <div class="letter">2</div>
+    <div class="content">
+      <h3>Acentos y cabecera teñida (recomendada)</h3>
+      <p>Como la 1, y además la cabecera (barra superior y filtros o tira de días) se tiñe del color del módulo, con el mismo tinte que las filas de Hoy. Al cambiar de pestaña se sabe dónde estás antes de leer nada. Las tarjetas siguen con el tinte de su categoría.</p>
+      <div class="pair">
+        <div><div class="lbl">Tareas · oscuro</div>
+        <div class="ph dk m-task">
+          <div class="band">
+            <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+            <div class="tb"><div><div class="t1">Casa Bobitos ▾</div><div class="t2">Tareas</div></div><span><span class="ms">settings</span> <span class="ms">account_circle</span></span></div>
+            <div class="pad"><div class="chips"><span class="fc on">Pendientes ▾</span><span class="fc">Prioridad ▾</span><span class="fc">Tipo ▾</span><span class="fc">Respons</span></div></div>
+          </div>
+          <div class="pad">
+            <div class="search"><span class="ms" style="font-size:13px">search</span> Buscar tareas</div>
+            <div class="sh">Hoy · 2 <span class="act">Plantillas</span></div>
+            <div class="card tl" style="--c:#00C7B3"><div class="box"></div><div><div class="ttl">Sacar la basura</div><div class="sub"><span class="ms" style="font-size:11px;color:#F9A927">flag</span> Media · Ana</div></div></div>
+            <div class="card tl" style="--c:#ECA0A0"><div class="box"></div><div><div class="ttl">Pedir cita del pediatra</div><div class="sub"><span class="ms" style="font-size:11px;color:#EBA0A0">flag</span> Alta · Tú</div></div></div>
+            <div class="sh">Esta semana · 1</div>
+            <div class="card tl" style="--c:#AAB2E1"><div class="box"></div><div><div class="ttl">Poner lavadora</div><div class="sub"><span class="ms" style="font-size:11px;color:#B4B4B4">flag</span> Baja · Sin asignar</div></div></div>
+          </div>
+          <div class="fab"><span class="ms" style="font-size:15px">add</span>Nueva tarea</div>
+          <div class="nav"><div><span class="ms">dashboard</span>Hoy</div><div><span class="ms">event</span>Calendario</div><div class="on"><span class="pill ms">checklist</span>Tareas</div><div><span class="ms">shopping_cart</span>Compra</div><div><span class="ms">more_horiz</span>Más</div></div>
+        </div></div>
+        <div><div class="lbl">Comidas · oscuro</div>
+        <div class="ph dk m-meal">
+          <div class="band">
+            <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+            <div class="tb"><div><div class="t1">Casa Bobitos ▾</div><div class="t2">Comidas</div></div><span><span class="ms">settings</span> <span class="ms">account_circle</span></span></div>
+            <div class="pad"><div class="days"><span class="ms" style="font-size:14px">chevron_left</span><div class="d">L<b>12</b></div><div class="d">M<b>13</b></div><div class="d">X<b>14</b></div><div class="d">J<b>15</b></div><div class="d">V<b>16</b></div><div class="d on today">S<b>17</b></div><div class="d">D<b>18</b></div><span class="ms" style="font-size:14px">chevron_right</span></div></div>
+          </div>
+          <div class="pad">
+            <div class="dateline">Sábado, 17 de octubre <span class="act"><span class="ms" style="font-size:13px">menu_book</span> Recetario</span></div>
+            <div class="slot">Desayuno</div><div class="empty">Sin planificar</div>
+            <div class="slot">Comida</div>
+            <div class="card"><div><div class="ttl">Albóndigas en salsa</div><div class="sub">12 ingredientes · Ana, Tú</div><div class="sub"><span class="ms" style="font-size:11px">skillet</span> Cocinas tú</div></div></div>
+            <div class="slot">Cena</div><div class="empty">Sin planificar</div>
+          </div>
+          <div class="fab"><span class="ms" style="font-size:15px">add</span>Nueva comida</div>
+          <div class="nav"><div><span class="ms">dashboard</span>Hoy</div><div><span class="ms">event</span>Calendario</div><div><span class="ms">checklist</span>Tareas</div><div><span class="ms">shopping_cart</span>Compra</div><div class="on"><span class="pill ms" style="background:var(--row);color:var(--on)">more_horiz</span>Más</div></div>
+        </div></div>
+        <div><div class="lbl">Comidas · claro</div>
+        <div class="ph lt m-meal">
+          <div class="band">
+            <div class="sb"><span>16:09</span><span class="ms" style="font-size:11px">wifi battery_full</span></div>
+            <div class="tb"><div><div class="t1">Casa Bobitos ▾</div><div class="t2">Comidas</div></div><span><span class="ms">settings</span> <span class="ms">account_circle</span></span></div>
+            <div class="pad"><div class="days"><span class="ms" style="font-size:14px">chevron_left</span><div class="d">L<b>12</b></div><div class="d">M<b>13</b></div><div class="d">X<b>14</b></div><div class="d">J<b>15</b></div><div class="d">V<b>16</b></div><div class="d on today">S<b>17</b></div><div class="d">D<b>18</b></div><span class="ms" style="font-size:14px">chevron_right</span></div></div>
+          </div>
+          <div class="pad">
+            <div class="dateline">Sábado, 17 de octubre <span class="act"><span class="ms" style="font-size:13px">menu_book</span> Recetario</span></div>
+            <div class="slot">Desayuno</div><div class="empty">Sin planificar</div>
+            <div class="slot">Comida</div>
+            <div class="card"><div><div class="ttl">Albóndigas en salsa</div><div class="sub">12 ingredientes · Ana, Tú</div><div class="sub"><span class="ms" style="font-size:11px">skillet</span> Cocinas tú</div></div></div>
+            <div class="slot">Cena</div><div class="empty">Sin planificar</div>
+          </div>
+          <div class="fab"><span class="ms" style="font-size:15px">add</span>Nueva comida</div>
+          <div class="nav"><div><span class="ms">dashboard</span>Hoy</div><div><span class="ms">event</span>Calendario</div><div><span class="ms">checklist</span>Tareas</div><div><span class="ms">shopping_cart</span>Compra</div><div class="on"><span class="pill ms" style="background:var(--row);color:var(--on)">more_horiz</span>Más</div></div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
