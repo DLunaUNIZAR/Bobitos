@@ -28,21 +28,15 @@ class FirebaseBetaDistribution : BetaDistribution {
 
     override fun updateApp(): Flow<BetaUpdateProgress> = callbackFlow {
         val task = sdk.updateApp()
-        var downloaded = false
+        val tracker = BetaUpdateProgressTracker()
         task.addOnProgressListener { progress ->
-            progress.updateStatus
-                .toProgress(progress.apkBytesDownloaded, progress.apkFileTotalBytes)
-                ?.let {
-                    if (it == BetaUpdateProgress.AwaitingInstall) downloaded = true
-                    trySend(it.afterDownload(downloaded))
-                }
+            tracker.onProgress(progress.updateStatus, progress.apkBytesDownloaded, progress.apkFileTotalBytes)
+                ?.let { trySend(it) }
         }
         task.addOnCompleteListener { result ->
             val failure = result.exception
             if (failure != null) {
-                val status = (failure as? FirebaseAppDistributionException)?.errorCode
-                val failed = status?.toFailureProgress() ?: BetaUpdateProgress.Failed(BetaUpdateError.UNKNOWN)
-                trySend(failed.afterDownload(downloaded))
+                trySend(tracker.onFailure((failure as? FirebaseAppDistributionException)?.errorCode))
             }
             close()
         }
@@ -94,6 +88,20 @@ internal fun BetaUpdateProgress.afterDownload(downloaded: Boolean): BetaUpdatePr
     } else {
         this
     }
+
+/** Traduce el progreso del SDK recordando si la descarga ya terminó; uno nuevo por cada instalación. */
+internal class BetaUpdateProgressTracker {
+    private var downloaded = false
+
+    fun onProgress(status: UpdateStatus, downloadedBytes: Long, totalBytes: Long): BetaUpdateProgress? =
+        status.toProgress(downloadedBytes, totalBytes)?.let {
+            if (it == BetaUpdateProgress.AwaitingInstall) downloaded = true
+            it.afterDownload(downloaded)
+        }
+
+    fun onFailure(status: FirebaseAppDistributionException.Status?): BetaUpdateProgress =
+        (status?.toFailureProgress() ?: BetaUpdateProgress.Failed(BetaUpdateError.UNKNOWN)).afterDownload(downloaded)
+}
 
 internal fun UpdateStatus.toProgress(downloadedBytes: Long, totalBytes: Long): BetaUpdateProgress? = when (this) {
     UpdateStatus.PENDING -> BetaUpdateProgress.Downloading(0, totalBytes)
