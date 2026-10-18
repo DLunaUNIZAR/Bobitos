@@ -8,12 +8,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Kitchen
 import androidx.compose.material.icons.rounded.QrCodeScanner
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -54,22 +54,29 @@ import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffec
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdown
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
-import com.dlunaunizar.bobitos.core.designsystem.component.InfoChip
+import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
+import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
+import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.SwitchRow
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
+import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.dlunaunizar.bobitos.feature.common.CatalogGroup
+import com.dlunaunizar.bobitos.feature.common.CatalogHeader
+import com.dlunaunizar.bobitos.feature.common.CatalogLayout
+import com.dlunaunizar.bobitos.feature.common.groupCatalog
 import com.dlunaunizar.bobitos.feature.shopping.SupermarketIcon
 import com.dlunaunizar.bobitos.feature.shopping.labelRes
 import kotlinx.coroutines.launch
@@ -276,10 +283,18 @@ private fun IngredientCatalog(
             val filtered =
                 remember(catalog.value, query, category) { catalog.value.matching(query).inCategory(category) }
             val lines = remember(state.brands, state.prefs) { ingredientRowLines(state.brands, state.prefs) }
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(bottom = Spacing.fabClearance),
-            ) {
+            // Al buscar, lista plana con los tuyos primero y la categoría en la línea secundaria.
+            val layout = if (query.isNotBlank()) CatalogLayout.FLAT else CatalogLayout.BY_CATEGORY
+            val groups = remember(filtered, layout, category) {
+                groupCatalog(
+                    items = filtered,
+                    isMine = CatalogIngredient::personal,
+                    categoryOf = CatalogIngredient::category,
+                    layout = layout,
+                    selectedCategory = category,
+                )
+            }
+            LazyColumn(contentPadding = PaddingValues(bottom = Spacing.fabClearance)) {
                 item(key = "filters") { filterBand() }
                 if (filtered.isEmpty()) {
                     item(key = "empty") {
@@ -297,17 +312,51 @@ private fun IngredientCatalog(
                         )
                     }
                 }
-                items(filtered, key = CatalogIngredient::id) { ingredient ->
-                    IngredientRow(
-                        ingredient = ingredient,
-                        line = lines[ingredient.id] ?: IngredientRowLine.None,
-                        onClick = { onOpen(ingredient) },
-                        modifier = Modifier.padding(horizontal = Spacing.lg).animateItem(),
-                    )
-                }
+                ingredientGroups(groups, lines, layout == CatalogLayout.FLAT, onOpen)
             }
         }
     }
+}
+
+private fun LazyListScope.ingredientGroups(
+    groups: List<CatalogGroup<CatalogIngredient>>,
+    lines: Map<String, IngredientRowLine>,
+    showCategory: Boolean,
+    onOpen: (CatalogIngredient) -> Unit,
+) {
+    groups.forEachIndexed { groupIndex, group ->
+        val header = group.header
+        if (header != null) {
+            stickyHeader(key = "header-$groupIndex", contentType = "header") {
+                SectionHeader(
+                    title = header.title(),
+                    count = group.items.size,
+                    sticky = true,
+                    modifier = Modifier.padding(horizontal = Spacing.lg),
+                )
+            }
+        }
+        itemsIndexed(group.items, key = { _, ingredient -> ingredient.id }) { index, ingredient ->
+            IngredientRow(
+                ingredient = ingredient,
+                line = lines[ingredient.id] ?: IngredientRowLine.None,
+                position = rowPosition(index, group.items.size),
+                showCategory = showCategory,
+                onClick = { onOpen(ingredient) },
+                modifier = Modifier
+                    .padding(horizontal = Spacing.lg)
+                    .padding(bottom = if (index == group.items.size - 1) Spacing.md else 0.dp)
+                    .animateItem(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CatalogHeader.title(): String = when (this) {
+    CatalogHeader.Mine -> stringResource(R.string.ingredients_group_mine)
+    is CatalogHeader.Category -> name
+    CatalogHeader.Other -> stringResource(R.string.ingredients_group_other)
 }
 
 @Composable
@@ -355,32 +404,29 @@ private fun IngredientFilterBand(
 private fun IngredientRow(
     ingredient: CatalogIngredient,
     line: IngredientRowLine,
+    position: RowPosition,
+    showCategory: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(onClick = onClick, modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = ingredient.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+    GroupedRow(position = position, onClick = onClick, modifier = modifier) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = ingredient.name,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (showCategory) {
                 ingredient.category?.let {
                     Text(
                         text = it,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                IngredientLine(line)
             }
-            if (ingredient.personal) InfoChip(stringResource(R.string.ingredients_personal))
+            IngredientLine(line)
         }
     }
 }
@@ -407,7 +453,7 @@ private fun StoreLine(text: String?, store: Supermarket?) {
         text?.let {
             Text(
                 text = it,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

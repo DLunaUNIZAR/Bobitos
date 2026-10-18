@@ -494,7 +494,8 @@
     <string name="recipes_open">Recetario</string>
     <string name="recipes_search_label">Buscar receta</string>
     <string name="recipes_section_mine">Mis recetas</string>
-    <string name="recipes_section_global">Recetas comunes</string>
+    <string name="recipes_group_other">Otras</string>
+    <string name="recipes_meta">%1$s · %2$s</string>
     <string name="recipes_empty">Aún no hay recetas aquí.</string>
     <string name="recipes_no_results">Sin resultados para tu búsqueda.</string>
     <string name="recipes_filter_all">Todas</string>
@@ -798,7 +799,8 @@
     <string name="ingredients_brand_scan">Escanear código</string>
     <string name="ingredients_brand_scan_not_found">No encontramos el producto en Open Food Facts. Rellena la marca a mano.</string>
     <string name="ingredients_catalog_unavailable">No se pudo cargar el catálogo. Comprueba la conexión.</string>
-    <string name="ingredients_personal">Personal</string>
+    <string name="ingredients_group_mine">Mis ingredientes</string>
+    <string name="ingredients_group_other">Otros</string>
     <string name="ingredients_common_switch">Común (catálogo)</string>
     <string name="ingredients_favorite_brand">★ %1$s</string>
     <plurals name="ingredients_brand_count">

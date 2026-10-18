@@ -11,14 +11,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.MenuBook
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -40,6 +39,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -56,21 +56,27 @@ import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffec
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdown
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
+import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
+import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Recipe
+import com.dlunaunizar.bobitos.feature.common.CatalogGroup
+import com.dlunaunizar.bobitos.feature.common.CatalogHeader
+import com.dlunaunizar.bobitos.feature.common.CatalogLayout
 import com.dlunaunizar.bobitos.feature.common.IngredientReviewDialog
-import com.dlunaunizar.bobitos.feature.common.PantryLine
 import com.dlunaunizar.bobitos.feature.common.RecipeRow
 import com.dlunaunizar.bobitos.feature.common.ScrollToTopOnChange
+import com.dlunaunizar.bobitos.feature.common.groupCatalog
 import com.dlunaunizar.bobitos.feature.common.pantryLineText
 import com.dlunaunizar.bobitos.feature.common.withPantryLines
 
@@ -198,15 +204,16 @@ fun RecipesScreen(
                 text = { stringResource(it.stringResourceId) },
             )
             val filtering = state.query.isNotBlank() || selectedCategory != null || pantryIds != null
-            val mineRows = rememberRecipeRows(state.mine, state.query, selectedCategory, pantryIds)
-            val globalRows = rememberRecipeRows(state.global, state.query, selectedCategory, pantryIds)
+            // Búsqueda o «Con lo que hay»: lista plana (sin cabeceras); si no, agrupada por categoría.
+            val layout = recipeLayout(state.query, pantryIds)
+            val groups =
+                rememberRecipeGroups(state.mine, state.global, state.query, selectedCategory, pantryIds, layout)
             // Los filtros quedan fuera de la lista: al activar o apagar «Con lo que hay» la lista se reordena y,
             // si estaba desplazada, se quedaría anclada en una receta que se ha movido; vuelve arriba.
             val listState = rememberLazyListState()
             ScrollToTopOnChange(state.pantryOnly.toString(), listState)
             LazyColumn(
                 state = listState,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(bottom = Spacing.fabClearance),
             ) {
                 // Búsqueda y filtros en la franja teñida: primer elemento, se va con la lista al desplazar.
@@ -234,12 +241,14 @@ fun RecipesScreen(
                         }
                     }
                 }
-                recipesSection(R.string.recipes_section_mine, state.mine, mineRows, filtering, viewModel::retry) {
-                    detailRecipeId = it.id
-                }
-                recipesSection(R.string.recipes_section_global, state.global, globalRows, filtering, viewModel::retry) {
-                    detailRecipeId = it.id
-                }
+                recipesSections(
+                    mine = state.mine,
+                    global = state.global,
+                    groups = groups,
+                    filtering = filtering,
+                    showCategory = layout == CatalogLayout.FLAT && pantryIds == null,
+                    onRetry = viewModel::retry,
+                ) { detailRecipeId = it.id }
             }
         }
     }
@@ -308,69 +317,107 @@ fun RecipesScreen(
     }
 }
 
-// Las filas de una sección, calculadas solo cuando cambian las recetas, la búsqueda, la categoría o la despensa.
+// Los grupos de la lista, calculados solo cuando cambian las recetas, la búsqueda, la categoría, la despensa o el modo.
+// Las de «Mis recetas» van primero; con «Con lo que hay» el orden es el de la despensa dentro de cada bloque.
 @Composable
-private fun rememberRecipeRows(
-    recipes: UiState<List<Recipe>>,
+private fun rememberRecipeGroups(
+    mine: UiState<List<Recipe>>,
+    global: UiState<List<Recipe>>,
     query: String,
     category: String?,
     pantryIds: Set<String>?,
-): List<RecipeRow> = remember(recipes, query, category, pantryIds) {
-    if (recipes !is UiState.Content) {
-        emptyList()
-    } else {
-        recipes.value.matching(query)
-            .filter { category == null || it.category == category }
-            .withPantryLines(pantryIds)
-    }
+    layout: CatalogLayout,
+): List<CatalogGroup<RecipeRow>> = remember(mine, global, query, category, pantryIds, layout) {
+    val mineRecipes = mine.contentOrEmpty()
+    val mineIds = mineRecipes.mapTo(HashSet(), Recipe::id)
+    val rows = (mineRecipes + global.contentOrEmpty()).matching(query)
+        .filter { category == null || it.category == category }
+        .withPantryLines(pantryIds)
+    groupCatalog(
+        items = rows,
+        isMine = { it.recipe.id in mineIds },
+        categoryOf = { it.recipe.category },
+        layout = layout,
+        selectedCategory = category,
+    )
 }
 
-private fun LazyListScope.recipesSection(
-    @StringRes titleRes: Int,
-    recipes: UiState<List<Recipe>>,
-    rows: List<RecipeRow>,
+private fun LazyListScope.recipesSections(
+    mine: UiState<List<Recipe>>,
+    global: UiState<List<Recipe>>,
+    groups: List<CatalogGroup<RecipeRow>>,
     filtering: Boolean,
+    showCategory: Boolean,
     onRetry: () -> Unit,
     onOpen: (Recipe) -> Unit,
 ) {
-    item(key = "header-$titleRes") {
-        SectionHeader(title = stringResource(titleRes), modifier = Modifier.padding(horizontal = Spacing.lg))
-    }
-    when (recipes) {
-        UiState.Loading -> item(key = "loading-$titleRes") {
-            LoadingState(Modifier.fillMaxWidth().padding(horizontal = Spacing.lg))
+    // Una fuente que aún carga o falla se ve arriba, sin esconder las recetas de la otra.
+    listOf("mine" to mine, "global" to global).forEach { (key, source) ->
+        when (source) {
+            UiState.Loading -> item(key = "loading-$key") {
+                LoadingState(Modifier.fillMaxWidth().padding(horizontal = Spacing.lg))
+            }
+            is UiState.Error -> item(key = "error-$key") {
+                ErrorState(
+                    Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
+                    message = stringResource(source.failure.messageRes()),
+                    onRetry = onRetry,
+                )
+            }
+            is UiState.Content -> Unit
         }
-        is UiState.Error -> item(key = "error-$titleRes") {
-            ErrorState(
-                Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
-                message = stringResource(recipes.failure.messageRes()),
-                onRetry = onRetry,
+    }
+    if (mine is UiState.Content && global is UiState.Content && groups.isEmpty()) {
+        val noResults = filtering && (mine.value.isNotEmpty() || global.value.isNotEmpty())
+        item(key = "empty") {
+            EmptyState(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
+                icon = Icons.Rounded.MenuBook,
+                title = stringResource(if (noResults) R.string.recipes_no_results else R.string.recipes_empty),
             )
         }
-        is UiState.Content -> {
-            if (rows.isEmpty()) {
-                val noResults = filtering && recipes.value.isNotEmpty()
-                item(key = "empty-$titleRes") {
-                    EmptyState(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
-                        icon = Icons.Rounded.MenuBook,
-                        title = stringResource(
-                            if (noResults) R.string.recipes_no_results else R.string.recipes_empty,
-                        ),
-                    )
-                }
-            } else {
-                items(rows, key = { "$titleRes-${it.recipe.id}" }) { row ->
-                    RecipeCard(
-                        recipe = row.recipe,
-                        pantryLine = row.pantryLine,
-                        onClick = { onOpen(row.recipe) },
-                        modifier = Modifier.padding(horizontal = Spacing.lg).animateItem(),
-                    )
-                }
+    }
+    groups.forEachIndexed { groupIndex, group ->
+        val header = group.header
+        if (header != null) {
+            stickyHeader(key = "header-$groupIndex-${header.key()}", contentType = "header") {
+                SectionHeader(
+                    title = header.title(),
+                    count = group.items.size,
+                    sticky = true,
+                    modifier = Modifier.padding(horizontal = Spacing.lg),
+                )
             }
         }
+        itemsIndexed(group.items, key = { _, row -> "recipe-${row.recipe.id}" }) { index, row ->
+            RecipeRowItem(
+                row = row,
+                position = rowPosition(index, group.items.size),
+                showCategory = showCategory,
+                onClick = { onOpen(row.recipe) },
+                modifier = Modifier
+                    .padding(horizontal = Spacing.lg)
+                    .padding(bottom = if (index == group.items.size - 1) Spacing.md else 0.dp)
+                    .animateItem(),
+            )
+        }
     }
+}
+
+private fun recipeLayout(query: String, pantryIds: Set<String>?) =
+    if (query.isNotBlank() || pantryIds != null) CatalogLayout.FLAT else CatalogLayout.BY_CATEGORY
+
+private fun CatalogHeader.key(): String = when (this) {
+    CatalogHeader.Mine -> "mine"
+    is CatalogHeader.Category -> "category-$name"
+    CatalogHeader.Other -> "other"
+}
+
+@Composable
+private fun CatalogHeader.title(): String = when (this) {
+    CatalogHeader.Mine -> stringResource(R.string.recipes_section_mine)
+    is CatalogHeader.Category -> name
+    CatalogHeader.Other -> stringResource(R.string.recipes_group_other)
 }
 
 // La despensa del espacio activo para «Con lo que hay» y, desde «¿Qué cocino?», el chip activado una sola vez.
@@ -429,33 +476,49 @@ private fun RecipeFilters(
 }
 
 @Composable
-private fun RecipeCard(recipe: Recipe, pantryLine: PantryLine?, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Card(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+private fun RecipeRowItem(
+    row: RecipeRow,
+    position: RowPosition,
+    showCategory: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val recipe = row.recipe
+    GroupedRow(position = position, onClick = onClick, modifier = modifier) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = recipe.title,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            recipe.category?.takeIf(String::isNotEmpty)?.let { category ->
-                Text(
-                    text = category,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            pantryLine?.let { line ->
-                Text(
-                    text = pantryLineText(line),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+            when (val supporting = recipeSupporting(recipe, row.pantryLine, showCategory)) {
+                is RecipeSupporting.Pantry -> SupportingText(pantryLineText(supporting.line), pantry = true)
+                is RecipeSupporting.Category -> SupportingText(supporting.name)
+                is RecipeSupporting.Meta -> SupportingText(metaText(supporting))
+                RecipeSupporting.None -> Unit
             }
         }
+    }
+}
+
+@Composable
+private fun SupportingText(text: String, pantry: Boolean = false) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = if (pantry) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+@Composable
+private fun metaText(meta: RecipeSupporting.Meta): String {
+    val minutes = meta.minutes?.let { stringResource(R.string.recipes_minutes, it) }
+    val servings = meta.servings?.let { pluralStringResource(R.plurals.recipes_servings, it, it) }
+    return if (minutes != null && servings != null) {
+        stringResource(R.string.recipes_meta, minutes, servings)
+    } else {
+        minutes ?: servings.orEmpty()
     }
 }
 
