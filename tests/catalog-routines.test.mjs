@@ -29,8 +29,18 @@ test("indexExercises toma REPS si la ficha no dice medida", () => {
 });
 
 test("expande cada caso de la tabla compartida a la forma de la app", () => {
+  assert.deepEqual(fixture.map((c) => c.caso), ["repeticiones", "segundos", "cardio", "otros"]);
   for (const c of fixture) {
     assert.deepEqual(expandRoutineExercise(c.entry, { ...c.exercise }), c.firestore, c.caso);
+  }
+});
+
+test("la tabla compartida coincide con el catálogo de ejercicios", async () => {
+  const catalogo = JSON.parse(await readFile(new URL("../data/catalog/exercises.json", import.meta.url), "utf8"));
+  const byId = indexExercises(catalogo);
+  assert.equal(fixture.length, 4);
+  for (const c of fixture) {
+    assert.deepEqual(byId.get(c.entry.exerciseId), c.exercise, c.caso);
   }
 });
 

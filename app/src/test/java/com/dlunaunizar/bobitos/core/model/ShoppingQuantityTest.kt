@@ -135,7 +135,7 @@ class ShoppingQuantityTest {
     }
 
     @Test
-    fun `every word of the unit agrees in number up to the first de`() {
+    fun `every word of the unit agrees in number up to the first preposition`() {
         assertEquals("1 cucharada sopera", ShoppingQuantity.sum("1/2 cucharadas soperas", "1/2 cucharadas soperas"))
         assertEquals("2 cucharadas soperas", ShoppingQuantity.sum("1 cucharada sopera", "1 cucharada sopera"))
         assertEquals("2 dientes de ajo", ShoppingQuantity.sum("1 diente de ajo", "1 diente de ajo"))
@@ -157,7 +157,8 @@ class ShoppingQuantityTest {
     @Test
     fun `only the words before any preposition of the unit change in number`() {
         assertEquals("2 bolsas con asa", ShoppingQuantity.sum("1 bolsa con asa", "1 bolsa con asa"))
-        assertEquals("1 bolsa con asa", ShoppingQuantity.sum("1/2 bolsas con asa", "1/2 bolsas con asa"))
+        val half = "1/2 bolsas para galletas"
+        assertEquals("1 bolsa para galletas", ShoppingQuantity.sum(half, half))
         assertEquals("2 tazas para café", ShoppingQuantity.sum("1 taza para café", "1 taza para café"))
         assertEquals("2 botes sin azúcar", ShoppingQuantity.sum("1 bote sin azúcar", "1 bote sin azúcar"))
         assertEquals("2 cucharadas al ras", ShoppingQuantity.sum("1 cucharada al ras", "1 cucharada al ras"))

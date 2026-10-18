@@ -68,6 +68,21 @@ class RecipeRestoreTest {
     }
 
     @Test
+    @Suppress("ktlint:standard:max-line-length", "MaxLineLength")
+    fun `a common recipe whose owner and last editor are no longer admins comes back owned and edited by whoever undoes`() {
+        val orphan = recipe(RecipeVisibility.GLOBAL, importedAt = imported).copy(
+            ownerUid = "ex-admin",
+            createdBy = "ex-admin",
+            updatedBy = "ex-admin",
+        )
+
+        assertEquals(
+            RecipeRestoreAudit("second-admin", "second-admin", created, "second-admin", imported, imported),
+            orphan.restoreAudit("second-admin", admins),
+        )
+    }
+
+    @Test
     fun `a private recipe comes back as a new one of whoever undoes, with server dates`() {
         val mine = recipe(RecipeVisibility.PRIVATE, importedAt = imported).copy(ownerUid = "chef", createdBy = "chef")
 

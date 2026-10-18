@@ -15,6 +15,12 @@ class RoutineExerciseFixtureTest {
     }.readText().let(::JSONArray)
 
     @Test
+    fun `the shared table covers the four measures`() {
+        val names = (0 until cases.length()).map { cases.getJSONObject(it).getString("caso") }
+        assertEquals(listOf("repeticiones", "segundos", "cardio", "otros"), names)
+    }
+
+    @Test
     fun `the app reads and rewrites imported exercises unchanged`() {
         for (i in 0 until cases.length()) {
             val case = cases.getJSONObject(i)
