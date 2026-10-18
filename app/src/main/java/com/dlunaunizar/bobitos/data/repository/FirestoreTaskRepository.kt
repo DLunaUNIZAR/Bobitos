@@ -184,7 +184,10 @@ class FirestoreTaskRepository @Inject constructor(
         val user = requireVerifiedUser()
         val taskReference = tasksCollection(spaceId).document(previous.id)
         firestore.runTransaction { transaction ->
-            requireTask(transaction.get(taskReference))
+            val current = requireTask(transaction.get(taskReference)).toTaskItem()
+            if (current != null) {
+                completionUndoFailure(current, previous, user.id)?.let { throw TaskRepositoryException(it) }
+            }
             transaction.update(
                 taskReference,
                 FIELD_STATUS, STATUS_TODO,

@@ -96,6 +96,7 @@ enum class TaskUiMessage {
     EmailNotVerified,
     SpaceNotFound,
     TaskNotFound,
+    TaskChanged,
     PermissionDenied,
     NetworkError,
     UnexpectedError,

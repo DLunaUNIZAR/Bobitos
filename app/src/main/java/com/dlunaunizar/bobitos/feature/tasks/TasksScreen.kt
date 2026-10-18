@@ -1071,6 +1071,7 @@ internal fun TaskUiMessage.stringRes() = when (this) {
     TaskUiMessage.EmailNotVerified -> R.string.space_error_email_not_verified
     TaskUiMessage.SpaceNotFound -> R.string.space_error_not_found
     TaskUiMessage.TaskNotFound -> R.string.tasks_error_not_found
+    TaskUiMessage.TaskChanged -> R.string.tasks_error_changed
     TaskUiMessage.PermissionDenied -> R.string.space_error_permission_denied
     TaskUiMessage.NetworkError -> R.string.space_error_network
     TaskUiMessage.UnexpectedError -> R.string.space_error_unexpected

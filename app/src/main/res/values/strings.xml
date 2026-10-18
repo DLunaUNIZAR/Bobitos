@@ -341,6 +341,7 @@
     <string name="tasks_error_invalid_date">Usa una fecha válida con formato YYYY-MM-DD.</string>
     <string name="tasks_error_invalid_assignee">El responsable ya no pertenece al espacio.</string>
     <string name="tasks_error_not_found">La tarea ya no existe.</string>
+    <string name="tasks_error_changed">La tarea ha cambiado entretanto y no se ha deshecho.</string>
     <string name="tasks_notice_created">Tarea creada.</string>
     <string name="tasks_notice_updated">Tarea actualizada.</string>
     <string name="tasks_notice_reopened">Tarea reabierta.</string>

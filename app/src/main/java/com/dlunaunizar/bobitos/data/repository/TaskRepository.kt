@@ -40,7 +40,8 @@ interface TaskRepository {
     /**
      * «Deshacer» completar: deja [previous] (la tarea tal como estaba antes, siempre en TODO) otra vez pendiente con
      * sus fechas de entonces, en una sola escritura. Vale para una normal, que quedó en DONE, y para una recurrente,
-     * que siguió en TODO con las fechas adelantadas. Si la tarea ya no existe, lanza [TaskFailure.TaskNotFound].
+     * que siguió en TODO con las fechas adelantadas. Si la tarea ya no existe, lanza [TaskFailure.TaskNotFound]; si otro la cambió desde
+     * entonces (ver [completionUndoFailure]), [TaskFailure.TaskChanged] y no escribe nada.
      */
     suspend fun restoreCompletion(spaceId: String, previous: TaskItem)
 
@@ -64,6 +65,7 @@ enum class TaskFailure {
     EmailNotVerified,
     SpaceNotFound,
     TaskNotFound,
+    TaskChanged,
     PermissionDenied,
     Network,
     Unknown,

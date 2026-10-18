@@ -254,6 +254,7 @@ private fun Throwable.toRepositoryUiMessage() = when ((this as? TaskRepositoryEx
     TaskFailure.EmailNotVerified -> TaskUiMessage.EmailNotVerified
     TaskFailure.SpaceNotFound -> TaskUiMessage.SpaceNotFound
     TaskFailure.TaskNotFound -> TaskUiMessage.TaskNotFound
+    TaskFailure.TaskChanged -> TaskUiMessage.TaskChanged
     TaskFailure.PermissionDenied -> TaskUiMessage.PermissionDenied
     TaskFailure.Network -> TaskUiMessage.NetworkError
     TaskFailure.Unknown, null -> TaskUiMessage.UnexpectedError

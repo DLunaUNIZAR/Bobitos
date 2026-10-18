@@ -206,6 +206,16 @@ class TasksViewModelTest {
     }
 
     @Test
+    fun deshacerUnaTareaQueOtroCambioAvisa() = runTest(mainDispatcherRule.testDispatcher) {
+        taskRepository.nextFailure = TaskRepositoryException(TaskFailure.TaskChanged)
+
+        viewModel.undoCompletion("home", task("t1", "Regar", null))
+        advanceUntilIdle()
+
+        assertEquals(TaskUiMessage.TaskChanged, viewModel.uiState.value.error)
+    }
+
+    @Test
     fun aLoadFailureNeverExposesTheExceptionText() = runTest(mainDispatcherRule.testDispatcher) {
         taskRepository.loadFailure = RuntimeException("PERMISSION_DENIED: Missing or insufficient permissions.")
 

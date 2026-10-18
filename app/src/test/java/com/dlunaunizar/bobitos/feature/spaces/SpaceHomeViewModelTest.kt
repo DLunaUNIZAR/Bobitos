@@ -21,7 +21,10 @@ import com.dlunaunizar.bobitos.data.repository.MealRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.SportActivityRepository
+import com.dlunaunizar.bobitos.data.repository.TaskFailure
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
+import com.dlunaunizar.bobitos.data.repository.TaskRepositoryException
+import com.dlunaunizar.bobitos.feature.tasks.TaskUiMessage
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -63,6 +66,7 @@ class SpaceHomeViewModelTest {
     private var failTasksOf: String? = null
     private var completionGate: CompletableDeferred<Unit>? = null
     private var failCompletion = false
+    private var failRestoration: Throwable? = null
     private val completions = mutableListOf<Triple<String, String, Boolean>>()
     private val restorations = mutableListOf<Pair<String, TaskItem>>()
 
@@ -89,6 +93,7 @@ class SpaceHomeViewModelTest {
                 }
 
                 override suspend fun restoreCompletion(spaceId: String, previous: TaskItem) {
+                    failRestoration?.let { throw it }
                     restorations += spaceId to previous
                 }
             },
@@ -183,6 +188,18 @@ class SpaceHomeViewModelTest {
         runCurrent()
 
         assertEquals(listOf("a" to task), restorations)
+    }
+
+    @Test
+    fun deshacerUnaTareaQueOtroCambioAvisa() = runTest {
+        viewModel.show("a", me)
+        failRestoration = TaskRepositoryException(TaskFailure.TaskChanged)
+
+        viewModel.undoCompletion(taskDueToday("t1"))
+        runCurrent()
+
+        assertEquals(TaskUiMessage.TaskChanged, viewModel.error.value)
+        assertTrue(restorations.isEmpty())
     }
 
     @Test
