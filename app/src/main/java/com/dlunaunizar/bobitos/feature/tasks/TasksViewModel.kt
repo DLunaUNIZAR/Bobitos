@@ -220,7 +220,7 @@ class TasksViewModel @Inject constructor(
 
 private fun String?.normalized() = this?.trim()?.takeIf(String::isNotEmpty)
 
-private fun Throwable.toUiMessage() = if (this is SaveTimeoutException) {
+internal fun Throwable.toUiMessage() = if (this is SaveTimeoutException) {
     TaskUiMessage.SaveTimeout
 } else {
     toRepositoryUiMessage()

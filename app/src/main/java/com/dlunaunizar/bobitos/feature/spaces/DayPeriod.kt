@@ -9,7 +9,3 @@ fun dayPeriodFor(hour: Int): DayPeriod = when (hour) {
 }
 
 fun firstName(displayName: String): String = displayName.trim().substringBefore(' ')
-
-/** Tareas, comidas y eventos de hoy del usuario, para el resumen de la cabecera. */
-fun SpaceHomeDigest.todayItemCount(): Int =
-    myTasksToday.size + myCookingToday.size + myEatingToday.size + myEventsToday.size

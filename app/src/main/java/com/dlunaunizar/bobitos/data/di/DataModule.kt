@@ -42,7 +42,6 @@ import com.dlunaunizar.bobitos.data.repository.FirestoreRecipeRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreRoutineRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreSpaceRepository
-import com.dlunaunizar.bobitos.data.repository.FirestoreSpaceSummaryRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreSportActivityRepository
 import com.dlunaunizar.bobitos.data.repository.FirestoreTaskRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientBrandRepository
@@ -58,7 +57,6 @@ import com.dlunaunizar.bobitos.data.repository.ReminderPreferenceRepository
 import com.dlunaunizar.bobitos.data.repository.RoutineRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
-import com.dlunaunizar.bobitos.data.repository.SpaceSummaryRepository
 import com.dlunaunizar.bobitos.data.repository.SportActivityRepository
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
 import com.dlunaunizar.bobitos.data.repository.ThemePreferenceRepository
@@ -150,9 +148,6 @@ abstract class DataModule {
 
     @Binds @Singleton
     abstract fun bindRecipeImporter(importer: JsonLdRecipeImporter): RecipeImporter
-
-    @Binds @Singleton
-    abstract fun bindSpaceSummaryRepository(repository: FirestoreSpaceSummaryRepository): SpaceSummaryRepository
 
     @Binds @Singleton
     abstract fun bindAccountRepository(repository: FirebaseAccountRepository): AccountRepository

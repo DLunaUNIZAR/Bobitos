@@ -249,12 +249,9 @@ fun BobitosNavHost(
         composable(BobitosDestination.SpaceHome.route) {
             BackHandler { navController.navigateToHome() }
             val summaryViewModel: SpaceHomeViewModel = hiltViewModel()
-            val counts by summaryViewModel.counts.collectAsStateWithLifecycle()
-            val digest by summaryViewModel.digest.collectAsStateWithLifecycle()
+            val agenda by summaryViewModel.agenda.collectAsStateWithLifecycle()
             LaunchedEffect(uiState.selectedSpace?.id) {
-                // «Hoy» vuelve a componerse cada vez que se regresa a la pestaña: se recarga para no
-                // mostrar contadores de antes de editar en otro módulo.
-                uiState.selectedSpace?.id?.let { summaryViewModel.load(it, authUser.id) }
+                uiState.selectedSpace?.id?.let { summaryViewModel.show(it, authUser.id) }
             }
             SpaceScaffold(
                 navController = navController,
@@ -269,15 +266,8 @@ fun BobitosNavHost(
             ) {
                 SpaceTodayScreen(
                     displayName = authUser.displayName,
-                    counts = counts,
-                    digest = digest,
-                    onOpen = { destination ->
-                        if (destination in BobitosDestination.workspaceTabs) {
-                            navController.navigateToTab(destination)
-                        } else {
-                            navController.openFromMore(destination)
-                        }
-                    },
+                    agenda = agenda,
+                    onRetry = summaryViewModel::retry,
                 )
             }
         }
