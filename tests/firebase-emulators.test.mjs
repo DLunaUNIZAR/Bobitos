@@ -1364,6 +1364,33 @@ test("una receta no puede cambiar de propietario ni de visibilidad al editarla",
   );
 });
 
+test("un setDoc de cliente no pisa una receta existente, propia o ajena", async () => {
+  const owner = "recipe-overwrite-owner";
+  const ownerDb = verifiedFirestore(owner);
+  const otherId = "recipe-overwrite-other";
+  const otherDb = verifiedFirestore(otherId);
+  const ref = doc(ownerDb, "recipes", "pisar-propia");
+  await assertSucceeds(setDoc(ref, recipeData(owner)));
+
+  // Recrearla cambiaría su fecha de alta (createdAt); otro usuario ni siquiera es el dueño.
+  await assertFails(setDoc(ref, recipeData(owner, { title: "Otra" })));
+  await assertFails(setDoc(doc(otherDb, "recipes", "pisar-propia"), recipeData(otherId)));
+
+  // El camino legítimo: reescribirla conservando dueño, autor y fecha de alta.
+  const current = (await getDoc(ref)).data();
+  await assertSucceeds(setDoc(ref, {
+    ...current, title: "Otra", updatedBy: owner, updatedAt: serverTimestamp(),
+  }));
+
+  await seedImportedRecipe("pisar-comun");
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  await assertFails(setDoc(doc(admin, "recipes", "pisar-comun"),
+    recipeData(RECIPE_ADMIN_UID, { visibility: "GLOBAL" })));
+  const user = verifiedFirestore("recipe-overwrite-user");
+  await assertFails(setDoc(doc(user, "recipes", "pisar-comun"),
+    recipeData("recipe-overwrite-user", { visibility: "GLOBAL" })));
+});
+
 test("la receta valida la forma y rechaza campos ajenos al contrato", async () => {
   const chef = verifiedFirestore("recipe-schema");
 
@@ -1507,7 +1534,7 @@ test("la receta rechaza más de 30 pasos y raciones o tiempo fuera de rango", as
 });
 
 test("solo un admin crea una receta con la fuente del catálogo («Deshacer»); un usuario normal, no", async () => {
-  const source = { provider: "bobitos", importedAt: Timestamp.now() };
+  const source = { provider: "bobitos", importedAt: Timestamp.fromMillis(Date.now() - 60_000) };
   const admin = verifiedFirestore(RECIPE_ADMIN_UID);
   await assertSucceeds(setDoc(doc(admin, "recipes", "falsa-global"),
     recipeData(RECIPE_ADMIN_UID, { visibility: "GLOBAL", source })));
@@ -1614,11 +1641,10 @@ test("«Deshacer» de una común: solo un admin, con dueño, autor y editor admi
   await assertFails(setDoc(ref, { ...before, createdAt: future }));
   await assertFails(setDoc(ref, { ...before, visibility: "PRIVATE" }));
 
-  // La fecha de importación no puede ser posterior a la última edición (ni futura).
+  // La fecha de importación no puede ser posterior a la última edición (que ya no puede ser futura).
   const at = (minutes) => Timestamp.fromMillis(Date.now() + minutes * 60_000);
   const dated = { ...before, createdAt: at(-120), updatedAt: at(-60) };
   await assertFails(setDoc(ref, { ...dated, source: { ...before.source, importedAt: at(-30) } }));
-  await assertFails(setDoc(ref, { ...dated, source: { ...before.source, importedAt: at(60) } }));
   await assertSucceeds(setDoc(ref, { ...dated, source: { ...before.source, importedAt: at(-90) } }));
 
   await assertSucceeds(writeBatch(admin).delete(ref).commit());
