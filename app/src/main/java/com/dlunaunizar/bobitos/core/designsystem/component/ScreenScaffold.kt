@@ -7,25 +7,31 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.ModuleTheme
 import com.dlunaunizar.bobitos.core.model.SyncStatus
 
 /**
- * Andamio común de las pantallas a pantalla completa: barra superior con título (y atrás opcional),
+ * Andamio común de las pantallas a pantalla completa: barra superior con el título en grande (y atrás
+ * opcional) que se encoge al desplazar, con el remate de la franja teñida bajo ella salvo que la
+ * pantalla ponga su `ModuleHeaderBand`,
  * estado de sincronización bajo la barra, FAB en su hueco y host de avisos propio, publicado en
  * [LocalSnackbarHostState] para el contenido. Con [saving] superpone una barra de progreso arriba
  * del contenido sin desplazarlo. Con [module] toda la pantalla (FAB, hojas…) toma el color del módulo.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScreenScaffold(
     title: String,
@@ -39,19 +45,29 @@ fun ScreenScaffold(
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val headerBand = remember { HeaderBandState() }
     ModuleTheme(module) {
         Scaffold(
-            modifier = modifier,
+            modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
             topBar = {
                 Column {
-                    BobitosTopBar(title = title, onBack = onBack, actions = actions)
+                    BobitosLargeTopBar(
+                        title = title,
+                        scrollBehavior = scrollBehavior,
+                        onBack = onBack,
+                        actions = actions,
+                    )
+                    ModuleHeaderCap(headerBand)
                     syncStatus?.let { SyncStatusBanner(status = it) }
                 }
             },
             snackbarHost = { SnackbarHost(snackbarHostState) },
             floatingActionButton = floatingActionButton,
         ) { padding ->
-            ScaffoldBody(snackbarHostState, saving, padding, content)
+            CompositionLocalProvider(LocalHeaderBandState provides headerBand) {
+                ScaffoldBody(snackbarHostState, saving, padding, content)
+            }
         }
     }
 }

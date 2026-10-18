@@ -4,18 +4,23 @@ import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasProgressBarRangeInfo
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.designsystem.theme.BobitosTheme
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -38,6 +43,16 @@ class ScreenScaffoldTest {
         compose.setContent { BobitosTheme { ScreenScaffold(title = "T", onBack = {}) { Text("x") } } }
         compose.onNodeWithContentDescription(compose.activity.getString(R.string.navigate_back)).assertHasClickAction()
         compose.onAllNodesWithText(compose.activity.getString(R.string.navigate_back)).assertCountEquals(0)
+    }
+
+    @Test
+    fun conFlechaAtrasYTituloGrande() {
+        var backs = 0
+        compose.setContent { BobitosTheme { ScreenScaffold(title = "Notas", onBack = { backs++ }) { Text("x") } } }
+        compose.onNode(hasText("Notas") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+            .assertIsDisplayed()
+        compose.onNodeWithContentDescription(compose.activity.getString(R.string.navigate_back)).performClick()
+        assertEquals(1, backs)
     }
 
     @Test

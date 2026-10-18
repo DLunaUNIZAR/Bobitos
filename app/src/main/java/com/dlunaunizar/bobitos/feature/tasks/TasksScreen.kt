@@ -100,6 +100,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
+import com.dlunaunizar.bobitos.core.designsystem.component.TopBarActions
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
@@ -191,23 +192,17 @@ fun TasksScreen(
         Column(Modifier.fillMaxSize().padding(padding).padding(Spacing.lg)) {
             val queried = visibleTasks.filter { it.matchesQuery(query) }
             val sections = queried.groupIntoSections()
-            // «Plantillas» va en la primera cabecera visible; sin secciones, al final de los filtros.
-            val templatesAction: (@Composable () -> Unit)? = if (canWrite) {
-                {
-                    TextButton(onClick = { templatesVisible = true }) {
-                        Icon(Icons.Rounded.Bolt, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(Spacing.xs))
-                        Text(stringResource(R.string.tasks_templates))
+            if (canWrite) {
+                TopBarActions {
+                    IconButton(onClick = { templatesVisible = true }) {
+                        Icon(Icons.Rounded.Bolt, contentDescription = stringResource(R.string.tasks_templates_open))
                     }
                 }
-            } else {
-                null
             }
             TaskFilterBar(
                 state.filters,
                 members,
                 viewModel::setFilters,
-                trailing = templatesAction.takeIf { sections.isEmpty() },
             )
             SearchField(
                 query = query,
@@ -285,7 +280,7 @@ fun TasksScreen(
                         // Deja hueco para que el FAB no tape el último elemento.
                         contentPadding = PaddingValues(bottom = Spacing.fabClearance),
                     ) {
-                        sections.forEachIndexed { index, (section, sectionTasks) ->
+                        sections.forEach { (section, sectionTasks) ->
                             val collapsible = section == TaskSection.COMPLETED
                             item(key = "header-$section") {
                                 SectionHeader(
@@ -297,7 +292,6 @@ fun TasksScreen(
                                     } else {
                                         null
                                     },
-                                    action = templatesAction.takeIf { index == 0 },
                                 )
                             }
                             if (!collapsible || completedExpanded) {
@@ -370,12 +364,7 @@ private val TaskSection.titleRes: Int
 // dice su nombre; con filtro dice el valor y queda seleccionado. La dimensión fecha ya la cubren las
 // secciones de la lista (B3).
 @Composable
-internal fun TaskFilterBar(
-    filters: TaskFilters,
-    members: List<SpaceMember>,
-    onChange: (TaskFilters) -> Unit,
-    trailing: (@Composable () -> Unit)? = null,
-) {
+internal fun TaskFilterBar(filters: TaskFilters, members: List<SpaceMember>, onChange: (TaskFilters) -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -387,7 +376,6 @@ internal fun TaskFilterBar(
         TaskPriorityFilterChip(filters, onChange)
         TaskTypeFilterChip(filters, onChange)
         TaskAssigneeFilterChip(filters, members, onChange)
-        trailing?.invoke()
     }
 }
 

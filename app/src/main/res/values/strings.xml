@@ -154,6 +154,7 @@
     <string name="discard_changes_keep_editing">Seguir editando</string>
     <string name="dismiss">Cerrar</string>
     <string name="change_space">Cambiar de espacio</string>
+    <string name="change_space_named">Cambiar de espacio, %1$s</string>
     <string name="generic_loading">Cargando…</string>
     <string name="generic_error">No se ha podido cargar la información.</string>
     <string name="failure_permission">No tienes permiso para hacer esto en este espacio.</string>
@@ -259,7 +260,7 @@
     </plurals>
     <string name="tasks_title">Tareas</string>
     <string name="tasks_add">Nueva tarea</string>
-    <string name="tasks_templates">Plantillas</string>
+    <string name="tasks_templates_open">Plantillas de tareas</string>
     <string name="tasks_templates_title">Plantillas del hogar</string>
     <string name="tasks_tpl_bathroom">Limpiar el baño</string>
     <string name="tasks_tpl_kitchen">Limpiar la cocina</string>
