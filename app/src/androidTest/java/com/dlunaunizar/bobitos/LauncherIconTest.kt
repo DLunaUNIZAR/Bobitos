@@ -19,8 +19,9 @@ class LauncherIconTest {
 
     private fun appIcon(): Drawable {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        // El recurso del android:icon del manifiesto: getApplicationIcon puede venir envuelto por el fabricante.
-        return checkNotNull(ContextCompat.getDrawable(context, R.mipmap.ic_launcher)) { "Falta R.mipmap.ic_launcher" }
+        // El recurso del android:icon del manifiesto (applicationInfo.icon): getApplicationIcon puede venir envuelto por el fabricante.
+        val icon = ContextCompat.getDrawable(context, context.applicationInfo.icon)
+        return checkNotNull(icon) { "Falta el icono del manifiesto" }
     }
 
     private fun adaptiveIcon(): AdaptiveIconDrawable {

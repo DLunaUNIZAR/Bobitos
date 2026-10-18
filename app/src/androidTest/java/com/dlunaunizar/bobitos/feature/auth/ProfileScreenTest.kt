@@ -30,7 +30,6 @@ class ProfileScreenTest {
     private fun string(id: Int) = InstrumentationRegistry.getInstrumentation().targetContext.getString(id)
 
     private fun setProfile(
-        themeMode: ThemeMode = ThemeMode.SYSTEM,
         onThemeModeChange: (ThemeMode) -> Unit = {},
         remindersEnabled: () -> Boolean = { false },
         onRemindersChange: (Boolean) -> Unit = {},
@@ -44,7 +43,7 @@ class ProfileScreenTest {
                     onDeleteAccount = {}, onBack = {}, onClearFeedback = {},
                     betaUpdateState = BetaUpdateUiState("0.1.0-beta.24", available = false, testerSignedIn = false),
                     onCheckForBetaUpdate = {},
-                    themeMode = themeMode, onThemeModeChange = onThemeModeChange,
+                    themeMode = ThemeMode.SYSTEM, onThemeModeChange = onThemeModeChange,
                     remindersEnabled = remindersEnabled(), onRemindersChange = onRemindersChange,
                     remindersLeadTime = ReminderLeadTime.AT_TIME, onRemindersLeadTimeChange = {},
                 )

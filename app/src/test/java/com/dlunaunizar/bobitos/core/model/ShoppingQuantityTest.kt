@@ -157,6 +157,7 @@ class ShoppingQuantityTest {
     @Test
     fun `only the words before any preposition of the unit change in number`() {
         assertEquals("2 bolsas con asa", ShoppingQuantity.sum("1 bolsa con asa", "1 bolsa con asa"))
+        assertEquals("1 bolsa con asas", ShoppingQuantity.sum("1/2 bolsas con asas", "1/2 bolsas con asas"))
         val half = "1/2 bolsas para galletas"
         assertEquals("1 bolsa para galletas", ShoppingQuantity.sum(half, half))
         assertEquals("2 tazas para café", ShoppingQuantity.sum("1 taza para café", "1 taza para café"))

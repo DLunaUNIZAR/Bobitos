@@ -26,6 +26,7 @@ class SpaceHomeAnchorTest {
                 composable(BobitosDestination.Ingredients.route) {}
                 composable(BobitosDestination.SpaceHome.route) {}
                 composable(BobitosDestination.Meals.route) {}
+                composable(INGREDIENT_DETAIL_ROUTE) {}
             }
         }
     }
@@ -33,6 +34,14 @@ class SpaceHomeAnchorTest {
     @Test
     fun fromTheMainMenuIngredientsTheSpaceHubMustBeAnchoredFirst() {
         compose.runOnIdle { nav.navigate(BobitosDestination.Ingredients.route) }
+
+        compose.runOnIdle { assertTrue(nav.needsSpaceHomeAnchor()) }
+    }
+
+    @Test
+    fun fromAnIngredientDetailOpenedFromTheMainMenuTheSpaceHubMustBeAnchoredFirst() {
+        compose.runOnIdle { nav.navigate(BobitosDestination.Ingredients.route) }
+        compose.runOnIdle { nav.navigate("ingredient-detail/abc") }
 
         compose.runOnIdle { assertTrue(nav.needsSpaceHomeAnchor()) }
     }
