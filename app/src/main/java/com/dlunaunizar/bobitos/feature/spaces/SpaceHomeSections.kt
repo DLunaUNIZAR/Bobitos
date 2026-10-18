@@ -38,7 +38,7 @@ fun WorkloadSection(workload: List<MemberWorkload>, modifier: Modifier = Modifie
                                 member.doneThisWeek,
                                 member.doneThisWeek,
                             ),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }

@@ -629,7 +629,7 @@ private fun TaskTemplatePicker(onDismiss: () -> Unit, onPick: (TaskTemplate) -> 
                             template.recurrence?.let { rec ->
                                 Text(
                                     rec.label(),
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
@@ -845,9 +845,9 @@ private fun TaskDateMeta(task: TaskItem, overdue: Boolean, done: Boolean, today:
 internal fun MetaChip(icon: ImageVector, text: String, tint: Color? = null, iconTint: Color? = null) {
     val color = tint ?: MaterialTheme.colorScheme.onSurfaceVariant
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(14.dp), tint = iconTint ?: color)
+        Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp), tint = iconTint ?: color)
         Spacer(Modifier.width(Spacing.xs))
-        Text(text, style = MaterialTheme.typography.bodySmall, color = color)
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = color)
     }
 }
 

@@ -67,7 +67,7 @@ internal fun MainMenuScreen(
                     titleContent = {
                         Text(
                             text = stringResource(R.string.app_name),
-                            style = MaterialTheme.typography.headlineSmall,
+                            style = MaterialTheme.typography.headlineMedium,
                         )
                     },
                     actions = {

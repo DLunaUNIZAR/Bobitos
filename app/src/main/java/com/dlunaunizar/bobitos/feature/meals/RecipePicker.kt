@@ -24,6 +24,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.prepareQuery
@@ -111,24 +112,24 @@ internal fun RecipePickerDialog(
 }
 
 @Composable
-private fun RecipePickerRow(row: RecipeRow, onClick: () -> Unit) {
+internal fun RecipePickerRow(row: RecipeRow, onClick: () -> Unit) {
     val recipe = row.recipe
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(vertical = 8.dp),
     ) {
         Text(text = recipe.title, style = MaterialTheme.typography.bodyLarge)
         Text(
             text = listOfNotNull(stringResource(recipeOriginRes(recipe)), recipe.category).joinToString(" · "),
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         row.pantryLine?.let { line ->
             Text(
                 text = pantryLineText(line),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
             )
         }

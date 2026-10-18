@@ -873,14 +873,14 @@ private fun SupermarketBrandLine(supermarket: Supermarket?, brand: String?) {
             SupermarketIcon(supermarket)
             Text(
                 text = stringResource(supermarket.labelRes),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         if (!brand.isNullOrBlank()) {
             Text(
                 text = if (supermarket != null) "· $brand" else brand,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

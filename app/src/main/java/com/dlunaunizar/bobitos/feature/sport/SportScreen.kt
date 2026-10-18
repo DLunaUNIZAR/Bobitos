@@ -266,7 +266,7 @@ private fun ActivityInfo(activity: SportActivity, modifier: Modifier = Modifier)
         Text(
             text = activity.participantNames.takeIf(List<String>::isNotEmpty)?.joinToString(", ")
                 ?: stringResource(R.string.sport_no_participants),
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         if (activity.type == SportType.GIMNASIO && activity.session.isNotEmpty()) {
@@ -276,7 +276,7 @@ private fun ActivityInfo(activity: SportActivity, modifier: Modifier = Modifier)
                     activity.session.size,
                     activity.session.size,
                 ),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
