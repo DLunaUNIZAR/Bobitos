@@ -65,6 +65,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.Celebration
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.DeclareHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -176,11 +177,18 @@ fun ShoppingScreen(
         source = allItems,
         pending = allItems.filterNot(ShoppingItem::purchased).map(ShoppingItem::id).toSet(),
     )
-    // La escritura sale primero; después se anima la fila y, si era el último producto, se celebra.
+    // Marcar y desmarcar no esperan a la puerta de `isSaving`: cada producto escribe al suyo, y un segundo toque sobre
+    // el mismo mientras se marca no hace nada. Si era el último producto, se celebra.
     val markPurchased: (ShoppingItem) -> Unit = { item ->
-        viewModel.setPurchased(spaceId, item.id, true)
-        completing.start(item.id)
-        celebration.userCompleted(item.id)
+        if (!completing.isCompleting(item.id)) {
+            // La fila se marca antes de que la escritura pueda acabar; si no llega a lanzarse, se devuelve.
+            completing.start(item.id)
+            val launched = viewModel.setPurchased(spaceId, item.id, true) { ok -> completing.finish(item.id, ok) }
+            if (launched) celebration.userCompleted(item.id) else completing.finish(item.id, false)
+        }
+    }
+    val unmarkPurchased: (ShoppingItem) -> Unit = { item ->
+        if (!completing.isCompleting(item.id)) viewModel.setPurchased(spaceId, item.id, false)
     }
     ModuleScaffold(
         modifier = modifier.fillMaxSize(),
@@ -241,6 +249,8 @@ fun ShoppingScreen(
                         if (itemsState.value.isEmpty()) {
                             ShoppingEmptyState(modifier = Modifier.weight(1f))
                         } else {
+                            // La franja va dentro de la lista y sale de composición al desplazar: se declara aquí, fuera.
+                            DeclareHeaderBand()
                             LazyColumn(
                                 state = listState,
                                 modifier = Modifier.weight(1f),
@@ -278,7 +288,7 @@ fun ShoppingScreen(
                                             stringResource(R.string.swipe_item_purchased),
                                         ) {
                                             markPurchased(item)
-                                        }.takeIf { actionsEnabled },
+                                        }.takeIf { canWrite },
                                         endAction = SwipeAction(
                                             Icons.Rounded.Delete,
                                             deleteColor,
@@ -294,16 +304,11 @@ fun ShoppingScreen(
                                             position = rowPosition(index, pending.size),
                                             showAuthor = showAuthor,
                                             enabled = actionsEnabled,
+                                            canToggle = canWrite,
                                             completing = completing.isCompleting(item.id),
                                             onCreateIngredient = { viewModel.createIngredientFromItem(item) },
                                             onSetPurchased = {
-                                                if (it) {
-                                                    markPurchased(
-                                                        item,
-                                                    )
-                                                } else {
-                                                    viewModel.setPurchased(spaceId, item.id, false)
-                                                }
+                                                if (it) markPurchased(item) else unmarkPurchased(item)
                                             },
                                             onEdit = {
                                                 if (actionsEnabled) {
@@ -342,8 +347,8 @@ fun ShoppingScreen(
                                                 checkColor,
                                                 stringResource(R.string.swipe_item_pending),
                                             ) {
-                                                viewModel.setPurchased(spaceId, item.id, false)
-                                            }.takeIf { actionsEnabled },
+                                                unmarkPurchased(item)
+                                            }.takeIf { canWrite },
                                             endAction = SwipeAction(
                                                 Icons.Rounded.Delete,
                                                 deleteColor,
@@ -358,9 +363,12 @@ fun ShoppingScreen(
                                                 position = rowPosition(index, purchased.size),
                                                 showAuthor = showAuthor,
                                                 enabled = actionsEnabled,
+                                                canToggle = canWrite,
                                                 completing = false,
                                                 onCreateIngredient = { viewModel.createIngredientFromItem(item) },
-                                                onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
+                                                onSetPurchased = {
+                                                    if (it) markPurchased(item) else unmarkPurchased(item)
+                                                },
                                                 onEdit = {
                                                     if (actionsEnabled) {
                                                         editedItemId = item.id
@@ -500,6 +508,7 @@ private fun ShoppingItemRow(
     position: RowPosition,
     showAuthor: Boolean,
     enabled: Boolean,
+    canToggle: Boolean,
     completing: Boolean,
     onCreateIngredient: () -> Unit,
     onSetPurchased: (Boolean) -> Unit,
@@ -518,7 +527,8 @@ private fun ShoppingItemRow(
         val purchased = item.purchased || completing
         Checkbox(
             checked = purchased,
-            enabled = enabled,
+            // Marcar no espera a otros guardados: solo depende de poder escribir.
+            enabled = canToggle,
             onCheckedChange = onSetPurchased,
             modifier = Modifier.checkBounce(completing).semantics { contentDescription = item.name },
         )

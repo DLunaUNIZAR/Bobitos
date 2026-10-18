@@ -57,6 +57,10 @@ class SpaceHomeViewModel @Inject constructor(
 
     private val request = MutableStateFlow<Request?>(null)
     private val mutableError = MutableStateFlow<TaskUiMessage?>(null)
+    private val completingIds = mutableSetOf<String>()
+
+    // Para qué petición se empezó a observar por última vez: solo una petición nueva vuelve a `Loading`.
+    private var lastObserved: Request? = null
     val error: StateFlow<TaskUiMessage?> = mutableError.asStateFlow()
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -72,14 +76,27 @@ class SpaceHomeViewModel @Inject constructor(
     /** Vuelve a suscribir las fuentes tras un error. */
     fun retry() = request.update { it?.copy(attempt = it.attempt + 1) }
 
-    /** Completa [task] sin salir de Hoy; [onCompleted] recibe la tarea tal como estaba solo si termina bien. */
-    fun complete(task: TaskItem, onCompleted: (TaskItem) -> Unit) {
+    /**
+     * Completa [task] sin salir de Hoy. Si esa tarea ya tiene una escritura en curso no hace nada (un segundo toque no
+     * la completa otra vez). [onFinished] recibe cómo acabó la escritura; [onCompleted], la tarea tal como estaba,
+     * solo si termina bien.
+     */
+    fun complete(task: TaskItem, onFinished: (Boolean) -> Unit = {}, onCompleted: (TaskItem) -> Unit) {
         val spaceId = request.value?.spaceId ?: return
+        if (!completingIds.add(task.id)) return
         mutableError.value = null
         viewModelScope.launch {
             runCatching { taskRepository.setCompleted(spaceId, task.id, true) }
-                .onSuccess { onCompleted(task) }
-                .onFailure(::showError)
+                .onSuccess {
+                    completingIds.remove(task.id)
+                    onFinished(true)
+                    onCompleted(task)
+                }
+                .onFailure {
+                    completingIds.remove(task.id)
+                    onFinished(false)
+                    showError(it)
+                }
         }
     }
 
@@ -125,12 +142,18 @@ class SpaceHomeViewModel @Inject constructor(
                 ) { (tasks, meals, events), (activities, shopping, members) ->
                     buildTodayAgenda(
                         request.userId, today, zone, tasks, meals, events, activities, shopping, members,
-                    )
+                    ).copy(spaceId = spaceId)
                 }
             }
             .map<TodayAgenda, UiState<TodayAgenda>> { UiState.Content(it) }
-            // Sin datos del espacio anterior ni de antes de un reintento: se empieza en `Loading`.
-            .onStart { emit(UiState.Loading) }
+            // Sin datos del espacio anterior ni de antes de un reintento: se empieza en `Loading`. Volver a recoger la
+            // misma petición (Hoy -> Tareas -> Hoy) conserva lo último en vez de pasar por «Cargando».
+            .onStart {
+                if (lastObserved != request) {
+                    lastObserved = request
+                    emit(UiState.Loading)
+                }
+            }
             .catch {
                 if (it is CancellationException) throw it
                 emit(UiState.Error(it.toFailureKind()))

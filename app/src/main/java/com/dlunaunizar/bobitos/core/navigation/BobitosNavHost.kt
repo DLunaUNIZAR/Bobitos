@@ -67,6 +67,7 @@ import com.dlunaunizar.bobitos.feature.spaces.SpacesScreen
 import com.dlunaunizar.bobitos.feature.spaces.TodayAgenda
 import com.dlunaunizar.bobitos.feature.spaces.dayPeriodFor
 import com.dlunaunizar.bobitos.feature.spaces.firstName
+import com.dlunaunizar.bobitos.feature.spaces.forSpace
 import com.dlunaunizar.bobitos.feature.sport.SportScreen
 import com.dlunaunizar.bobitos.feature.tasks.TasksScreen
 import com.dlunaunizar.bobitos.feature.tasks.stringRes
@@ -187,6 +188,8 @@ fun BobitosNavHost(
     }
 
     val reduceMotion = rememberReduceMotion()
+    // Tocar una entrada de «Hoy» abre su módulo en el día de hoy, no en el que tuviera guardado.
+    val todayFocus = remember { TodayFocus() }
     NavHost(
         navController = navController,
         startDestination = BobitosDestination.Home.route,
@@ -320,9 +323,13 @@ fun BobitosNavHost(
             ) {
                 SpaceHomeContent(
                     viewModel = summaryViewModel,
-                    agenda = agenda,
+                    // Una agenda de otro espacio (el recién dejado, hasta que se lee el nuevo) se ve como `Loading`.
+                    agenda = agenda.forSpace(uiState.selectedSpace?.id),
                     canWrite = uiState.syncStatus.canWrite,
-                    onOpen = { navController.navigateToWorkspace(it) },
+                    onOpen = {
+                        todayFocus.request(it)
+                        navController.navigateToWorkspace(it)
+                    },
                 )
             }
         }
@@ -403,7 +410,12 @@ fun BobitosNavHost(
                 onClearAuthFeedback = onClearAuthFeedback,
             ) {
                 uiState.selectedSpace?.let { space ->
-                    CalendarScreen(spaceId = space.id, canWrite = uiState.syncStatus.canWrite)
+                    val today = rememberToday()
+                    CalendarScreen(
+                        spaceId = space.id,
+                        canWrite = uiState.syncStatus.canWrite,
+                        initialDate = remember { today.takeIf { todayFocus.take(BobitosDestination.Calendar) } },
+                    )
                 }
             }
         }
@@ -421,9 +433,11 @@ fun BobitosNavHost(
                 onClearAuthFeedback = onClearAuthFeedback,
             ) {
                 uiState.selectedSpace?.let { space ->
+                    val today = rememberToday()
                     MealsScreen(
                         spaceId = space.id,
                         canWrite = uiState.syncStatus.canWrite,
+                        initialDate = remember { today.takeIf { todayFocus.take(BobitosDestination.Meals) } },
                     )
                 }
             }
@@ -442,9 +456,11 @@ fun BobitosNavHost(
                 onClearAuthFeedback = onClearAuthFeedback,
             ) {
                 uiState.selectedSpace?.let { space ->
+                    val today = rememberToday()
                     SportScreen(
                         spaceId = space.id,
                         canWrite = uiState.syncStatus.canWrite,
+                        initialDate = remember { today.takeIf { todayFocus.take(BobitosDestination.Sport) } },
                     )
                 }
             }
@@ -661,8 +677,8 @@ private fun SpaceHomeContent(
     SpaceTodayScreen(
         agenda = agenda,
         canWrite = canWrite,
-        onToggleTask = { task ->
-            viewModel.complete(task) {
+        onToggleTask = { task, onFinished ->
+            viewModel.complete(task, onFinished) {
                 scope.launchUndo(snackbar, completedMessage, undoLabel) { viewModel.undoCompletion(it) }
             }
         },

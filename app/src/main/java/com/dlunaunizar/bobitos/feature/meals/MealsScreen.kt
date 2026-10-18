@@ -31,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -95,9 +96,12 @@ fun MealsScreen(
     spaceId: String,
     canWrite: Boolean,
     modifier: Modifier = Modifier,
+    initialDate: LocalDate? = null,
     viewModel: MealsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // Si viene de una entrada de «Hoy», queda enfocado ese día; si no, el que tuviera.
+    LaunchedEffect(initialDate) { initialDate?.let(viewModel::selectDay) }
 
     DisposableEffect(spaceId) {
         viewModel.observe(spaceId)

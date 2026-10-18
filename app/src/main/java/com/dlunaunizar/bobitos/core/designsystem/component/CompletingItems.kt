@@ -21,11 +21,16 @@ import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.core.designsystem.BouncySpring
 import com.dlunaunizar.bobitos.core.designsystem.motionSpec
 import com.dlunaunizar.bobitos.core.designsystem.rememberReduceMotion
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 private const val HOLD_MS = 450L
+
+// Lo máximo que se espera a que se confirme la escritura antes de sacar la fila.
+private const val WRITE_CAP_MS = 8_000L
 private const val EXIT_MS = 260
 private const val CHECK_FROM_SCALE = 0.7f
 private const val EXIT_SHIFT_FRACTION = 0.25f
@@ -35,14 +40,19 @@ private const val CASCADE_MAX_STEPS = 8
 private val CascadeShift = 14.dp
 
 /**
- * Filas que se acaban de completar. La escritura la lanza quien llama ANTES de [start], al momento y sin esperar a
- * la animación (varias seguidas escriben todas). Aquí solo se mantiene la fila visible y marcada unos 450 ms con
- * estado local, aunque Firestore ya la haya quitado de la lista, y después sale deslizándose.
+ * Filas que se acaban de completar. La escritura la lanza quien llama, al momento y sin esperar a la animación (varias
+ * seguidas escriben todas), y avisa con [start] al lanzarla y con [finish] cuando acaba. La fila se mantiene visible y
+ * marcada con estado local, aunque Firestore ya la haya quitado de la lista, y sale deslizándose cuando se cumplen las
+ * dos cosas: pasaron unos 450 ms y la escritura se confirmó (las transacciones no cambian la caché hasta entonces).
+ * Si la escritura falla, la fila vuelve a su estado sin salir; si no acaba en unos 8 s, sale igualmente.
  */
 @Stable
 class CompletingItems internal constructor(private val scope: CoroutineScope, private val haptic: HapticFeedback) {
     // id -> true cuando ya está saliendo.
     private val phases = mutableStateMapOf<String, Boolean>()
+
+    // Cómo acabó la escritura de cada fila en curso (true si bien); se completa en [finish].
+    private val results = mutableMapOf<String, CompletableDeferred<Boolean>>()
 
     // Lo último que se vio de cada fila y su orden, para devolverla a su sitio cuando la lista ya no la trae.
     private val lastSeen = mutableMapOf<String, Any?>()
@@ -51,14 +61,30 @@ class CompletingItems internal constructor(private val scope: CoroutineScope, pr
     /** Marca [id] como completándose, con una vibración corta. */
     fun start(id: String) {
         if (id in phases) return
+        val result = CompletableDeferred<Boolean>()
+        results[id] = result
         phases[id] = false
         haptic.performHapticFeedback(HapticFeedbackType.ToggleOn)
         scope.launch {
             delay(HOLD_MS)
+            val written = withTimeoutOrNull(WRITE_CAP_MS) { result.await() } ?: true
+            // Si falló, [finish] ya la devolvió a su estado; si empezó otra vuelta con el mismo id, no es esta.
+            if (!written || results[id] !== result) return@launch
             phases[id] = true
             delay(EXIT_MS.toLong())
             phases.remove(id)
+            results.remove(id)
         }
+    }
+
+    /** La escritura de [id] acabó; si falló ([success] false), la fila deja de estar marcada y no sale. */
+    fun finish(id: String, success: Boolean) {
+        val result = results[id] ?: return
+        if (!success) {
+            phases.remove(id)
+            results.remove(id)
+        }
+        result.complete(success)
     }
 
     fun isCompleting(id: String): Boolean = id in phases

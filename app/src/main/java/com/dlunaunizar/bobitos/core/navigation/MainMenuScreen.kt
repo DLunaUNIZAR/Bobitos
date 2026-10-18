@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -33,8 +34,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosTopBar
+import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
+import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.SyncStatusBanner
@@ -111,16 +115,20 @@ private fun SpacesRows(
     Column {
         SectionHeader(
             title = stringResource(R.string.spaces_title),
+            // Siempre a mano: aunque la lista cargue o falle, «Tus espacios» sigue teniendo camino.
             action = {
-                if (list.isNotEmpty()) {
-                    TextButton(onClick = onManageSpaces) { Text(stringResource(R.string.main_menu_manage_spaces)) }
-                }
+                TextButton(onClick = onManageSpaces) { Text(stringResource(R.string.main_menu_manage_spaces)) }
             },
         )
         when {
             list.isNotEmpty() -> list.forEachIndexed { index, space ->
                 SpaceRow(space, rowPosition(index, list.size)) { onEnterSpace(space) }
             }
+            spaces is UiState.Loading -> LoadingState(Modifier.fillMaxWidth().padding(vertical = Spacing.lg))
+            spaces is UiState.Error -> ErrorState(
+                Modifier.fillMaxWidth().padding(vertical = Spacing.lg),
+                message = stringResource(spaces.failure.messageRes()),
+            )
             spaces is UiState.Content -> GroupedRow(position = RowPosition.SINGLE, onClick = onManageSpaces) {
                 Icon(Icons.Rounded.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 RowTitle(stringResource(R.string.space_picker_manage), Modifier.weight(1f))

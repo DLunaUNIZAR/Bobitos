@@ -22,6 +22,7 @@ import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.SportActivityRepository
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -59,6 +60,8 @@ class SpaceHomeViewModelTest {
     // Escuchas abiertas ahora mismo en las seis fuentes.
     private var active = 0
     private var failTasksOf: String? = null
+    private var completionGate: CompletableDeferred<Unit>? = null
+    private var failCompletion = false
     private val completions = mutableListOf<Triple<String, String, Boolean>>()
     private val restorations = mutableListOf<Pair<String, TaskItem>>()
 
@@ -80,6 +83,8 @@ class SpaceHomeViewModelTest {
 
                 override suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean) {
                     completions += Triple(spaceId, taskId, completed)
+                    completionGate?.await()
+                    if (failCompletion) throw IOException("sin conexión")
                 }
 
                 override suspend fun restoreCompletion(spaceId: String, previous: TaskItem) {
@@ -176,6 +181,104 @@ class SpaceHomeViewModelTest {
         runCurrent()
 
         assertEquals(listOf("a" to task), restorations)
+    }
+
+    @Test
+    fun volverTrasMasDeCincoSegundosNoPasaPorCargando() = runTest {
+        emitAll("a", listOf(taskDueToday("de-a")))
+        viewModel.show("a", me)
+        val first = launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.agenda.collect {} }
+        runCurrent()
+        first.cancel()
+        advanceTimeBy(6_000)
+        assertEquals(0, active)
+
+        // Hoy -> Tareas -> Hoy: se conserva lo último y se vuelve a escuchar sin pasar por «Cargando».
+        val seen = mutableListOf<UiState<TodayAgenda>>()
+        val second = launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.agenda.collect { seen += it } }
+        runCurrent()
+
+        assertEquals(6, active)
+        assertTrue(seen.isNotEmpty())
+        seen.forEach { assertTrue("pasó por $it", it is UiState.Content) }
+        second.cancel()
+    }
+
+    @Test
+    fun reintentarSiVuelveAPasarPorCargando() = runTest {
+        emitAll("a")
+        viewModel.show("a", me)
+        val seen = mutableListOf<UiState<TodayAgenda>>()
+        val collector = launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.agenda.collect { seen += it } }
+        runCurrent()
+        val before = seen.size
+
+        viewModel.retry()
+        runCurrent()
+
+        assertEquals(UiState.Loading, seen.drop(before).first())
+        collector.cancel()
+    }
+
+    @Test
+    fun laAgendaSabeDeQueEspacioEs() = runTest {
+        emitAll("a", listOf(taskDueToday("de-a")))
+        viewModel.show("a", me)
+        val seen = mutableListOf<UiState<TodayAgenda>>()
+        val collector = launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.agenda.collect { seen += it } }
+        runCurrent()
+
+        assertEquals("a", (seen.last() as UiState.Content).value.spaceId)
+        collector.cancel()
+    }
+
+    @Test
+    fun unaAgendaDeOtroEspacioSeMuestraComoCargando() {
+        val deA = UiState.Content(
+            TodayAgenda(emptyList(), 0, emptyList(), ShoppingGlance(0, emptyList()), emptyList(), spaceId = "a"),
+        )
+
+        assertEquals(deA, deA.forSpace("a"))
+        assertEquals(UiState.Loading, deA.forSpace("b"))
+        assertEquals(UiState.Loading, deA.forSpace(null))
+        assertEquals(UiState.Loading, UiState.Loading.forSpace("b"))
+    }
+
+    @Test
+    fun completarLaMismaTareaDosVecesMientrasEscribeSoloEscribeUna() = runTest {
+        viewModel.show("a", me)
+        completionGate = CompletableDeferred()
+        val task = taskDueToday("t1")
+        val offered = mutableListOf<TaskItem>()
+
+        viewModel.complete(task) { offered += it }
+        viewModel.complete(task) { offered += it }
+        runCurrent()
+        completionGate!!.complete(Unit)
+        runCurrent()
+
+        assertEquals(listOf(Triple("a", "t1", true)), completions)
+        assertEquals(listOf(task), offered)
+
+        // Ya terminó: se puede volver a completar (por ejemplo, una repetición del día siguiente).
+        completionGate = null
+        viewModel.complete(task) { offered += it }
+        runCurrent()
+        assertEquals(2, completions.size)
+    }
+
+    @Test
+    fun completarAvisaDeSuResultadoYSiFallaNoOfreceDeshacer() = runTest {
+        viewModel.show("a", me)
+        failCompletion = true
+        val resultados = mutableListOf<Boolean>()
+        val offered = mutableListOf<TaskItem>()
+
+        viewModel.complete(taskDueToday("t1"), { resultados += it }) { offered += it }
+        runCurrent()
+
+        assertEquals(listOf(false), resultados)
+        assertTrue(offered.isEmpty())
     }
 
     @Test

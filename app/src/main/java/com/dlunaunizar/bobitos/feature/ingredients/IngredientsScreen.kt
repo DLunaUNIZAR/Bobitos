@@ -49,6 +49,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.DeclareHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -307,6 +308,8 @@ private fun IngredientCatalog(
                     selectedCategory = category,
                 )
             }
+            // La franja va dentro de la lista y sale de composición al desplazar: se declara aquí, fuera.
+            DeclareHeaderBand()
             LazyColumn(state = listState, contentPadding = PaddingValues(bottom = Spacing.fabClearance)) {
                 item(key = "filters") { filterBand() }
                 if (filtered.isEmpty()) {

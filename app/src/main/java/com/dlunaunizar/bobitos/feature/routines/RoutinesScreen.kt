@@ -46,6 +46,7 @@ import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosInfoSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.DeclareHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -218,6 +219,8 @@ private fun RoutinesCatalog(
     onRetry: () -> Unit,
     listState: LazyListState,
 ) {
+    // La franja va dentro de la lista y sale de composición al desplazar: se declara aquí, fuera.
+    DeclareHeaderBand()
     LazyColumn(state = listState, contentPadding = PaddingValues(bottom = Spacing.fabClearance)) {
         // Búsqueda en la franja teñida: primer elemento de la lista, se va con ella al desplazar.
         item(key = "filters") {

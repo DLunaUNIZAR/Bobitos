@@ -8,7 +8,9 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.theme.BobitosTheme
 import com.dlunaunizar.bobitos.core.model.SpaceRole
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
@@ -56,6 +58,30 @@ class MainMenuScreenTest {
         var gestionados = 0
         compose.setContent { Menu(UiState.Content(listOf(casa)), onManageSpaces = { gestionados++ }) }
 
+        compose.onNodeWithText("Gestionar").performClick()
+
+        assertEquals(1, gestionados)
+    }
+
+    @Test
+    fun mientrasCargaLosEspaciosGestionarSigueAlAlcance() {
+        var gestionados = 0
+        compose.setContent { Menu(UiState.Loading, onManageSpaces = { gestionados++ }) }
+
+        compose.onNodeWithText("Cargando…").assertExists()
+        compose.onNodeWithText("Gestionar").performClick()
+
+        assertEquals(1, gestionados)
+    }
+
+    @Test
+    fun siLaListaFallaSeDiceYGestionarSigueAlAlcance() {
+        var gestionados = 0
+        compose.setContent {
+            Menu(UiState.Error(FailureKind.OFFLINE), onManageSpaces = { gestionados++ })
+        }
+
+        compose.onNodeWithText(compose.activity.getString(FailureKind.OFFLINE.messageRes())).assertExists()
         compose.onNodeWithText("Gestionar").performClick()
 
         assertEquals(1, gestionados)

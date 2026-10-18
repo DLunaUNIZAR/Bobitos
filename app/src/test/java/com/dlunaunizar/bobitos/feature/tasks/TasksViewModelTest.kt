@@ -123,6 +123,45 @@ class TasksViewModelTest {
     }
 
     @Test
+    fun completarTresSeguidasEscribeLasTresAlMomento() = runTest(mainDispatcherRule.testDispatcher) {
+        taskRepository.completeGate = CompletableDeferred()
+
+        assertTrue(viewModel.setCompleted("home", task("t1", "Leche", null), true))
+        assertTrue(viewModel.setCompleted("home", task("t2", "Pan", null), true))
+        assertTrue(viewModel.setCompleted("home", task("t3", "Sal", null), true))
+        runCurrent()
+
+        // Las tres escrituras están en curso a la vez, sin esperar a que acabe la primera, y no bloquean el resto.
+        assertEquals(listOf("t1", "t2", "t3"), taskRepository.completeStarted)
+        assertFalse(viewModel.uiState.value.isSaving)
+    }
+
+    @Test
+    fun completarLaMismaTareaDosVecesMientrasEscribeSoloEscribeUna() = runTest(mainDispatcherRule.testDispatcher) {
+        taskRepository.completeGate = CompletableDeferred()
+
+        assertTrue(viewModel.setCompleted("home", task("t1", "Leche", null), true))
+        assertFalse(viewModel.setCompleted("home", task("t1", "Leche", null), true))
+        runCurrent()
+
+        assertEquals(listOf("t1"), taskRepository.completeStarted)
+    }
+
+    @Test
+    fun completarAvisaDeSuResultadoYPermiteVolverAIntentarlo() = runTest(mainDispatcherRule.testDispatcher) {
+        val resultados = mutableListOf<Boolean>()
+        taskRepository.nextFailure = TaskRepositoryException(TaskFailure.Network)
+
+        viewModel.setCompleted("home", task("t1", "Leche", null), true, onFinished = { resultados += it })
+        advanceUntilIdle()
+        taskRepository.nextFailure = null
+        viewModel.setCompleted("home", task("t1", "Leche", null), true, onFinished = { resultados += it })
+        advanceUntilIdle()
+
+        assertEquals(listOf(false, true), resultados)
+    }
+
+    @Test
     fun completarOfreceDeshacerConLaFotoDeAntes() = runTest(mainDispatcherRule.testDispatcher) {
         val start = Instant.parse("2026-10-01T08:00:00Z")
         val due = Instant.parse("2026-10-02T08:00:00Z")
@@ -400,6 +439,8 @@ private class FakeTaskRepository : TaskRepository {
     var nextFailure: TaskRepositoryException? = null
     var loadFailure: Throwable? = null
     var createGate: CompletableDeferred<Unit>? = null
+    var completeGate: CompletableDeferred<Unit>? = null
+    val completeStarted = mutableListOf<String>()
     val deleted = mutableListOf<String>()
     val restored = mutableListOf<TaskItem>()
     var restoredSpaceId: String? = null
@@ -459,6 +500,8 @@ private class FakeTaskRepository : TaskRepository {
     }
 
     override suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean) {
+        completeStarted += taskId
+        completeGate?.await()
         throwNextFailure()
         completedChange = Triple(spaceId, taskId, completed)
     }

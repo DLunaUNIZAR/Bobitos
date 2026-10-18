@@ -28,10 +28,12 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
@@ -441,7 +443,9 @@ internal fun MonthGrid(
     val interval = month.visibleInterval(zone)
     val first = interval.start.atZone(zone).toLocalDate()
     val today = rememberToday()
-    Column(Modifier.fillMaxWidth().selectableGroup()) {
+    // Las celdas son cuadradas: si el mes no cabe en el alto que queda (barra abierta, letra grande), se desplaza, y
+    // al hacerlo encoge la barra del marco, en vez de aplastar la última semana.
+    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).selectableGroup()) {
         Row(Modifier.fillMaxWidth()) {
             DayOfWeek.entries.map(BobitosDates::dayInitial).forEach { initial ->
                 Text(

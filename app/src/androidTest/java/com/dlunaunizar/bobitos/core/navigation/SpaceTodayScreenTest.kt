@@ -1,7 +1,13 @@
 package com.dlunaunizar.bobitos.core.navigation
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.SemanticsMatcher
@@ -15,6 +21,9 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.theme.BobitosTheme
 import com.dlunaunizar.bobitos.core.model.Meal
@@ -40,6 +49,7 @@ class SpaceTodayScreenTest {
     private val esEncabezado = SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)
     private val abiertos = mutableListOf<BobitosDestination>()
     private val marcadas = mutableListOf<TaskItem>()
+    private val terminadas = mutableListOf<(Boolean) -> Unit>()
 
     private fun tarea(id: String, titulo: String) = TaskItem(
         id = id,
@@ -78,13 +88,14 @@ class SpaceTodayScreenTest {
         tareas: List<TaskItem> = listOf(tarea("t1", "Fregar"), tarea("t2", "Sacar la basura"), tarea("t3", "Regar")),
         ocultas: Int = 0,
         compra: ShoppingGlance = ShoppingGlance(5, listOf("Leche", "pan", "huevos")),
-    ) = TodayAgenda(
-        tasks = tareas.map { AgendaTask(it, overdueSince = null, owner = AgendaPerson.Nobody) },
-        hiddenTasks = ocultas,
-        entries = listOf(
+        entradas: List<AgendaEntry> = listOf(
             AgendaEntry.Meal(MealSlot.COMIDA, albondigas(), AgendaPerson.You, eaters = 3),
             AgendaEntry.Meal(MealSlot.CENA, meal = null, cook = null, eaters = 0),
         ),
+    ) = TodayAgenda(
+        tasks = tareas.map { AgendaTask(it, overdueSince = null, owner = AgendaPerson.Nobody) },
+        hiddenTasks = ocultas,
+        entries = entradas,
         shopping = compra,
         workload = listOf(MemberWorkload("u1", "Ana", pending = 2, doneThisWeek = 1)),
     )
@@ -95,7 +106,10 @@ class SpaceTodayScreenTest {
                 SpaceTodayScreen(
                     agenda = UiState.Content(agenda),
                     canWrite = canWrite,
-                    onToggleTask = { marcadas += it },
+                    onToggleTask = { tarea, alTerminar ->
+                        marcadas += tarea
+                        terminadas += alTerminar
+                    },
                     onRetry = {},
                     onOpen = { abiertos += it },
                 )
@@ -123,6 +137,64 @@ class SpaceTodayScreenTest {
 
         assertEquals(listOf("t1"), marcadas.map { it.id })
         assertEquals(emptyList<BobitosDestination>(), abiertos)
+    }
+
+    @Test
+    fun volverATocarLaCasillaMientrasSaleNoLaCompletaOtraVez() {
+        mostrar()
+
+        val casilla = compose.onNode(hasContentDescription("Fregar"))
+        casilla.performClick()
+        casilla.performClick()
+
+        assertEquals(listOf("t1"), marcadas.map { it.id })
+    }
+
+    @Test
+    fun siLaEscrituraFallaLaCasillaVuelveADesmarcadaYSePuedeReintentar() {
+        mostrar()
+
+        val casilla = compose.onNode(hasContentDescription("Fregar"))
+        casilla.performClick()
+        casilla.assert(SemanticsMatcher.expectValue(SemanticsProperties.ToggleableState, ToggleableState.On))
+        compose.runOnIdle { terminadas.single()(false) }
+
+        casilla.assert(SemanticsMatcher.expectValue(SemanticsProperties.ToggleableState, ToggleableState.Off))
+        casilla.performClick()
+        assertEquals(listOf("t1", "t1"), marcadas.map { it.id })
+    }
+
+    @Test
+    fun conLetraGrandeLaHoraDeLaFilaNoSeParteEnMitadDePalabra() {
+        compose.setContent {
+            val base = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(base.density, fontScale = 1.3f)) {
+                BobitosTheme {
+                    Box(Modifier.width(360.dp)) {
+                        SpaceTodayScreen(
+                            agenda = UiState.Content(
+                                agenda(
+                                    entradas = listOf(
+                                        AgendaEntry.Meal(MealSlot.DESAYUNO, meal = null, cook = null, eaters = 0),
+                                        AgendaEntry.Meal(MealSlot.CENA, meal = null, cook = null, eaters = 0),
+                                    ),
+                                ),
+                            ),
+                            canWrite = true,
+                            onToggleTask = { _, _ -> },
+                            onRetry = {},
+                            onOpen = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        // Una sola línea: la columna de la hora crece hasta la etiqueta más larga en vez de partirla.
+        val resultados = mutableListOf<TextLayoutResult>()
+        val etiqueta = compose.onNode(hasText("Desayuno"), useUnmergedTree = true).performScrollTo()
+        etiqueta.fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(resultados)
+        assertEquals(1, resultados.single().lineCount)
     }
 
     @Test

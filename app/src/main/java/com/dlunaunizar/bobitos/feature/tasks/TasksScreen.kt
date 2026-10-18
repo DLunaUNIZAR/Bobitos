@@ -85,6 +85,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.Celebration
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.DeclareHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -215,16 +216,27 @@ fun TasksScreen(
                 }
             }
         }
+        // Completar y reabrir no esperan a la puerta de `isSaving`: cada tarea escribe a la suya, y un segundo toque sobre
+        // la misma mientras se completa no hace nada.
         val setCompletedWithUndo: (TaskItem, Boolean) -> Unit = { task, completed ->
-            viewModel.setCompleted(spaceId, task, completed) {
-                scope.launchUndo(snackbar, completedMessage, undoLabel) {
-                    viewModel.undoCompletion(spaceId, it)
+            if (!completing.isCompleting(task.id)) {
+                val animate = completed && task.status != TaskStatus.DONE
+                // La fila se marca antes de que la escritura pueda acabar; si no llega a lanzarse, se devuelve.
+                if (animate) completing.start(task.id)
+                val launched = viewModel.setCompleted(
+                    spaceId,
+                    task,
+                    completed,
+                    onFinished = { ok -> if (animate) completing.finish(task.id, ok) },
+                ) {
+                    scope.launchUndo(snackbar, completedMessage, undoLabel) {
+                        viewModel.undoCompletion(spaceId, it)
+                    }
                 }
-            }
-            // La escritura ya ha salido: ahora la fila se anima y, si era la última de hoy, se celebra.
-            if (completed && task.status != TaskStatus.DONE) {
-                completing.start(task.id)
-                celebration.userCompleted(task.id)
+                if (animate) {
+                    // Si era la última de hoy, se celebra.
+                    if (launched) celebration.userCompleted(task.id) else completing.finish(task.id, false)
+                }
             }
         }
         Box(Modifier.fillMaxSize().padding(padding)) {
@@ -284,7 +296,7 @@ fun TasksScreen(
                                     ),
                                 ) {
                                     setCompletedWithUndo(task, task.status != TaskStatus.DONE)
-                                }.takeIf { enabled },
+                                }.takeIf { canWrite },
                                 endAction = SwipeAction(
                                     Icons.Rounded.Delete,
                                     deleteColor,
@@ -299,6 +311,7 @@ fun TasksScreen(
                                     task,
                                     position,
                                     enabled,
+                                    canWrite,
                                     completing.isCompleting(task.id),
                                     onSetCompleted = { setCompletedWithUndo(task, it) },
                                     onEdit = {
@@ -309,6 +322,8 @@ fun TasksScreen(
                                 )
                             }
                         }
+                        // La franja va dentro de la lista y sale de composición al desplazar: se declara aquí, fuera.
+                        DeclareHeaderBand()
                         LazyColumn(
                             state = listState,
                             modifier = Modifier.weight(1f),
@@ -532,6 +547,7 @@ private fun TaskListRow(
     task: TaskItem,
     position: RowPosition,
     enabled: Boolean,
+    canToggle: Boolean,
     completing: Boolean,
     onSetCompleted: (Boolean) -> Unit,
     onEdit: () -> Unit,
@@ -554,7 +570,8 @@ private fun TaskListRow(
         Checkbox(
             checked = done,
             onCheckedChange = onSetCompleted,
-            enabled = enabled,
+            // Completar no espera a otros guardados: solo depende de poder escribir.
+            enabled = canToggle,
             modifier = Modifier.checkBounce(completing).semantics { contentDescription = task.title },
         )
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {

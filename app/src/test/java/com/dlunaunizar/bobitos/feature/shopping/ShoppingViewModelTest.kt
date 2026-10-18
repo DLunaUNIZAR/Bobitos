@@ -322,6 +322,46 @@ class ShoppingViewModelTest {
     }
 
     @Test
+    fun marcarTresProductosSeguidosEscribeLosTresAlMomento() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.purchaseGate = CompletableDeferred()
+
+        assertTrue(viewModel.setPurchased("home", "milk", true))
+        assertTrue(viewModel.setPurchased("home", "bread", true))
+        assertTrue(viewModel.setPurchased("home", "salt", true))
+        runCurrent()
+
+        // Las tres escrituras están en curso a la vez y no apagan el resto de la pantalla.
+        assertEquals(listOf("milk", "bread", "salt"), repository.purchaseStarted)
+        assertFalse(viewModel.uiState.value.isSaving)
+    }
+
+    @Test
+    fun marcarElMismoProductoDosVecesMientrasEscribeSoloEscribeUna() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.purchaseGate = CompletableDeferred()
+
+        assertTrue(viewModel.setPurchased("home", "milk", true))
+        assertFalse(viewModel.setPurchased("home", "milk", true))
+        runCurrent()
+
+        assertEquals(listOf("milk"), repository.purchaseStarted)
+    }
+
+    @Test
+    fun marcarAvisaDeSuResultado() = runTest(mainDispatcherRule.testDispatcher) {
+        val resultados = mutableListOf<Boolean>()
+        repository.nextFailure = ShoppingRepositoryException(ShoppingFailure.Network)
+
+        viewModel.setPurchased("home", "milk", true) { resultados += it }
+        advanceUntilIdle()
+        repository.nextFailure = null
+        viewModel.setPurchased("home", "milk", true) { resultados += it }
+        advanceUntilIdle()
+
+        assertEquals(listOf(false, true), resultados)
+        assertEquals(ShoppingUiMessage.ItemMarked, viewModel.uiState.value.notice)
+    }
+
+    @Test
     fun `safe cleanup exposes actual deleted count`() = runTest(mainDispatcherRule.testDispatcher) {
         repository.clearCount = 2
 
@@ -960,7 +1000,12 @@ internal class FakeShoppingRepository : ShoppingRepository {
         }
     }
 
+    var purchaseGate: CompletableDeferred<Unit>? = null
+    val purchaseStarted = mutableListOf<String>()
+
     override suspend fun setPurchased(spaceId: String, itemId: String, purchased: Boolean, pantryEntry: PantryEntry?) {
+        purchaseStarted += itemId
+        purchaseGate?.await()
         throwNextFailure()
         purchaseChange = Triple(spaceId, itemId, purchased)
         purchaseEntry = pantryEntry

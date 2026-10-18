@@ -61,6 +61,7 @@ class ShoppingViewModel @Inject constructor(
     private var observedSpaceId: String? = null
     private var catalogJob: Job? = null
     private var pantryData: IngredientShoppingData? = null
+    private val purchasingIds = mutableSetOf<String>()
     private var pantryLoad: Deferred<IngredientShoppingData>? = null
     private var pantryGeneration = 0
 
@@ -290,14 +291,37 @@ class ShoppingViewModel @Inject constructor(
         }
     }
 
-    fun setPurchased(spaceId: String, itemId: String, purchased: Boolean) {
+    // Marcar y desmarcar no pasan por la puerta de `isSaving`: cada producto lleva su propia escritura en curso, así que
+    // varios seguidos salen todos al momento y no apagan el resto de la pantalla. Devuelve false (sin escribir) si ese
+    // producto ya tiene una escritura en curso. [onFinished] recibe cómo acabó.
+    fun setPurchased(
+        spaceId: String,
+        itemId: String,
+        purchased: Boolean,
+        onFinished: (Boolean) -> Unit = {},
+    ): Boolean {
+        if (!purchasingIds.add(itemId)) return false
         val item = (mutableUiState.value.items as? UiState.Content)?.value?.firstOrNull { it.id == itemId }
-        runAction(
-            if (purchased) ShoppingUiMessage.ItemMarked else ShoppingUiMessage.ItemUnmarked,
-        ) {
-            val entry = if (purchased && item != null) pantryEntryFor(item.name, dataForPantry()) else null
-            repository.setPurchased(spaceId, itemId, purchased, entry)
+        mutableUiState.update { it.copy(error = null, notice = null) }
+        viewModelScope.launch {
+            runCatching {
+                val entry = if (purchased && item != null) pantryEntryFor(item.name, dataForPantry()) else null
+                repository.setPurchased(spaceId, itemId, purchased, entry)
+            }
+                .onSuccess {
+                    purchasingIds.remove(itemId)
+                    val notice = if (purchased) ShoppingUiMessage.ItemMarked else ShoppingUiMessage.ItemUnmarked
+                    mutableUiState.update { it.copy(notice = notice) }
+                    onFinished(true)
+                }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    purchasingIds.remove(itemId)
+                    mutableUiState.update { it.copy(error = error.toUiMessage(), notice = null) }
+                    onFinished(false)
+                }
         }
+        return true
     }
 
     // Catálogo para reconocer el ingrediente al marcar comprado: el del editor si ya está cargado; si no, el leído en

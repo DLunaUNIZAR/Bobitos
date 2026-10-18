@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -32,8 +33,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.BobitosDates
@@ -86,7 +89,7 @@ private const val CASCADE_WINDOW_MS = 1_200L
 internal fun SpaceTodayScreen(
     agenda: UiState<TodayAgenda>,
     canWrite: Boolean,
-    onToggleTask: (TaskItem) -> Unit,
+    onToggleTask: (task: TaskItem, onFinished: (Boolean) -> Unit) -> Unit,
     onRetry: () -> Unit,
     onOpen: (BobitosDestination) -> Unit,
 ) {
@@ -100,11 +103,14 @@ internal fun SpaceTodayScreen(
             cascade = false
         }
     }
-    // La escritura sale antes que la animación y que la vibración: varias casillas seguidas escriben todas.
+    // Varias casillas seguidas escriben todas, cada una a la suya; volver a tocar una que se está completando no hace
+    // nada. La fila sale cuando la escritura se confirma, y si falla vuelve a su estado.
     val toggle: (TaskItem) -> Unit = { task ->
-        onToggleTask(task)
-        completing.start(task.id)
-        celebration.userCompleted(task.id)
+        if (!completing.isCompleting(task.id)) {
+            completing.start(task.id)
+            celebration.userCompleted(task.id)
+            onToggleTask(task) { ok -> completing.finish(task.id, ok) }
+        }
     }
     Box(Modifier.fillMaxSize()) {
         when (agenda) {
@@ -265,6 +271,8 @@ private fun AgendaSection(
 ) {
     // Las franjas sin planificar salen siempre; si no hay nada más, se dice.
     val empty = entries.all { it is AgendaEntry.Meal && it.meal == null }
+    val texts = entries.map { agendaRowText(it) }
+    val timeWidth = rememberTimeColumnWidth(texts.map(AgendaRowText::time))
     Column {
         SectionHeader(title = stringResource(R.string.agenda_title))
         if (empty) {
@@ -278,11 +286,26 @@ private fun AgendaSection(
         entries.forEachIndexed { index, entry ->
             AgendaRow(
                 entry,
+                texts[index],
+                timeWidth,
                 rowPosition(index, entries.size),
                 Modifier.cascadeIn(firstIndex + index, play = cascade),
                 onOpen,
             )
         }
+    }
+}
+
+// Ancho de la columna de la hora: el mínimo de siempre, o el de la etiqueta más larga (medida con la letra de
+// ahora) para que ninguna se parta a mitad de palabra con letra grande. Es el mismo en todas las filas.
+@Composable
+private fun rememberTimeColumnWidth(labels: List<String>): Dp {
+    val measurer = rememberTextMeasurer()
+    val style = MaterialTheme.typography.labelMedium
+    val density = LocalDensity.current
+    return remember(labels, style, density) {
+        val longest = labels.maxOfOrNull { measurer.measure(it, style, softWrap = false).size.width } ?: 0
+        maxOf(TimeColumnWidth, with(density) { longest.toDp() } + Spacing.sm)
     }
 }
 
@@ -292,6 +315,8 @@ private data class AgendaRowText(val time: String, val title: String, val second
 @Composable
 private fun AgendaRow(
     entry: AgendaEntry,
+    text: AgendaRowText,
+    timeWidth: Dp,
     position: RowPosition,
     modifier: Modifier,
     onOpen: (BobitosDestination) -> Unit,
@@ -299,7 +324,6 @@ private fun AgendaRow(
     val destination = entry.destination()
     val module = destination.appModule()
     val unplanned = entry is AgendaEntry.Meal && entry.meal == null
-    val text = agendaRowText(entry)
     val description = if (text.spoken.isEmpty()) {
         stringResource(R.string.agenda_row_description, text.time, text.title)
     } else {
@@ -321,7 +345,7 @@ private fun AgendaRow(
                 text = text.time,
                 style = MaterialTheme.typography.labelMedium,
                 color = dimmed,
-                modifier = Modifier.width(TimeColumnWidth).padding(end = Spacing.sm),
+                modifier = Modifier.width(timeWidth).padding(end = Spacing.sm),
             )
             Icon(
                 imageVector = destination.icon,

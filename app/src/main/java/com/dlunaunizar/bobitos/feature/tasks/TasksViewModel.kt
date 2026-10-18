@@ -41,6 +41,7 @@ class TasksViewModel @Inject constructor(
     private var tasksJob: Job? = null
     private var membersJob: Job? = null
     private var activeSpaceId: String? = null
+    private val completingIds = mutableSetOf<String>()
 
     fun observe(spaceId: String) {
         stopObserving()
@@ -133,13 +134,36 @@ class TasksViewModel @Inject constructor(
         }
     }
 
-    // Al completar no hay aviso propio: onCompleted recibe la tarea tal como estaba (estado y fechas) solo si termina
-    // bien, y la pantalla ofrece «Deshacer» con ella. Al reabrir, aviso de siempre.
-    fun setCompleted(spaceId: String, task: TaskItem, completed: Boolean, onCompleted: (TaskItem) -> Unit = {}) {
-        runAction(
-            if (completed) null else TaskUiMessage.TaskReopened,
-            onSuccess = { if (completed) onCompleted(task) },
-        ) { taskRepository.setCompleted(spaceId, task.id, completed) }
+    // Completar y reabrir no pasan por la puerta de `isSaving`: cada tarea lleva su propia escritura en curso, así que
+    // varias seguidas salen todas al momento y no apagan el resto de la pantalla. Devuelve false (sin escribir) si esa
+    // tarea ya tiene una escritura en curso. [onFinished] recibe cómo acabó; [onCompleted] recibe la tarea tal como
+    // estaba (estado y fechas) solo si completar termina bien, y la pantalla ofrece «Deshacer» con ella. Al completar no
+    // hay aviso propio; al reabrir, el de siempre.
+    fun setCompleted(
+        spaceId: String,
+        task: TaskItem,
+        completed: Boolean,
+        onFinished: (Boolean) -> Unit = {},
+        onCompleted: (TaskItem) -> Unit = {},
+    ): Boolean {
+        if (!completingIds.add(task.id)) return false
+        mutableUiState.update { it.copy(error = null, notice = null) }
+        viewModelScope.launch {
+            runCatching { taskRepository.setCompleted(spaceId, task.id, completed) }
+                .onSuccess {
+                    completingIds.remove(task.id)
+                    if (!completed) mutableUiState.update { it.copy(notice = TaskUiMessage.TaskReopened) }
+                    onFinished(true)
+                    if (completed) onCompleted(task)
+                }
+                .onFailure { error ->
+                    if (error is CancellationException) throw error
+                    completingIds.remove(task.id)
+                    mutableUiState.update { it.copy(error = error.toUiMessage(), notice = null) }
+                    onFinished(false)
+                }
+        }
+        return true
     }
 
     // «Deshacer» completar: la tarea vuelve a pendiente con las fechas de [previous]. Sin aviso; si falla (también si

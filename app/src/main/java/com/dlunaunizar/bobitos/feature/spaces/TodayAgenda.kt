@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.spaces
 
+import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
@@ -25,7 +26,16 @@ data class TodayAgenda(
     val entries: List<AgendaEntry>,
     val shopping: ShoppingGlance,
     val workload: List<MemberWorkload>,
+    /** De qué espacio es esta agenda; vacío si no se sabe. */
+    val spaceId: String = "",
 )
+
+/**
+ * Lo que debe pintar la pantalla de [spaceId]: una agenda que es de otro espacio (el que acaba de dejarse atrás, hasta
+ * que el ViewModel empieza a leer el nuevo) se ve como `Loading`, nunca bajo el nombre del espacio nuevo.
+ */
+fun UiState<TodayAgenda>.forSpace(spaceId: String?): UiState<TodayAgenda> =
+    if (this is UiState.Content && value.spaceId != spaceId) UiState.Loading else this
 
 /** Una tarea de la agenda; [overdueSince] es el día en que venció si ya venció, y null si vence hoy. */
 data class AgendaTask(val task: TaskItem, val overdueSince: LocalDate?, val owner: AgendaPerson)
