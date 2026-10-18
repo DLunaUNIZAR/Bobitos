@@ -60,7 +60,7 @@ fun SectionHeader(
         Row(toggleModifier, verticalAlignment = Alignment.CenterVertically) {
             Text(
                 label,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.weight(1f, fill = false).semantics { heading() },
             )
             if (onToggle != null && expanded != null) {

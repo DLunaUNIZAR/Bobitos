@@ -28,9 +28,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Constraints
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 
@@ -39,7 +41,7 @@ data class InfoSheetAction(val label: String, val onClick: () -> Unit, val enabl
 
 /**
  * Sheet de solo lectura (detalle de una receta o una rutina): título, contenido con scroll y, abajo,
- * la acción principal (botón relleno) junto a «Cerrar» y, si hay más, las secundarias en un menú ⋮ del título. No hay nada que descartar, así que el cierre es siempre libre.
+ * la acción principal (botón relleno) junto a «Cerrar» (apilados si no caben) y, si hay más, las secundarias en un menú ⋮ del título. No hay nada que descartar, así que el cierre es siempre libre.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,13 +79,59 @@ fun BobitosInfoSheet(
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                 content = content,
             )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.End),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) }
-                primaryAction?.let { Button(onClick = it.onClick, enabled = it.enabled) { Text(it.label) } }
+            SheetButtons(
+                close = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) } },
+                primary = primaryAction?.let {
+                    { Button(onClick = it.onClick, enabled = it.enabled) { Text(it.label) } }
+                },
+            )
+        }
+    }
+}
+
+/**
+ * Botones al pie: «Cerrar» y la acción principal en una fila a la derecha si caben; si no (letra grande),
+ * se apilan con la principal arriba, a todo el ancho, y «Cerrar» debajo.
+ */
+@Composable
+internal fun SheetButtons(close: @Composable () -> Unit, primary: (@Composable () -> Unit)?) {
+    val gap = Spacing.sm
+    Layout(
+        content = {
+            close()
+            primary?.invoke()
+        },
+        modifier = Modifier.fillMaxWidth(),
+    ) { measurables, constraints ->
+        val gapPx = gap.roundToPx()
+        val closeM = measurables[0]
+        val primaryM = measurables.getOrNull(1)
+        val width = constraints.maxWidth
+        val fitsInRow = primaryM == null ||
+            closeM.maxIntrinsicWidth(Constraints.Infinity) + gapPx + primaryM.maxIntrinsicWidth(Constraints.Infinity) <=
+            width
+        if (fitsInRow) {
+            val loose = constraints.copy(minWidth = 0, minHeight = 0)
+            val closeP = closeM.measure(loose)
+            val primaryP = primaryM?.measure(loose)
+            val height = maxOf(closeP.height, primaryP?.height ?: 0)
+            layout(width, height) {
+                var x = width
+                primaryP?.let {
+                    x -= it.width
+                    it.place(x, (height - it.height) / 2)
+                    x -= gapPx
+                }
+                x -= closeP.width
+                closeP.place(x, (height - closeP.height) / 2)
+            }
+        } else {
+            val full = constraints.copy(minWidth = width, minHeight = 0)
+            val primaryP = primaryM!!.measure(full)
+            val closeP = closeM.measure(full)
+            layout(width, primaryP.height + gapPx + closeP.height) {
+                primaryP.place(0, 0)
+                closeP.place(0, primaryP.height + gapPx)
             }
         }
     }
