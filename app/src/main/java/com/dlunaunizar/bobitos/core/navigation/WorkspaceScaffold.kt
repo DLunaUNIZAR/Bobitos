@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
@@ -60,10 +61,10 @@ import com.dlunaunizar.bobitos.core.model.SyncStatus
 
 /**
  * Marco común de las pantallas de un espacio: barra superior con el título de la pantalla en grande y,
- * encima, el selector del espacio (cambiar de espacio); a la derecha las acciones que registre la
- * pantalla con `TopBarActions`, ajustes y perfil. Abajo, las pestañas Hoy, Calendario, Tareas, Compra y
+ * en la fila de iconos, el selector del espacio (cambiar de espacio) a la izquierda y a la derecha las
+ * acciones que registre la pantalla con `TopBarActions`, ajustes y perfil. Abajo, las pestañas Hoy, Calendario, Tareas, Compra y
  * Más. [module] tiñe la barra superior y el contenido, no la barra inferior, que ya usa el color de cada
- * pestaña. [supportingText] va bajo el título (el saludo de Hoy).
+ * pestaña. [eyebrow] va encima del título (el saludo de Hoy).
  *
  * La barra se encoge al desplazar la lista del contenido. Bajo ella el marco dibuja el remate redondeado
  * de la franja teñida, salvo que la pantalla ponga su propia `ModuleHeaderBand`.
@@ -81,7 +82,7 @@ internal fun WorkspaceScaffold(
     onSpaceSettings: () -> Unit,
     onProfile: () -> Unit,
     syncStatus: SyncStatus,
-    supportingText: String? = null,
+    eyebrow: String? = null,
     content: @Composable () -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -97,8 +98,8 @@ internal fun WorkspaceScaffold(
                     BobitosLargeTopBar(
                         title = title,
                         scrollBehavior = scrollBehavior,
-                        overline = { SpaceSelector(spaceName, onClick = { switcher.onPickerOpenChange(true) }) },
-                        supportingText = supportingText,
+                        spaceSelector = { SpaceSelector(spaceName, onClick = { switcher.onPickerOpenChange(true) }) },
+                        eyebrow = eyebrow,
                         actions = {
                             topBarActions.actions?.invoke(this)
                             IconButton(onClick = onSpaceSettings) {
@@ -199,17 +200,18 @@ internal fun WorkspaceNavigationBar(selectedTab: BobitosDestination, onTabSelect
     }
 }
 
-// El espacio es un botón pequeño sobre el título: cambia de espacio. Hasta dos líneas para los nombres largos.
+// El espacio es un botón en la fila de iconos: cambia de espacio. Hasta dos líneas para los nombres largos.
 @Composable
 private fun SpaceSelector(spaceName: String, onClick: () -> Unit) {
     val description = stringResource(R.string.change_space_named, spaceName)
     Row(
         modifier = Modifier
+            .offset(x = -Spacing.xs) // el texto queda alineado con el título grande
             .clip(MaterialTheme.shapes.small)
             .clickable(onClickLabel = stringResource(R.string.change_space), role = Role.Button, onClick = onClick)
             .semantics { contentDescription = description }
             .heightIn(min = 48.dp)
-            .padding(start = Spacing.xs),
+            .padding(horizontal = Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(

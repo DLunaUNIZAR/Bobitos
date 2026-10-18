@@ -287,7 +287,7 @@ fun BobitosNavHost(
                 selectedTab = BobitosDestination.SpaceHome,
                 module = null,
                 title = BobitosDates.longDay(today),
-                supportingText = if (name.isBlank()) {
+                eyebrow = if (name.isBlank()) {
                     greeting
                 } else {
                     stringResource(R.string.space_today_greeting_named, greeting, name)
@@ -603,7 +603,7 @@ private fun SpaceScaffold(
     syncStatus: SyncStatus,
     onClearSpaceFeedback: () -> Unit,
     onClearAuthFeedback: () -> Unit,
-    supportingText: String? = null,
+    eyebrow: String? = null,
     content: @Composable () -> Unit,
 ) {
     WorkspaceScaffold(
@@ -623,7 +623,7 @@ private fun SpaceScaffold(
             navController.navigateToProfile()
         },
         syncStatus = syncStatus,
-        supportingText = supportingText,
+        eyebrow = eyebrow,
         content = content,
     )
 }

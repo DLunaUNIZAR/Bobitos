@@ -108,20 +108,27 @@ class WorkspaceScaffoldTest {
 
     @Test
     fun conLetraGrandeYUnEspacioLargoNadaSeCorta() {
+        val espacio = "Piso de estudiantes de Zaragoza"
         compose.setContent {
             val base = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(base.density, fontScale = 1.3f)) {
                 BobitosTheme {
                     Box(Modifier.width(360.dp)) {
-                        Scaffold("Calendario", "Piso de estudiantes de Zaragoza") { Text("cuerpo") }
+                        Scaffold("Tareas", espacio) {
+                            TopBarActions {
+                                IconButton(onClick = {}) {
+                                    Icon(Icons.Rounded.Bolt, contentDescription = "Plantillas de tareas")
+                                }
+                            }
+                            Text("cuerpo")
+                        }
                     }
                 }
             }
         }
         val titleNode = compose.onNode(
-            hasText("Calendario") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading),
-        )
-            .fetchSemanticsNode()
+            hasText("Tareas") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading),
+        ).fetchSemanticsNode()
         val results = mutableListOf<TextLayoutResult>()
         titleNode.config.getOrNull(SemanticsActions.GetTextLayoutResult)
             ?.action?.invoke(results)
@@ -129,10 +136,15 @@ class WorkspaceScaffoldTest {
         val layout = results.first()
         assertFalse("el título se corta", layout.isLineEllipsized(0) || layout.didOverflowHeight)
         assertTrue("el título se parte", layout.lineCount == 1)
-        val selector = compose.onNodeWithContentDescription("Cambiar de espacio, Piso de estudiantes de Zaragoza")
+        val selector = compose.onNodeWithContentDescription("Cambiar de espacio, $espacio")
             .fetchSemanticsNode().boundsInWindow
         val body = compose.onNodeWithText("cuerpo").fetchSemanticsNode().boundsInWindow
         assertTrue("el título invade el contenido", titleNode.boundsInWindow.bottom <= body.top)
         assertFalse("el selector se solapa con el título", selector.overlaps(titleNode.boundsInWindow))
+        listOf("Plantillas de tareas", "Gestionar", "Perfil").forEach { action ->
+            val bounds = compose.onNode(hasContentDescription(action, substring = true)).fetchSemanticsNode()
+                .boundsInWindow
+            assertFalse("el selector se solapa con «$action»", selector.overlaps(bounds))
+        }
     }
 }
