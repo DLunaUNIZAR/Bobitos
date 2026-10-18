@@ -1,15 +1,12 @@
 package com.dlunaunizar.bobitos.feature.pantry
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Inventory2
@@ -25,11 +22,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
@@ -41,11 +35,15 @@ import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
+import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
+import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
 import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
@@ -186,19 +184,18 @@ private fun PantryContent(
                 end = Spacing.lg,
                 bottom = Spacing.fabClearance,
             ),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             sections.forEach { section ->
                 item(key = pantryHeaderKey(section.category)) {
-                    Text(
-                        text = section.category ?: stringResource(R.string.pantry_others),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = Spacing.sm).semantics { heading() },
-                    )
+                    SectionHeader(title = section.category ?: stringResource(R.string.pantry_others))
                 }
-                items(section.items, key = { pantryItemKey(it.id) }) { item ->
-                    PantryRow(item = item, enabled = enabled, onFinished = { onFinished(item) })
+                itemsIndexed(section.items, key = { _, item -> pantryItemKey(item.id) }) { index, item ->
+                    PantryRow(
+                        item = item,
+                        position = rowPosition(index, section.items.size),
+                        enabled = enabled,
+                        onFinished = { onFinished(item) },
+                    )
                 }
             }
         }
@@ -206,8 +203,8 @@ private fun PantryContent(
 }
 
 @Composable
-private fun PantryRow(item: PantryItem, enabled: Boolean, onFinished: () -> Unit) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+private fun PantryRow(item: PantryItem, position: RowPosition, enabled: Boolean, onFinished: () -> Unit) {
+    GroupedRow(position = position) {
         Text(item.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
         TextButton(onClick = onFinished, enabled = enabled) { Text(stringResource(R.string.pantry_finished)) }
     }

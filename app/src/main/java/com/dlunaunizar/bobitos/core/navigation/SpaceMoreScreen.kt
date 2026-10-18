@@ -49,7 +49,7 @@ internal fun SpaceMoreScreen(onOpen: (BobitosDestination) -> Unit) {
     }
 }
 
-/** Grupo de filas de módulos: cada una teñida de su módulo, con el icono en el acento y una flecha. */
+/** Grupo de filas de módulos: cada una teñida de su módulo, con el icono en la pastilla de «Catálogos» y una flecha. */
 @Composable
 internal fun ModuleRows(
     title: String,
@@ -61,16 +61,18 @@ internal fun ModuleRows(
         SectionHeader(title = title)
         destinations.forEachIndexed { index, destination ->
             val module = destination.appModule()
+            val colors = module?.let { moduleColors(it) }
             GroupedRow(
                 position = rowPosition(index, destinations.size),
                 tint = module?.let { moduleTint(it) },
                 onClick = { onOpen(destination) },
             ) {
-                Icon(
-                    destination.icon,
-                    contentDescription = null,
-                    tint = module?.let { moduleColors(it).accent } ?: MaterialTheme.colorScheme.onSurface,
-                )
+                IconPill(
+                    container = colors?.container ?: MaterialTheme.colorScheme.secondaryContainer,
+                    content = colors?.onContainer ?: MaterialTheme.colorScheme.onSecondaryContainer,
+                ) {
+                    Icon(destination.icon, contentDescription = null, tint = it)
+                }
                 Column(Modifier.weight(1f)) {
                     RowTitle(stringResource(destination.titleRes))
                     supporting[destination]?.let {

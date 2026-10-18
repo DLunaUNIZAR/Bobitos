@@ -62,6 +62,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidatio
 import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
+import com.dlunaunizar.bobitos.core.designsystem.theme.moduleTint
 import com.dlunaunizar.bobitos.core.model.Note
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -266,7 +267,9 @@ internal fun NoteCard(
             }
         }
     }
-    ClickableCard(onClick, Modifier.fillMaxWidth()) { content() }
+    // La fijada lleva el tinte de Notas; las demás, el contenedor normal de la tarjeta.
+    val tint = moduleTint(AppModule.NOTES)
+    ClickableCard(onClick, Modifier.fillMaxWidth(), containerColor = tint.takeIf { note.pinned }) { content() }
 }
 
 @Composable
