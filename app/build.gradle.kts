@@ -64,6 +64,7 @@ android {
             buildConfigField("String", "FIREBASE_EMULATOR_HOST", "\"127.0.0.1\"")
             buildConfigField("int", "FIREBASE_AUTH_EMULATOR_PORT", "9099")
             buildConfigField("int", "FIREBASE_FIRESTORE_EMULATOR_PORT", "8080")
+            buildConfigField("boolean", "BETA_UPDATES_ENABLED", "false")
         }
         release {
             isMinifyEnabled = false
@@ -73,6 +74,7 @@ android {
             buildConfigField("String", "FIREBASE_EMULATOR_HOST", "\"\"")
             buildConfigField("int", "FIREBASE_AUTH_EMULATOR_PORT", "0")
             buildConfigField("int", "FIREBASE_FIRESTORE_EMULATOR_PORT", "0")
+            buildConfigField("boolean", "BETA_UPDATES_ENABLED", "true")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -141,6 +143,8 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.appcheck.playintegrity)
     implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.appdistribution.api)
+    releaseImplementation(libs.firebase.appdistribution)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

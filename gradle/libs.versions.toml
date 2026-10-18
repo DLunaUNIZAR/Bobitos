@@ -8,6 +8,7 @@ coreKtx = "1.19.0"
 activityCompose = "1.13.0"
 composeBom = "2026.06.00"
 firebaseBom = "34.15.0"
+appDistribution = "16.0.0-beta21"
 lifecycle = "2.11.0"
 navigationCompose = "2.9.8"
 dataStore = "1.2.1"
@@ -50,6 +51,8 @@ firebase-auth = { module = "com.google.firebase:firebase-auth" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore" }
 firebase-appcheck-playintegrity = { module = "com.google.firebase:firebase-appcheck-playintegrity" }
 firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
+firebase-appdistribution-api = { module = "com.google.firebase:firebase-appdistribution-api", version.ref = "appDistribution" }
+firebase-appdistribution = { module = "com.google.firebase:firebase-appdistribution", version.ref = "appDistribution" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
 androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigation" }
