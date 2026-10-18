@@ -7,8 +7,8 @@ import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.data.repository.sortedForBrands
 import com.dlunaunizar.bobitos.data.repository.sortedForIngredientCatalog
-import com.dlunaunizar.bobitos.feature.common.CategoryCollator
 import com.dlunaunizar.bobitos.feature.common.categoryKey
+import com.dlunaunizar.bobitos.feature.common.categoryOptions
 
 /** Comunes y personales en una lista: el personal cuyo id ya es común se oculta. */
 internal fun mergeIngredients(
@@ -56,11 +56,7 @@ internal fun ingredientRowLines(
 }
 
 /** Categorías del catálogo sin repetir (las que solo difieren en mayúsculas se juntan) ni vacías, ordenadas. */
-internal fun List<CatalogIngredient>.categories(): List<String> = mapNotNull {
-    it.category?.trim()?.takeIf(String::isNotEmpty)
-}
-    .distinctBy { it.categoryKey() }
-    .sortedWith(CategoryCollator)
+internal fun List<CatalogIngredient>.categories(): List<String> = categoryOptions(CatalogIngredient::category)
 
 /** Con [category] null devuelve todo; si no, los de esa categoría sin mayúsculas ni espacios en los extremos. */
 internal fun List<CatalogIngredient>.inCategory(category: String?): List<CatalogIngredient> {

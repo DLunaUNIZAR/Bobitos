@@ -80,6 +80,7 @@ import com.dlunaunizar.bobitos.feature.common.RecipeRow
 import com.dlunaunizar.bobitos.feature.common.ScrollToTopOnChange
 import com.dlunaunizar.bobitos.feature.common.groupCatalog
 import com.dlunaunizar.bobitos.feature.common.pantryLineText
+import com.dlunaunizar.bobitos.feature.common.sameCategoryAs
 import com.dlunaunizar.bobitos.feature.common.withPantryLines
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -136,10 +137,7 @@ fun RecipesScreen(
             viewModel.consumeImportDraft()
         }
     }
-    val categories = (state.mine.contentOrEmpty() + state.global.contentOrEmpty())
-        .mapNotNull { it.category?.trim()?.takeIf(String::isNotEmpty) }
-        .distinct()
-        .sorted()
+    val categories = (state.mine.contentOrEmpty() + state.global.contentOrEmpty()).recipeCategories()
     val scope = rememberCoroutineScope()
     val deletedMessage = stringResource(R.string.recipes_undo_deleted)
     val undoLabel = stringResource(R.string.undo)
@@ -333,7 +331,7 @@ private fun rememberRecipeGroups(
     val mineRecipes = mine.contentOrEmpty()
     val mineIds = mineRecipes.mapTo(HashSet(), Recipe::id)
     val rows = (mineRecipes + global.contentOrEmpty()).matching(query)
-        .filter { category == null || it.category == category }
+        .filter { it.inCategory(category) }
         .withPantryLines(pantryIds)
     groupCatalog(
         items = rows,
@@ -460,7 +458,7 @@ private fun RecipeFilters(
                 options = listOf(
                     FilterOption(stringResource(R.string.recipes_filter_all), selected == null) { onSelect(null) },
                 ) + categories.map { category ->
-                    FilterOption(category, selected == category) { onSelect(category) }
+                    FilterOption(category, category.sameCategoryAs(selected)) { onSelect(category) }
                 },
                 active = selected != null,
                 modifier = Modifier.weight(1f),

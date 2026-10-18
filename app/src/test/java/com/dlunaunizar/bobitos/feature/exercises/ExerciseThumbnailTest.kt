@@ -34,6 +34,16 @@ class ExerciseThumbnailTest {
         )
     }
 
+    @Test
+    fun alBuscarLaLineaSecundariaLlevaElGrupoMuscular() {
+        val labels = listOf("Peso libre", "Mancuernas")
+
+        assertEquals("Pecho · Peso libre · Mancuernas", exerciseSupportingLine("Pecho", labels, true))
+        assertEquals("Peso libre · Mancuernas", exerciseSupportingLine("Pecho", labels, false))
+        assertEquals("Cardio", exerciseSupportingLine(null, listOf("Cardio"), true))
+        assertEquals("Cardio", exerciseSupportingLine("  ", listOf("Cardio"), true))
+    }
+
     private fun exercise(type: ExerciseType, equipment: List<ExerciseEquipment>) = CatalogExercise(
         id = "e1",
         name = "Press",

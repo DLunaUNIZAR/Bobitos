@@ -79,3 +79,9 @@ internal val ExerciseType.icon: ImageVector
 // Textos de la línea secundaria de la fila («Peso libre · Mancuernas»): el tipo y después el material.
 internal fun exerciseSupportingRes(exercise: CatalogExercise): List<Int> =
     listOf(exercise.type.labelRes) + exercise.equipment.map { it.labelRes }
+
+// La línea secundaria de la fila: el grupo muscular (si se muestra y lo hay) y después el tipo y el material.
+internal fun exerciseSupportingLine(muscleGroup: String?, labels: List<String>, showMuscleGroup: Boolean): String =
+    listOfNotNull(muscleGroup?.trim()?.takeIf { showMuscleGroup && it.isNotEmpty() })
+        .plus(labels)
+        .joinToString(" · ")

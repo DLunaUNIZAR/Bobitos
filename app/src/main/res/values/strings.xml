@@ -445,6 +445,7 @@
     <string name="meal_slot_cena">Cena</string>
     <string name="meals_slot_empty">Sin planificar</string>
     <string name="meals_add_to_slot">Añadir %1$s</string>
+    <string name="meals_no_results">Ninguna comida coincide con la búsqueda.</string>
     <string name="meals_add_title">Nueva comida</string>
     <string name="meals_edit_title">Editar comida</string>
     <string name="meals_edit">Editar</string>

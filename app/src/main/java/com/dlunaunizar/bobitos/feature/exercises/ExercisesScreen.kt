@@ -270,7 +270,7 @@ private fun ExerciseCatalog(
         }
         is UiState.Content -> {
             val filtered = remember(catalog.value, filter) { catalog.value.filterExercises(filter) }
-            // Al buscar, lista plana con el grupo muscular en la línea de cada ejercicio.
+            // Al buscar, lista plana (sin cabeceras) y el grupo muscular pasa a la línea de cada ejercicio.
             val layout = if (filter.query.isNotBlank()) CatalogLayout.FLAT else CatalogLayout.BY_CATEGORY
             val groups = remember(filtered, layout, filter.muscleGroup) {
                 groupCatalog(
@@ -298,7 +298,7 @@ private fun ExerciseCatalog(
                         )
                     }
                 }
-                exerciseGroups(groups, state, loadImage, onOpen, onEdit, onDelete, deleteEnabled)
+                exerciseGroups(groups, layout, state, loadImage, onOpen, onEdit, onDelete, deleteEnabled)
             }
         }
     }
@@ -307,6 +307,7 @@ private fun ExerciseCatalog(
 @Suppress("LongParameterList")
 private fun LazyListScope.exerciseGroups(
     groups: List<CatalogGroup<CatalogExercise>>,
+    layout: CatalogLayout,
     state: ExercisesUiState,
     loadImage: suspend (CatalogExercise) -> LoadedImage?,
     onOpen: (CatalogExercise) -> Unit,
@@ -330,6 +331,7 @@ private fun LazyListScope.exerciseGroups(
             ExerciseRow(
                 exercise = exercise,
                 position = rowPosition(index, group.items.size),
+                showMuscleGroup = layout == CatalogLayout.FLAT,
                 canEdit = state.canEdit(exercise),
                 load = { loadImage(exercise) },
                 onOpen = { onOpen(exercise) },
@@ -388,6 +390,7 @@ private fun ExerciseFilterBand(
 private fun ExerciseRow(
     exercise: CatalogExercise,
     position: RowPosition,
+    showMuscleGroup: Boolean,
     canEdit: Boolean,
     load: suspend () -> LoadedImage?,
     onOpen: () -> Unit,
@@ -397,7 +400,11 @@ private fun ExerciseRow(
     modifier: Modifier = Modifier,
 ) {
     var menu by remember { mutableStateOf(false) }
-    val supporting = exerciseSupportingRes(exercise).map { stringResource(it) }.joinToString(" · ")
+    val supporting = exerciseSupportingLine(
+        muscleGroup = exercise.muscleGroup,
+        labels = exerciseSupportingRes(exercise).map { stringResource(it) },
+        showMuscleGroup = showMuscleGroup,
+    )
     GroupedRow(position = position, onClick = onOpen, modifier = modifier) {
         ExerciseThumbnail(exercise = exercise, load = load)
         Spacer(Modifier.width(Spacing.md))

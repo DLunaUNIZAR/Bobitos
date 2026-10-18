@@ -60,6 +60,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.ClickableCard
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
@@ -227,19 +228,28 @@ fun MealsScreen(
                             visible = dayMeals.isNotEmpty(),
                             modifier = Modifier.padding(bottom = 8.dp),
                         )
-                        val queriedMeals = dayMeals.filter { it.matchesQuery(query) }
+                        val slots = visibleMealSlots(dayMeals, query)
                         LazyColumn(
                             state = listState,
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             contentPadding = PaddingValues(top = 8.dp, bottom = Spacing.fabClearance),
                         ) {
-                            MealSlot.entries.forEachIndexed { index, slot ->
+                            if (slots.isEmpty()) {
+                                item(key = "no-results") {
+                                    EmptyState(
+                                        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
+                                        icon = Icons.Rounded.Restaurant,
+                                        title = stringResource(R.string.meals_no_results),
+                                    )
+                                }
+                            }
+                            slots.forEachIndexed { index, (slot, slotMeals) ->
                                 item(key = slot.name) {
                                     // La cascada se repite al cambiar de día.
                                     Box(Modifier.cascadeIn(index, key = state.focusedDate)) {
                                         MealSlotSection(
                                             slot = slot,
-                                            meals = queriedMeals.filter { it.slot == slot },
+                                            meals = slotMeals,
                                             recipes = state.recipes,
                                             canWrite = canWrite,
                                             actionsEnabled = actionsEnabled,
@@ -716,10 +726,6 @@ private fun NewMealFab(visible: Boolean, expanded: Boolean, onClick: () -> Unit)
         onClick = onClick,
     )
 }
-
-// Coincidencia por texto (nombre de la comida) para el buscador; en blanco no filtra.
-private fun Meal.matchesQuery(query: String): Boolean =
-    query.isBlank() || name.contains(query.trim(), ignoreCase = true)
 
 private fun LocalDate.formatHeader(): String = BobitosDates.longDay(this)
 
