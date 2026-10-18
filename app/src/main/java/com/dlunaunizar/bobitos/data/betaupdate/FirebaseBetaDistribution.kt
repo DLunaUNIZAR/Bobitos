@@ -28,16 +28,21 @@ class FirebaseBetaDistribution : BetaDistribution {
 
     override fun updateApp(): Flow<BetaUpdateProgress> = callbackFlow {
         val task = sdk.updateApp()
+        var downloaded = false
         task.addOnProgressListener { progress ->
             progress.updateStatus
                 .toProgress(progress.apkBytesDownloaded, progress.apkFileTotalBytes)
-                ?.let { trySend(it) }
+                ?.let {
+                    if (it == BetaUpdateProgress.AwaitingInstall) downloaded = true
+                    trySend(it.afterDownload(downloaded))
+                }
         }
         task.addOnCompleteListener { result ->
             val failure = result.exception
             if (failure != null) {
                 val status = (failure as? FirebaseAppDistributionException)?.errorCode
-                trySend(status?.toFailureProgress() ?: BetaUpdateProgress.Failed(BetaUpdateError.UNKNOWN))
+                val failed = status?.toFailureProgress() ?: BetaUpdateProgress.Failed(BetaUpdateError.UNKNOWN)
+                trySend(failed.afterDownload(downloaded))
             }
             close()
         }
@@ -77,6 +82,17 @@ internal fun FirebaseAppDistributionException.Status.toFailureProgress(): BetaUp
         BetaUpdateProgress.InstallCanceled
     } else {
         BetaUpdateProgress.Failed(toBetaUpdateError())
+    }
+
+/**
+ * Con un APK, el SDK no distingue cancelar el instalador de que falle: ambos llegan como fallo de
+ * instalación. Si la descarga ya había terminado, se trata como cancelación («Instalar»).
+ */
+internal fun BetaUpdateProgress.afterDownload(downloaded: Boolean): BetaUpdateProgress =
+    if (downloaded && this == BetaUpdateProgress.Failed(BetaUpdateError.INSTALL_FAILED)) {
+        BetaUpdateProgress.InstallCanceled
+    } else {
+        this
     }
 
 internal fun UpdateStatus.toProgress(downloadedBytes: Long, totalBytes: Long): BetaUpdateProgress? = when (this) {

@@ -50,7 +50,11 @@ private class FakeBetaDistribution(override val isAvailable: Boolean = true, sig
     override suspend fun checkForNewRelease(): BetaRelease? {
         checkCalls++
         checkGate?.await()
-        checkError?.let { throw BetaUpdateException(it) }
+        checkError?.let {
+            // Imita al SDK: ante AUTHENTICATION_FAILURE cierra la sesión de tester.
+            if (it == BetaUpdateError.SIGN_IN_FAILED) isTesterSignedIn = false
+            throw BetaUpdateException(it)
+        }
         return checkResult
     }
 
@@ -369,5 +373,42 @@ class BetaUpdateViewModelTest {
     @Test
     fun laVersionInstaladaEsLaDeLaCompilacion() = runTest {
         assertEquals(BuildConfig.VERSION_NAME, viewModel().state.installedVersion)
+    }
+
+    @Test
+    fun `si el SDK cierra la sesion buscar vuelve a pedirla`() = runTest {
+        val dist = FakeBetaDistribution(signedIn = true)
+        dist.checkError = BetaUpdateError.SIGN_IN_FAILED
+        val vm = viewModel(dist)
+        vm.checkManually()
+        assertEquals(ManualCheckState.Failed(BetaUpdateError.SIGN_IN_FAILED), vm.state.manualCheck)
+        assertEquals(false, vm.state.testerSignedIn)
+        dist.checkError = null
+        vm.checkManually()
+        assertEquals(1, dist.signInCalls)
+    }
+
+    @Test
+    fun `una comprobacion automatica con la sesion cerrada por el SDK no insiste`() = runTest {
+        val dist = FakeBetaDistribution(signedIn = true)
+        dist.checkError = BetaUpdateError.SIGN_IN_FAILED
+        val vm = viewModel(dist)
+        vm.onAppForeground()
+        assertEquals(false, vm.state.testerSignedIn)
+        assertNull(vm.state.prompt)
+        assertNull(preferences.last.value)
+        assertEquals(1, dist.checkCalls)
+        vm.onAppForeground()
+        assertEquals(1, dist.checkCalls)
+    }
+
+    @Test
+    fun `si la descarga falla por la sesion se vuelve a pedir`() = runTest {
+        distribution.checkResult = r25
+        val vm = viewModel()
+        vm.checkManually()
+        vm.startDownload()
+        distribution.updates.emit(BetaUpdateProgress.Failed(BetaUpdateError.SIGN_IN_FAILED))
+        assertEquals(false, vm.state.testerSignedIn)
     }
 }

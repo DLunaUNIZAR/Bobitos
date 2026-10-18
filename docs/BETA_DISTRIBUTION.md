@@ -142,7 +142,7 @@ Las betas pueden avisar de una versión nueva y descargarla e instalarla desde l
 1. En «Perfil», «Información», pulsar «Buscar actualizaciones». La primera vez abre el inicio de sesión de tester: usar la cuenta de Google de la invitación.
 2. Desde entonces la app comprueba en silencio al pasar a primer plano, como mucho una vez al día (día del calendario del móvil). Una comprobación fallida no gasta el día.
 3. Si hay versión nueva, sale «Hay una beta nueva» con «Actualizar» y «Más tarde». «Más tarde» silencia esa versión en el aviso automático; una más nueva sí avisa y la búsqueda manual la muestra siempre. Cerrar con Atrás o tocando fuera no pospone.
-4. La hoja de la versión muestra el progreso y las notas de `distribution/release-notes.txt` («Novedades»; se omiten si vienen vacías). Cerrar la hoja no cancela la descarga: «Buscar actualizaciones» la reabre con su progreso. Tras cancelar la instalación aparece «Instalar» y tras un error, «Reintentar».
+4. La hoja de la versión muestra el progreso y las notas de `distribution/release-notes.txt` («Novedades»; se omiten si vienen vacías). Cerrar la hoja no cancela la descarga: «Buscar actualizaciones» la reabre con su progreso. Con la descarga terminada, si la instalación no termina (cancelada o fallida) aparece «Instalar»; si falla la descarga, «Reintentar».
 
 **Lo que hace Android.**
 - La primera vez pide permitir las instalaciones desde Bobitos.

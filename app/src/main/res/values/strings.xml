@@ -934,7 +934,7 @@
     <string name="beta_update_progress_percent">%1$d %% · %2$s de %3$s MB</string>
     <string name="beta_update_download_keeps_going">Cerrar no cancela la descarga: sigue en segundo plano.</string>
     <string name="beta_update_awaiting_install">Android te pide confirmar la instalación.</string>
-    <string name="beta_update_install_canceled">Cancelaste la instalación. Puedes volver a intentarlo.</string>
+    <string name="beta_update_install_canceled">No se ha instalado. Puedes volver a intentarlo.</string>
     <string name="beta_update_error_sign_in_canceled">No has iniciado sesión. Vuelve a intentarlo cuando quieras.</string>
     <string name="beta_update_error_sign_in_failed">No hemos podido iniciar sesión. Comprueba que usas la cuenta de Google de las invitaciones de la beta.</string>
     <string name="beta_update_error_offline">Sin conexión. Comprueba tu internet y vuelve a intentarlo.</string>

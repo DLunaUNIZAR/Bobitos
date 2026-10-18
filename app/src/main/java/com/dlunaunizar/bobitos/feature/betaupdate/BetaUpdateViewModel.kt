@@ -110,7 +110,8 @@ class BetaUpdateViewModel @Inject constructor(
         val release =
             try {
                 distribution.checkForNewRelease()
-            } catch (_: BetaUpdateException) {
+            } catch (e: BetaUpdateException) {
+                if (e.error == BetaUpdateError.SIGN_IN_FAILED) markSignedOut()
                 return
             } catch (e: CancellationException) {
                 throw e
@@ -179,6 +180,15 @@ class BetaUpdateViewModel @Inject constructor(
 
     private fun failManualCheck(error: BetaUpdateError) {
         _uiState.update { it.copy(manualCheck = ManualCheckState.Failed(error)) }
+        if (error == BetaUpdateError.SIGN_IN_FAILED) markSignedOut()
+    }
+
+    /**
+     * El SDK cierra la sesión de tester ante un fallo de autenticación (p. ej. una cuenta sin acceso),
+     * pero en otro executor y sin avisar: se imita su regla en vez de volver a leer `isTesterSignedIn`.
+     */
+    private fun markSignedOut() {
+        _uiState.update { it.copy(testerSignedIn = false) }
     }
 
     /** Hay una recogida viva que no ha acabado en cancelación ni en fallo. */
@@ -205,6 +215,7 @@ class BetaUpdateViewModel @Inject constructor(
 
     private fun publishProgress(progress: BetaUpdateProgress) {
         lastProgress = progress
+        if (progress == BetaUpdateProgress.Failed(BetaUpdateError.SIGN_IN_FAILED)) markSignedOut()
         _uiState.update { state -> state.copy(sheet = state.sheet?.copy(progress = progress)) }
     }
 
