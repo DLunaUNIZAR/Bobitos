@@ -1,11 +1,19 @@
 package com.dlunaunizar.bobitos.feature.exercises
 
 import androidx.annotation.StringRes
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.DirectionsRun
+import androidx.compose.material.icons.rounded.FitnessCenter
+import androidx.compose.material.icons.rounded.SelfImprovement
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Sports
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.designsystem.theme.LocalDarkTheme
 import com.dlunaunizar.bobitos.core.designsystem.theme.themedColor
+import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseEquipment
 import com.dlunaunizar.bobitos.core.model.ExerciseType
 import com.dlunaunizar.bobitos.core.model.recordsSets
@@ -57,3 +65,17 @@ internal fun ExerciseType.accent(dark: Boolean): Color = when (this) {
 
 @Composable
 internal fun ExerciseType.accent(): Color = accent(LocalDarkTheme.current)
+
+// Icono del tipo: lo que se ve en la miniatura de la lista cuando el ejercicio no tiene imagen.
+internal val ExerciseType.icon: ImageVector
+    get() = when (this) {
+        ExerciseType.MAQUINA -> Icons.Rounded.Settings
+        ExerciseType.PESO_LIBRE -> Icons.Rounded.FitnessCenter
+        ExerciseType.PESO_CORPORAL -> Icons.Rounded.SelfImprovement
+        ExerciseType.CARDIO -> Icons.Rounded.DirectionsRun
+        ExerciseType.OTROS -> Icons.Rounded.Sports
+    }
+
+// Textos de la línea secundaria de la fila («Peso libre · Mancuernas»): el tipo y después el material.
+internal fun exerciseSupportingRes(exercise: CatalogExercise): List<Int> =
+    listOf(exercise.type.labelRes) + exercise.equipment.map { it.labelRes }

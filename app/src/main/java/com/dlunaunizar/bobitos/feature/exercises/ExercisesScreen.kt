@@ -4,23 +4,23 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.FitnessCenter
-import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -31,10 +31,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
@@ -47,18 +47,28 @@ import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
-import com.dlunaunizar.bobitos.core.designsystem.component.InfoChip
+import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
+import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
+import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
+import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
+import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseType
+import com.dlunaunizar.bobitos.data.repository.LoadedImage
+import com.dlunaunizar.bobitos.feature.common.CatalogGroup
+import com.dlunaunizar.bobitos.feature.common.CatalogHeader
+import com.dlunaunizar.bobitos.feature.common.CatalogLayout
+import com.dlunaunizar.bobitos.feature.common.groupCatalog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -122,7 +132,7 @@ fun ExercisesScreen(
             undoable = null
             scope.launchUndo(snackbar, deletedMessage, undoLabel) { viewModel.restoreExercise(exercise) }
         }
-        Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = Spacing.lg)) {
+        Column(Modifier.fillMaxSize().padding(padding)) {
             FeedbackSnackbarEffect(
                 error = state.error,
                 notice = state.notice,
@@ -131,18 +141,13 @@ fun ExercisesScreen(
                 onShown = viewModel::clearFeedback,
             ) { stringResource(it.stringResourceId) }
             CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                label = { Text(stringResource(R.string.exercises_search_label)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.sm),
-            )
             ExerciseCatalog(
                 state = state,
                 filter = filter,
+                onQueryChange = { query = it },
                 onTypeChange = { typeFilter = it },
                 onGroupChange = { groupFilter = it },
+                loadImage = viewModel::loadImage,
                 onRetry = viewModel::retryCatalog,
                 onOpen = {
                     detailExerciseId = it.id
@@ -231,64 +236,147 @@ fun ExercisesScreen(
 private fun ExerciseCatalog(
     state: ExercisesUiState,
     filter: ExerciseFilter,
+    onQueryChange: (String) -> Unit,
     onTypeChange: (ExerciseType?) -> Unit,
     onGroupChange: (String?) -> Unit,
+    loadImage: suspend (CatalogExercise) -> LoadedImage?,
     onOpen: (CatalogExercise) -> Unit,
     onEdit: (CatalogExercise) -> Unit,
     onDelete: (CatalogExercise) -> Unit,
     deleteEnabled: Boolean,
     onRetry: () -> Unit,
 ) {
+    val all = (state.catalog as? UiState.Content)?.value.orEmpty()
+    // Búsqueda y desplegables en la franja teñida: en la lista es su primer elemento y se va con ella al desplazar.
+    val filterBand: @Composable () -> Unit = {
+        ExerciseFilterBand(filter, all, onQueryChange, onTypeChange, onGroupChange)
+    }
     when (val catalog = state.catalog) {
-        UiState.Loading -> LoadingState(Modifier.fillMaxWidth())
-        is UiState.Error -> ErrorState(
-            Modifier.fillMaxWidth(),
-            message =
-            state.catalogError?.let { stringResource(it.stringResourceId) }
-                ?: stringResource(catalog.failure.messageRes()),
-            onRetry = onRetry,
-        )
+        UiState.Loading -> {
+            filterBand()
+            LoadingState(Modifier.fillMaxWidth())
+        }
+        is UiState.Error -> {
+            filterBand()
+            ErrorState(
+                Modifier.fillMaxWidth(),
+                message =
+                state.catalogError?.let { stringResource(it.stringResourceId) }
+                    ?: stringResource(catalog.failure.messageRes()),
+                onRetry = onRetry,
+            )
+        }
         is UiState.Content -> {
-            val groups = remember(catalog.value) { catalog.value.muscleGroups() }
             val filtered = remember(catalog.value, filter) { catalog.value.filterExercises(filter) }
-            if (catalog.value.isNotEmpty()) {
+            // Al buscar, lista plana con el grupo muscular en la línea de cada ejercicio.
+            val layout = if (filter.query.isNotBlank()) CatalogLayout.FLAT else CatalogLayout.BY_CATEGORY
+            val groups = remember(filtered, layout, filter.muscleGroup) {
+                groupCatalog(
+                    items = filtered,
+                    isMine = { false },
+                    categoryOf = CatalogExercise::muscleGroup,
+                    layout = layout,
+                    selectedCategory = filter.muscleGroup,
+                )
+            }
+            LazyColumn(contentPadding = PaddingValues(bottom = Spacing.fabClearance)) {
+                item(key = "filters") { filterBand() }
+                if (filtered.isEmpty()) {
+                    item(key = "empty") {
+                        EmptyState(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
+                            icon = Icons.Rounded.FitnessCenter,
+                            title = stringResource(
+                                if (filter.isActive && catalog.value.isNotEmpty()) {
+                                    R.string.exercises_no_results
+                                } else {
+                                    R.string.exercises_empty
+                                },
+                            ),
+                        )
+                    }
+                }
+                exerciseGroups(groups, state, loadImage, onOpen, onEdit, onDelete, deleteEnabled)
+            }
+        }
+    }
+}
+
+@Suppress("LongParameterList")
+private fun LazyListScope.exerciseGroups(
+    groups: List<CatalogGroup<CatalogExercise>>,
+    state: ExercisesUiState,
+    loadImage: suspend (CatalogExercise) -> LoadedImage?,
+    onOpen: (CatalogExercise) -> Unit,
+    onEdit: (CatalogExercise) -> Unit,
+    onDelete: (CatalogExercise) -> Unit,
+    deleteEnabled: Boolean,
+) {
+    groups.forEachIndexed { groupIndex, group ->
+        val header = group.header
+        if (header != null) {
+            stickyHeader(key = "header-$groupIndex", contentType = "header") {
+                SectionHeader(
+                    title = header.title(),
+                    count = group.items.size,
+                    sticky = true,
+                    modifier = Modifier.padding(horizontal = Spacing.lg),
+                )
+            }
+        }
+        itemsIndexed(group.items, key = { _, exercise -> exercise.id }) { index, exercise ->
+            ExerciseRow(
+                exercise = exercise,
+                position = rowPosition(index, group.items.size),
+                canEdit = state.canEdit(exercise),
+                load = { loadImage(exercise) },
+                onOpen = { onOpen(exercise) },
+                onEdit = { onEdit(exercise) },
+                onDelete = { onDelete(exercise) },
+                deleteEnabled = deleteEnabled,
+                modifier = Modifier
+                    .padding(horizontal = Spacing.lg)
+                    .padding(bottom = if (index == group.items.size - 1) Spacing.md else 0.dp)
+                    .animateItem(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CatalogHeader.title(): String = when (this) {
+    CatalogHeader.Mine -> ""
+    is CatalogHeader.Category -> name
+    CatalogHeader.Other -> stringResource(R.string.exercises_group_other)
+}
+
+@Composable
+private fun ExerciseFilterBand(
+    filter: ExerciseFilter,
+    exercises: List<CatalogExercise>,
+    onQueryChange: (String) -> Unit,
+    onTypeChange: (ExerciseType?) -> Unit,
+    onGroupChange: (String?) -> Unit,
+) {
+    val groups = remember(exercises) { exercises.muscleGroups() }
+    ModuleHeaderBand {
+        Column(
+            Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.sm, bottom = Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            SearchField(
+                query = filter.query,
+                onQueryChange = onQueryChange,
+                visible = true,
+                label = stringResource(R.string.exercises_search_label),
+            )
+            if (exercises.isNotEmpty()) {
                 ExerciseFilterMenus(
                     groups = groups,
                     filter = filter,
                     onTypeChange = onTypeChange,
                     onGroupChange = onGroupChange,
-                    modifier = Modifier.padding(bottom = Spacing.sm),
                 )
-            }
-            if (filtered.isEmpty()) {
-                EmptyState(
-                    modifier = Modifier.fillMaxWidth(),
-                    icon = Icons.Rounded.FitnessCenter,
-                    title = stringResource(
-                        if (filter.isActive && catalog.value.isNotEmpty()) {
-                            R.string.exercises_no_results
-                        } else {
-                            R.string.exercises_empty
-                        },
-                    ),
-                )
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    contentPadding = PaddingValues(bottom = Spacing.fabClearance),
-                ) {
-                    items(filtered, key = CatalogExercise::id) { exercise ->
-                        ExerciseRow(
-                            exercise = exercise,
-                            canEdit = state.canEdit(exercise),
-                            onOpen = { onOpen(exercise) },
-                            onEdit = { onEdit(exercise) },
-                            onDelete = { onDelete(exercise) },
-                            deleteEnabled = deleteEnabled,
-                            modifier = Modifier.animateItem(),
-                        )
-                    }
-                }
             }
         }
     }
@@ -297,7 +385,9 @@ private fun ExerciseCatalog(
 @Composable
 private fun ExerciseRow(
     exercise: CatalogExercise,
+    position: RowPosition,
     canEdit: Boolean,
+    load: suspend () -> LoadedImage?,
     onOpen: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -305,53 +395,44 @@ private fun ExerciseRow(
     modifier: Modifier = Modifier,
 ) {
     var menu by remember { mutableStateOf(false) }
-    Card(onClick = onOpen, modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(
-                start = Spacing.md,
-                top = Spacing.sm,
-                end = Spacing.xs,
-                bottom = Spacing.sm,
-            ),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = exercise.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                exercise.muscleGroup?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    val supporting = exerciseSupportingRes(exercise).map { stringResource(it) }.joinToString(" · ")
+    GroupedRow(position = position, onClick = onOpen, modifier = modifier) {
+        ExerciseThumbnail(exercise = exercise, load = load)
+        Spacer(Modifier.width(Spacing.md))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = exercise.name,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = supporting,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (canEdit) {
+            Box {
+                MoreOptionsButton(itemName = exercise.name, onClick = { menu = true })
+                DropdownMenu(menu, { menu = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.exercises_edit)) },
+                        onClick = {
+                            menu = false
+                            onEdit()
+                        },
                     )
-                }
-            }
-            InfoChip(stringResource(exercise.type.labelRes), contentColor = exercise.type.accent())
-            if (canEdit) {
-                Box {
-                    MoreOptionsButton(itemName = exercise.name, onClick = { menu = true })
-                    DropdownMenu(menu, { menu = false }) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.exercises_edit)) },
-                            onClick = {
-                                menu = false
-                                onEdit()
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.exercises_delete)) },
-                            enabled = deleteEnabled,
-                            onClick = {
-                                menu = false
-                                onDelete()
-                            },
-                        )
-                    }
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.exercises_delete)) },
+                        enabled = deleteEnabled,
+                        onClick = {
+                            menu = false
+                            onDelete()
+                        },
+                    )
                 }
             }
         }

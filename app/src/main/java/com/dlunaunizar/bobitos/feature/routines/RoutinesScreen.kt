@@ -1,29 +1,25 @@
 package com.dlunaunizar.bobitos.feature.routines
 
 import androidx.annotation.StringRes
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.FitnessCenter
-import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -34,11 +30,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
@@ -52,15 +48,20 @@ import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.InfoSheetAction
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
+import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
+import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
+import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Routine
@@ -118,7 +119,7 @@ fun RoutinesScreen(
         val scope = rememberCoroutineScope()
         val deletedMessage = stringResource(R.string.routines_notice_deleted)
         val undoLabel = stringResource(R.string.undo)
-        Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = Spacing.lg)) {
+        Column(Modifier.fillMaxSize().padding(padding)) {
             FeedbackSnackbarEffect(
                 error = state.error,
                 notice = state.notice,
@@ -127,15 +128,10 @@ fun RoutinesScreen(
                 onShown = viewModel::clearFeedback,
             ) { stringResource(it.stringResourceId) }
             CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                label = { Text(stringResource(R.string.routines_search_label)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.sm),
-            )
             RoutinesCatalog(
                 state = state,
+                query = query,
+                onQueryChange = { query = it },
                 canWrite = canWrite,
                 deleteEnabled = !state.isSaving,
                 onOpen = { detailRoutineId = it.id },
@@ -200,6 +196,8 @@ fun RoutinesScreen(
 @Composable
 private fun RoutinesCatalog(
     state: RoutinesUiState,
+    query: String,
+    onQueryChange: (String) -> Unit,
     canWrite: Boolean,
     deleteEnabled: Boolean,
     onOpen: (Routine) -> Unit,
@@ -207,10 +205,19 @@ private fun RoutinesCatalog(
     onDelete: (Routine) -> Unit,
     onRetry: () -> Unit,
 ) {
-    LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        contentPadding = PaddingValues(bottom = Spacing.fabClearance),
-    ) {
+    LazyColumn(contentPadding = PaddingValues(bottom = Spacing.fabClearance)) {
+        // Búsqueda en la franja teñida: primer elemento de la lista, se va con ella al desplazar.
+        item(key = "filters") {
+            ModuleHeaderBand {
+                SearchField(
+                    query = query,
+                    onQueryChange = onQueryChange,
+                    visible = true,
+                    label = stringResource(R.string.routines_search_label),
+                    modifier = Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.sm, bottom = Spacing.md),
+                )
+            }
+        }
         routinesSection(
             titleRes = R.string.routines_mine,
             routines = state.mine,
@@ -248,7 +255,7 @@ private fun LazyListScope.routinesSection(
     onRetry: () -> Unit,
 ) {
     item(key = "header-$titleRes") {
-        SectionHeader(title = stringResource(titleRes))
+        SectionHeader(title = stringResource(titleRes), modifier = Modifier.padding(horizontal = Spacing.lg))
     }
     when (routines) {
         UiState.Loading -> item(key = "loading-$titleRes") { LoadingState(Modifier.fillMaxWidth()) }
@@ -266,7 +273,7 @@ private fun LazyListScope.routinesSection(
                 val noResults = query.isNotBlank() && visible.isNotEmpty()
                 item(key = "empty-$titleRes") {
                     EmptyState(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
                         icon = Icons.Rounded.FitnessCenter,
                         title = stringResource(
                             if (noResults) R.string.routines_no_results else R.string.routines_empty,
@@ -274,9 +281,14 @@ private fun LazyListScope.routinesSection(
                     )
                 }
             } else {
-                items(filtered, key = { "$titleRes-${it.id}" }) { routine ->
+                itemsIndexed(filtered, key = { _, routine -> "$titleRes-${routine.id}" }) { index, routine ->
                     RoutineCard(
                         routine = routine,
+                        position = rowPosition(index, filtered.size),
+                        modifier = Modifier
+                            .padding(horizontal = Spacing.lg)
+                            .padding(bottom = if (index == filtered.size - 1) Spacing.md else 0.dp)
+                            .animateItem(),
                         canEdit = canEdit,
                         deleteEnabled = deleteEnabled,
                         onOpen = { onOpen(routine) },
@@ -292,61 +304,53 @@ private fun LazyListScope.routinesSection(
 @Composable
 internal fun RoutineCard(
     routine: Routine,
+    position: RowPosition,
     canEdit: Boolean,
     onOpen: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
     // Falso mientras otra escritura está en curso: borrar sería un toque que no hace nada.
     deleteEnabled: Boolean = true,
 ) {
     var menu by remember { mutableStateOf(false) }
-    Card(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(
-                start = Spacing.md,
-                top = Spacing.sm,
-                end = Spacing.xs,
-                bottom = Spacing.sm,
-            ),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    routine.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = pluralStringResource(
-                        R.plurals.routines_exercise_count,
-                        routine.exercises.orEmpty().size,
-                        routine.exercises.orEmpty().size,
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (canEdit) {
-                Box {
-                    MoreOptionsButton(itemName = routine.title, onClick = { menu = true })
-                    DropdownMenu(menu, { menu = false }) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.routines_edit)) },
-                            onClick = {
-                                menu = false
-                                onEdit()
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.routines_delete)) },
-                            enabled = deleteEnabled,
-                            onClick = {
-                                menu = false
-                                onDelete()
-                            },
-                        )
-                    }
+    GroupedRow(position = position, onClick = onOpen, modifier = modifier) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                routine.title,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = pluralStringResource(
+                    R.plurals.routines_exercise_count,
+                    routine.exercises.orEmpty().size,
+                    routine.exercises.orEmpty().size,
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (canEdit) {
+            Box {
+                MoreOptionsButton(itemName = routine.title, onClick = { menu = true })
+                DropdownMenu(menu, { menu = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.routines_edit)) },
+                        onClick = {
+                            menu = false
+                            onEdit()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.routines_delete)) },
+                        enabled = deleteEnabled,
+                        onClick = {
+                            menu = false
+                            onDelete()
+                        },
+                    )
                 }
             }
         }

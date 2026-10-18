@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
 import com.dlunaunizar.bobitos.core.designsystem.theme.BobitosTheme
 import com.dlunaunizar.bobitos.core.model.Routine
 import com.dlunaunizar.bobitos.core.model.RoutineVisibility
@@ -32,7 +33,8 @@ class RoutineCardTest {
     @Test fun deletingIsDisabledWhileAnotherWriteIsInFlight() {
         compose.setContent {
             BobitosTheme {
-                RoutineCard(routine, canEdit = true, onOpen = {}, onEdit = {}, onDelete = {}, deleteEnabled = false)
+                RoutineCard(routine, RowPosition.SINGLE, canEdit = true, onOpen = {
+                }, onEdit = {}, onDelete = {}, deleteEnabled = false)
             }
         }
         compose.onNodeWithContentDescription("Más opciones de «Pierna»").performClick()
