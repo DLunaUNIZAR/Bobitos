@@ -2,4 +2,6 @@
 <resources>
     <!-- Fondo de la ventana previa a Compose (fondo del tema oscuro). -->
     <color name="bobitos_window">#FF141513</color>
+    <!-- Fondo crema del icono de la app (capa de fondo del icono adaptable). -->
+    <color name="ic_launcher_background">#FFFBFAF8</color>
 </resources>
