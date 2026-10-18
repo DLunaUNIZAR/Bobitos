@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -70,6 +71,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.WeekDayStrip
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
+import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
 import com.dlunaunizar.bobitos.core.designsystem.rememberToday
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
@@ -109,16 +111,24 @@ fun SportScreen(
     var editorOpen by rememberSaveable { mutableStateOf(false) }
     var editorActivityId by rememberSaveable { mutableStateOf<String?>(null) }
 
+    val listState = rememberLazyListState()
     ModuleScaffold(
         modifier = modifier.fillMaxSize(),
         floatingActionButton = {
             if (canWrite) {
+                val fabExpanded = rememberFabExpanded(listState)
                 ExtendedFloatingActionButton(
+                    expanded = fabExpanded,
                     onClick = {
                         editorActivityId = null
                         editorOpen = true
                     },
-                    icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                    icon = {
+                        Icon(
+                            Icons.Rounded.Add,
+                            contentDescription = if (fabExpanded) null else stringResource(R.string.sport_add),
+                        )
+                    },
                     text = { Text(stringResource(R.string.sport_add)) },
                 )
             }
@@ -184,6 +194,7 @@ fun SportScreen(
                             )
                         } else {
                             LazyColumn(
+                                state = listState,
                                 modifier = Modifier.weight(1f),
                                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                                 contentPadding = PaddingValues(bottom = Spacing.fabClearance),

@@ -2,6 +2,7 @@
 
 package com.dlunaunizar.bobitos.core.designsystem.component
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,10 +12,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.dlunaunizar.bobitos.core.designsystem.pressScale
+import com.dlunaunizar.bobitos.core.designsystem.rememberReduceMotion
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 
 /** Lugar de una fila dentro de su grupo: define qué esquinas son grandes. */
@@ -61,7 +65,15 @@ fun GroupedRow(
         )
     }
     if (onClick != null) {
-        Surface(onClick = onClick, modifier = outer, shape = shape, color = color, content = body)
+        val interactionSource = remember { MutableInteractionSource() }
+        Surface(
+            onClick = onClick,
+            modifier = outer.pressScale(interactionSource, rememberReduceMotion()),
+            shape = shape,
+            color = color,
+            interactionSource = interactionSource,
+            content = body,
+        )
     } else {
         Surface(modifier = outer, shape = shape, color = color, content = body)
     }

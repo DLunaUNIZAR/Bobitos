@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.StickyNote2
 import androidx.compose.material.icons.rounded.Add
@@ -59,6 +60,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
+import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Note
@@ -89,6 +91,7 @@ fun NotesScreen(
         editorVisible = false
     }
 
+    val listState = rememberLazyListState()
     ScreenScaffold(
         module = AppModule.NOTES,
         title = stringResource(R.string.notes_title),
@@ -96,12 +99,19 @@ fun NotesScreen(
         modifier = modifier,
         floatingActionButton = {
             if (canWrite && spaceId != null) {
+                val fabExpanded = rememberFabExpanded(listState)
                 ExtendedFloatingActionButton(
+                    expanded = fabExpanded,
                     onClick = {
                         editorNoteId = null
                         editorVisible = true
                     },
-                    icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                    icon = {
+                        Icon(
+                            Icons.Rounded.Add,
+                            contentDescription = if (fabExpanded) null else stringResource(R.string.notes_add),
+                        )
+                    },
                     text = { Text(stringResource(R.string.notes_add)) },
                 )
             }
@@ -136,6 +146,7 @@ fun NotesScreen(
                     )
                 } else {
                     LazyColumn(
+                        state = listState,
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(
                             start = Spacing.lg,

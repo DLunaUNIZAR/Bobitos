@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.core.designsystem.component
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,9 +20,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -30,7 +36,12 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.BobitosDates
+import com.dlunaunizar.bobitos.core.designsystem.BouncySpring
+import com.dlunaunizar.bobitos.core.designsystem.motionSpec
+import com.dlunaunizar.bobitos.core.designsystem.rememberReduceMotion
 import java.time.LocalDate
+
+private val DayGap = 4.dp
 
 /** Colores de [WeekDayStrip]. La fase de color por módulo pasará los suyos. */
 @Immutable
@@ -66,9 +77,26 @@ fun WeekDayStrip(
         IconButton(onClick = onPrevious) {
             Icon(Icons.Rounded.ChevronLeft, contentDescription = previousLabel)
         }
+        val selectedIndex = days.indexOf(selected)
+        val pillPosition by animateFloatAsState(
+            targetValue = selectedIndex.toFloat(),
+            animationSpec = motionSpec(rememberReduceMotion(), BouncySpring),
+            label = "weekDayPill",
+        )
+        val pillShape = MaterialTheme.shapes.medium
         Row(
-            modifier = Modifier.weight(1f).selectableGroup(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier
+                .weight(1f)
+                // La pastilla del día elegido se dibuja una vez y se desliza hasta el día tocado.
+                .drawBehind {
+                    if (selectedIndex < 0) return@drawBehind
+                    val gap = DayGap.toPx()
+                    val cell = (size.width - gap * (days.size - 1)) / days.size
+                    val outline = pillShape.createOutline(Size(cell, size.height), layoutDirection, this)
+                    translate(left = pillPosition * (cell + gap)) { drawOutline(outline, colors.selectedContainer) }
+                }
+                .selectableGroup(),
+            horizontalArrangement = Arrangement.spacedBy(DayGap),
         ) {
             days.forEach { day ->
                 WeekDay(
@@ -108,7 +136,7 @@ private fun WeekDay(
                 this.selected = isSelected
             },
         shape = MaterialTheme.shapes.medium,
-        color = if (isSelected) colors.selectedContainer else Color.Transparent,
+        color = Color.Transparent,
         contentColor = content,
         border = if (isToday) BorderStroke(2.dp, colors.todayOutline) else null,
     ) {

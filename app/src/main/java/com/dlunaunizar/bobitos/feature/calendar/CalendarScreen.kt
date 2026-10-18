@@ -25,7 +25,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
@@ -111,6 +113,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
+import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
 import com.dlunaunizar.bobitos.core.designsystem.rememberToday
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
@@ -178,13 +181,29 @@ fun CalendarScreen(
     }
 
     val editorOpen = creating || editorEventId != null || creatingAtText != null
+    // El FAB sigue la lista de la vista abierta; el mes no se desplaza.
+    val dayListState = rememberLazyListState()
+    val weekListState = rememberLazyListState()
+    val monthListState = rememberLazyListState()
+    val fabListState = when (state.mode) {
+        CalendarDisplayMode.DAY -> dayListState
+        CalendarDisplayMode.WEEK -> weekListState
+        CalendarDisplayMode.MONTH -> monthListState
+    }
     ModuleScaffold(
         modifier = modifier.fillMaxSize(),
         floatingActionButton = {
             if (canWrite) {
+                val fabExpanded = rememberFabExpanded(fabListState)
                 ExtendedFloatingActionButton(
+                    expanded = fabExpanded,
                     onClick = { creating = true },
-                    icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                    icon = {
+                        Icon(
+                            Icons.Rounded.Add,
+                            contentDescription = if (fabExpanded) null else stringResource(R.string.calendar_new_event),
+                        )
+                    },
                     text = { Text(stringResource(R.string.calendar_new_event)) },
                 )
             }
@@ -252,6 +271,7 @@ fun CalendarScreen(
                             onCreateAt = { creatingAtText = it.toString() },
                             modifier = Modifier.weight(1f),
                             deleteEnabled = !state.saving,
+                            listState = dayListState,
                         )
                         CalendarDisplayMode.WEEK -> WeekEventList(
                             focusedDate = state.focusedDate,
@@ -262,6 +282,7 @@ fun CalendarScreen(
                             onDayTap = onDayTap,
                             modifier = Modifier.weight(1f),
                             deleteEnabled = !state.saving,
+                            listState = weekListState,
                         )
                     }
                 }
@@ -527,12 +548,14 @@ internal fun WeekEventList(
     onDayTap: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
     deleteEnabled: Boolean = true,
+    listState: LazyListState = rememberLazyListState(),
 ) {
     val monday = focusedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
     val rows = rememberWeekRows(monday, events, rememberToday()) { events.eventsOn(it).isNotEmpty() }
     var expandedRuns by rememberExpandedRuns(monday)
     LazyColumn(
         modifier,
+        state = listState,
         verticalArrangement = Arrangement.spacedBy(6.dp),
         contentPadding = PaddingValues(bottom = Spacing.fabClearance),
     ) {
@@ -623,12 +646,13 @@ internal fun DayHourGrid(
     onCreateAt: (LocalTime) -> Unit,
     modifier: Modifier = Modifier,
     deleteEnabled: Boolean = true,
+    listState: LazyListState = rememberLazyListState(),
 ) {
     val zone = ZoneId.systemDefault()
     val allDay = events.filter(CalendarEvent::allDay)
     val timedByHour = events.filterNot(CalendarEvent::allDay)
         .groupBy { it.startAt.atZone(zone).toLocalTime().hour }
-    LazyColumn(modifier, contentPadding = PaddingValues(bottom = Spacing.fabClearance)) {
+    LazyColumn(modifier, state = listState, contentPadding = PaddingValues(bottom = Spacing.fabClearance)) {
         if (canWrite) {
             item(key = "hold-hint") {
                 Text(

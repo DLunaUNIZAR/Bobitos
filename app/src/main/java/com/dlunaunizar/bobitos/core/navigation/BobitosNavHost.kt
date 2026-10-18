@@ -7,6 +7,9 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,8 +35,10 @@ import com.dlunaunizar.bobitos.app.AppUiState
 import com.dlunaunizar.bobitos.app.RealtimeScope
 import com.dlunaunizar.bobitos.core.common.BobitosDates
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.designsystem.NavMotion
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.navMotionFor
 import com.dlunaunizar.bobitos.core.designsystem.rememberReduceMotion
 import com.dlunaunizar.bobitos.core.designsystem.rememberToday
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
@@ -186,10 +191,38 @@ fun BobitosNavHost(
         navController = navController,
         startDestination = BobitosDestination.Home.route,
         modifier = modifier.fillMaxSize(),
-        enterTransition = { if (reduceMotion) EnterTransition.None else fadeIn(tween(NAV_ANIM_MS)) },
-        exitTransition = { if (reduceMotion) ExitTransition.None else fadeOut(tween(NAV_ANIM_MS)) },
-        popEnterTransition = { if (reduceMotion) EnterTransition.None else fadeIn(tween(NAV_ANIM_MS)) },
-        popExitTransition = { if (reduceMotion) ExitTransition.None else fadeOut(tween(NAV_ANIM_MS)) },
+        enterTransition = {
+            when {
+                reduceMotion -> EnterTransition.None
+                navMotionFor(initialState.destination.route, targetState.destination.route) == NavMotion.FADE_THROUGH ->
+                    fadeIn(tween(FADE_MS)) + scaleIn(tween(NAV_ANIM_MS), initialScale = FADE_SCALE)
+                else -> slideInHorizontally(tween(NAV_ANIM_MS)) { it } + fadeIn(tween(NAV_ANIM_MS))
+            }
+        },
+        exitTransition = {
+            when {
+                reduceMotion -> ExitTransition.None
+                navMotionFor(initialState.destination.route, targetState.destination.route) == NavMotion.FADE_THROUGH ->
+                    fadeOut(tween(FADE_MS))
+                else -> fadeOut(tween(NAV_ANIM_MS))
+            }
+        },
+        popEnterTransition = {
+            when {
+                reduceMotion -> EnterTransition.None
+                navMotionFor(initialState.destination.route, targetState.destination.route) == NavMotion.FADE_THROUGH ->
+                    fadeIn(tween(FADE_MS)) + scaleIn(tween(NAV_ANIM_MS), initialScale = FADE_SCALE)
+                else -> fadeIn(tween(NAV_ANIM_MS))
+            }
+        },
+        popExitTransition = {
+            when {
+                reduceMotion -> ExitTransition.None
+                navMotionFor(initialState.destination.route, targetState.destination.route) == NavMotion.FADE_THROUGH ->
+                    fadeOut(tween(FADE_MS))
+                else -> slideOutHorizontally(tween(NAV_ANIM_MS)) { it } + fadeOut(tween(NAV_ANIM_MS))
+            }
+        },
     ) {
         composable(BobitosDestination.Home.route) {
             MainMenuScreen(
@@ -712,6 +745,8 @@ private fun NavHostController.navigateToProfile() {
 }
 
 private const val NAV_ANIM_MS = 220
+private const val FADE_MS = 90
+private const val FADE_SCALE = 0.92f
 
 /** Falta el hub del espacio en la pila: hay que apilarlo antes de entrar en un módulo del espacio. */
 internal fun needsSpaceHomeAnchor(backStackRoutes: List<String?>): Boolean =

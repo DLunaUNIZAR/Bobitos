@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -76,6 +77,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
+import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
 import com.dlunaunizar.bobitos.core.designsystem.rememberToday
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Meal
@@ -119,12 +121,14 @@ fun MealsScreen(
     val deletedMessage = stringResource(R.string.meals_undo_deleted)
     val undoLabel = stringResource(R.string.undo)
 
+    val listState = rememberLazyListState()
     ModuleScaffold(
         modifier = modifier.fillMaxSize(),
         saving = savingOutsideEditor(state.isSaving, editorOpen),
         floatingActionButton = {
             NewMealFab(
                 visible = canWrite,
+                expanded = rememberFabExpanded(listState),
                 onClick = { openEditor(null, defaultMealSlot(LocalTime.now().hour)) },
             )
         },
@@ -220,6 +224,7 @@ fun MealsScreen(
                         )
                         val queriedMeals = dayMeals.filter { it.matchesQuery(query) }
                         LazyColumn(
+                            state = listState,
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             contentPadding = PaddingValues(top = 8.dp, bottom = Spacing.fabClearance),
                         ) {
@@ -695,11 +700,17 @@ private fun MealParticipants(members: List<SpaceMember>, draft: MealDraft, onDra
 }
 
 @Composable
-private fun NewMealFab(visible: Boolean, onClick: () -> Unit) {
+private fun NewMealFab(visible: Boolean, expanded: Boolean, onClick: () -> Unit) {
     if (!visible) return
     ExtendedFloatingActionButton(
+        expanded = expanded,
         onClick = onClick,
-        icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+        icon = {
+            Icon(
+                Icons.Rounded.Add,
+                contentDescription = if (expanded) null else stringResource(R.string.meals_add_title),
+            )
+        },
         text = { Text(stringResource(R.string.meals_add_title)) },
     )
 }

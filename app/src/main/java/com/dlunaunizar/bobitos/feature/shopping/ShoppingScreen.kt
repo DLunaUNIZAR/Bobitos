@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
@@ -87,6 +88,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
+import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryRowTint
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
@@ -162,18 +164,26 @@ fun ShoppingScreen(
     val pending = filteredItems.filterNot(ShoppingItem::purchased)
     val purchased = filteredItems.filter(ShoppingItem::purchased)
     val actionsEnabled = canWrite && !state.isSaving
+    val listState = rememberLazyListState()
     ModuleScaffold(
         modifier = modifier.fillMaxSize(),
         saving = savingOutsideEditor(state.isSaving, editorVisible),
         floatingActionButton = {
             if (canWrite) {
+                val fabExpanded = rememberFabExpanded(listState)
                 ExtendedFloatingActionButton(
+                    expanded = fabExpanded,
                     onClick = {
                         editedItemId = null
                         initialDraft = null
                         editorVisible = true
                     },
-                    icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                    icon = {
+                        Icon(
+                            Icons.Rounded.Add,
+                            contentDescription = if (fabExpanded) null else stringResource(R.string.shopping_add),
+                        )
+                    },
                     text = { Text(stringResource(R.string.shopping_add)) },
                 )
             }
@@ -218,6 +228,7 @@ fun ShoppingScreen(
                         ShoppingEmptyState(modifier = Modifier.weight(1f))
                     } else {
                         LazyColumn(
+                            state = listState,
                             modifier = Modifier.weight(1f),
                             contentPadding = PaddingValues(bottom = Spacing.fabClearance),
                         ) {

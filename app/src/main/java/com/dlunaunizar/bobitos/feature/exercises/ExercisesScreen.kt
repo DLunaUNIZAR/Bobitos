@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.FitnessCenter
@@ -60,6 +62,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
+import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
@@ -107,18 +110,26 @@ fun ExercisesScreen(
         editorOpen = false
     }
 
+    val listState = rememberLazyListState()
     ScreenScaffold(
         module = AppModule.SPORT,
         title = stringResource(R.string.exercises_title),
         onBack = onBack,
         modifier = modifier,
         floatingActionButton = {
+            val fabExpanded = rememberFabExpanded(listState)
             ExtendedFloatingActionButton(
+                expanded = fabExpanded,
                 onClick = {
                     editorExerciseId = null
                     editorOpen = true
                 },
-                icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                icon = {
+                    Icon(
+                        Icons.Rounded.Add,
+                        contentDescription = if (fabExpanded) null else stringResource(R.string.exercises_add),
+                    )
+                },
                 text = { Text(stringResource(R.string.exercises_add)) },
             )
         },
@@ -159,6 +170,7 @@ fun ExercisesScreen(
                 },
                 onDelete = requestDelete,
                 deleteEnabled = !state.isSaving,
+                listState = listState,
             )
         }
     }
@@ -245,6 +257,7 @@ private fun ExerciseCatalog(
     onDelete: (CatalogExercise) -> Unit,
     deleteEnabled: Boolean,
     onRetry: () -> Unit,
+    listState: LazyListState,
 ) {
     val all = (state.catalog as? UiState.Content)?.value.orEmpty()
     // Búsqueda y desplegables en la franja teñida: en la lista es su primer elemento y se va con ella al desplazar.
@@ -279,7 +292,7 @@ private fun ExerciseCatalog(
                     selectedCategory = filter.muscleGroup,
                 )
             }
-            LazyColumn(contentPadding = PaddingValues(bottom = Spacing.fabClearance)) {
+            LazyColumn(state = listState, contentPadding = PaddingValues(bottom = Spacing.fabClearance)) {
                 item(key = "filters") { filterBand() }
                 if (filtered.isEmpty()) {
                     item(key = "empty") {

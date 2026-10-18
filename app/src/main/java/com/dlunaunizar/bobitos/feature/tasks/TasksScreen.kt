@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -108,6 +109,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
+import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryRowTint
 import com.dlunaunizar.bobitos.core.model.RecurrenceUnit
@@ -156,15 +158,23 @@ fun TasksScreen(
     var completedExpanded by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
 
+    val listState = rememberLazyListState()
     ModuleScaffold(
         modifier = modifier.fillMaxSize(),
         floatingActionButton = {
             if (canWrite) {
+                val fabExpanded = rememberFabExpanded(listState)
                 ExtendedFloatingActionButton(
+                    expanded = fabExpanded,
                     onClick = {
                         openEditor(null, -1)
                     },
-                    icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                    icon = {
+                        Icon(
+                            Icons.Rounded.Add,
+                            contentDescription = if (fabExpanded) null else stringResource(R.string.tasks_add),
+                        )
+                    },
                     text = { Text(stringResource(R.string.tasks_add)) },
                 )
             }
@@ -279,6 +289,7 @@ fun TasksScreen(
                         }
                     }
                     LazyColumn(
+                        state = listState,
                         modifier = Modifier.weight(1f),
                         // Deja hueco para que el FAB no tape el último elemento.
                         contentPadding = PaddingValues(bottom = Spacing.fabClearance),

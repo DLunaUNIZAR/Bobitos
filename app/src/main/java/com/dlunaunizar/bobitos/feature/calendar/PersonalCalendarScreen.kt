@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.AlertDialog
@@ -59,6 +61,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.MultiSelectFilterDrop
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
 import com.dlunaunizar.bobitos.core.designsystem.rememberToday
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
@@ -134,6 +137,15 @@ fun PersonalCalendarScreen(
     }
     BackHandler(enabled = drilledFrom != null, onBack = onBackAction)
 
+    // El FAB sigue la lista de la vista abierta; el mes no se desplaza.
+    val dayListState = rememberLazyListState()
+    val weekListState = rememberLazyListState()
+    val monthListState = rememberLazyListState()
+    val fabListState = when (state.mode) {
+        CalendarDisplayMode.DAY -> dayListState
+        CalendarDisplayMode.WEEK -> weekListState
+        CalendarDisplayMode.MONTH -> monthListState
+    }
     ScreenScaffold(
         module = AppModule.CALENDAR,
         title = stringResource(R.string.my_calendar_title),
@@ -141,7 +153,12 @@ fun PersonalCalendarScreen(
         modifier = modifier,
         syncStatus = syncStatus,
         floatingActionButton = {
-            NewEventFab(canWrite = canWrite, spaceCount = spaces.size, onClick = { onCreateAt(null) })
+            NewEventFab(
+                canWrite = canWrite,
+                spaceCount = spaces.size,
+                expanded = rememberFabExpanded(fabListState),
+                onClick = { onCreateAt(null) },
+            )
         },
     ) { padding ->
         val snackbar = LocalSnackbarHostState.current
@@ -209,12 +226,14 @@ fun PersonalCalendarScreen(
                             onCreateAt = onCreateAt,
                             modifier = Modifier.weight(1f),
                             deleteEnabled = !state.saving,
+                            listState = dayListState,
                         )
                         CalendarDisplayMode.WEEK -> PersonalWeekEventList(
                             events = events,
                             focusedDate = state.focusedDate,
                             onSelected = onEventSelected,
                             modifier = Modifier.weight(1f),
+                            listState = weekListState,
                         )
                     }
                 }
@@ -338,12 +357,14 @@ private fun PersonalWeekEventList(
     focusedDate: LocalDate,
     onSelected: (String, String, LocalDate) -> Unit,
     modifier: Modifier = Modifier,
+    listState: LazyListState = rememberLazyListState(),
 ) {
     val monday = focusedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
     val rows = rememberWeekRows(monday, events, rememberToday()) { events.eventsOn(it).isNotEmpty() }
     var expandedRuns by rememberExpandedRuns(monday)
     LazyColumn(
         modifier,
+        state = listState,
         contentPadding = PaddingValues(bottom = Spacing.fabClearance),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -404,11 +425,17 @@ private fun List<PersonalCalendarEvent>.eventsOn(date: LocalDate): List<Personal
 
 // Sin conexión o sin espacios no hay dónde crear el evento: no se muestra.
 @Composable
-private fun NewEventFab(canWrite: Boolean, spaceCount: Int, onClick: () -> Unit) {
+private fun NewEventFab(canWrite: Boolean, spaceCount: Int, expanded: Boolean, onClick: () -> Unit) {
     if (!canWrite || spaceCount == 0) return
     ExtendedFloatingActionButton(
+        expanded = expanded,
         onClick = onClick,
-        icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+        icon = {
+            Icon(
+                Icons.Rounded.Add,
+                contentDescription = if (expanded) null else stringResource(R.string.calendar_new_event),
+            )
+        },
         text = { Text(stringResource(R.string.calendar_new_event)) },
     )
 }

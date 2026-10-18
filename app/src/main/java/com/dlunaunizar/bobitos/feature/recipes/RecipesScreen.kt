@@ -67,6 +67,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
+import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Recipe
@@ -150,6 +151,7 @@ fun RecipesScreen(
         imported = null
     }
 
+    val listState = rememberLazyListState()
     ScreenScaffold(
         module = AppModule.MEALS,
         title = stringResource(R.string.recipes_title),
@@ -168,13 +170,20 @@ fun RecipesScreen(
         },
         floatingActionButton = {
             if (canWrite) {
+                val fabExpanded = rememberFabExpanded(listState)
                 ExtendedFloatingActionButton(
+                    expanded = fabExpanded,
                     onClick = {
                         editorRecipeId = null
                         imported = null
                         editorOpen = true
                     },
-                    icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                    icon = {
+                        Icon(
+                            Icons.Rounded.Add,
+                            contentDescription = if (fabExpanded) null else stringResource(R.string.recipes_create),
+                        )
+                    },
                     text = { Text(stringResource(R.string.recipes_create)) },
                 )
             }
@@ -210,7 +219,6 @@ fun RecipesScreen(
                 rememberRecipeGroups(state.mine, state.global, state.query, selectedCategory, pantryIds, layout)
             // Los filtros quedan fuera de la lista: al activar o apagar «Con lo que hay» la lista se reordena y,
             // si estaba desplazada, se quedaría anclada en una receta que se ha movido; vuelve arriba.
-            val listState = rememberLazyListState()
             ScrollToTopOnChange(state.pantryOnly.toString(), listState)
             LazyColumn(
                 state = listState,

@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.FitnessCenter
@@ -62,6 +64,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
+import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Routine
@@ -97,6 +100,7 @@ fun RoutinesScreen(
         editorRoutineId = null
     }
 
+    val listState = rememberLazyListState()
     ScreenScaffold(
         module = AppModule.SPORT,
         title = stringResource(R.string.routines_title),
@@ -104,12 +108,19 @@ fun RoutinesScreen(
         modifier = modifier,
         floatingActionButton = {
             if (canWrite) {
+                val fabExpanded = rememberFabExpanded(listState)
                 ExtendedFloatingActionButton(
+                    expanded = fabExpanded,
                     onClick = {
                         editorRoutineId = null
                         editorOpen = true
                     },
-                    icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                    icon = {
+                        Icon(
+                            Icons.Rounded.Add,
+                            contentDescription = if (fabExpanded) null else stringResource(R.string.routines_add),
+                        )
+                    },
                     text = { Text(stringResource(R.string.routines_add)) },
                 )
             }
@@ -149,6 +160,7 @@ fun RoutinesScreen(
                     }
                 },
                 onRetry = viewModel::retry,
+                listState = listState,
             )
         }
     }
@@ -204,8 +216,9 @@ private fun RoutinesCatalog(
     onEdit: (Routine) -> Unit,
     onDelete: (Routine) -> Unit,
     onRetry: () -> Unit,
+    listState: LazyListState,
 ) {
-    LazyColumn(contentPadding = PaddingValues(bottom = Spacing.fabClearance)) {
+    LazyColumn(state = listState, contentPadding = PaddingValues(bottom = Spacing.fabClearance)) {
         // Búsqueda en la franja teñida: primer elemento de la lista, se va con ella al desplazar.
         item(key = "filters") {
             ModuleHeaderBand {

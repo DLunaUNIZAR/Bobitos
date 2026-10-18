@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
@@ -62,6 +63,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
+import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.InvitationCode
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
@@ -146,6 +148,7 @@ private fun SpacesContent(
         }
     }
 
+    val listState = rememberLazyListState()
     ScreenScaffold(
         title = stringResource(R.string.spaces_title),
         onBack = onBack,
@@ -162,9 +165,16 @@ private fun SpacesContent(
         },
         floatingActionButton = {
             if (canWrite) {
+                val fabExpanded = rememberFabExpanded(listState)
                 ExtendedFloatingActionButton(
+                    expanded = fabExpanded,
                     onClick = { showCreateDialog = true },
-                    icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                    icon = {
+                        Icon(
+                            Icons.Rounded.Add,
+                            contentDescription = if (fabExpanded) null else stringResource(R.string.space_create),
+                        )
+                    },
                     text = { Text(stringResource(R.string.space_create)) },
                 )
             }
@@ -208,6 +218,7 @@ private fun SpacesContent(
                 )
             } else {
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(bottom = Spacing.fabClearance),

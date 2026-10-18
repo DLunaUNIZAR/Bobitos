@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Kitchen
@@ -69,6 +71,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
+import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
@@ -109,6 +112,7 @@ fun IngredientsScreen(
         showScanCreate = false
     }
 
+    val listState = rememberLazyListState()
     ScreenScaffold(
         module = AppModule.MEALS,
         title = stringResource(R.string.ingredients_title),
@@ -117,9 +121,16 @@ fun IngredientsScreen(
         saving = savingOutsideEditor(state.isSaving, editorOpen),
         actions = { ScanButton(enabled = !state.isLookingUp, onScanned = viewModel::lookupBarcode) },
         floatingActionButton = {
+            val fabExpanded = rememberFabExpanded(listState)
             ExtendedFloatingActionButton(
+                expanded = fabExpanded,
                 onClick = { showEditor = true },
-                icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                icon = {
+                    Icon(
+                        Icons.Rounded.Add,
+                        contentDescription = if (fabExpanded) null else stringResource(R.string.ingredients_add),
+                    )
+                },
                 text = { Text(stringResource(R.string.ingredients_add)) },
             )
         },
@@ -145,6 +156,7 @@ fun IngredientsScreen(
                 onQueryChange = { query = it },
                 onOpen = { onOpenIngredient(it.id) },
                 onRetry = viewModel::retryCatalog,
+                listState = listState,
             )
         }
     }
@@ -256,6 +268,7 @@ private fun IngredientCatalog(
     onQueryChange: (String) -> Unit,
     onOpen: (CatalogIngredient) -> Unit,
     onRetry: () -> Unit,
+    listState: LazyListState,
 ) {
     var category by rememberSaveable { mutableStateOf<String?>(null) }
     val content = state.ingredients as? UiState.Content
@@ -294,7 +307,7 @@ private fun IngredientCatalog(
                     selectedCategory = category,
                 )
             }
-            LazyColumn(contentPadding = PaddingValues(bottom = Spacing.fabClearance)) {
+            LazyColumn(state = listState, contentPadding = PaddingValues(bottom = Spacing.fabClearance)) {
                 item(key = "filters") { filterBand() }
                 if (filtered.isEmpty()) {
                     item(key = "empty") {

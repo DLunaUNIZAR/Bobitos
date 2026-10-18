@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Inventory2
@@ -45,6 +47,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostStat
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
+import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.PantryItem
@@ -68,6 +71,7 @@ fun PantryScreen(
     val canEdit = canWrite && spaceId != null
     val items = (state.items as? UiState.Content)?.value.orEmpty()
 
+    val listState = rememberLazyListState()
     ScreenScaffold(
         module = AppModule.PANTRY,
         title = stringResource(R.string.pantry_title),
@@ -78,9 +82,16 @@ fun PantryScreen(
         },
         floatingActionButton = {
             if (canEdit) {
+                val fabExpanded = rememberFabExpanded(listState)
                 ExtendedFloatingActionButton(
+                    expanded = fabExpanded,
                     onClick = viewModel::openPicker,
-                    icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                    icon = {
+                        Icon(
+                            Icons.Rounded.Add,
+                            contentDescription = if (fabExpanded) null else stringResource(R.string.pantry_add),
+                        )
+                    },
                     text = { Text(stringResource(R.string.pantry_add)) },
                 )
             }
@@ -114,6 +125,7 @@ fun PantryScreen(
                     onQueryChange = viewModel::setQuery,
                     onFinished = viewModel::markFinished,
                     modifier = Modifier.weight(1f),
+                    listState = listState,
                 )
             }
         }
@@ -142,6 +154,7 @@ private fun PantryContent(
     enabled: Boolean,
     onQueryChange: (String) -> Unit,
     onFinished: (PantryItem) -> Unit,
+    listState: LazyListState,
     modifier: Modifier = Modifier,
 ) {
     if (items.isEmpty()) {
@@ -170,6 +183,7 @@ private fun PantryContent(
             )
         }
         LazyColumn(
+            state = listState,
             // Abajo deja sitio al botón flotante para no tapar «Se acabó» de la última fila.
             contentPadding = PaddingValues(
                 start = Spacing.lg,
