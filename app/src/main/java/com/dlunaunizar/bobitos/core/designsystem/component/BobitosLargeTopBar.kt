@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.core.designsystem.component
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -45,7 +46,8 @@ import kotlin.math.roundToInt
  *
  * Se compone de dos partes. La fila de iconos es un `TopAppBar` de Material de 64 dp: a la izquierda la
  * flecha atrás o el [spaceSelector], a la derecha las [actions]. Debajo va la zona abierta: el [eyebrow]
- * (el saludo de Hoy) y el título grande, de hasta dos líneas. La zona se mide y fija el recorrido del
+ * (el saludo de Hoy) y el título grande, de hasta dos líneas, y bajo ellos la [band] de la pantalla
+ * (filtros, búsqueda), que se encoge con la zona. La zona se mide y fija el recorrido del
  * [scrollBehavior] con su alto; al encoger se recorta por arriba y el título sube con ella.
  *
  * Al encoger, el [spaceSelector] se funde y el título pequeño aparece en su sitio. Pasada la mitad el
@@ -64,6 +66,7 @@ fun BobitosLargeTopBar(
     spaceSelector: (@Composable () -> Unit)? = null,
     eyebrow: String? = null,
     onBack: (() -> Unit)? = null,
+    band: (@Composable ColumnScope.() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     val module = LocalAppModule.current
@@ -91,25 +94,32 @@ fun BobitosLargeTopBar(
             colors = TopAppBarDefaults.topAppBarColors(containerColor = container, scrolledContainerColor = container),
         )
         CollapsingZone(state, container) {
-            Column(modifier = Modifier.padding(horizontal = Spacing.lg).padding(bottom = Spacing.lg)) {
-                if (eyebrow != null) {
+            Column {
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = Spacing.lg)
+                        .padding(bottom = if (band == null) Spacing.lg else Spacing.sm),
+                ) {
+                    if (eyebrow != null) {
+                        Text(
+                            text = eyebrow,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                     Text(
-                        text = eyebrow,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
+                        text = title,
+                        style = MaterialTheme.typography.headlineMedium,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .graphicsLayer { alpha = 1f - state.collapsedFraction }
+                            .titleSemantics(isHeading = !smallTitle),
                     )
                 }
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.headlineMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .graphicsLayer { alpha = 1f - state.collapsedFraction }
-                        .titleSemantics(isHeading = !smallTitle),
-                )
+                band?.invoke(this)
             }
         }
     }

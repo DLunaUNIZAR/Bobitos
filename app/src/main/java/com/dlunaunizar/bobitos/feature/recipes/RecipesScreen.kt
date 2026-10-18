@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -47,8 +49,8 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
+import com.dlunaunizar.bobitos.core.designsystem.component.CollapsibleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
-import com.dlunaunizar.bobitos.core.designsystem.component.DeclareHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -59,7 +61,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
 import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
-import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
@@ -214,37 +215,34 @@ fun RecipesScreen(
             // Los filtros quedan fuera de la lista: al activar o apagar «Con lo que hay» la lista se reordena y,
             // si estaba desplazada, se quedaría anclada en una receta que se ha movido; vuelve arriba.
             ScrollToTopOnChange(state.pantryOnly.toString(), listState)
-            // La franja va dentro de la lista y sale de composición al desplazar: se declara aquí, fuera.
-            DeclareHeaderBand()
+            // Búsqueda y filtros en la franja de la cabecera: se encoge con la barra al desplazar.
+            CollapsibleHeaderBand {
+                Column(
+                    Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.sm, bottom = Spacing.md),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    OutlinedTextField(
+                        value = state.query,
+                        onValueChange = viewModel::setQuery,
+                        label = { Text(stringResource(R.string.recipes_search_label)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    RecipeFilters(
+                        categories = categories,
+                        selected = selectedCategory,
+                        onSelect = { selectedCategory = it },
+                        pantryAvailable = state.pantryIds != null,
+                        pantryOnly = state.pantryOnly,
+                        onPantryOnly = viewModel::setPantryOnly,
+                    )
+                }
+            }
             LazyColumn(
                 state = listState,
                 contentPadding = PaddingValues(bottom = Spacing.fabClearance),
             ) {
-                // Búsqueda y filtros en la franja teñida: primer elemento, se va con la lista al desplazar.
-                item(key = "filters") {
-                    ModuleHeaderBand {
-                        Column(
-                            Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.sm, bottom = Spacing.md),
-                            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                        ) {
-                            OutlinedTextField(
-                                value = state.query,
-                                onValueChange = viewModel::setQuery,
-                                label = { Text(stringResource(R.string.recipes_search_label)) },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            RecipeFilters(
-                                categories = categories,
-                                selected = selectedCategory,
-                                onSelect = { selectedCategory = it },
-                                pantryAvailable = state.pantryIds != null,
-                                pantryOnly = state.pantryOnly,
-                                onPantryOnly = viewModel::setPantryOnly,
-                            )
-                        }
-                    }
-                }
+                item(key = "air") { Spacer(Modifier.height(Spacing.sm)) }
                 recipesSections(
                     mine = state.mine,
                     global = state.global,
@@ -389,7 +387,7 @@ private fun LazyListScope.recipesSections(
                     title = header.title(),
                     count = group.items.size,
                     sticky = true,
-                    modifier = Modifier.padding(horizontal = Spacing.lg),
+                    horizontalPadding = Spacing.lg,
                 )
             }
         }

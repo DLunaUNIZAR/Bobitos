@@ -63,8 +63,8 @@ import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.Celebration
+import com.dlunaunizar.bobitos.core.designsystem.component.CollapsibleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
-import com.dlunaunizar.bobitos.core.designsystem.component.DeclareHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -75,7 +75,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
 import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
-import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
@@ -243,30 +242,27 @@ fun ShoppingScreen(
                         if (itemsState.value.isEmpty()) {
                             ShoppingEmptyState(modifier = Modifier.weight(1f))
                         } else {
-                            // La franja va dentro de la lista y sale de composición al desplazar: se declara aquí, fuera.
-                            DeclareHeaderBand()
+                            // Búsqueda y filtro en la franja de la cabecera: se encoge con la barra al desplazar.
+                            CollapsibleHeaderBand {
+                                Column(
+                                    Modifier.padding(horizontal = Spacing.lg)
+                                        .padding(top = Spacing.sm, bottom = Spacing.md),
+                                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                ) {
+                                    SearchField(query = query, onQueryChange = { query = it }, visible = true)
+                                    SupermarketFilterRow(
+                                        supermarkets = presentSupermarkets,
+                                        selected = activeSupermarket,
+                                        onSelect = { selectedSupermarket = it },
+                                    )
+                                }
+                            }
                             LazyColumn(
                                 state = listState,
                                 modifier = Modifier.weight(1f),
                                 contentPadding = PaddingValues(bottom = Spacing.fabClearance),
                             ) {
-                                // Búsqueda y filtro en la franja teñida: primer elemento, se va con la lista.
-                                item(key = "filters") {
-                                    ModuleHeaderBand {
-                                        Column(
-                                            Modifier.padding(horizontal = Spacing.lg)
-                                                .padding(top = Spacing.sm, bottom = Spacing.md),
-                                            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                                        ) {
-                                            SearchField(query = query, onQueryChange = { query = it }, visible = true)
-                                            SupermarketFilterRow(
-                                                supermarkets = presentSupermarkets,
-                                                selected = activeSupermarket,
-                                                onSelect = { selectedSupermarket = it },
-                                            )
-                                        }
-                                    }
-                                }
+                                item(key = "air") { Spacer(Modifier.height(Spacing.sm)) }
                                 item(key = "pending-heading") {
                                     SectionHeader(
                                         title = stringResource(R.string.shopping_pending),

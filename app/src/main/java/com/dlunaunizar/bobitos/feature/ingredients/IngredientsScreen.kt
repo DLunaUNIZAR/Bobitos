@@ -4,8 +4,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -47,8 +49,8 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
+import com.dlunaunizar.bobitos.core.designsystem.component.CollapsibleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
-import com.dlunaunizar.bobitos.core.designsystem.component.DeclareHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -59,7 +61,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
 import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
-import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
@@ -267,17 +268,13 @@ private fun IngredientCatalog(
     var category by rememberSaveable { mutableStateOf<String?>(null) }
     val content = state.ingredients as? UiState.Content
     val all = content?.value.orEmpty()
-    // Búsqueda y filtro en la franja teñida: en la lista es su primer elemento y se va con ella al desplazar.
-    val filterBand: @Composable () -> Unit = {
-        IngredientFilterBand(query, onQueryChange, all, category) { category = it }
-    }
+    // Búsqueda y filtro en la franja de la cabecera: se encoge con la barra al desplazar.
+    IngredientFilterBand(query, onQueryChange, all, category) { category = it }
     when (val catalog = state.ingredients) {
         UiState.Loading -> {
-            filterBand()
             LoadingState(Modifier.fillMaxWidth())
         }
         is UiState.Error -> {
-            filterBand()
             ErrorState(
                 Modifier.fillMaxWidth(),
                 message =
@@ -301,10 +298,8 @@ private fun IngredientCatalog(
                     selectedCategory = category,
                 )
             }
-            // La franja va dentro de la lista y sale de composición al desplazar: se declara aquí, fuera.
-            DeclareHeaderBand()
             LazyColumn(state = listState, contentPadding = PaddingValues(bottom = Spacing.fabClearance)) {
-                item(key = "filters") { filterBand() }
+                item(key = "air") { Spacer(Modifier.height(Spacing.sm)) }
                 if (filtered.isEmpty()) {
                     item(key = "empty") {
                         val filtering = query.isNotBlank() || category != null
@@ -341,7 +336,7 @@ private fun LazyListScope.ingredientGroups(
                     title = header.title(),
                     count = group.items.size,
                     sticky = true,
-                    modifier = Modifier.padding(horizontal = Spacing.lg),
+                    horizontalPadding = Spacing.lg,
                 )
             }
         }
@@ -377,7 +372,7 @@ private fun IngredientFilterBand(
     onSelect: (String?) -> Unit,
 ) {
     val categories = remember(ingredients) { ingredients.categories() }
-    ModuleHeaderBand {
+    CollapsibleHeaderBand {
         Column(
             Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.sm, bottom = Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),

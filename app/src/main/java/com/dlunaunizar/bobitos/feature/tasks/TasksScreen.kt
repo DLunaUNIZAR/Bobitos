@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -83,8 +84,8 @@ import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.Celebration
+import com.dlunaunizar.bobitos.core.designsystem.component.CollapsibleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
-import com.dlunaunizar.bobitos.core.designsystem.component.DeclareHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -95,7 +96,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
 import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
-import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
@@ -237,35 +237,27 @@ fun TasksScreen(
                         }
                     }
                 }
-                // Filtros y búsqueda en la franja teñida: primer elemento de la lista, se van con ella al desplazar.
-                val filterBand: @Composable () -> Unit = {
-                    ModuleHeaderBand {
-                        Column(
-                            Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.sm, bottom = Spacing.md),
-                            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                        ) {
-                            TaskFilterBar(state.filters, members, viewModel::setFilters)
-                            SearchField(
-                                query = query,
-                                onQueryChange = { query = it },
-                                visible = allTasks.isNotEmpty(),
-                            )
-                        }
+                // Filtros y búsqueda en la franja de la cabecera: se encoge con la barra al desplazar.
+                CollapsibleHeaderBand {
+                    Column(
+                        Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.sm, bottom = Spacing.md),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        TaskFilterBar(state.filters, members, viewModel::setFilters)
+                        SearchField(
+                            query = query,
+                            onQueryChange = { query = it },
+                            visible = allTasks.isNotEmpty(),
+                        )
                     }
                 }
                 when (val tasks = state.tasks) {
-                    UiState.Loading -> {
-                        filterBand()
-                        LoadingState(Modifier.weight(1f))
-                    }
-                    is UiState.Error -> {
-                        filterBand()
-                        ErrorState(
-                            Modifier.weight(1f),
-                            message = stringResource(tasks.failure.messageRes()),
-                            onRetry = { viewModel.observe(spaceId) },
-                        )
-                    }
+                    UiState.Loading -> LoadingState(Modifier.weight(1f))
+                    is UiState.Error -> ErrorState(
+                        Modifier.weight(1f),
+                        message = stringResource(tasks.failure.messageRes()),
+                        onRetry = { viewModel.observe(spaceId) },
+                    )
                     is UiState.Content -> {
                         val taskRow: @Composable LazyItemScope.(TaskItem, RowPosition) -> Unit = { task, position ->
                             SwipeActionsBox(
@@ -310,15 +302,13 @@ fun TasksScreen(
                                 )
                             }
                         }
-                        // La franja va dentro de la lista y sale de composición al desplazar: se declara aquí, fuera.
-                        DeclareHeaderBand()
                         LazyColumn(
                             state = listState,
                             modifier = Modifier.weight(1f),
                             // Deja hueco para que el FAB no tape el último elemento.
                             contentPadding = PaddingValues(bottom = Spacing.fabClearance),
                         ) {
-                            item(key = "filters") { filterBand() }
+                            item(key = "air") { Spacer(Modifier.height(Spacing.sm)) }
                             if (queried.isEmpty()) {
                                 item(key = "empty") {
                                     TasksEmptyContent(

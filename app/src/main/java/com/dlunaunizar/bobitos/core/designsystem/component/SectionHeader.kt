@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
@@ -30,6 +31,7 @@ import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
  * Cabecera de sección común: «Título · N». Con [onToggle] la parte del título es pulsable
  * (plegable) y anuncia su estado; [action] queda al final, fuera del área pulsable. Con [sticky]
  * lleva fondo opaco para usarse en un `stickyHeader`; [icon] es decorativo y va delante del título.
+ * [horizontalPadding] se aplica tras el fondo, para que la cabecera fija sea opaca a todo el ancho.
  */
 @Composable
 fun SectionHeader(
@@ -41,6 +43,7 @@ fun SectionHeader(
     action: (@Composable () -> Unit)? = null,
     sticky: Boolean = false,
     icon: ImageVector? = null,
+    horizontalPadding: Dp = 0.dp,
 ) {
     val label = if (count != null) stringResource(R.string.section_header_count, title, count) else title
     val stateText = when (expanded) {
@@ -52,7 +55,7 @@ fun SectionHeader(
         modifier = modifier
             .fillMaxWidth()
             .then(if (sticky) Modifier.background(MaterialTheme.colorScheme.surface) else Modifier)
-            .padding(vertical = Spacing.xs),
+            .padding(horizontal = horizontalPadding, vertical = Spacing.xs),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {

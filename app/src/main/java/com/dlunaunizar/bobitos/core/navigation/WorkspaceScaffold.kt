@@ -43,7 +43,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosLargeTopBar
+import com.dlunaunizar.bobitos.core.designsystem.component.CollapsibleBandState
 import com.dlunaunizar.bobitos.core.designsystem.component.HeaderBandState
+import com.dlunaunizar.bobitos.core.designsystem.component.LocalCollapsibleBand
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalHeaderBandState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalTopBarActions
@@ -66,8 +68,9 @@ import com.dlunaunizar.bobitos.core.model.SyncStatus
  * Más. [module] tiñe la barra superior y el contenido, no la barra inferior, que ya usa el color de cada
  * pestaña. [eyebrow] va encima del título (el saludo de Hoy).
  *
- * La barra se encoge al desplazar la lista del contenido. Bajo ella el marco dibuja el remate redondeado
- * de la franja teñida, salvo que la pantalla ponga su propia `ModuleHeaderBand`.
+ * La barra se encoge al desplazar la lista del contenido, con la `CollapsibleHeaderBand` de la pantalla
+ * dentro. Bajo ella el marco dibuja el remate redondeado de la franja teñida, salvo que la pantalla
+ * ponga su propia `ModuleHeaderBand` fija.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,6 +92,7 @@ internal fun WorkspaceScaffold(
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val topBarActions = remember { TopBarActionsState() }
     val headerBand = remember { HeaderBandState() }
+    val collapsibleBand = remember { CollapsibleBandState() }
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -100,6 +104,7 @@ internal fun WorkspaceScaffold(
                         scrollBehavior = scrollBehavior,
                         spaceSelector = { SpaceSelector(spaceName, onClick = { switcher.onPickerOpenChange(true) }) },
                         eyebrow = eyebrow,
+                        band = collapsibleBand.content,
                         actions = {
                             topBarActions.actions?.invoke(this)
                             IconButton(onClick = onSpaceSettings) {
@@ -135,6 +140,7 @@ internal fun WorkspaceScaffold(
                     LocalSnackbarHostState provides snackbarHostState,
                     LocalTopBarActions provides topBarActions,
                     LocalHeaderBandState provides headerBand,
+                    LocalCollapsibleBand provides collapsibleBand,
                 ) {
                     content()
                 }

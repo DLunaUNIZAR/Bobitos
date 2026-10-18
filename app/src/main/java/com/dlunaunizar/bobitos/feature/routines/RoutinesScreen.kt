@@ -4,8 +4,10 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -43,8 +45,8 @@ import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosInfoSheet
+import com.dlunaunizar.bobitos.core.designsystem.component.CollapsibleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
-import com.dlunaunizar.bobitos.core.designsystem.component.DeclareHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -53,7 +55,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.InfoSheetAction
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
-import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
@@ -211,21 +212,18 @@ private fun RoutinesCatalog(
     onRetry: () -> Unit,
     listState: LazyListState,
 ) {
-    // La franja va dentro de la lista y sale de composición al desplazar: se declara aquí, fuera.
-    DeclareHeaderBand()
+    // Búsqueda en la franja de la cabecera: se encoge con la barra al desplazar.
+    CollapsibleHeaderBand {
+        SearchField(
+            query = query,
+            onQueryChange = onQueryChange,
+            visible = true,
+            label = stringResource(R.string.routines_search_label),
+            modifier = Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.sm, bottom = Spacing.md),
+        )
+    }
     LazyColumn(state = listState, contentPadding = PaddingValues(bottom = Spacing.fabClearance)) {
-        // Búsqueda en la franja teñida: primer elemento de la lista, se va con ella al desplazar.
-        item(key = "filters") {
-            ModuleHeaderBand {
-                SearchField(
-                    query = query,
-                    onQueryChange = onQueryChange,
-                    visible = true,
-                    label = stringResource(R.string.routines_search_label),
-                    modifier = Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.sm, bottom = Spacing.md),
-                )
-            }
-        }
+        item(key = "air") { Spacer(Modifier.height(Spacing.sm)) }
         routinesSection(
             titleRes = R.string.routines_mine,
             routines = state.mine,

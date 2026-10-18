@@ -36,6 +36,7 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
+import com.dlunaunizar.bobitos.core.designsystem.component.CollapsibleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
@@ -159,14 +160,16 @@ private fun PantryContent(
         return
     }
     val sections = remember(items, query) { pantrySections(items, query) }
-    Column(modifier) {
+    CollapsibleHeaderBand {
         SearchField(
             query = query,
             onQueryChange = onQueryChange,
             visible = true,
-            modifier = Modifier.padding(horizontal = Spacing.lg),
+            modifier = Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.sm, bottom = Spacing.md),
             label = stringResource(R.string.pantry_search_label),
         )
+    }
+    Column(modifier) {
         if (sections.isEmpty()) {
             Text(
                 stringResource(R.string.pantry_no_results),

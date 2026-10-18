@@ -25,8 +25,8 @@ import com.dlunaunizar.bobitos.core.model.SyncStatus
 
 /**
  * Andamio común de las pantallas a pantalla completa: barra superior con el título en grande (y atrás
- * opcional) que se encoge al desplazar, con el remate de la franja teñida bajo ella salvo que la
- * pantalla ponga su `ModuleHeaderBand`,
+ * opcional) que se encoge al desplazar, con la `CollapsibleHeaderBand` de la pantalla dentro y el remate
+ * de la franja teñida bajo ella salvo que ponga su `ModuleHeaderBand` fija,
  * estado de sincronización bajo la barra, FAB en su hueco y host de avisos propio, publicado en
  * [LocalSnackbarHostState] para el contenido. Con [saving] superpone una barra de progreso arriba
  * del contenido sin desplazarlo. Con [module] toda la pantalla (FAB, hojas…) toma el color del módulo.
@@ -47,6 +47,7 @@ fun ScreenScaffold(
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val headerBand = remember { HeaderBandState() }
+    val collapsibleBand = remember { CollapsibleBandState() }
     ModuleTheme(module) {
         Scaffold(
             modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -56,6 +57,7 @@ fun ScreenScaffold(
                         title = title,
                         scrollBehavior = scrollBehavior,
                         onBack = onBack,
+                        band = collapsibleBand.content,
                         actions = actions,
                     )
                     ModuleHeaderCap(headerBand)
@@ -65,7 +67,10 @@ fun ScreenScaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             floatingActionButton = floatingActionButton,
         ) { padding ->
-            CompositionLocalProvider(LocalHeaderBandState provides headerBand) {
+            CompositionLocalProvider(
+                LocalHeaderBandState provides headerBand,
+                LocalCollapsibleBand provides collapsibleBand,
+            ) {
                 ScaffoldBody(snackbarHostState, saving, padding, content)
             }
         }
