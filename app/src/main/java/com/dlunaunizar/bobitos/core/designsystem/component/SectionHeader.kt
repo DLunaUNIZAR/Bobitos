@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.core.designsystem.component
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
@@ -26,7 +28,8 @@ import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 
 /**
  * Cabecera de sección común: «Título · N». Con [onToggle] la parte del título es pulsable
- * (plegable) y anuncia su estado; [action] queda al final, fuera del área pulsable.
+ * (plegable) y anuncia su estado; [action] queda al final, fuera del área pulsable. Con [sticky]
+ * lleva fondo opaco para usarse en un `stickyHeader`; [icon] es decorativo y va delante del título.
  */
 @Composable
 fun SectionHeader(
@@ -36,6 +39,8 @@ fun SectionHeader(
     expanded: Boolean? = null,
     onToggle: (() -> Unit)? = null,
     action: (@Composable () -> Unit)? = null,
+    sticky: Boolean = false,
+    icon: ImageVector? = null,
 ) {
     val label = if (count != null) stringResource(R.string.section_header_count, title, count) else title
     val stateText = when (expanded) {
@@ -44,7 +49,10 @@ fun SectionHeader(
         null -> null
     }
     Row(
-        modifier = modifier.fillMaxWidth().padding(vertical = Spacing.xs),
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (sticky) Modifier.background(MaterialTheme.colorScheme.surface) else Modifier)
+            .padding(vertical = Spacing.xs),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -58,6 +66,9 @@ fun SectionHeader(
             Modifier.weight(1f)
         }
         Row(toggleModifier, verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) {
+                Icon(imageVector = icon, contentDescription = null, modifier = Modifier.padding(end = Spacing.sm))
+            }
             Text(
                 label,
                 style = MaterialTheme.typography.titleSmall,
