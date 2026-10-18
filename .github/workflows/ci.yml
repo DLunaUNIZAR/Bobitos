@@ -23,10 +23,13 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      # Deja disponible sdkmanager y acepta licencias para que AGP pueda
-      # descargar el platform/build-tools de compileSdk 37 si el runner no lo trae.
+      # Sigue aceptando las licencias para que AGP descargue el platform de
+      # compileSdk 37; sin `packages` pediría `tools`, retirado del repositorio del SDK.
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -96,3 +99,9 @@ jobs:
       # Ejecuta la suite de reglas contra el proyecto ficticio demo-bobitos: sin secretos.
       - name: Firestore rules tests
         run: npm run test:emulators
+
+      - name: Catalog scripts tests
+        run: npm run test:scripts
+
+      - name: Catalog import tests (emulator)
+        run: npm run test:catalog-import
