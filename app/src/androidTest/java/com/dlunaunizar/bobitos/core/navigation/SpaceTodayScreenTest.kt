@@ -50,6 +50,7 @@ class SpaceTodayScreenTest {
     private val abiertos = mutableListOf<BobitosDestination>()
     private val marcadas = mutableListOf<TaskItem>()
     private val terminadas = mutableListOf<(Boolean) -> Unit>()
+    private var escrituraLanzada = true
 
     private fun tarea(id: String, titulo: String) = TaskItem(
         id = id,
@@ -110,6 +111,7 @@ class SpaceTodayScreenTest {
                     onToggleTask = { tarea, alTerminar ->
                         marcadas += tarea
                         terminadas += alTerminar
+                        escrituraLanzada
                     },
                     onRetry = {},
                     onOpen = { abiertos += it },
@@ -166,6 +168,17 @@ class SpaceTodayScreenTest {
     }
 
     @Test
+    fun siLaEscrituraNoSeLanzaLaCasillaNoSeQuedaMarcada() {
+        escrituraLanzada = false
+        mostrar()
+
+        val casilla = compose.onNode(hasContentDescription("Fregar"))
+        casilla.performClick()
+
+        casilla.assert(SemanticsMatcher.expectValue(SemanticsProperties.ToggleableState, ToggleableState.Off))
+    }
+
+    @Test
     fun conLetraGrandeLaHoraDeLaFilaNoSeParteEnMitadDePalabra() {
         compose.setContent {
             val base = LocalDensity.current
@@ -182,7 +195,7 @@ class SpaceTodayScreenTest {
                                 ),
                             ),
                             canWrite = true,
-                            onToggleTask = { _, _ -> },
+                            onToggleTask = { _, _ -> true },
                             onRetry = {},
                             onOpen = {},
                         )

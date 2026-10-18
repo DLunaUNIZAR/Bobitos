@@ -90,7 +90,7 @@ private const val CASCADE_WINDOW_MS = 1_200L
 internal fun SpaceTodayScreen(
     agenda: UiState<TodayAgenda>,
     canWrite: Boolean,
-    onToggleTask: (task: TaskItem, onFinished: (Boolean) -> Unit) -> Unit,
+    onToggleTask: (task: TaskItem, onFinished: (Boolean) -> Unit) -> Boolean,
     onRetry: () -> Unit,
     onOpen: (BobitosDestination) -> Unit,
 ) {
@@ -107,10 +107,7 @@ internal fun SpaceTodayScreen(
     // Varias casillas seguidas escriben todas, cada una a la suya; volver a tocar una que se está completando no hace
     // nada. La fila sale cuando la escritura se confirma, y si falla vuelve a su estado.
     val toggle: (TaskItem) -> Unit = { task ->
-        completing.begin(task.id, celebration) { onFinished ->
-            onToggleTask(task, onFinished)
-            true
-        }
+        completing.begin(task.id, celebration) { onFinished -> onToggleTask(task, onFinished) }
     }
     Box(Modifier.fillMaxSize()) {
         when (agenda) {

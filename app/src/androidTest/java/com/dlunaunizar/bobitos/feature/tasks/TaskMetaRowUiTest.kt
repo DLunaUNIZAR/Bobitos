@@ -10,17 +10,19 @@ import com.dlunaunizar.bobitos.core.model.TaskStatus
 import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 
 class TaskMetaRowUiTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    private fun task(priority: TaskPriority) = TaskItem(
+    private fun task(priority: TaskPriority, dueAt: Instant? = null) = TaskItem(
         id = "t1",
         title = "Tarea",
         description = null,
         assigneeId = "u1",
         assigneeName = "David Demo",
-        dueAt = null,
+        dueAt = dueAt,
         priority = priority,
         status = TaskStatus.TODO,
         createdBy = "u1",
@@ -35,7 +37,7 @@ class TaskMetaRowUiTest {
 
     private fun show(priority: TaskPriority) {
         compose.setContent {
-            BobitosTheme { TaskMetaRow(task(priority), overdue = false, done = false) }
+            BobitosTheme { TaskMetaRow(task(priority), overdue = false, done = false, today = LocalDate.now()) }
         }
     }
 
@@ -47,5 +49,36 @@ class TaskMetaRowUiTest {
     @Test fun highPriorityShowsItsName() {
         show(TaskPriority.HIGH)
         compose.onNodeWithText("Alta").assertExists()
+    }
+
+    private val zone = ZoneId.systemDefault()
+    private val vencePorLaTarde = LocalDate.of(2026, 10, 18).atTime(12, 0).atZone(zone).toInstant()
+
+    @Test fun elChipHoyDependeDelHoyQueSePasa() {
+        compose.setContent {
+            BobitosTheme {
+                TaskMetaRow(
+                    task(TaskPriority.MEDIUM, vencePorLaTarde),
+                    overdue = false,
+                    done = false,
+                    today = LocalDate.of(2026, 10, 18),
+                )
+            }
+        }
+        compose.onNodeWithText("Hoy").assertExists()
+    }
+
+    @Test fun conOtroHoyElChipNoDiceHoy() {
+        compose.setContent {
+            BobitosTheme {
+                TaskMetaRow(
+                    task(TaskPriority.MEDIUM, vencePorLaTarde),
+                    overdue = false,
+                    done = false,
+                    today = LocalDate.of(2026, 10, 19),
+                )
+            }
+        }
+        compose.onNodeWithText("Hoy").assertDoesNotExist()
     }
 }

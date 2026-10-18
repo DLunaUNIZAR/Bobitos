@@ -131,22 +131,12 @@ class CalendarViewModel @Inject constructor(
 
     fun toggleMember(userId: String) {
         mutable.update { state ->
-            state.copy(
-                selectedMemberIds = if (userId in state.selectedMemberIds) {
-                    state.selectedMemberIds - userId
-                } else {
-                    state.selectedMemberIds + userId
-                },
-            )
+            state.copy(selectedMemberIds = toggledSelection(state.selectedMemberIds, state.knownMemberIds, userId))
         }
     }
 
     fun selectAllMembers() {
         mutable.update { it.copy(selectedMemberIds = it.knownMemberIds) }
-    }
-
-    fun clearMemberSelection() {
-        mutable.update { it.copy(selectedMemberIds = emptySet()) }
     }
 
     // Un alta deja `created` (con «Deshacer») en lugar del aviso de guardado; una edición conserva el suyo.
@@ -197,10 +187,9 @@ class CalendarViewModel @Inject constructor(
     private fun onMembersChanged(members: List<SpaceMember>) {
         mutable.update { state ->
             val currentIds = members.mapTo(mutableSetOf(), SpaceMember::userId)
-            val newIds = currentIds - state.knownMemberIds
             state.copy(
                 members = UiState.Content(members),
-                selectedMemberIds = (state.selectedMemberIds intersect currentIds) + newIds,
+                selectedMemberIds = reconciledSelection(state.selectedMemberIds, state.knownMemberIds, currentIds),
                 knownMemberIds = currentIds,
             )
         }

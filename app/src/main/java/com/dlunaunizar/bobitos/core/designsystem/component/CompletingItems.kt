@@ -95,8 +95,15 @@ class CompletingItems internal constructor(private val scope: CoroutineScope, pr
     fun begin(id: String, celebration: CelebrationState, launch: (onFinished: (Boolean) -> Unit) -> Boolean) {
         if (isCompleting(id)) return
         start(id)
-        val launched = launch { ok -> finish(id, ok) }
-        if (launched) celebration.userCompleted(id) else finish(id, false)
+        celebration.userCompleted(id)
+        val launched = launch { ok ->
+            if (!ok) celebration.userCancelled(id)
+            finish(id, ok)
+        }
+        if (!launched) {
+            celebration.userCancelled(id)
+            finish(id, false)
+        }
     }
 
     fun isCompleting(id: String): Boolean = id in phases

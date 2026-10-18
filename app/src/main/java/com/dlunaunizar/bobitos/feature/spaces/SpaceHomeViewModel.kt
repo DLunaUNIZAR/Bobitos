@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.CurrentDayProvider
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.launchPerIdWrite
 import com.dlunaunizar.bobitos.core.common.toFailureKind
 import com.dlunaunizar.bobitos.core.model.TaskItem
 import com.dlunaunizar.bobitos.data.repository.CalendarRepository
@@ -81,23 +82,19 @@ class SpaceHomeViewModel @Inject constructor(
      * la completa otra vez). [onFinished] recibe cómo acabó la escritura; [onCompleted], la tarea tal como estaba,
      * solo si termina bien.
      */
-    fun complete(task: TaskItem, onFinished: (Boolean) -> Unit = {}, onCompleted: (TaskItem) -> Unit) {
-        val spaceId = request.value?.spaceId ?: return
-        if (!completingIds.add(task.id)) return
+    fun complete(task: TaskItem, onFinished: (Boolean) -> Unit = {}, onCompleted: (TaskItem) -> Unit): Boolean {
+        val spaceId = request.value?.spaceId ?: return false
+        if (task.id in completingIds) return false
         mutableError.value = null
-        viewModelScope.launch {
-            runCatching { taskRepository.setCompleted(spaceId, task.id, true) }
-                .onSuccess {
-                    completingIds.remove(task.id)
-                    onFinished(true)
-                    onCompleted(task)
-                }
-                .onFailure {
-                    completingIds.remove(task.id)
-                    onFinished(false)
-                    showError(it)
-                }
-        }
+        return viewModelScope.launchPerIdWrite(
+            completingIds,
+            task.id,
+            onFinished = { ok ->
+                onFinished(ok)
+                if (ok) onCompleted(task)
+            },
+            onFailure = ::showError,
+        ) { taskRepository.setCompleted(spaceId, task.id, true) }
     }
 
     /** «Deshacer» completar: la tarea vuelve a pendiente con las fechas de [previous]. */

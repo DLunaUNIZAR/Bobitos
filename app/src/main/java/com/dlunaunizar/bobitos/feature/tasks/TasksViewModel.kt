@@ -7,6 +7,7 @@ import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.failed
+import com.dlunaunizar.bobitos.core.common.launchPerIdWrite
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.toFailureKind
@@ -146,24 +147,18 @@ class TasksViewModel @Inject constructor(
         onFinished: (Boolean) -> Unit = {},
         onCompleted: (TaskItem) -> Unit = {},
     ): Boolean {
-        if (!completingIds.add(task.id)) return false
+        if (task.id in completingIds) return false
         mutableUiState.update { it.copy(error = null, notice = null) }
-        viewModelScope.launch {
-            runCatching { taskRepository.setCompleted(spaceId, task.id, completed) }
-                .onSuccess {
-                    completingIds.remove(task.id)
-                    if (!completed) mutableUiState.update { it.copy(notice = TaskUiMessage.TaskReopened) }
-                    onFinished(true)
-                    if (completed) onCompleted(task)
-                }
-                .onFailure { error ->
-                    if (error is CancellationException) throw error
-                    completingIds.remove(task.id)
-                    mutableUiState.update { it.copy(error = error.toUiMessage(), notice = null) }
-                    onFinished(false)
-                }
-        }
-        return true
+        return viewModelScope.launchPerIdWrite(
+            completingIds,
+            task.id,
+            onFinished = { ok ->
+                onFinished(ok)
+                if (ok && completed) onCompleted(task)
+            },
+            onSuccess = { if (!completed) mutableUiState.update { it.copy(notice = TaskUiMessage.TaskReopened) } },
+            onFailure = { error -> mutableUiState.update { it.copy(error = error.toUiMessage(), notice = null) } },
+        ) { taskRepository.setCompleted(spaceId, task.id, completed) }
     }
 
     // «Deshacer» completar: la tarea vuelve a pendiente con las fechas de [previous]. Sin aviso; si falla (también si

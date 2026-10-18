@@ -7,6 +7,7 @@ import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.failed
+import com.dlunaunizar.bobitos.core.common.launchPerIdWrite
 import com.dlunaunizar.bobitos.core.common.started
 import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
@@ -300,28 +301,22 @@ class ShoppingViewModel @Inject constructor(
         purchased: Boolean,
         onFinished: (Boolean) -> Unit = {},
     ): Boolean {
-        if (!purchasingIds.add(itemId)) return false
+        if (itemId in purchasingIds) return false
         val item = (mutableUiState.value.items as? UiState.Content)?.value?.firstOrNull { it.id == itemId }
         mutableUiState.update { it.copy(error = null, notice = null) }
-        viewModelScope.launch {
-            runCatching {
-                val entry = if (purchased && item != null) pantryEntryFor(item.name, dataForPantry()) else null
-                repository.setPurchased(spaceId, itemId, purchased, entry)
-            }
-                .onSuccess {
-                    purchasingIds.remove(itemId)
-                    val notice = if (purchased) ShoppingUiMessage.ItemMarked else ShoppingUiMessage.ItemUnmarked
-                    mutableUiState.update { it.copy(notice = notice) }
-                    onFinished(true)
-                }
-                .onFailure { error ->
-                    if (error is CancellationException) throw error
-                    purchasingIds.remove(itemId)
-                    mutableUiState.update { it.copy(error = error.toUiMessage(), notice = null) }
-                    onFinished(false)
-                }
+        return viewModelScope.launchPerIdWrite(
+            purchasingIds,
+            itemId,
+            onFinished = onFinished,
+            onSuccess = {
+                val notice = if (purchased) ShoppingUiMessage.ItemMarked else ShoppingUiMessage.ItemUnmarked
+                mutableUiState.update { it.copy(notice = notice) }
+            },
+            onFailure = { error -> mutableUiState.update { it.copy(error = error.toUiMessage(), notice = null) } },
+        ) {
+            val entry = if (purchased && item != null) pantryEntryFor(item.name, dataForPantry()) else null
+            repository.setPurchased(spaceId, itemId, purchased, entry)
         }
-        return true
     }
 
     // Catálogo para reconocer el ingrediente al marcar comprado: el del editor si ya está cargado; si no, el leído en

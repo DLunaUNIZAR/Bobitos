@@ -243,6 +243,27 @@ class TasksViewModelTest {
     }
 
     @Test
+    fun unaEscrituraCanceladaLiberaLaTareaYAvisaDeQueNoTermino() = runTest(mainDispatcherRule.testDispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        taskRepository.completeGate = gate
+        val resultados = mutableListOf<Boolean>()
+        val tarea = task("t1", "Fregar", TaskType.LIMPIEZA)
+
+        assertTrue(viewModel.setCompleted("home", tarea, true, { resultados += it }))
+        runCurrent()
+        gate.cancel()
+        advanceUntilIdle()
+
+        // La cancelación no cuenta como éxito y la tarea queda libre para el siguiente toque.
+        assertEquals(listOf(false), resultados)
+        taskRepository.completeGate = null
+        assertTrue(viewModel.setCompleted("home", tarea, true, { resultados += it }))
+        advanceUntilIdle()
+        assertEquals(Triple("home", "t1", true), taskRepository.completedChange)
+        assertEquals(listOf(false, true), resultados)
+    }
+
+    @Test
     fun `filtering by type keeps only that category`() {
         val tasks = listOf(
             task("t1", "Fregar", TaskType.LIMPIEZA),

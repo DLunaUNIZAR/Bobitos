@@ -57,30 +57,41 @@ private val MinSize = 3.dp
 private val ExtraSize = 3.dp
 
 /**
- * Hay que celebrar cuando [completedByUserId] (la fila que acaba de completar el propio usuario, o null si el
- * cambio no fue suyo: una carga inicial o un miembro remoto) estaba entre las pendientes y ya no queda ninguna.
+ * Hay que celebrar cuando alguna de las filas que [completedByUser] (las que acaba de completar el propio usuario;
+ * vacío si el cambio no fue suyo: una carga inicial o un miembro remoto) estaba entre las pendientes y ya no queda
+ * ninguna.
  */
-fun shouldCelebrate(completedByUserId: String?, pendingBefore: Set<String>, pendingAfter: Set<String>): Boolean =
-    completedByUserId in pendingBefore && pendingAfter.isEmpty()
+fun shouldCelebrate(completedByUser: Set<String>, pendingBefore: Set<String>, pendingAfter: Set<String>): Boolean =
+    pendingAfter.isEmpty() && pendingBefore.any { it in completedByUser }
 
-/** Recuerda qué fila tocó el usuario y si toca mostrar la celebración. */
+/**
+ * Recuerda qué filas tocó el usuario y si toca mostrar la celebración. Un toque se olvida cuando la fila sale de las
+ * pendientes (o la escritura falla), no con cualquier lista nueva: varias seguidas, o una emisión ajena entre medias,
+ * no lo borran.
+ */
 @Stable
 class CelebrationState {
-    private var tapped: String? = null
+    private val tapped = mutableSetOf<String>()
     private var previous: Set<String>? = null
     var visible by mutableStateOf(false)
         private set
 
-    /** El usuario acaba de completar [id]; se olvida al llegar la siguiente lista. */
+    /** El usuario acaba de completar [id]. */
     fun userCompleted(id: String) {
-        tapped = id
+        tapped += id
+    }
+
+    /** La escritura de [id] falló o no llegó a lanzarse: ya no cuenta como completada por el usuario. */
+    fun userCancelled(id: String) {
+        tapped -= id
     }
 
     internal fun onPending(pending: Set<String>) {
         val before = previous
         previous = pending
         if (before != null && shouldCelebrate(tapped, before, pending)) visible = true
-        tapped = null
+        // Los toques de las filas que ya salieron (o que ya no están) se olvidan.
+        tapped.retainAll(pending)
     }
 
     fun dismiss() {

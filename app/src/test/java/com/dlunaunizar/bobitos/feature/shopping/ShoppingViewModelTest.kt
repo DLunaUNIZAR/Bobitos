@@ -362,6 +362,26 @@ class ShoppingViewModelTest {
     }
 
     @Test
+    fun unaEscrituraCanceladaLiberaElProductoYAvisaDeQueNoTermino() = runTest(mainDispatcherRule.testDispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        repository.purchaseGate = gate
+        val resultados = mutableListOf<Boolean>()
+
+        assertTrue(viewModel.setPurchased("home", "milk", true) { resultados += it })
+        runCurrent()
+        gate.cancel()
+        advanceUntilIdle()
+
+        // La cancelación no cuenta como éxito y el producto queda libre para el siguiente toque.
+        assertEquals(listOf(false), resultados)
+        repository.purchaseGate = null
+        assertTrue(viewModel.setPurchased("home", "milk", true) { resultados += it })
+        advanceUntilIdle()
+        assertEquals(Triple("home", "milk", true), repository.purchaseChange)
+        assertEquals(listOf(false, true), resultados)
+    }
+
+    @Test
     fun `safe cleanup exposes actual deleted count`() = runTest(mainDispatcherRule.testDispatcher) {
         repository.clearCount = 2
 

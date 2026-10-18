@@ -296,6 +296,7 @@ fun TasksScreen(
                             ) { accessibilityModifier ->
                                 TaskListRow(
                                     task,
+                                    today,
                                     position,
                                     enabled,
                                     canWrite,
@@ -532,6 +533,7 @@ internal fun TaskFilterBar(filters: TaskFilters, members: List<SpaceMember>, onC
 @Composable
 private fun TaskListRow(
     task: TaskItem,
+    today: LocalDate,
     position: RowPosition,
     enabled: Boolean,
     canToggle: Boolean,
@@ -542,11 +544,7 @@ private fun TaskListRow(
     modifier: Modifier = Modifier,
 ) {
     val done = task.status == TaskStatus.DONE || completing
-    val overdue = !done &&
-        task.dueAt
-            ?.atZone(ZoneId.systemDefault())
-            ?.toLocalDate()
-            ?.isBefore(LocalDate.now()) == true
+    val overdue = isOverdue(task, done, today, ZoneId.systemDefault())
     GroupedRow(
         position = position,
         modifier = modifier,
@@ -578,7 +576,7 @@ private fun TaskListRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            TaskMetaRow(task, overdue, done)
+            TaskMetaRow(task, overdue, done, today)
         }
         TaskCardMenu(taskTitle = task.title, enabled = enabled, onEdit = onEdit, onDelete = onDelete)
     }
@@ -803,12 +801,12 @@ private fun PriorityPicker(selected: TaskPriority, onSelect: (TaskPriority) -> U
 // si está hecha, quién la completó. Cada dato es un «chip» de icono + texto.
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun TaskMetaRow(task: TaskItem, overdue: Boolean, done: Boolean) {
+internal fun TaskMetaRow(task: TaskItem, overdue: Boolean, done: Boolean, today: LocalDate) {
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
     ) {
-        TaskDateMeta(task, overdue, done)
+        TaskDateMeta(task, overdue, done, today)
         task.startAt?.let { start ->
             MetaChip(Icons.Rounded.CalendarMonth, stringResource(R.string.tasks_start_date_value, start.formatDate()))
         }
@@ -836,7 +834,7 @@ internal fun TaskMetaRow(task: TaskItem, overdue: Boolean, done: Boolean) {
 // Chip de fecha con estado temporal: badge «Vencida»/«Hoy» resaltado, o la fecha de vencimiento.
 // Sin fecha no se muestra chip (lo indica el badge de la sección en B3).
 @Composable
-private fun TaskDateMeta(task: TaskItem, overdue: Boolean, done: Boolean) {
+private fun TaskDateMeta(task: TaskItem, overdue: Boolean, done: Boolean, today: LocalDate) {
     val dueDate = task.dueAt?.atZone(ZoneId.systemDefault())?.toLocalDate()
     when {
         overdue -> MetaChip(
@@ -844,7 +842,7 @@ private fun TaskDateMeta(task: TaskItem, overdue: Boolean, done: Boolean) {
             stringResource(R.string.tasks_badge_overdue),
             MaterialTheme.colorScheme.error,
         )
-        !done && dueDate == LocalDate.now() -> MetaChip(
+        !done && dueDate == today -> MetaChip(
             Icons.Rounded.CalendarMonth,
             stringResource(R.string.tasks_today),
             MaterialTheme.colorScheme.primary,

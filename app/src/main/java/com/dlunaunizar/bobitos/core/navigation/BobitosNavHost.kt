@@ -67,14 +67,13 @@ import com.dlunaunizar.bobitos.feature.spaces.SpaceManagementUiState
 import com.dlunaunizar.bobitos.feature.spaces.SpaceSettingsScreen
 import com.dlunaunizar.bobitos.feature.spaces.SpacesScreen
 import com.dlunaunizar.bobitos.feature.spaces.TodayAgenda
-import com.dlunaunizar.bobitos.feature.spaces.dayPeriodFor
 import com.dlunaunizar.bobitos.feature.spaces.firstName
 import com.dlunaunizar.bobitos.feature.spaces.forSpace
+import com.dlunaunizar.bobitos.feature.spaces.rememberDayPeriod
 import com.dlunaunizar.bobitos.feature.sport.SportScreen
 import com.dlunaunizar.bobitos.feature.tasks.TasksScreen
 import com.dlunaunizar.bobitos.feature.tasks.stringRes
 import java.time.LocalDate
-import java.time.LocalDateTime
 
 @Composable
 fun BobitosNavHost(
@@ -278,10 +277,10 @@ fun BobitosNavHost(
             LaunchedEffect(uiState.selectedSpace?.id) {
                 uiState.selectedSpace?.id?.let { summaryViewModel.show(it, authUser.id) }
             }
-            // Fecha y saludo siguen a `rememberToday()`: a medianoche se renuevan.
+            // Fecha y saludo siguen a `rememberToday()` y `rememberDayPeriod()`: a medianoche y en cada cambio de periodo
+            // se renuevan.
             val today = rememberToday()
-            val greeting =
-                stringResource(greetingRes(dayPeriodFor(remember(agenda, today) { LocalDateTime.now().hour })))
+            val greeting = stringResource(greetingRes(rememberDayPeriod()))
             val name = firstName(authUser.displayName)
             SpaceScaffold(
                 navController = navController,

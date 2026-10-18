@@ -77,9 +77,8 @@ class PersonalCalendarViewModel @Inject constructor(
         spaces = currentSpaces
         val currentIds = currentSpaces.mapTo(mutableSetOf(), SpaceSummary::id)
         mutable.update { state ->
-            val newIds = currentIds - state.knownSpaceIds
             state.copy(
-                selectedSpaceIds = (state.selectedSpaceIds intersect currentIds) + newIds,
+                selectedSpaceIds = reconciledSelection(state.selectedSpaceIds, state.knownSpaceIds, currentIds),
                 knownSpaceIds = currentIds,
             )
         }
@@ -112,22 +111,12 @@ class PersonalCalendarViewModel @Inject constructor(
 
     fun toggleSpace(spaceId: String) {
         mutable.update { state ->
-            state.copy(
-                selectedSpaceIds = if (spaceId in state.selectedSpaceIds) {
-                    state.selectedSpaceIds - spaceId
-                } else {
-                    state.selectedSpaceIds + spaceId
-                },
-            )
+            state.copy(selectedSpaceIds = toggledSelection(state.selectedSpaceIds, state.knownSpaceIds, spaceId))
         }
     }
 
     fun selectAllSpaces() {
         mutable.update { it.copy(selectedSpaceIds = it.knownSpaceIds) }
-    }
-
-    fun clearSpaceSelection() {
-        mutable.update { it.copy(selectedSpaceIds = emptySet()) }
     }
 
     // Observa los miembros del espacio elegido mientras el editor está abierto (para participantes).

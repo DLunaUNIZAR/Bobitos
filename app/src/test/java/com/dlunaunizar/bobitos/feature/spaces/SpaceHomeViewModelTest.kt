@@ -36,6 +36,7 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -265,6 +266,43 @@ class SpaceHomeViewModelTest {
         viewModel.complete(task) { offered += it }
         runCurrent()
         assertEquals(2, completions.size)
+    }
+
+    @Test
+    fun completarSinEscribirDevuelveFalseYNoTocaElRepositorio() = runTest {
+        val task = taskDueToday("t1")
+        // Sin espacio fijado no hay a dónde escribir.
+        assertFalse(viewModel.complete(task) {})
+
+        viewModel.show("a", me)
+        completionGate = CompletableDeferred()
+        assertTrue(viewModel.complete(task) {})
+        // Con una escritura en curso para esa tarea, el segundo toque no escribe ni lo dice como lanzado.
+        assertFalse(viewModel.complete(task) {})
+        runCurrent()
+
+        assertEquals(listOf(Triple("a", "t1", true)), completions)
+    }
+
+    @Test
+    fun unaEscrituraCanceladaLiberaLaTareaYAvisaDeQueNoTermino() = runTest {
+        viewModel.show("a", me)
+        val gate = CompletableDeferred<Unit>()
+        completionGate = gate
+        val task = taskDueToday("t1")
+        val resultados = mutableListOf<Boolean>()
+
+        assertTrue(viewModel.complete(task, { resultados += it }) {})
+        runCurrent()
+        gate.cancel()
+        runCurrent()
+
+        assertEquals(listOf(false), resultados)
+        completionGate = null
+        assertTrue(viewModel.complete(task, { resultados += it }) {})
+        runCurrent()
+        // La primera escritura llegó a empezar; la segunda, ya libre, también.
+        assertEquals(listOf(Triple("a", "t1", true), Triple("a", "t1", true)), completions)
     }
 
     @Test

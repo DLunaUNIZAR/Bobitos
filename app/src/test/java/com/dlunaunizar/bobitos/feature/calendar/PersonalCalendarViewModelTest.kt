@@ -106,6 +106,52 @@ class PersonalCalendarViewModelTest {
         assertTrue(viewModel.uiState.value.events is UiState.Error)
     }
 
+    private fun space(id: String) = SpaceSummary(id, id.replaceFirstChar(Char::uppercase), 2, SpaceRole.OWNER)
+
+    @Test
+    fun desmarcarAUnicoEspacioElegidoDejaTodos() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("ana", listOf(space("casa"), space("trabajo")))
+        advanceUntilIdle()
+
+        viewModel.toggleSpace("casa")
+        assertEquals(setOf("trabajo"), viewModel.uiState.value.selectedSpaceIds)
+        viewModel.toggleSpace("trabajo")
+
+        assertEquals(setOf("casa", "trabajo"), viewModel.uiState.value.selectedSpaceIds)
+    }
+
+    @Test
+    fun desdeTodosTocarUnEspacioDaLoMismoSeLleguePorDondeSeLlegue() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("ana", listOf(space("casa"), space("trabajo")))
+        advanceUntilIdle()
+
+        viewModel.toggleSpace("casa")
+        val desdeElInicio = viewModel.uiState.value.selectedSpaceIds
+        viewModel.selectAllSpaces()
+        viewModel.toggleSpace("casa")
+        val desdeElegirTodos = viewModel.uiState.value.selectedSpaceIds
+        viewModel.toggleSpace("trabajo")
+        viewModel.toggleSpace("casa")
+        val desdeDesmarcarElUltimo = viewModel.uiState.value.selectedSpaceIds
+
+        assertEquals(setOf("trabajo"), desdeElInicio)
+        assertEquals(desdeElInicio, desdeElegirTodos)
+        assertEquals(desdeElInicio, desdeDesmarcarElUltimo)
+    }
+
+    @Test
+    fun unEspacioNuevoConTodosSigueEnTodos() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("ana", listOf(space("casa"), space("trabajo")))
+        advanceUntilIdle()
+        viewModel.toggleSpace("casa")
+        viewModel.toggleSpace("trabajo")
+
+        viewModel.observe("ana", listOf(space("casa"), space("trabajo"), space("gimnasio")))
+        advanceUntilIdle()
+
+        assertEquals(setOf("casa", "trabajo", "gimnasio"), viewModel.uiState.value.selectedSpaceIds)
+    }
+
     @Test
     fun creatingOneItemOffersUndoWithItsIdAndName() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.saveEvent("space-1", null, input)

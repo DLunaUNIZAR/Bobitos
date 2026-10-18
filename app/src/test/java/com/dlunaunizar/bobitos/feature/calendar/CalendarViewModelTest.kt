@@ -8,13 +8,17 @@ import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.EventColor
+import com.dlunaunizar.bobitos.core.model.SpaceMember
+import com.dlunaunizar.bobitos.core.model.SpaceRole
 import com.dlunaunizar.bobitos.data.repository.CalendarRepository
 import com.dlunaunizar.bobitos.data.repository.EventInput
+import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -306,6 +310,63 @@ class CalendarViewModelTest {
         repository.pendingDelete.complete(Unit)
         advanceUntilIdle()
         assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+    }
+
+    private fun viewModelWithMembers(members: MutableStateFlow<List<SpaceMember>>): CalendarViewModel {
+        val spaces = object : SpaceRepository by emptyFlows() {
+            override fun members(spaceId: String): Flow<List<SpaceMember>> = members
+        }
+        return CalendarViewModel(RecordingCalendarRepository(), spaces, emptyFlows()).also { it.observe("space-1") }
+    }
+
+    private fun member(id: String) = SpaceMember(id, id.replaceFirstChar(Char::uppercase), SpaceRole.MEMBER)
+
+    @Test
+    fun desmarcarALaUnicaPersonaElegidaDejaTodas() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = viewModelWithMembers(MutableStateFlow(listOf(member("ana"), member("luis"))))
+        advanceUntilIdle()
+
+        viewModel.toggleMember("ana")
+        assertEquals(setOf("luis"), viewModel.uiState.value.selectedMemberIds)
+        viewModel.toggleMember("luis")
+
+        assertEquals(setOf("ana", "luis"), viewModel.uiState.value.selectedMemberIds)
+    }
+
+    @Test
+    fun desdeTodasTocarAUnaPersonaDaLoMismoSeLleguePorDondeSeLlegue() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = viewModelWithMembers(MutableStateFlow(listOf(member("ana"), member("luis"))))
+        advanceUntilIdle()
+
+        // Todas por el estado inicial.
+        viewModel.toggleMember("ana")
+        val desdeElInicio = viewModel.uiState.value.selectedMemberIds
+        // Todas por «Todas» elegida a mano.
+        viewModel.selectAllMembers()
+        viewModel.toggleMember("ana")
+        val desdeElegirTodas = viewModel.uiState.value.selectedMemberIds
+        // Todas por desmarcar a la última.
+        viewModel.toggleMember("luis")
+        viewModel.toggleMember("ana")
+        val desdeDesmarcarLaUltima = viewModel.uiState.value.selectedMemberIds
+
+        assertEquals(setOf("luis"), desdeElInicio)
+        assertEquals(desdeElInicio, desdeElegirTodas)
+        assertEquals(desdeElInicio, desdeDesmarcarLaUltima)
+    }
+
+    @Test
+    fun unMiembroNuevoConTodasSigueEnTodas() = runTest(mainDispatcherRule.testDispatcher) {
+        val members = MutableStateFlow(listOf(member("ana"), member("luis")))
+        val viewModel = viewModelWithMembers(members)
+        advanceUntilIdle()
+        viewModel.toggleMember("ana")
+        viewModel.toggleMember("luis")
+
+        members.value = listOf(member("ana"), member("luis"), member("eva"))
+        advanceUntilIdle()
+
+        assertEquals(setOf("ana", "luis", "eva"), viewModel.uiState.value.selectedMemberIds)
     }
 
     @Test

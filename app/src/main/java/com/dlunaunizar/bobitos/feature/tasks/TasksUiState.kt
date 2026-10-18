@@ -9,6 +9,7 @@ import com.dlunaunizar.bobitos.core.model.TaskPriority
 import com.dlunaunizar.bobitos.core.model.TaskStatus
 import com.dlunaunizar.bobitos.core.model.TaskType
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 
 data class TasksUiState(
@@ -104,3 +105,7 @@ enum class TaskUiMessage {
     TaskReopened,
     TaskDeleted,
 }
+
+// Vencida: sin hacer y con un día de vencimiento anterior a [today], que pasa la pantalla (a medianoche cambia).
+internal fun isOverdue(task: TaskItem, done: Boolean, today: LocalDate, zone: ZoneId): Boolean =
+    !done && task.dueAt?.atZone(zone)?.toLocalDate()?.isBefore(today) == true
