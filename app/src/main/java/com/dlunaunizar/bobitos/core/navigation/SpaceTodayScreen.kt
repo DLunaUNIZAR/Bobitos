@@ -17,7 +17,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
@@ -39,6 +38,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
+import com.dlunaunizar.bobitos.core.designsystem.rememberToday
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.moduleColors
@@ -105,8 +105,7 @@ private fun TasksSection(
     if (agenda.tasks.isEmpty()) return
     val total = agenda.tasks.size + agenda.hiddenTasks
     val rows = agenda.tasks.size + if (agenda.hiddenTasks > 0) 1 else 0
-    // Se fija con la agenda: así «ayer» sigue bien tras la medianoche, cuando llega una agenda nueva.
-    val today = remember(agenda) { LocalDate.now() }
+    val today = rememberToday()
     Column {
         SectionHeader(title = stringResource(R.string.agenda_tasks_title), count = total)
         agenda.tasks.forEachIndexed { index, item ->

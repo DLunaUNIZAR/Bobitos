@@ -63,12 +63,14 @@ import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.WeekDayStrip
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
+import com.dlunaunizar.bobitos.core.designsystem.rememberToday
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryCardColors
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
@@ -141,63 +143,64 @@ fun SportScreen(
             }
         }
 
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-        ) {
-            WeekDayStrip(
-                days = state.weekDays,
-                selected = state.focusedDate,
-                today = LocalDate.now(),
-                onSelect = viewModel::selectDay,
-                onPrevious = viewModel::previousWeek,
-                onNext = viewModel::nextWeek,
-                previousLabel = stringResource(R.string.sport_prev_week),
-                nextLabel = stringResource(R.string.sport_next_week),
-            )
-            Spacer(Modifier.height(Spacing.sm))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = state.focusedDate.formatHeader(),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f),
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            // La tira queda fija bajo la barra: no se desplaza con la lista.
+            ModuleHeaderBand {
+                WeekDayStrip(
+                    days = state.weekDays,
+                    selected = state.focusedDate,
+                    today = rememberToday(),
+                    onSelect = viewModel::selectDay,
+                    onPrevious = viewModel::previousWeek,
+                    onNext = viewModel::nextWeek,
+                    previousLabel = stringResource(R.string.sport_prev_week),
+                    nextLabel = stringResource(R.string.sport_next_week),
+                    modifier = Modifier.padding(horizontal = Spacing.sm),
                 )
             }
-            when (val activities = state.activities) {
-                UiState.Loading -> LoadingState(Modifier.weight(1f))
-                is UiState.Error -> ErrorState(
-                    Modifier.weight(1f),
-                    message = stringResource(activities.failure.messageRes()),
-                    onRetry = { viewModel.observe(spaceId) },
-                )
-                is UiState.Content -> {
-                    val dayActivities = activities.value.filter { it.date == state.focusedDate }
-                    if (dayActivities.isEmpty()) {
-                        EmptyState(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Rounded.FitnessCenter,
-                            title = stringResource(R.string.sport_empty_day),
-                        )
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                            contentPadding = PaddingValues(bottom = Spacing.fabClearance),
-                        ) {
-                            items(dayActivities, key = SportActivity::id) { activity ->
-                                ActivityCard(
-                                    activity = activity,
-                                    enabled = actionsEnabled,
-                                    canWrite = canWrite,
-                                    onEdit = {
-                                        editorActivityId = activity.id
-                                        editorOpen = true
-                                    },
-                                    onDelete = { deleteWithUndo(activity) },
-                                    onToggleDone = { viewModel.setDone(activity.id, !activity.done) },
-                                )
+            Column(Modifier.weight(1f).padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
+                Spacer(Modifier.height(Spacing.sm))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = state.focusedDate.formatHeader(),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                when (val activities = state.activities) {
+                    UiState.Loading -> LoadingState(Modifier.weight(1f))
+                    is UiState.Error -> ErrorState(
+                        Modifier.weight(1f),
+                        message = stringResource(activities.failure.messageRes()),
+                        onRetry = { viewModel.observe(spaceId) },
+                    )
+                    is UiState.Content -> {
+                        val dayActivities = activities.value.filter { it.date == state.focusedDate }
+                        if (dayActivities.isEmpty()) {
+                            EmptyState(
+                                modifier = Modifier.weight(1f),
+                                icon = Icons.Rounded.FitnessCenter,
+                                title = stringResource(R.string.sport_empty_day),
+                            )
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                contentPadding = PaddingValues(bottom = Spacing.fabClearance),
+                            ) {
+                                items(dayActivities, key = SportActivity::id) { activity ->
+                                    ActivityCard(
+                                        activity = activity,
+                                        enabled = actionsEnabled,
+                                        canWrite = canWrite,
+                                        onEdit = {
+                                            editorActivityId = activity.id
+                                            editorOpen = true
+                                        },
+                                        onDelete = { deleteWithUndo(activity) },
+                                        onToggleDone = { viewModel.setDone(activity.id, !activity.done) },
+                                    )
+                                }
                             }
                         }
                     }

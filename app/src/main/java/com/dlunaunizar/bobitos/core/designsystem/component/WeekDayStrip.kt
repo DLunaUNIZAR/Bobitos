@@ -41,7 +41,7 @@ object WeekDayStripDefaults {
     fun colors(): WeekDayStripColors = WeekDayStripColors(
         selectedContainer = MaterialTheme.colorScheme.secondaryContainer,
         selectedContent = MaterialTheme.colorScheme.onSecondaryContainer,
-        todayOutline = MaterialTheme.colorScheme.outline,
+        todayOutline = MaterialTheme.colorScheme.primary,
     )
 }
 
@@ -102,7 +102,7 @@ private fun WeekDay(
     Surface(
         modifier = modifier
             .heightIn(min = 48.dp)
-            .selectable(selected = isSelected, role = Role.Tab, onClick = onClick)
+            .selectable(selected = isSelected, role = Role.RadioButton, onClick = onClick)
             .clearAndSetSemantics {
                 contentDescription = description
                 this.selected = isSelected
@@ -110,7 +110,7 @@ private fun WeekDay(
         shape = MaterialTheme.shapes.medium,
         color = if (isSelected) colors.selectedContainer else Color.Transparent,
         contentColor = content,
-        border = if (isToday) BorderStroke(1.dp, colors.todayOutline) else null,
+        border = if (isToday) BorderStroke(2.dp, colors.todayOutline) else null,
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),

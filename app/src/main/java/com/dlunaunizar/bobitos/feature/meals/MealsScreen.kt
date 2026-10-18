@@ -60,11 +60,15 @@ import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
+import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
+import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.WeekDayStrip
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
@@ -72,6 +76,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
+import com.dlunaunizar.bobitos.core.designsystem.rememberToday
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
@@ -134,113 +139,115 @@ fun MealsScreen(
             text = { stringResource(it.stringResourceId) },
         )
         CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-        ) {
-            WeekDayStrip(
-                days = state.weekDays,
-                selected = state.focusedDate,
-                today = LocalDate.now(),
-                onSelect = viewModel::selectDay,
-                onPrevious = viewModel::previousWeek,
-                onNext = viewModel::nextWeek,
-                previousLabel = stringResource(R.string.meals_week_previous),
-                nextLabel = stringResource(R.string.meals_week_next),
-            )
-            Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = state.focusedDate.formatHeader(),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f),
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            // La tira queda fija bajo la barra: no se desplaza con la lista.
+            ModuleHeaderBand {
+                WeekDayStrip(
+                    days = state.weekDays,
+                    selected = state.focusedDate,
+                    today = rememberToday(),
+                    onSelect = viewModel::selectDay,
+                    onPrevious = viewModel::previousWeek,
+                    onNext = viewModel::nextWeek,
+                    previousLabel = stringResource(R.string.meals_week_previous),
+                    nextLabel = stringResource(R.string.meals_week_next),
+                    modifier = Modifier.padding(horizontal = Spacing.sm),
                 )
-                if (canWrite) {
-                    Box {
-                        MoreOptionsButton(
-                            itemName = BobitosDates.longDay(state.focusedDate),
-                            onClick = { dayMenuExpanded = true },
-                        )
-                        DropdownMenu(expanded = dayMenuExpanded, onDismissRequest = { dayMenuExpanded = false }) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.meals_duplicate_day)) },
-                                onClick = {
-                                    dayMenuExpanded = false
-                                    duplicateDayPicker = true
-                                },
+            }
+            Column(modifier = Modifier.weight(1f).padding(horizontal = 16.dp, vertical = 12.dp)) {
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = state.focusedDate.formatHeader(),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (canWrite) {
+                        Box {
+                            MoreOptionsButton(
+                                itemName = BobitosDates.longDay(state.focusedDate),
+                                onClick = { dayMenuExpanded = true },
                             )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.meals_duplicate_week)) },
-                                onClick = {
-                                    dayMenuExpanded = false
-                                    viewModel.duplicateWeekToNext()
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.meals_add_day_to_shopping)) },
-                                onClick = {
-                                    dayMenuExpanded = false
-                                    viewModel.addDayIngredientsToShopping()
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.meals_add_week_to_shopping)) },
-                                onClick = {
-                                    dayMenuExpanded = false
-                                    viewModel.addWeekIngredientsToShopping()
-                                },
-                            )
+                            DropdownMenu(expanded = dayMenuExpanded, onDismissRequest = { dayMenuExpanded = false }) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.meals_duplicate_day)) },
+                                    onClick = {
+                                        dayMenuExpanded = false
+                                        duplicateDayPicker = true
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.meals_duplicate_week)) },
+                                    onClick = {
+                                        dayMenuExpanded = false
+                                        viewModel.duplicateWeekToNext()
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.meals_add_day_to_shopping)) },
+                                    onClick = {
+                                        dayMenuExpanded = false
+                                        viewModel.addDayIngredientsToShopping()
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.meals_add_week_to_shopping)) },
+                                    onClick = {
+                                        dayMenuExpanded = false
+                                        viewModel.addWeekIngredientsToShopping()
+                                    },
+                                )
+                            }
                         }
                     }
                 }
-            }
-            Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(8.dp))
 
-            when (val mealsState = state.meals) {
-                UiState.Loading -> LoadingState(Modifier.weight(1f))
-                is UiState.Error -> ErrorState(
-                    Modifier.weight(1f),
-                    message = stringResource(mealsState.failure.messageRes()),
-                    onRetry = { viewModel.observe(spaceId) },
-                )
-                is UiState.Content -> {
-                    val dayMeals = mealsState.value.filter { it.date == state.focusedDate }
-                    SearchField(
-                        query = query,
-                        onQueryChange = { query = it },
-                        visible = dayMeals.isNotEmpty(),
-                        modifier = Modifier.padding(bottom = 8.dp),
+                when (val mealsState = state.meals) {
+                    UiState.Loading -> LoadingState(Modifier.weight(1f))
+                    is UiState.Error -> ErrorState(
+                        Modifier.weight(1f),
+                        message = stringResource(mealsState.failure.messageRes()),
+                        onRetry = { viewModel.observe(spaceId) },
                     )
-                    val queriedMeals = dayMeals.filter { it.matchesQuery(query) }
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(top = 8.dp, bottom = Spacing.fabClearance),
-                    ) {
-                        MealSlot.entries.forEach { slot ->
-                            item(key = slot.name) {
-                                MealSlotSection(
-                                    slot = slot,
-                                    meals = queriedMeals.filter { it.slot == slot },
-                                    recipes = state.recipes,
-                                    canWrite = canWrite,
-                                    actionsEnabled = actionsEnabled,
-                                    onEdit = { meal -> openEditor(meal, meal.slot) },
-                                    onDelete = { meal ->
-                                        // El espacio se captura al borrar: «Deshacer» devuelve la comida a su espacio.
-                                        val deletedFrom = spaceId
-                                        viewModel.deleteMeal(meal.id) {
-                                            scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                                                viewModel.restoreMeal(deletedFrom, meal)
+                    is UiState.Content -> {
+                        val dayMeals = mealsState.value.filter { it.date == state.focusedDate }
+                        SearchField(
+                            query = query,
+                            onQueryChange = { query = it },
+                            visible = dayMeals.isNotEmpty(),
+                            modifier = Modifier.padding(bottom = 8.dp),
+                        )
+                        val queriedMeals = dayMeals.filter { it.matchesQuery(query) }
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            contentPadding = PaddingValues(top = 8.dp, bottom = Spacing.fabClearance),
+                        ) {
+                            MealSlot.entries.forEach { slot ->
+                                item(key = slot.name) {
+                                    MealSlotSection(
+                                        slot = slot,
+                                        meals = queriedMeals.filter { it.slot == slot },
+                                        recipes = state.recipes,
+                                        canWrite = canWrite,
+                                        actionsEnabled = actionsEnabled,
+                                        onAdd = { openEditor(null, it) },
+                                        onEdit = { meal -> openEditor(meal, meal.slot) },
+                                        onDelete = { meal ->
+                                            // El espacio se captura al borrar: «Deshacer» devuelve la comida a su espacio.
+                                            val deletedFrom = spaceId
+                                            viewModel.deleteMeal(meal.id) {
+                                                scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+                                                    viewModel.restoreMeal(deletedFrom, meal)
+                                                }
                                             }
-                                        }
-                                    },
-                                    onAddToShopping = { viewModel.addIngredientsToShopping(it) },
-                                    onToggleCooked = {
-                                        if (it.cooked) viewModel.unmarkCooked(it) else viewModel.markCooked(it)
-                                    },
-                                )
+                                        },
+                                        onAddToShopping = { viewModel.addIngredientsToShopping(it) },
+                                        onToggleCooked = {
+                                            if (it.cooked) viewModel.unmarkCooked(it) else viewModel.markCooked(it)
+                                        },
+                                    )
+                                }
                             }
                         }
                     }
@@ -321,12 +328,13 @@ private fun CookedReviewDialog(review: CookedReview, state: MealsUiState, viewMo
 }
 
 @Composable
-private fun MealSlotSection(
+internal fun MealSlotSection(
     slot: MealSlot,
     meals: List<Meal>,
     recipes: List<Recipe>,
     canWrite: Boolean,
     actionsEnabled: Boolean,
+    onAdd: (MealSlot) -> Unit,
     onEdit: (Meal) -> Unit,
     onDelete: (Meal) -> Unit,
     onAddToShopping: (Meal) -> Unit,
@@ -334,23 +342,27 @@ private fun MealSlotSection(
 ) {
     val recipesById = recipes.associateBy(Recipe::id)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Icon(slot.icon, contentDescription = null, tint = slot.accent())
-            Text(
-                text = stringResource(slot.labelRes),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f),
-            )
-        }
+        SectionHeader(title = stringResource(slot.labelRes), icon = slot.icon)
         if (meals.isEmpty()) {
-            Text(
-                text = stringResource(R.string.meals_slot_empty),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (canWrite) {
+                GroupedRow(position = RowPosition.SINGLE, onClick = { onAdd(slot) }) {
+                    Icon(Icons.Rounded.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(Spacing.sm))
+                    Text(
+                        text = stringResource(
+                            R.string.meals_add_to_slot,
+                            stringResource(slot.labelRes).lowercase(),
+                        ),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+            } else {
+                Text(
+                    text = stringResource(R.string.meals_slot_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         } else {
             meals.forEach { meal ->
                 MealCard(

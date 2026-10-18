@@ -35,6 +35,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.rememberReduceMotion
+import com.dlunaunizar.bobitos.core.designsystem.rememberToday
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
@@ -263,15 +264,16 @@ fun BobitosNavHost(
             LaunchedEffect(uiState.selectedSpace?.id) {
                 uiState.selectedSpace?.id?.let { summaryViewModel.show(it, authUser.id) }
             }
-            // Fecha y saludo se fijan con la agenda: a medianoche llega una nueva y se renuevan.
-            val now = remember(agenda) { LocalDateTime.now() }
-            val greeting = stringResource(greetingRes(dayPeriodFor(now.hour)))
+            // Fecha y saludo siguen a `rememberToday()`: a medianoche se renuevan.
+            val today = rememberToday()
+            val greeting =
+                stringResource(greetingRes(dayPeriodFor(remember(agenda, today) { LocalDateTime.now().hour })))
             val name = firstName(authUser.displayName)
             SpaceScaffold(
                 navController = navController,
                 selectedTab = BobitosDestination.SpaceHome,
                 module = null,
-                title = BobitosDates.longDay(now.toLocalDate()),
+                title = BobitosDates.longDay(today),
                 supportingText = if (name.isBlank()) {
                     greeting
                 } else {

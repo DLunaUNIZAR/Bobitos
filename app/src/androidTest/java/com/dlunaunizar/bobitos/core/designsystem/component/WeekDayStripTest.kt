@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.core.designsystem.component
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
@@ -91,5 +92,14 @@ class WeekDayStripTest {
     fun theStripIsASelectableGroup() {
         show()
         compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.SelectableGroup)).assertExists()
+    }
+
+    @Test
+    fun cadaDiaEsUnaOpcionUnica() {
+        show()
+        days.forEach {
+            compose.onNode(hasContentDescription("${it.dayOfMonth} de octubre", substring = true))
+                .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
+        }
     }
 }
