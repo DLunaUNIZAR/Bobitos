@@ -63,6 +63,7 @@ import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
+import com.dlunaunizar.bobitos.core.designsystem.component.Celebration
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
@@ -82,8 +83,12 @@ import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
+import com.dlunaunizar.bobitos.core.designsystem.component.checkBounce
+import com.dlunaunizar.bobitos.core.designsystem.component.completingExit
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberCelebrationState
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberCompletingItems
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
@@ -161,10 +166,22 @@ fun ShoppingScreen(
     val presentSupermarkets = allItems.presentSupermarkets()
     val activeSupermarket = resolveSupermarket(selectedSupermarket, presentSupermarkets)
     val filteredItems = allItems.filter { it.matchesQuery(query) }.forSupermarket(activeSupermarket)
-    val pending = filteredItems.filterNot(ShoppingItem::purchased)
-    val purchased = filteredItems.filter(ShoppingItem::purchased)
+    val completing = rememberCompletingItems()
+    // Lo que acaba de marcarse sigue unos instantes entre las pendientes, y no se repite entre las compradas.
+    val pending = completing.retain(filteredItems.filterNot(ShoppingItem::purchased), ShoppingItem::id)
+    val purchased = filteredItems.filter { it.purchased && !completing.isCompleting(it.id) }
     val actionsEnabled = canWrite && !state.isSaving
     val listState = rememberLazyListState()
+    val celebration = rememberCelebrationState(
+        source = allItems,
+        pending = allItems.filterNot(ShoppingItem::purchased).map(ShoppingItem::id).toSet(),
+    )
+    // La escritura sale primero; después se anima la fila y, si era el último producto, se celebra.
+    val markPurchased: (ShoppingItem) -> Unit = { item ->
+        viewModel.setPurchased(spaceId, item.id, true)
+        completing.start(item.id)
+        celebration.userCompleted(item.id)
+    }
     ModuleScaffold(
         modifier = modifier.fillMaxSize(),
         saving = savingOutsideEditor(state.isSaving, editorVisible),
@@ -211,114 +228,56 @@ fun ShoppingScreen(
             }
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-        ) {
-            when (val itemsState = state.items) {
-                UiState.Loading -> LoadingState(modifier = Modifier.weight(1f))
-                is UiState.Error -> ErrorState(
-                    modifier = Modifier.weight(1f),
-                    message = stringResource(R.string.shopping_error_list_read),
-                    onRetry = { viewModel.observe(spaceId) },
-                )
-                is UiState.Content -> {
-                    if (itemsState.value.isEmpty()) {
-                        ShoppingEmptyState(modifier = Modifier.weight(1f))
-                    } else {
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(bottom = Spacing.fabClearance),
-                        ) {
-                            // Búsqueda y filtro en la franja teñida: primer elemento, se va con la lista.
-                            item(key = "filters") {
-                                ModuleHeaderBand {
-                                    Column(
-                                        Modifier.padding(horizontal = Spacing.lg)
-                                            .padding(top = Spacing.sm, bottom = Spacing.md),
-                                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                                    ) {
-                                        SearchField(query = query, onQueryChange = { query = it }, visible = true)
-                                        SupermarketFilterRow(
-                                            supermarkets = presentSupermarkets,
-                                            selected = activeSupermarket,
-                                            onSelect = { selectedSupermarket = it },
-                                        )
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                when (val itemsState = state.items) {
+                    UiState.Loading -> LoadingState(modifier = Modifier.weight(1f))
+                    is UiState.Error -> ErrorState(
+                        modifier = Modifier.weight(1f),
+                        message = stringResource(R.string.shopping_error_list_read),
+                        onRetry = { viewModel.observe(spaceId) },
+                    )
+                    is UiState.Content -> {
+                        if (itemsState.value.isEmpty()) {
+                            ShoppingEmptyState(modifier = Modifier.weight(1f))
+                        } else {
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier.weight(1f),
+                                contentPadding = PaddingValues(bottom = Spacing.fabClearance),
+                            ) {
+                                // Búsqueda y filtro en la franja teñida: primer elemento, se va con la lista.
+                                item(key = "filters") {
+                                    ModuleHeaderBand {
+                                        Column(
+                                            Modifier.padding(horizontal = Spacing.lg)
+                                                .padding(top = Spacing.sm, bottom = Spacing.md),
+                                            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                        ) {
+                                            SearchField(query = query, onQueryChange = { query = it }, visible = true)
+                                            SupermarketFilterRow(
+                                                supermarkets = presentSupermarkets,
+                                                selected = activeSupermarket,
+                                                onSelect = { selectedSupermarket = it },
+                                            )
+                                        }
                                     }
                                 }
-                            }
-                            item(key = "pending-heading") {
-                                SectionHeader(
-                                    title = stringResource(R.string.shopping_pending),
-                                    count = pending.size,
-                                    modifier = Modifier.padding(horizontal = Spacing.lg),
-                                )
-                            }
-                            itemsIndexed(pending, key = { _, item -> item.id }) { index, item ->
-                                SwipeActionsBox(
-                                    startAction = SwipeAction(
-                                        Icons.Rounded.Check,
-                                        checkColor,
-                                        stringResource(R.string.swipe_item_purchased),
-                                    ) {
-                                        viewModel.setPurchased(spaceId, item.id, true)
-                                    }.takeIf { actionsEnabled },
-                                    endAction = SwipeAction(
-                                        Icons.Rounded.Delete,
-                                        deleteColor,
-                                        stringResource(R.string.shopping_delete),
-                                    ) {
-                                        deleteItemWithUndo(item)
-                                    }.takeIf { actionsEnabled },
-                                    modifier = Modifier.padding(horizontal = Spacing.lg).animateItem(),
-                                ) { accessibilityModifier ->
-                                    ShoppingItemRow(
-                                        item = item,
-                                        position = rowPosition(index, pending.size),
-                                        showAuthor = showAuthor,
-                                        enabled = actionsEnabled,
-                                        onCreateIngredient = { viewModel.createIngredientFromItem(item) },
-                                        onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
-                                        onEdit = {
-                                            if (actionsEnabled) {
-                                                editedItemId = item.id
-                                                initialDraft = null
-                                                editorVisible = true
-                                            }
-                                        },
-                                        onDelete = { deleteItemWithUndo(item) },
-                                        modifier = accessibilityModifier,
+                                item(key = "pending-heading") {
+                                    SectionHeader(
+                                        title = stringResource(R.string.shopping_pending),
+                                        count = pending.size,
+                                        modifier = Modifier.padding(horizontal = Spacing.lg),
                                     )
                                 }
-                            }
-                            if (purchased.isNotEmpty()) {
-                                item(key = "purchased-heading") {
-                                    Column(Modifier.padding(horizontal = Spacing.lg)) {
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        SectionHeader(
-                                            title = stringResource(R.string.shopping_purchased),
-                                            count = purchased.size,
-                                            action = {
-                                                TextButton(
-                                                    enabled = actionsEnabled,
-                                                    onClick = { clearConfirmationVisible = true },
-                                                ) {
-                                                    Text(stringResource(R.string.shopping_clear_purchased))
-                                                }
-                                            },
-                                        )
-                                    }
-                                }
-                                itemsIndexed(purchased, key = { _, item -> item.id }) { index, item ->
+                                itemsIndexed(pending, key = { _, item -> item.id }) { index, item ->
                                     SwipeActionsBox(
                                         startAction = SwipeAction(
                                             Icons.Rounded.Check,
                                             checkColor,
-                                            stringResource(R.string.swipe_item_pending),
+                                            stringResource(R.string.swipe_item_purchased),
                                         ) {
-                                            viewModel.setPurchased(spaceId, item.id, false)
+                                            markPurchased(item)
                                         }.takeIf { actionsEnabled },
                                         endAction = SwipeAction(
                                             Icons.Rounded.Delete,
@@ -327,15 +286,25 @@ fun ShoppingScreen(
                                         ) {
                                             deleteItemWithUndo(item)
                                         }.takeIf { actionsEnabled },
-                                        modifier = Modifier.padding(horizontal = Spacing.lg).animateItem(),
+                                        modifier = Modifier.padding(horizontal = Spacing.lg).animateItem()
+                                            .completingExit(completing, item.id),
                                     ) { accessibilityModifier ->
                                         ShoppingItemRow(
                                             item = item,
-                                            position = rowPosition(index, purchased.size),
+                                            position = rowPosition(index, pending.size),
                                             showAuthor = showAuthor,
                                             enabled = actionsEnabled,
+                                            completing = completing.isCompleting(item.id),
                                             onCreateIngredient = { viewModel.createIngredientFromItem(item) },
-                                            onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
+                                            onSetPurchased = {
+                                                if (it) {
+                                                    markPurchased(
+                                                        item,
+                                                    )
+                                                } else {
+                                                    viewModel.setPurchased(spaceId, item.id, false)
+                                                }
+                                            },
                                             onEdit = {
                                                 if (actionsEnabled) {
                                                     editedItemId = item.id
@@ -348,11 +317,73 @@ fun ShoppingScreen(
                                         )
                                     }
                                 }
+                                if (purchased.isNotEmpty()) {
+                                    item(key = "purchased-heading") {
+                                        Column(Modifier.padding(horizontal = Spacing.lg)) {
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            SectionHeader(
+                                                title = stringResource(R.string.shopping_purchased),
+                                                count = purchased.size,
+                                                action = {
+                                                    TextButton(
+                                                        enabled = actionsEnabled,
+                                                        onClick = { clearConfirmationVisible = true },
+                                                    ) {
+                                                        Text(stringResource(R.string.shopping_clear_purchased))
+                                                    }
+                                                },
+                                            )
+                                        }
+                                    }
+                                    itemsIndexed(purchased, key = { _, item -> item.id }) { index, item ->
+                                        SwipeActionsBox(
+                                            startAction = SwipeAction(
+                                                Icons.Rounded.Check,
+                                                checkColor,
+                                                stringResource(R.string.swipe_item_pending),
+                                            ) {
+                                                viewModel.setPurchased(spaceId, item.id, false)
+                                            }.takeIf { actionsEnabled },
+                                            endAction = SwipeAction(
+                                                Icons.Rounded.Delete,
+                                                deleteColor,
+                                                stringResource(R.string.shopping_delete),
+                                            ) {
+                                                deleteItemWithUndo(item)
+                                            }.takeIf { actionsEnabled },
+                                            modifier = Modifier.padding(horizontal = Spacing.lg).animateItem(),
+                                        ) { accessibilityModifier ->
+                                            ShoppingItemRow(
+                                                item = item,
+                                                position = rowPosition(index, purchased.size),
+                                                showAuthor = showAuthor,
+                                                enabled = actionsEnabled,
+                                                completing = false,
+                                                onCreateIngredient = { viewModel.createIngredientFromItem(item) },
+                                                onSetPurchased = { viewModel.setPurchased(spaceId, item.id, it) },
+                                                onEdit = {
+                                                    if (actionsEnabled) {
+                                                        editedItemId = item.id
+                                                        initialDraft = null
+                                                        editorVisible = true
+                                                    }
+                                                },
+                                                onDelete = { deleteItemWithUndo(item) },
+                                                modifier = accessibilityModifier,
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
+            Celebration(
+                visible = celebration.visible,
+                message = stringResource(R.string.celebration_shopping),
+                onFinished = celebration::dismiss,
+            )
         }
     }
 
@@ -469,6 +500,7 @@ private fun ShoppingItemRow(
     position: RowPosition,
     showAuthor: Boolean,
     enabled: Boolean,
+    completing: Boolean,
     onCreateIngredient: () -> Unit,
     onSetPurchased: (Boolean) -> Unit,
     onEdit: () -> Unit,
@@ -483,18 +515,19 @@ private fun ShoppingItemRow(
         // pasa un `onEdit` que no hace nada si no se puede editar.
         onClick = onEdit,
     ) {
+        val purchased = item.purchased || completing
         Checkbox(
-            checked = item.purchased,
+            checked = purchased,
             enabled = enabled,
             onCheckedChange = onSetPurchased,
-            modifier = Modifier.semantics { contentDescription = item.name },
+            modifier = Modifier.checkBounce(completing).semantics { contentDescription = item.name },
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = listOfNotNull(item.name, item.quantity?.let { "· $it" })
                     .joinToString(" "),
                 style = MaterialTheme.typography.bodyLarge,
-                textDecoration = if (item.purchased) {
+                textDecoration = if (purchased) {
                     TextDecoration.LineThrough
                 } else {
                     TextDecoration.None

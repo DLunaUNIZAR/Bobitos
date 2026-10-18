@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.core.navigation
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +18,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
@@ -26,17 +32,25 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.BobitosDates
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
+import com.dlunaunizar.bobitos.core.designsystem.component.Celebration
+import com.dlunaunizar.bobitos.core.designsystem.component.CompletingItems
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
+import com.dlunaunizar.bobitos.core.designsystem.component.cascadeIn
+import com.dlunaunizar.bobitos.core.designsystem.component.checkBounce
+import com.dlunaunizar.bobitos.core.designsystem.component.completingExit
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberCelebrationState
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberCompletingItems
 import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
 import com.dlunaunizar.bobitos.core.designsystem.rememberToday
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
@@ -53,11 +67,15 @@ import com.dlunaunizar.bobitos.feature.spaces.ShoppingGlance
 import com.dlunaunizar.bobitos.feature.spaces.TodayAgenda
 import com.dlunaunizar.bobitos.feature.spaces.WorkloadSection
 import com.dlunaunizar.bobitos.feature.tasks.label
+import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.format.TextStyle
 
 private val TimeColumnWidth = 72.dp
 private val FlagSize = 16.dp
+
+// Lo que dura la ventana de la cascada de entrada: pasada, las filas que aparecen entran ya puestas.
+private const val CASCADE_WINDOW_MS = 1_200L
 
 /**
  * «Hoy»: la agenda de toda la casa. Tareas que vencen (con casilla para completarlas sin salir), lo de hoy en el
@@ -72,53 +90,88 @@ internal fun SpaceTodayScreen(
     onRetry: () -> Unit,
     onOpen: (BobitosDestination) -> Unit,
 ) {
-    when (agenda) {
-        UiState.Loading -> LoadingState(modifier = Modifier.fillMaxSize())
-        is UiState.Error -> ErrorState(
-            modifier = Modifier.fillMaxSize(),
-            message = stringResource(agenda.failure.messageRes()),
-            onRetry = onRetry,
-        )
-        is UiState.Content -> Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(start = Spacing.lg, end = Spacing.lg, top = Spacing.sm, bottom = Spacing.xl),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xl),
-        ) {
-            val today = agenda.value
-            TasksSection(today, canWrite, onToggleTask, onOpen)
-            AgendaSection(today.entries, onOpen)
-            ShoppingRow(today.shopping, onOpen)
-            WorkloadSection(today.workload)
+    val completing = rememberCompletingItems()
+    val celebration = rememberCelebrationState(agenda, (agenda as? UiState.Content)?.value?.pendingTaskIds().orEmpty())
+    // La cascada de entrada es solo la primera vez que la agenda pasa a Content; luego las filas nuevas aparecen ya puestas.
+    var cascade by remember { mutableStateOf(true) }
+    LaunchedEffect(agenda is UiState.Content) {
+        if (agenda is UiState.Content) {
+            delay(CASCADE_WINDOW_MS)
+            cascade = false
         }
+    }
+    // La escritura sale antes que la animación y que la vibración: varias casillas seguidas escriben todas.
+    val toggle: (TaskItem) -> Unit = { task ->
+        onToggleTask(task)
+        completing.start(task.id)
+        celebration.userCompleted(task.id)
+    }
+    Box(Modifier.fillMaxSize()) {
+        when (agenda) {
+            UiState.Loading -> LoadingState(modifier = Modifier.fillMaxSize())
+            is UiState.Error -> ErrorState(
+                modifier = Modifier.fillMaxSize(),
+                message = stringResource(agenda.failure.messageRes()),
+                onRetry = onRetry,
+            )
+            is UiState.Content -> Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = Spacing.lg, end = Spacing.lg, top = Spacing.sm, bottom = Spacing.xl),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xl),
+            ) {
+                val today = agenda.value
+                val tasks = completing.retain(today.tasks) { it.task.id }
+                TasksSection(tasks, today.hiddenTasks, canWrite, completing, cascade, toggle, onOpen)
+                AgendaSection(today.entries, tasks.size, cascade, onOpen)
+                ShoppingRow(today.shopping, tasks.size + today.entries.size, cascade, onOpen)
+                WorkloadSection(today.workload)
+            }
+        }
+        Celebration(
+            visible = celebration.visible,
+            message = stringResource(R.string.celebration_today),
+            onFinished = celebration::dismiss,
+        )
     }
 }
 
+// Las tareas de hoy que siguen pendientes; las que no caben se cuentan como pendientes anónimas.
+private fun TodayAgenda.pendingTaskIds(): Set<String> =
+    tasks.map { it.task.id }.toSet() + List(hiddenTasks) { "hidden-$it" }
+
 @Composable
 private fun TasksSection(
-    agenda: TodayAgenda,
+    tasks: List<AgendaTask>,
+    hiddenTasks: Int,
     canWrite: Boolean,
+    completing: CompletingItems,
+    cascade: Boolean,
     onToggleTask: (TaskItem) -> Unit,
     onOpen: (BobitosDestination) -> Unit,
 ) {
-    if (agenda.tasks.isEmpty()) return
-    val total = agenda.tasks.size + agenda.hiddenTasks
-    val rows = agenda.tasks.size + if (agenda.hiddenTasks > 0) 1 else 0
+    if (tasks.isEmpty()) return
+    val total = tasks.size + hiddenTasks
+    val rows = tasks.size + if (hiddenTasks > 0) 1 else 0
     val today = rememberToday()
     Column {
         SectionHeader(title = stringResource(R.string.agenda_tasks_title), count = total)
-        agenda.tasks.forEachIndexed { index, item ->
+        tasks.forEachIndexed { index, item ->
             TaskRow(
                 item = item,
                 today = today,
                 position = rowPosition(index, rows),
                 canWrite = canWrite,
+                completing = completing,
+                modifier = Modifier
+                    .cascadeIn(index, play = cascade)
+                    .completingExit(completing, item.task.id),
                 onToggle = { onToggleTask(item.task) },
                 onOpen = { onOpen(BobitosDestination.Tasks) },
             )
         }
-        if (agenda.hiddenTasks > 0) {
+        if (hiddenTasks > 0) {
             GroupedRow(
                 position = rowPosition(rows - 1, rows),
                 onClick = { onOpen(BobitosDestination.Tasks) },
@@ -141,21 +194,28 @@ private fun TaskRow(
     today: LocalDate,
     position: RowPosition,
     canWrite: Boolean,
+    completing: CompletingItems,
+    modifier: Modifier,
     onToggle: () -> Unit,
     onOpen: () -> Unit,
 ) {
     val accent = moduleColors(AppModule.TASKS).accent
-    GroupedRow(position = position, tint = moduleTint(AppModule.TASKS), onClick = onOpen) {
+    val done = completing.isCompleting(item.task.id)
+    GroupedRow(position = position, modifier = modifier, tint = moduleTint(AppModule.TASKS), onClick = onOpen) {
         // Su propio destino de 48 dp: completa sin salir de Hoy; el resto de la fila lleva a Tareas.
         Checkbox(
-            checked = false,
+            checked = done,
             onCheckedChange = { onToggle() },
             enabled = canWrite,
-            modifier = Modifier.semantics { contentDescription = item.task.title },
+            modifier = Modifier.checkBounce(done).semantics { contentDescription = item.task.title },
             colors = CheckboxDefaults.colors(checkedColor = accent, uncheckedColor = accent),
         )
         Column(Modifier.weight(1f).padding(start = Spacing.xs)) {
-            Text(item.task.title, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = item.task.title,
+                style = MaterialTheme.typography.bodyLarge,
+                textDecoration = if (done) TextDecoration.LineThrough else null,
+            )
             TaskMeta(item, today)
         }
     }
@@ -197,7 +257,12 @@ private fun overdueText(since: LocalDate, today: LocalDate): String = if (since 
 }
 
 @Composable
-private fun AgendaSection(entries: List<AgendaEntry>, onOpen: (BobitosDestination) -> Unit) {
+private fun AgendaSection(
+    entries: List<AgendaEntry>,
+    firstIndex: Int,
+    cascade: Boolean,
+    onOpen: (BobitosDestination) -> Unit,
+) {
     // Las franjas sin planificar salen siempre; si no hay nada más, se dice.
     val empty = entries.all { it is AgendaEntry.Meal && it.meal == null }
     Column {
@@ -211,7 +276,12 @@ private fun AgendaSection(entries: List<AgendaEntry>, onOpen: (BobitosDestinatio
             )
         }
         entries.forEachIndexed { index, entry ->
-            AgendaRow(entry, rowPosition(index, entries.size), onOpen)
+            AgendaRow(
+                entry,
+                rowPosition(index, entries.size),
+                Modifier.cascadeIn(firstIndex + index, play = cascade),
+                onOpen,
+            )
         }
     }
 }
@@ -220,7 +290,12 @@ private fun AgendaSection(entries: List<AgendaEntry>, onOpen: (BobitosDestinatio
 private data class AgendaRowText(val time: String, val title: String, val secondary: List<String>, val spoken: String)
 
 @Composable
-private fun AgendaRow(entry: AgendaEntry, position: RowPosition, onOpen: (BobitosDestination) -> Unit) {
+private fun AgendaRow(
+    entry: AgendaEntry,
+    position: RowPosition,
+    modifier: Modifier,
+    onOpen: (BobitosDestination) -> Unit,
+) {
     val destination = entry.destination()
     val module = destination.appModule()
     val unplanned = entry is AgendaEntry.Meal && entry.meal == null
@@ -233,6 +308,7 @@ private fun AgendaRow(entry: AgendaEntry, position: RowPosition, onOpen: (Bobito
     val dimmed = MaterialTheme.colorScheme.onSurfaceVariant
     GroupedRow(
         position = position,
+        modifier = modifier,
         // La franja vacía es neutra y de texto atenuado: invita a planificar sin competir con lo que hay.
         tint = if (unplanned) null else module?.let { moduleTint(it) },
         onClick = { onOpen(destination) },
@@ -331,11 +407,12 @@ private fun AgendaPerson.label(): String = when (this) {
 private fun List<AgendaPerson>.labels(): List<String> = map { it.label() }
 
 @Composable
-private fun ShoppingRow(shopping: ShoppingGlance, onOpen: (BobitosDestination) -> Unit) {
+private fun ShoppingRow(shopping: ShoppingGlance, index: Int, cascade: Boolean, onOpen: (BobitosDestination) -> Unit) {
     val destination = BobitosDestination.Shopping
     val accent = moduleColors(AppModule.SHOPPING).accent
     GroupedRow(
         position = RowPosition.SINGLE,
+        modifier = Modifier.cascadeIn(index, play = cascade),
         tint = moduleTint(AppModule.SHOPPING),
         onClick = { onOpen(destination) },
     ) {

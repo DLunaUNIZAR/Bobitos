@@ -83,6 +83,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
+import com.dlunaunizar.bobitos.core.designsystem.component.Celebration
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
@@ -103,13 +104,18 @@ import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
 import com.dlunaunizar.bobitos.core.designsystem.component.TopBarActions
+import com.dlunaunizar.bobitos.core.designsystem.component.checkBounce
+import com.dlunaunizar.bobitos.core.designsystem.component.completingExit
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberCelebrationState
+import com.dlunaunizar.bobitos.core.designsystem.component.rememberCompletingItems
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
 import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
+import com.dlunaunizar.bobitos.core.designsystem.rememberToday
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.categoryRowTint
 import com.dlunaunizar.bobitos.core.model.RecurrenceUnit
@@ -119,6 +125,7 @@ import com.dlunaunizar.bobitos.core.model.TaskPriority
 import com.dlunaunizar.bobitos.core.model.TaskRecurrence
 import com.dlunaunizar.bobitos.core.model.TaskStatus
 import com.dlunaunizar.bobitos.core.model.TaskType
+import com.dlunaunizar.bobitos.feature.spaces.pendingDueTodayOrEarlier
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -159,6 +166,12 @@ fun TasksScreen(
     var query by rememberSaveable { mutableStateOf("") }
 
     val listState = rememberLazyListState()
+    val completing = rememberCompletingItems()
+    val today = rememberToday()
+    val celebration = rememberCelebrationState(
+        source = allTasks,
+        pending = pendingDueTodayOrEarlier(allTasks, today, ZoneId.systemDefault()),
+    )
     ModuleScaffold(
         modifier = modifier.fillMaxSize(),
         floatingActionButton = {
@@ -208,132 +221,146 @@ fun TasksScreen(
                     viewModel.undoCompletion(spaceId, it)
                 }
             }
+            // La escritura ya ha salido: ahora la fila se anima y, si era la última de hoy, se celebra.
+            if (completed && task.status != TaskStatus.DONE) {
+                completing.start(task.id)
+                celebration.userCompleted(task.id)
+            }
         }
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            val queried = visibleTasks.filter { it.matchesQuery(query) }
-            val sections = queried.groupIntoSections()
-            if (canWrite) {
-                TopBarActions {
-                    IconButton(onClick = { templatesVisible = true }) {
-                        Icon(Icons.Rounded.Bolt, contentDescription = stringResource(R.string.tasks_templates_open))
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            Column(Modifier.fillMaxSize()) {
+                val queried = completing.retain(visibleTasks.filter { it.matchesQuery(query) }, TaskItem::id)
+                val sections = queried.groupIntoSections()
+                if (canWrite) {
+                    TopBarActions {
+                        IconButton(onClick = { templatesVisible = true }) {
+                            Icon(Icons.Rounded.Bolt, contentDescription = stringResource(R.string.tasks_templates_open))
+                        }
                     }
                 }
-            }
-            // Filtros y búsqueda en la franja teñida: primer elemento de la lista, se van con ella al desplazar.
-            val filterBand: @Composable () -> Unit = {
-                ModuleHeaderBand {
-                    Column(
-                        Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.sm, bottom = Spacing.md),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    ) {
-                        TaskFilterBar(state.filters, members, viewModel::setFilters)
-                        SearchField(
-                            query = query,
-                            onQueryChange = { query = it },
-                            visible = allTasks.isNotEmpty(),
-                        )
-                    }
-                }
-            }
-            when (val tasks = state.tasks) {
-                UiState.Loading -> {
-                    filterBand()
-                    LoadingState(Modifier.weight(1f))
-                }
-                is UiState.Error -> {
-                    filterBand()
-                    ErrorState(
-                        Modifier.weight(1f),
-                        message = stringResource(tasks.failure.messageRes()),
-                        onRetry = { viewModel.observe(spaceId) },
-                    )
-                }
-                is UiState.Content -> {
-                    val taskRow: @Composable LazyItemScope.(TaskItem, RowPosition) -> Unit = { task, position ->
-                        SwipeActionsBox(
-                            startAction = SwipeAction(
-                                Icons.Rounded.Check,
-                                checkColor,
-                                stringResource(
-                                    if (task.status ==
-                                        TaskStatus.DONE
-                                    ) {
-                                        R.string.swipe_task_reopen
-                                    } else {
-                                        R.string.swipe_task_complete
-                                    },
-                                ),
-                            ) {
-                                setCompletedWithUndo(task, task.status != TaskStatus.DONE)
-                            }.takeIf { enabled },
-                            endAction = SwipeAction(
-                                Icons.Rounded.Delete,
-                                deleteColor,
-                                stringResource(R.string.tasks_delete),
-                            ) {
-                                deleteTaskWithUndo(task)
-                            }.takeIf { enabled },
-                            modifier = Modifier.padding(horizontal = Spacing.lg).animateItem(),
-                        ) { accessibilityModifier ->
-                            TaskListRow(
-                                task,
-                                position,
-                                enabled,
-                                onSetCompleted = { setCompletedWithUndo(task, it) },
-                                onEdit = {
-                                    openEditor(task.id, -1)
-                                },
-                                onDelete = { deleteTaskWithUndo(task) },
-                                modifier = accessibilityModifier,
+                // Filtros y búsqueda en la franja teñida: primer elemento de la lista, se van con ella al desplazar.
+                val filterBand: @Composable () -> Unit = {
+                    ModuleHeaderBand {
+                        Column(
+                            Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.sm, bottom = Spacing.md),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        ) {
+                            TaskFilterBar(state.filters, members, viewModel::setFilters)
+                            SearchField(
+                                query = query,
+                                onQueryChange = { query = it },
+                                visible = allTasks.isNotEmpty(),
                             )
                         }
                     }
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.weight(1f),
-                        // Deja hueco para que el FAB no tape el último elemento.
-                        contentPadding = PaddingValues(bottom = Spacing.fabClearance),
-                    ) {
-                        item(key = "filters") { filterBand() }
-                        if (queried.isEmpty()) {
-                            item(key = "empty") {
-                                TasksEmptyContent(
-                                    empty = tasksEmptyState(allTasks, state.filters, query),
-                                    onShowCompleted = {
-                                        viewModel.setFilters(state.filters.copy(status = TaskStatus.DONE))
+                }
+                when (val tasks = state.tasks) {
+                    UiState.Loading -> {
+                        filterBand()
+                        LoadingState(Modifier.weight(1f))
+                    }
+                    is UiState.Error -> {
+                        filterBand()
+                        ErrorState(
+                            Modifier.weight(1f),
+                            message = stringResource(tasks.failure.messageRes()),
+                            onRetry = { viewModel.observe(spaceId) },
+                        )
+                    }
+                    is UiState.Content -> {
+                        val taskRow: @Composable LazyItemScope.(TaskItem, RowPosition) -> Unit = { task, position ->
+                            SwipeActionsBox(
+                                startAction = SwipeAction(
+                                    Icons.Rounded.Check,
+                                    checkColor,
+                                    stringResource(
+                                        if (task.status ==
+                                            TaskStatus.DONE
+                                        ) {
+                                            R.string.swipe_task_reopen
+                                        } else {
+                                            R.string.swipe_task_complete
+                                        },
+                                    ),
+                                ) {
+                                    setCompletedWithUndo(task, task.status != TaskStatus.DONE)
+                                }.takeIf { enabled },
+                                endAction = SwipeAction(
+                                    Icons.Rounded.Delete,
+                                    deleteColor,
+                                    stringResource(R.string.tasks_delete),
+                                ) {
+                                    deleteTaskWithUndo(task)
+                                }.takeIf { enabled },
+                                modifier = Modifier.padding(horizontal = Spacing.lg).animateItem()
+                                    .completingExit(completing, task.id),
+                            ) { accessibilityModifier ->
+                                TaskListRow(
+                                    task,
+                                    position,
+                                    enabled,
+                                    completing.isCompleting(task.id),
+                                    onSetCompleted = { setCompletedWithUndo(task, it) },
+                                    onEdit = {
+                                        openEditor(task.id, -1)
                                     },
-                                    onClearFilters = {
-                                        viewModel.clearFilters()
-                                        query = ""
-                                    },
-                                    modifier = Modifier.fillParentMaxHeight(EMPTY_STATE_HEIGHT_FRACTION),
+                                    onDelete = { deleteTaskWithUndo(task) },
+                                    modifier = accessibilityModifier,
                                 )
                             }
                         }
-                        sections.forEach { (section, sectionTasks) ->
-                            val collapsible = section == TaskSection.COMPLETED
-                            item(key = "header-$section") {
-                                SectionHeader(
-                                    title = stringResource(section.titleRes),
-                                    count = sectionTasks.size,
-                                    expanded = completedExpanded.takeIf { collapsible },
-                                    onToggle = if (collapsible) {
-                                        { completedExpanded = !completedExpanded }
-                                    } else {
-                                        null
-                                    },
-                                    modifier = Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.sm),
-                                )
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.weight(1f),
+                            // Deja hueco para que el FAB no tape el último elemento.
+                            contentPadding = PaddingValues(bottom = Spacing.fabClearance),
+                        ) {
+                            item(key = "filters") { filterBand() }
+                            if (queried.isEmpty()) {
+                                item(key = "empty") {
+                                    TasksEmptyContent(
+                                        empty = tasksEmptyState(allTasks, state.filters, query),
+                                        onShowCompleted = {
+                                            viewModel.setFilters(state.filters.copy(status = TaskStatus.DONE))
+                                        },
+                                        onClearFilters = {
+                                            viewModel.clearFilters()
+                                            query = ""
+                                        },
+                                        modifier = Modifier.fillParentMaxHeight(EMPTY_STATE_HEIGHT_FRACTION),
+                                    )
+                                }
                             }
-                            if (!collapsible || completedExpanded) {
-                                itemsIndexed(sectionTasks, key = { _, task -> task.id }) { index, task ->
-                                    taskRow(task, rowPosition(index, sectionTasks.size))
+                            sections.forEach { (section, sectionTasks) ->
+                                val collapsible = section == TaskSection.COMPLETED
+                                item(key = "header-$section") {
+                                    SectionHeader(
+                                        title = stringResource(section.titleRes),
+                                        count = sectionTasks.size,
+                                        expanded = completedExpanded.takeIf { collapsible },
+                                        onToggle = if (collapsible) {
+                                            { completedExpanded = !completedExpanded }
+                                        } else {
+                                            null
+                                        },
+                                        modifier = Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.sm),
+                                    )
+                                }
+                                if (!collapsible || completedExpanded) {
+                                    itemsIndexed(sectionTasks, key = { _, task -> task.id }) { index, task ->
+                                        taskRow(task, rowPosition(index, sectionTasks.size))
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
+            Celebration(
+                visible = celebration.visible,
+                message = stringResource(R.string.celebration_today),
+                onFinished = celebration::dismiss,
+            )
         }
     }
 
@@ -505,12 +532,13 @@ private fun TaskListRow(
     task: TaskItem,
     position: RowPosition,
     enabled: Boolean,
+    completing: Boolean,
     onSetCompleted: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val done = task.status == TaskStatus.DONE
+    val done = task.status == TaskStatus.DONE || completing
     val overdue = !done &&
         task.dueAt
             ?.atZone(ZoneId.systemDefault())
@@ -527,7 +555,7 @@ private fun TaskListRow(
             checked = done,
             onCheckedChange = onSetCompleted,
             enabled = enabled,
-            modifier = Modifier.semantics { contentDescription = task.title },
+            modifier = Modifier.checkBounce(completing).semantics { contentDescription = task.title },
         )
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text(

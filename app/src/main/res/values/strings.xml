@@ -60,6 +60,8 @@
     <string name="space_today_greeting_evening">Buenas noches</string>
     <string name="space_today_greeting_named">%1$s, %2$s</string>
     <string name="space_home_catalog_section">Recetario e ingredientes</string>
+    <string name="celebration_today">Todo hecho por hoy</string>
+    <string name="celebration_shopping">Compra hecha</string>
     <string name="agenda_tasks_title">Tareas para hoy</string>
     <string name="agenda_tasks_more">Ver las %1$d en Tareas</string>
     <string name="agenda_title">Agenda</string>

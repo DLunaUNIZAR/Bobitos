@@ -4,6 +4,7 @@ import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.EventColor
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
+import com.dlunaunizar.bobitos.core.model.RecurrenceUnit
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceRole
@@ -11,6 +12,7 @@ import com.dlunaunizar.bobitos.core.model.SportActivity
 import com.dlunaunizar.bobitos.core.model.SportType
 import com.dlunaunizar.bobitos.core.model.TaskItem
 import com.dlunaunizar.bobitos.core.model.TaskPriority
+import com.dlunaunizar.bobitos.core.model.TaskRecurrence
 import com.dlunaunizar.bobitos.core.model.TaskStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -263,6 +265,23 @@ class TodayAgendaTest {
         val leo = agenda.workload.first { it.userId == "leo" }
         assertEquals(1, leo.pending)
         assertEquals(0, leo.doneThisWeek)
+    }
+
+    @Test
+    fun unaRecurrenteAdelantadaNoCuentaComoPendienteDeHoy() {
+        val diaria = TaskRecurrence(RecurrenceUnit.DAY, 1)
+        val tareas = listOf(
+            task("vencida", due = at(today.minusDays(1), 10)),
+            task("hoy", due = at(today, 9)).copy(recurrence = diaria),
+            task("mañana", due = at(today.plusDays(1), 9)),
+            task("hecha", due = at(today, 8), status = TaskStatus.DONE),
+            task("sin-fecha", due = null),
+        )
+
+        assertEquals(setOf("vencida", "hoy"), pendingDueTodayOrEarlier(tareas, today, zone))
+        // Al completar la recurrente de hoy, su vencimiento pasa a mañana y sale del conjunto.
+        val adelantada = tareas.map { if (it.id == "hoy") it.copy(dueAt = at(today.plusDays(1), 9)) else it }
+        assertEquals(setOf("vencida"), pendingDueTodayOrEarlier(adelantada, today, zone))
     }
 
     private fun at(day: LocalDate, hour: Int, minute: Int = 0): Instant =

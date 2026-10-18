@@ -94,9 +94,7 @@ fun buildTodayAgenda(
     members: List<SpaceMember>,
 ): TodayAgenda {
     val dueTasks = tasks
-        .filter {
-            it.status == TaskStatus.TODO && it.dueAt?.atZone(zone)?.toLocalDate()?.let { d -> d <= today } == true
-        }
+        .filter { it.isPendingDueTodayOrEarlier(today, zone) }
         // Las vencidas van antes que las de hoy porque su fecha es anterior.
         .sortedWith(compareBy<TaskItem>({ it.dueAt }, { it.title }))
         .map { task ->
@@ -113,6 +111,16 @@ fun buildTodayAgenda(
         workload = workloadOf(today, zone, tasks, members),
     )
 }
+
+/**
+ * Ids de las tareas pendientes que vencen hoy o antes. Una que se repite y se ha adelantado más allá de hoy al
+ * completarla ya no cuenta. Sirve para saber cuándo se ha dejado «todo hecho por hoy».
+ */
+fun pendingDueTodayOrEarlier(tasks: List<TaskItem>, today: LocalDate, zone: ZoneId): Set<String> =
+    tasks.filter { it.isPendingDueTodayOrEarlier(today, zone) }.map { it.id }.toSet()
+
+private fun TaskItem.isPendingDueTodayOrEarlier(today: LocalDate, zone: ZoneId): Boolean =
+    status == TaskStatus.TODO && dueAt?.atZone(zone)?.toLocalDate()?.let { it <= today } == true
 
 private fun ownerOf(task: TaskItem, userId: String): AgendaPerson = when {
     task.assigneeId == null -> AgendaPerson.Nobody

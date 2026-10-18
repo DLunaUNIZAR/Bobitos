@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -68,6 +68,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.WeekDayStrip
+import com.dlunaunizar.bobitos.core.designsystem.component.cascadeIn
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
@@ -199,18 +200,21 @@ fun SportScreen(
                                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                                 contentPadding = PaddingValues(bottom = Spacing.fabClearance),
                             ) {
-                                items(dayActivities, key = SportActivity::id) { activity ->
-                                    ActivityCard(
-                                        activity = activity,
-                                        enabled = actionsEnabled,
-                                        canWrite = canWrite,
-                                        onEdit = {
-                                            editorActivityId = activity.id
-                                            editorOpen = true
-                                        },
-                                        onDelete = { deleteWithUndo(activity) },
-                                        onToggleDone = { viewModel.setDone(activity.id, !activity.done) },
-                                    )
+                                itemsIndexed(dayActivities, key = { _, a -> a.id }) { index, activity ->
+                                    // La cascada se repite al cambiar de día.
+                                    Box(Modifier.cascadeIn(index, key = state.focusedDate)) {
+                                        ActivityCard(
+                                            activity = activity,
+                                            enabled = actionsEnabled,
+                                            canWrite = canWrite,
+                                            onEdit = {
+                                                editorActivityId = activity.id
+                                                editorOpen = true
+                                            },
+                                            onDelete = { deleteWithUndo(activity) },
+                                            onToggleDone = { viewModel.setDone(activity.id, !activity.done) },
+                                        )
+                                    }
                                 }
                             }
                         }

@@ -71,6 +71,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.WeekDayStrip
+import com.dlunaunizar.bobitos.core.designsystem.component.cascadeIn
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
@@ -228,30 +229,33 @@ fun MealsScreen(
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             contentPadding = PaddingValues(top = 8.dp, bottom = Spacing.fabClearance),
                         ) {
-                            MealSlot.entries.forEach { slot ->
+                            MealSlot.entries.forEachIndexed { index, slot ->
                                 item(key = slot.name) {
-                                    MealSlotSection(
-                                        slot = slot,
-                                        meals = queriedMeals.filter { it.slot == slot },
-                                        recipes = state.recipes,
-                                        canWrite = canWrite,
-                                        actionsEnabled = actionsEnabled,
-                                        onAdd = { openEditor(null, it) },
-                                        onEdit = { meal -> openEditor(meal, meal.slot) },
-                                        onDelete = { meal ->
-                                            // El espacio se captura al borrar: «Deshacer» devuelve la comida a su espacio.
-                                            val deletedFrom = spaceId
-                                            viewModel.deleteMeal(meal.id) {
-                                                scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                                                    viewModel.restoreMeal(deletedFrom, meal)
+                                    // La cascada se repite al cambiar de día.
+                                    Box(Modifier.cascadeIn(index, key = state.focusedDate)) {
+                                        MealSlotSection(
+                                            slot = slot,
+                                            meals = queriedMeals.filter { it.slot == slot },
+                                            recipes = state.recipes,
+                                            canWrite = canWrite,
+                                            actionsEnabled = actionsEnabled,
+                                            onAdd = { openEditor(null, it) },
+                                            onEdit = { meal -> openEditor(meal, meal.slot) },
+                                            onDelete = { meal ->
+                                                // El espacio se captura al borrar: «Deshacer» devuelve la comida a su espacio.
+                                                val deletedFrom = spaceId
+                                                viewModel.deleteMeal(meal.id) {
+                                                    scope.launchUndo(snackbar, deletedMessage, undoLabel) {
+                                                        viewModel.restoreMeal(deletedFrom, meal)
+                                                    }
                                                 }
-                                            }
-                                        },
-                                        onAddToShopping = { viewModel.addIngredientsToShopping(it) },
-                                        onToggleCooked = {
-                                            if (it.cooked) viewModel.unmarkCooked(it) else viewModel.markCooked(it)
-                                        },
-                                    )
+                                            },
+                                            onAddToShopping = { viewModel.addIngredientsToShopping(it) },
+                                            onToggleCooked = {
+                                                if (it.cooked) viewModel.unmarkCooked(it) else viewModel.markCooked(it)
+                                            },
+                                        )
+                                    }
                                 }
                             }
                         }
