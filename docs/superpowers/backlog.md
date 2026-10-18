@@ -4,6 +4,15 @@ Menores que las revisiones de cada rama dejaron sin arreglar. Cada línea dice s
 
 Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalogo-ejercicios-wger`) se cerraron en la rama `agent/menores-aplazados` (plan `docs/superpowers/plans/2026-10-10-menores-aplazados.md`).
 
+## 2026-10-18 — `agent/logo`
+
+- **Efecto visible (por verificar):** el icono al abrir la app sale sobre su círculo crema solo por el comportamiento por defecto del sistema, comprobado solo en Android 37. Si el sistema dejara de dibujar la capa de fondo (en Android 12-16, en la capa de un fabricante, o porque alguien pase `ic_launcher_background` a un gris puro R=G=B), Tareas y Comidas quedarían a ~2,7:1 sobre `#141513`. Para no depender de eso, fijar `android:windowSplashScreenIconBackgroundColor` en un `values-v31/themes.xml` (`colors.xml`).
+- **Efecto visible (por verificar, probablemente del emulador):** el Pixel Launcher del emulador se colgó (ANR) al abrir el cajón con los iconos temáticos activados. Ya se colgaba antes por el desenfoque del cajón, así que no hay pruebas de que lo cause la capa monocroma. Comprobarlo en un móvil real.
+- **Interno:** `ic_launcher_monochrome.xml` repite la geometría de `ic_launcher_foreground.xml`, y ningún test avisa si las dos se separan. Opciones: apuntar `<monochrome>` a la capa frontal (el sistema solo usa el alfa) o añadir un comentario que pida mantenerlas iguales.
+- **Interno:** los colores del icono (`ic_launcher_foreground.xml` y `colors.xml`) están copiados de `ModuleColors.kt` y `Color.kt` sin nada que los enlace. Basta un comentario en los dos sentidos.
+- **Interno:** `LauncherIconTest` fuerza los casts a `AdaptiveIconDrawable` y `ColorDrawable`, así que fallaría en un móvil de fabricante que envuelva el icono.
+- **Interno:** en `LauncherIconTest`, `.monochrome` (API 33) solo está protegido con `assumeTrue`, que lint no reconoce si llega a revisar los tests. Arreglo: `@SdkSuppress(minSdkVersion = 33)`.
+
 ## 2026-10-18 — `agent/menores-evolucion-visual-fase-c`
 
 - **Efecto visible:** a medio encoger, con una franja alta (Tareas, Recetario, Ejercicios), hay un tramo sin título visible ni encabezado para TalkBack: las alfas y los umbrales usan la fracción de toda la zona, no la parte visible del título (`BobitosLargeTopBar.kt`).
