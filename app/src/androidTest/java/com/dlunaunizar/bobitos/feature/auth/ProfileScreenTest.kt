@@ -9,6 +9,7 @@ import androidx.compose.ui.test.performScrollTo
 import com.dlunaunizar.bobitos.core.designsystem.theme.BobitosTheme
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.SyncStatus
+import com.dlunaunizar.bobitos.feature.betaupdate.BetaUpdateUiState
 import org.junit.Rule
 import org.junit.Test
 
@@ -23,6 +24,8 @@ class ProfileScreenTest {
                     actionState = AuthActionUiState(), syncStatus = SyncStatus.ONLINE,
                     canWrite = true, onUpdateDisplayName = {}, onSignOut = {},
                     onDeleteAccount = {}, onBack = {}, onClearFeedback = {},
+                    betaUpdateState = BetaUpdateUiState("0.1.0-beta.24", available = false, testerSignedIn = false),
+                    onCheckForBetaUpdate = {},
                 )
             }
         }

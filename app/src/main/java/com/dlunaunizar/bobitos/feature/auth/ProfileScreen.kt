@@ -57,6 +57,8 @@ import com.dlunaunizar.bobitos.core.designsystem.theme.ThemeMode
 import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.SyncStatus
 import com.dlunaunizar.bobitos.data.reminders.ReminderLeadTime
+import com.dlunaunizar.bobitos.feature.betaupdate.AppVersionRow
+import com.dlunaunizar.bobitos.feature.betaupdate.BetaUpdateUiState
 import com.dlunaunizar.bobitos.feature.reminders.RemindersViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,6 +73,8 @@ fun ProfileScreen(
     onDeleteAccount: (String) -> Unit,
     onBack: () -> Unit,
     onClearFeedback: () -> Unit,
+    betaUpdateState: BetaUpdateUiState,
+    onCheckForBetaUpdate: () -> Unit,
     modifier: Modifier = Modifier,
     themeViewModel: ThemeViewModel = hiltViewModel(),
     remindersViewModel: RemindersViewModel = hiltViewModel(),
@@ -179,6 +183,7 @@ fun ProfileScreen(
             }
             Spacer(Modifier.height(16.dp))
             SectionHeader(title = stringResource(R.string.profile_section_info))
+            AppVersionRow(state = betaUpdateState, onCheck = onCheckForBetaUpdate)
             LegalButtons()
             Spacer(Modifier.height(32.dp))
             TextButton(enabled = !actionState.isLoading && canWrite, onClick = { showDeleteAccount = true }) {

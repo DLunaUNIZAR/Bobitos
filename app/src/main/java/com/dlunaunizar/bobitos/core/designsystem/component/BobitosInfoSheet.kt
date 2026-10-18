@@ -50,6 +50,7 @@ fun BobitosInfoSheet(
     onDismiss: () -> Unit,
     primaryAction: InfoSheetAction? = null,
     secondaryActions: List<InfoSheetAction> = emptyList(),
+    header: (@Composable ColumnScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     ModalBottomSheet(
@@ -71,6 +72,9 @@ fun BobitosInfoSheet(
                         .semantics { heading() },
                 )
                 if (secondaryActions.isNotEmpty()) SecondaryActionsMenu(title, secondaryActions)
+            }
+            if (header != null) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs), content = header)
             }
             Column(
                 modifier = Modifier

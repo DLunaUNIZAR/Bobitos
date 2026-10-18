@@ -25,6 +25,7 @@ import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.navigation.RecipeShareUrl
 import com.dlunaunizar.bobitos.feature.auth.AuthViewModel
 import com.dlunaunizar.bobitos.feature.auth.ThemeViewModel
+import com.dlunaunizar.bobitos.feature.betaupdate.BetaUpdateViewModel
 import com.dlunaunizar.bobitos.feature.spaces.SpacesViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,6 +36,7 @@ class MainActivity : ComponentActivity() {
     private val authViewModel: AuthViewModel by viewModels()
     private val spacesViewModel: SpacesViewModel by viewModels()
     private val themeViewModel: ThemeViewModel by viewModels()
+    private val betaUpdateViewModel: BetaUpdateViewModel by viewModels()
     private val pendingInvitationCode = MutableStateFlow<String?>(null)
     private val pendingRecipeImportUrl = MutableStateFlow<String?>(null)
 
@@ -49,6 +51,7 @@ class MainActivity : ComponentActivity() {
             val spaceManagementState by spacesViewModel.uiState.collectAsStateWithLifecycle()
             val invitationCode by pendingInvitationCode.collectAsStateWithLifecycle()
             val recipeImportUrl by pendingRecipeImportUrl.collectAsStateWithLifecycle()
+            val betaUpdateState by betaUpdateViewModel.uiState.collectAsStateWithLifecycle()
             val themeMode by themeViewModel.themeMode.collectAsStateWithLifecycle()
             val darkTheme = when (themeMode) {
                 ThemeMode.LIGHT -> false
@@ -104,9 +107,16 @@ class MainActivity : ComponentActivity() {
                     onSignOut = authViewModel::signOut,
                     onDeleteAccount = authViewModel::deleteAccount,
                     onClearAuthFeedback = authViewModel::clearFeedback,
+                    betaUpdateState = betaUpdateState,
+                    betaUpdateActions = betaUpdateViewModel,
                 )
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        betaUpdateViewModel.onAppForeground()
     }
 
     override fun onNewIntent(intent: Intent) {

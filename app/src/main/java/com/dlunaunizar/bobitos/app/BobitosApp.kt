@@ -23,6 +23,10 @@ import com.dlunaunizar.bobitos.feature.auth.AuthNavHost
 import com.dlunaunizar.bobitos.feature.auth.EmailVerificationScreen
 import com.dlunaunizar.bobitos.feature.auth.WelcomeScreen
 import com.dlunaunizar.bobitos.feature.auth.WelcomeViewModel
+import com.dlunaunizar.bobitos.feature.betaupdate.BetaUpdateActions
+import com.dlunaunizar.bobitos.feature.betaupdate.BetaUpdatePrompt
+import com.dlunaunizar.bobitos.feature.betaupdate.BetaUpdateSheet
+import com.dlunaunizar.bobitos.feature.betaupdate.BetaUpdateUiState
 import com.dlunaunizar.bobitos.feature.reminders.RemindersViewModel
 import com.dlunaunizar.bobitos.feature.spaces.SpaceManagementUiState
 
@@ -67,6 +71,8 @@ fun BobitosApp(
     onSignOut: () -> Unit,
     onDeleteAccount: (String) -> Unit,
     onClearAuthFeedback: () -> Unit,
+    betaUpdateState: BetaUpdateUiState,
+    betaUpdateActions: BetaUpdateActions,
 ) {
     when (val authState = uiState.authUser) {
         UiState.Loading -> FullScreenLoading()
@@ -142,12 +148,29 @@ fun BobitosApp(
                                 onSignOut = onSignOut,
                                 onDeleteAccount = onDeleteAccount,
                                 onClearAuthFeedback = onClearAuthFeedback,
+                                betaUpdateState = betaUpdateState,
+                                onCheckForBetaUpdate = betaUpdateActions::checkManually,
                             )
                         }
                     }
                 }
             }
         }
+    }
+    betaUpdateState.prompt?.let { release ->
+        BetaUpdatePrompt(
+            release = release,
+            onUpdate = betaUpdateActions::acceptPrompt,
+            onLater = betaUpdateActions::postponePrompt,
+            onDismiss = betaUpdateActions::dismissPrompt,
+        )
+    }
+    betaUpdateState.sheet?.let { sheet ->
+        BetaUpdateSheet(
+            state = sheet,
+            onStartDownload = betaUpdateActions::startDownload,
+            onClose = betaUpdateActions::closeSheet,
+        )
     }
 }
 

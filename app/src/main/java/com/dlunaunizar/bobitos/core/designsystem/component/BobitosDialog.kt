@@ -27,10 +27,11 @@ fun BobitosDialog(
     destructive: Boolean = false,
     confirmEnabled: Boolean = true,
     dismissLabel: String = stringResource(R.string.cancel),
+    onDismissRequest: () -> Unit = onDismiss,
     content: (@Composable () -> Unit)? = null,
 ) {
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = onDismissRequest,
         title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {

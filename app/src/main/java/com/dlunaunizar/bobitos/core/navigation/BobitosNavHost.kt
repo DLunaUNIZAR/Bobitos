@@ -50,6 +50,7 @@ import com.dlunaunizar.bobitos.core.model.SyncStatus
 import com.dlunaunizar.bobitos.core.model.canWrite
 import com.dlunaunizar.bobitos.feature.auth.AuthActionUiState
 import com.dlunaunizar.bobitos.feature.auth.ProfileScreen
+import com.dlunaunizar.bobitos.feature.betaupdate.BetaUpdateUiState
 import com.dlunaunizar.bobitos.feature.calendar.CalendarScreen
 import com.dlunaunizar.bobitos.feature.calendar.PersonalCalendarScreen
 import com.dlunaunizar.bobitos.feature.exercises.ExercisesScreen
@@ -108,6 +109,8 @@ fun BobitosNavHost(
     onSignOut: () -> Unit,
     onDeleteAccount: (String) -> Unit,
     onClearAuthFeedback: () -> Unit,
+    betaUpdateState: BetaUpdateUiState,
+    onCheckForBetaUpdate: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val spaceName = uiState.selectedSpace?.name ?: stringResource(R.string.app_name)
@@ -489,6 +492,8 @@ fun BobitosNavHost(
                 onDeleteAccount = onDeleteAccount,
                 onBack = { navController.popBackStack() },
                 onClearFeedback = onClearAuthFeedback,
+                betaUpdateState = betaUpdateState,
+                onCheckForBetaUpdate = onCheckForBetaUpdate,
             )
         }
 

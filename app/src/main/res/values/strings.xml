@@ -916,4 +916,31 @@
     <string name="auth_notice_not_verified">El correo todavía no aparece como verificado.</string>
     <string name="auth_notice_reset_requested">Si existe una cuenta con ese correo, recibirás un enlace de recuperación.</string>
     <string name="auth_notice_profile_updated">Nombre actualizado.</string>
+
+    <string name="beta_update_prompt_title">Hay una beta nueva</string>
+    <string name="beta_update_prompt_message">La versión %1$s está lista para instalar.</string>
+    <string name="beta_update_prompt_update">Actualizar</string>
+    <string name="beta_update_prompt_later">Más tarde</string>
+    <string name="beta_update_version_label">Versión</string>
+    <string name="beta_update_check">Buscar actualizaciones</string>
+    <string name="beta_update_checking">Buscando…</string>
+    <string name="beta_update_up_to_date">Tienes la última versión.</string>
+    <string name="beta_update_sign_in_hint">Para buscar, inicia sesión con la cuenta de Google en la que te llegan las invitaciones de la beta.</string>
+    <string name="beta_update_download_install">Descargar e instalar</string>
+    <string name="beta_update_install">Instalar</string>
+    <string name="beta_update_notes_title">Novedades</string>
+    <string name="beta_update_sheet_title">Versión %1$s</string>
+    <string name="beta_update_downloading">Descargando la beta…</string>
+    <string name="beta_update_progress_percent">%1$d %% · %2$s de %3$s MB</string>
+    <string name="beta_update_download_keeps_going">Cerrar no cancela la descarga: sigue en segundo plano.</string>
+    <string name="beta_update_awaiting_install">Android te pide confirmar la instalación.</string>
+    <string name="beta_update_install_canceled">Cancelaste la instalación. Puedes volver a intentarlo.</string>
+    <string name="beta_update_error_sign_in_canceled">No has iniciado sesión. Vuelve a intentarlo cuando quieras.</string>
+    <string name="beta_update_error_sign_in_failed">No hemos podido iniciar sesión. Comprueba que usas la cuenta de Google de las invitaciones de la beta.</string>
+    <string name="beta_update_error_offline">Sin conexión. Comprueba tu internet y vuelve a intentarlo.</string>
+    <string name="beta_update_error_api_disabled">El servicio de betas no está disponible para esta cuenta.</string>
+    <string name="beta_update_error_download_failed">No se ha podido descargar la beta. Vuelve a intentarlo.</string>
+    <string name="beta_update_error_install_failed">No se ha podido instalar la beta. Vuelve a intentarlo.</string>
+    <string name="beta_update_error_not_available">Las actualizaciones no están disponibles en esta versión.</string>
+    <string name="beta_update_error_unknown">Algo ha fallado. Vuelve a intentarlo.</string>
 </resources>
