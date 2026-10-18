@@ -71,6 +71,44 @@ class CategoryContrastTest {
         }
     }
 
+    private fun rowTint(dark: Boolean, c: Color) = tinted(if (dark) surfaceContainerDark else surfaceContainerLight, c)
+
+    @Test
+    fun `task accent chip text reaches 4_5 to 1 on every task and shopping row tint`() {
+        themes.forEach { dark ->
+            val accent = ModulePalette.colors(AppModule.TASKS, dark).accent
+            val error = if (dark) errorDark else errorLight
+            // «Vencida» solo aparece en filas de tareas.
+            TaskType.entries.forEach { type ->
+                val ratio = contrast(error, rowTint(dark, type.accent(dark)))
+                assertTrue("Vencida ${themeName(dark)} on $type: $ratio", ratio >= MIN_TEXT)
+            }
+            (
+                TaskType.entries.map { "$it" to it.accent(dark) } +
+                    Supermarket.entries.map { "$it" to it.brandColor(dark) }
+                )
+                .forEach { (name, c) ->
+                    val tint = rowTint(dark, c)
+                    val onAccent = contrast(accent, tint)
+                    assertTrue("Hoy ${themeName(dark)} on $name: $onAccent", onAccent >= MIN_TEXT)
+                }
+        }
+    }
+
+    @Test
+    fun `category text reaches 4_5 to 1 on its row tint over surfaceContainer`() {
+        themes.forEach { dark ->
+            (
+                TaskType.entries.map { "$it" to it.accent(dark) } +
+                    Supermarket.entries.map { "$it" to it.brandColor(dark) }
+                )
+                .forEach { (name, c) ->
+                    val ratio = contrast(c, rowTint(dark, c))
+                    assertTrue("$name ${themeName(dark)} row text: $ratio", ratio >= MIN_TEXT)
+                }
+        }
+    }
+
     @Test
     fun `swatch check mark reaches 3 to 1 on every event color`() {
         themes.forEach { dark ->

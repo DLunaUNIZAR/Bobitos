@@ -35,9 +35,10 @@ object ModulePalette {
     private const val TINT_ALPHA_LIGHT = 0.12f
 
     // Acentos claros oscurecidos dentro de su tono para leerse como texto (4,5:1) sobre el fondo y el tinte.
+    // El de Tareas llega también a 4,5:1 sobre cada tinte de fila de tipo y de supermercado (chip «Hoy»).
     private val lightColors = mapOf(
         AppModule.SHOPPING to ModuleColors(Color(0xFFA9461A), Color.White, Color(0xFFFBE3D4), Color(0xFF3B1A08)),
-        AppModule.TASKS to ModuleColors(Color(0xFF7048B8), Color.White, Color(0xFFE8DEF8), Color(0xFF241046)),
+        AppModule.TASKS to ModuleColors(Color(0xFF6C43B2), Color.White, Color(0xFFE8DEF8), Color(0xFF241046)),
         AppModule.CALENDAR to ModuleColors(Color(0xFF0D6B64), Color.White, Color(0xFFD0F0EB), Color(0xFF00201C)),
         AppModule.MEALS to ModuleColors(Color(0xFFAD1457), Color.White, Color(0xFFF9DCE8), Color(0xFF3E0721)),
         AppModule.SPORT to ModuleColors(Color(0xFF1565C0), Color.White, Color(0xFFD6E6FA), Color(0xFF05213F)),
