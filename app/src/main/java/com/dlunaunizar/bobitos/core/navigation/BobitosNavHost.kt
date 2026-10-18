@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -736,7 +737,7 @@ private fun NavHostController.openFromMore(destination: BobitosDestination) {
 private fun NavHostController.openShoppingWithName(name: String) {
     // Desde fuera del espacio (p. ej. Ingredientes del menú principal) se ancla antes el hub del espacio:
     // sin él, popUpTo(SpaceHome) se ignora y «Hoy» y las pestañas no funcionan.
-    if (needsSpaceHomeAnchor(currentBackStack.value.map { it.destination.route })) {
+    if (needsSpaceHomeAnchor()) {
         navigate(BobitosDestination.SpaceHome.route) { launchSingleTop = true }
     }
     navigateToWorkspace(BobitosDestination.Shopping)
@@ -774,5 +775,11 @@ private const val FADE_MS = 90
 private const val FADE_SCALE = 0.92f
 
 /** Falta el hub del espacio en la pila: hay que apilarlo antes de entrar en un módulo del espacio. */
-internal fun needsSpaceHomeAnchor(backStackRoutes: List<String?>): Boolean =
-    BobitosDestination.SpaceHome.route !in backStackRoutes
+@Suppress("SwallowedException") // la excepción es la respuesta «no está en la pila»
+internal fun NavController.needsSpaceHomeAnchor(): Boolean =
+    try {
+        getBackStackEntry(BobitosDestination.SpaceHome.route)
+        false
+    } catch (_: IllegalArgumentException) {
+        true
+    }
