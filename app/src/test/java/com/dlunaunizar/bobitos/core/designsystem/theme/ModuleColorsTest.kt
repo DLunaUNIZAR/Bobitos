@@ -1,6 +1,8 @@
 package com.dlunaunizar.bobitos.core.designsystem.theme
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -55,5 +57,21 @@ class ModuleColorsTest {
     fun elAcentoComoContornoSeVe() = paraCadaModuloYTema { module, dark, c, tint ->
         assertTrue("$module dark=$dark fondo", contrast(c.accent, fondo(dark)) >= 3.0)
         assertTrue("$module dark=$dark tinte", contrast(c.accent, tint) >= 3.0)
+    }
+
+    @Test
+    fun enClaroElTinteEsSuave() {
+        for (module in AppModule.entries) {
+            val ratio = contrast(ModulePalette.tint(module, dark = false), backgroundLight)
+            assertTrue("$module: $ratio", ratio <= 1.15)
+        }
+    }
+
+    @Test
+    fun enOscuroElTinteNoCambia() {
+        for (module in AppModule.entries) {
+            val esperado = ModulePalette.colors(module, true).accent.copy(alpha = 0.16f).compositeOver(backgroundDark)
+            assertEquals("$module", esperado, ModulePalette.tint(module, dark = true))
+        }
     }
 }

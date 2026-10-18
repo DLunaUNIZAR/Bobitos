@@ -4,7 +4,9 @@ import androidx.compose.ui.graphics.Color
 import kotlin.math.pow
 
 // Utilidades de contraste WCAG compartidas por los tests de color.
-private const val TINT = 0.12f
+private const val TINT_LIGHT = 0.07f
+private const val TINT_DARK = 0.12f
+private const val CHIP_TINT = 0.12f
 private const val OFFSET = 0.05
 private const val LINEAR_THRESHOLD = 0.03928
 private const val LINEAR_DIVISOR = 12.92
@@ -29,9 +31,15 @@ internal fun contrast(a: Color, b: Color): Double {
     return (maxOf(la, lb) + OFFSET) / (minOf(la, lb) + OFFSET)
 }
 
-// Tinte de tarjeta como categoryCardColors: fondo * 0.88 + color * 0.12.
-internal fun tinted(background: Color, color: Color): Color = Color(
-    red = background.red * (1 - TINT) + color.red * TINT,
-    green = background.green * (1 - TINT) + color.green * TINT,
-    blue = background.blue * (1 - TINT) + color.blue * TINT,
+private fun mix(background: Color, color: Color, alpha: Float) = Color(
+    red = background.red * (1 - alpha) + color.red * alpha,
+    green = background.green * (1 - alpha) + color.green * alpha,
+    blue = background.blue * (1 - alpha) + color.blue * alpha,
 )
+
+// Tinte de tarjeta y de fila de categoría: 0,07 en claro y 0,12 en oscuro.
+internal fun tinted(background: Color, color: Color, dark: Boolean): Color =
+    mix(background, color, if (dark) TINT_DARK else TINT_LIGHT)
+
+// Fondo del InfoChip: no es una fila, conserva el 0,12 en ambos temas.
+internal fun chipTinted(background: Color, color: Color): Color = mix(background, color, CHIP_TINT)

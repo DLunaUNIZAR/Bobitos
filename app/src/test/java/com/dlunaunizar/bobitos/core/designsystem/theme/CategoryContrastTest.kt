@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.core.designsystem.theme
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import com.dlunaunizar.bobitos.core.model.EventColor
 import com.dlunaunizar.bobitos.core.model.ExerciseType
 import com.dlunaunizar.bobitos.core.model.MealSlot
@@ -15,6 +16,7 @@ import com.dlunaunizar.bobitos.feature.meals.accent
 import com.dlunaunizar.bobitos.feature.shopping.brandColor
 import com.dlunaunizar.bobitos.feature.sport.accent
 import com.dlunaunizar.bobitos.feature.tasks.accent
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -41,7 +43,7 @@ class CategoryContrastTest {
         themes.forEach { dark ->
             allColors(dark).forEach { (name, c) ->
                 val onBackground = contrast(c, background(dark))
-                val onCard = contrast(c, tinted(background(dark), c))
+                val onCard = contrast(c, tinted(background(dark), c, dark))
                 assertTrue("$name ${themeName(dark)} on background: $onBackground", onBackground >= MIN_GRAPHIC)
                 assertTrue("$name ${themeName(dark)} on card: $onCard", onCard >= MIN_GRAPHIC)
             }
@@ -53,7 +55,7 @@ class CategoryContrastTest {
         themes.forEach { dark ->
             ExerciseType.entries.forEach { type ->
                 val c = type.accent(dark)
-                val chipBackground = tinted(cardBackground(dark), c)
+                val chipBackground = chipTinted(cardBackground(dark), c)
                 val ratio = contrast(c, chipBackground)
                 assertTrue("$type ${themeName(dark)} chip text: $ratio", ratio >= MIN_TEXT)
             }
@@ -65,13 +67,14 @@ class CategoryContrastTest {
         themes.forEach { dark ->
             TaskType.entries.forEach { type ->
                 val c = type.accent(dark)
-                val ratio = contrast(c, tinted(background(dark), c))
+                val ratio = contrast(c, tinted(background(dark), c, dark))
                 assertTrue("$type ${themeName(dark)} meta text: $ratio", ratio >= MIN_TEXT)
             }
         }
     }
 
-    private fun rowTint(dark: Boolean, c: Color) = tinted(if (dark) surfaceContainerDark else surfaceContainerLight, c)
+    private fun rowTint(dark: Boolean, c: Color) =
+        tinted(if (dark) surfaceContainerDark else surfaceContainerLight, c, dark)
 
     @Test
     fun `task accent chip text reaches 4_5 to 1 on every task and shopping row tint`() {
@@ -110,6 +113,27 @@ class CategoryContrastTest {
     }
 
     @Test
+    fun `en claro el tinte de categoria es suave sobre su fondo`() {
+        (
+            TaskType.entries.map { "$it" to it.accent(false) } +
+                Supermarket.entries.map { "$it" to it.brandColor(false) }
+            )
+            .forEach { (name, c) ->
+                val ratio = contrast(categoryTint(c, surfaceContainerLight, false), surfaceContainerLight)
+                assertTrue("$name tinte claro: $ratio", ratio <= MAX_SOFT_TINT)
+            }
+    }
+
+    @Test
+    fun `en oscuro el tinte de categoria no cambia`() {
+        TaskType.entries.forEach { type ->
+            val c = type.accent(true)
+            val esperado = c.copy(alpha = 0.12f).compositeOver(surfaceContainerDark)
+            assertEquals(esperado, categoryTint(c, surfaceContainerDark, true))
+        }
+    }
+
+    @Test
     fun `swatch check mark reaches 3 to 1 on every event color`() {
         themes.forEach { dark ->
             EventColor.entries.forEach { color ->
@@ -123,5 +147,6 @@ class CategoryContrastTest {
     private companion object {
         const val MIN_GRAPHIC = 3.0
         const val MIN_TEXT = 4.5
+        const val MAX_SOFT_TINT = 1.15
     }
 }

@@ -28,7 +28,7 @@ object ModulePalette {
         .compositeOver(if (dark) backgroundDark else backgroundLight)
 
     private const val TINT_ALPHA_DARK = 0.16f
-    private const val TINT_ALPHA_LIGHT = 0.12f
+    private const val TINT_ALPHA_LIGHT = 0.07f
 
     // Acentos claros oscurecidos dentro de su tono para leerse como texto (4,5:1) sobre el fondo y el tinte.
     // El de Tareas llega también a 4,5:1 sobre cada tinte de fila de tipo y de supermercado (chip «Hoy»).
