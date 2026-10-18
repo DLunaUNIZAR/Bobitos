@@ -2,13 +2,13 @@ package com.dlunaunizar.bobitos.core.navigation
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.ArrowDropDown
@@ -33,12 +33,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dlunaunizar.bobitos.R
@@ -169,41 +174,68 @@ internal fun tabColors(module: AppModule, dark: Boolean): TabColors {
 }
 
 private val TabLabelMinSize = 10.sp
+private val TabLabelStep = 0.5.sp
+private val TabLabelPadding = 4.dp
 
-/** Barra inferior de un espacio: las etiquetas encogen un poco antes de cortarse. */
+/**
+ * Barra inferior de un espacio: las cinco etiquetas comparten tamaño, el mayor que deja caber la
+ * más larga en su pestaña (entre labelMedium y 10 sp).
+ */
 @Composable
 internal fun WorkspaceNavigationBar(selectedTab: BobitosDestination, onTabSelected: (BobitosDestination) -> Unit) {
     val dark = LocalDarkTheme.current
-    NavigationBar {
-        BobitosDestination.workspaceTabs.forEach { tab ->
-            val selected = tab == selectedTab
-            val module = tab.appModule()
-            NavigationBarItem(
-                selected = selected,
-                onClick = { onTabSelected(tab) },
-                icon = { Icon(tab.icon, contentDescription = null) },
-                label = {
-                    Text(
-                        text = stringResource(tab.titleRes),
-                        fontWeight = if (selected && module != null) FontWeight.SemiBold else null,
-                        maxLines = 1,
-                        autoSize = TextAutoSize.StepBased(
-                            minFontSize = TabLabelMinSize,
-                            maxFontSize = MaterialTheme.typography.labelMedium.fontSize,
-                        ),
-                    )
-                },
-                colors = module?.let {
-                    val c = tabColors(it, dark)
-                    NavigationBarItemDefaults.colors(
-                        selectedIconColor = c.selectedIcon,
-                        selectedTextColor = c.selectedLabel,
-                        indicatorColor = c.indicator,
-                    )
-                } ?: NavigationBarItemDefaults.colors(),
-            )
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val labelStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
+    val titles = BobitosDestination.workspaceTabs.map { stringResource(it.titleRes) }
+    BoxWithConstraints {
+        val tabWidthPx = with(density) { ((maxWidth / titles.size) - TabLabelPadding * 2).roundToPx() }
+        // Una sola medición por ancho de pestaña, escala de letra y textos: no se repite en cada fotograma.
+        val labelSize = remember(tabWidthPx, density.fontScale, density.density, titles, labelStyle) {
+            sharedLabelSize(measurer, titles, labelStyle, tabWidthPx)
+        }
+        NavigationBar {
+            BobitosDestination.workspaceTabs.forEachIndexed { index, tab ->
+                val selected = tab == selectedTab
+                val module = tab.appModule()
+                NavigationBarItem(
+                    selected = selected,
+                    onClick = { onTabSelected(tab) },
+                    icon = { Icon(tab.icon, contentDescription = null) },
+                    label = {
+                        Text(
+                            text = titles[index],
+                            fontSize = labelSize,
+                            fontWeight = if (selected && module != null) FontWeight.SemiBold else null,
+                            maxLines = 1,
+                        )
+                    },
+                    colors = module?.let {
+                        val c = tabColors(it, dark)
+                        NavigationBarItemDefaults.colors(
+                            selectedIconColor = c.selectedIcon,
+                            selectedTextColor = c.selectedLabel,
+                            indicatorColor = c.indicator,
+                        )
+                    } ?: NavigationBarItemDefaults.colors(),
+                )
+            }
         }
     }
+}
+
+// Mide con la etiqueta en negrita media (el caso más ancho) para que el tamaño no salte al cambiar de pestaña.
+private fun sharedLabelSize(measurer: TextMeasurer, titles: List<String>, style: TextStyle, widthPx: Int): TextUnit {
+    val max = style.fontSize
+    var size = max
+    while (size > TabLabelMinSize) {
+        val fits = titles.all {
+            measurer.measure(it, style.copy(fontSize = size), maxLines = 1, softWrap = false).size.width <= widthPx
+        }
+        if (fits) return size
+        size = (size.value - TabLabelStep.value).sp
+    }
+    return TabLabelMinSize
 }
 
 // El espacio es un botón en la fila de iconos: cambia de espacio. Hasta dos líneas para los nombres largos.
