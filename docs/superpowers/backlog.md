@@ -4,6 +4,18 @@ Menores que las revisiones de cada rama dejaron sin arreglar. Cada línea dice s
 
 Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalogo-ejercicios-wger`) se cerraron en la rama `agent/menores-aplazados` (plan `docs/superpowers/plans/2026-10-10-menores-aplazados.md`).
 
+## 2026-10-19 — `agent/red-de-seguridad`
+
+- **Interno:** `SpaceHomeAnchorTest` usa `createAndroidComposeRule` de `junit4`, obsoleto, en vez de `junit4.v2`, y añade un aviso del compilador.
+- **Interno:** el ancla de «Hoy» (`needsSpaceHomeAnchor`, `BobitosNavHost.kt`) solo la protege un test instrumentado, y la CI no ejecuta instrumentados: una subida de Navigation que cambie `getBackStackEntry` no pondría la CI en rojo.
+- **Interno:** el ancla de «Hoy» es un caso especial en `openShoppingWithName`; la causa es que `navigateToWorkspace` hace `popUpTo(SpaceHome)`, que se ignora si `SpaceHome` no está en la pila. Moverla a `navigateToWorkspace` cubriría cualquier entrada futura a un módulo del espacio desde fuera de él (`BobitosNavHost.kt`).
+- **Interno:** en `firebase-emulators.test.mjs`, el `setDoc` sobre una receta ajena del test «un setDoc de cliente no pisa…» falla por los campos inmutables, no por la comprobación de dueño (sin hueco: otro test ya fija el dueño).
+- **Interno:** en `WorkspaceNavigationBarTest`, `labelsAreNotEllipsizedAt130PercentFontScale` ya no mide puntos suspensivos sino el recorte, y es redundante con `todasLasEtiquetasTienenElMismoTamano` a 130 % (misma composición, misma comprobación).
+- **Interno:** la CI ejecuta las tres suites de Node en serie en el mismo job: si falla la de reglas, no se ejecutan las de scripts e importadores (el job sale en rojo igualmente) (`ci.yml`).
+- **Interno:** `BetaUpdateProgressTrackerTest` repite casos de `afterDownload` que ya están en `BetaDistributionMappingTest`; `afterDownload` podría ser privada del tracker.
+- **Interno:** en `SpaceHomeAnchorTest`, el nombre `onlyTheStartDestinationNeedsTheAnchor` no dice lo que comprueba (que una pila con solo el destino inicial necesita el ancla).
+- **Interno:** en `ShoppingQuantityTest`, `every word of the unit agrees in number up to the first preposition` y `only the words before any preposition of the unit change in number` tienen nombres casi iguales con casos distintos.
+
 ## 2026-10-18 — `agent/avisos-beta`
 
 - **Efecto visible:** la fila «Versión» en «Buscando…» solo muestra texto, sin indicador de progreso (la spec lo pide); con red lenta parece colgada (`AppVersionRow.kt`).
@@ -19,7 +31,7 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - **Efecto visible:** el aviso dice «Actualizar» y la hoja «Descargar e instalar»: valorar una etiqueta coherente.
 - **Interno:** el estado de la descarga vive en campos privados (`downloadJob`, `downloadRelease`, `lastProgress`) y solo se copia a la UI con la hoja abierta; un `download: DownloadState?` en `BetaUpdateUiState` unificaría `acceptPrompt`, `checkManually` e `isBusy` (`BetaUpdateViewModel.kt`).
 - **Interno:** `isTesterSignedIn` se lee en el constructor del ViewModel (SharedPreferences en el hilo principal).
-- **Interno:** el cableado de `downloaded` en `FirebaseBetaDistribution.updateApp()` no tiene test (solo la función pura `afterDownload`): quitar `afterDownload` del listener final reabriría el fallo de «cancelar sale como error» con la suite en verde.
+- ~~**Interno:** el cableado de `downloaded` en `FirebaseBetaDistribution.updateApp()` no tiene test (solo la función pura `afterDownload`): quitar `afterDownload` del listener final reabriría el fallo de «cancelar sale como error» con la suite en verde.~~ **Resuelto** en `agent/red-de-seguridad` (tarea 6).
 - **Interno:** tests del ViewModel: el de la automática con la sesión cerrada por el SDK no comprueba `signInCalls == 0`; `si la descarga falla por la sesion se vuelve a pedir` solo mira `testerSignedIn`; los nombres nuevos van entre comillas invertidas frente al camelCase del fichero; la lectura tolerante del repositorio solo se prueba con la extensión `tolerateReadErrors()`, sin DataStore real.
 - **Interno:** la hoja repite `releaseNotes?.takeIf { it.isNotBlank() }` además de `releaseNotesOrNull` (`BetaUpdateSheet.kt`).
 - **Interno:** documentación: «Actualizar desde la app» va sin número entre la 5 y la 6 de `BETA_DISTRIBUTION.md`; falta avisar de que, si la clave de API de Android de `bobitos-dev` tiene restricciones, debe permitir la Firebase App Testers API; `BETA_TEST_PLAN.md` no prueba cancelar el instalador, una cuenta que no está en la beta, cancelar el inicio de sesión, girar durante la descarga, TalkBack ni la letra al 130 %; la spec habla de una notificación de progreso del SDK que con `updateApp()` no existe.
@@ -30,8 +42,8 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - **Efecto visible (por verificar, probablemente del emulador):** el Pixel Launcher del emulador se colgó (ANR) al abrir el cajón con los iconos temáticos activados. Ya se colgaba antes por el desenfoque del cajón, así que no hay pruebas de que lo cause la capa monocroma. Comprobarlo en un móvil real.
 - **Interno:** `ic_launcher_monochrome.xml` repite la geometría de `ic_launcher_foreground.xml`, y ningún test avisa si las dos se separan. Opciones: apuntar `<monochrome>` a la capa frontal (el sistema solo usa el alfa) o añadir un comentario que pida mantenerlas iguales.
 - **Interno:** los colores del icono (`ic_launcher_foreground.xml` y `colors.xml`) están copiados de `ModuleColors.kt` y `Color.kt` sin nada que los enlace. Basta un comentario en los dos sentidos.
-- **Interno:** `LauncherIconTest` fuerza los casts a `AdaptiveIconDrawable` y `ColorDrawable`, así que fallaría en un móvil de fabricante que envuelva el icono.
-- **Interno:** en `LauncherIconTest`, `.monochrome` (API 33) solo está protegido con `assumeTrue`, que lint no reconoce si llega a revisar los tests. Arreglo: `@SdkSuppress(minSdkVersion = 33)`.
+- ~~**Interno:** `LauncherIconTest` fuerza los casts a `AdaptiveIconDrawable` y `ColorDrawable`, así que fallaría en un móvil de fabricante que envuelva el icono.~~ **Resuelto** en `agent/red-de-seguridad` (tarea 4).
+- ~~**Interno:** en `LauncherIconTest`, `.monochrome` (API 33) solo está protegido con `assumeTrue`, que lint no reconoce si llega a revisar los tests. Arreglo: `@SdkSuppress(minSdkVersion = 33)`.~~ **Resuelto** en `agent/red-de-seguridad` (tarea 4).
 
 ## 2026-10-18 — `agent/menores-evolucion-visual-fase-c`
 
@@ -56,7 +68,7 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - **Efecto visible (raro):** Deshacer al completar no compara `dueAt`/`startAt`: si el mismo usuario edita la fecha durante la ventana de Deshacer y lo toca, se revierte su edición sin aviso (`TaskCompletionUndo.kt`; R7 no incluye las fechas).
 - **Efecto visible (raro):** «Reintentar» del inicio no da señal inmediata: sigue el mismo error hasta que llega la respuesta (`AppViewModel.kt`).
 - **Interno:** `DeclareHeaderBand` sigue pública con un KDoc obsoleto; puede ser `private` (`ModuleHeaderBand.kt`).
-- **Interno:** en `WorkspaceNavigationBarTest`, «ninguna se corta» usa `isLineEllipsized` con `overflow = Clip` y nunca falla (usar `didOverflowWidth`).
+- ~~**Interno:** en `WorkspaceNavigationBarTest`, «ninguna se corta» usa `isLineEllipsized` con `overflow = Clip` y nunca falla (usar `didOverflowWidth`).~~ **Resuelto** en `agent/red-de-seguridad` (tarea 4).
 - **Interno:** `CollapsingZone` escribe `heightOffsetLimit` durante la medición (`BobitosLargeTopBar.kt`).
 - **Interno:** `BobitosTheme` lee `Settings.Global` (`readScale`) en cada recomposición solo para el valor inicial de `collectAsState` (`Theme.kt`).
 
@@ -132,7 +144,7 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - ~~**Interno:** Hoy mantiene cuatro escuchas de Firestore (miembros, tareas, comidas y eventos de hoy) abiertas en `viewModelScope` mientras se está en otras pestañas, y las recrea al volver. Cuesta lecturas y batería; mejor recoger solo con Hoy visible (`SpaceHomeViewModel.observeDigest`).~~ **Resuelto** en `agent/evolucion-visual-fase-c` (C6, escucha solo mientras se recoge).
 - **Interno:** `PersonalCalendarViewModel.createdSpaces` solo crece (un id → espacio por alta); el espacio podría viajar con el elemento creado.
 - **Interno:** los `runAction`/`action` de 12 ViewModels devuelven `Any?` y hacen `result as? CreatedItem`; tiparlo obligaría a acabar en `null` cada lambda (ruling R19 del plan).
-- **Interno:** `ProfileScreenTest.privacyPolicyAndAccountDeletionAreReachable` (instrumentado) falla ya en `main` por Hilt: `ProfileScreen` crea sus `hiltViewModel()` por defecto y `ComponentActivity` no es `GeneratedComponent`. Pasarle ViewModels falsos o pasar el test a `@HiltAndroidTest`.
+- ~~**Interno:** `ProfileScreenTest.privacyPolicyAndAccountDeletionAreReachable` (instrumentado) falla ya en `main` por Hilt: `ProfileScreen` crea sus `hiltViewModel()` por defecto y `ComponentActivity` no es `GeneratedComponent`. Pasarle ViewModels falsos o pasar el test a `@HiltAndroidTest`.~~ **Resuelto** en `agent/red-de-seguridad` (tarea 3).
 - **Interno:** el deshacer forzado (`force = true`) solo tiene test propio en Tareas y Compra; las otras diez áreas llevan el mismo cambio sin test.
 
 ## 2026-10-14 — `agent/menores-listo-duplicado`
@@ -165,7 +177,7 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - **Efecto visible (sin confirmar; visto una vez en el recorrido del emulador):** tras girar a horizontal y volver a vertical con el selector «Elegir receta» abierto, al elegir la receta la hoja «Nueva comida» quedó invisible pero activa: la pantalla parecía libre y un toque abría «¿Descartar los cambios?». No se reprodujo en otros 4 intentos. No se reprodujo en 20 intentos en `agent/menores-has-cocinado` (5 variantes de giro, con y sin teclado).
 - **Interno:** el comentario de la llamada a `CookedDialog` dice que el error no sale en el aviso de la pantalla, y sí sale (`MealsFeedback`) (`MealsScreen.kt`).
 - **Interno:** el KDoc de `restockFromPantry` dice que la usa Comidas; ya no (`PantryShopping.kt`).
-- **Interno:** `IngredientReviewUiTest` mide a 280 dp, el mínimo del contenedor de un `AlertDialog`; el contenido real ronda los 232 dp. Corregir el comentario o medir a 232 dp.
+- ~~**Interno:** `IngredientReviewUiTest` mide a 280 dp, el mínimo del contenedor de un `AlertDialog`; el contenido real ronda los 232 dp. Corregir el comentario o medir a 232 dp.~~ **Resuelto** en `agent/red-de-seguridad` (tarea 4).
 - ~~**Interno:** `ItemNotFound` → «La lista ha cambiado» está en el mapeo general de Comidas; iría mejor en la llamada a `applyCooked`, como hace `applySeenWrites` (`MealsViewModel.toUiMessage`).~~ **Resuelto de paso** en `agent/menores-has-cocinado` (ruling 3 del plan).
 - **Interno:** `applyCooked` repite la lógica de borrado de `FirestorePantryRepository.remove` (quitar vacíos, `distinct`, borrar) (`FirestoreShoppingRepository.kt`).
 
@@ -219,8 +231,8 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - **Interno:** el comentario de `firestore.rules` en `validRecipeShape()` y `docs/DATA_MODEL.md` («un admin solo lo conserva al deshacer») describen la app, no la regla: `validRecipeRestore` deja a un admin crear cualquier común nueva con `source` y fechas pasadas.
 - **Interno:** `RecipeAdmins.uids` ya decide el dueño al deshacer, no es solo un filtro de interfaz como dicen `docs/RECIPES_ADMIN.md` y el KDoc de `RecipeAdmins.kt`. Entre desplegar las reglas y publicar la app, una app desfasada sigue fallando al deshacer una común de un admin retirado.
 - **Interno:** `docs/RECIPES_ADMIN.md` y `docs/RECIPE_CATALOG.md` no cuentan que una común deshecha a nombre de otro admin pasa a «omitida (de usuario)» en el importador, y «a nombre de quien deshace» es ambiguo (`createdByName` se conserva).
-- **Interno:** en `ShoppingQuantityTest`, la aserción en singular de `only the words before any preposition…` ya pasaba antes del arreglo (mejor «1/2 bolsas para galletas»), y `every word of the unit agrees in number up to the first de` debería decir «preposition».
-- **Interno:** a `RecipeRestoreTest` le falta el caso de dueño y editor retirados a la vez; en el test de reglas de «Deshacer», el caso de `importedAt` futuro no prueba nada aparte; el test «solo un admin crea una receta con la fuente del catálogo» podría usar `Date.now() - 60 s` para no depender del reloj.
+- ~~**Interno:** en `ShoppingQuantityTest`, la aserción en singular de `only the words before any preposition…` ya pasaba antes del arreglo (mejor «1/2 bolsas para galletas»), y `every word of the unit agrees in number up to the first de` debería decir «preposition».~~ **Resuelto** en `agent/red-de-seguridad` (tarea 5).
+- ~~**Interno:** a `RecipeRestoreTest` le falta el caso de dueño y editor retirados a la vez; en el test de reglas de «Deshacer», el caso de `importedAt` futuro no prueba nada aparte; el test «solo un admin crea una receta con la fuente del catálogo» podría usar `Date.now() - 60 s` para no depender del reloj.~~ **Resuelto** en `agent/red-de-seguridad` (tareas 5 y 7).
 
 ## 2026-10-13 — `agent/menores-recetas-compra`
 
@@ -246,7 +258,7 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - ~~**Efecto visible (admin, CLI del catálogo):** con `"quantity": null`, el validador dice «tiene que ser texto («null» entre comillas)» en vez de pedir que se quite la clave (`scripts/catalog/recipes.mjs`, `amountProblem`).~~ **Resuelto** en `agent/menores-recetas-compra`: pide quitar la clave.
 - ~~**Efecto visible (sin confirmar):** en el recorrido de punta a punta del emulador, el Snackbar «Receta eliminada / Deshacer» no apareció nunca, ni en el Recetario ni al borrar un producto en Compra (`launchUndo`, `UndoSnackbar.kt`). Este código no lo toca la rama, y puede ser del emulador, que iba lento. Hay que comprobarlo en un móvil con la beta 20 y, si se reproduce, depurarlo.~~ **Descartado** el 2026-10-12: en un móvil con la beta 21, «Deshacer» sale y funciona al borrar un producto de la Compra. Era el emulador.
 - **Interno:** `RecipeUnitsFixtureTest` no cubre singular + singular («1 diente» + «1 diente» = «2 dientes», que sale de `pluralOf`).
-- **Interno:** ningún test de reglas fija que un `setDoc` de cliente no pise una receta existente, propia o ajena. Hoy lo impide `validRecipeUpdate` (`createdAt`, `ownerUid` y `createdBy` iguales).
+- ~~**Interno:** ningún test de reglas fija que un `setDoc` de cliente no pise una receta existente, propia o ajena. Hoy lo impide `validRecipeUpdate` (`createdAt`, `ownerUid` y `createdBy` iguales).~~ **Resuelto** en `agent/red-de-seguridad` (tarea 7).
 - **Interno:** el importador de recetas lee la colección `recipes` entera, privadas incluidas. Bastaría `where("ownerUid", "==", CATALOG_ADMIN_UID)` más `getAll` de los slugs del catálogo (`import-recipes.mjs`).
 - **Interno:** `runRecipeImport` copia línea a línea `runRoutineImport`. Falta un `runGlobalCatalogImport` en `import-core.mjs`.
 - **Interno:** `RECIPE_UNITS` (`recipes.mjs`) duplica `tests/fixtures/recipe-units.json`, y un test comprueba que coinciden.
@@ -290,9 +302,9 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - **Efecto visible:** en el selector de ejercicios (diálogo estrecho), el valor «Peso corporal» del filtro de tipo se corta en seco («Peso corp»), sin puntos suspensivos; en el menú se lee entero (visto en el emulador; el corte ya se aceptó en el plan de filtros, la elipsis no).
 - **Interno:** `docs/DATA_MODEL.md` («Rutinas») dice que cualquier verificado lee `routines`; las PRIVATE solo las lee su dueño, y el admin solo borra las GLOBAL ajenas.
 - **Interno:** a `docs/ROUTINE_CATALOG.md` le faltan avisos: borrar una común solo en la app no basta (la reimportación la recrea mientras siga en `routines.json`); guardarla en el editor sin cambios la congela para el importador; qué hacer si una rutina de usuario ocupa el mismo slug; las reglas se despliegan antes de importar.
-- **Interno:** los tests de la tabla compartida (`RoutineExerciseFixtureTest`, «expande cada caso…» en `catalog-routines.test.mjs`) pasarían con el fixture vacío; falta comprobar los 4 casos y que coincida con `exercises.json`.
+- ~~**Interno:** los tests de la tabla compartida (`RoutineExerciseFixtureTest`, «expande cada caso…» en `catalog-routines.test.mjs`) pasarían con el fixture vacío; falta comprobar los 4 casos y que coincida con `exercises.json`.~~ **Resuelto** en `agent/red-de-seguridad` (tarea 5).
 - **Interno:** `formatImportPlan` comprueba `metaPath == null` y `commitCatalogOps` `if (metaPath)` (divergen con `""`); `val visible = routines.value` en `routinesSection` es un alias de más.
-- **Interno (ya pasaba en main):** `ProfileScreenTest` (androidTest) falla: usa `ComponentActivity` y `ProfileScreen` crea un `hiltViewModel`; necesita `HiltAndroidRule`/`HiltTestActivity` o no crear el ViewModel en el test.
+- ~~**Interno (ya pasaba en main):** `ProfileScreenTest` (androidTest) falla: usa `ComponentActivity` y `ProfileScreen` crea un `hiltViewModel`; necesita `HiltAndroidRule`/`HiltTestActivity` o no crear el ViewModel en el test.~~ **Resuelto** en `agent/red-de-seguridad` (tarea 3).
 
 ## 2026-10-11 — `agent/tiendas-de-barrio`
 
@@ -323,7 +335,7 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - **Efecto visible:** quien elige Claro (o Sistema con el móvil en claro) ve un destello oscuro breve al abrir la app (aceptado). Se podría quitar para todos con la pantalla de arranque esperando a leer la preferencia (`installSplashScreen().setKeepOnScreenCondition`).
 - **Efecto visible:** el selector de tema de Perfil marca «Oscuro» uno o dos fotogramas antes de pasar al valor guardado (`ProfileScreen.kt`: el `ThemeViewModel` de la pantalla es otra instancia y arranca en el valor por defecto).
 - **Efecto visible:** con Claro elegido, la barra flotante de copiar y pegar sale oscura, porque toma el tema XML (`themes.xml`); antes pasaba al revés con Oscuro.
-- **Interno:** `ProfileScreenTest` (instrumentado) falla desde 566294d: `ProfileScreen` usa `hiltViewModel()` y el test lo monta en una `ComponentActivity` sin Hilt. La CI no ejecuta los instrumentados.
+- ~~**Interno:** `ProfileScreenTest` (instrumentado) falla desde 566294d: `ProfileScreen` usa `hiltViewModel()` y el test lo monta en una `ComponentActivity` sin Hilt. La CI no ejecuta los instrumentados.~~ **Resuelto** en `agent/red-de-seguridad` (tarea 3).
 - **Interno:** en frío, el `DisposableEffect` de `MainActivity` se ejecuta dos veces para quien tiene Claro o Sistema (primero con el oscuro provisional).
 - **Interno:** `parseThemeMode` vive en `designsystem` como función suelta; el patrón del proyecto es un `fromName` en el companion del enum (`ReminderLeadTime`).
 - **Interno:** el color de la ventana (`colors.xml`) duplica `backgroundDark` de `Color.kt` sin avisarlo en el comentario.
@@ -353,7 +365,7 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - **Interno:** el plan de importación recalcula `ingredientKey` por cada pareja nuevo-existente (O(n·m); despreciable con unos 350).
 - **Interno:** `countIngredientData` lanza un `count()` por ingrediente sin límite de concurrencia.
 - **Interno:** si falla el segundo `recursiveDelete` (preferencias), el borrado queda a medias; hay que repetir el script.
-- **Interno:** la CI solo ejecuta `test:emulators`; ni `test:scripts` ni `test:catalog-import` corren en CI.
+- ~~**Interno:** la CI solo ejecuta `test:emulators`; ni `test:scripts` ni `test:catalog-import` corren en CI.~~ **Resuelto** en `agent/red-de-seguridad` (tarea 2).
 
 ## 2026-10-10 — `agent/menores-aplazados`
 
