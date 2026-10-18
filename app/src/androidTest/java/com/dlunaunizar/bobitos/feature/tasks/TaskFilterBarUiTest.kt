@@ -14,12 +14,12 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
-import androidx.compose.ui.test.assertIsNotSelected
-import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isPopup
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.text.TextLayoutResult
@@ -33,6 +33,7 @@ import com.dlunaunizar.bobitos.core.model.TaskStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -60,24 +61,33 @@ class TaskFilterBarUiTest {
         compose.onNode(hasText(text) and hasAnyAncestor(isPopup())).performClick()
     }
 
-    @Test fun theStatusChipShowsTheChosenValue() {
+    @Test fun theStatusDropdownShowsTheChosenValue() {
         show()
-        compose.onNodeWithText("Pendientes").assertIsSelected().performClick()
+        compose.onNodeWithText("Estado").assertIsDisplayed()
+        compose.onNodeWithText("Pendientes").performClick()
         pickInMenu("Completadas")
-        compose.onNodeWithText("Completadas").assertIsSelected()
+        compose.onNodeWithText("Completadas").assertIsDisplayed()
         assertEquals(TaskStatus.DONE, filters.status)
         compose.onNodeWithText("Completadas").performClick()
         pickInMenu("Todas")
-        compose.onNodeWithText("Estado").assertIsNotSelected()
         assertEquals(null, filters.status)
     }
 
-    @Test fun thePriorityChipShowsTheChosenValue() {
+    @Test fun thePriorityDropdownShowsTheChosenValue() {
         show()
-        compose.onNodeWithText("Prioridad").assertIsNotSelected().performClick()
+        compose.onNodeWithText("Prioridad").assertIsDisplayed()
+        compose.onNodeWithText("Todas").performClick()
         pickInMenu("Alta")
-        compose.onNodeWithText("Alta").assertIsSelected()
+        compose.onNodeWithText("Alta").assertIsDisplayed()
         assertEquals(TaskPriority.HIGH, filters.priority)
+    }
+
+    @Test fun theAssigneeDropdownOffersUnassigned() {
+        show()
+        compose.onNodeWithText("Responsable").assertIsDisplayed()
+        compose.onAllNodesWithText("Todos")[1].performClick() // el primero es Tipo
+        pickInMenu("Sin asignar")
+        assertTrue(filters.unassignedOnly)
     }
 
     @Test fun theMenuMarksTheCurrentOption() {
@@ -92,7 +102,7 @@ class TaskFilterBarUiTest {
 
     @Test fun noChipLabelIsEllipsizedAtLargeFont() {
         show(fontScale = 1.3f)
-        listOf("Pendientes", "Prioridad", "Tipo", "Responsable").forEach { label ->
+        listOf("Estado", "Pendientes", "Prioridad", "Tipo", "Responsable").forEach { label ->
             val results = mutableListOf<TextLayoutResult>()
             val node = compose.onNodeWithText(label, useUnmergedTree = true).fetchSemanticsNode()
             val action = node.config.getOrNull(SemanticsActions.GetTextLayoutResult)?.action

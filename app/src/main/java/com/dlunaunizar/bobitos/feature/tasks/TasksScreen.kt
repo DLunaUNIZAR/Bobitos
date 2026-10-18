@@ -2,7 +2,6 @@ package com.dlunaunizar.bobitos.feature.tasks
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,7 +24,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.ArrowDropDown
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Check
@@ -43,7 +41,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -92,8 +89,12 @@ import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdown
+import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
+import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
@@ -189,7 +190,7 @@ fun TasksScreen(
                 }
             }
         }
-        Column(Modifier.fillMaxSize().padding(padding).padding(Spacing.lg)) {
+        Column(Modifier.fillMaxSize().padding(padding)) {
             val queried = visibleTasks.filter { it.matchesQuery(query) }
             val sections = queried.groupIntoSections()
             if (canWrite) {
@@ -199,43 +200,36 @@ fun TasksScreen(
                     }
                 }
             }
-            TaskFilterBar(
-                state.filters,
-                members,
-                viewModel::setFilters,
-            )
-            SearchField(
-                query = query,
-                onQueryChange = { query = it },
-                visible = allTasks.isNotEmpty(),
-                modifier = Modifier.padding(vertical = Spacing.xs),
-            )
+            // Filtros y búsqueda en la franja teñida: primer elemento de la lista, se van con ella al desplazar.
+            val filterBand: @Composable () -> Unit = {
+                ModuleHeaderBand {
+                    Column(
+                        Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.sm, bottom = Spacing.md),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        TaskFilterBar(state.filters, members, viewModel::setFilters)
+                        SearchField(
+                            query = query,
+                            onQueryChange = { query = it },
+                            visible = allTasks.isNotEmpty(),
+                        )
+                    }
+                }
+            }
             when (val tasks = state.tasks) {
-                UiState.Loading -> LoadingState(Modifier.weight(1f))
-                is UiState.Error -> ErrorState(
-                    Modifier.weight(1f),
-                    message = stringResource(tasks.failure.messageRes()),
-                    onRetry = { viewModel.observe(spaceId) },
-                )
-                is UiState.Content -> if (queried.isEmpty()) {
-                    val firstRun = allTasks.isEmpty()
-                    val canClearFilters = !firstRun && (state.filters != TaskFilters() || query.isNotBlank())
-                    EmptyState(
-                        modifier = Modifier.weight(1f),
-                        icon = Icons.Rounded.Checklist,
-                        title = stringResource(if (firstRun) R.string.tasks_empty else R.string.tasks_no_results),
-                        description = if (firstRun) stringResource(R.string.tasks_empty_description) else null,
-                        actionLabel = if (canClearFilters) stringResource(R.string.tasks_clear_filters) else null,
-                        onAction = if (canClearFilters) {
-                            {
-                                viewModel.clearFilters()
-                                query = ""
-                            }
-                        } else {
-                            null
-                        },
+                UiState.Loading -> {
+                    filterBand()
+                    LoadingState(Modifier.weight(1f))
+                }
+                is UiState.Error -> {
+                    filterBand()
+                    ErrorState(
+                        Modifier.weight(1f),
+                        message = stringResource(tasks.failure.messageRes()),
+                        onRetry = { viewModel.observe(spaceId) },
                     )
-                } else {
+                }
+                is UiState.Content -> {
                     val taskRow: @Composable LazyItemScope.(TaskItem) -> Unit = { task ->
                         SwipeActionsBox(
                             startAction = SwipeAction(
@@ -260,7 +254,7 @@ fun TasksScreen(
                             ) {
                                 deleteTaskWithUndo(task)
                             }.takeIf { enabled },
-                            modifier = Modifier.animateItem(),
+                            modifier = Modifier.padding(horizontal = Spacing.lg).animateItem(),
                         ) { accessibilityModifier ->
                             TaskCard(
                                 task,
@@ -280,6 +274,22 @@ fun TasksScreen(
                         // Deja hueco para que el FAB no tape el último elemento.
                         contentPadding = PaddingValues(bottom = Spacing.fabClearance),
                     ) {
+                        item(key = "filters") { filterBand() }
+                        if (queried.isEmpty()) {
+                            item(key = "empty") {
+                                TasksEmptyContent(
+                                    empty = tasksEmptyState(allTasks, state.filters, query),
+                                    onShowCompleted = {
+                                        viewModel.setFilters(state.filters.copy(status = TaskStatus.DONE))
+                                    },
+                                    onClearFilters = {
+                                        viewModel.clearFilters()
+                                        query = ""
+                                    },
+                                    modifier = Modifier.fillParentMaxHeight(EMPTY_STATE_HEIGHT_FRACTION),
+                                )
+                            }
+                        }
                         sections.forEach { (section, sectionTasks) ->
                             val collapsible = section == TaskSection.COMPLETED
                             item(key = "header-$section") {
@@ -292,6 +302,7 @@ fun TasksScreen(
                                     } else {
                                         null
                                     },
+                                    modifier = Modifier.padding(horizontal = Spacing.lg),
                                 )
                             }
                             if (!collapsible || completedExpanded) {
@@ -351,6 +362,40 @@ fun TasksScreen(
     }
 }
 
+// Parte de la altura de la lista que ocupa el estado vacío, para que quede centrado bajo los filtros.
+private const val EMPTY_STATE_HEIGHT_FRACTION = 0.75f
+
+@Composable
+private fun TasksEmptyContent(
+    empty: TasksEmpty,
+    onShowCompleted: () -> Unit,
+    onClearFilters: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    when (empty.kind) {
+        TasksEmptyKind.FIRST_RUN -> EmptyState(
+            modifier = modifier,
+            icon = Icons.Rounded.Checklist,
+            title = stringResource(R.string.tasks_empty),
+            description = stringResource(R.string.tasks_empty_description),
+        )
+        TasksEmptyKind.ALL_DONE -> EmptyState(
+            modifier = modifier,
+            icon = Icons.Rounded.Checklist,
+            title = stringResource(R.string.tasks_all_done),
+            actionLabel = stringResource(R.string.tasks_show_completed),
+            onAction = onShowCompleted,
+        )
+        TasksEmptyKind.NO_RESULTS -> EmptyState(
+            modifier = modifier,
+            icon = Icons.Rounded.Checklist,
+            title = stringResource(R.string.tasks_no_results),
+            actionLabel = if (empty.canClearFilters) stringResource(R.string.tasks_clear_filters) else null,
+            onAction = if (empty.canClearFilters) onClearFilters else null,
+        )
+    }
+}
+
 private val TaskSection.titleRes: Int
     get() = when (this) {
         TaskSection.OVERDUE -> R.string.tasks_overdue
@@ -360,195 +405,75 @@ private val TaskSection.titleRes: Int
         TaskSection.COMPLETED -> R.string.tasks_done
     }
 
-// Barra de filtros: cuatro chips con menú (estado, prioridad, tipo y responsable). Sin filtro el chip
-// dice su nombre; con filtro dice el valor y queda seleccionado. La dimensión fecha ya la cubren las
-// secciones de la lista (B3).
+// Barra de filtros: cuatro desplegables (estado, prioridad, tipo y responsable), dos por fila. Cada uno
+// muestra su nombre y, dentro, el valor; con un valor distinto del de por defecto queda resaltado. La
+// dimensión fecha ya la cubren las secciones de la lista (B3).
 @Composable
 internal fun TaskFilterBar(filters: TaskFilters, members: List<SpaceMember>, onChange: (TaskFilters) -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(top = Spacing.sm),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        TaskStatusFilterChip(filters, onChange)
-        TaskPriorityFilterChip(filters, onChange)
-        TaskTypeFilterChip(filters, onChange)
-        TaskAssigneeFilterChip(filters, members, onChange)
-    }
-}
-
-@Composable
-private fun CurrentOptionCheck() {
-    Icon(Icons.Rounded.Check, contentDescription = null)
-}
-
-/** Elemento de menú que marca la opción vigente con una marca y como seleccionado para TalkBack. */
-@Composable
-private fun CheckedMenuItem(
-    text: String,
-    current: Boolean,
-    onClick: () -> Unit,
-    leadingIcon: (@Composable () -> Unit)? = null,
-) {
-    DropdownMenuItem(
-        text = { Text(text) },
-        leadingIcon = leadingIcon,
-        trailingIcon = if (current) ({ CurrentOptionCheck() }) else null,
-        modifier = if (current) Modifier.semantics { selected = true } else Modifier,
-        onClick = onClick,
+    val all = stringResource(R.string.tasks_filter_all)
+    val any = stringResource(R.string.tasks_filter_any)
+    val statusOptions = listOf(
+        TaskStatus.TODO to stringResource(R.string.tasks_pending),
+        TaskStatus.DONE to stringResource(R.string.tasks_done),
+        null to all,
     )
-}
-
-@Composable
-private fun TaskStatusFilterChip(filters: TaskFilters, onChange: (TaskFilters) -> Unit) {
-    var menu by remember { mutableStateOf(false) }
-    val options = listOf(
-        TaskStatus.TODO to R.string.tasks_pending,
-        TaskStatus.DONE to R.string.tasks_done,
-        null to R.string.tasks_filter_all,
-    )
-    Box {
-        FilterChip(
-            selected = filters.status != null,
-            onClick = { menu = true },
-            label = {
-                Text(
-                    filters.status?.let { status -> stringResource(options.first { it.first == status }.second) }
-                        ?: stringResource(R.string.tasks_filter_status),
-                )
-            },
-            trailingIcon = { Icon(Icons.Rounded.ArrowDropDown, contentDescription = null) },
-        )
-        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-            options.forEach { (status, labelRes) ->
-                val current = filters.status == status
-                CheckedMenuItem(
-                    text = stringResource(labelRes),
-                    current = current,
-                    onClick = {
-                        onChange(filters.copy(status = status))
-                        menu = false
-                    },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TaskPriorityFilterChip(filters: TaskFilters, onChange: (TaskFilters) -> Unit) {
-    var menu by remember { mutableStateOf(false) }
-    Box {
-        FilterChip(
-            selected = filters.priority != null,
-            onClick = { menu = true },
-            label = { Text(filters.priority?.label() ?: stringResource(R.string.tasks_filter_priority)) },
-            trailingIcon = { Icon(Icons.Rounded.ArrowDropDown, contentDescription = null) },
-        )
-        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-            val options = listOf<TaskPriority?>(null) + TaskPriority.entries.reversed()
-            options.forEach { priority ->
-                val current = filters.priority == priority
-                CheckedMenuItem(
-                    text = priority?.label() ?: stringResource(R.string.tasks_filter_all),
-                    leadingIcon = priority?.let { p ->
-                        { Icon(Icons.Rounded.Flag, contentDescription = null, tint = p.accent()) }
-                    },
-                    current = current,
-                    onClick = {
-                        onChange(filters.copy(priority = priority))
-                        menu = false
-                    },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TaskTypeFilterChip(filters: TaskFilters, onChange: (TaskFilters) -> Unit) {
-    var menu by remember { mutableStateOf(false) }
-    Box {
-        FilterChip(
-            selected = filters.type != null,
-            onClick = { menu = true },
-            label = {
-                Text(filters.type?.let { stringResource(it.labelRes) } ?: stringResource(R.string.tasks_filter_type))
-            },
-            trailingIcon = { Icon(Icons.Rounded.ArrowDropDown, contentDescription = null) },
-        )
-        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-            CheckedMenuItem(
-                text = stringResource(R.string.tasks_filter_all),
-                current = filters.type == null,
-                onClick = {
-                    onChange(filters.copy(type = null))
-                    menu = false
-                },
-            )
-            TaskType.entries.forEach { taskType ->
-                CheckedMenuItem(
-                    text = stringResource(taskType.labelRes),
-                    leadingIcon = { Icon(taskType.icon, contentDescription = null, tint = taskType.accent()) },
-                    current = filters.type == taskType,
-                    onClick = {
-                        onChange(filters.copy(type = taskType))
-                        menu = false
-                    },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TaskAssigneeFilterChip(filters: TaskFilters, members: List<SpaceMember>, onChange: (TaskFilters) -> Unit) {
-    var menu by remember { mutableStateOf(false) }
-    val label = when {
-        filters.unassignedOnly -> stringResource(R.string.tasks_unassigned)
-        filters.assigneeId != null ->
-            members.firstOrNull { it.userId == filters.assigneeId }?.displayName
-                ?: stringResource(R.string.tasks_assignee)
-        else -> stringResource(R.string.tasks_assignee)
-    }
+    val priorityOptions = listOf<TaskPriority?>(null) + TaskPriority.entries.reversed()
+    val unassigned = stringResource(R.string.tasks_filter_unassigned)
     val anyAssignee = filters.assigneeId != null || filters.unassignedOnly
-    Box {
-        FilterChip(
-            selected = anyAssignee,
-            onClick = { menu = true },
-            label = { Text(label) },
-            trailingIcon = { Icon(Icons.Rounded.ArrowDropDown, contentDescription = null) },
+    val assigneeValue = when {
+        filters.unassignedOnly -> unassigned
+        filters.assigneeId != null -> members.firstOrNull { it.userId == filters.assigneeId }?.displayName ?: any
+        else -> any
+    }
+    FilterDropdownRow {
+        FilterDropdown(
+            label = stringResource(R.string.tasks_filter_status),
+            value = statusOptions.first { it.first == filters.status }.second,
+            options = statusOptions.map { (status, text) ->
+                FilterOption(text, filters.status == status) { onChange(filters.copy(status = status)) }
+            },
+            active = filters.status != TaskFilters().status,
+            modifier = Modifier.weight(1f),
         )
-        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-            CheckedMenuItem(
-                text = stringResource(R.string.tasks_filter_all),
-                current = !anyAssignee,
-                onClick = {
-                    onChange(filters.copy(assigneeId = null, unassignedOnly = false))
-                    menu = false
+        FilterDropdown(
+            label = stringResource(R.string.tasks_filter_priority),
+            value = filters.priority?.label() ?: all,
+            options = priorityOptions.map { priority ->
+                FilterOption(priority?.label() ?: all, filters.priority == priority) {
+                    onChange(filters.copy(priority = priority))
+                }
+            },
+            active = filters.priority != null,
+            modifier = Modifier.weight(1f),
+        )
+        FilterDropdown(
+            label = stringResource(R.string.tasks_filter_type),
+            value = filters.type?.let { stringResource(it.labelRes) } ?: any,
+            options = listOf(FilterOption(any, filters.type == null) { onChange(filters.copy(type = null)) }) +
+                TaskType.entries.map { taskType ->
+                    FilterOption(stringResource(taskType.labelRes), filters.type == taskType) {
+                        onChange(filters.copy(type = taskType))
+                    }
                 },
-            )
-            CheckedMenuItem(
-                text = stringResource(R.string.tasks_unassigned),
-                current = filters.unassignedOnly,
-                onClick = {
+            active = filters.type != null,
+            modifier = Modifier.weight(1f),
+        )
+        FilterDropdown(
+            label = stringResource(R.string.tasks_assignee),
+            value = assigneeValue,
+            options = listOf(
+                FilterOption(any, !anyAssignee) { onChange(filters.copy(assigneeId = null, unassignedOnly = false)) },
+                FilterOption(unassigned, filters.unassignedOnly) {
                     onChange(filters.copy(assigneeId = null, unassignedOnly = true))
-                    menu = false
                 },
-            )
-            members.forEach { member ->
-                CheckedMenuItem(
-                    text = member.displayName,
-                    current = filters.assigneeId == member.userId,
-                    onClick = {
-                        onChange(filters.copy(assigneeId = member.userId, unassignedOnly = false))
-                        menu = false
-                    },
-                )
-            }
-        }
+            ) + members.map { member ->
+                FilterOption(member.displayName, filters.assigneeId == member.userId) {
+                    onChange(filters.copy(assigneeId = member.userId, unassignedOnly = false))
+                }
+            },
+            active = anyAssignee,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 

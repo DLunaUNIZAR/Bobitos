@@ -278,6 +278,8 @@
     <string name="tasks_empty_description">Crea la primera tarea del hogar y repártela entre los miembros.</string>
     <string name="tasks_no_results">Ninguna tarea coincide con los filtros.</string>
     <string name="tasks_clear_filters">Quitar filtros</string>
+    <string name="tasks_all_done">Lo tienes todo hecho</string>
+    <string name="tasks_show_completed">Ver completadas</string>
     <string name="tasks_title_label">Título</string>
     <string name="tasks_description_label">Descripción (opcional)</string>
     <string name="tasks_assignee">Responsable</string>
@@ -300,6 +302,8 @@
     <string name="tasks_pending">Pendientes</string>
     <string name="tasks_done">Completadas</string>
     <string name="tasks_filter_all">Todas</string>
+    <string name="tasks_filter_any">Todos</string>
+    <string name="tasks_filter_unassigned">Sin asignar</string>
     <string name="tasks_filter_status">Estado</string>
     <string name="tasks_filter_priority">Prioridad</string>
     <string name="tasks_filter_type">Tipo</string>
