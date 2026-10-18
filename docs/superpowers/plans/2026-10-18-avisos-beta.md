@@ -491,3 +491,8 @@
 - [ ] **Paso 3: Comprobar.**
   - La misma orden imprime `0`.
   - Pasa la puerta.
+
+## Rulings de la ejecución que corrigen el plan
+
+- **R18 (revisión final, I2).** Con un APK, el SDK 16.0.0-beta21 nunca emite `INSTALL_CANCELED` ni `INSTALLATION_CANCELED`: cancelar el instalador llega como `INSTALL_FAILED` / `INSTALLATION_FAILURE`. Tras `DOWNLOADED`, un fallo de instalación se trata como `InstallCanceled` (`afterDownload`), con el texto neutro «No se ha instalado. Puedes volver a intentarlo.».
+- **R19 (revisión final, I1).** El SDK cierra la sesión de tester ante `AUTHENTICATION_FAILURE`. Con `SIGN_IN_FAILED`, el ViewModel pone `testerSignedIn = false` para que «Buscar actualizaciones» vuelva a pedir la cuenta.
