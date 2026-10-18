@@ -1,6 +1,11 @@
 package com.dlunaunizar.bobitos.core.designsystem.component
 
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -20,7 +25,10 @@ import androidx.compose.material3.TopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -34,9 +42,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.designsystem.motionSpec
+import com.dlunaunizar.bobitos.core.designsystem.rememberReduceMotion
 import com.dlunaunizar.bobitos.core.designsystem.theme.LocalAppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.moduleTint
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 /**
@@ -74,7 +86,30 @@ fun BobitosLargeTopBar(
     val state = scrollBehavior.state
     val collapsed by remember(state) { derivedStateOf { state.collapsedFraction >= HALF } }
     val smallTitle by remember(state) { derivedStateOf { state.collapsedFraction >= TITLE_SWAP } }
-    Column(modifier = modifier) {
+    // Como en Material, arrastrar la barra la encoge o la abre, también sobre un contenido que no se desplaza.
+    val reduceMotion = rememberReduceMotion()
+    val scope = rememberCoroutineScope()
+    var settling by remember { mutableStateOf<Job?>(null) }
+    val dragState = rememberDraggableState { delta ->
+        state.heightOffset = (state.heightOffset + delta).coerceIn(state.heightOffsetLimit, 0f)
+    }
+    Column(
+        modifier = modifier.draggable(
+            state = dragState,
+            orientation = Orientation.Vertical,
+            onDragStarted = { settling?.cancel() },
+            onDragStopped = {
+                settling = scope.launch {
+                    val target = if (state.collapsedFraction < HALF) 0f else state.heightOffsetLimit
+                    animate(
+                        initialValue = state.heightOffset,
+                        targetValue = target,
+                        animationSpec = motionSpec(reduceMotion, tween(SETTLE_MILLIS)),
+                    ) { value, _ -> state.heightOffset = value }
+                }
+            },
+        ),
+    ) {
         TopAppBar(
             title = {
                 RowTitle(title, spaceSelector, state, collapsed, smallTitle)
@@ -127,6 +162,9 @@ fun BobitosLargeTopBar(
 
 // A partir de esta fracción de encogimiento el selector del espacio desaparece (y el título pequeño ya se ve).
 private const val HALF = 0.5f
+
+// Lo que tarda la barra en encajar abierta o encogida al soltarla.
+private const val SETTLE_MILLIS = 200
 
 // A partir de esta otra el título grande, ya casi recortado, deja de ser el encabezado y lo es el pequeño.
 private const val TITLE_SWAP = 0.75f

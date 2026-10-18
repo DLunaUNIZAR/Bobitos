@@ -217,7 +217,7 @@ fun rememberDayCascade(day: LocalDate, ready: Boolean): Boolean {
     val tracker = remember { DayCascade() }
     val animate = remember(day, ready) { ready && tracker.onContentShown(day) }
     var expired by remember(day, ready) { mutableStateOf(false) }
-    LaunchedEffect(animate) {
+    LaunchedEffect(day, ready) {
         if (animate) {
             delay(CASCADE_WINDOW_MS)
             expired = true

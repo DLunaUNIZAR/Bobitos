@@ -175,15 +175,22 @@ class WeekDayStripTest {
     }
 
     @Test
-    fun talkBackTieneSemanaAnteriorYSiguiente() {
+    fun cadaDiaTieneLasAccionesDeSemana() {
         var next = 0
         var previous = 0
         show(onPrevious = { previous++ }, onNext = { next++ })
-        val strip = compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions))
-        val actions = strip.fetchSemanticsNode().config[SemanticsActions.CustomActions]
-        assertEquals(listOf("Semana anterior", "Semana siguiente"), actions.map { it.label })
+        // El nodo que enfoca TalkBack es el del día (seleccionable), no el contenedor.
+        val dias = compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.Selected))
+        dias.assertCountEquals(7)
+        repeat(7) { i ->
+            val actions = dias[i].fetchSemanticsNode().config[SemanticsActions.CustomActions]
+            assertEquals(listOf("Semana anterior", "Semana siguiente"), actions.map { it.label })
+        }
+        val actions = dias[0].fetchSemanticsNode().config[SemanticsActions.CustomActions]
         compose.runOnUiThread { actions.forEach { it.action() } }
         assertEquals(1, previous)
         assertEquals(1, next)
+        // El contenedor no las repite.
+        compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions)).assertCountEquals(7)
     }
 }

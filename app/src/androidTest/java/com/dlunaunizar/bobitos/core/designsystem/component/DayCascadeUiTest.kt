@@ -16,6 +16,7 @@ class DayCascadeUiTest {
 
     private val diaA = LocalDate.of(2026, 10, 12)
     private val diaB = LocalDate.of(2026, 10, 19)
+    private val diaC = LocalDate.of(2026, 10, 20)
 
     @Test
     fun alCargarOtroDiaTrasCargandoCascada() {
@@ -51,6 +52,47 @@ class DayCascadeUiTest {
 
         ready = true
         composeTestRule.mainClock.advanceTimeByFrame()
+        assertFalse(cascade)
+    }
+
+    @Test
+    fun dosCambiosDeDiaSeguidosApaganLaCascada() {
+        composeTestRule.mainClock.autoAdvance = false
+        var day by mutableStateOf(diaA)
+        var cascade = false
+        composeTestRule.setContent { cascade = rememberDayCascade(day, true) }
+        composeTestRule.mainClock.advanceTimeByFrame()
+        assertFalse(cascade)
+
+        day = diaB
+        composeTestRule.mainClock.advanceTimeByFrame()
+        assertTrue(cascade)
+        composeTestRule.mainClock.advanceTimeBy(CASCADE_WINDOW_MS + 100)
+        assertFalse(cascade)
+
+        day = diaC
+        composeTestRule.mainClock.advanceTimeByFrame()
+        assertTrue(cascade)
+        composeTestRule.mainClock.advanceTimeBy(CASCADE_WINDOW_MS + 100)
+        assertFalse(cascade)
+    }
+
+    @Test
+    fun unCambioDentroDeLaVentanaLaAlarga() {
+        composeTestRule.mainClock.autoAdvance = false
+        var day by mutableStateOf(diaA)
+        var cascade = false
+        composeTestRule.setContent { cascade = rememberDayCascade(day, true) }
+        composeTestRule.mainClock.advanceTimeByFrame()
+
+        day = diaB
+        composeTestRule.mainClock.advanceTimeByFrame()
+        composeTestRule.mainClock.advanceTimeBy(CASCADE_WINDOW_MS / 2)
+
+        day = diaC
+        composeTestRule.mainClock.advanceTimeByFrame()
+        assertTrue(cascade)
+        composeTestRule.mainClock.advanceTimeBy(CASCADE_WINDOW_MS + 100)
         assertFalse(cascade)
     }
 }

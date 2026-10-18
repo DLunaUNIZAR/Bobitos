@@ -2,9 +2,13 @@ package com.dlunaunizar.bobitos.core.designsystem.component
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.Settings
@@ -20,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
@@ -36,6 +41,10 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -190,5 +199,57 @@ class BobitosLargeTopBarTest {
             collapseTo(f)
             compose.onAllNodes(hasText("Notas") and heading).assertCountEquals(1)
         }
+    }
+
+    /** Barra con su `scrollBehavior` sobre una lista larga o, sin ella, sobre un contenido que no se desplaza. */
+    private fun showWithContent(scrollable: Boolean, onAction: () -> Unit = {}) {
+        compose.setContent {
+            BobitosTheme {
+                val barState = rememberTopAppBarState()
+                state = barState
+                val behavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(barState)
+                Column(Modifier.fillMaxSize().nestedScroll(behavior.nestedScrollConnection)) {
+                    BobitosLargeTopBar(
+                        title = "Tareas",
+                        scrollBehavior = behavior,
+                        modifier = Modifier.testTag("barra"),
+                        actions = { IconButton(onClick = onAction) { Icon(Icons.Rounded.Bolt, "Rayo") } },
+                    )
+                    if (scrollable) {
+                        LazyColumn { items((1..100).toList()) { Text("Fila $it") } }
+                    } else {
+                        Box(Modifier.fillMaxSize()) { Text("Vacío") }
+                    }
+                }
+            }
+        }
+        compose.waitForIdle()
+    }
+
+    @Test
+    fun arrastrarLaCabeceraHaciaArribaLaEncoge() {
+        showWithContent(scrollable = true)
+        compose.onNodeWithTag("barra").performTouchInput { swipeUp() }
+        compose.waitForIdle()
+        assertEquals(1f, state.collapsedFraction, 0.01f)
+    }
+
+    @Test
+    fun encogidaSobreUnVacioArrastrarHaciaAbajoLaAbre() {
+        showWithContent(scrollable = false)
+        compose.runOnIdle { state.heightOffset = state.heightOffsetLimit }
+        compose.waitForIdle()
+        assertEquals(1f, state.collapsedFraction, 0.01f)
+        compose.onNodeWithTag("barra").performTouchInput { swipeDown() }
+        compose.waitForIdle()
+        assertEquals(0f, state.collapsedFraction, 0.01f)
+    }
+
+    @Test
+    fun unToqueEnUnaAccionDeLaBarraSigueLlegando() {
+        var toques = 0
+        showWithContent(scrollable = true, onAction = { toques++ })
+        compose.onNodeWithContentDescription("Rayo").performClick()
+        assertEquals(1, toques)
     }
 }

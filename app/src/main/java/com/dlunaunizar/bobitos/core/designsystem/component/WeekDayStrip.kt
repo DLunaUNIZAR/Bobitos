@@ -43,7 +43,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
@@ -94,23 +93,22 @@ fun WeekDayStrip(
     val reduceMotion = rememberReduceMotion()
     val currentPrevious by rememberUpdatedState(onPrevious)
     val currentNext by rememberUpdatedState(onNext)
+    // Las acciones van en cada día, que es lo que enfoca TalkBack: el contenedor no es enfocable.
+    val weekActions = listOf(
+        CustomAccessibilityAction(previousLabel) {
+            currentPrevious()
+            true
+        },
+        CustomAccessibilityAction(nextLabel) {
+            currentNext()
+            true
+        },
+    )
     AnimatedContent(
         targetState = days,
         modifier = modifier
             .clipToBounds()
-            .weekSwipe(onPrevious = { currentPrevious() }, onNext = { currentNext() })
-            .semantics {
-                customActions = listOf(
-                    CustomAccessibilityAction(previousLabel) {
-                        currentPrevious()
-                        true
-                    },
-                    CustomAccessibilityAction(nextLabel) {
-                        currentNext()
-                        true
-                    },
-                )
-            },
+            .weekSwipe(onPrevious = { currentPrevious() }, onNext = { currentNext() }),
         transitionSpec = {
             if (reduceMotion) {
                 EnterTransition.None togetherWith ExitTransition.None
@@ -126,7 +124,7 @@ fun WeekDayStrip(
         },
         label = "weekDays",
     ) { week ->
-        WeekRow(week, selected, today, colors, onSelect, reduceMotion)
+        WeekRow(week, selected, today, colors, onSelect, weekActions, reduceMotion)
     }
 }
 
@@ -137,6 +135,7 @@ private fun WeekRow(
     today: LocalDate,
     colors: WeekDayStripColors,
     onSelect: (LocalDate) -> Unit,
+    weekActions: List<CustomAccessibilityAction>,
     reduceMotion: Boolean,
 ) {
     val selectedIndex = days.indexOf(selected)
@@ -168,6 +167,7 @@ private fun WeekRow(
                 isToday = day == today,
                 colors = colors,
                 onClick = { onSelect(day) },
+                weekActions = weekActions,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -207,6 +207,7 @@ private fun WeekDay(
     isToday: Boolean,
     colors: WeekDayStripColors,
     onClick: () -> Unit,
+    weekActions: List<CustomAccessibilityAction>,
     modifier: Modifier = Modifier,
 ) {
     val description = BobitosDates.accessibleDate(date) +
@@ -219,6 +220,7 @@ private fun WeekDay(
             .clearAndSetSemantics {
                 contentDescription = description
                 this.selected = isSelected
+                customActions = weekActions
             },
         shape = MaterialTheme.shapes.medium,
         color = Color.Transparent,
