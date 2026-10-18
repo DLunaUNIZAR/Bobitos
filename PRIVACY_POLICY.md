@@ -15,6 +15,7 @@ Bobitos es una aplicación privada en desarrollo gestionada por DLunaUNIZAR. Uti
 - Ingredientes personales, marcas (con su código de barras y su información nutricional) y tiendas donde compra cada usuario: solo los ve ese usuario, no se comparten con los miembros de sus espacios. El catálogo común de ingredientes no contiene datos personales.
 - Datos técnicos mínimos de seguridad, sincronización y funcionamiento proporcionados por Firebase.
 - Informes de fallos y diagnóstico de estabilidad, únicamente en las compilaciones de distribución (release), mediante Firebase Crashlytics.
+- Actualización de betas: únicamente en las compilaciones de distribución (release), y solo si el tester inicia sesión desde Perfil, la aplicación usa Firebase App Distribution con su cuenta de Google para comprobar y descargar versiones beta nuevas. Las compilaciones de desarrollo no lo usan.
 - Imágenes de ejercicios: se almacenan en la infraestructura de Bobitos (Firebase), copiadas de wger.de con su autoría y licencia; la aplicación no hace peticiones a wger.de.
 - Escaneo de códigos de barras: al escanear un producto, la aplicación envía el número del código de barras a Open Food Facts (world.openfoodfacts.org), una base de datos abierta de terceros, para obtener su nombre, marca e información nutricional; como en cualquier petición web, Open Food Facts recibe la dirección IP del dispositivo. Bobitos solo guarda los datos que el usuario confirma al crear el ingrediente o la marca.
 

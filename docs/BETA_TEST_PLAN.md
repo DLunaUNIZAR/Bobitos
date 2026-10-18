@@ -22,6 +22,17 @@ Este documento no contiene nombres, correos ni identificadores personales. Los p
 9. Confirmar que la actualización conserva la sesión y permite acceder a los mismos datos.
 10. Probar transferencia de propiedad, abandono, eliminación de espacio y eliminación de cuenta.
 
+### Actualizar desde la app
+
+Solo se puede probar a mano, en un móvil con una beta firmada que traiga la función y una beta posterior distribuida (con `VERSION_CODE` mayor y notas en `distribution/release-notes.txt`).
+
+11. Comprobación manual: en «Perfil» pulsar «Buscar actualizaciones», iniciar sesión con la cuenta de la invitación, comprobar que salen las «Novedades», descargar viendo el progreso e instalar.
+12. Aviso automático: con sesión de tester y una beta nueva sin instalar, abrir la app al día siguiente y comprobar que sale «Hay una beta nueva».
+13. «Más tarde» y versión siguiente: pulsar «Más tarde», comprobar que esa versión no vuelve a avisar, distribuir una más nueva y comprobar que esta sí avisa.
+14. Cerrar el aviso con Atrás (no pospone, pero el día ya está gastado): abrir la app al día siguiente y comprobar que vuelve a avisar de esa misma versión.
+15. Sin conexión: pulsar «Buscar actualizaciones» sin red, comprobar que la fila muestra el mensaje de sin conexión y, al volver la red, que «Buscar actualizaciones» funciona.
+16. Cerrar la hoja durante la descarga, comprobar que sigue y que «Buscar actualizaciones» la reabre con su progreso.
+
 ## Registro y prioridad de incidencias
 
 Las incidencias se crean en GitHub sin incluir correos, contraseñas, códigos de invitación ni datos privados de los espacios.

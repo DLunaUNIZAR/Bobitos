@@ -127,13 +127,40 @@ Despliega las reglas desde el mismo commit que vas a distribuir: con reglas anti
 
 Firebase enviará un correo a los miembros de `bobitos-beta`. Los testers aceptan la invitación, instalan el APK y permiten instalaciones procedentes del navegador o de App Tester cuando Android lo solicite.
 
+## Actualizar desde la app
+
+Las betas pueden avisar de una versión nueva y descargarla e instalarla desde la propia app, sin pasar por el correo.
+
+**Cuándo usarlo.** Para que los testers actualicen sin salir de Bobitos.
+
+**Requisitos.**
+- Activar una vez la API «Firebase App Testers API» en Google Cloud Console, en el proyecto `bobitos-dev`. Sin ella, la comprobación falla con un error de API desactivada.
+- La primera beta que trae la función se instala como siempre, por correo o App Tester.
+- El tester debe tener una invitación a `bobitos-beta` en la cuenta de Google con la que inicie sesión.
+
+**Uso del tester.**
+1. En «Perfil», «Información», pulsar «Buscar actualizaciones». La primera vez abre el inicio de sesión de tester: usar la cuenta de Google de la invitación.
+2. Desde entonces la app comprueba en silencio al pasar a primer plano, como mucho una vez al día (día del calendario del móvil). Una comprobación fallida no gasta el día.
+3. Si hay versión nueva, sale «Hay una beta nueva» con «Actualizar» y «Más tarde». «Más tarde» silencia esa versión en el aviso automático; una más nueva sí avisa y la búsqueda manual la muestra siempre. Cerrar con Atrás o tocando fuera no pospone.
+4. La hoja de la versión muestra el progreso y las notas de `distribution/release-notes.txt` («Novedades»; se omiten si vienen vacías). Cerrar la hoja no cancela la descarga: «Buscar actualizaciones» la reabre con su progreso. Tras cancelar la instalación aparece «Instalar» y tras un error, «Reintentar».
+
+**Lo que hace Android.**
+- La primera vez pide permitir las instalaciones desde Bobitos.
+- Siempre pide confirmar la instalación.
+- Play Protect analiza el APK.
+
+**Alcance y límites.**
+- El SDK completo (`firebase-appdistribution`, con el permiso `REQUEST_INSTALL_PACKAGES`) solo está en `release`. La compilación `debug` usa una versión desactivada y en «Perfil» solo muestra «Versión».
+- Su auto-actualización incumple la política de Google Play: si algún día se publicara allí, haría falta una variante de beta propia.
+- La prueba manual del flujo real está en `docs/BETA_TEST_PLAN.md`; solo se puede hacer en un móvil con una beta firmada.
+
 ## 6. Actualización y caducidad
 
 - Cada APK nuevo debe tener un `VERSION_CODE` mayor.
 - Todas las versiones deben usar la misma clave `bobitos-release.jks`.
-- Firebase notifica por correo las nuevas entregas.
+- Firebase notifica por correo las nuevas entregas. Desde la beta que trae la función, la app también avisa sola (si el tester ya inició sesión desde «Perfil») y puede descargar e instalar la versión nueva (ver «Actualizar desde la app»).
 - Las compilaciones permanecen disponibles en App Distribution durante 150 días.
-- El tester instala la nueva versión sobre la anterior; sus datos locales y su sesión deberían conservarse.
+- El tester instala la nueva versión sobre la anterior, por correo o desde la app; sus datos locales y su sesión deberían conservarse.
 
 ## 7. Criterio para activar App Check
 
