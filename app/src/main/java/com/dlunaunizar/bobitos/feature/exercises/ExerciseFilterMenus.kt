@@ -1,34 +1,15 @@
 package com.dlunaunizar.bobitos.feature.exercises
 
 import androidx.annotation.StringRes
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.foldForSearch
-import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
+import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdown
+import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
+import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
 import com.dlunaunizar.bobitos.core.model.ExerciseType
 
 internal const val EXERCISE_FILTER_TYPE_TAG = "exercise-filter-type"
@@ -47,7 +28,7 @@ internal fun ExerciseFilterMenus(
 ) {
     val selectedGroup = filter.muscleGroup
     val groupOptions = remember(groups, selectedGroup) { groupFilterOptions(groups, selectedGroup) }
-    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+    FilterDropdownRow(modifier) {
         FilterDropdown(
             label = stringResource(R.string.exercises_filter_type_label),
             value = stringResource(typeFilterValueRes(filter.type)),
@@ -57,6 +38,7 @@ internal fun ExerciseFilterMenus(
                 FilterOption(stringResource(type.labelRes), filter.type == type) { onTypeChange(type) }
             },
             tag = EXERCISE_FILTER_TYPE_TAG,
+            active = filter.type != null,
             modifier = Modifier.weight(1f),
         )
         FilterDropdown(
@@ -71,67 +53,9 @@ internal fun ExerciseFilterMenus(
             },
             tag = EXERCISE_FILTER_GROUP_TAG,
             enabled = groupOptions.isNotEmpty(),
+            active = selectedGroup != null,
             modifier = Modifier.weight(1f),
         )
-    }
-}
-
-private class FilterOption(val text: String, val selected: Boolean, val onSelect: () -> Unit)
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun FilterDropdown(
-    label: String,
-    value: String,
-    options: List<FilterOption>,
-    tag: String,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val focusManager = LocalFocusManager.current
-
-    // Al cerrar el menú la casilla no debe quedarse enfocada (borde y etiqueta en color primario).
-    fun close() {
-        expanded = false
-        focusManager.clearFocus()
-    }
-    ExposedDropdownMenuBox(
-        expanded = expanded && enabled,
-        onExpandedChange = { if (it && enabled) expanded = true else close() },
-        modifier = modifier,
-    ) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = {},
-            readOnly = true,
-            enabled = enabled,
-            singleLine = true,
-            label = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded && enabled) },
-            modifier = Modifier
-                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled)
-                .fillMaxWidth()
-                .testTag(tag),
-        )
-        ExposedDropdownMenu(expanded = expanded && enabled, onDismissRequest = ::close) {
-            options.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option.text) },
-                    onClick = {
-                        close()
-                        option.onSelect()
-                    },
-                    trailingIcon = if (option.selected) {
-                        { Icon(Icons.Rounded.Check, contentDescription = null) }
-                    } else {
-                        null
-                    },
-                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
-                    modifier = Modifier.semantics { selected = option.selected },
-                )
-            }
-        }
     }
 }
 
