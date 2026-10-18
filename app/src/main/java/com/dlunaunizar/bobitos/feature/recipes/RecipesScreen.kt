@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -54,8 +53,12 @@ import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdown
+import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
+import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
@@ -182,8 +185,7 @@ fun RecipesScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp),
+                .padding(padding),
         ) {
             // El error de la importación ya se ve dentro de su diálogo.
             val error = state.visibleError(importDialogOpen = showImport)
@@ -194,23 +196,6 @@ fun RecipesScreen(
                 editorOpen = editorOpen,
                 onShown = viewModel::clearFeedback,
                 text = { stringResource(it.stringResourceId) },
-            )
-            OutlinedTextField(
-                value = state.query,
-                onValueChange = viewModel::setQuery,
-                label = { Text(stringResource(R.string.recipes_search_label)) },
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-            )
-            RecipeFilters(
-                categories = categories,
-                selected = selectedCategory,
-                onSelect = { selectedCategory = it },
-                pantryAvailable = state.pantryIds != null,
-                pantryOnly = state.pantryOnly,
-                onPantryOnly = viewModel::setPantryOnly,
             )
             val filtering = state.query.isNotBlank() || selectedCategory != null || pantryIds != null
             val mineRows = rememberRecipeRows(state.mine, state.query, selectedCategory, pantryIds)
@@ -224,6 +209,31 @@ fun RecipesScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(bottom = Spacing.fabClearance),
             ) {
+                // Búsqueda y filtros en la franja teñida: primer elemento, se va con la lista al desplazar.
+                item(key = "filters") {
+                    ModuleHeaderBand {
+                        Column(
+                            Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.sm, bottom = Spacing.md),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        ) {
+                            OutlinedTextField(
+                                value = state.query,
+                                onValueChange = viewModel::setQuery,
+                                label = { Text(stringResource(R.string.recipes_search_label)) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            RecipeFilters(
+                                categories = categories,
+                                selected = selectedCategory,
+                                onSelect = { selectedCategory = it },
+                                pantryAvailable = state.pantryIds != null,
+                                pantryOnly = state.pantryOnly,
+                                onPantryOnly = viewModel::setPantryOnly,
+                            )
+                        }
+                    }
+                }
                 recipesSection(R.string.recipes_section_mine, state.mine, mineRows, filtering, viewModel::retry) {
                     detailRecipeId = it.id
                 }
@@ -324,13 +334,15 @@ private fun LazyListScope.recipesSection(
     onOpen: (Recipe) -> Unit,
 ) {
     item(key = "header-$titleRes") {
-        SectionHeader(title = stringResource(titleRes))
+        SectionHeader(title = stringResource(titleRes), modifier = Modifier.padding(horizontal = Spacing.lg))
     }
     when (recipes) {
-        UiState.Loading -> item(key = "loading-$titleRes") { LoadingState(Modifier.fillMaxWidth()) }
+        UiState.Loading -> item(key = "loading-$titleRes") {
+            LoadingState(Modifier.fillMaxWidth().padding(horizontal = Spacing.lg))
+        }
         is UiState.Error -> item(key = "error-$titleRes") {
             ErrorState(
-                Modifier.fillMaxWidth(),
+                Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
                 message = stringResource(recipes.failure.messageRes()),
                 onRetry = onRetry,
             )
@@ -340,7 +352,7 @@ private fun LazyListScope.recipesSection(
                 val noResults = filtering && recipes.value.isNotEmpty()
                 item(key = "empty-$titleRes") {
                     EmptyState(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
                         icon = Icons.Rounded.MenuBook,
                         title = stringResource(
                             if (noResults) R.string.recipes_no_results else R.string.recipes_empty,
@@ -353,7 +365,7 @@ private fun LazyListScope.recipesSection(
                         recipe = row.recipe,
                         pantryLine = row.pantryLine,
                         onClick = { onOpen(row.recipe) },
-                        modifier = Modifier.animateItem(),
+                        modifier = Modifier.padding(horizontal = Spacing.lg).animateItem(),
                     )
                 }
             }
@@ -379,7 +391,8 @@ private fun PantryFilterEffects(
     }
 }
 
-// Fila de filtros: «Con lo que hay» (si se puede leer la despensa) y las categorías. Sin ninguno, no sale.
+// Fila de filtros: el desplegable de categoría y, al lado, «Con lo que hay» (si se puede leer la despensa).
+// Sin ninguno de los dos, no sale.
 @Composable
 private fun RecipeFilters(
     categories: List<String>,
@@ -390,43 +403,27 @@ private fun RecipeFilters(
     onPantryOnly: (Boolean) -> Unit,
 ) {
     if (categories.isEmpty() && !pantryAvailable) return
-    val rowState = rememberLazyListState()
-    // Si el chip aparece cuando la fila ya muestra «Todas», la LazyRow se queda anclada en «Todas» y el chip
-    // queda fuera de pantalla. Si la fila estaba en su inicio (índice 0 antes de insertar, 1 tras anclar, sin
-    // desplazamiento), se vuelve al principio; si el usuario ya la había desplazado, no se toca.
-    LaunchedEffect(pantryAvailable) {
-        val atStart = rowState.firstVisibleItemIndex <= 1 && rowState.firstVisibleItemScrollOffset == 0
-        if (pantryAvailable && atStart) rowState.scrollToItem(0)
-    }
-    LazyRow(
-        state = rowState,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.padding(bottom = 8.dp),
-    ) {
-        if (pantryAvailable) {
-            item(key = "pantry") {
-                FilterChip(
-                    selected = pantryOnly,
-                    onClick = { onPantryOnly(!pantryOnly) },
-                    label = { Text(stringResource(R.string.recipes_filter_pantry)) },
-                )
-            }
-        }
+    FilterDropdownRow {
         if (categories.isNotEmpty()) {
-            item(key = "cat-all") {
-                FilterChip(
-                    selected = selected == null,
-                    onClick = { onSelect(null) },
-                    label = { Text(stringResource(R.string.recipes_filter_all)) },
-                )
-            }
-            items(categories, key = { it }) { category ->
-                FilterChip(
-                    selected = selected == category,
-                    onClick = { onSelect(category) },
-                    label = { Text(category) },
-                )
-            }
+            FilterDropdown(
+                label = stringResource(R.string.recipes_filter_category_label),
+                value = selected ?: stringResource(R.string.recipes_filter_all),
+                options = listOf(
+                    FilterOption(stringResource(R.string.recipes_filter_all), selected == null) { onSelect(null) },
+                ) + categories.map { category ->
+                    FilterOption(category, selected == category) { onSelect(category) }
+                },
+                active = selected != null,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        if (pantryAvailable) {
+            FilterChip(
+                selected = pantryOnly,
+                onClick = { onPantryOnly(!pantryOnly) },
+                label = { Text(stringResource(R.string.recipes_filter_pantry)) },
+                modifier = Modifier.align(Alignment.CenterVertically),
+            )
         }
     }
 }

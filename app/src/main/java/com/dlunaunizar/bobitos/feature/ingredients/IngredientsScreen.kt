@@ -51,9 +51,13 @@ import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdown
+import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
+import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
 import com.dlunaunizar.bobitos.core.designsystem.component.InfoChip
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SwitchRow
@@ -118,8 +122,7 @@ fun IngredientsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp),
+                .padding(padding),
         ) {
             IngredientsMessageEffect(
                 error = state.error,
@@ -129,14 +132,13 @@ fun IngredientsScreen(
                 onShown = viewModel::clearFeedback,
                 existingName = state.existingName,
             )
-            SearchField(
+            IngredientCatalog(
+                state = state,
                 query = query,
                 onQueryChange = { query = it },
-                visible = true,
-                modifier = Modifier.padding(vertical = 8.dp),
-                label = stringResource(R.string.ingredients_search_label),
+                onOpen = { onOpenIngredient(it.id) },
+                onRetry = viewModel::retryCatalog,
             )
-            IngredientCatalog(state, query, onOpen = { onOpenIngredient(it.id) }, onRetry = viewModel::retryCatalog)
         }
     }
 
@@ -244,46 +246,105 @@ private fun ScanFlow(
 private fun IngredientCatalog(
     state: IngredientsUiState,
     query: String,
+    onQueryChange: (String) -> Unit,
     onOpen: (CatalogIngredient) -> Unit,
     onRetry: () -> Unit,
 ) {
+    var category by rememberSaveable { mutableStateOf<String?>(null) }
+    val content = state.ingredients as? UiState.Content
+    val all = content?.value.orEmpty()
+    // Búsqueda y filtro en la franja teñida: en la lista es su primer elemento y se va con ella al desplazar.
+    val filterBand: @Composable () -> Unit = {
+        IngredientFilterBand(query, onQueryChange, all, category) { category = it }
+    }
     when (val catalog = state.ingredients) {
-        UiState.Loading -> LoadingState(Modifier.fillMaxWidth())
-        is UiState.Error -> ErrorState(
-            Modifier.fillMaxWidth(),
-            message =
-            state.catalogError?.let { stringResource(it.stringResourceId) }
-                ?: stringResource(catalog.failure.messageRes()),
-            onRetry = onRetry,
-        )
+        UiState.Loading -> {
+            filterBand()
+            LoadingState(Modifier.fillMaxWidth())
+        }
+        is UiState.Error -> {
+            filterBand()
+            ErrorState(
+                Modifier.fillMaxWidth(),
+                message =
+                state.catalogError?.let { stringResource(it.stringResourceId) }
+                    ?: stringResource(catalog.failure.messageRes()),
+                onRetry = onRetry,
+            )
+        }
         is UiState.Content -> {
-            val filtered = remember(catalog.value, query) { catalog.value.matching(query) }
+            val filtered =
+                remember(catalog.value, query, category) { catalog.value.matching(query).inCategory(category) }
             val lines = remember(state.brands, state.prefs) { ingredientRowLines(state.brands, state.prefs) }
-            if (filtered.isEmpty()) {
-                EmptyState(
-                    modifier = Modifier.fillMaxWidth(),
-                    icon = Icons.Rounded.Kitchen,
-                    title = stringResource(
-                        if (query.isNotBlank() && catalog.value.isNotEmpty()) {
-                            R.string.ingredients_no_results
-                        } else {
-                            R.string.ingredients_empty
-                        },
-                    ),
-                )
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(bottom = Spacing.fabClearance),
-                ) {
-                    items(filtered, key = CatalogIngredient::id) { ingredient ->
-                        IngredientRow(
-                            ingredient = ingredient,
-                            line = lines[ingredient.id] ?: IngredientRowLine.None,
-                            onClick = { onOpen(ingredient) },
-                            modifier = Modifier.animateItem(),
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(bottom = Spacing.fabClearance),
+            ) {
+                item(key = "filters") { filterBand() }
+                if (filtered.isEmpty()) {
+                    item(key = "empty") {
+                        val filtering = query.isNotBlank() || category != null
+                        EmptyState(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
+                            icon = Icons.Rounded.Kitchen,
+                            title = stringResource(
+                                if (filtering && catalog.value.isNotEmpty()) {
+                                    R.string.ingredients_no_results
+                                } else {
+                                    R.string.ingredients_empty
+                                },
+                            ),
                         )
                     }
+                }
+                items(filtered, key = CatalogIngredient::id) { ingredient ->
+                    IngredientRow(
+                        ingredient = ingredient,
+                        line = lines[ingredient.id] ?: IngredientRowLine.None,
+                        onClick = { onOpen(ingredient) },
+                        modifier = Modifier.padding(horizontal = Spacing.lg).animateItem(),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun IngredientFilterBand(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    ingredients: List<CatalogIngredient>,
+    selected: String?,
+    onSelect: (String?) -> Unit,
+) {
+    val categories = remember(ingredients) { ingredients.categories() }
+    ModuleHeaderBand {
+        Column(
+            Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.sm, bottom = Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            SearchField(
+                query = query,
+                onQueryChange = onQueryChange,
+                visible = true,
+                label = stringResource(R.string.ingredients_search_label),
+            )
+            if (categories.isNotEmpty()) {
+                FilterDropdownRow {
+                    FilterDropdown(
+                        label = stringResource(R.string.ingredients_filter_category_label),
+                        value = selected ?: stringResource(R.string.ingredients_filter_all),
+                        options = listOf(
+                            FilterOption(stringResource(R.string.ingredients_filter_all), selected == null) {
+                                onSelect(null)
+                            },
+                        ) + categories.map { category ->
+                            FilterOption(category, selected.equals(category, ignoreCase = true)) { onSelect(category) }
+                        },
+                        active = selected != null,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
         }

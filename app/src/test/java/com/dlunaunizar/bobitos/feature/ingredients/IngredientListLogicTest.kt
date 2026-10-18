@@ -82,6 +82,38 @@ class IngredientListLogicTest {
         assertEquals(2, list.matching(" ").size)
     }
 
+    @Test
+    fun `las categorias salen ordenadas y sin repetir`() {
+        val list = listOf(
+            CatalogIngredient("a", "Leche", category = "Lácteos"),
+            CatalogIngredient("b", "Queso", category = "lácteos "),
+            CatalogIngredient("c", "Pera", category = "Frutas"),
+            CatalogIngredient("d", "Sal", category = null),
+            CatalogIngredient("e", "Agua", category = "  "),
+        )
+
+        assertEquals(listOf("Frutas", "Lácteos"), list.categories())
+    }
+
+    @Test
+    fun `filtra por categoria sin mayusculas ni espacios en los extremos`() {
+        val list = listOf(
+            CatalogIngredient("a", "Leche", category = "Lácteos"),
+            CatalogIngredient("b", "Pera", category = "Frutas"),
+            CatalogIngredient("c", "Sal", category = null),
+        )
+
+        assertEquals(listOf("a"), list.inCategory(" lácteos").map(CatalogIngredient::id))
+        assertEquals(emptyList<String>(), list.inCategory("Carnes").map(CatalogIngredient::id))
+    }
+
+    @Test
+    fun `sin categoria elegida devuelve todo`() {
+        val list = listOf(CatalogIngredient("a", "Leche", category = "Lácteos"), CatalogIngredient("c", "Sal"))
+
+        assertEquals(list, list.inCategory(null))
+    }
+
     private fun brand(id: String, name: String, favorite: Boolean = false, stores: List<Supermarket> = emptyList()) =
         IngredientBrand(id = id, ingredientId = "x", name = name, favorite = favorite, stores = stores)
 }

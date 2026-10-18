@@ -236,6 +236,7 @@
     <string name="shopping_brand_indifferent">Indiferente</string>
     <string name="shopping_brand_picker_description">Marca: %1$s. Toca para cambiarla.</string>
     <string name="shopping_filter_all">Todos</string>
+    <string name="shopping_filter_label">Supermercado</string>
     <string name="supermarket_dia">DIA</string>
     <string name="supermarket_eroski">Eroski</string>
     <string name="supermarket_mercadona">Mercadona</string>
@@ -491,6 +492,7 @@
     <string name="recipes_empty">Aún no hay recetas aquí.</string>
     <string name="recipes_no_results">Sin resultados para tu búsqueda.</string>
     <string name="recipes_filter_all">Todas</string>
+    <string name="recipes_filter_category_label">Categoría</string>
     <string name="recipes_filter_pantry">Con lo que hay</string>
     <string name="recipes_pantry_all">Lo tienes todo</string>
     <string name="recipes_pantry_missing_one">Falta: %1$s</string>
@@ -741,6 +743,8 @@
     <string name="ingredients_open">Ingredientes</string>
     <string name="ingredients_search_label">Buscar ingrediente</string>
     <string name="ingredients_empty">Aún no hay ingredientes. Añade el primero.</string>
+    <string name="ingredients_filter_category_label">Categoría</string>
+    <string name="ingredients_filter_all">Todas</string>
     <string name="ingredients_no_results">Sin resultados para tu búsqueda.</string>
     <string name="ingredients_add">Añadir ingrediente</string>
     <string name="ingredients_add_title">Nuevo ingrediente</string>

@@ -2,7 +2,6 @@
 
 package com.dlunaunizar.bobitos.feature.shopping
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
@@ -32,7 +30,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -71,8 +68,12 @@ import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdown
+import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
+import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
+import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
@@ -201,26 +202,8 @@ fun ShoppingScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(padding),
         ) {
-            SearchField(
-                query = query,
-                onQueryChange = { query = it },
-                visible = allItems.isNotEmpty(),
-                modifier = Modifier.padding(top = 8.dp),
-            )
-
-            if (presentSupermarkets.isNotEmpty()) {
-                SupermarketFilterRow(
-                    supermarkets = presentSupermarkets,
-                    selected = activeSupermarket,
-                    onSelect = { selectedSupermarket = it },
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
             when (val itemsState = state.items) {
                 UiState.Loading -> LoadingState(modifier = Modifier.weight(1f))
                 is UiState.Error -> ErrorState(
@@ -237,10 +220,28 @@ fun ShoppingScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             contentPadding = PaddingValues(bottom = Spacing.fabClearance),
                         ) {
+                            // Búsqueda y filtro en la franja teñida: primer elemento, se va con la lista.
+                            item(key = "filters") {
+                                ModuleHeaderBand {
+                                    Column(
+                                        Modifier.padding(horizontal = Spacing.lg)
+                                            .padding(top = Spacing.sm, bottom = Spacing.md),
+                                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                    ) {
+                                        SearchField(query = query, onQueryChange = { query = it }, visible = true)
+                                        SupermarketFilterRow(
+                                            supermarkets = presentSupermarkets,
+                                            selected = activeSupermarket,
+                                            onSelect = { selectedSupermarket = it },
+                                        )
+                                    }
+                                }
+                            }
                             item(key = "pending-heading") {
                                 SectionHeader(
                                     title = stringResource(R.string.shopping_pending),
                                     count = pending.size,
+                                    modifier = Modifier.padding(horizontal = Spacing.lg),
                                 )
                             }
                             items(pending, key = ShoppingItem::id) { item ->
@@ -259,7 +260,7 @@ fun ShoppingScreen(
                                     ) {
                                         deleteItemWithUndo(item)
                                     }.takeIf { actionsEnabled },
-                                    modifier = Modifier.animateItem(),
+                                    modifier = Modifier.padding(horizontal = Spacing.lg).animateItem(),
                                 ) { accessibilityModifier ->
                                     ShoppingItemCard(
                                         item = item,
@@ -281,7 +282,7 @@ fun ShoppingScreen(
                             }
                             if (purchased.isNotEmpty()) {
                                 item(key = "purchased-heading") {
-                                    Column {
+                                    Column(Modifier.padding(horizontal = Spacing.lg)) {
                                         Spacer(modifier = Modifier.height(8.dp))
                                         SectionHeader(
                                             title = stringResource(R.string.shopping_purchased),
@@ -313,7 +314,7 @@ fun ShoppingScreen(
                                         ) {
                                             deleteItemWithUndo(item)
                                         }.takeIf { actionsEnabled },
-                                        modifier = Modifier.animateItem(),
+                                        modifier = Modifier.padding(horizontal = Spacing.lg).animateItem(),
                                     ) { accessibilityModifier ->
                                         ShoppingItemCard(
                                             item = item,
@@ -849,26 +850,19 @@ private fun SupermarketFilterRow(
     selected: Supermarket?,
     onSelect: (Supermarket?) -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(top = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        FilterChip(
-            selected = selected == null,
-            onClick = { onSelect(null) },
-            label = { Text(stringResource(R.string.shopping_filter_all)) },
+    if (supermarkets.isEmpty()) return
+    FilterDropdownRow {
+        FilterDropdown(
+            label = stringResource(R.string.shopping_filter_label),
+            value = selected?.let { stringResource(it.labelRes) } ?: stringResource(R.string.shopping_filter_all),
+            options = listOf(
+                FilterOption(stringResource(R.string.shopping_filter_all), selected == null) { onSelect(null) },
+            ) + supermarkets.map { option ->
+                FilterOption(stringResource(option.labelRes), selected == option) { onSelect(option) }
+            },
+            active = selected != null,
+            modifier = Modifier.weight(1f),
         )
-        supermarkets.forEach { option ->
-            FilterChip(
-                selected = selected == option,
-                onClick = { onSelect(option) },
-                leadingIcon = { SupermarketIcon(option) },
-                label = { Text(stringResource(option.labelRes)) },
-            )
-        }
     }
 }
 
