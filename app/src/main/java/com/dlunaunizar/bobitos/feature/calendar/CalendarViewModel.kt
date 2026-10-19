@@ -8,6 +8,10 @@ import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
 import com.dlunaunizar.bobitos.core.common.SaveRunner
 import com.dlunaunizar.bobitos.core.common.SaveState
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.UndoOffer
+import com.dlunaunizar.bobitos.core.common.UndoOfferControls
+import com.dlunaunizar.bobitos.core.common.UndoOffers
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.common.toFailureKind
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.SpaceMember
@@ -16,6 +20,7 @@ import com.dlunaunizar.bobitos.data.repository.CalendarRepository
 import com.dlunaunizar.bobitos.data.repository.EventInput
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
+import com.dlunaunizar.bobitos.data.repository.toInput
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,6 +63,9 @@ class CalendarViewModel @Inject constructor(
     private val saver =
         SaveRunner(viewModelScope, mutable, CalendarUiState::save, { copy(save = it) }, Throwable::toFailureKind)
     val feedback: SaveFeedbackControls get() = saver
+    private val undo = UndoOffers<CalendarEvent>(viewModelScope)
+    val undoOffers: StateFlow<List<UndoOffer<CalendarEvent>>> = undo.offers
+    val undoControls: UndoOfferControls get() = undo
 
     private var spaceId: String? = null
     private var eventJob: Job? = null
@@ -134,12 +142,14 @@ class CalendarViewModel @Inject constructor(
         mutable.update { it.copy(selectedMemberIds = it.knownMemberIds) }
     }
 
-    // Un alta deja `created` (con «Deshacer») en lugar del aviso de guardado; una edición conserva el suyo.
+    // Un alta ofrece «Deshacer» (con el espacio de ahora) en lugar del aviso de guardado; una edición conserva el suyo.
     // Sin espacio no se escribe nada: la acción acaba en Unit.
     fun save(eventId: String?, input: EventInput) {
         val id = spaceId
         if (eventId == null && id != null) {
-            saver.create(editor = true) { CreatedItem(repository.createEvent(id, input), input.title) }
+            saver.run<CreatedItem>(editor = true, afterSuccess = { undo.offer(Undoable.Created(id, it)) }) {
+                CreatedItem(repository.createEvent(id, input), input.title)
+            }
         } else {
             saver.run<Unit>(editor = true, notice = if (eventId == null) null else CalendarNotice.SAVED) {
                 if (id != null && eventId != null) repository.updateEvent(id, eventId, input)
@@ -147,22 +157,27 @@ class CalendarViewModel @Inject constructor(
         }
     }
 
-    // Con force: un «Deshacer» pulsado con otra escritura en curso no se descarta en silencio. Sin aviso propio.
-    fun restore(eventId: String, input: EventInput) = saver.run<Unit>(force = true) {
-        val id = spaceId ?: return@run
-        repository.createEvent(id, input, eventId)
+    // La oferta de «Deshacer» sale solo si el borrado termina bien (y ya sin «guardando»). Sin aviso propio: el
+    // snackbar de «Deshacer» ya confirma el borrado. Sin espacio no se escribe nada ni se ofrece nada.
+    fun delete(event: CalendarEvent) {
+        val id = spaceId ?: return
+        saver.run<Unit>(afterSuccess = { undo.offer(Undoable.Deleted(id, event)) }) {
+            repository.deleteEvent(id, event.id)
+        }
     }
 
-    // onDeleted se llama solo si el borrado termina bien (y ya sin «guardando»): así el deshacer no se
-    // ofrece para un borrado fallido ni se descarta por pulsarlo mientras el borrado sigue en curso.
-    // Sin aviso propio: el snackbar de «Deshacer» ya confirma el borrado.
-    fun delete(eventId: String, onDeleted: () -> Unit = {}) = saver.run<Unit>(afterSuccess = { onDeleted() }) {
-        repository.deleteEvent(spaceId ?: return@run, eventId)
-    }
-
-    // «Deshacer» el alta: borra justo ese evento con el borrado de siempre (sin aviso; si falla, sale el error).
-    fun undoCreate(id: String) = saver.run<Unit>(force = true) {
-        repository.deleteEvent(spaceId ?: return@run, id)
+    // Única entrada de «Deshacer»: siempre en el espacio donde pasó. No es un guardado del editor ni lleva aviso
+    // propio; con force no se descarta en silencio por otra escritura en curso. Si falla (también si otro miembro
+    // cambió lo que se dio de alta), sale el error.
+    fun undo(undoable: Undoable<CalendarEvent>) {
+        val id = undoable.spaceId ?: return
+        saver.run<Unit>(force = true) {
+            when (undoable) {
+                is Undoable.Created -> repository.undoCreateEvent(id, undoable.item.id)
+                is Undoable.Deleted -> repository.restoreEvent(id, undoable.item.id, undoable.item.toInput())
+                is Undoable.Completed -> Unit
+            }
+        }
     }
 
     private fun move(amount: Long) {

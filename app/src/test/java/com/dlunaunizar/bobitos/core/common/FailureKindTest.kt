@@ -62,6 +62,14 @@ class FailureKindTest {
     }
 
     @Test
+    fun `an event that changed meanwhile is EVENT_CHANGED`() {
+        assertEquals(
+            FailureKind.EVENT_CHANGED,
+            CalendarRepositoryException(CalendarFailure.EventChanged).toFailureKind(),
+        )
+    }
+
+    @Test
     fun calendarNetworkIsOffline() {
         assertEquals(FailureKind.OFFLINE, CalendarRepositoryException(CalendarFailure.Network).toFailureKind())
     }

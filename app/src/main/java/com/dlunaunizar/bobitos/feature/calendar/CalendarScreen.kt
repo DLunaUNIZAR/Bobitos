@@ -62,7 +62,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -98,15 +97,13 @@ import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.AppLocale
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.ClickableCard
-import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
-import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.UndoOfferEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
-import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
@@ -144,9 +141,7 @@ fun CalendarScreen(
     var handledInitialEvent by rememberSaveable(initialEventId) { mutableStateOf(false) }
     var drilledFrom by remember { mutableStateOf<CalendarDisplayMode?>(null) }
     var creatingAtText by rememberSaveable { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
-    val deletedMessage = stringResource(R.string.calendar_undo_deleted)
-    val undoLabel = stringResource(R.string.undo)
+    val undoOffers by viewModel.undoOffers.collectAsStateWithLifecycle()
 
     DisposableEffect(spaceId) {
         viewModel.observe(spaceId)
@@ -199,14 +194,7 @@ fun CalendarScreen(
             }
         },
     ) { padding ->
-        val snackbar = LocalSnackbarHostState.current
-        val deleteWithUndo: (CalendarEvent) -> Unit = { event ->
-            viewModel.delete(event.id) {
-                scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                    viewModel.restore(event.id, event.toInput())
-                }
-            }
-        }
+        val deleteWithUndo: (CalendarEvent) -> Unit = viewModel::delete
         Column(Modifier.fillMaxSize().padding(padding)) {
             // Periodo, vista y personas fijos en la franja: el calendario es navegación, no se desplaza.
             ModuleHeaderBand {
@@ -284,10 +272,12 @@ fun CalendarScreen(
                     errorText = { stringResource(it.messageRes()) },
                     noticeText = { stringResource(it.messageRes()) },
                 )
-                CreatedUndoEffect(
-                    state.save.created,
-                    viewModel.feedback::consumeCreated,
-                ) { viewModel.undoCreate(it.id) }
+                UndoOfferEffect(
+                    offers = undoOffers,
+                    controls = viewModel.undoControls,
+                    deletedMessage = R.string.calendar_undo_deleted,
+                    onUndo = viewModel::undo,
+                )
             }
         }
     }

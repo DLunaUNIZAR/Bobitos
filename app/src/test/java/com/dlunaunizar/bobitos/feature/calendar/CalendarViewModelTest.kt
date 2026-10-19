@@ -6,13 +6,17 @@ import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.EventColor
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceRole
+import com.dlunaunizar.bobitos.data.repository.CalendarFailure
 import com.dlunaunizar.bobitos.data.repository.CalendarRepository
+import com.dlunaunizar.bobitos.data.repository.CalendarRepositoryException
 import com.dlunaunizar.bobitos.data.repository.EventInput
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
+import com.dlunaunizar.bobitos.data.repository.toInput
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.awaitCancellation
@@ -45,10 +49,10 @@ class CalendarViewModelTest {
         val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
         viewModel.observe("space-1")
 
-        viewModel.restore("event-1", input)
+        viewModel.undo(Undoable.Deleted("space-1", deleted))
         advanceUntilIdle()
 
-        assertEquals(listOf(Triple("space-1", "event-1", input)), repository.created)
+        assertEquals(listOf(Triple("space-1", "event-1", deleted.toInput())), repository.created)
     }
 
     @Test
@@ -57,7 +61,7 @@ class CalendarViewModelTest {
         val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
         viewModel.observe("space-1")
 
-        viewModel.restore("event-1", input)
+        viewModel.undo(Undoable.Deleted("space-1", deleted))
         advanceUntilIdle()
 
         assertNull(viewModel.uiState.value.save.notice)
@@ -69,14 +73,14 @@ class CalendarViewModelTest {
         val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
         viewModel.observe("space-1")
 
-        viewModel.delete("event-2")
+        viewModel.delete(deleted.copy(id = "event-2"))
         runCurrent()
         assertTrue(viewModel.uiState.value.save.isSaving)
 
-        viewModel.restore("event-1", input)
+        viewModel.undo(Undoable.Deleted("space-1", deleted))
         runCurrent()
 
-        assertEquals(listOf(Triple("space-1", "event-1", input)), repository.created)
+        assertEquals(listOf(Triple("space-1", "event-1", deleted.toInput())), repository.created)
         // El deshacer ya acabó, pero el borrado sigue en curso: «Guardando…» sigue hasta el final.
         assertTrue(viewModel.uiState.value.save.isSaving)
         repository.pendingDelete.complete(Unit)
@@ -101,15 +105,15 @@ class CalendarViewModelTest {
         val repository = RecordingCalendarRepository()
         val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
         viewModel.observe("space-1")
-        var savingWhenOffered: Boolean? = null
 
-        viewModel.delete("event-1") { savingWhenOffered = viewModel.uiState.value.save.isSaving }
+        viewModel.delete(deleted)
         runCurrent()
-        assertNull(savingWhenOffered)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
 
         repository.pendingDelete.complete(Unit)
-        advanceUntilIdle()
-        assertEquals(false, savingWhenOffered)
+        runCurrent()
+        assertEquals(Undoable.Deleted("space-1", deleted), viewModel.undoOffers.value.single().undoable)
+        assertFalse(viewModel.uiState.value.save.isSaving)
     }
 
     @Test
@@ -117,13 +121,12 @@ class CalendarViewModelTest {
         val repository = RecordingCalendarRepository()
         val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
         viewModel.observe("space-1")
-        var offered = false
 
-        viewModel.delete("event-1") { offered = true }
+        viewModel.delete(deleted)
         repository.pendingDelete.completeExceptionally(IllegalStateException("ya borrado"))
-        advanceUntilIdle()
+        runCurrent()
 
-        assertFalse(offered)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
@@ -222,26 +225,29 @@ class CalendarViewModelTest {
         viewModel.observe("space-1")
 
         viewModel.save(null, input)
-        advanceUntilIdle()
+        runCurrent()
 
-        assertEquals(CreatedItem("new-1", "Correr"), viewModel.uiState.value.save.created)
+        val offer = viewModel.undoOffers.value.single()
+        assertEquals(Undoable.Created("space-1", CreatedItem("new-1", "Correr")), offer.undoable)
         assertNull(viewModel.uiState.value.save.notice)
 
-        viewModel.feedback.consumeCreated()
-        assertNull(viewModel.uiState.value.save.created)
+        viewModel.undoControls.consumeOffer(offer.serial)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
-    fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
+    fun `undoing an add goes through undoCreateEvent`() = runTest(mainDispatcherRule.testDispatcher) {
         val repository = RecordingCalendarRepository()
-        repository.pendingDelete.complete(Unit)
         val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
         viewModel.observe("space-1")
 
-        viewModel.undoCreate("new-1")
+        viewModel.save(null, input)
+        runCurrent()
+        viewModel.undo(viewModel.undoOffers.value.single().undoable)
         advanceUntilIdle()
 
-        assertEquals(listOf("new-1"), repository.deleted)
+        assertEquals(listOf("space-1" to "new-1"), repository.undoneCreates)
+        assertTrue(repository.deleted.isEmpty())
     }
 
     @Test
@@ -252,10 +258,8 @@ class CalendarViewModelTest {
 
         viewModel.save("event-1", input)
         advanceUntilIdle()
-        viewModel.restore("event-2", input)
-        advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.save.created)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
@@ -264,16 +268,63 @@ class CalendarViewModelTest {
             val repository = RecordingCalendarRepository()
             val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
             viewModel.observe("space-1")
-            var deleted = false
 
-            viewModel.delete("event-1") { deleted = true }
+            viewModel.delete(deleted)
             repository.pendingDelete.complete(Unit)
-            advanceUntilIdle()
+            runCurrent()
 
-            assertEquals(true, deleted)
+            assertEquals(1, viewModel.undoOffers.value.size)
             assertNull(viewModel.uiState.value.save.notice)
             assertNull(viewModel.uiState.value.save.error)
         }
+
+    @Test
+    fun `deleting offers undo with the event and its space`() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = RecordingCalendarRepository()
+        repository.pendingDelete.complete(Unit)
+        val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
+        viewModel.observe("space-1")
+
+        viewModel.delete(deleted)
+        runCurrent()
+
+        assertEquals(listOf("event-1"), repository.deleted)
+        assertEquals(Undoable.Deleted("space-1", deleted), viewModel.undoOffers.value.single().undoable)
+    }
+
+    @Test
+    fun `undo of a delete goes to the space where it was deleted even after observing another`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val repository = RecordingCalendarRepository()
+            repository.pendingDelete.complete(Unit)
+            val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
+            viewModel.observe("space-1")
+            viewModel.delete(deleted)
+            runCurrent()
+            val undoable = viewModel.undoOffers.value.single().undoable
+
+            viewModel.observe("space-2")
+            viewModel.undo(undoable)
+            advanceUntilIdle()
+
+            assertEquals(listOf(Triple("space-1", "event-1", deleted.toInput())), repository.created)
+        }
+
+    @Test
+    fun `an add another member changed is not undone and says so`() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = RecordingCalendarRepository()
+        repository.undoCreateFailure = CalendarRepositoryException(CalendarFailure.EventChanged)
+        val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
+        viewModel.observe("space-1")
+        viewModel.save(null, input)
+        runCurrent()
+
+        viewModel.undo(viewModel.undoOffers.value.single().undoable)
+        advanceUntilIdle()
+
+        assertEquals(FailureKind.EVENT_CHANGED, viewModel.uiState.value.save.error)
+        assertTrue(repository.deleted.isEmpty())
+    }
 
     @Test
     fun `editor save failure or timeout leaves FAILED`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -306,11 +357,11 @@ class CalendarViewModelTest {
         val viewModel = CalendarViewModel(repository, emptyFlows(), emptyFlows())
         viewModel.observe("space-1")
 
-        viewModel.restore("event-1", input)
+        viewModel.undo(Undoable.Deleted("space-1", deleted))
         advanceUntilIdle()
         assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
 
-        viewModel.delete("event-1")
+        viewModel.delete(deleted)
         assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
         repository.pendingDelete.complete(Unit)
         advanceUntilIdle()
@@ -398,6 +449,8 @@ class CalendarViewModelTest {
         assertFalse(viewModel.uiState.value.refreshing)
     }
 
+    private val deleted = sampleEvent()
+
     private val input = EventInput(
         title = "Correr",
         description = null,
@@ -414,6 +467,8 @@ class CalendarViewModelTest {
 
 private class RecordingCalendarRepository : CalendarRepository {
     val created = mutableListOf<Triple<String, String?, EventInput>>()
+    val undoneCreates = mutableListOf<Pair<String, String>>()
+    var undoCreateFailure: Throwable? = null
     val deleted = mutableListOf<String>()
     var createGate: CompletableDeferred<Unit>? = null
     var failure: Throwable? = null
@@ -439,12 +494,23 @@ private class RecordingCalendarRepository : CalendarRepository {
         null
     }
 
-    override suspend fun createEvent(spaceId: String, input: EventInput, eventId: String?): String {
+    override suspend fun createEvent(spaceId: String, input: EventInput): String {
         failure?.let { throw it }
         awaitIfHanging()
         createGate?.await()
+        created += Triple(spaceId, null, input)
+        return "new-1"
+    }
+
+    override suspend fun restoreEvent(spaceId: String, eventId: String, input: EventInput) {
+        failure?.let { throw it }
+        awaitIfHanging()
         created += Triple(spaceId, eventId, input)
-        return eventId ?: "new-1"
+    }
+
+    override suspend fun undoCreateEvent(spaceId: String, eventId: String) {
+        undoCreateFailure?.let { throw it }
+        undoneCreates += spaceId to eventId
     }
 
     override suspend fun updateEvent(spaceId: String, eventId: String, input: EventInput) {

@@ -3,7 +3,6 @@ package com.dlunaunizar.bobitos.feature.calendar
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,7 +15,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -26,13 +24,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -43,15 +38,11 @@ import com.dlunaunizar.bobitos.core.common.BobitosDates
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
-import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
-import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
-import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
-import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
-import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.component.UndoOfferEffect
 import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
 import com.dlunaunizar.bobitos.core.designsystem.rememberToday
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
@@ -88,9 +79,7 @@ fun PersonalCalendarScreen(
     var editorStartText by rememberSaveable { mutableStateOf<String?>(null) }
     var spacePickerOpen by remember { mutableStateOf(false) }
     var spacePickerTime by remember { mutableStateOf<LocalTime?>(null) }
-    val scope = rememberCoroutineScope()
-    val deletedMessage = stringResource(R.string.calendar_undo_deleted)
-    val undoLabel = stringResource(R.string.undo)
+    val undoOffers by viewModel.undoOffers.collectAsStateWithLifecycle()
 
     val loadedEvents = (state.events as? UiState.Content)?.value
     val events = loadedEvents.orEmpty().forSelectedSpaces(state.selectedSpaceIds)
@@ -152,14 +141,9 @@ fun PersonalCalendarScreen(
             )
         },
     ) { padding ->
-        val snackbar = LocalSnackbarHostState.current
+        // El espacio se captura al borrar: «Deshacer» devuelve el evento a su espacio.
         val deleteWithUndo: (PersonalCalendarEvent) -> Unit = { personal ->
-            // El espacio se captura al borrar: «Deshacer» devuelve el evento a su espacio.
-            viewModel.deleteEvent(personal.spaceId, personal.event.id) {
-                scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                    viewModel.restore(personal.spaceId, personal.event.id, personal.event.toInput())
-                }
-            }
+            viewModel.deleteEvent(personal.spaceId, personal.event)
         }
         Column(Modifier.fillMaxSize().padding(padding)) {
             // Periodo, vista y espacios fijos en la franja: el calendario es navegación, no se desplaza.
@@ -236,10 +220,12 @@ fun PersonalCalendarScreen(
                     errorText = { stringResource(it.messageRes()) },
                     noticeText = { "" },
                 )
-                CreatedUndoEffect(
-                    state.save.created,
-                    viewModel.feedback::consumeCreated,
-                ) { viewModel.undoCreate(it.id) }
+                UndoOfferEffect(
+                    offers = undoOffers,
+                    controls = viewModel.undoControls,
+                    deletedMessage = R.string.calendar_undo_deleted,
+                    onUndo = viewModel::undo,
+                )
             }
         }
     }
@@ -432,36 +418,3 @@ private fun applyBackAction(action: BackAction, onRestoreMode: (CalendarDisplayM
 /** Con un día abierto desde otra vista se vuelve a ella; si no, se sale de la pantalla. */
 internal fun personalCalendarBackAction(drilledFrom: CalendarDisplayMode?): BackAction =
     if (drilledFrom != null) BackAction.ToPreviousMode(drilledFrom) else BackAction.Leave
-
-// Mientras los eventos cargan o fallan, el área bajo la cabecera muestra la carga o el error con «Reintentar»
-// en vez de un periodo vacío fingido. Al cambiar de periodo con eventos ya a la vista (`refreshing`), se conserva
-// el contenido de antes y una barra fina arriba avisa de que llega el nuevo.
-@Composable
-internal fun <T> EventsLoadState(
-    events: UiState<T>,
-    refreshing: Boolean,
-    onRetry: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable (T) -> Unit,
-) {
-    when (events) {
-        UiState.Loading -> LoadingState(modifier)
-        is UiState.Error -> ErrorState(
-            modifier,
-            message = stringResource(events.failure.messageRes()),
-            onRetry = onRetry,
-        )
-        is UiState.Content -> Box(modifier) {
-            content(events.value)
-            if (refreshing) {
-                val loading = stringResource(R.string.generic_loading)
-                LinearProgressIndicator(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.TopCenter)
-                        .semantics { contentDescription = loading },
-                )
-            }
-        }
-    }
-}

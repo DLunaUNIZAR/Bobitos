@@ -22,9 +22,14 @@ data class EventInput(
 interface CalendarRepository {
     fun events(spaceId: String, rangeStart: Instant, rangeEndExclusive: Instant): Flow<List<CalendarEvent>>
 
-    // Con eventId se recrea un evento borrado con su id (deshacer): así lo que lo enlaza, como una
-    // actividad de Deporte, sigue apuntando a él.
-    suspend fun createEvent(spaceId: String, input: EventInput, eventId: String? = null): String
+    suspend fun createEvent(spaceId: String, input: EventInput): String
+
+    // Recrea un evento borrado con su id (deshacer): así lo que lo enlaza, como una actividad de Deporte, sigue
+    // apuntando a él. Vuelve solo con los participantes que siguen activos.
+    suspend fun restoreEvent(spaceId: String, eventId: String, input: EventInput)
+
+    // Deshace un alta: borra el evento solo si nadie más lo ha tocado (si no, EventChanged).
+    suspend fun undoCreateEvent(spaceId: String, eventId: String)
 
     suspend fun updateEvent(spaceId: String, eventId: String, input: EventInput)
     suspend fun deleteEvent(spaceId: String, eventId: String)
@@ -41,6 +46,7 @@ enum class CalendarFailure {
     EmailNotVerified,
     SpaceNotFound,
     EventNotFound,
+    EventChanged,
     PermissionDenied,
     Network,
     Unknown,

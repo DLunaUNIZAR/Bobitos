@@ -10,7 +10,7 @@ import com.google.firebase.firestore.FirebaseFirestoreException
 import java.io.IOException
 
 /** Tipo de fallo que se le cuenta al usuario; el texto de la excepción nunca llega a la pantalla. */
-enum class FailureKind { PERMISSION, OFFLINE, NOT_FOUND, TIMEOUT, UNKNOWN }
+enum class FailureKind { PERMISSION, OFFLINE, NOT_FOUND, TIMEOUT, EVENT_CHANGED, UNKNOWN }
 
 /** Recorre la cadena `cause` y devuelve el primer fallo que sabe traducir. */
 fun Throwable.toFailureKind(): FailureKind {
@@ -43,6 +43,7 @@ private fun CalendarFailure.failureKind(): FailureKind? = when (this) {
     CalendarFailure.Network -> FailureKind.OFFLINE
     CalendarFailure.EventNotFound, CalendarFailure.SpaceNotFound -> FailureKind.NOT_FOUND
     CalendarFailure.PermissionDenied -> FailureKind.PERMISSION
+    CalendarFailure.EventChanged -> FailureKind.EVENT_CHANGED
     else -> null
 }
 
@@ -52,5 +53,6 @@ fun FailureKind.messageRes(): Int = when (this) {
     FailureKind.OFFLINE -> R.string.failure_offline
     FailureKind.NOT_FOUND -> R.string.failure_not_found
     FailureKind.TIMEOUT -> R.string.failure_timeout
+    FailureKind.EVENT_CHANGED -> R.string.calendar_error_changed
     FailureKind.UNKNOWN -> R.string.failure_unknown
 }

@@ -6,6 +6,7 @@ import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.EventColor
 import com.dlunaunizar.bobitos.core.model.SpaceRole
@@ -13,6 +14,7 @@ import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.data.repository.CalendarRepository
 import com.dlunaunizar.bobitos.data.repository.EventInput
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
+import com.dlunaunizar.bobitos.data.repository.toInput
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.awaitCancellation
@@ -155,23 +157,24 @@ class PersonalCalendarViewModelTest {
     @Test
     fun creatingOneItemOffersUndoWithItsIdAndName() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.saveEvent("space-1", null, input)
-        advanceUntilIdle()
+        runCurrent()
 
-        assertEquals(CreatedItem("new-1", "Correr"), viewModel.uiState.value.save.created)
+        val offer = viewModel.undoOffers.value.single()
+        assertEquals(Undoable.Created("space-1", CreatedItem("new-1", "Correr")), offer.undoable)
 
-        viewModel.feedback.consumeCreated()
-        assertNull(viewModel.uiState.value.save.created)
+        viewModel.undoControls.consumeOffer(offer.serial)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
-    fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
+    fun `undoing an add deletes in the space where it was added`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.saveEvent("space-1", null, input)
-        advanceUntilIdle()
-        viewModel.undoCreate("new-1")
+        runCurrent()
+        viewModel.undo(viewModel.undoOffers.value.single().undoable)
         advanceUntilIdle()
 
-        assertEquals(listOf("new-1"), repository.deleted)
-        assertEquals(listOf("space-1"), repository.deletedSpaces)
+        assertEquals(listOf("space-1" to "new-1"), repository.undoneCreates)
+        assertTrue(repository.deleted.isEmpty())
     }
 
     @Test
@@ -179,7 +182,7 @@ class PersonalCalendarViewModelTest {
         viewModel.saveEvent("space-1", "event-1", input)
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.save.created)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
@@ -206,7 +209,7 @@ class PersonalCalendarViewModelTest {
 
     @Test
     fun `deleting does not touch the editor status`() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.deleteEvent("space-1", "event-1")
+        viewModel.deleteEvent("space-1", sampleEvent())
         advanceUntilIdle()
 
         assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
@@ -216,11 +219,12 @@ class PersonalCalendarViewModelTest {
     @Test
     fun `undoing a delete recreates the event with its original id in its space`() =
         runTest(mainDispatcherRule.testDispatcher) {
-            viewModel.restore("space-a", "event-9", input)
+            val event = sampleEvent().copy(id = "event-9")
+            viewModel.undo(Undoable.Deleted("space-a", event))
             advanceUntilIdle()
 
-            assertEquals(listOf(Triple("space-a", "event-9", input)), repository.created)
-            assertNull(viewModel.uiState.value.save.created)
+            assertEquals(listOf(Triple("space-a", "event-9", event.toInput())), repository.created)
+            assertTrue(viewModel.undoOffers.value.isEmpty())
             assertNull(viewModel.uiState.value.save.error)
         }
 
@@ -229,14 +233,14 @@ class PersonalCalendarViewModelTest {
         val gate = CompletableDeferred<Unit>()
         repository.deleteGate = gate
 
-        viewModel.deleteEvent("space-1", "event-2")
+        viewModel.deleteEvent("space-1", sampleEvent().copy(id = "event-2"))
         runCurrent()
         assertTrue(viewModel.uiState.value.save.isSaving)
 
-        viewModel.restore("space-a", "event-1", input)
+        viewModel.undo(Undoable.Deleted("space-a", sampleEvent()))
         runCurrent()
 
-        assertEquals(listOf(Triple("space-a", "event-1", input)), repository.created)
+        assertEquals(listOf(Triple("space-a", "event-1", sampleEvent().toInput())), repository.created)
         // El deshacer ya acabó, pero el borrado sigue en curso: «Guardando…» sigue hasta el final.
         assertTrue(viewModel.uiState.value.save.isSaving)
         gate.complete(Unit)
@@ -248,7 +252,7 @@ class PersonalCalendarViewModelTest {
     fun `a failed undo surfaces the error`() = runTest(mainDispatcherRule.testDispatcher) {
         repository.failure = IllegalStateException("sin permiso")
 
-        viewModel.restore("space-a", "event-9", input)
+        viewModel.undo(Undoable.Deleted("space-a", sampleEvent().copy(id = "event-9")))
         advanceUntilIdle()
 
         assertEquals(FailureKind.UNKNOWN, viewModel.uiState.value.save.error)
@@ -256,17 +260,16 @@ class PersonalCalendarViewModelTest {
 
     @Test
     fun `undo is offered only once the delete has finished`() = runTest(mainDispatcherRule.testDispatcher) {
-        var offered = 0
         repository.deleteFailure = IllegalStateException("sin red")
-        viewModel.deleteEvent("space-1", "event-1") { offered++ }
-        advanceUntilIdle()
-        assertEquals(0, offered)
+        viewModel.deleteEvent("space-1", sampleEvent())
+        runCurrent()
+        assertTrue(viewModel.undoOffers.value.isEmpty())
         assertEquals(FailureKind.UNKNOWN, viewModel.uiState.value.save.error)
 
         repository.deleteFailure = null
-        viewModel.deleteEvent("space-1", "event-1") { offered++ }
-        advanceUntilIdle()
-        assertEquals(1, offered)
+        viewModel.deleteEvent("space-1", sampleEvent())
+        runCurrent()
+        assertEquals(Undoable.Deleted("space-1", sampleEvent()), viewModel.undoOffers.value.single().undoable)
         assertEquals(listOf("event-1"), repository.deleted)
     }
 
@@ -335,12 +338,24 @@ private class PersonalRecordingCalendarRepository : CalendarRepository {
         null
     }
 
-    override suspend fun createEvent(spaceId: String, input: EventInput, eventId: String?): String {
+    override suspend fun createEvent(spaceId: String, input: EventInput): String {
         failure?.let { throw it }
         awaitIfHanging()
         createGate?.await()
+        created += Triple(spaceId, null, input)
+        return "new-1"
+    }
+
+    override suspend fun restoreEvent(spaceId: String, eventId: String, input: EventInput) {
+        failure?.let { throw it }
+        awaitIfHanging()
         created += Triple(spaceId, eventId, input)
-        return eventId ?: "new-1"
+    }
+
+    val undoneCreates = mutableListOf<Pair<String, String>>()
+
+    override suspend fun undoCreateEvent(spaceId: String, eventId: String) {
+        undoneCreates += spaceId to eventId
     }
 
     override suspend fun updateEvent(spaceId: String, eventId: String, input: EventInput) {

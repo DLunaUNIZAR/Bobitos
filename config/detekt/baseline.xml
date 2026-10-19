@@ -33,7 +33,6 @@
     <ID>LongMethod:SportScreen.kt$@Composable fun SportScreen( spaceId: String, canWrite: Boolean, modifier: Modifier = Modifier, initialDate: LocalDate? = null, viewModel: SportViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:TasksScreen.kt$@Composable fun TasksScreen( spaceId: String, canWrite: Boolean, modifier: Modifier = Modifier, viewModel: TasksViewModel = hiltViewModel(), )</ID>
     <ID>NestedBlockDepth:FirestoreSyncRepository.kt$FirestoreSyncRepository$override suspend fun refresh(spaceId: String?): Boolean</ID>
-    <ID>ReturnCount:FirestoreCalendarRepository.kt$private fun DocumentSnapshot.toCalendarEvent(): CalendarEvent?</ID>
     <ID>ReturnCount:FirestoreMealRepository.kt$private fun DocumentSnapshot.toMeal(): Meal?</ID>
     <ID>ReturnCount:FirestoreNoteRepository.kt$private fun DocumentSnapshot.toNote(): Note?</ID>
     <ID>ReturnCount:FirestoreRecipeRepository.kt$private fun DocumentSnapshot.toRecipe(): Recipe?</ID>

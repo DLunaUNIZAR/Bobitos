@@ -8,6 +8,10 @@ import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
 import com.dlunaunizar.bobitos.core.common.SaveRunner
 import com.dlunaunizar.bobitos.core.common.SaveState
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.UndoOffer
+import com.dlunaunizar.bobitos.core.common.UndoOfferControls
+import com.dlunaunizar.bobitos.core.common.UndoOffers
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.common.toFailureKind
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.SpaceMember
@@ -15,6 +19,7 @@ import com.dlunaunizar.bobitos.core.model.SpaceSummary
 import com.dlunaunizar.bobitos.data.repository.CalendarRepository
 import com.dlunaunizar.bobitos.data.repository.EventInput
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
+import com.dlunaunizar.bobitos.data.repository.toInput
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -62,15 +67,14 @@ class PersonalCalendarViewModel @Inject constructor(
         Throwable::toFailureKind,
     )
     val feedback: SaveFeedbackControls get() = saver
+    private val undo = UndoOffers<CalendarEvent>(viewModelScope)
+    val undoOffers: StateFlow<List<UndoOffer<CalendarEvent>>> = undo.offers
+    val undoControls: UndoOfferControls get() = undo
 
     private var userId: String? = null
     private var spaces: List<SpaceSummary> = emptyList()
     private var eventJob: Job? = null
     private var membersJob: Job? = null
-
-    // Espacio de cada evento creado desde la hoja: el calendario personal elige el espacio al crear y «Deshacer»
-    // necesita saber dónde borrar.
-    private val createdSpaces = mutableMapOf<String, String>()
 
     fun observe(currentUserId: String, currentSpaces: List<SpaceSummary>) {
         if (userId == currentUserId && spaces == currentSpaces) return
@@ -139,31 +143,33 @@ class PersonalCalendarViewModel @Inject constructor(
 
     fun saveEvent(spaceId: String, eventId: String?, input: EventInput) {
         if (eventId == null) {
-            saver.create(editor = true) {
-                val id = repository.createEvent(spaceId, input)
-                createdSpaces[id] = spaceId
-                CreatedItem(id, input.title)
+            // El calendario personal elige el espacio al crear: la oferta de «Deshacer» lo lleva consigo.
+            saver.run<CreatedItem>(editor = true, afterSuccess = { undo.offer(Undoable.Created(spaceId, it)) }) {
+                CreatedItem(repository.createEvent(spaceId, input), input.title)
             }
         } else {
             saver.run<Unit>(editor = true) { repository.updateEvent(spaceId, eventId, input) }
         }
     }
 
-    // onDeleted se llama solo si el borrado termina bien: así el «Deshacer» no se ofrece para un borrado fallido.
-    // Sin aviso propio: el snackbar de «Deshacer» ya confirma el borrado.
-    fun deleteEvent(spaceId: String, eventId: String, onDeleted: () -> Unit = {}) =
-        saver.run<Unit>(afterSuccess = { onDeleted() }) { repository.deleteEvent(spaceId, eventId) }
+    // La oferta de «Deshacer» sale solo si el borrado termina bien. Sin aviso propio: el snackbar de «Deshacer» ya
+    // confirma el borrado.
+    fun deleteEvent(spaceId: String, event: CalendarEvent) =
+        saver.run<Unit>(afterSuccess = { undo.offer(Undoable.Deleted(spaceId, event)) }) {
+            repository.deleteEvent(spaceId, event.id)
+        }
 
-    // «Deshacer» el borrado: el evento vuelve con su id, al espacio en que estaba. No es un guardado del editor ni
-    // lleva aviso propio; si falla, sale el error.
-    fun restore(spaceId: String, eventId: String, input: EventInput) = saver.run<Unit>(force = true) {
-        repository.createEvent(spaceId, input, eventId)
-    }
-
-    // «Deshacer» el alta: borra justo ese evento, en el espacio donde se creó, con el borrado de siempre.
-    fun undoCreate(id: String) {
-        val spaceId = createdSpaces[id] ?: return
-        saver.run<Unit>(force = true) { repository.deleteEvent(spaceId, id) }
+    // Única entrada de «Deshacer»: siempre en el espacio donde pasó. No es un guardado del editor ni lleva aviso
+    // propio; si falla (también si otro miembro cambió lo que se dio de alta), sale el error.
+    fun undo(undoable: Undoable<CalendarEvent>) {
+        val spaceId = undoable.spaceId ?: return
+        saver.run<Unit>(force = true) {
+            when (undoable) {
+                is Undoable.Created -> repository.undoCreateEvent(spaceId, undoable.item.id)
+                is Undoable.Deleted -> repository.restoreEvent(spaceId, undoable.item.id, undoable.item.toInput())
+                is Undoable.Completed -> Unit
+            }
+        }
     }
 
     private fun move(amount: Long) {

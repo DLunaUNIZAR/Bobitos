@@ -499,7 +499,9 @@ private object NoEvents : CalendarRepository {
         error("no usado")
     }
 
-    override suspend fun createEvent(spaceId: String, input: EventInput, eventId: String?): String = error("no usado")
+    override suspend fun createEvent(spaceId: String, input: EventInput): String = error("no usado")
+    override suspend fun restoreEvent(spaceId: String, eventId: String, input: EventInput): Unit = error("no usado")
+    override suspend fun undoCreateEvent(spaceId: String, eventId: String): Unit = error("no usado")
     override suspend fun updateEvent(spaceId: String, eventId: String, input: EventInput): Unit = error("no usado")
     override suspend fun deleteEvent(spaceId: String, eventId: String): Unit = error("no usado")
 }
