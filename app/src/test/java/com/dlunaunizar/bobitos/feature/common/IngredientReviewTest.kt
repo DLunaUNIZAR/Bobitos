@@ -497,6 +497,22 @@ class IngredientReviewTest {
     }
 
     @Test
+    fun `a row in the pantry starts in No añadir, also if it was bought`() {
+        val rows = buildIngredientReviewRows(
+            listOf(Ingredient("Sal"), Ingredient("Leche", "1", "l")),
+            listOf(item("s2", "leche", purchased = true)),
+            data,
+            setOf(pantryId("Sal"), pantryId("Leche")),
+        )
+
+        val (salt, milk) = rows
+        assertFalse(salt.initialState().include)
+        assertEquals(R.string.meals_review_add, salt.includeLabel())
+        assertFalse(milk.initialState().include)
+        assertEquals(R.string.meals_review_relist, milk.includeLabel())
+    }
+
+    @Test
     fun `a new row starts in Añadir and can be left out`() {
         val row = buildIngredientReviewRows(listOf(Ingredient("Arroz", "300", "g")), emptyList(), data).single()
         val state = row.initialState()

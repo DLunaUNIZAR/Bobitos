@@ -11,14 +11,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.filter
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.text.TextLayoutResult
@@ -95,13 +100,18 @@ class IngredientReviewUiTest {
         brand = null,
     )
 
-    private fun layoutOf(text: String): TextLayoutResult {
-        val node = compose.onAllNodesWithText(text, useUnmergedTree = true)
-            .fetchSemanticsNodes()
-            .first { SemanticsActions.GetTextLayoutResult in it.config }
-        val layouts = mutableListOf<TextLayoutResult>()
-        node.config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
-        return layouts.single()
+    // Los Text propios (sin fusionar) con [text], de todas las filas.
+    private fun textNodes(text: String) = compose.onAllNodesWithText(text, useUnmergedTree = true)
+        .filter(SemanticsMatcher.keyIsDefined(SemanticsActions.GetTextLayoutResult))
+
+    private fun layoutsOf(text: String): List<TextLayoutResult> {
+        val nodes = textNodes(text).fetchSemanticsNodes()
+        assertTrue(text, nodes.isNotEmpty())
+        return nodes.map { node ->
+            val layouts = mutableListOf<TextLayoutResult>()
+            node.config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
+            layouts.single()
+        }
     }
 
     @Test fun aNewRowOffersNoAnadirAndHidesItsFieldsWhenChosen() {
@@ -156,7 +166,7 @@ class IngredientReviewUiTest {
                 CompositionLocalProvider(
                     LocalDensity provides Density(LocalDensity.current.density, fontScale = 1.3f),
                 ) {
-                    Box(Modifier.width(232.dp)) {
+                    Box(Modifier.width(232.dp).testTag("review")) {
                         Column {
                             ReviewRowContent(bought, bought.initialState()) {}
                             ReviewRowContent(pending, pending.initialState()) {}
@@ -165,19 +175,36 @@ class IngredientReviewUiTest {
                 }
             }
         }
-        val texts = listOf(
-            compose.activity.getString(R.string.meals_review_badge_pantry),
-            compose.activity.getString(R.string.meals_review_badge_purchased),
+        val picker = listOf(
             compose.activity.getString(R.string.meals_review_skip),
             compose.activity.getString(R.string.meals_review_relist),
-            compose.activity.getString(R.string.meals_review_badge_listed, long),
+            compose.activity.getString(R.string.meals_review_sum),
         )
-        // didOverflowWidth no sirve: un texto que no llena su ancho máximo también lo marca. Cortado = más alto que su caja
-        // o más ancho que su restricción.
-        texts.forEach { text ->
-            val layout = layoutOf(text)
-            assertFalse(text, layout.didOverflowHeight)
-            assertTrue(text, layout.size.width <= layout.layoutInput.constraints.maxWidth)
+        val badges = listOf(
+            compose.activity.getString(R.string.meals_review_badge_pantry),
+            compose.activity.getString(R.string.meals_review_badge_purchased),
+        )
+        val listed = compose.activity.getString(R.string.meals_review_badge_listed, long)
+        val box = compose.onNodeWithTag("review").getUnclippedBoundsInRoot()
+
+        // El selector y las etiquetas cortas van en una línea; la larga salta de línea y se ve entera.
+        // didOverflowWidth no sirve: un texto que no llena su ancho máximo también lo marca.
+        assertEquals(2, layoutsOf(picker[0]).size)
+        // «Volver a apuntar» ya salta de línea (2) a 232 dp y 130 %: entero, no cortado.
+        (picker + badges).forEach { text ->
+            val expected = if (text == picker[1]) 2 else 1
+            layoutsOf(text).forEach { assertEquals(text, expected, it.lineCount) }
+        }
+        assertTrue(listed, layoutsOf(listed).single().lineCount > 1)
+        // Ningún texto sobresale de la caja ni se corta por alto.
+        (picker + badges + listed).forEach { text ->
+            layoutsOf(text).forEach { assertFalse(text, it.didOverflowHeight) }
+            val count = textNodes(text).fetchSemanticsNodes().size
+            for (i in 0 until count) {
+                val bounds = textNodes(text)[i].getUnclippedBoundsInRoot()
+                assertTrue("$text $bounds en $box", bounds.left >= box.left && bounds.right <= box.right)
+                assertTrue("$text $bounds en $box", bounds.top >= box.top && bounds.bottom <= box.bottom)
+            }
         }
     }
 }
