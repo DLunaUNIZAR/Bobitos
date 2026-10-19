@@ -48,16 +48,15 @@ import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
-import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
+import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
-import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
@@ -105,7 +104,7 @@ fun ExercisesScreen(
     val filter = ExerciseFilter(query, typeFilter, groupFilter)
     val closeEditor: () -> Unit = {
         // Cerrar tras un guardado fallido descarta ese error (ya se veía en la hoja).
-        state.editorSave.discardFailure(viewModel::clearFeedback)
+        viewModel.feedback.resetEditor()
         editorOpen = false
     }
 
@@ -137,14 +136,14 @@ fun ExercisesScreen(
             scope.launchUndo(snackbar, deletedMessage, undoLabel) { viewModel.restoreExercise(exercise) }
         }
         Column(Modifier.fillMaxSize().padding(padding)) {
-            FeedbackSnackbarEffect(
-                error = state.error,
-                notice = state.notice,
-                editorSave = state.editorSave,
-                editorOpen = editorOpen,
-                onShown = viewModel::clearFeedback,
-            ) { stringResource(it.stringResourceId) }
-            CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
+            SaveFeedbackEffect(
+                save = state.save,
+                controls = viewModel.feedback,
+                covered = editorOpen,
+                errorText = { stringResource(it.stringResourceId) },
+                noticeText = { stringResource(it.stringResourceId) },
+            )
+            CreatedUndoEffect(state.save.created, viewModel.feedback::consumeCreated) { viewModel.undoCreate(it.id) }
             ExerciseCatalog(
                 state = state,
                 filter = filter,
@@ -162,7 +161,7 @@ fun ExercisesScreen(
                     editorOpen = true
                 },
                 onDelete = requestDelete,
-                deleteEnabled = !state.isSaving,
+                deleteEnabled = !state.save.isSaving,
                 listState = listState,
             )
         }
@@ -189,14 +188,14 @@ fun ExercisesScreen(
                 requestDelete(exercise)
             },
             onDismiss = { detailOpen = false },
-            deleteEnabled = !state.isSaving,
+            deleteEnabled = !state.save.isSaving,
         )
     }
     EditorSaveEffect(
-        status = state.editorSave,
+        editor = state.save.editor,
         editorOpen = editorOpen,
+        controls = viewModel.feedback,
         onClose = { editorOpen = false },
-        onConsume = viewModel::consumeEditorSave,
     )
     rememberEditorSlot(
         open = editorOpen,
@@ -210,10 +209,9 @@ fun ExercisesScreen(
             exercise = editorExercise,
             otherIds = (state.catalog as? UiState.Content)?.value.orEmpty()
                 .mapNotNull { it.id.takeIf { id -> id != editorExercise?.id } }.toSet(),
-            saving = state.isSaving,
-            saved = state.editorSave == EditorSaveStatus.SAVED,
-            errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
-                ?.let { stringResource(it.stringResourceId) },
+            saving = state.save.isSaving,
+            saved = state.save.editor == EditorSaveStatus.SAVED,
+            errorMessage = state.save.editorError?.let { stringResource(it.stringResourceId) },
             onDismiss = closeEditor,
             onSave = { input ->
                 editorExercise?.let { viewModel.updateExercise(it.id, input) }
@@ -227,7 +225,7 @@ fun ExercisesScreen(
             message = stringResource(R.string.exercises_delete_body, exercise.name),
             confirmLabel = stringResource(R.string.exercises_delete),
             destructive = true,
-            confirmEnabled = !state.isSaving,
+            confirmEnabled = !state.save.isSaving,
             onConfirm = {
                 viewModel.deleteExercise(exercise.id, undoable = false)
                 deleteTarget = null

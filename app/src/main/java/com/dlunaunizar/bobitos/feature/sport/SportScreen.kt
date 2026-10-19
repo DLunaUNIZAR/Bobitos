@@ -51,7 +51,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
@@ -61,15 +60,14 @@ import com.dlunaunizar.bobitos.core.designsystem.component.DayTitleButton
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
-import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
+import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.WeekDayStrip
 import com.dlunaunizar.bobitos.core.designsystem.component.cascadeIn
-import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberDayCascade
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
@@ -108,7 +106,7 @@ fun SportScreen(
         onDispose { viewModel.stopObserving() }
     }
     val members = (state.members as? UiState.Content)?.value.orEmpty()
-    val actionsEnabled = canWrite && !state.isSaving
+    val actionsEnabled = canWrite && !state.save.isSaving
     val scope = rememberCoroutineScope()
     val deletedMessage = stringResource(R.string.sport_undo_deleted)
     val undoLabel = stringResource(R.string.undo)
@@ -134,14 +132,14 @@ fun SportScreen(
         },
     ) { padding ->
         val snackbar = LocalSnackbarHostState.current
-        FeedbackSnackbarEffect(
-            error = state.error,
-            notice = state.notice,
-            editorSave = state.editorSave,
-            editorOpen = editorOpen,
-            onShown = viewModel::clearFeedback,
-        ) { stringResource(it.stringResourceId) }
-        CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
+        SaveFeedbackEffect(
+            save = state.save,
+            controls = viewModel.feedback,
+            covered = editorOpen,
+            errorText = { stringResource(it.stringResourceId) },
+            noticeText = { stringResource(it.stringResourceId) },
+        )
+        CreatedUndoEffect(state.save.created, viewModel.feedback::consumeCreated) { viewModel.undoCreate(it.id) }
         val deleteWithUndo: (SportActivity) -> Unit = { activity ->
             // El espacio se captura al borrar: «Deshacer» devuelve la actividad (y su evento) a su espacio.
             val deletedFrom = spaceId
@@ -222,15 +220,15 @@ fun SportScreen(
 
     val closeEditor = {
         // Cerrar tras un guardado fallido descarta ese error (ya se veía en la hoja).
-        state.editorSave.discardFailure(viewModel::clearFeedback)
+        viewModel.feedback.resetEditor()
         editorOpen = false
         editorActivityId = null
     }
     EditorSaveEffect(
-        status = state.editorSave,
+        editor = state.save.editor,
         editorOpen = editorOpen,
+        controls = viewModel.feedback,
         onClose = closeEditor,
-        onConsume = viewModel::consumeEditorSave,
     )
     ActivityEditorHost(
         open = editorOpen,
@@ -240,9 +238,8 @@ fun SportScreen(
         routines = state.routines,
         catalog = state.exercises,
         onCatalogNeeded = viewModel::observeExerciseCatalog,
-        saving = state.isSaving,
-        errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
-            ?.let { stringResource(it.stringResourceId) },
+        saving = state.save.isSaving,
+        errorMessage = state.save.editorError?.let { stringResource(it.stringResourceId) },
         canWrite = canWrite,
         onClose = closeEditor,
         onSave = { activity, type, name, participantIds, routineId, session ->

@@ -3,14 +3,11 @@ package com.dlunaunizar.bobitos.feature.routines
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.CreatedItem
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
+import com.dlunaunizar.bobitos.core.common.SaveRunner
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
-import com.dlunaunizar.bobitos.core.common.failed
-import com.dlunaunizar.bobitos.core.common.started
-import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.toFailureKind
-import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.Routine
 import com.dlunaunizar.bobitos.core.model.RoutineExercise
 import com.dlunaunizar.bobitos.core.model.RoutineVisibility
@@ -19,7 +16,6 @@ import com.dlunaunizar.bobitos.data.repository.RoutineFailure
 import com.dlunaunizar.bobitos.data.repository.RoutineRepository
 import com.dlunaunizar.bobitos.data.repository.RoutineRepositoryException
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,6 +32,9 @@ class RoutinesViewModel @Inject constructor(
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(RoutinesUiState())
     val uiState: StateFlow<RoutinesUiState> = mutableUiState.asStateFlow()
+    private val saver =
+        SaveRunner(viewModelScope, mutableUiState, RoutinesUiState::save, { copy(save = it) }, Throwable::toUiMessage)
+    val feedback: SaveFeedbackControls get() = saver
 
     private var globalJob: Job? = null
     private var mineJob: Job? = null
@@ -100,14 +99,14 @@ class RoutinesViewModel @Inject constructor(
         if (!validate(title, description)) return
         val trimmed = title.trim()
         // Un alta desde la hoja deja `created` (con «Deshacer») en lugar del aviso de guardado.
-        runAction(null, editor = true) {
+        saver.create(editor = true) {
             CreatedItem(repository.createRoutine(visibility, trimmed, description.normalized(), exercises), trimmed)
         }
     }
 
     fun updateRoutine(routineId: String, title: String, description: String?, exercises: List<RoutineExercise>) {
         if (!validate(title, description)) return
-        runAction(RoutineUiMessage.Saved, editor = true) {
+        saver.run(notice = RoutineUiMessage.Saved, editor = true) {
             repository.updateRoutine(routineId, title.trim(), description.normalized(), exercises)
         }
     }
@@ -116,18 +115,18 @@ class RoutinesViewModel @Inject constructor(
     // fallido. Con [undoable] el aviso lo da el snackbar de «Deshacer» de la pantalla; si no (una común), el suyo.
     fun deleteRoutine(routineId: String, undoable: Boolean = true, onDeleted: () -> Unit = {}) {
         val notice = if (undoable) null else RoutineUiMessage.Deleted
-        runAction(notice, onSuccess = onDeleted) { repository.deleteRoutine(routineId) }
+        saver.run(notice = notice, afterSuccess = { onDeleted() }) { repository.deleteRoutine(routineId) }
     }
 
     // «Deshacer» el borrado de una rutina personal (con el mismo id; el dueño pasa a ser quien deshace).
     fun restoreRoutine(routine: Routine) {
-        runAction(null, force = true) { repository.restoreRoutine(routine) }
+        saver.run(force = true) { repository.restoreRoutine(routine) }
     }
 
     // Copia privada de una común («Guardar como mía»), enlazada con la original por sourceRoutineId.
     fun fork(source: Routine) {
         // «Guardar como mía» deja `created` con la copia (su id, no el de la original) en lugar del aviso de copia.
-        runAction(null) {
+        saver.create {
             val id = repository.createRoutine(
                 visibility = RoutineVisibility.PRIVATE,
                 title = source.title,
@@ -139,55 +138,13 @@ class RoutinesViewModel @Inject constructor(
         }
     }
 
-    fun consumeCreated() = mutableUiState.update { it.copy(created = null) }
-
     // «Deshacer» el alta: borra justo esa rutina con el borrado de siempre (sin aviso; si falla, sale el error).
-    fun undoCreate(id: String) = runAction(null, force = true) { repository.deleteRoutine(id) }
-
-    fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
-
-    fun clearFeedback() = mutableUiState.update { it.copy(error = null, notice = null) }
+    fun undoCreate(id: String) = saver.run(force = true) { repository.deleteRoutine(id) }
 
     private fun validate(title: String, description: String?): Boolean {
         val error = RoutinesValidation.validate(title, description) ?: return true
-        showError(error, editor = true)
+        saver.showEditorError(error)
         return false
-    }
-
-    private fun showError(message: RoutineUiMessage, editor: Boolean = false) = mutableUiState.update {
-        it.copy(isSaving = false, error = message, notice = null, editorSave = it.editorSave.failed(editor))
-    }
-
-    // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
-    private fun runAction(
-        successNotice: RoutineUiMessage?,
-        editor: Boolean = false,
-        force: Boolean = false,
-        onSuccess: () -> Unit = {},
-        action: suspend () -> Any?,
-    ) {
-        if (mutableUiState.value.isSaving && !force) return
-        mutableUiState.update {
-            it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
-        }
-        viewModelScope.launch {
-            runCatching { withEditorSaveTimeout(editor) { action() } }
-                .onSuccess { result ->
-                    mutableUiState.update {
-                        it.copy(
-                            isSaving = false,
-                            notice = successNotice,
-                            created = result as? CreatedItem,
-                            editorSave = it.editorSave.succeeded(editor),
-                        )
-                    }
-                    onSuccess()
-                }
-                .onFailure { error ->
-                    if (error is CancellationException) throw error
-                    showError(error.toUiMessage(), editor)
-                }
-        }
     }
 }
 

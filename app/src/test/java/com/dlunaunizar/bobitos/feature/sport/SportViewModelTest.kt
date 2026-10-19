@@ -55,7 +55,7 @@ class SportViewModelTest {
     private val spaceRepository = FakeSpaceRepository()
     private val routineRepository = FakeSportRoutineRepository()
     private val exerciseRepository = FakeSportExerciseRepository()
-    private val viewModel = SportViewModel(repository, spaceRepository, routineRepository, exerciseRepository)
+    private val viewModel by lazy { SportViewModel(repository, spaceRepository, routineRepository, exerciseRepository) }
 
     @Test
     fun `observes activities and members for the active space`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -79,7 +79,7 @@ class SportViewModelTest {
         viewModel.addActivity(LocalDate.now(), SportType.FUTBOL, "   ", emptyList())
 
         assertNull(repository.addedName)
-        assertEquals(SportUiMessage.NameRequired, viewModel.uiState.value.error)
+        assertEquals(SportUiMessage.NameRequired, viewModel.uiState.value.save.editorError)
     }
 
     @Test
@@ -92,8 +92,8 @@ class SportViewModelTest {
 
         assertEquals("Pecho", repository.addedName)
         assertEquals(SportType.GIMNASIO, repository.addedType)
-        assertNull(viewModel.uiState.value.notice)
-        assertFalse(viewModel.uiState.value.isSaving)
+        assertNull(viewModel.uiState.value.save.notice)
+        assertFalse(viewModel.uiState.value.save.isSaving)
     }
 
     @Test
@@ -104,11 +104,11 @@ class SportViewModelTest {
         viewModel.addActivity(LocalDate.now(), SportType.PADEL, "  Pádel ", emptyList())
         advanceUntilIdle()
 
-        assertEquals(CreatedItem("new-1", "Pádel"), viewModel.uiState.value.created)
-        assertNull(viewModel.uiState.value.notice)
+        assertEquals(CreatedItem("new-1", "Pádel"), viewModel.uiState.value.save.created)
+        assertNull(viewModel.uiState.value.save.notice)
 
-        viewModel.consumeCreated()
-        assertNull(viewModel.uiState.value.created)
+        viewModel.feedback.consumeCreated()
+        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
@@ -126,7 +126,7 @@ class SportViewModelTest {
         viewModel.updateActivity("a1", LocalDate.now(), SportType.PADEL, "Pádel", emptyList())
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
@@ -137,7 +137,7 @@ class SportViewModelTest {
         viewModel.restoreActivity("home", activity("a1", LocalDate.now(), SportType.PADEL, "Pádel"), null)
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
@@ -160,7 +160,7 @@ class SportViewModelTest {
         assertTrue(restored.activity.done)
         assertEquals("e1", restored.event?.id)
         assertEquals("Pierna (editado)", restored.event?.title)
-        assertNull(viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -183,7 +183,7 @@ class SportViewModelTest {
         viewModel.deleteActivity("a1") { offered++ }
         advanceUntilIdle()
         assertEquals(0, offered)
-        assertEquals(SportUiMessage.NetworkError, viewModel.uiState.value.error)
+        assertEquals(SportUiMessage.NetworkError, viewModel.uiState.value.save.error)
 
         repository.nextFailure = null
         viewModel.deleteActivity("a1") { offered++ }
@@ -199,7 +199,7 @@ class SportViewModelTest {
         viewModel.restoreActivity("home", activity("a1", LocalDate.now(), SportType.PADEL, "Pádel"), null)
         advanceUntilIdle()
 
-        assertEquals(SportUiMessage.SpaceNotFound, viewModel.uiState.value.error)
+        assertEquals(SportUiMessage.SpaceNotFound, viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -303,7 +303,7 @@ class SportViewModelTest {
         advanceUntilIdle()
 
         assertEquals("a1" to true, repository.doneChange)
-        assertEquals(SportUiMessage.ActivityDone, viewModel.uiState.value.notice)
+        assertEquals(SportUiMessage.ActivityDone, viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -325,8 +325,8 @@ class SportViewModelTest {
         viewModel.deleteActivity("a1")
         advanceUntilIdle()
 
-        assertEquals(SportUiMessage.NetworkError, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.isSaving)
+        assertEquals(SportUiMessage.NetworkError, viewModel.uiState.value.save.error)
+        assertFalse(viewModel.uiState.value.save.isSaving)
     }
 
     @Test
@@ -337,16 +337,16 @@ class SportViewModelTest {
         advanceUntilIdle()
 
         viewModel.addActivity(LocalDate.now(), SportType.PADEL, "Pádel", emptyList())
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
-        assertTrue(viewModel.uiState.value.isSaving)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
+        assertTrue(viewModel.uiState.value.save.isSaving)
 
         gate.complete(Unit)
         advanceUntilIdle()
 
-        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
-        assertFalse(viewModel.uiState.value.isSaving)
-        viewModel.consumeEditorSave()
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.save.editor)
+        assertFalse(viewModel.uiState.value.save.isSaving)
+        viewModel.feedback.resetEditor()
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
     }
 
     @Test
@@ -356,21 +356,21 @@ class SportViewModelTest {
         repository.nextFailure = SportRepositoryException(SportFailure.Network)
         viewModel.addActivity(LocalDate.now(), SportType.PADEL, "Pádel", emptyList())
         advanceUntilIdle()
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        assertEquals(SportUiMessage.NetworkError, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.isSaving)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        assertEquals(SportUiMessage.NetworkError, viewModel.uiState.value.save.editorError)
+        assertFalse(viewModel.uiState.value.save.isSaving)
 
         repository.nextFailure = null
-        viewModel.consumeEditorSave()
+        viewModel.feedback.resetEditor()
         repository.hang = true
         viewModel.addActivity(LocalDate.now(), SportType.PADEL, "Pádel", emptyList())
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
         advanceTimeBy(EDITOR_SAVE_TIMEOUT_MILLIS + 1)
         runCurrent()
 
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        assertEquals(SportUiMessage.SaveTimeout, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.isSaving)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        assertEquals(SportUiMessage.SaveTimeout, viewModel.uiState.value.save.editorError)
+        assertFalse(viewModel.uiState.value.save.isSaving)
     }
 
     @Test
@@ -382,9 +382,30 @@ class SportViewModelTest {
         advanceUntilIdle()
 
         assertEquals("Pádel", repository.restored.single().activity.name)
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
-        assertNull(viewModel.uiState.value.notice)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
+        assertNull(viewModel.uiState.value.save.notice)
     }
+
+    @Test
+    fun `a forced restore that ends first keeps saving on until the other write ends`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.addGate = CompletableDeferred()
+            viewModel.observe("home")
+            advanceUntilIdle()
+            viewModel.addActivity(LocalDate.now(), SportType.PADEL, "Pádel", emptyList())
+            runCurrent() // sin avanzar el reloj: el alta del editor tiene tiempo máximo
+
+            viewModel.restoreActivity("home", activity("a1", LocalDate.now(), SportType.PADEL, "Pádel"), null)
+            runCurrent()
+
+            assertEquals("a1", repository.restored.single().activity.id)
+            assertTrue(viewModel.uiState.value.save.isSaving)
+
+            repository.addGate?.complete(Unit)
+            advanceUntilIdle()
+
+            assertFalse(viewModel.uiState.value.save.isSaving)
+        }
 }
 
 private class FakeSportActivityRepository : SportActivityRepository {

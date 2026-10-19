@@ -1,7 +1,6 @@
 package com.dlunaunizar.bobitos.feature.routines
 
-import com.dlunaunizar.bobitos.core.common.CreatedItem
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.SaveState
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.Routine
@@ -13,12 +12,7 @@ data class RoutinesUiState(
     // Catálogo de ejercicios para el selector del editor.
     val exercises: List<CatalogExercise> = emptyList(),
     val isAdmin: Boolean = false,
-    val isSaving: Boolean = false,
-    val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
-    val error: RoutineUiMessage? = null,
-    val notice: RoutineUiMessage? = null,
-    // Alta recién hecha desde la hoja: la pantalla la avisa con «Deshacer» y la consume.
-    val created: CreatedItem? = null,
+    val save: SaveState<RoutineUiMessage, RoutineUiMessage> = SaveState(),
 )
 
 enum class RoutineUiMessage {

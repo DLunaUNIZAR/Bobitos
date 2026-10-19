@@ -3,13 +3,10 @@ package com.dlunaunizar.bobitos.feature.exercises
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.CreatedItem
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
+import com.dlunaunizar.bobitos.core.common.SaveRunner
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
-import com.dlunaunizar.bobitos.core.common.failed
-import com.dlunaunizar.bobitos.core.common.started
-import com.dlunaunizar.bobitos.core.common.succeeded
-import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseInput
 import com.dlunaunizar.bobitos.core.model.slug
@@ -19,7 +16,6 @@ import com.dlunaunizar.bobitos.data.repository.ExerciseRepository
 import com.dlunaunizar.bobitos.data.repository.ExerciseRepositoryException
 import com.dlunaunizar.bobitos.data.repository.LoadedImage
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,6 +32,9 @@ class ExercisesViewModel @Inject constructor(
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(ExercisesUiState())
     val uiState: StateFlow<ExercisesUiState> = mutableUiState.asStateFlow()
+    private val saver =
+        SaveRunner(viewModelScope, mutableUiState, ExercisesUiState::save, { copy(save = it) }, Throwable::toUiMessage)
+    val feedback: SaveFeedbackControls get() = saver
 
     private var catalogJob: Job? = null
     private var observing = false
@@ -84,28 +83,26 @@ class ExercisesViewModel @Inject constructor(
     fun createExercise(input: ExerciseInput) {
         val trimmed = input.name.trim()
         if (trimmed.isEmpty()) {
-            showError(ExerciseUiMessage.NameRequired, editor = true)
+            saver.showEditorError(ExerciseUiMessage.NameRequired)
             return
         }
         if (catalogContains(slug(trimmed))) {
-            showError(ExerciseUiMessage.AlreadyExists, editor = true)
+            saver.showEditorError(ExerciseUiMessage.AlreadyExists)
             return
         }
         // Un alta desde la hoja deja `created` (con «Deshacer») en lugar del aviso de guardado.
-        runAction(null, editor = true) { CreatedItem(repository.createExercise(input.copy(name = trimmed)), trimmed) }
+        saver.create(editor = true) { CreatedItem(repository.createExercise(input.copy(name = trimmed)), trimmed) }
     }
 
-    fun consumeCreated() = mutableUiState.update { it.copy(created = null) }
-
     // «Deshacer» el alta: borra justo ese ejercicio con el borrado de siempre (sin aviso; si falla, sale el error).
-    fun undoCreate(id: String) = runAction(null, force = true) { repository.deleteExercise(id) }
+    fun undoCreate(id: String) = saver.run(force = true) { repository.deleteExercise(id) }
 
     fun updateExercise(id: String, input: ExerciseInput) {
         if (input.name.trim().isEmpty()) {
-            showError(ExerciseUiMessage.NameRequired, editor = true)
+            saver.showEditorError(ExerciseUiMessage.NameRequired)
             return
         }
-        runAction(ExerciseUiMessage.Saved, editor = true) {
+        saver.run(notice = ExerciseUiMessage.Saved, editor = true) {
             repository.updateExercise(id, input.copy(name = input.name.trim()))
         }
     }
@@ -114,56 +111,16 @@ class ExercisesViewModel @Inject constructor(
     // Con [undoable] el aviso lo da el snackbar de «Deshacer» de la pantalla; si no (ficha del catálogo común), el suyo.
     fun deleteExercise(id: String, undoable: Boolean = true, onDeleted: () -> Unit = {}) {
         val notice = if (undoable) null else ExerciseUiMessage.Deleted
-        runAction(notice, onSuccess = onDeleted) { repository.deleteExercise(id) }
+        saver.run(notice = notice, afterSuccess = { onDeleted() }) { repository.deleteExercise(id) }
     }
 
     // «Deshacer» el borrado de un ejercicio propio (con el mismo id; el dueño pasa a ser quien deshace).
     fun restoreExercise(exercise: CatalogExercise) {
-        runAction(null, force = true) { repository.restoreExercise(exercise) }
+        saver.run(force = true) { repository.restoreExercise(exercise) }
     }
-
-    fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
-
-    fun clearFeedback() = mutableUiState.update { it.copy(error = null, notice = null) }
 
     private fun catalogContains(id: String): Boolean =
         (mutableUiState.value.catalog as? UiState.Content)?.value?.any { it.id == id } == true
-
-    private fun showError(message: ExerciseUiMessage, editor: Boolean = false) = mutableUiState.update {
-        it.copy(isSaving = false, error = message, notice = null, editorSave = it.editorSave.failed(editor))
-    }
-
-    // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
-    private fun runAction(
-        successNotice: ExerciseUiMessage?,
-        editor: Boolean = false,
-        force: Boolean = false,
-        onSuccess: () -> Unit = {},
-        action: suspend () -> Any?,
-    ) {
-        if (mutableUiState.value.isSaving && !force) return
-        mutableUiState.update {
-            it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
-        }
-        viewModelScope.launch {
-            runCatching { withEditorSaveTimeout(editor) { action() } }
-                .onSuccess { result ->
-                    mutableUiState.update {
-                        it.copy(
-                            isSaving = false,
-                            notice = successNotice,
-                            created = result as? CreatedItem,
-                            editorSave = it.editorSave.succeeded(editor),
-                        )
-                    }
-                    onSuccess()
-                }
-                .onFailure { error ->
-                    if (error is CancellationException) throw error
-                    showError(error.toUiMessage(), editor)
-                }
-        }
-    }
 }
 
 // Solo se devuelven los propios sin fuente ni imagen: lo que el admin borra del catálogo común se confirma con un diálogo.

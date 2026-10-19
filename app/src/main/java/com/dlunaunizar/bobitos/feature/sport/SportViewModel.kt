@@ -3,14 +3,11 @@ package com.dlunaunizar.bobitos.feature.sport
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.CreatedItem
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
+import com.dlunaunizar.bobitos.core.common.SaveRunner
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
-import com.dlunaunizar.bobitos.core.common.failed
-import com.dlunaunizar.bobitos.core.common.started
-import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.toFailureKind
-import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.RoutineExercise
 import com.dlunaunizar.bobitos.core.model.SportActivity
@@ -23,7 +20,6 @@ import com.dlunaunizar.bobitos.data.repository.SportFailure
 import com.dlunaunizar.bobitos.data.repository.SportRepositoryException
 import com.dlunaunizar.bobitos.feature.routines.personalOnly
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,6 +40,9 @@ class SportViewModel @Inject constructor(
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(SportUiState())
     val uiState: StateFlow<SportUiState> = mutableUiState.asStateFlow()
+    private val saver =
+        SaveRunner(viewModelScope, mutableUiState, SportUiState::save, { copy(save = it) }, Throwable::toUiMessage)
+    val feedback: SaveFeedbackControls get() = saver
 
     private var observedSpaceId: String? = null
     private var observedWeekStart: LocalDate? = null
@@ -142,29 +141,25 @@ class SportViewModel @Inject constructor(
         if (!validate(name)) return
         val trimmed = name.trim()
         // Un alta desde la hoja deja `created` (con «Deshacer») en lugar del aviso de actividad añadida.
-        runAction(null, editor = true) {
+        saver.create(editor = true) {
             val id = repository.addActivity(spaceId, date, type, trimmed, participantIds, routineId, session)
             CreatedItem(id, trimmed)
         }
     }
 
-    fun consumeCreated() = mutableUiState.update { it.copy(created = null) }
-
     // «Deshacer» el alta: borra justo esa actividad (y su evento enlazado) con el borrado de siempre (sin aviso; si
     // falla, sale el error).
     fun undoCreate(id: String) {
         val spaceId = observedSpaceId ?: return
-        runAction(null, force = true) { repository.deleteActivity(spaceId, id) }
+        saver.run(force = true) { repository.deleteActivity(spaceId, id) }
     }
 
     // «Deshacer» el borrado: la actividad vuelve con su id y su estado, y con ella su evento enlazado tal como estaba,
     // al espacio en que estaba (no al que se esté viendo ahora). No es un guardado del editor ni lleva aviso propio;
     // si falla, sale el error.
     fun restoreActivity(spaceId: String, activity: SportActivity, event: CalendarEvent?) {
-        runAction(null, force = true) { repository.restoreActivity(spaceId, activity, event) }
+        saver.run(force = true) { repository.restoreActivity(spaceId, activity, event) }
     }
-
-    fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
 
     fun updateActivity(
         activityId: String,
@@ -177,14 +172,14 @@ class SportViewModel @Inject constructor(
     ) {
         val spaceId = observedSpaceId ?: return
         if (!validate(name)) return
-        runAction(SportUiMessage.ActivityUpdated, editor = true) {
+        saver.run(notice = SportUiMessage.ActivityUpdated, editor = true) {
             repository.updateActivity(spaceId, activityId, date, type, name.trim(), participantIds, routineId, session)
         }
     }
 
     fun setDone(activityId: String, done: Boolean) {
         val spaceId = observedSpaceId ?: return
-        runAction(if (done) SportUiMessage.ActivityDone else SportUiMessage.ActivityPending) {
+        saver.run(notice = if (done) SportUiMessage.ActivityDone else SportUiMessage.ActivityPending) {
             repository.setDone(spaceId, activityId, done)
         }
     }
@@ -193,53 +188,13 @@ class SportViewModel @Inject constructor(
     // «Deshacer» no se ofrece para un borrado fallido. Sin aviso propio: el snackbar de «Deshacer» ya confirma.
     fun deleteActivity(activityId: String, onDeleted: (CalendarEvent?) -> Unit = {}) {
         val spaceId = observedSpaceId ?: return
-        runAction(null, onSuccess = { deletedEvent -> onDeleted(deletedEvent as CalendarEvent?) }) {
-            repository.deleteActivity(spaceId, activityId)
-        }
+        saver.run<CalendarEvent?>(afterSuccess = onDeleted) { repository.deleteActivity(spaceId, activityId) }
     }
-
-    fun clearFeedback() = mutableUiState.update { it.copy(error = null, notice = null) }
 
     private fun validate(name: String): Boolean {
         val error = SportValidation.validate(name) ?: return true
-        showError(error, editor = true)
+        saver.showEditorError(error)
         return false
-    }
-
-    private fun showError(message: SportUiMessage, editor: Boolean = false) = mutableUiState.update {
-        it.copy(isSaving = false, error = message, notice = null, editorSave = it.editorSave.failed(editor))
-    }
-
-    // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
-    private fun runAction(
-        notice: SportUiMessage?,
-        editor: Boolean = false,
-        force: Boolean = false,
-        onSuccess: (Any?) -> Unit = {},
-        action: suspend () -> Any?,
-    ) {
-        if (mutableUiState.value.isSaving && !force) return
-        mutableUiState.update {
-            it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
-        }
-        viewModelScope.launch {
-            runCatching { withEditorSaveTimeout(editor) { action() } }
-                .onSuccess { result ->
-                    mutableUiState.update {
-                        it.copy(
-                            isSaving = false,
-                            notice = notice,
-                            created = result as? CreatedItem,
-                            editorSave = it.editorSave.succeeded(editor),
-                        )
-                    }
-                    onSuccess(result)
-                }
-                .onFailure { error ->
-                    if (error is CancellationException) throw error
-                    showError(error.toUiMessage(), editor)
-                }
-        }
     }
 }
 

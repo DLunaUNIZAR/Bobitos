@@ -42,7 +42,7 @@ class ExercisesViewModelTest {
 
     private val repository = FakeExerciseRepository()
     private val imageRepository = FakeImageRepository()
-    private val viewModel = ExercisesViewModel(repository, imageRepository)
+    private val viewModel by lazy { ExercisesViewModel(repository, imageRepository) }
 
     @Test
     fun `loadImage delegates to the repository`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -113,7 +113,7 @@ class ExercisesViewModelTest {
 
         assertEquals("Sentadilla", repository.createdName)
         assertEquals(ExerciseType.PESO_LIBRE, repository.createdType)
-        assertNull(viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -124,11 +124,11 @@ class ExercisesViewModelTest {
         viewModel.createExercise(input("  Sentadilla  ", ExerciseType.PESO_LIBRE))
         advanceUntilIdle()
 
-        assertEquals(CreatedItem("sentadilla", "Sentadilla"), viewModel.uiState.value.created)
-        assertNull(viewModel.uiState.value.notice)
+        assertEquals(CreatedItem("sentadilla", "Sentadilla"), viewModel.uiState.value.save.created)
+        assertNull(viewModel.uiState.value.save.notice)
 
-        viewModel.consumeCreated()
-        assertNull(viewModel.uiState.value.created)
+        viewModel.feedback.consumeCreated()
+        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
@@ -137,7 +137,7 @@ class ExercisesViewModelTest {
         advanceUntilIdle()
 
         assertEquals("sentadilla", repository.deletedId)
-        assertNull(viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -145,7 +145,7 @@ class ExercisesViewModelTest {
         viewModel.updateExercise("sentadilla", input("Sentadilla", ExerciseType.PESO_LIBRE))
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
@@ -175,7 +175,7 @@ class ExercisesViewModelTest {
         viewModel.createExercise(input("Remo", ExerciseType.MAQUINA))
         advanceUntilIdle()
 
-        assertEquals(ExerciseUiMessage.DescriptionTooLong, viewModel.uiState.value.error)
+        assertEquals(ExerciseUiMessage.DescriptionTooLong, viewModel.uiState.value.save.editorError)
     }
 
     @Test
@@ -188,7 +188,7 @@ class ExercisesViewModelTest {
             viewModel.createExercise(input("Press banca", ExerciseType.MAQUINA))
 
             assertNull(repository.createdName)
-            assertEquals(ExerciseUiMessage.AlreadyExists, viewModel.uiState.value.error)
+            assertEquals(ExerciseUiMessage.AlreadyExists, viewModel.uiState.value.save.editorError)
         }
 
     @Test
@@ -200,7 +200,7 @@ class ExercisesViewModelTest {
         advanceUntilIdle()
 
         assertEquals("press-banca", repository.deletedId)
-        assertNull(viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -208,7 +208,7 @@ class ExercisesViewModelTest {
         viewModel.deleteExercise("press-banca", undoable = false)
         advanceUntilIdle()
 
-        assertEquals(ExerciseUiMessage.Deleted, viewModel.uiState.value.notice)
+        assertEquals(ExerciseUiMessage.Deleted, viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -216,7 +216,7 @@ class ExercisesViewModelTest {
         viewModel.deleteExercise("press-banca", undoable = true)
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -239,7 +239,7 @@ class ExercisesViewModelTest {
 
         assertEquals(deleted, repository.restored)
         assertEquals("press-banca-2", repository.restored?.id)
-        assertNull(viewModel.uiState.value.error)
+        assertNull(viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -249,7 +249,7 @@ class ExercisesViewModelTest {
         viewModel.restoreExercise(exercise("press-banca", "Press banca", ExerciseType.PESO_LIBRE))
         advanceUntilIdle()
 
-        assertEquals(ExerciseUiMessage.NetworkError, viewModel.uiState.value.error)
+        assertEquals(ExerciseUiMessage.NetworkError, viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -259,7 +259,7 @@ class ExercisesViewModelTest {
         viewModel.deleteExercise("press-banca") { deletedCalls++ }
         advanceUntilIdle()
         assertEquals(0, deletedCalls)
-        assertEquals(ExerciseUiMessage.NetworkError, viewModel.uiState.value.error)
+        assertEquals(ExerciseUiMessage.NetworkError, viewModel.uiState.value.save.error)
 
         repository.deleteFailure = null
         viewModel.deleteExercise("press-banca") { deletedCalls++ }
@@ -273,16 +273,16 @@ class ExercisesViewModelTest {
         repository.addGate = gate
 
         viewModel.createExercise(input("Remo", ExerciseType.MAQUINA))
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
-        assertTrue(viewModel.uiState.value.isSaving)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
+        assertTrue(viewModel.uiState.value.save.isSaving)
 
         gate.complete(Unit)
         advanceUntilIdle()
 
-        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
-        assertFalse(viewModel.uiState.value.isSaving)
-        viewModel.consumeEditorSave()
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.save.editor)
+        assertFalse(viewModel.uiState.value.save.isSaving)
+        viewModel.feedback.resetEditor()
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
     }
 
     @Test
@@ -290,21 +290,21 @@ class ExercisesViewModelTest {
         repository.createFailure = ExerciseRepositoryException(ExerciseFailure.Network)
         viewModel.createExercise(input("Remo", ExerciseType.MAQUINA))
         advanceUntilIdle()
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        assertEquals(ExerciseUiMessage.NetworkError, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.isSaving)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        assertEquals(ExerciseUiMessage.NetworkError, viewModel.uiState.value.save.editorError)
+        assertFalse(viewModel.uiState.value.save.isSaving)
 
         repository.createFailure = null
-        viewModel.consumeEditorSave()
+        viewModel.feedback.resetEditor()
         repository.hang = true
         viewModel.createExercise(input("Remo", ExerciseType.MAQUINA))
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
         advanceTimeBy(EDITOR_SAVE_TIMEOUT_MILLIS + 1)
         runCurrent()
 
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        assertEquals(ExerciseUiMessage.SaveTimeout, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.isSaving)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        assertEquals(ExerciseUiMessage.SaveTimeout, viewModel.uiState.value.save.editorError)
+        assertFalse(viewModel.uiState.value.save.isSaving)
     }
 
     @Test
@@ -315,9 +315,9 @@ class ExercisesViewModelTest {
 
         viewModel.createExercise(input("Press banca", ExerciseType.MAQUINA))
 
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        assertEquals(ExerciseUiMessage.AlreadyExists, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.isSaving)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        assertEquals(ExerciseUiMessage.AlreadyExists, viewModel.uiState.value.save.editorError)
+        assertFalse(viewModel.uiState.value.save.isSaving)
     }
 
     @Test
@@ -325,8 +325,27 @@ class ExercisesViewModelTest {
         viewModel.deleteExercise("press-banca")
         advanceUntilIdle()
 
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
     }
+
+    @Test
+    fun `a forced restore that ends first keeps saving on until the other write ends`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.addGate = CompletableDeferred()
+            viewModel.createExercise(input("Remo", ExerciseType.MAQUINA))
+            runCurrent() // sin avanzar el reloj: el alta del editor tiene tiempo máximo
+
+            viewModel.restoreExercise(exercise("press-banca", "Press banca", ExerciseType.PESO_LIBRE))
+            runCurrent()
+
+            assertEquals("press-banca", repository.restored?.id)
+            assertTrue(viewModel.uiState.value.save.isSaving)
+
+            repository.addGate?.complete(Unit)
+            advanceUntilIdle()
+
+            assertFalse(viewModel.uiState.value.save.isSaving)
+        }
 }
 
 private class FakeExerciseRepository : ExerciseRepository {

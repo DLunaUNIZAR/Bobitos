@@ -39,7 +39,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
@@ -50,17 +49,16 @@ import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
-import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.InfoSheetAction
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
+import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
-import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
@@ -95,7 +93,7 @@ fun RoutinesScreen(
     LaunchedEffect(query) { viewModel.setQuery(query) }
     val closeEditor = {
         // Cerrar tras un guardado fallido descarta ese error (ya se veía en la hoja).
-        state.editorSave.discardFailure(viewModel::clearFeedback)
+        viewModel.feedback.resetEditor()
         editorOpen = false
         editorRoutineId = null
     }
@@ -125,20 +123,20 @@ fun RoutinesScreen(
         val deletedMessage = stringResource(R.string.routines_notice_deleted)
         val undoLabel = stringResource(R.string.undo)
         Column(Modifier.fillMaxSize().padding(padding)) {
-            FeedbackSnackbarEffect(
-                error = state.error,
-                notice = state.notice,
-                editorSave = state.editorSave,
-                editorOpen = editorOpen,
-                onShown = viewModel::clearFeedback,
-            ) { stringResource(it.stringResourceId) }
-            CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
+            SaveFeedbackEffect(
+                save = state.save,
+                controls = viewModel.feedback,
+                covered = editorOpen,
+                errorText = { stringResource(it.stringResourceId) },
+                noticeText = { stringResource(it.stringResourceId) },
+            )
+            CreatedUndoEffect(state.save.created, viewModel.feedback::consumeCreated) { viewModel.undoCreate(it.id) }
             RoutinesCatalog(
                 state = state,
                 query = query,
                 onQueryChange = { query = it },
                 canWrite = canWrite,
-                deleteEnabled = !state.isSaving,
+                deleteEnabled = !state.save.isSaving,
                 onOpen = { detailRoutineId = it.id },
                 onEdit = {
                     editorRoutineId = it.id
@@ -160,10 +158,10 @@ fun RoutinesScreen(
     }
 
     EditorSaveEffect(
-        status = state.editorSave,
+        editor = state.save.editor,
         editorOpen = editorOpen,
+        controls = viewModel.feedback,
         onClose = closeEditor,
-        onConsume = viewModel::consumeEditorSave,
     )
     RoutineSheetsHost(
         state = state,
@@ -189,7 +187,7 @@ fun RoutinesScreen(
             message = stringResource(R.string.routines_delete_body, routine.title),
             confirmLabel = stringResource(R.string.routines_delete),
             destructive = true,
-            confirmEnabled = canWrite && !state.isSaving,
+            confirmEnabled = canWrite && !state.save.isSaving,
             onConfirm = {
                 viewModel.deleteRoutine(routine.id, undoable = false)
                 deleteTarget = null
@@ -411,9 +409,8 @@ private fun RoutineSheetsHost(
             catalog = state.exercises,
             onCatalogNeeded = onCatalogNeeded,
             isAdmin = state.isAdmin,
-            saving = state.isSaving,
-            errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
-                ?.let { stringResource(it.stringResourceId) },
+            saving = state.save.isSaving,
+            errorMessage = state.save.editorError?.let { stringResource(it.stringResourceId) },
             canWrite = canWrite,
             onDismiss = onCloseEditor,
             onSave = { visibility, title, description, exercises ->

@@ -43,7 +43,7 @@ class RoutinesViewModelTest {
 
     private val repository = FakeRoutineRepository()
     private val exerciseRepository = FakeExerciseRepository()
-    private val viewModel = RoutinesViewModel(repository, exerciseRepository)
+    private val viewModel by lazy { RoutinesViewModel(repository, exerciseRepository) }
 
     @Test
     fun `observes global and personal routines without touching the exercise catalog`() =
@@ -131,7 +131,7 @@ class RoutinesViewModelTest {
             assertEquals("Empuje", repository.lastTitle)
             assertEquals(null, repository.lastDescription)
             assertEquals(exercises, repository.lastExercises)
-            assertNull(viewModel.uiState.value.notice)
+            assertNull(viewModel.uiState.value.save.notice)
         }
 
     @Test
@@ -139,7 +139,7 @@ class RoutinesViewModelTest {
         viewModel.createRoutine(RoutineVisibility.PRIVATE, "   ", null, emptyList())
 
         assertEquals(0, repository.createCount)
-        assertEquals(RoutineUiMessage.TitleRequired, viewModel.uiState.value.error)
+        assertEquals(RoutineUiMessage.TitleRequired, viewModel.uiState.value.save.editorError)
     }
 
     @Test
@@ -147,11 +147,11 @@ class RoutinesViewModelTest {
         viewModel.createRoutine(RoutineVisibility.PRIVATE, "  Empuje ", null, emptyList())
         advanceUntilIdle()
 
-        assertEquals(CreatedItem("new-1", "Empuje"), viewModel.uiState.value.created)
-        assertNull(viewModel.uiState.value.notice)
+        assertEquals(CreatedItem("new-1", "Empuje"), viewModel.uiState.value.save.created)
+        assertNull(viewModel.uiState.value.save.notice)
 
-        viewModel.consumeCreated()
-        assertNull(viewModel.uiState.value.created)
+        viewModel.feedback.consumeCreated()
+        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
@@ -159,8 +159,8 @@ class RoutinesViewModelTest {
         viewModel.fork(routine("torso", RoutineVisibility.GLOBAL, "Torso"))
         advanceUntilIdle()
 
-        assertEquals(CreatedItem("new-1", "Torso"), viewModel.uiState.value.created)
-        assertNull(viewModel.uiState.value.notice)
+        assertEquals(CreatedItem("new-1", "Torso"), viewModel.uiState.value.save.created)
+        assertNull(viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -169,7 +169,7 @@ class RoutinesViewModelTest {
         advanceUntilIdle()
 
         assertEquals("new-1", repository.lastDeletedId)
-        assertNull(viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -177,7 +177,7 @@ class RoutinesViewModelTest {
         viewModel.updateRoutine("r1", "Pierna", null, emptyList())
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
@@ -203,7 +203,7 @@ class RoutinesViewModelTest {
         assertEquals("Pierna", repository.lastTitle)
         assertEquals("notas", repository.lastDescription)
         assertEquals(exercises, repository.lastExercises)
-        assertEquals(RoutineUiMessage.Saved, viewModel.uiState.value.notice)
+        assertEquals(RoutineUiMessage.Saved, viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -211,7 +211,7 @@ class RoutinesViewModelTest {
         viewModel.deleteRoutine("r1", undoable = false)
         advanceUntilIdle()
 
-        assertEquals(RoutineUiMessage.Deleted, viewModel.uiState.value.notice)
+        assertEquals(RoutineUiMessage.Deleted, viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -219,7 +219,7 @@ class RoutinesViewModelTest {
         viewModel.deleteRoutine("r1", undoable = true)
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -229,7 +229,7 @@ class RoutinesViewModelTest {
         viewModel.deleteRoutine("r1") { offered++ }
         advanceUntilIdle()
         assertEquals(0, offered)
-        assertEquals(RoutineUiMessage.NetworkError, viewModel.uiState.value.error)
+        assertEquals(RoutineUiMessage.NetworkError, viewModel.uiState.value.save.error)
 
         repository.failure = null
         viewModel.deleteRoutine("r1") { offered++ }
@@ -237,7 +237,7 @@ class RoutinesViewModelTest {
 
         assertEquals("r1", repository.lastDeletedId)
         assertEquals(1, offered)
-        assertNull(viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -257,7 +257,7 @@ class RoutinesViewModelTest {
         viewModel.restoreRoutine(routine("r1", RoutineVisibility.PRIVATE, "Mi torso"))
         advanceUntilIdle()
 
-        assertEquals(RoutineUiMessage.PermissionDenied, viewModel.uiState.value.error)
+        assertEquals(RoutineUiMessage.PermissionDenied, viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -288,7 +288,7 @@ class RoutinesViewModelTest {
         assertEquals("Intermedio · 60 min", repository.lastDescription)
         assertEquals(exercises, repository.lastExercises)
         assertEquals("torso", repository.lastSourceRoutineId)
-        assertNull(viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -313,7 +313,7 @@ class RoutinesViewModelTest {
         viewModel.fork(routine("torso", RoutineVisibility.GLOBAL, "Torso"))
         advanceUntilIdle()
 
-        assertEquals(RoutineUiMessage.PermissionDenied, viewModel.uiState.value.error)
+        assertEquals(RoutineUiMessage.PermissionDenied, viewModel.uiState.value.save.error)
         assertEquals(0, repository.createCount)
     }
 
@@ -334,8 +334,8 @@ class RoutinesViewModelTest {
         viewModel.updateRoutine("gone", "Empuje", null, emptyList())
         advanceUntilIdle()
 
-        assertEquals(RoutineUiMessage.NotFound, viewModel.uiState.value.error)
-        assertEquals(false, viewModel.uiState.value.isSaving)
+        assertEquals(RoutineUiMessage.NotFound, viewModel.uiState.value.save.editorError)
+        assertEquals(false, viewModel.uiState.value.save.isSaving)
     }
 
     @Test
@@ -344,16 +344,16 @@ class RoutinesViewModelTest {
         repository.addGate = gate
 
         viewModel.createRoutine(RoutineVisibility.PRIVATE, "Empuje", null, emptyList())
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
-        assertTrue(viewModel.uiState.value.isSaving)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
+        assertTrue(viewModel.uiState.value.save.isSaving)
 
         gate.complete(Unit)
         advanceUntilIdle()
 
-        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
-        assertFalse(viewModel.uiState.value.isSaving)
-        viewModel.consumeEditorSave()
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.save.editor)
+        assertFalse(viewModel.uiState.value.save.isSaving)
+        viewModel.feedback.resetEditor()
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
     }
 
     @Test
@@ -361,21 +361,21 @@ class RoutinesViewModelTest {
         repository.failure = RoutineFailure.Network
         viewModel.createRoutine(RoutineVisibility.PRIVATE, "Empuje", null, emptyList())
         advanceUntilIdle()
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        assertEquals(RoutineUiMessage.NetworkError, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.isSaving)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        assertEquals(RoutineUiMessage.NetworkError, viewModel.uiState.value.save.editorError)
+        assertFalse(viewModel.uiState.value.save.isSaving)
 
         repository.failure = null
-        viewModel.consumeEditorSave()
+        viewModel.feedback.resetEditor()
         repository.hang = true
         viewModel.updateRoutine("r1", "Empuje", null, emptyList())
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
         advanceTimeBy(EDITOR_SAVE_TIMEOUT_MILLIS + 1)
         runCurrent()
 
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        assertEquals(RoutineUiMessage.SaveTimeout, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.isSaving)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        assertEquals(RoutineUiMessage.SaveTimeout, viewModel.uiState.value.save.editorError)
+        assertFalse(viewModel.uiState.value.save.isSaving)
     }
 
     @Test
@@ -383,8 +383,27 @@ class RoutinesViewModelTest {
         viewModel.deleteRoutine("r1")
         advanceUntilIdle()
 
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
     }
+
+    @Test
+    fun `a forced restore that ends first keeps saving on until the other write ends`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.addGate = CompletableDeferred()
+            viewModel.createRoutine(RoutineVisibility.PRIVATE, "Empuje", null, emptyList())
+            runCurrent() // sin avanzar el reloj: el alta del editor tiene tiempo máximo
+
+            viewModel.restoreRoutine(routine("r1", RoutineVisibility.PRIVATE, "Mi torso"))
+            runCurrent()
+
+            assertEquals("r1", repository.lastRestored?.id)
+            assertTrue(viewModel.uiState.value.save.isSaving)
+
+            repository.addGate?.complete(Unit)
+            advanceUntilIdle()
+
+            assertFalse(viewModel.uiState.value.save.isSaving)
+        }
 }
 
 private class FakeExerciseRepository : ExerciseRepository {
