@@ -192,6 +192,19 @@ class TasksViewModelTest {
     }
 
     @Test
+    fun `completing a task that was already done offers no undo`() = runTest(mainDispatcherRule.testDispatcher) {
+        taskRepository.completionDates = null
+        val resultados = mutableListOf<Boolean>()
+
+        viewModel.setCompleted("home", task("t1", "Leche", null), true, onFinished = { resultados += it })
+        runCurrent()
+
+        assertTrue(viewModel.undoOffers.value.isEmpty())
+        assertEquals(listOf(true), resultados)
+        assertNull(viewModel.uiState.value.save.error)
+    }
+
+    @Test
     fun `reopening a task offers no undo`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.setCompleted("home", task("t1", "Leche", null), false)
         advanceUntilIdle()
@@ -642,7 +655,7 @@ private class FakeTaskRepository : TaskRepository {
     var createdAssignee: String? = null
     var createdAssigneeSet = false
     var completedChange: Triple<String, String, Boolean>? = null
-    var completionDates = TaskDates(null, null)
+    var completionDates: TaskDates? = TaskDates(null, null)
     var nextFailure: TaskRepositoryException? = null
     var loadFailure: Throwable? = null
     var createGate: CompletableDeferred<Unit>? = null
@@ -709,7 +722,7 @@ private class FakeTaskRepository : TaskRepository {
         throwNextFailure()
     }
 
-    override suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean): TaskDates {
+    override suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean): TaskDates? {
         completeStarted += taskId
         completeGate?.await()
         throwNextFailure()

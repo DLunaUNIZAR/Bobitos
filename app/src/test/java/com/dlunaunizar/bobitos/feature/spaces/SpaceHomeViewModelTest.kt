@@ -43,6 +43,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -73,7 +74,7 @@ class SpaceHomeViewModelTest {
     private val completions = mutableListOf<Triple<String, String, Boolean>>()
     private val restorations = mutableListOf<Pair<String, TaskItem>>()
     private val restoredTo = mutableListOf<TaskItem>()
-    private var completionDates = TaskDates(null, null)
+    private var completionDates: TaskDates? = TaskDates(null, null)
 
     private fun <T> MutableMap<String, MutableSharedFlow<T>>.source(space: String) =
         getOrPut(space) { MutableSharedFlow(replay = 1) }
@@ -91,7 +92,7 @@ class SpaceHomeViewModelTest {
                 override fun tasks(spaceId: String): Flow<List<TaskItem>> =
                     if (spaceId == failTasksOf) flow { throw IOException("sin conexión") } else tasks.of(spaceId)
 
-                override suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean): TaskDates {
+                override suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean): TaskDates? {
                     completions += Triple(spaceId, taskId, completed)
                     completionGate?.await()
                     if (failCompletion) throw IOException("sin conexión")
@@ -198,6 +199,21 @@ class SpaceHomeViewModelTest {
 
         assertEquals(listOf("a" to task), restorations)
         assertEquals(listOf(task.completedWith(dates)), restoredTo)
+    }
+
+    @Test
+    fun `completing a task that was already done offers no undo`() = runTest {
+        viewModel.show("a", me)
+        completionDates = null
+        val resultados = mutableListOf<Boolean>()
+
+        viewModel.complete(taskDueToday("t1"), onFinished = { resultados += it })
+        runCurrent()
+
+        assertEquals(listOf(Triple("a", "t1", true)), completions)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
+        assertEquals(listOf(true), resultados)
+        assertNull(viewModel.error.value)
     }
 
     @Test

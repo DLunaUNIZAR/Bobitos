@@ -35,8 +35,11 @@ interface TaskRepository {
         startAt: Instant?,
     )
 
-    /** Completa o reabre; devuelve las fechas que tiene la tarea después de escribir (adelantadas si se repite). */
-    suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean): TaskDates
+    /**
+     * Completa o reabre; devuelve las fechas que tiene la tarea después de escribir (adelantadas si se repite), o null
+     * si no escribió nada porque una tarea no recurrente ya estaba en el estado pedido (otro la cambió antes).
+     */
+    suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean): TaskDates?
 
     /**
      * «Deshacer» completar: deja [previous] (la tarea tal como estaba antes, siempre en TODO) otra vez pendiente con

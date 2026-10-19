@@ -118,7 +118,7 @@ class FirestoreTaskRepository @Inject constructor(
         Unit
     }
 
-    override suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean): TaskDates =
+    override suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean): TaskDates? =
         runTaskOperation {
             val user = requireVerifiedUser()
             val taskReference = tasksCollection(spaceId).document(taskId)
@@ -150,7 +150,9 @@ class FirestoreTaskRepository @Inject constructor(
                     TaskDates(newStart, newDue)
                 } else {
                     val targetStatus = if (completed) STATUS_DONE else STATUS_TODO
-                    if (task.getString(FIELD_STATUS) != targetStatus) {
+                    if (task.getString(FIELD_STATUS) == targetStatus) {
+                        null
+                    } else {
                         transaction.update(
                             taskReference,
                             FIELD_STATUS, targetStatus,
@@ -161,8 +163,8 @@ class FirestoreTaskRepository @Inject constructor(
                             FIELD_UPDATED_BY, user.id,
                             FIELD_UPDATED_AT, FieldValue.serverTimestamp(),
                         )
+                        TaskDates(oldStart, oldDue)
                     }
-                    TaskDates(oldStart, oldDue)
                 }
             }.await()
         }

@@ -102,7 +102,10 @@ class SpaceHomeViewModel @Inject constructor(
             completingIds,
             task.id,
             onFinished = onFinished,
-            onSuccess = { dates -> undo.offer(Undoable.Completed(spaceId, task, task.completedWith(dates))) },
+            // Sin fechas no se escribió nada (ya estaba hecha): no hay nada que deshacer.
+            onSuccess = { dates ->
+                dates?.let { undo.offer(Undoable.Completed(spaceId, task, task.completedWith(it))) }
+            },
             // Una cancelación lanzada por el repositorio (sin estar cancelado el scope) llega aquí como fallo normal.
             onFailure = { mutableError.value = it.toUiMessage() },
         ) { taskRepository.setCompleted(spaceId, task.id, true) }

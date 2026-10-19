@@ -157,7 +157,8 @@ class TasksViewModel @Inject constructor(
             onFinished = onFinished,
             onSuccess = { dates ->
                 if (completed) {
-                    undo.offer(Undoable.Completed(spaceId, task, task.completedWith(dates)))
+                    // Sin fechas no se escribió nada (ya estaba hecha): no hay nada que deshacer.
+                    dates?.let { undo.offer(Undoable.Completed(spaceId, task, task.completedWith(it))) }
                 } else {
                     saver.showNotice(TaskUiMessage.TaskReopened)
                 }
