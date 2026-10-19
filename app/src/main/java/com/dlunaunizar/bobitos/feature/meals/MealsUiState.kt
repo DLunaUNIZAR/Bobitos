@@ -1,7 +1,6 @@
 package com.dlunaunizar.bobitos.feature.meals
 
-import com.dlunaunizar.bobitos.core.common.CreatedItem
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.SaveState
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.Recipe
@@ -14,12 +13,7 @@ data class MealsUiState(
     val focusedDate: LocalDate = LocalDate.now(),
     val meals: UiState<List<Meal>> = UiState.Loading,
     val members: UiState<List<SpaceMember>> = UiState.Loading,
-    val isSaving: Boolean = false,
-    val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
-    val error: MealUiMessage? = null,
-    val notice: MealUiMessage? = null,
-    // Alta recién hecha desde la hoja: la pantalla la avisa con «Deshacer» y la consume.
-    val created: CreatedItem? = null,
+    val save: SaveState<MealUiMessage, MealUiMessage> = SaveState(),
     val recipes: List<Recipe> = emptyList(),
     // Ids de la despensa del espacio, para «Con lo que hay» del selector de receta; null si no se puede leer (sin chip).
     val pantryIds: Set<String>? = null,
@@ -28,7 +22,7 @@ data class MealsUiState(
     // Diálogo «Has cocinado …» tras marcar una comida como cocinada (null = sin diálogo).
     val cooked: CookedReview? = null,
     // El artículo de la lista que alguien ha cambiado o borrado la última vez que falló «Listo» (null si no se sabe).
-    // Solo cuenta con error = CookedShoppingChanged: se lee a través de cookedErrorItem.
+    // Solo cuenta con save.error = CookedShoppingChanged: se lee a través de cookedErrorItem.
     val changedItemName: String? = null,
 ) {
     // Lunes de la semana del día enfocado (ISO: día 1 = lunes). Define la ventana observada.
@@ -39,10 +33,7 @@ data class MealsUiState(
 
     // El artículo que nombra el error de «Has cocinado …»; null si el error es otro o no se sabe cuál.
     val cookedErrorItem: String?
-        get() = changedItemName.takeIf { error == MealUiMessage.CookedShoppingChanged }
-
-    // El error que va al aviso de la pantalla: con el diálogo «Has cocinado …» abierto el error es suyo y se queda aquí.
-    fun snackbarError(): MealUiMessage? = error.takeIf { cooked == null }
+        get() = changedItemName.takeIf { save.error == MealUiMessage.CookedShoppingChanged }
 
     private companion object {
         const val DAYS_IN_WEEK = 7L

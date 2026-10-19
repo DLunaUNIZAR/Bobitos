@@ -10,10 +10,13 @@ import com.dlunaunizar.bobitos.feature.common.ingredientShoppingSource
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientBrandRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientPrefsRepository
 import com.dlunaunizar.bobitos.feature.ingredients.FakeIngredientRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -27,18 +30,20 @@ class MealsUndoViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val mealRepository = FakeMealRepository()
-    private val viewModel = MealsViewModel(
-        mealRepository,
-        FakeSpaceRepository(),
-        FakeRecipeRepository(),
-        RecordingShoppingRepository(),
-        ingredientShoppingSource(
-            FakeIngredientRepository(),
-            FakeIngredientBrandRepository(),
-            FakeIngredientPrefsRepository(),
-        ),
-        FakePantryRepository(),
-    )
+    private val viewModel by lazy {
+        MealsViewModel(
+            mealRepository,
+            FakeSpaceRepository(),
+            FakeRecipeRepository(),
+            RecordingShoppingRepository(),
+            ingredientShoppingSource(
+                FakeIngredientRepository(),
+                FakeIngredientBrandRepository(),
+                FakeIngredientPrefsRepository(),
+            ),
+            FakePantryRepository(),
+        )
+    }
 
     @Test
     fun `undoing a delete keeps the id and the cooked state`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -52,7 +57,7 @@ class MealsUndoViewModelTest {
         assertEquals("home", space)
         assertEquals("m1", restored.id)
         assertTrue(restored.cooked)
-        assertNull(viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -75,7 +80,7 @@ class MealsUndoViewModelTest {
         viewModel.deleteMeal("m1") { offered++ }
         advanceUntilIdle()
         assertEquals(0, offered)
-        assertEquals(MealUiMessage.NetworkError, viewModel.uiState.value.error)
+        assertEquals(MealUiMessage.NetworkError, viewModel.uiState.value.save.error)
 
         mealRepository.nextFailure = null
         viewModel.deleteMeal("m1") { offered++ }
@@ -92,6 +97,31 @@ class MealsUndoViewModelTest {
         viewModel.restoreMeal("home", meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas"))
         advanceUntilIdle()
 
-        assertEquals(MealUiMessage.SpaceNotFound, viewModel.uiState.value.error)
+        assertEquals(MealUiMessage.SpaceNotFound, viewModel.uiState.value.save.error)
     }
+
+    @Test
+    fun `restoring a meal while another write is in flight keeps saving until both end`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel.observe("home")
+            advanceUntilIdle()
+            val addGate = CompletableDeferred<Unit>()
+            val restoreGate = CompletableDeferred<Unit>()
+            mealRepository.addGate = addGate
+            mealRepository.restoreGate = restoreGate
+
+            viewModel.addMeal(LocalDate.now(), MealSlot.CENA, "Cena", emptyList(), recipeId = null, cookId = null)
+            runCurrent()
+            viewModel.restoreMeal("home", meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas"))
+            runCurrent()
+            assertEquals(2, viewModel.uiState.value.save.running)
+
+            restoreGate.complete(Unit)
+            runCurrent()
+            assertTrue(viewModel.uiState.value.save.isSaving)
+
+            addGate.complete(Unit)
+            runCurrent()
+            assertFalse(viewModel.uiState.value.save.isSaving)
+        }
 }

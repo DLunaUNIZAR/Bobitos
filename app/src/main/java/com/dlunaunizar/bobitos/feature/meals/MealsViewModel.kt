@@ -3,14 +3,12 @@ package com.dlunaunizar.bobitos.feature.meals
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.CreatedItem
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
+import com.dlunaunizar.bobitos.core.common.SaveRunner
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
-import com.dlunaunizar.bobitos.core.common.failed
-import com.dlunaunizar.bobitos.core.common.started
-import com.dlunaunizar.bobitos.core.common.succeeded
+import com.dlunaunizar.bobitos.core.common.rethrowIfCancelled
 import com.dlunaunizar.bobitos.core.common.toFailureKind
-import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.MealSlot
 import com.dlunaunizar.bobitos.data.repository.MealFailure
@@ -35,7 +33,6 @@ import com.dlunaunizar.bobitos.feature.common.pantryRestock
 import com.dlunaunizar.bobitos.feature.common.withCurrentIds
 import com.dlunaunizar.bobitos.feature.common.writesNothing
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -58,6 +55,9 @@ class MealsViewModel @Inject constructor(
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(MealsUiState())
     val uiState: StateFlow<MealsUiState> = mutableUiState.asStateFlow()
+    private val saver =
+        SaveRunner(viewModelScope, mutableUiState, MealsUiState::save, { copy(save = it) }, Throwable::toUiMessage)
+    val feedback: SaveFeedbackControls get() = saver
 
     private var observedSpaceId: String? = null
     private var observedWeekStart: LocalDate? = null
@@ -146,26 +146,22 @@ class MealsViewModel @Inject constructor(
         if (!validate(name)) return
         val trimmed = name.trim()
         // Un alta desde la hoja deja `created` (con «Deshacer») en lugar del aviso de comida añadida.
-        runAction(null, editor = true) {
+        saver.create(editor = true) {
             CreatedItem(repository.addMeal(spaceId, date, slot, trimmed, participantIds, recipeId, cookId), trimmed)
         }
     }
 
-    fun consumeCreated() = mutableUiState.update { it.copy(created = null) }
-
     // «Deshacer» el alta: borra justo esa comida con el borrado de siempre (sin aviso; si falla, sale el error).
     fun undoCreate(id: String) {
         val spaceId = observedSpaceId ?: return
-        runAction(null, force = true) { repository.deleteMeal(spaceId, id) }
+        saver.run(force = true) { repository.deleteMeal(spaceId, id) }
     }
 
     // «Deshacer» el borrado: la comida vuelve con su id y su estado, al espacio en que estaba (no al que se esté
     // viendo ahora). No es un guardado del editor ni lleva aviso propio; si falla, sale el error.
     fun restoreMeal(spaceId: String, meal: Meal) {
-        runAction(null, force = true) { repository.restoreMeal(spaceId, meal) }
+        saver.run(force = true) { repository.restoreMeal(spaceId, meal) }
     }
-
-    fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
 
     fun updateMeal(
         mealId: String,
@@ -178,7 +174,7 @@ class MealsViewModel @Inject constructor(
     ) {
         val spaceId = observedSpaceId ?: return
         if (!validate(name)) return
-        runAction(MealUiMessage.MealUpdated, editor = true) {
+        saver.run(notice = MealUiMessage.MealUpdated, editor = true) {
             repository.updateMeal(spaceId, mealId, date, slot, name.trim(), participantIds, recipeId, cookId)
         }
     }
@@ -187,7 +183,7 @@ class MealsViewModel @Inject constructor(
     // Sin aviso propio: el snackbar de «Deshacer» ya confirma el borrado.
     fun deleteMeal(mealId: String, onDeleted: () -> Unit = {}) {
         val spaceId = observedSpaceId ?: return
-        runAction(null, onSuccess = onDeleted) {
+        saver.run(afterSuccess = { onDeleted() }) {
             repository.deleteMeal(spaceId, mealId)
         }
     }
@@ -197,7 +193,7 @@ class MealsViewModel @Inject constructor(
         val spaceId = observedSpaceId ?: return
         val meals = currentMeals().filter { it.date == mutableUiState.value.focusedDate }
         if (meals.isEmpty()) return
-        runAction(MealUiMessage.MealsDuplicated) {
+        saver.run(notice = MealUiMessage.MealsDuplicated) {
             meals.forEach {
                 repository.addMeal(spaceId, targetDate, it.slot, it.name, it.participantIds, it.recipeId, it.cookId)
             }
@@ -209,7 +205,7 @@ class MealsViewModel @Inject constructor(
         val spaceId = observedSpaceId ?: return
         val meals = currentMeals()
         if (meals.isEmpty()) return
-        runAction(MealUiMessage.MealsDuplicated) {
+        saver.run(notice = MealUiMessage.MealsDuplicated) {
             meals.forEach {
                 repository.addMeal(
                     spaceId,
@@ -239,26 +235,13 @@ class MealsViewModel @Inject constructor(
             .mapNotNull(recipesById::get)
             .flatMap { it.ingredients.orEmpty() }
         if (ingredients.isEmpty()) return
-        // La lectura del servidor puede tardar: mientras espera, isSaving evita lecturas en paralelo.
-        if (mutableUiState.value.isSaving) return
-        mutableUiState.update { it.copy(isSaving = true) }
-        viewModelScope.launch {
-            try {
-                // La lista y la despensa del servidor, a la vez. Sin la lista no se pueden buscar repetidos: si no se
-                // puede leer, no se abre la revisión; si no se puede leer la despensa, la revisión sale sin ella.
-                val (current, pantryIds) = runCatching {
-                    pantryRepository.withCurrentIds(spaceId) { shoppingRepository.currentItems(spaceId) }
-                }
-                    .onFailure { if (it is CancellationException) throw it }
-                    .getOrElse { error ->
-                        showError(error.toUiMessage())
-                        return@launch
-                    }
-                val rows = buildIngredientReviewRows(ingredients, current, shoppingData, pantryIds.orEmpty())
-                mutableUiState.update { it.copy(ingredientReview = rows) }
-            } finally {
-                mutableUiState.update { it.copy(isSaving = false) }
-            }
+        // La lectura del servidor puede tardar: mientras espera, «en curso» evita lecturas en paralelo. La lista y la
+        // despensa del servidor, a la vez. Sin la lista no se pueden buscar repetidos: si no se puede leer, no se abre
+        // la revisión; si no se puede leer la despensa, la revisión sale sin ella.
+        saver.run(onSuccess = { rows -> copy(ingredientReview = rows) }) {
+            val (current, pantryIds) =
+                pantryRepository.withCurrentIds(spaceId) { shoppingRepository.currentItems(spaceId) }
+            buildIngredientReviewRows(ingredients, current, shoppingData, pantryIds.orEmpty())
         }
     }
 
@@ -269,32 +252,25 @@ class MealsViewModel @Inject constructor(
     // sección no sale.
     fun markCooked(meal: Meal) {
         val spaceId = observedSpaceId ?: return
-        if (mutableUiState.value.isSaving) return
         val ingredients = mutableUiState.value.recipes.firstOrNull { it.id == meal.recipeId }?.ingredients.orEmpty()
-        mutableUiState.update { it.copy(isSaving = true, error = null, notice = null) }
-        viewModelScope.launch {
-            try {
-                repository.setCooked(spaceId, meal.id, true)
-                val review = if (ingredients.isEmpty()) {
-                    null
-                } else {
-                    val (items, pantryIds) = pantryRepository.withCurrentIds(spaceId) {
-                        runCatching { shoppingRepository.currentItems(spaceId) }
-                            .onFailure { if (it is CancellationException) throw it }
-                            .getOrNull()
-                    }
-                    cookedReview(meal.name, ingredients, items, pantryIds)
+        saver.run(notice = MealUiMessage.MealCooked, onSuccess = { review -> copy(cooked = review) }) {
+            repository.setCooked(spaceId, meal.id, true)
+            if (ingredients.isEmpty()) {
+                null
+            } else {
+                val (items, pantryIds) = pantryRepository.withCurrentIds(spaceId) {
+                    runCatching { shoppingRepository.currentItems(spaceId) }
+                        .onFailure { it.rethrowIfCancelled() }
+                        .getOrNull()
                 }
-                mutableUiState.update { it.copy(isSaving = false, notice = MealUiMessage.MealCooked, cooked = review) }
-            } catch (error: Throwable) {
-                showError(error.toUiMessage())
+                cookedReview(meal.name, ingredients, items, pantryIds)
             }
         }
     }
 
     fun unmarkCooked(meal: Meal) {
         val spaceId = observedSpaceId ?: return
-        runAction(null) { repository.setCooked(spaceId, meal.id, false) }
+        saver.run { repository.setCooked(spaceId, meal.id, false) }
     }
 
     // «Listo» en «Has cocinado …», en una sola escritura (ShoppingRepository.applyCooked): tacha lo marcado (si es un
@@ -306,18 +282,17 @@ class MealsViewModel @Inject constructor(
         val spaceId = observedSpaceId ?: return
         val writes = mutableUiState.value.cooked?.writesFor(choice) ?: return
         if (writes.isEmpty) {
-            mutableUiState.update { it.copy(cooked = null, error = null) }
+            mutableUiState.update { it.copy(cooked = null, changedItemName = null) }
+            saver.consumeError()
             return
         }
-        runAction(
-            MealUiMessage.CookedReviewApplied,
-            toMessage = { error ->
-                // Qué artículo ha cambiado, para nombrarlo en el diálogo (MealsUiState.cookedErrorItem).
-                val itemName = (error as? ShoppingRepositoryException)?.itemName
-                mutableUiState.update { it.copy(changedItemName = itemName) }
-                // Si se ha pulsado «Cancelar» mientras guardaba, ya no hay «Listo» que volver a pulsar.
-                error.toCookedUiMessage(dialogOpen = mutableUiState.value.cooked != null)
-            },
+        saver.run(
+            notice = MealUiMessage.CookedReviewApplied,
+            onSuccess = { copy(cooked = null) },
+            // Qué artículo ha cambiado, para nombrarlo en el diálogo (MealsUiState.cookedErrorItem).
+            onFailure = { error -> copy(changedItemName = (error as? ShoppingRepositoryException)?.itemName) },
+            // Si se ha pulsado «Cancelar» mientras guardaba, ya no hay «Listo» que volver a pulsar.
+            errorOf = { error -> error.toCookedUiMessage(dialogOpen = mutableUiState.value.cooked != null) },
         ) {
             val needsCatalog = writes.crossOff.isNotEmpty() || writes.restockNames.isNotEmpty()
             // Primero el catálogo (al momento si ya ha llegado; si no, hasta 5 s) y después la lista: «A la compra»
@@ -334,12 +309,14 @@ class MealsViewModel @Inject constructor(
                 writes.finishedIds,
                 restock,
             )
-            mutableUiState.update { it.copy(cooked = null) }
         }
     }
 
     // «Cancelar»: el error de «Listo» es del diálogo y se va con él.
-    fun dismissCooked() = mutableUiState.update { it.copy(cooked = null, error = null) }
+    fun dismissCooked() {
+        mutableUiState.update { it.copy(cooked = null, changedItemName = null) }
+        saver.consumeError()
+    }
 
     // Catálogo para reconocer ingredientes: el que ya escucha la pantalla; si aún no ha llegado, se espera 5 s como máximo
     // y, si no llega, se sigue sin él (lo tachado no entra en la despensa; lo apuntado va sin marca ni tienda).
@@ -351,22 +328,18 @@ class MealsViewModel @Inject constructor(
         val spaceId = observedSpaceId ?: return
         val rows = mutableUiState.value.ingredientReview ?: return
         if (choices.writesNothing()) {
-            mutableUiState.update {
-                it.copy(ingredientReview = null, error = null, notice = MealUiMessage.NothingToAddToShopping)
-            }
+            mutableUiState.update { it.copy(ingredientReview = null) }
+            saver.clearFeedback()
+            saver.showNotice(MealUiMessage.NothingToAddToShopping)
             return
         }
         mutableUiState.update { it.copy(ingredientReview = null) }
-        runAction(MealUiMessage.IngredientsAddedToShopping) {
+        saver.run(notice = MealUiMessage.IngredientsAddedToShopping) {
             applyIngredientReview(spaceId, rows, choices, shoppingRepository)
         }
     }
 
     private fun currentMeals(): List<Meal> = (mutableUiState.value.meals as? UiState.Content)?.value.orEmpty()
-
-    fun clearFeedback() {
-        mutableUiState.update { it.copy(error = null, notice = null) }
-    }
 
     private fun goToDate(date: LocalDate) {
         if (date == mutableUiState.value.focusedDate) return
@@ -389,51 +362,12 @@ class MealsViewModel @Inject constructor(
 
     private fun validate(name: String): Boolean {
         val error = MealsValidation.validate(name) ?: return true
-        showError(error, editor = true)
+        saver.showEditorError(error)
         return false
-    }
-
-    private fun showError(message: MealUiMessage, editor: Boolean = false) {
-        mutableUiState.update {
-            it.copy(isSaving = false, error = message, notice = null, editorSave = it.editorSave.failed(editor))
-        }
-    }
-
-    private fun runAction(
-        successNotice: MealUiMessage?,
-        editor: Boolean = false,
-        toMessage: (Throwable) -> MealUiMessage = Throwable::toUiMessage,
-        force: Boolean = false,
-        onSuccess: () -> Unit = {},
-        // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
-        action: suspend () -> Any?,
-    ) {
-        if (mutableUiState.value.isSaving && !force) return
-        mutableUiState.update {
-            it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
-        }
-        viewModelScope.launch {
-            runCatching { withEditorSaveTimeout(editor) { action() } }
-                .onSuccess { result ->
-                    mutableUiState.update {
-                        it.copy(
-                            isSaving = false,
-                            notice = successNotice,
-                            created = result as? CreatedItem,
-                            editorSave = it.editorSave.succeeded(editor),
-                        )
-                    }
-                    onSuccess()
-                }
-                .onFailure { error ->
-                    if (error is CancellationException) throw error
-                    showError(toMessage(error), editor)
-                }
-        }
     }
 }
 
-private fun Throwable.toUiMessage(): MealUiMessage = when (this) {
+internal fun Throwable.toUiMessage(): MealUiMessage = when (this) {
     is MealRepositoryException -> failure.toUiMessage()
     is ShoppingRepositoryException -> failure.toUiMessage()
     is SaveTimeoutException -> MealUiMessage.SaveTimeout
@@ -471,10 +405,11 @@ private fun ShoppingFailure.toUiMessage(): MealUiMessage = when (this) {
     ShoppingFailure.SpaceNotFound -> MealUiMessage.SpaceNotFound
     ShoppingFailure.PermissionDenied -> MealUiMessage.PermissionDenied
     ShoppingFailure.Network -> MealUiMessage.NetworkError
-    // La revisión de «Añadir a la compra» convierte ItemNotFound en ItemChanged (applySeenWrites); «Listo» al cocinar
-    // elige su propio mensaje (toCookedUiMessage).
-    ShoppingFailure.ItemChanged -> MealUiMessage.ShoppingChanged
+    // Un artículo cambiado o ya borrado es lo mismo para quien toca: la lista ha cambiado. «Listo» al cocinar elige su
+    // propio mensaje (toCookedUiMessage).
+    ShoppingFailure.ItemChanged,
     ShoppingFailure.ItemNotFound,
+    -> MealUiMessage.ShoppingChanged
     ShoppingFailure.NameRequired,
     ShoppingFailure.NameTooLong,
     ShoppingFailure.QuantityTooLong,

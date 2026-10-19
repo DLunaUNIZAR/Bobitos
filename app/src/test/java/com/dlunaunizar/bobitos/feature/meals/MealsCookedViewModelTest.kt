@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.feature.meals
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.SaveState
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.MealSlot
@@ -49,18 +50,20 @@ class MealsCookedViewModelTest {
     private val shoppingRepository = RecordingShoppingRepository()
     private val ingredientRepository = FakeIngredientRepository()
     private val pantryRepository = FakePantryRepository()
-    private val viewModel = MealsViewModel(
-        mealRepository,
-        spaceRepository,
-        recipeRepository,
-        shoppingRepository,
-        ingredientShoppingSource(
-            ingredientRepository,
-            FakeIngredientBrandRepository(),
-            FakeIngredientPrefsRepository(),
-        ),
-        pantryRepository,
-    )
+    private val viewModel by lazy {
+        MealsViewModel(
+            mealRepository,
+            spaceRepository,
+            recipeRepository,
+            shoppingRepository,
+            ingredientShoppingSource(
+                ingredientRepository,
+                FakeIngredientBrandRepository(),
+                FakeIngredientPrefsRepository(),
+            ),
+            pantryRepository,
+        )
+    }
 
     @Test
     fun `cooking offers what the recipe uses from the pantry, read from the server`() =
@@ -96,7 +99,7 @@ class MealsCookedViewModelTest {
 
             assertEquals(listOf("Arroz"), viewModel.uiState.value.cooked?.crossOff?.map(ShoppingItem::name))
             assertEquals(emptyList<CookedPantryRow>(), viewModel.uiState.value.cooked?.finished)
-            assertNull(viewModel.uiState.value.error)
+            assertNull(viewModel.uiState.value.save.error)
         }
 
     @Test
@@ -115,7 +118,7 @@ class MealsCookedViewModelTest {
 
             assertEquals(listOf("s1"), shoppingRepository.purchasedIds)
             assertEquals(listOf<PantryEntry?>(PantryEntry("Arroz", null)), shoppingRepository.purchasedEntries)
-            assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.notice)
+            assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.save.notice)
             assertNull(viewModel.uiState.value.cooked)
         }
 
@@ -135,7 +138,7 @@ class MealsCookedViewModelTest {
 
             assertEquals(listOf(pantryId("Leche")), shoppingRepository.cookedCalls.single().finishedPantryIds)
             assertEquals(listOf("Leche"), shoppingRepository.addedNames)
-            assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.notice)
+            assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.save.notice)
         }
 
     @Test
@@ -176,7 +179,7 @@ class MealsCookedViewModelTest {
             assertTrue(shoppingRepository.cookedCalls.isEmpty())
             assertTrue(shoppingRepository.appliedBatches.isEmpty())
             assertNull(viewModel.uiState.value.cooked)
-            assertFalse(viewModel.uiState.value.isSaving)
+            assertFalse(viewModel.uiState.value.save.isSaving)
         }
 
     @Test
@@ -225,7 +228,7 @@ class MealsCookedViewModelTest {
             assertEquals(listOf("Leche"), call.restock.map { (it as ShoppingWrite.Add).name })
             assertTrue(pantryRepository.removed.isEmpty())
             assertTrue(shoppingRepository.appliedBatches.isEmpty())
-            assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.notice)
+            assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.save.notice)
             assertNull(viewModel.uiState.value.cooked)
         }
 
@@ -245,9 +248,9 @@ class MealsCookedViewModelTest {
             advanceUntilIdle()
 
             assertSame(review, viewModel.uiState.value.cooked)
-            assertEquals(MealUiMessage.NetworkError, viewModel.uiState.value.error)
-            assertNull(viewModel.uiState.value.notice)
-            assertFalse(viewModel.uiState.value.isSaving)
+            assertEquals(MealUiMessage.NetworkError, viewModel.uiState.value.save.error)
+            assertNull(viewModel.uiState.value.save.notice)
+            assertFalse(viewModel.uiState.value.save.isSaving)
             assertTrue(shoppingRepository.purchasedIds.isEmpty())
 
             shoppingRepository.cookedFailure = null
@@ -256,8 +259,8 @@ class MealsCookedViewModelTest {
 
             assertEquals(1, shoppingRepository.cookedCalls.size)
             assertNull(viewModel.uiState.value.cooked)
-            assertNull(viewModel.uiState.value.error)
-            assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.notice)
+            assertNull(viewModel.uiState.value.save.error)
+            assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.save.notice)
         }
 
     @Test
@@ -277,7 +280,7 @@ class MealsCookedViewModelTest {
             runCurrent()
 
             assertSame(review, viewModel.uiState.value.cooked)
-            assertTrue(viewModel.uiState.value.isSaving)
+            assertTrue(viewModel.uiState.value.save.isSaving)
             shoppingRepository.cookedGate?.complete(Unit)
             advanceUntilIdle()
             assertEquals(1, shoppingRepository.cookedCalls.size)
@@ -299,7 +302,7 @@ class MealsCookedViewModelTest {
             viewModel.confirmCooked(review.defaultChoice().toggleFinished(pantryId("Leche")))
             advanceUntilIdle()
 
-            assertEquals(MealUiMessage.CookedShoppingChanged, viewModel.uiState.value.error)
+            assertEquals(MealUiMessage.CookedShoppingChanged, viewModel.uiState.value.save.error)
             assertSame(review, viewModel.uiState.value.cooked)
         }
 
@@ -319,9 +322,9 @@ class MealsCookedViewModelTest {
             viewModel.confirmCooked(choice)
             advanceUntilIdle()
 
-            assertEquals(MealUiMessage.CookedShoppingChanged, viewModel.uiState.value.error)
+            assertEquals(MealUiMessage.CookedShoppingChanged, viewModel.uiState.value.save.error)
             assertSame(review, viewModel.uiState.value.cooked)
-            assertFalse(viewModel.uiState.value.isSaving)
+            assertFalse(viewModel.uiState.value.save.isSaving)
             val readsAfterFailure = shoppingRepository.currentItemsCalls
 
             shoppingRepository.cookedFailure = null
@@ -331,8 +334,8 @@ class MealsCookedViewModelTest {
             assertEquals(readsAfterFailure + 1, shoppingRepository.currentItemsCalls)
             assertEquals(1, shoppingRepository.cookedCalls.size)
             assertNull(viewModel.uiState.value.cooked)
-            assertNull(viewModel.uiState.value.error)
-            assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.notice)
+            assertNull(viewModel.uiState.value.save.error)
+            assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.save.notice)
         }
 
     @Test
@@ -349,7 +352,7 @@ class MealsCookedViewModelTest {
         viewModel.confirmCooked(review.defaultChoice().toggleFinished(pantryId("Leche")))
         advanceUntilIdle()
 
-        assertEquals(MealUiMessage.PermissionDenied, viewModel.uiState.value.error)
+        assertEquals(MealUiMessage.PermissionDenied, viewModel.uiState.value.save.error)
         assertSame(review, viewModel.uiState.value.cooked)
     }
 
@@ -366,12 +369,12 @@ class MealsCookedViewModelTest {
             shoppingRepository.cookedFailure = ShoppingRepositoryException(ShoppingFailure.ItemChanged)
             viewModel.confirmCooked(review.defaultChoice().toggleFinished(pantryId("Leche")))
             advanceUntilIdle()
-            assertEquals(MealUiMessage.CookedShoppingChanged, viewModel.uiState.value.error)
+            assertEquals(MealUiMessage.CookedShoppingChanged, viewModel.uiState.value.save.error)
 
             viewModel.dismissCooked()
 
             assertNull(viewModel.uiState.value.cooked)
-            assertNull(viewModel.uiState.value.error)
+            assertNull(viewModel.uiState.value.save.error)
         }
 
     @Test
@@ -387,13 +390,13 @@ class MealsCookedViewModelTest {
             shoppingRepository.cookedFailure = ShoppingRepositoryException(ShoppingFailure.ItemChanged)
             viewModel.confirmCooked(review.defaultChoice().toggleFinished(pantryId("Leche")))
             advanceUntilIdle()
-            assertEquals(MealUiMessage.CookedShoppingChanged, viewModel.uiState.value.error)
+            assertEquals(MealUiMessage.CookedShoppingChanged, viewModel.uiState.value.save.error)
 
             viewModel.confirmCooked(CookedChoice(emptySet(), emptySet(), restock = false))
             advanceUntilIdle()
 
             assertNull(viewModel.uiState.value.cooked)
-            assertNull(viewModel.uiState.value.error)
+            assertNull(viewModel.uiState.value.save.error)
         }
 
     @Test
@@ -416,8 +419,8 @@ class MealsCookedViewModelTest {
             advanceUntilIdle()
 
             assertNull(viewModel.uiState.value.cooked)
-            assertEquals(MealUiMessage.CookedNotApplied, viewModel.uiState.value.error)
-            assertFalse(viewModel.uiState.value.isSaving)
+            assertEquals(MealUiMessage.CookedNotApplied, viewModel.uiState.value.save.error)
+            assertFalse(viewModel.uiState.value.save.isSaving)
             assertTrue(shoppingRepository.cookedCalls.isEmpty())
         }
 
@@ -440,8 +443,8 @@ class MealsCookedViewModelTest {
             advanceUntilIdle()
 
             assertNull(viewModel.uiState.value.cooked)
-            assertNull(viewModel.uiState.value.error)
-            assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.notice)
+            assertNull(viewModel.uiState.value.save.error)
+            assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.save.notice)
             assertEquals(1, shoppingRepository.cookedCalls.size)
         }
 
@@ -461,7 +464,7 @@ class MealsCookedViewModelTest {
             viewModel.confirmCooked(choice)
             advanceUntilIdle()
 
-            assertEquals(MealUiMessage.CookedShoppingChanged, viewModel.uiState.value.error)
+            assertEquals(MealUiMessage.CookedShoppingChanged, viewModel.uiState.value.save.error)
             assertEquals("Leche", viewModel.uiState.value.cookedErrorItem)
 
             // Si el siguiente fallo no dice qué artículo, no se repite el nombre de antes.
@@ -469,18 +472,73 @@ class MealsCookedViewModelTest {
             viewModel.confirmCooked(choice)
             advanceUntilIdle()
 
-            assertEquals(MealUiMessage.CookedShoppingChanged, viewModel.uiState.value.error)
+            assertEquals(MealUiMessage.CookedShoppingChanged, viewModel.uiState.value.save.error)
             assertNull(viewModel.uiState.value.cookedErrorItem)
         }
 
     @Test
+    fun `dismissing the cooked dialog forgets the changed item name`() = runTest(mainDispatcherRule.testDispatcher) {
+        recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Leche", "1", "l"))))
+        pantryRepository.serverIds = setOf(pantryId("Leche"))
+        viewModel.observe("home")
+        advanceUntilIdle()
+        viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.DESAYUNO, "Café con leche").copy(recipeId = "r1"))
+        advanceUntilIdle()
+        val choice = viewModel.uiState.value.cooked!!.defaultChoice().toggleFinished(pantryId("Leche"))
+        shoppingRepository.cookedFailure =
+            ShoppingRepositoryException(ShoppingFailure.ItemChanged, itemName = "Leche")
+        viewModel.confirmCooked(choice)
+        advanceUntilIdle()
+        assertEquals("Leche", viewModel.uiState.value.changedItemName)
+
+        viewModel.dismissCooked()
+
+        assertNull(viewModel.uiState.value.changedItemName)
+        assertNull(viewModel.uiState.value.save.error)
+    }
+
+    @Test
+    fun `a cooked error without a name clears a previous name`() = runTest(mainDispatcherRule.testDispatcher) {
+        recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Leche", "1", "l"))))
+        pantryRepository.serverIds = setOf(pantryId("Leche"))
+        viewModel.observe("home")
+        advanceUntilIdle()
+        viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.DESAYUNO, "Café con leche").copy(recipeId = "r1"))
+        advanceUntilIdle()
+        val choice = viewModel.uiState.value.cooked!!.defaultChoice().toggleFinished(pantryId("Leche"))
+        shoppingRepository.cookedFailure =
+            ShoppingRepositoryException(ShoppingFailure.ItemChanged, itemName = "Leche")
+        viewModel.confirmCooked(choice)
+        advanceUntilIdle()
+        assertEquals("Leche", viewModel.uiState.value.changedItemName)
+
+        shoppingRepository.cookedFailure = ShoppingRepositoryException(ShoppingFailure.Network)
+        viewModel.confirmCooked(choice)
+        advanceUntilIdle()
+
+        assertEquals(MealUiMessage.NetworkError, viewModel.uiState.value.save.error)
+        assertNull(viewModel.uiState.value.changedItemName)
+    }
+
+    @Test
+    fun `an item not found in the shopping list reads as the list has changed`() {
+        assertEquals(
+            MealUiMessage.ShoppingChanged,
+            ShoppingRepositoryException(ShoppingFailure.ItemNotFound).toUiMessage(),
+        )
+    }
+
+    @Test
     fun `the changed item is only named with the error that asks to tap done again`() {
-        val state = MealsUiState(error = MealUiMessage.CookedShoppingChanged, changedItemName = "Leche")
+        val state = MealsUiState(
+            save = SaveState(error = MealUiMessage.CookedShoppingChanged),
+            changedItemName = "Leche",
+        )
 
         assertEquals("Leche", state.cookedErrorItem)
-        assertNull(state.copy(error = MealUiMessage.NetworkError).cookedErrorItem)
-        assertNull(state.copy(error = MealUiMessage.CookedNotApplied).cookedErrorItem)
-        assertNull(state.copy(error = null).cookedErrorItem)
+        assertNull(state.copy(save = SaveState(error = MealUiMessage.NetworkError)).cookedErrorItem)
+        assertNull(state.copy(save = SaveState(error = MealUiMessage.CookedNotApplied)).cookedErrorItem)
+        assertNull(state.copy(save = SaveState()).cookedErrorItem)
     }
 
     @Test
@@ -500,7 +558,7 @@ class MealsCookedViewModelTest {
             viewModel.confirmCooked(choice)
             advanceUntilIdle()
 
-            assertEquals(MealUiMessage.CookedShoppingChanged, viewModel.uiState.value.error)
+            assertEquals(MealUiMessage.CookedShoppingChanged, viewModel.uiState.value.save.error)
             assertEquals("Leche", viewModel.uiState.value.cookedErrorItem)
 
             shoppingRepository.cookedFailure = null
@@ -510,7 +568,7 @@ class MealsCookedViewModelTest {
 
             assertTrue(shoppingRepository.cookedCalls.single().restock.isEmpty())
             assertNull(viewModel.uiState.value.cooked)
-            assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.notice)
+            assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.save.notice)
         }
 
     @Test
@@ -573,7 +631,7 @@ class MealsCookedViewModelTest {
             runCurrent()
 
             assertTrue(shoppingRepository.cookedCalls.single().restock.isEmpty())
-            assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.notice)
+            assertEquals(MealUiMessage.CookedReviewApplied, viewModel.uiState.value.save.notice)
         }
 
     @Test
@@ -620,8 +678,8 @@ class MealsCookedViewModelTest {
             advanceTimeBy(5_001)
             runCurrent()
 
-            assertEquals(MealUiMessage.NetworkError, viewModel.uiState.value.error)
-            assertFalse(viewModel.uiState.value.isSaving)
+            assertEquals(MealUiMessage.NetworkError, viewModel.uiState.value.save.error)
+            assertFalse(viewModel.uiState.value.save.isSaving)
             assertSame(review, viewModel.uiState.value.cooked)
             assertTrue(shoppingRepository.cookedCalls.isEmpty())
         }

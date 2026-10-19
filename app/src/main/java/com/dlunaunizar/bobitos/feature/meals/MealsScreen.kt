@@ -51,7 +51,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.BobitosDates
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
@@ -63,7 +62,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.DayTitleButton
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
-import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
@@ -71,11 +69,11 @@ import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
+import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.WeekDayStrip
 import com.dlunaunizar.bobitos.core.designsystem.component.cascadeIn
-import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberDayCascade
@@ -124,7 +122,7 @@ fun MealsScreen(
     var dayMenuExpanded by remember { mutableStateOf(false) }
     var duplicateDayPicker by remember { mutableStateOf(false) }
     val members = (state.members as? UiState.Content)?.value.orEmpty()
-    val actionsEnabled = canWrite && !state.isSaving
+    val actionsEnabled = canWrite && !state.save.isSaving
     val scope = rememberCoroutineScope()
     val deletedMessage = stringResource(R.string.meals_undo_deleted)
     val undoLabel = stringResource(R.string.undo)
@@ -132,7 +130,7 @@ fun MealsScreen(
     val listState = rememberLazyListState()
     ModuleScaffold(
         modifier = modifier.fillMaxSize(),
-        saving = savingOutsideEditor(state.isSaving, editorOpen),
+        saving = savingOutsideEditor(state.save.isSaving, editorOpen),
         floatingActionButton = {
             NewMealFab(
                 visible = canWrite,
@@ -142,15 +140,15 @@ fun MealsScreen(
         },
     ) { padding ->
         val snackbar = LocalSnackbarHostState.current
-        FeedbackSnackbarEffect(
-            error = state.snackbarError(),
-            notice = state.notice,
-            editorSave = state.editorSave,
-            editorOpen = editorOpen,
-            onShown = viewModel::clearFeedback,
-            text = { stringResource(it.stringResourceId) },
+        // Con el editor o «Has cocinado …» abiertos, cubren la pantalla: el error de «Listo» se ve dentro del diálogo.
+        SaveFeedbackEffect(
+            save = state.save,
+            controls = viewModel.feedback,
+            covered = editorOpen || state.cooked != null,
+            errorText = { stringResource(it.stringResourceId) },
+            noticeText = { stringResource(it.stringResourceId) },
         )
-        CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
+        CreatedUndoEffect(state.save.created, viewModel.feedback::consumeCreated) { viewModel.undoCreate(it.id) }
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             // La tira queda fija bajo la barra: no se desplaza con la lista.
             ModuleHeaderBand {
@@ -281,15 +279,15 @@ fun MealsScreen(
 
     val closeEditor = {
         // Cerrar tras un guardado fallido descarta ese error (ya se veía en la hoja).
-        state.editorSave.discardFailure(viewModel::clearFeedback)
+        viewModel.feedback.resetEditor()
         editorOpen = false
         editorMealId = null
     }
     EditorSaveEffect(
-        status = state.editorSave,
+        editor = state.save.editor,
         editorOpen = editorOpen,
+        controls = viewModel.feedback,
         onClose = closeEditor,
-        onConsume = viewModel::consumeEditorSave,
     )
     MealEditorHost(
         open = editorOpen,
@@ -300,9 +298,8 @@ fun MealsScreen(
         members = members,
         recipes = state.recipes,
         pantryIds = state.pantryIds,
-        saving = state.isSaving,
-        errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
-            ?.let { stringResource(it.stringResourceId) },
+        saving = state.save.isSaving,
+        errorMessage = state.save.editorError?.let { stringResource(it.stringResourceId) },
         canWrite = canWrite,
         onClose = closeEditor,
         onSave = { meal, slot, name, participantIds, recipeId, cookId ->
@@ -341,10 +338,10 @@ fun MealsScreen(
 private fun CookedReviewDialog(review: CookedReview, state: MealsUiState, viewModel: MealsViewModel) {
     CookedDialog(
         review = review,
-        saving = state.isSaving,
+        saving = state.save.isSaving,
         // Si «Listo» ha fallado porque alguien ha cambiado un artículo de la lista, lo nombra.
         errorMessage = state.cookedErrorItem?.let { stringResource(R.string.meals_error_cooked_item_changed, it) }
-            ?: state.error?.let { stringResource(it.stringResourceId) },
+            ?: state.save.error?.let { stringResource(it.stringResourceId) },
         onConfirm = viewModel::confirmCooked,
         onDismiss = viewModel::dismissCooked,
     )
