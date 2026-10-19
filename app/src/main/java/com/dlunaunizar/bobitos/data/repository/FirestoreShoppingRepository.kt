@@ -77,18 +77,28 @@ class FirestoreShoppingRepository @Inject constructor(
         supermarket: Supermarket?,
         brand: String?,
     ): String = runShoppingOperation {
-        val user = requireVerifiedUser()
         val values = validateItem(name, quantity, notes, supermarket, brand)
-        val spaceReference = firestore.collection(SPACES).document(spaceId)
         val itemReference = itemsCollection(spaceId).document()
+        writeNewItem(spaceId, itemReference, values, purchased = false)
+        itemReference.id
+    }
 
+    // El alta y la restauración escriben igual: mismo mapa de campos, en una sola escritura. Al restaurar un artículo
+    // comprado, quien deshace figura como quien lo compró.
+    private suspend fun writeNewItem(
+        spaceId: String,
+        itemReference: DocumentReference,
+        values: ItemValues,
+        purchased: Boolean,
+    ) {
+        val user = requireVerifiedUser()
+        val spaceReference = firestore.collection(SPACES).document(spaceId)
         firestore.runTransaction { transaction ->
             if (!transaction.get(spaceReference).exists()) {
                 throw ShoppingRepositoryException(ShoppingFailure.SpaceNotFound)
             }
-            transaction.set(itemReference, newItemFields(user, values))
+            transaction.set(itemReference, newItemFields(user, values, purchased))
         }.await()
-        itemReference.id
     }
 
     override suspend fun updateItem(
@@ -158,23 +168,6 @@ class FirestoreShoppingRepository @Inject constructor(
     private fun requireUnchanged(snapshot: DocumentSnapshot, seen: ShoppingItem) {
         staleItemFailure(snapshot.takeIf { it.exists() }?.toShoppingItem(), seen)?.let { throw it }
     }
-
-    private fun newItemFields(user: AuthUser, values: ItemValues): Map<String, Any?> = mapOf(
-        FIELD_NAME to values.name,
-        FIELD_QUANTITY to values.quantity,
-        FIELD_NOTES to values.notes,
-        FIELD_SUPERMARKET to values.supermarket,
-        FIELD_BRAND to values.brand,
-        FIELD_PURCHASED to false,
-        FIELD_CREATED_BY to user.id,
-        FIELD_CREATED_BY_NAME to user.shoppingDisplayName,
-        FIELD_CREATED_AT to FieldValue.serverTimestamp(),
-        FIELD_UPDATED_BY to user.id,
-        FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
-        FIELD_PURCHASED_BY to null,
-        FIELD_PURCHASED_BY_NAME to null,
-        FIELD_PURCHASED_AT to null,
-    )
 
     // Campos de una edición: con `rename` cambia también el nombre; con `relist` deja el artículo pendiente, sin quién
     // ni cuándo lo compró. Los `null` se escriben como `null`.
@@ -301,28 +294,22 @@ class FirestoreShoppingRepository @Inject constructor(
         Unit
     }
 
-    override suspend fun restoreItem(spaceId: String, item: ShoppingItem) = runShoppingOperation {
+    override suspend fun undoAddItem(spaceId: String, itemId: String) = runShoppingOperation {
         val user = requireVerifiedUser()
-        val values = validateItem(item.name, item.quantity, item.notes, item.supermarket, item.brand)
-        val spaceReference = firestore.collection(SPACES).document(spaceId)
-        val reference = itemsCollection(spaceId).document(item.id)
+        val reference = itemsCollection(spaceId).document(itemId)
         firestore.runTransaction { transaction ->
-            if (!transaction.get(spaceReference).exists()) {
-                throw ShoppingRepositoryException(ShoppingFailure.SpaceNotFound)
+            val item = requireItem(transaction.get(reference))
+            if (!isLastWriter(item.getString(FIELD_UPDATED_BY), user.id)) {
+                throw ShoppingRepositoryException(ShoppingFailure.CreatedItemChanged)
             }
-            transaction.set(reference, newItemFields(user, values))
+            transaction.delete(reference)
         }.await()
-        if (item.purchased) {
-            reference.update(
-                FIELD_PURCHASED, true,
-                FIELD_PURCHASED_BY, user.id,
-                FIELD_PURCHASED_BY_NAME, user.shoppingDisplayName,
-                FIELD_PURCHASED_AT, FieldValue.serverTimestamp(),
-                FIELD_UPDATED_BY, user.id,
-                FIELD_UPDATED_AT, FieldValue.serverTimestamp(),
-            ).await()
-        }
         Unit
+    }
+
+    override suspend fun restoreItem(spaceId: String, item: ShoppingItem) = runShoppingOperation {
+        val values = validateItem(item.name, item.quantity, item.notes, item.supermarket, item.brand)
+        writeNewItem(spaceId, itemsCollection(spaceId).document(item.id), values, purchased = item.purchased)
     }
 
     override suspend fun clearPurchased(spaceId: String): Int = runShoppingOperation {
@@ -457,14 +444,6 @@ class FirestoreShoppingRepository @Inject constructor(
         val relist: Boolean,
     )
 
-    private data class ItemValues(
-        val name: String,
-        val quantity: String?,
-        val notes: String?,
-        val supermarket: String?,
-        val brand: String?,
-    )
-
     private companion object {
         const val SPACES = "spaces"
         const val SHOPPING_ITEMS = "shoppingItems"
@@ -490,6 +469,33 @@ class FirestoreShoppingRepository @Inject constructor(
         const val MAX_CLEAR_ITEMS = 100L
     }
 }
+
+internal data class ItemValues(
+    val name: String,
+    val quantity: String?,
+    val notes: String?,
+    val supermarket: String?,
+    val brand: String?,
+)
+
+// Campos de un artículo que se da de alta. Con [purchased] (al restaurar uno comprado) lo deja comprado por quien
+// escribe y con la hora del servidor, como exigen las reglas.
+internal fun newItemFields(user: AuthUser, values: ItemValues, purchased: Boolean = false): Map<String, Any?> = mapOf(
+    "name" to values.name,
+    "quantity" to values.quantity,
+    "notes" to values.notes,
+    "supermarket" to values.supermarket,
+    "brand" to values.brand,
+    "purchased" to purchased,
+    "createdBy" to user.id,
+    "createdByName" to user.shoppingDisplayName,
+    "createdAt" to FieldValue.serverTimestamp(),
+    "updatedBy" to user.id,
+    "updatedAt" to FieldValue.serverTimestamp(),
+    "purchasedBy" to user.id.takeIf { purchased },
+    "purchasedByName" to user.shoppingDisplayName.takeIf { purchased },
+    "purchasedAt" to FieldValue.serverTimestamp().takeIf { purchased },
+)
 
 private val AuthUser.shoppingDisplayName: String
     get() = displayName.ifBlank { email.substringBefore('@') }.take(60)

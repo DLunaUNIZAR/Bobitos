@@ -15,6 +15,12 @@ interface NoteRepository {
     suspend fun deleteNote(spaceId: String, noteId: String)
 
     /**
+     * «Deshacer» un alta: borra [noteId] solo si quien deshace fue el último en escribirla. Si no existe, falla con
+     * [NoteFailure.NoteNotFound]; si la ha cambiado otro miembro, con [NoteFailure.NoteChanged].
+     */
+    suspend fun undoAddNote(spaceId: String, noteId: String)
+
+    /**
      * «Deshacer» un borrado: vuelve a crear la nota con su id, título, cuerpo y fijado. La autoría y las fechas
      * pasan a ser de quien deshace, porque las reglas de alta las exigen así.
      */
@@ -29,6 +35,7 @@ enum class NoteFailure {
     EmailNotVerified,
     SpaceNotFound,
     NoteNotFound,
+    NoteChanged,
     PermissionDenied,
     Network,
     Unknown,

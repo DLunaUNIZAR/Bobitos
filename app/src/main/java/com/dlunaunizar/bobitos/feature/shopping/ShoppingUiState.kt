@@ -75,6 +75,7 @@ enum class ShoppingUiMessage {
     SpaceNotFound,
     ItemNotFound,
     ItemChanged,
+    CreatedItemChanged,
     ListNotLoaded,
     ListUnavailable,
     PermissionDenied,

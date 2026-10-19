@@ -5,6 +5,7 @@ import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
@@ -116,7 +117,7 @@ class ShoppingViewModelTest {
         viewModel.observe("home")
         advanceUntilIdle()
         viewModel.addItem("home", "  Leche  ", " 2 ", "  ", Supermarket.MERCADONA, "Hacendado")
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals("Leche", repository.addedName)
         assertEquals("2", repository.addedQuantity)
@@ -124,7 +125,10 @@ class ShoppingViewModelTest {
         assertEquals(Supermarket.MERCADONA, repository.addedSupermarket)
         assertEquals("Hacendado", repository.addedBrand)
         assertNull(viewModel.uiState.value.save.notice)
-        assertEquals(CreatedItem("new-1", "Leche"), viewModel.uiState.value.save.created)
+        assertEquals(
+            Undoable.Created("home", CreatedItem("new-1", "Leche")),
+            viewModel.undoOffers.value.single().undoable,
+        )
         assertFalse(viewModel.uiState.value.save.isSaving)
     }
 
@@ -401,9 +405,10 @@ class ShoppingViewModelTest {
             repository.deleteGate = deleteGate
             repository.restoreGate = restoreGate
 
-            viewModel.deleteItem("home", "milk")
+            viewModel.observe("home")
+            viewModel.deleteItem("home", shoppingItem())
             runCurrent()
-            viewModel.restoreItem("home", shoppingItem())
+            viewModel.undo(Undoable.Deleted("home", shoppingItem()))
             runCurrent()
             assertTrue(viewModel.uiState.value.save.isSaving)
 
@@ -443,7 +448,7 @@ class ShoppingViewModelTest {
     fun `network failure is shown explicitly`() = runTest(mainDispatcherRule.testDispatcher) {
         repository.nextFailure = ShoppingRepositoryException(ShoppingFailure.Network)
 
-        viewModel.deleteItem("home", "milk")
+        viewModel.deleteItem("home", shoppingItem())
         advanceUntilIdle()
 
         assertEquals(ShoppingUiMessage.NetworkError, viewModel.uiState.value.save.error)
@@ -506,34 +511,56 @@ class ShoppingViewModelTest {
 
     @Test
     fun `undo is offered only once the delete has finished`() = runTest(mainDispatcherRule.testDispatcher) {
-        var offered = 0
         repository.nextFailure = ShoppingRepositoryException(ShoppingFailure.Network)
-        viewModel.deleteItem("home", "milk") { offered++ }
-        advanceUntilIdle()
-        assertEquals(0, offered)
+        viewModel.deleteItem("home", shoppingItem())
+        runCurrent()
+        assertTrue(viewModel.undoOffers.value.isEmpty())
 
         repository.nextFailure = null
-        viewModel.deleteItem("home", "milk") { offered++ }
-        advanceUntilIdle()
-        assertEquals(1, offered)
+        viewModel.deleteItem("home", shoppingItem())
+        runCurrent()
+        assertEquals(1, viewModel.undoOffers.value.size)
         assertEquals(listOf("milk"), repository.deleted)
     }
 
     @Test
+    fun `deleting offers undo with the item and its space`() = runTest(mainDispatcherRule.testDispatcher) {
+        val bought = shoppingItem().copy(purchased = true, purchasedBy = "owner", purchasedByName = "David")
+        viewModel.deleteItem("space-a", bought)
+        runCurrent()
+
+        assertEquals(Undoable.Deleted("space-a", bought), viewModel.undoOffers.value.single().undoable)
+    }
+
+    @Test
+    fun `undo of a delete goes to the space where it was deleted`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("space-a")
+        viewModel.deleteItem("space-a", shoppingItem())
+        runCurrent()
+        val offered = viewModel.undoOffers.value.single().undoable
+        viewModel.observe("space-b")
+
+        viewModel.undo(offered)
+        advanceUntilIdle()
+
+        assertEquals("space-a", repository.restoredSpaceId)
+    }
+
+    @Test
     fun `restoreItem does not touch the editor status`() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.restoreItem("home", shoppingItem())
+        viewModel.undo(Undoable.Deleted("home", shoppingItem()))
         advanceUntilIdle()
 
         assertEquals("Leche", repository.restored.single().name)
         assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
-        assertNull(viewModel.uiState.value.save.created)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
     fun `undoing a delete keeps the id and the purchased state`() = runTest(mainDispatcherRule.testDispatcher) {
         val bought = shoppingItem().copy(purchased = true, purchasedBy = "owner", purchasedByName = "David")
 
-        viewModel.restoreItem("home", bought)
+        viewModel.undo(Undoable.Deleted("home", bought))
         advanceUntilIdle()
 
         assertEquals("home", repository.restoredSpaceId)
@@ -546,7 +573,7 @@ class ShoppingViewModelTest {
     fun `a failed undo shows the error instead of staying silent`() = runTest(mainDispatcherRule.testDispatcher) {
         repository.nextFailure = ShoppingRepositoryException(ShoppingFailure.PermissionDenied)
 
-        viewModel.restoreItem("home", shoppingItem())
+        viewModel.undo(Undoable.Deleted("home", shoppingItem()))
         advanceUntilIdle()
 
         assertEquals(ShoppingUiMessage.PermissionDenied, viewModel.uiState.value.save.error)
@@ -649,22 +676,33 @@ class ShoppingViewModelTest {
         advanceUntilIdle()
 
         viewModel.addItem("home", "Leche", null, null, null, null)
-        advanceUntilIdle()
+        runCurrent()
 
-        assertEquals(CreatedItem("new-1", "Leche"), viewModel.uiState.value.save.created)
+        val offer = viewModel.undoOffers.value.single()
+        assertEquals(Undoable.Created("home", CreatedItem("new-1", "Leche")), offer.undoable)
         assertNull(viewModel.uiState.value.save.notice)
 
-        viewModel.feedback.consumeCreated()
-        assertNull(viewModel.uiState.value.save.created)
+        viewModel.undoControls.consumeOffer(offer.serial)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
-    fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.observe("home")
-        viewModel.undoCreate("new-1")
+    fun `undoing an add goes through undoAddItem`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.undo(Undoable.Created("space-a", CreatedItem("new-1", "Leche")))
         advanceUntilIdle()
 
-        assertEquals(listOf("new-1"), repository.deleted)
+        assertEquals(listOf("space-a" to "new-1"), repository.undoneAdds)
+        assertTrue(repository.deleted.isEmpty())
+    }
+
+    @Test
+    fun `an add another member changed is not undone and says so`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.nextFailure = ShoppingRepositoryException(ShoppingFailure.CreatedItemChanged)
+        viewModel.undo(Undoable.Created("home", CreatedItem("new-1", "Leche")))
+        advanceUntilIdle()
+
+        assertEquals(ShoppingUiMessage.CreatedItemChanged, viewModel.uiState.value.save.error)
+        assertTrue(repository.deleted.isEmpty())
     }
 
     @Test
@@ -677,10 +715,10 @@ class ShoppingViewModelTest {
         viewModel.addItem("home", "Leche", null, null, null, null)
         assertTrue(viewModel.uiState.value.save.isSaving)
 
-        viewModel.undoCreate("new-1")
+        viewModel.undo(Undoable.Created("home", CreatedItem("new-1", "Leche")))
         advanceUntilIdle()
 
-        assertEquals(listOf("new-1"), repository.deleted)
+        assertEquals(listOf("home" to "new-1"), repository.undoneAdds)
         gate.complete(Unit)
     }
 
@@ -691,7 +729,7 @@ class ShoppingViewModelTest {
         viewModel.updateItem("home", "milk", "Leche", "2", null, null, null)
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.save.created)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
@@ -703,7 +741,7 @@ class ShoppingViewModelTest {
         viewModel.addItem("home", "Leche", "2", null, null, null)
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.save.created)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
         assertEquals(ShoppingUiMessage.ItemAdded, viewModel.uiState.value.save.notice)
         assertTrue(repository.deleted.isEmpty())
     }
@@ -719,7 +757,7 @@ class ShoppingViewModelTest {
         viewModel.sumDuplicate("home")
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.save.created)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
         assertEquals(ShoppingUiMessage.ItemUpdated, viewModel.uiState.value.save.notice)
         assertTrue(repository.deleted.isEmpty())
     }
@@ -1111,6 +1149,13 @@ internal class FakeShoppingRepository : ShoppingRepository {
         deleteGate?.await()
         throwNextFailure()
         deleted += itemId
+    }
+
+    val undoneAdds = mutableListOf<Pair<String, String>>()
+
+    override suspend fun undoAddItem(spaceId: String, itemId: String) {
+        throwNextFailure()
+        undoneAdds += spaceId to itemId
     }
 
     override suspend fun restoreItem(spaceId: String, item: ShoppingItem) {

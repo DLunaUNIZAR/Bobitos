@@ -6,6 +6,7 @@ import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.model.Note
 import com.dlunaunizar.bobitos.data.repository.NoteFailure
 import com.dlunaunizar.bobitos.data.repository.NoteRepository
@@ -64,22 +65,34 @@ class NotesViewModelTest {
     fun creatingOneItemOffersUndoWithItsIdAndName() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("home")
         viewModel.addNote("Wifi", null)
-        advanceUntilIdle()
+        runCurrent()
 
-        assertEquals(CreatedItem("new-1", "Wifi"), viewModel.uiState.value.save.created)
+        val offer = viewModel.undoOffers.value.single()
+        assertEquals(Undoable.Created("home", CreatedItem("new-1", "Wifi")), offer.undoable)
         assertNull(viewModel.uiState.value.save.notice)
 
-        viewModel.feedback.consumeCreated()
-        assertNull(viewModel.uiState.value.save.created)
+        viewModel.undoControls.consumeOffer(offer.serial)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
-    fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
+    fun `undoing an add goes through undoAddNote`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("home")
-        viewModel.undoCreate("new-1")
+        viewModel.undo(Undoable.Created("space-a", CreatedItem("new-1", "Wifi")))
         advanceUntilIdle()
 
-        assertEquals(listOf("new-1"), repository.deleted)
+        assertEquals(listOf("space-a" to "new-1"), repository.undoneAdds)
+        assertTrue(repository.deleted.isEmpty())
+    }
+
+    @Test
+    fun `an add another member changed is not undone and says so`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.nextFailure = NoteRepositoryException(NoteFailure.NoteChanged)
+        viewModel.undo(Undoable.Created("home", CreatedItem("new-1", "Wifi")))
+        advanceUntilIdle()
+
+        assertEquals(NoteUiMessage.NoteChanged, viewModel.uiState.value.save.error)
+        assertTrue(repository.deleted.isEmpty())
     }
 
     @Test
@@ -88,7 +101,7 @@ class NotesViewModelTest {
         viewModel.updateNote("n1", "Wifi", null)
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.save.created)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
@@ -126,7 +139,7 @@ class NotesViewModelTest {
         repository.nextFailure = NoteRepositoryException(NoteFailure.Network)
 
         viewModel.observe("home")
-        viewModel.deleteNote("n1")
+        viewModel.deleteNote(note("n1", "Wifi"))
         advanceUntilIdle()
 
         assertEquals(NoteUiMessage.NetworkError, viewModel.uiState.value.save.error)
@@ -154,25 +167,48 @@ class NotesViewModelTest {
     @Test
     fun `undo is offered only once the delete has finished`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("home")
-        var offered = 0
         repository.nextFailure = NoteRepositoryException(NoteFailure.Network)
-        viewModel.deleteNote("n1") { offered++ }
-        advanceUntilIdle()
-        assertEquals(0, offered)
+        viewModel.deleteNote(note("n1", "Wifi"))
+        runCurrent()
+        assertTrue(viewModel.undoOffers.value.isEmpty())
         assertEquals(NoteUiMessage.NetworkError, viewModel.uiState.value.save.error)
 
         repository.nextFailure = null
-        viewModel.deleteNote("n1") { offered++ }
-        advanceUntilIdle()
-        assertEquals(1, offered)
+        viewModel.deleteNote(note("n1", "Wifi"))
+        runCurrent()
+        assertEquals(1, viewModel.undoOffers.value.size)
         assertNull(viewModel.uiState.value.save.notice)
         assertEquals(listOf("n1"), repository.deleted)
     }
 
     @Test
+    fun `deleting offers undo with the note and its space`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("space-a")
+        val wifi = note("n1", "Wifi").copy(pinned = true)
+        viewModel.deleteNote(wifi)
+        runCurrent()
+
+        assertEquals(Undoable.Deleted("space-a", wifi), viewModel.undoOffers.value.single().undoable)
+    }
+
+    @Test
+    fun `undo of a delete goes to the space where it was deleted`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("space-a")
+        viewModel.deleteNote(note("n1", "Wifi"))
+        runCurrent()
+        val offered = viewModel.undoOffers.value.single().undoable
+        viewModel.observe("space-b")
+
+        viewModel.undo(offered)
+        advanceUntilIdle()
+
+        assertEquals("space-a", repository.restored.single().first)
+    }
+
+    @Test
     fun `undoing a delete brings the note back with its id and pin`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("home")
-        viewModel.restoreNote("space-a", note("n1", "Wifi").copy(pinned = true))
+        viewModel.undo(Undoable.Deleted("space-a", note("n1", "Wifi").copy(pinned = true)))
         advanceUntilIdle()
 
         val (space, restored) = repository.restored.single()
@@ -185,7 +221,7 @@ class NotesViewModelTest {
     fun `undo writes to the note's own space`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("space-a")
         viewModel.observe("space-b")
-        viewModel.restoreNote("space-a", note("n1", "Wifi"))
+        viewModel.undo(Undoable.Deleted("space-a", note("n1", "Wifi")))
         advanceUntilIdle()
 
         assertEquals("space-a", repository.restored.single().first)
@@ -195,7 +231,7 @@ class NotesViewModelTest {
     fun `a failed undo surfaces the error`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("home")
         repository.nextFailure = NoteRepositoryException(NoteFailure.SpaceNotFound)
-        viewModel.restoreNote("home", note("n1", "Wifi"))
+        viewModel.undo(Undoable.Deleted("home", note("n1", "Wifi")))
         advanceUntilIdle()
 
         assertEquals(NoteUiMessage.SpaceNotFound, viewModel.uiState.value.save.error)
@@ -211,7 +247,7 @@ class NotesViewModelTest {
             viewModel.observe("home")
 
             viewModel.addNote("Wifi", null)
-            viewModel.restoreNote("home", note("n1", "Luz"))
+            viewModel.undo(Undoable.Deleted("home", note("n1", "Luz")))
             runCurrent()
             assertTrue(viewModel.uiState.value.save.isSaving)
 
@@ -295,6 +331,13 @@ private class FakeNoteRepository : NoteRepository {
     override suspend fun deleteNote(spaceId: String, noteId: String) {
         throwNextFailure()
         deleted += noteId
+    }
+
+    val undoneAdds = mutableListOf<Pair<String, String>>()
+
+    override suspend fun undoAddNote(spaceId: String, noteId: String) {
+        throwNextFailure()
+        undoneAdds += spaceId to noteId
     }
 
     override suspend fun restoreNote(spaceId: String, note: Note) {

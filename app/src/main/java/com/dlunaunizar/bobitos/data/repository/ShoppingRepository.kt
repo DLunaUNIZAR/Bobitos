@@ -67,9 +67,14 @@ interface ShoppingRepository {
     suspend fun deleteItem(spaceId: String, itemId: String)
 
     /**
-     * «Deshacer» un borrado: devuelve [item] con su id y su estado. Las reglas obligan a dar de alta un artículo
-     * pendiente, así que uno comprado se marca después con una actualización. Autoría y fecha de creación son las de
-     * quien deshace.
+     * «Deshacer» un alta: borra [itemId] solo si quien deshace fue el último en escribirlo. Si no existe, falla con
+     * [ShoppingFailure.ItemNotFound]; si lo ha cambiado otro miembro, con [ShoppingFailure.CreatedItemChanged].
+     */
+    suspend fun undoAddItem(spaceId: String, itemId: String)
+
+    /**
+     * «Deshacer» un borrado: devuelve [item] con su id y su estado en una sola escritura (comprado incluido, con
+     * quien deshace como quien lo compró). Autoría y fecha de creación son las de quien deshace.
      */
     suspend fun restoreItem(spaceId: String, item: ShoppingItem)
 
@@ -115,6 +120,7 @@ enum class ShoppingFailure {
     SpaceNotFound,
     ItemNotFound,
     ItemChanged,
+    CreatedItemChanged,
     PermissionDenied,
     Network,
     Unknown,

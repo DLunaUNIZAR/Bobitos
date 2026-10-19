@@ -40,7 +40,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -63,7 +62,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.Celebration
 import com.dlunaunizar.bobitos.core.designsystem.component.CollapsibleHeaderBand
-import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -72,7 +70,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
 import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
-import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
@@ -81,9 +78,9 @@ import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
+import com.dlunaunizar.bobitos.core.designsystem.component.UndoOfferEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.checkBounce
 import com.dlunaunizar.bobitos.core.designsystem.component.completingExit
-import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberCelebrationState
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberCompletingItems
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
@@ -205,8 +202,7 @@ fun ShoppingScreen(
             }
         },
     ) { padding ->
-        val snackbar = LocalSnackbarHostState.current
-        val scope = rememberCoroutineScope()
+        val undoOffers by viewModel.undoOffers.collectAsStateWithLifecycle()
         SaveFeedbackEffect(
             save = state.save,
             controls = viewModel.feedback,
@@ -214,18 +210,15 @@ fun ShoppingScreen(
             errorText = { shoppingMessageText(it, state.lastClearedCount) },
             noticeText = { shoppingMessageText(it, state.lastClearedCount) },
         )
-        CreatedUndoEffect(state.save.created, viewModel.feedback::consumeCreated) { viewModel.undoCreate(it.id) }
-        val deletedMessage = stringResource(R.string.shopping_undo_deleted)
-        val undoLabel = stringResource(R.string.undo)
+        UndoOfferEffect(
+            offers = undoOffers,
+            controls = viewModel.undoControls,
+            deletedMessage = R.string.shopping_undo_deleted,
+            onUndo = viewModel::undo,
+        )
         val deleteColor = MaterialTheme.colorScheme.error
         val checkColor = MaterialTheme.colorScheme.primary
-        val deleteItemWithUndo: (ShoppingItem) -> Unit = { item ->
-            viewModel.deleteItem(spaceId, item.id) {
-                scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                    viewModel.restoreItem(spaceId, item)
-                }
-            }
-        }
+        val deleteItemWithUndo: (ShoppingItem) -> Unit = { item -> viewModel.deleteItem(spaceId, item) }
 
         Box(Modifier.fillMaxSize().padding(padding)) {
             Column(modifier = Modifier.fillMaxSize()) {
@@ -918,6 +911,7 @@ private val ShoppingUiMessage.stringResourceId: Int
         ShoppingUiMessage.SpaceNotFound -> R.string.space_error_not_found
         ShoppingUiMessage.ItemNotFound -> R.string.shopping_error_item_not_found
         ShoppingUiMessage.ItemChanged -> R.string.shopping_error_item_changed
+        ShoppingUiMessage.CreatedItemChanged -> R.string.shopping_error_created_changed
         ShoppingUiMessage.ListNotLoaded -> R.string.shopping_error_list_not_loaded
         ShoppingUiMessage.ListUnavailable -> R.string.shopping_error_list_unavailable
         ShoppingUiMessage.PermissionDenied -> R.string.space_error_permission_denied

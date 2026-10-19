@@ -7,6 +7,7 @@
     <ID>CyclomaticComplexMethod:NotesScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun NotesScreen( onBack: () -&gt; Unit, canWrite: Boolean, modifier: Modifier = Modifier, spaceId: String? = null, viewModel: NotesViewModel = hiltViewModel(), )</ID>
     <ID>CyclomaticComplexMethod:NotesScreen.kt$private fun NoteUiMessage.stringRes()</ID>
     <ID>CyclomaticComplexMethod:ShoppingScreen.kt$@Composable fun ShoppingScreen( spaceId: String, canWrite: Boolean, modifier: Modifier = Modifier, memberCount: Int? = null, prefillName: String? = null, onPrefillConsumed: () -&gt; Unit = {}, viewModel: ShoppingViewModel = hiltViewModel(), )</ID>
+    <ID>CyclomaticComplexMethod:ShoppingViewModel.kt$private fun Throwable.toShoppingRepositoryUiMessage()</ID>
     <ID>CyclomaticComplexMethod:SpaceSettingsScreen.kt$@Composable fun SpaceSettingsScreen( space: SpaceSummary, currentUserId: String, state: SpaceManagementUiState, syncStatus: SyncStatus, canWrite: Boolean, onObserveSpaceSettings: (String, Boolean) -&gt; Unit, onStopObservingSpaceSettings: () -&gt; Unit, onRenameSpace: (String, String) -&gt; Unit, onLeaveSpace: (String) -&gt; Unit, onRemoveMember: (String, String) -&gt; Unit, onTransferOwnership: (String, String) -&gt; Unit, onDeleteSpace: (String) -&gt; Unit, onCreateInvitation: (String) -&gt; Unit, onRevokeInvitation: (String) -&gt; Unit, onShareInvitation: (SpaceInvitation) -&gt; Unit, feedback: SaveFeedbackControls, onBack: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
     <ID>CyclomaticComplexMethod:SpacesViewModel.kt$private fun Throwable.toUiMessage(): SpaceUiMessage</ID>
     <ID>CyclomaticComplexMethod:TasksScreen.kt$@Composable fun TasksScreen( spaceId: String, canWrite: Boolean, modifier: Modifier = Modifier, viewModel: TasksViewModel = hiltViewModel(), )</ID>
@@ -77,6 +78,7 @@
     <ID>TooManyFunctions:DataModule.kt$DataModule</ID>
     <ID>TooManyFunctions:FirestoreShoppingRepository.kt$FirestoreShoppingRepository : ShoppingRepository</ID>
     <ID>TooManyFunctions:MealsViewModel.kt$MealsViewModel : ViewModel</ID>
+    <ID>TooManyFunctions:ShoppingRepository.kt$ShoppingRepository</ID>
     <ID>TooManyFunctions:SpaceRepository.kt$SpaceRepository</ID>
   </CurrentIssues>
 </SmellBaseline>

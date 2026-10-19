@@ -149,6 +149,7 @@ internal class RecordingShoppingRepository : ShoppingRepository {
     }
 
     override suspend fun deleteItem(spaceId: String, itemId: String) = Unit
+    override suspend fun undoAddItem(spaceId: String, itemId: String) = Unit
     override suspend fun restoreItem(spaceId: String, item: ShoppingItem) = Unit
     override suspend fun clearPurchased(spaceId: String): Int = 0
 }

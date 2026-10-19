@@ -409,6 +409,7 @@ private fun ShoppingFailure.toUiMessage(): MealUiMessage = when (this) {
     // Un artículo cambiado o ya borrado es lo mismo para quien toca: la lista ha cambiado. «Listo» al cocinar elige su
     // propio mensaje (toCookedUiMessage).
     ShoppingFailure.ItemChanged,
+    ShoppingFailure.CreatedItemChanged,
     ShoppingFailure.ItemNotFound,
     -> MealUiMessage.ShoppingChanged
     ShoppingFailure.NameRequired,

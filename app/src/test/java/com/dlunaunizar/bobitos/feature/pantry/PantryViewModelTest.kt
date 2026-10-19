@@ -420,6 +420,7 @@ class PantryViewModelTest {
             ShoppingFailure.SpaceNotFound to PantryUiMessage.SpaceNotFound,
             ShoppingFailure.ItemNotFound to PantryUiMessage.ShoppingChanged,
             ShoppingFailure.ItemChanged to PantryUiMessage.ShoppingChanged,
+            ShoppingFailure.CreatedItemChanged to PantryUiMessage.UnexpectedError,
             ShoppingFailure.PermissionDenied to PantryUiMessage.PermissionDenied,
             ShoppingFailure.Network to PantryUiMessage.NetworkError,
             ShoppingFailure.Unknown to PantryUiMessage.UnexpectedError,

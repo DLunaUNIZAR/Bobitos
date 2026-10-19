@@ -268,6 +268,7 @@
     <string name="supermarket_otros">Otros</string>
     <string name="supermarket_indiferente">Indiferente</string>
     <string name="shopping_error_item_not_found">El producto ya no existe.</string>
+    <string name="shopping_error_created_changed">El producto ha cambiado entretanto y no se ha deshecho.</string>
     <string name="shopping_error_item_changed">Ese producto ha cambiado en la lista mientras tanto. Vuelve a intentarlo.</string>
     <string name="shopping_notice_added">Producto añadido.</string>
     <string name="shopping_notice_updated">Producto actualizado.</string>
@@ -608,6 +609,7 @@
     <string name="notes_error_title_required">Introduce un título.</string>
     <string name="notes_error_title_too_long">El título no puede superar 120 caracteres.</string>
     <string name="notes_error_body_too_long">El contenido no puede superar 5000 caracteres.</string>
+    <string name="notes_error_changed">La nota ha cambiado entretanto y no se ha deshecho.</string>
     <string name="notes_error_not_found">La nota ya no existe.</string>
     <string name="notes_notice_added">Nota creada</string>
     <string name="notes_notice_updated">Nota actualizada</string>

@@ -5,6 +5,7 @@ import com.dlunaunizar.bobitos.core.model.Note
 import com.dlunaunizar.bobitos.data.sync.RealtimeMetrics
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
 import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -57,55 +58,43 @@ class FirestoreNoteRepository @Inject constructor(
     }
 
     override suspend fun addNote(spaceId: String, title: String, body: String?): String = runNoteOperation {
-        val user = requireVerifiedUser()
-        val values = validate(title, body)
-        val spaceReference = firestore.collection(SPACES).document(spaceId)
         val noteReference = notesCollection(spaceId).document()
-        firestore.runTransaction { transaction ->
-            if (!transaction.get(spaceReference).exists()) {
-                throw NoteRepositoryException(NoteFailure.SpaceNotFound)
-            }
-            transaction.set(
-                noteReference,
-                mapOf(
-                    FIELD_TITLE to values.title,
-                    FIELD_BODY to values.body,
-                    FIELD_PINNED to false,
-                    FIELD_CREATED_BY to user.id,
-                    FIELD_CREATED_BY_NAME to user.noteDisplayName,
-                    FIELD_CREATED_AT to FieldValue.serverTimestamp(),
-                    FIELD_UPDATED_BY to user.id,
-                    FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
-                ),
-            )
-        }.await()
+        writeNewNote(spaceId, noteReference, validate(title, body), pinned = false)
         noteReference.id
     }
 
-    override suspend fun restoreNote(spaceId: String, note: Note) = runNoteOperation {
+    override suspend fun undoAddNote(spaceId: String, noteId: String) = runNoteOperation {
         val user = requireVerifiedUser()
-        val values = validate(note.title, note.body)
+        val noteReference = notesCollection(spaceId).document(noteId)
+        firestore.runTransaction { transaction ->
+            val note = requireNote(transaction.get(noteReference))
+            if (!isLastWriter(note.getString(FIELD_UPDATED_BY), user.id)) {
+                throw NoteRepositoryException(NoteFailure.NoteChanged)
+            }
+            transaction.delete(noteReference)
+        }.await()
+        Unit
+    }
+
+    override suspend fun restoreNote(spaceId: String, note: Note) = runNoteOperation {
+        writeNewNote(spaceId, notesCollection(spaceId).document(note.id), validate(note.title, note.body), note.pinned)
+    }
+
+    // El alta y la restauración escriben igual: mismo mapa de campos, en una sola escritura.
+    private suspend fun writeNewNote(
+        spaceId: String,
+        noteReference: DocumentReference,
+        values: NoteValues,
+        pinned: Boolean,
+    ) {
+        val user = requireVerifiedUser()
         val spaceReference = firestore.collection(SPACES).document(spaceId)
-        val noteReference = notesCollection(spaceId).document(note.id)
         firestore.runTransaction { transaction ->
             if (!transaction.get(spaceReference).exists()) {
                 throw NoteRepositoryException(NoteFailure.SpaceNotFound)
             }
-            transaction.set(
-                noteReference,
-                mapOf(
-                    FIELD_TITLE to values.title,
-                    FIELD_BODY to values.body,
-                    FIELD_PINNED to note.pinned,
-                    FIELD_CREATED_BY to user.id,
-                    FIELD_CREATED_BY_NAME to user.noteDisplayName,
-                    FIELD_CREATED_AT to FieldValue.serverTimestamp(),
-                    FIELD_UPDATED_BY to user.id,
-                    FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
-                ),
-            )
+            transaction.set(noteReference, noteFields(values, pinned, user))
         }.await()
-        Unit
     }
 
     override suspend fun updateNote(spaceId: String, noteId: String, title: String, body: String?) = runNoteOperation {
@@ -197,8 +186,6 @@ class FirestoreNoteRepository @Inject constructor(
         }
     }
 
-    private data class NoteValues(val title: String, val body: String?)
-
     private companion object {
         const val SPACES = "spaces"
         const val NOTES = "notes"
@@ -215,6 +202,20 @@ class FirestoreNoteRepository @Inject constructor(
         const val MAX_VISIBLE_NOTES = 250L
     }
 }
+
+internal data class NoteValues(val title: String, val body: String?)
+
+// Campos de una nota que se da de alta: la autoría y las fechas son de quien escribe, como exigen las reglas.
+internal fun noteFields(values: NoteValues, pinned: Boolean, user: AuthUser): Map<String, Any?> = mapOf(
+    "title" to values.title,
+    "body" to values.body,
+    "pinned" to pinned,
+    "createdBy" to user.id,
+    "createdByName" to user.noteDisplayName,
+    "createdAt" to FieldValue.serverTimestamp(),
+    "updatedBy" to user.id,
+    "updatedAt" to FieldValue.serverTimestamp(),
+)
 
 private val AuthUser.noteDisplayName: String
     get() = displayName.ifBlank { email.substringBefore('@') }.take(60)

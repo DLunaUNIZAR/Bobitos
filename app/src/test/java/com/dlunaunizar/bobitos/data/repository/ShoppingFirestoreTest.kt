@@ -1,6 +1,8 @@
 package com.dlunaunizar.bobitos.data.repository
 
+import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
+import com.google.firebase.firestore.FieldValue
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -24,6 +26,29 @@ class ShoppingFirestoreTest {
         supermarket = null,
         brand = null,
     )
+
+    private val me = AuthUser(id = "me", displayName = "Yo", email = "yo@example.com", isEmailVerified = true)
+    private val values = ItemValues(name = "Leche", quantity = "1 l", notes = null, supermarket = null, brand = null)
+
+    @Test
+    fun `a restored purchased item is written purchased by whoever undoes`() {
+        val data = newItemFields(me, values, purchased = true)
+
+        assertEquals(true, data["purchased"])
+        assertEquals("me", data["purchasedBy"])
+        assertEquals("Yo", data["purchasedByName"])
+        assertEquals(FieldValue.serverTimestamp(), data["purchasedAt"])
+    }
+
+    @Test
+    fun `a new item is written unpurchased`() {
+        val data = newItemFields(me, values)
+
+        assertEquals(false, data["purchased"])
+        assertNull(data["purchasedBy"])
+        assertNull(data["purchasedByName"])
+        assertNull(data["purchasedAt"])
+    }
 
     @Test
     fun `an item still as it was seen is not stale`() {

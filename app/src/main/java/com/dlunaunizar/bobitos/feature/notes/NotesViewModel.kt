@@ -7,6 +7,10 @@ import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
 import com.dlunaunizar.bobitos.core.common.SaveRunner
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.UndoOffer
+import com.dlunaunizar.bobitos.core.common.UndoOfferControls
+import com.dlunaunizar.bobitos.core.common.UndoOffers
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.common.toFailureKind
 import com.dlunaunizar.bobitos.core.model.Note
 import com.dlunaunizar.bobitos.data.repository.NoteFailure
@@ -29,6 +33,9 @@ class NotesViewModel @Inject constructor(private val repository: NoteRepository)
     private val saver =
         SaveRunner(viewModelScope, mutableUiState, NotesUiState::save, { copy(save = it) }, Throwable::toUiMessage)
     val feedback: SaveFeedbackControls get() = saver
+    private val undo = UndoOffers<Note>(viewModelScope)
+    val undoOffers: StateFlow<List<UndoOffer<Note>>> = undo.offers
+    val undoControls: UndoOfferControls get() = undo
     private var notesJob: Job? = null
     private var observedSpaceId: String? = null
 
@@ -54,8 +61,8 @@ class NotesViewModel @Inject constructor(private val repository: NoteRepository)
         val spaceId = observedSpaceId ?: return
         if (!validate(title, body)) return
         val name = title.trim()
-        // Un alta desde la hoja deja `created` (con «Deshacer») en lugar del aviso de nota añadida.
-        saver.create(editor = true) {
+        // Un alta desde la hoja ofrece «Deshacer» (con el espacio de ahora) en lugar del aviso de nota añadida.
+        saver.run<CreatedItem>(editor = true, afterSuccess = { undo.offer(Undoable.Created(spaceId, it)) }) {
             CreatedItem(repository.addNote(spaceId, name, body.normalized()), name)
         }
     }
@@ -75,22 +82,26 @@ class NotesViewModel @Inject constructor(private val repository: NoteRepository)
         }
     }
 
-    // onDeleted se llama solo si el borrado termina bien: así el «Deshacer» no se ofrece para un borrado
-    // fallido. Sin aviso propio: el snackbar de «Deshacer» ya confirma el borrado.
-    fun deleteNote(noteId: String, onDeleted: () -> Unit = {}) {
+    // La oferta de «Deshacer» sale solo si el borrado termina bien. Sin aviso propio: el snackbar de «Deshacer» ya
+    // confirma el borrado.
+    fun deleteNote(note: Note) {
         val spaceId = observedSpaceId ?: return
-        saver.run(afterSuccess = { onDeleted() }) { repository.deleteNote(spaceId, noteId) }
+        saver.run(afterSuccess = { undo.offer(Undoable.Deleted(spaceId, note)) }) {
+            repository.deleteNote(spaceId, note.id)
+        }
     }
 
-    // «Deshacer» el borrado: el espacio es el de la nota al borrar, no el que se esté viendo ahora.
-    fun restoreNote(spaceId: String, note: Note) {
-        saver.run(force = true) { repository.restoreNote(spaceId, note) }
-    }
-
-    // «Deshacer» el alta: borra justo esa nota con el borrado de siempre (sin aviso; si falla, sale el error).
-    fun undoCreate(id: String) {
-        val spaceId = observedSpaceId ?: return
-        saver.run(force = true) { repository.deleteNote(spaceId, id) }
+    // Única entrada de «Deshacer»: siempre en el espacio donde pasó. Sin aviso propio; si falla (también si otro
+    // miembro cambió lo que se dio de alta), sale el error.
+    fun undo(undoable: Undoable<Note>) {
+        val spaceId = undoable.spaceId ?: return
+        saver.run(force = true) {
+            when (undoable) {
+                is Undoable.Created -> repository.undoAddNote(spaceId, undoable.item.id)
+                is Undoable.Deleted -> repository.restoreNote(spaceId, undoable.item)
+                is Undoable.Completed -> Unit
+            }
+        }
     }
 
     private fun validate(title: String, body: String?): Boolean {
@@ -116,6 +127,7 @@ private fun Throwable.toRepositoryUiMessage() = when ((this as? NoteRepositoryEx
     NoteFailure.EmailNotVerified -> NoteUiMessage.EmailNotVerified
     NoteFailure.SpaceNotFound -> NoteUiMessage.SpaceNotFound
     NoteFailure.NoteNotFound -> NoteUiMessage.NoteNotFound
+    NoteFailure.NoteChanged -> NoteUiMessage.NoteChanged
     NoteFailure.PermissionDenied -> NoteUiMessage.PermissionDenied
     NoteFailure.Network -> NoteUiMessage.NetworkError
     NoteFailure.Unknown, null -> NoteUiMessage.UnexpectedError

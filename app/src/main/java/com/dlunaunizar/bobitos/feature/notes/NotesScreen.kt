@@ -27,7 +27,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -44,17 +43,15 @@ import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.ClickableCard
-import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
-import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
+import com.dlunaunizar.bobitos.core.designsystem.component.UndoOfferEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
-import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
@@ -109,10 +106,7 @@ fun NotesScreen(
             }
         },
     ) { innerPadding ->
-        val snackbar = LocalSnackbarHostState.current
-        val scope = rememberCoroutineScope()
-        val deletedMessage = stringResource(R.string.notes_notice_deleted)
-        val undoLabel = stringResource(R.string.undo)
+        val undoOffers by viewModel.undoOffers.collectAsStateWithLifecycle()
         SaveFeedbackEffect(
             save = state.save,
             controls = viewModel.feedback,
@@ -120,7 +114,12 @@ fun NotesScreen(
             errorText = { stringResource(it.stringRes()) },
             noticeText = { stringResource(it.stringRes()) },
         )
-        CreatedUndoEffect(state.save.created, viewModel.feedback::consumeCreated) { viewModel.undoCreate(it.id) }
+        UndoOfferEffect(
+            offers = undoOffers,
+            controls = viewModel.undoControls,
+            deletedMessage = R.string.notes_notice_deleted,
+            onUndo = viewModel::undo,
+        )
         Column(Modifier.padding(innerPadding).fillMaxSize()) {
             when (val notes = state.notes) {
                 UiState.Loading -> LoadingState(Modifier.weight(1f))
@@ -159,17 +158,7 @@ fun NotesScreen(
                                 onClick = openEditor.takeIf { enabled },
                                 onTogglePin = { viewModel.setPinned(note.id, !note.pinned) },
                                 onEdit = openEditor,
-                                onDelete = {
-                                    // El espacio se captura al borrar: «Deshacer» devuelve la nota a su espacio.
-                                    val deletedFrom = spaceId
-                                    if (deletedFrom != null) {
-                                        viewModel.deleteNote(note.id) {
-                                            scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                                                viewModel.restoreNote(deletedFrom, note)
-                                            }
-                                        }
-                                    }
-                                },
+                                onDelete = { viewModel.deleteNote(note) },
                             )
                         }
                     }
@@ -330,6 +319,7 @@ private fun NoteUiMessage.stringRes() = when (this) {
     NoteUiMessage.EmailNotVerified -> R.string.space_error_email_not_verified
     NoteUiMessage.SpaceNotFound -> R.string.space_error_not_found
     NoteUiMessage.NoteNotFound -> R.string.notes_error_not_found
+    NoteUiMessage.NoteChanged -> R.string.notes_error_changed
     NoteUiMessage.PermissionDenied -> R.string.space_error_permission_denied
     NoteUiMessage.NetworkError -> R.string.space_error_network
     NoteUiMessage.UnexpectedError -> R.string.space_error_unexpected

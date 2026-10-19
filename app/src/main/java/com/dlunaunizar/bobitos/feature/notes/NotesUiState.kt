@@ -19,6 +19,7 @@ enum class NoteUiMessage {
     EmailNotVerified,
     SpaceNotFound,
     NoteNotFound,
+    NoteChanged,
     PermissionDenied,
     NetworkError,
     UnexpectedError,

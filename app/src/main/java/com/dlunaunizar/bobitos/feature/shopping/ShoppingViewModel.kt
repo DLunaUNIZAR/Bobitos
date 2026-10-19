@@ -7,6 +7,10 @@ import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
 import com.dlunaunizar.bobitos.core.common.SaveRunner
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.UndoOffer
+import com.dlunaunizar.bobitos.core.common.UndoOfferControls
+import com.dlunaunizar.bobitos.core.common.UndoOffers
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.common.launchPerIdWrite
 import com.dlunaunizar.bobitos.core.common.rethrowIfCancelled
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
@@ -58,6 +62,9 @@ class ShoppingViewModel @Inject constructor(
     private val saver =
         SaveRunner(viewModelScope, mutableUiState, ShoppingUiState::save, { copy(save = it) }, Throwable::toUiMessage)
     val feedback: SaveFeedbackControls get() = saver
+    private val undo = UndoOffers<ShoppingItem>(viewModelScope)
+    val undoOffers: StateFlow<List<UndoOffer<ShoppingItem>>> = undo.offers
+    val undoControls: UndoOfferControls get() = undo
     private var itemsJob: Job? = null
     private var observedSpaceId: String? = null
     private var catalogJob: Job? = null
@@ -194,10 +201,10 @@ class ShoppingViewModel @Inject constructor(
             }
             return
         }
-        // Solo el artículo nuevo deja `created` (con «Deshacer») en lugar del aviso; reapuntar un comprado conserva el
-        // suyo y nunca ofrece deshacer, para no borrar algo que ya existía.
+        // Solo el artículo nuevo ofrece «Deshacer» (en este espacio) en lugar del aviso; reapuntar un comprado conserva
+        // el suyo y nunca ofrece deshacer, para no borrar algo que ya existía.
         if (match == null) {
-            saver.create(editor = true) {
+            saver.run<CreatedItem>(editor = true, afterSuccess = { undo.offer(Undoable.Created(spaceId, it)) }) {
                 val newName = name.trim()
                 val id = repository.addItem(spaceId, newName, normalizedQuantity, normalizedNotes, supermarket, brand)
                 CreatedItem(id, newName)
@@ -271,16 +278,17 @@ class ShoppingViewModel @Inject constructor(
         }
     }
 
-    // «Deshacer» el borrado: el artículo vuelve con su id y su estado, al espacio en que estaba. No es un guardado
-    // del editor ni lleva aviso propio; si falla, sale el error.
-    fun restoreItem(spaceId: String, item: ShoppingItem) = saver.run(force = true) {
-        repository.restoreItem(spaceId, item)
-    }
-
-    // «Deshacer» el alta: borra justo ese artículo con el borrado de siempre (sin aviso; si falla, sale el error).
-    fun undoCreate(id: String) {
-        val spaceId = observedSpaceId ?: return
-        saver.run(force = true) { repository.deleteItem(spaceId, id) }
+    // Única entrada de «Deshacer»: siempre en el espacio donde pasó. No es un guardado del editor ni lleva aviso
+    // propio; si falla (también si otro miembro cambió lo que se dio de alta), sale el error.
+    fun undo(undoable: Undoable<ShoppingItem>) {
+        val spaceId = undoable.spaceId ?: return
+        saver.run(force = true) {
+            when (undoable) {
+                is Undoable.Created -> repository.undoAddItem(spaceId, undoable.item.id)
+                is Undoable.Deleted -> repository.restoreItem(spaceId, undoable.item)
+                is Undoable.Completed -> Unit
+            }
+        }
     }
 
     fun updateItem(
@@ -355,11 +363,11 @@ class ShoppingViewModel @Inject constructor(
         }.also { pantryLoad = it }
     }
 
-    // onDeleted se llama solo si el borrado termina bien: así el «Deshacer» no se ofrece para un borrado fallido ni
-    // se pulsa mientras el borrado sigue en curso. Sin notice: el feedback lo da el Snackbar de la pantalla.
-    fun deleteItem(spaceId: String, itemId: String, onDeleted: () -> Unit = {}) {
-        saver.run(afterSuccess = { onDeleted() }) {
-            repository.deleteItem(spaceId, itemId)
+    // La oferta de «Deshacer» sale solo si el borrado termina bien: no se ofrece para un borrado fallido ni se pulsa
+    // mientras sigue en curso. Sin notice: el feedback lo da el Snackbar de la pantalla.
+    fun deleteItem(spaceId: String, item: ShoppingItem) {
+        saver.run(afterSuccess = { undo.offer(Undoable.Deleted(spaceId, item)) }) {
+            repository.deleteItem(spaceId, item.id)
         }
     }
 
@@ -420,6 +428,7 @@ private fun Throwable.toShoppingRepositoryUiMessage() = when ((this as? Shopping
     ShoppingFailure.SpaceNotFound -> ShoppingUiMessage.SpaceNotFound
     ShoppingFailure.ItemNotFound -> ShoppingUiMessage.ItemNotFound
     ShoppingFailure.ItemChanged -> ShoppingUiMessage.ItemChanged
+    ShoppingFailure.CreatedItemChanged -> ShoppingUiMessage.CreatedItemChanged
     ShoppingFailure.PermissionDenied -> ShoppingUiMessage.PermissionDenied
     ShoppingFailure.Network -> ShoppingUiMessage.NetworkError
     ShoppingFailure.Unknown,
