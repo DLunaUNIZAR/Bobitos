@@ -39,7 +39,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
@@ -49,12 +48,11 @@ import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
-import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
+import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
-import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
@@ -84,10 +82,10 @@ fun NotesScreen(
     var editorVisible by rememberSaveable { mutableStateOf(false) }
     // Sin espacio activo no se puede escribir (las escrituras usan observedSpaceId): se desactivan
     // los controles para no perder cambios en silencio si el espacio deja de estar disponible.
-    val enabled = canWrite && spaceId != null && !state.isSaving
+    val enabled = canWrite && spaceId != null && !state.save.isSaving
     val closeEditor: () -> Unit = {
         // Cerrar tras un guardado fallido descarta ese error (ya se veía en la hoja).
-        state.editorSave.discardFailure(viewModel::clearFeedback)
+        viewModel.feedback.resetEditor()
         editorVisible = false
     }
 
@@ -115,14 +113,14 @@ fun NotesScreen(
         val scope = rememberCoroutineScope()
         val deletedMessage = stringResource(R.string.notes_notice_deleted)
         val undoLabel = stringResource(R.string.undo)
-        FeedbackSnackbarEffect(
-            error = state.error,
-            notice = state.notice,
-            editorSave = state.editorSave,
-            editorOpen = editorVisible,
-            onShown = viewModel::clearFeedback,
-        ) { stringResource(it.stringRes()) }
-        CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
+        SaveFeedbackEffect(
+            save = state.save,
+            controls = viewModel.feedback,
+            covered = editorVisible,
+            errorText = { stringResource(it.stringRes()) },
+            noticeText = { stringResource(it.stringRes()) },
+        )
+        CreatedUndoEffect(state.save.created, viewModel.feedback::consumeCreated) { viewModel.undoCreate(it.id) }
         Column(Modifier.padding(innerPadding).fillMaxSize()) {
             when (val notes = state.notes) {
                 UiState.Loading -> LoadingState(Modifier.weight(1f))
@@ -181,10 +179,10 @@ fun NotesScreen(
     }
 
     EditorSaveEffect(
-        status = state.editorSave,
+        editor = state.save.editor,
         editorOpen = editorVisible,
+        controls = viewModel.feedback,
         onClose = { editorVisible = false },
-        onConsume = viewModel::consumeEditorSave,
     )
     rememberEditorSlot(
         open = editorVisible,
@@ -195,9 +193,8 @@ fun NotesScreen(
     )?.let { slot ->
         NoteEditor(
             note = slot.item,
-            saving = state.isSaving,
-            errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
-                ?.let { stringResource(it.stringRes()) },
+            saving = state.save.isSaving,
+            errorMessage = state.save.editorError?.let { stringResource(it.stringRes()) },
             onDismiss = closeEditor,
             onSave = { title, body ->
                 slot.item?.let { viewModel.updateNote(it.id, title, body) }

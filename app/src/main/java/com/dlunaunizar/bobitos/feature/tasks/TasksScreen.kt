@@ -77,7 +77,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.BobitosDates
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
@@ -89,7 +88,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
-import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdown
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
@@ -99,6 +97,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostStat
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
+import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
@@ -106,7 +105,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
 import com.dlunaunizar.bobitos.core.designsystem.component.TopBarActions
 import com.dlunaunizar.bobitos.core.designsystem.component.checkBounce
 import com.dlunaunizar.bobitos.core.designsystem.component.completingExit
-import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberCelebrationState
@@ -145,7 +143,7 @@ fun TasksScreen(
     val members = (state.members as? UiState.Content)?.value.orEmpty()
     val allTasks = (state.tasks as? UiState.Content)?.value.orEmpty()
     val visibleTasks = remember(allTasks, state.filters) { state.filters.apply(allTasks) }
-    val enabled = canWrite && !state.isSaving
+    val enabled = canWrite && !state.save.isSaving
     // El editor sobrevive a una rotación: se guarda el id de la tarea (no el objeto) y el índice de la plantilla.
     var editorTaskId by rememberSaveable { mutableStateOf<String?>(null) }
     var editorTemplateIndex by rememberSaveable { mutableStateOf(-1) }
@@ -157,7 +155,7 @@ fun TasksScreen(
     }
     // Cerrar el editor tras un guardado fallido descarta ese error (ya se veía en la hoja).
     val closeEditor: () -> Unit = {
-        state.editorSave.discardFailure(viewModel::clearFeedback)
+        viewModel.feedback.resetEditor()
         editorVisible = false
     }
     val editorTemplate = homeTaskTemplates.getOrNull(editorTemplateIndex)
@@ -189,14 +187,14 @@ fun TasksScreen(
     ) { padding ->
         val snackbar = LocalSnackbarHostState.current
         val scope = rememberCoroutineScope()
-        FeedbackSnackbarEffect(
-            error = state.error,
-            notice = state.notice,
-            editorSave = state.editorSave,
-            editorOpen = editorVisible,
-            onShown = viewModel::clearFeedback,
-        ) { stringResource(it.stringRes()) }
-        CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
+        SaveFeedbackEffect(
+            save = state.save,
+            controls = viewModel.feedback,
+            covered = editorVisible,
+            errorText = { stringResource(it.stringRes()) },
+            noticeText = { stringResource(it.stringRes()) },
+        )
+        CreatedUndoEffect(state.save.created, viewModel.feedback::consumeCreated) { viewModel.undoCreate(it.id) }
         val deletedMessage = stringResource(R.string.tasks_undo_deleted)
         val undoLabel = stringResource(R.string.undo)
         val completedMessage = stringResource(R.string.tasks_undo_completed)
@@ -367,10 +365,10 @@ fun TasksScreen(
         )
     }
     EditorSaveEffect(
-        status = state.editorSave,
+        editor = state.save.editor,
         editorOpen = editorVisible,
+        controls = viewModel.feedback,
         onClose = { editorVisible = false },
-        onConsume = viewModel::consumeEditorSave,
     )
     rememberEditorSlot(
         open = editorVisible,
@@ -384,9 +382,8 @@ fun TasksScreen(
             task = editorTask,
             template = editorTemplate,
             members = members,
-            saving = state.isSaving,
-            errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
-                ?.let { stringResource(it.stringRes()) },
+            saving = state.save.isSaving,
+            errorMessage = state.save.editorError?.let { stringResource(it.stringRes()) },
             onDismiss = closeEditor,
             onInvalidDate = viewModel::showInvalidDate,
             onSave = { title, description, assignee, due, priority, type, recurrence, start ->

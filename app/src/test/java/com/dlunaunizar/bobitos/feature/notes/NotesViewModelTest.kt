@@ -35,7 +35,7 @@ class NotesViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val repository = FakeNoteRepository()
-    private val viewModel = NotesViewModel(repository)
+    private val viewModel by lazy { NotesViewModel(repository) }
 
     @Test
     fun `observes notes for the space`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -57,7 +57,7 @@ class NotesViewModelTest {
         advanceUntilIdle()
 
         assertEquals("Wifi", repository.addedTitle)
-        assertNull(viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -66,11 +66,11 @@ class NotesViewModelTest {
         viewModel.addNote("Wifi", null)
         advanceUntilIdle()
 
-        assertEquals(CreatedItem("new-1", "Wifi"), viewModel.uiState.value.created)
-        assertNull(viewModel.uiState.value.notice)
+        assertEquals(CreatedItem("new-1", "Wifi"), viewModel.uiState.value.save.created)
+        assertNull(viewModel.uiState.value.save.notice)
 
-        viewModel.consumeCreated()
-        assertNull(viewModel.uiState.value.created)
+        viewModel.feedback.consumeCreated()
+        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
@@ -88,7 +88,7 @@ class NotesViewModelTest {
         viewModel.updateNote("n1", "Wifi", null)
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
@@ -97,7 +97,8 @@ class NotesViewModelTest {
         viewModel.addNote("   ", null)
 
         assertNull(repository.addedTitle)
-        assertEquals(NoteUiMessage.TitleRequired, viewModel.uiState.value.error)
+        assertEquals(NoteUiMessage.TitleRequired, viewModel.uiState.value.save.editorError)
+        assertNull(viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -107,7 +108,7 @@ class NotesViewModelTest {
         advanceUntilIdle()
 
         assertEquals("n1" to true, repository.pinnedChange)
-        assertEquals(NoteUiMessage.NotePinned, viewModel.uiState.value.notice)
+        assertEquals(NoteUiMessage.NotePinned, viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -128,7 +129,7 @@ class NotesViewModelTest {
         viewModel.deleteNote("n1")
         advanceUntilIdle()
 
-        assertEquals(NoteUiMessage.NetworkError, viewModel.uiState.value.error)
+        assertEquals(NoteUiMessage.NetworkError, viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -138,16 +139,16 @@ class NotesViewModelTest {
         viewModel.observe("home")
 
         viewModel.addNote("Wifi", null)
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
-        assertTrue(viewModel.uiState.value.isSaving)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
+        assertTrue(viewModel.uiState.value.save.isSaving)
 
         gate.complete(Unit)
         advanceUntilIdle()
 
-        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
-        assertFalse(viewModel.uiState.value.isSaving)
-        viewModel.consumeEditorSave()
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.save.editor)
+        assertFalse(viewModel.uiState.value.save.isSaving)
+        viewModel.feedback.resetEditor()
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
     }
 
     @Test
@@ -158,13 +159,13 @@ class NotesViewModelTest {
         viewModel.deleteNote("n1") { offered++ }
         advanceUntilIdle()
         assertEquals(0, offered)
-        assertEquals(NoteUiMessage.NetworkError, viewModel.uiState.value.error)
+        assertEquals(NoteUiMessage.NetworkError, viewModel.uiState.value.save.error)
 
         repository.nextFailure = null
         viewModel.deleteNote("n1") { offered++ }
         advanceUntilIdle()
         assertEquals(1, offered)
-        assertNull(viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.save.notice)
         assertEquals(listOf("n1"), repository.deleted)
     }
 
@@ -197,8 +198,32 @@ class NotesViewModelTest {
         viewModel.restoreNote("home", note("n1", "Wifi"))
         advanceUntilIdle()
 
-        assertEquals(NoteUiMessage.SpaceNotFound, viewModel.uiState.value.error)
+        assertEquals(NoteUiMessage.SpaceNotFound, viewModel.uiState.value.save.error)
     }
+
+    @Test
+    fun `undo runs while another write is in flight and saving stays on until both end`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val addGate = CompletableDeferred<Unit>()
+            val restoreGate = CompletableDeferred<Unit>()
+            repository.addGate = addGate
+            repository.restoreGate = restoreGate
+            viewModel.observe("home")
+
+            viewModel.addNote("Wifi", null)
+            viewModel.restoreNote("home", note("n1", "Luz"))
+            runCurrent()
+            assertTrue(viewModel.uiState.value.save.isSaving)
+
+            restoreGate.complete(Unit)
+            runCurrent() // sin avanzar el reloj: el alta del editor tiene tiempo máximo
+            assertEquals("n1", repository.restored.single().second.id)
+            assertTrue(viewModel.uiState.value.save.isSaving)
+
+            addGate.complete(Unit)
+            advanceUntilIdle()
+            assertFalse(viewModel.uiState.value.save.isSaving)
+        }
 
     @Test
     fun `editor save failure or timeout leaves FAILED`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -206,21 +231,22 @@ class NotesViewModelTest {
         repository.nextFailure = NoteRepositoryException(NoteFailure.Network)
         viewModel.addNote("Wifi", null)
         advanceUntilIdle()
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        assertEquals(NoteUiMessage.NetworkError, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.isSaving)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        assertEquals(NoteUiMessage.NetworkError, viewModel.uiState.value.save.editorError)
+        assertNull(viewModel.uiState.value.save.error)
+        assertFalse(viewModel.uiState.value.save.isSaving)
 
         repository.nextFailure = null
-        viewModel.consumeEditorSave()
+        viewModel.feedback.resetEditor()
         repository.hang = true
         viewModel.addNote("Wifi", null)
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
         advanceTimeBy(EDITOR_SAVE_TIMEOUT_MILLIS + 1)
         runCurrent()
 
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        assertEquals(NoteUiMessage.SaveTimeout, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.isSaving)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        assertEquals(NoteUiMessage.SaveTimeout, viewModel.uiState.value.save.editorError)
+        assertFalse(viewModel.uiState.value.save.isSaving)
     }
 }
 
@@ -228,6 +254,7 @@ private class FakeNoteRepository : NoteRepository {
     val restored = mutableListOf<Pair<String, Note>>()
 
     var addGate: CompletableDeferred<Unit>? = null
+    var restoreGate: CompletableDeferred<Unit>? = null
 
     // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
     var hang = false
@@ -271,6 +298,7 @@ private class FakeNoteRepository : NoteRepository {
     }
 
     override suspend fun restoreNote(spaceId: String, note: Note) {
+        restoreGate?.await()
         throwNextFailure()
         restored += spaceId to note
     }
