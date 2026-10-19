@@ -5,6 +5,7 @@ import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseEquipment
 import com.dlunaunizar.bobitos.core.model.ExerciseImage
@@ -119,21 +120,24 @@ class ExercisesViewModelTest {
     @Test
     fun creatingOneItemOffersUndoWithItsIdAndName() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe()
-        advanceUntilIdle()
+        runCurrent()
 
         viewModel.createExercise(input("  Sentadilla  ", ExerciseType.PESO_LIBRE))
-        advanceUntilIdle()
+        runCurrent()
 
-        assertEquals(CreatedItem("sentadilla", "Sentadilla"), viewModel.uiState.value.save.created)
+        assertEquals(
+            listOf(Undoable.Created(null, CreatedItem("sentadilla", "Sentadilla"))),
+            viewModel.undoOffers.value.map { it.undoable },
+        )
         assertNull(viewModel.uiState.value.save.notice)
 
-        viewModel.feedback.consumeCreated()
-        assertNull(viewModel.uiState.value.save.created)
+        viewModel.undoControls.consumeOffer(viewModel.undoOffers.value.single().serial)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
     fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.undoCreate("sentadilla")
+        viewModel.undo(Undoable.Created(null, CreatedItem("sentadilla", "Sentadilla")))
         advanceUntilIdle()
 
         assertEquals("sentadilla", repository.deletedId)
@@ -145,7 +149,7 @@ class ExercisesViewModelTest {
         viewModel.updateExercise("sentadilla", input("Sentadilla", ExerciseType.PESO_LIBRE))
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.save.created)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
@@ -196,7 +200,7 @@ class ExercisesViewModelTest {
         viewModel.observe()
         advanceUntilIdle()
 
-        viewModel.deleteExercise("press-banca")
+        viewModel.deleteExercise(exercise("press-banca", "Press banca", ExerciseType.PESO_LIBRE))
         advanceUntilIdle()
 
         assertEquals("press-banca", repository.deletedId)
@@ -204,17 +208,27 @@ class ExercisesViewModelTest {
     }
 
     @Test
-    fun `deleting a common one that cannot be undone reports it`() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.deleteExercise("press-banca", undoable = false)
+    fun `deleting a common one offers no undo`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe()
         advanceUntilIdle()
 
+        viewModel.deleteExercise(
+            exercise("press-banca", "Press banca", ExerciseType.PESO_LIBRE).copy(ownerUid = "other"),
+        )
+        runCurrent()
+
+        assertEquals("press-banca", repository.deletedId)
         assertEquals(ExerciseUiMessage.Deleted, viewModel.uiState.value.save.notice)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
     fun `deleting an undoable one has no notice of its own`() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.deleteExercise("press-banca", undoable = true)
+        viewModel.observe()
         advanceUntilIdle()
+
+        viewModel.deleteExercise(exercise("press-banca", "Press banca", ExerciseType.PESO_LIBRE))
+        runCurrent()
 
         assertNull(viewModel.uiState.value.save.notice)
     }
@@ -234,7 +248,7 @@ class ExercisesViewModelTest {
     fun `undoing a delete restores the exercise with its id`() = runTest(mainDispatcherRule.testDispatcher) {
         val deleted = exercise("press-banca-2", "Press banca", ExerciseType.PESO_LIBRE)
 
-        viewModel.restoreExercise(deleted)
+        viewModel.undo(Undoable.Deleted(null, deleted))
         advanceUntilIdle()
 
         assertEquals(deleted, repository.restored)
@@ -246,25 +260,27 @@ class ExercisesViewModelTest {
     fun `a failed undo shows the error`() = runTest(mainDispatcherRule.testDispatcher) {
         repository.restoreFailure = ExerciseRepositoryException(ExerciseFailure.Network)
 
-        viewModel.restoreExercise(exercise("press-banca", "Press banca", ExerciseType.PESO_LIBRE))
+        viewModel.undo(Undoable.Deleted(null, exercise("press-banca", "Press banca", ExerciseType.PESO_LIBRE)))
         advanceUntilIdle()
 
         assertEquals(ExerciseUiMessage.NetworkError, viewModel.uiState.value.save.error)
     }
 
     @Test
-    fun `onDeleted runs only when the delete finished well`() = runTest(mainDispatcherRule.testDispatcher) {
-        var deletedCalls = 0
-        repository.deleteFailure = ExerciseRepositoryException(ExerciseFailure.Network)
-        viewModel.deleteExercise("press-banca") { deletedCalls++ }
+    fun `the undo is offered only once the delete finished well`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe()
         advanceUntilIdle()
-        assertEquals(0, deletedCalls)
+        val own = exercise("press-banca", "Press banca", ExerciseType.PESO_LIBRE)
+        repository.deleteFailure = ExerciseRepositoryException(ExerciseFailure.Network)
+        viewModel.deleteExercise(own)
+        runCurrent()
+        assertTrue(viewModel.undoOffers.value.isEmpty())
         assertEquals(ExerciseUiMessage.NetworkError, viewModel.uiState.value.save.error)
 
         repository.deleteFailure = null
-        viewModel.deleteExercise("press-banca") { deletedCalls++ }
-        advanceUntilIdle()
-        assertEquals(1, deletedCalls)
+        viewModel.deleteExercise(own)
+        runCurrent()
+        assertEquals(listOf(Undoable.Deleted(null, own)), viewModel.undoOffers.value.map { it.undoable })
     }
 
     @Test
@@ -322,7 +338,7 @@ class ExercisesViewModelTest {
 
     @Test
     fun `deleting does not touch the editor status`() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.deleteExercise("press-banca")
+        viewModel.deleteExercise(exercise("press-banca", "Press banca", ExerciseType.PESO_LIBRE))
         advanceUntilIdle()
 
         assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
@@ -335,7 +351,7 @@ class ExercisesViewModelTest {
             viewModel.createExercise(input("Remo", ExerciseType.MAQUINA))
             runCurrent() // sin avanzar el reloj: el alta del editor tiene tiempo máximo
 
-            viewModel.restoreExercise(exercise("press-banca", "Press banca", ExerciseType.PESO_LIBRE))
+            viewModel.undo(Undoable.Deleted(null, exercise("press-banca", "Press banca", ExerciseType.PESO_LIBRE)))
             runCurrent()
 
             assertEquals("press-banca", repository.restored?.id)

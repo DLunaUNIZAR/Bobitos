@@ -24,11 +24,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -44,20 +42,18 @@ import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.CollapsibleHeaderBand
-import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
-import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
-import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.component.UndoOfferEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
 import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
@@ -89,11 +85,9 @@ fun ExercisesScreen(
     var detailOpen by rememberSaveable { mutableStateOf(false) }
     var detailExerciseId by rememberSaveable { mutableStateOf<String?>(null) }
     var deleteTarget by remember { mutableStateOf<CatalogExercise?>(null) }
-    // Un ejercicio propio recién borrado, para ofrecer «Deshacer»; una ficha común borrada por el admin avisa desde el ViewModel.
-    var undoable by remember { mutableStateOf<CatalogExercise?>(null) }
     val requestDelete: (CatalogExercise) -> Unit = { exercise ->
         if (exercise.canUndoDelete(state.currentUid)) {
-            viewModel.deleteExercise(exercise.id) { undoable = exercise }
+            viewModel.deleteExercise(exercise)
         } else {
             deleteTarget = exercise
         }
@@ -126,15 +120,7 @@ fun ExercisesScreen(
             )
         },
     ) { padding ->
-        val snackbar = LocalSnackbarHostState.current
-        val scope = rememberCoroutineScope()
-        val deletedMessage = stringResource(R.string.exercises_notice_deleted)
-        val undoLabel = stringResource(R.string.undo)
-        LaunchedEffect(undoable) {
-            val exercise = undoable ?: return@LaunchedEffect
-            undoable = null
-            scope.launchUndo(snackbar, deletedMessage, undoLabel) { viewModel.restoreExercise(exercise) }
-        }
+        val undoOffers by viewModel.undoOffers.collectAsStateWithLifecycle()
         Column(Modifier.fillMaxSize().padding(padding)) {
             SaveFeedbackEffect(
                 save = state.save,
@@ -143,7 +129,12 @@ fun ExercisesScreen(
                 errorText = { stringResource(it.stringResourceId) },
                 noticeText = { stringResource(it.stringResourceId) },
             )
-            CreatedUndoEffect(state.save.created, viewModel.feedback::consumeCreated) { viewModel.undoCreate(it.id) }
+            UndoOfferEffect(
+                offers = undoOffers,
+                controls = viewModel.undoControls,
+                deletedMessage = R.string.exercises_notice_deleted,
+                onUndo = viewModel::undo,
+            )
             ExerciseCatalog(
                 state = state,
                 filter = filter,
@@ -227,7 +218,7 @@ fun ExercisesScreen(
             destructive = true,
             confirmEnabled = !state.save.isSaving,
             onConfirm = {
-                viewModel.deleteExercise(exercise.id, undoable = false)
+                viewModel.deleteExercise(exercise)
                 deleteTarget = null
             },
             onDismiss = { deleteTarget = null },

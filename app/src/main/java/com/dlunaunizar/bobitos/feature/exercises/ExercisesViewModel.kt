@@ -7,6 +7,10 @@ import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
 import com.dlunaunizar.bobitos.core.common.SaveRunner
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.UndoOffer
+import com.dlunaunizar.bobitos.core.common.UndoOfferControls
+import com.dlunaunizar.bobitos.core.common.UndoOffers
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseInput
 import com.dlunaunizar.bobitos.core.model.slug
@@ -35,6 +39,9 @@ class ExercisesViewModel @Inject constructor(
     private val saver =
         SaveRunner(viewModelScope, mutableUiState, ExercisesUiState::save, { copy(save = it) }, Throwable::toUiMessage)
     val feedback: SaveFeedbackControls get() = saver
+    private val undo = UndoOffers<CatalogExercise>(viewModelScope)
+    val undoOffers: StateFlow<List<UndoOffer<CatalogExercise>>> = undo.offers
+    val undoControls: UndoOfferControls get() = undo
 
     private var catalogJob: Job? = null
     private var observing = false
@@ -90,12 +97,11 @@ class ExercisesViewModel @Inject constructor(
             saver.showEditorError(ExerciseUiMessage.AlreadyExists)
             return
         }
-        // Un alta desde la hoja deja `created` (con «Deshacer») en lugar del aviso de guardado.
-        saver.create(editor = true) { CreatedItem(repository.createExercise(input.copy(name = trimmed)), trimmed) }
+        // Un alta desde la hoja ofrece «Deshacer» en lugar del aviso de guardado.
+        saver.run<CreatedItem>(editor = true, afterSuccess = { undo.offer(Undoable.Created(null, it)) }) {
+            CreatedItem(repository.createExercise(input.copy(name = trimmed)), trimmed)
+        }
     }
-
-    // «Deshacer» el alta: borra justo ese ejercicio con el borrado de siempre (sin aviso; si falla, sale el error).
-    fun undoCreate(id: String) = saver.run(force = true) { repository.deleteExercise(id) }
 
     fun updateExercise(id: String, input: ExerciseInput) {
         if (input.name.trim().isEmpty()) {
@@ -107,23 +113,37 @@ class ExercisesViewModel @Inject constructor(
         }
     }
 
-    // onDeleted se llama solo si el borrado termina bien: así el «Deshacer» no se ofrece para un borrado fallido.
-    // Con [undoable] el aviso lo da el snackbar de «Deshacer» de la pantalla; si no (ficha del catálogo común), el suyo.
-    fun deleteExercise(id: String, undoable: Boolean = true, onDeleted: () -> Unit = {}) {
-        val notice = if (undoable) null else ExerciseUiMessage.Deleted
-        saver.run(notice = notice, afterSuccess = { onDeleted() }) { repository.deleteExercise(id) }
+    // Uno propio ofrece «Deshacer» solo si el borrado termina bien y sin aviso propio (el snackbar ya lo confirma);
+    // una ficha del catálogo común (la borra el admin) no se puede deshacer y avisa con el suyo.
+    fun deleteExercise(exercise: CatalogExercise) {
+        if (exercise.canUndoDelete(mutableUiState.value.currentUid)) {
+            saver.run(afterSuccess = { undo.offer(Undoable.Deleted(null, exercise)) }) {
+                repository.deleteExercise(exercise.id)
+            }
+        } else {
+            saver.run(notice = ExerciseUiMessage.Deleted) { repository.deleteExercise(exercise.id) }
+        }
     }
 
-    // «Deshacer» el borrado de un ejercicio propio (con el mismo id; el dueño pasa a ser quien deshace).
-    fun restoreExercise(exercise: CatalogExercise) {
-        saver.run(force = true) { repository.restoreExercise(exercise) }
+    // Única entrada de «Deshacer». Sin aviso propio; si falla, sale el error.
+    fun undo(undoable: Undoable<CatalogExercise>) {
+        saver.run(force = true) {
+            when (undoable) {
+                // Borra justo ese ejercicio con el borrado de siempre.
+                is Undoable.Created -> repository.deleteExercise(undoable.item.id)
+                // Con el mismo id; el dueño pasa a ser quien deshace.
+                is Undoable.Deleted -> repository.restoreExercise(undoable.item)
+                is Undoable.Completed -> Unit
+            }
+        }
     }
 
     private fun catalogContains(id: String): Boolean =
         (mutableUiState.value.catalog as? UiState.Content)?.value?.any { it.id == id } == true
 }
 
-// Solo se devuelven los propios sin fuente ni imagen: lo que el admin borra del catálogo común se confirma con un diálogo.
+// Solo se devuelven los propios sin fuente ni imagen: lo que el admin borra del catálogo común se confirma con
+// un diálogo.
 internal fun CatalogExercise.canUndoDelete(currentUid: String?): Boolean =
     ownerUid == currentUid && source == null && image == null
 

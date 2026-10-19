@@ -28,7 +28,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -45,21 +44,19 @@ import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosInfoSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.CollapsibleHeaderBand
-import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.InfoSheetAction
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
-import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
-import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.component.UndoOfferEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
 import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
@@ -118,10 +115,7 @@ fun RoutinesScreen(
             }
         },
     ) { padding ->
-        val snackbar = LocalSnackbarHostState.current
-        val scope = rememberCoroutineScope()
-        val deletedMessage = stringResource(R.string.routines_notice_deleted)
-        val undoLabel = stringResource(R.string.undo)
+        val undoOffers by viewModel.undoOffers.collectAsStateWithLifecycle()
         Column(Modifier.fillMaxSize().padding(padding)) {
             SaveFeedbackEffect(
                 save = state.save,
@@ -130,7 +124,12 @@ fun RoutinesScreen(
                 errorText = { stringResource(it.stringResourceId) },
                 noticeText = { stringResource(it.stringResourceId) },
             )
-            CreatedUndoEffect(state.save.created, viewModel.feedback::consumeCreated) { viewModel.undoCreate(it.id) }
+            UndoOfferEffect(
+                offers = undoOffers,
+                controls = viewModel.undoControls,
+                deletedMessage = R.string.routines_notice_deleted,
+                onUndo = viewModel::undo,
+            )
             RoutinesCatalog(
                 state = state,
                 query = query,
@@ -144,9 +143,7 @@ fun RoutinesScreen(
                 },
                 onDelete = { routine ->
                     if (routine.canUndoDelete()) {
-                        viewModel.deleteRoutine(routine.id) {
-                            scope.launchUndo(snackbar, deletedMessage, undoLabel) { viewModel.restoreRoutine(routine) }
-                        }
+                        viewModel.deleteRoutine(routine)
                     } else {
                         deleteTarget = routine
                     }
@@ -189,7 +186,7 @@ fun RoutinesScreen(
             destructive = true,
             confirmEnabled = canWrite && !state.save.isSaving,
             onConfirm = {
-                viewModel.deleteRoutine(routine.id, undoable = false)
+                viewModel.deleteRoutine(routine)
                 deleteTarget = null
             },
             onDismiss = { deleteTarget = null },

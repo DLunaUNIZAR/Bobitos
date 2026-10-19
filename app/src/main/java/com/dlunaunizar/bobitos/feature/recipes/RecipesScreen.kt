@@ -34,7 +34,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -50,7 +49,6 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.CollapsibleHeaderBand
-import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -59,12 +57,11 @@ import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
 import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
-import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
-import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.component.UndoOfferEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
@@ -137,9 +134,6 @@ fun RecipesScreen(
         }
     }
     val categories = (state.mine.contentOrEmpty() + state.global.contentOrEmpty()).recipeCategories()
-    val scope = rememberCoroutineScope()
-    val deletedMessage = stringResource(R.string.recipes_undo_deleted)
-    val undoLabel = stringResource(R.string.undo)
 
     val closeEditor: () -> Unit = {
         // Cerrar tras un guardado fallido descarta ese error (ya se veía en la hoja).
@@ -182,13 +176,13 @@ fun RecipesScreen(
         },
     ) { padding ->
         // «Deshacer» solo cuando el servidor ha confirmado el borrado: si falla, sale el error y no se ofrece.
-        val snackbarHost = LocalSnackbarHostState.current
-        LaunchedEffect(state.deletedRecipe) {
-            val deleted = state.deletedRecipe ?: return@LaunchedEffect
-            viewModel.consumeDeletedRecipe()
-            scope.launchUndo(snackbarHost, deletedMessage, undoLabel) { viewModel.restoreRecipe(deleted) }
-        }
-        CreatedUndoEffect(state.save.created, viewModel.feedback::consumeCreated) { viewModel.undoCreate(it.id) }
+        val undoOffers by viewModel.undoOffers.collectAsStateWithLifecycle()
+        UndoOfferEffect(
+            offers = undoOffers,
+            controls = viewModel.undoControls,
+            deletedMessage = R.string.recipes_undo_deleted,
+            onUndo = viewModel::undo,
+        )
         Column(
             modifier = Modifier
                 .fillMaxSize()

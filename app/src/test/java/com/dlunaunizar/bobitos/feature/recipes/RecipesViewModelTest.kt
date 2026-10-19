@@ -6,6 +6,7 @@ import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
@@ -354,7 +355,7 @@ class RecipesViewModelTest {
             viewModel.addToShopping("home", tortilla)
             advanceUntilIdle()
             repository.nextFailure = RecipeRepositoryException(RecipeFailure.Network)
-            viewModel.restoreRecipe(tortilla)
+            viewModel.undo(Undoable.Deleted(null, tortilla))
             advanceUntilIdle()
             assertEquals(RecipeUiMessage.NetworkError, viewModel.uiState.value.save.error)
 
@@ -501,7 +502,7 @@ class RecipesViewModelTest {
 
     @Test
     fun `restoreRecipe does not touch the editor status`() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.restoreRecipe(recipe("r1", RecipeVisibility.PRIVATE, "Tortilla"))
+        viewModel.undo(Undoable.Deleted(null, recipe("r1", RecipeVisibility.PRIVATE, "Tortilla")))
         advanceUntilIdle()
 
         assertEquals("Tortilla", repository.restored?.title)
@@ -536,35 +537,39 @@ class RecipesViewModelTest {
     @Test
     fun creatingOneItemOffersUndoWithItsIdAndName() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.saveDraft(null, RecipeDraft.of(null, null).copy(title = "  Lentejas "))
-        advanceUntilIdle()
+        runCurrent()
 
-        assertEquals(CreatedItem("new-1", "Lentejas"), viewModel.uiState.value.save.created)
+        assertEquals(
+            listOf(Undoable.Created(null, CreatedItem("new-1", "Lentejas"))),
+            viewModel.undoOffers.value.map { it.undoable },
+        )
         assertNull(viewModel.uiState.value.save.notice)
 
-        viewModel.feedback.consumeCreated()
-        assertNull(viewModel.uiState.value.save.created)
+        viewModel.undoControls.consumeOffer(viewModel.undoOffers.value.single().serial)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
     fun forkingOffersUndoForTheCopy() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.fork(recipe("origin", RecipeVisibility.GLOBAL, "Paella común"))
-        advanceUntilIdle()
+        runCurrent()
 
-        assertEquals(CreatedItem("new-1", "Paella común"), viewModel.uiState.value.save.created)
+        val created = CreatedItem("new-1", "Paella común")
+        assertEquals(listOf(Undoable.Created(null, created)), viewModel.undoOffers.value.map { it.undoable })
         assertNull(viewModel.uiState.value.save.notice)
 
-        viewModel.undoCreate("new-1")
+        viewModel.undo(Undoable.Created(null, created))
         advanceUntilIdle()
         assertEquals(listOf("new-1"), repository.deletedIds)
     }
 
     @Test
     fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.undoCreate("new-1")
+        viewModel.undo(Undoable.Created(null, CreatedItem("new-1", "Lentejas")))
         advanceUntilIdle()
 
         assertEquals(listOf("new-1"), repository.deletedIds)
-        assertNull(viewModel.uiState.value.deletedRecipe)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
@@ -572,15 +577,15 @@ class RecipesViewModelTest {
         viewModel.saveDraft("r1", RecipeDraft.of(null, null).copy(title = "Lentejas"))
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.save.created)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
     fun aRestoredRecipeNeverOffersUndo() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.restoreRecipe(recipe("r1", RecipeVisibility.PRIVATE, "Tortilla"))
+        viewModel.undo(Undoable.Deleted(null, recipe("r1", RecipeVisibility.PRIVATE, "Tortilla")))
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.save.created)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
@@ -666,7 +671,7 @@ class RecipesViewModelTest {
             createdByName = "Catálogo Bobitos",
         )
 
-        viewModel.restoreRecipe(deleted)
+        viewModel.undo(Undoable.Deleted(null, deleted))
         advanceUntilIdle()
 
         assertEquals(deleted, repository.restored)
@@ -681,15 +686,28 @@ class RecipesViewModelTest {
 
         viewModel.deleteRecipe(tortilla)
         runCurrent()
-        assertNull(viewModel.uiState.value.deletedRecipe)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
 
         gate.complete(Unit)
-        advanceUntilIdle()
+        runCurrent()
         assertEquals(listOf("r1"), repository.deletedIds)
-        assertEquals(tortilla, viewModel.uiState.value.deletedRecipe)
+        assertEquals(listOf(Undoable.Deleted(null, tortilla)), viewModel.undoOffers.value.map { it.undoable })
+    }
 
-        viewModel.consumeDeletedRecipe()
-        assertNull(viewModel.uiState.value.deletedRecipe)
+    @Test
+    fun `deleting offers undo with the recipe`() = runTest(mainDispatcherRule.testDispatcher) {
+        val sopa = recipe("r2", RecipeVisibility.GLOBAL, "Sopa")
+
+        viewModel.deleteRecipe(sopa)
+        runCurrent()
+
+        val offer = viewModel.undoOffers.value.single()
+        assertEquals(Undoable.Deleted(null, sopa), offer.undoable)
+        assertNull(viewModel.uiState.value.save.notice)
+
+        viewModel.undo(offer.undoable)
+        runCurrent()
+        assertEquals(sopa, repository.restored)
     }
 
     @Test
@@ -701,7 +719,7 @@ class RecipesViewModelTest {
             assertTrue(viewModel.uiState.value.save.isSaving)
 
             val tortilla = recipe("r1", RecipeVisibility.PRIVATE, "Tortilla")
-            viewModel.restoreRecipe(tortilla)
+            viewModel.undo(Undoable.Deleted(null, tortilla))
             runCurrent()
 
             assertEquals(tortilla, repository.restored)
@@ -720,7 +738,7 @@ class RecipesViewModelTest {
         viewModel.deleteRecipe(recipe("r1", RecipeVisibility.PRIVATE, "Tortilla"))
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.deletedRecipe)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
         assertEquals(RecipeUiMessage.NetworkError, viewModel.uiState.value.save.error)
     }
 
@@ -729,12 +747,12 @@ class RecipesViewModelTest {
         runTest(mainDispatcherRule.testDispatcher) {
             val common = recipe("torrijas", RecipeVisibility.GLOBAL, "Torrijas")
 
-            viewModel.restoreRecipe(common)
+            viewModel.undo(Undoable.Deleted(null, common))
             advanceUntilIdle()
             assertEquals(common, repository.restored)
 
             repository.nextFailure = RecipeRepositoryException(RecipeFailure.PermissionDenied)
-            viewModel.restoreRecipe(common)
+            viewModel.undo(Undoable.Deleted(null, common))
             advanceUntilIdle()
             assertEquals(RecipeUiMessage.PermissionDenied, viewModel.uiState.value.save.error)
         }

@@ -7,6 +7,10 @@ import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
 import com.dlunaunizar.bobitos.core.common.SaveRunner
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.UndoOffer
+import com.dlunaunizar.bobitos.core.common.UndoOfferControls
+import com.dlunaunizar.bobitos.core.common.UndoOffers
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.common.toFailureKind
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
@@ -53,6 +57,9 @@ class RecipesViewModel @Inject constructor(
     private val saver =
         SaveRunner(viewModelScope, mutableUiState, RecipesUiState::save, { copy(save = it) }, Throwable::toUiMessage)
     val feedback: SaveFeedbackControls get() = saver
+    private val undo = UndoOffers<Recipe>(viewModelScope)
+    val undoOffers: StateFlow<List<UndoOffer<Recipe>>> = undo.offers
+    val undoControls: UndoOfferControls get() = undo
 
     private var globalJob: Job? = null
     private var mineJob: Job? = null
@@ -188,8 +195,8 @@ class RecipesViewModel @Inject constructor(
     ) {
         if (!validate(title, description, category, steps, servings, totalMinutes)) return
         val trimmed = title.trim()
-        // Un alta desde la hoja (crear o importar) deja `created` (con «Deshacer») en lugar del aviso de guardado.
-        saver.create(editor = true) {
+        // Un alta desde la hoja (crear o importar) ofrece «Deshacer» en lugar del aviso de guardado.
+        saver.run<CreatedItem>(editor = true, afterSuccess = { undo.offer(Undoable.Created(null, it)) }) {
             val id = repository.createRecipe(
                 visibility = safeVisibility(visibility),
                 title = trimmed,
@@ -288,23 +295,31 @@ class RecipesViewModel @Inject constructor(
         }
     }
 
-    // Recrea la receta borrada («Deshacer») tal como era, con su mismo id y su visibilidad: el importador del catálogo
-    // no duplica una común recuperada y las comidas que la enlazaban la vuelven a encontrar. Si quien deshace ya no
-    // puede publicar comunes, las reglas lo rechazan y sale el error (nunca se guarda como privada con el id del
-    // catálogo). No es un guardado del editor, no mueve su estado.
-    fun restoreRecipe(recipe: Recipe) = saver.run(force = true) { repository.restoreRecipe(recipe) }
-
-    // Sin notice: el «Deshacer» lo ofrece la pantalla cuando el servidor confirma el borrado (deletedRecipe); si
-    // falla, sale el error y no se ofrece.
+    // Sin notice: la oferta de «Deshacer» sale solo cuando el servidor confirma el borrado; si falla, sale el error y
+    // no se ofrece.
     fun deleteRecipe(recipe: Recipe) {
-        saver.run(onSuccess = { copy(deletedRecipe = recipe) }) { repository.deleteRecipe(recipe.id) }
+        saver.run(afterSuccess = { undo.offer(Undoable.Deleted(null, recipe)) }) { repository.deleteRecipe(recipe.id) }
     }
 
-    fun consumeDeletedRecipe() = mutableUiState.update { it.copy(deletedRecipe = null) }
+    // Única entrada de «Deshacer»; no es un guardado del editor, no mueve su estado. Sin aviso propio; si falla, sale
+    // el error.
+    fun undo(undoable: Undoable<Recipe>) {
+        saver.run(force = true) {
+            when (undoable) {
+                // Borra justo esa receta con el borrado de siempre, sin ofrecer otro «Deshacer».
+                is Undoable.Created -> repository.deleteRecipe(undoable.item.id)
+                // Recrea la receta tal como era, con su mismo id y su visibilidad: el importador del catálogo no
+                // duplica una común recuperada y las comidas que la enlazaban la vuelven a encontrar. Si quien
+                // deshace ya no puede publicar comunes, las reglas lo rechazan y sale el error.
+                is Undoable.Deleted -> repository.restoreRecipe(undoable.item)
+                is Undoable.Completed -> Unit
+            }
+        }
+    }
 
     fun fork(source: Recipe) {
-        // «Guardar como mía» deja `created` con la copia (su id, no el de la original) en lugar del aviso de copia.
-        saver.create {
+        // «Guardar como mía» ofrece «Deshacer» de la copia (su id, no el de la original) en lugar del aviso de copia.
+        saver.run<CreatedItem>(afterSuccess = { undo.offer(Undoable.Created(null, it)) }) {
             val id = repository.createRecipe(
                 visibility = RecipeVisibility.PRIVATE,
                 title = source.title,
@@ -319,10 +334,6 @@ class RecipesViewModel @Inject constructor(
             CreatedItem(id, source.title)
         }
     }
-
-    // «Deshacer» el alta: borra justo esa receta con el borrado de siempre, sin ofrecer otro «Deshacer» (sin aviso; si
-    // falla, sale el error).
-    fun undoCreate(id: String) = saver.run(force = true) { repository.deleteRecipe(id) }
 
     // GLOBAL solo para admins; el resto siempre PRIVATE aunque llegue otra cosa (las reglas también lo exigen).
     private fun safeVisibility(visibility: RecipeVisibility) =

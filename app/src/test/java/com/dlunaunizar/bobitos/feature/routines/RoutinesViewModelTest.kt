@@ -6,6 +6,7 @@ import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseInput
 import com.dlunaunizar.bobitos.core.model.ExerciseSet
@@ -145,27 +146,33 @@ class RoutinesViewModelTest {
     @Test
     fun creatingOneItemOffersUndoWithItsIdAndName() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.createRoutine(RoutineVisibility.PRIVATE, "  Empuje ", null, emptyList())
-        advanceUntilIdle()
+        runCurrent()
 
-        assertEquals(CreatedItem("new-1", "Empuje"), viewModel.uiState.value.save.created)
+        assertEquals(
+            listOf(Undoable.Created(null, CreatedItem("new-1", "Empuje"))),
+            viewModel.undoOffers.value.map { it.undoable },
+        )
         assertNull(viewModel.uiState.value.save.notice)
 
-        viewModel.feedback.consumeCreated()
-        assertNull(viewModel.uiState.value.save.created)
+        viewModel.undoControls.consumeOffer(viewModel.undoOffers.value.single().serial)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
     fun forkingOffersUndoForTheCopy() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.fork(routine("torso", RoutineVisibility.GLOBAL, "Torso"))
-        advanceUntilIdle()
+        runCurrent()
 
-        assertEquals(CreatedItem("new-1", "Torso"), viewModel.uiState.value.save.created)
+        assertEquals(
+            listOf(Undoable.Created(null, CreatedItem("new-1", "Torso"))),
+            viewModel.undoOffers.value.map { it.undoable },
+        )
         assertNull(viewModel.uiState.value.save.notice)
     }
 
     @Test
     fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.undoCreate("new-1")
+        viewModel.undo(Undoable.Created(null, CreatedItem("new-1", "Empuje")))
         advanceUntilIdle()
 
         assertEquals("new-1", repository.lastDeletedId)
@@ -177,7 +184,7 @@ class RoutinesViewModelTest {
         viewModel.updateRoutine("r1", "Pierna", null, emptyList())
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.save.created)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
@@ -207,36 +214,38 @@ class RoutinesViewModelTest {
     }
 
     @Test
-    fun `deleting a common one that cannot be undone reports it`() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.deleteRoutine("r1", undoable = false)
-        advanceUntilIdle()
+    fun `deleting a common one offers no undo`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.deleteRoutine(routine("r1", RoutineVisibility.GLOBAL, "Full body"))
+        runCurrent()
 
+        assertEquals("r1", repository.lastDeletedId)
         assertEquals(RoutineUiMessage.Deleted, viewModel.uiState.value.save.notice)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
     fun `deleting an undoable one has no notice of its own`() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.deleteRoutine("r1", undoable = true)
-        advanceUntilIdle()
+        viewModel.deleteRoutine(routine("r1", RoutineVisibility.PRIVATE, "Mi torso"))
+        runCurrent()
 
         assertNull(viewModel.uiState.value.save.notice)
     }
 
     @Test
     fun `undo is offered only once the delete has finished`() = runTest(mainDispatcherRule.testDispatcher) {
-        var offered = 0
+        val mine = routine("r1", RoutineVisibility.PRIVATE, "Mi torso")
         repository.failure = RoutineFailure.Network
-        viewModel.deleteRoutine("r1") { offered++ }
-        advanceUntilIdle()
-        assertEquals(0, offered)
+        viewModel.deleteRoutine(mine)
+        runCurrent()
+        assertTrue(viewModel.undoOffers.value.isEmpty())
         assertEquals(RoutineUiMessage.NetworkError, viewModel.uiState.value.save.error)
 
         repository.failure = null
-        viewModel.deleteRoutine("r1") { offered++ }
-        advanceUntilIdle()
+        viewModel.deleteRoutine(mine)
+        runCurrent()
 
         assertEquals("r1", repository.lastDeletedId)
-        assertEquals(1, offered)
+        assertEquals(listOf(Undoable.Deleted(null, mine)), viewModel.undoOffers.value.map { it.undoable })
         assertNull(viewModel.uiState.value.save.notice)
     }
 
@@ -244,7 +253,7 @@ class RoutinesViewModelTest {
     fun `undoing a delete brings the routine back with its id and source`() =
         runTest(mainDispatcherRule.testDispatcher) {
             val deleted = routine("r1", RoutineVisibility.PRIVATE, "Mi torso").copy(sourceRoutineId = "torso")
-            viewModel.restoreRoutine(deleted)
+            viewModel.undo(Undoable.Deleted(null, deleted))
             advanceUntilIdle()
 
             assertEquals("r1", repository.lastRestored?.id)
@@ -254,7 +263,7 @@ class RoutinesViewModelTest {
     @Test
     fun `a failed undo surfaces the error`() = runTest(mainDispatcherRule.testDispatcher) {
         repository.failure = RoutineFailure.PermissionDenied
-        viewModel.restoreRoutine(routine("r1", RoutineVisibility.PRIVATE, "Mi torso"))
+        viewModel.undo(Undoable.Deleted(null, routine("r1", RoutineVisibility.PRIVATE, "Mi torso")))
         advanceUntilIdle()
 
         assertEquals(RoutineUiMessage.PermissionDenied, viewModel.uiState.value.save.error)
@@ -380,7 +389,7 @@ class RoutinesViewModelTest {
 
     @Test
     fun `deleting does not touch the editor status`() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.deleteRoutine("r1")
+        viewModel.deleteRoutine(routine("r1", RoutineVisibility.PRIVATE, "Mi torso"))
         advanceUntilIdle()
 
         assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
@@ -393,7 +402,7 @@ class RoutinesViewModelTest {
             viewModel.createRoutine(RoutineVisibility.PRIVATE, "Empuje", null, emptyList())
             runCurrent() // sin avanzar el reloj: el alta del editor tiene tiempo máximo
 
-            viewModel.restoreRoutine(routine("r1", RoutineVisibility.PRIVATE, "Mi torso"))
+            viewModel.undo(Undoable.Deleted(null, routine("r1", RoutineVisibility.PRIVATE, "Mi torso")))
             runCurrent()
 
             assertEquals("r1", repository.lastRestored?.id)

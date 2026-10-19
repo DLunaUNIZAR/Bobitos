@@ -7,6 +7,10 @@ import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
 import com.dlunaunizar.bobitos.core.common.SaveRunner
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.UndoOffer
+import com.dlunaunizar.bobitos.core.common.UndoOfferControls
+import com.dlunaunizar.bobitos.core.common.UndoOffers
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.common.toFailureKind
 import com.dlunaunizar.bobitos.core.model.Routine
 import com.dlunaunizar.bobitos.core.model.RoutineExercise
@@ -35,6 +39,9 @@ class RoutinesViewModel @Inject constructor(
     private val saver =
         SaveRunner(viewModelScope, mutableUiState, RoutinesUiState::save, { copy(save = it) }, Throwable::toUiMessage)
     val feedback: SaveFeedbackControls get() = saver
+    private val undo = UndoOffers<Routine>(viewModelScope)
+    val undoOffers: StateFlow<List<UndoOffer<Routine>>> = undo.offers
+    val undoControls: UndoOfferControls get() = undo
 
     private var globalJob: Job? = null
     private var mineJob: Job? = null
@@ -98,8 +105,8 @@ class RoutinesViewModel @Inject constructor(
     ) {
         if (!validate(title, description)) return
         val trimmed = title.trim()
-        // Un alta desde la hoja deja `created` (con «Deshacer») en lugar del aviso de guardado.
-        saver.create(editor = true) {
+        // Un alta desde la hoja ofrece «Deshacer» en lugar del aviso de guardado.
+        saver.run<CreatedItem>(editor = true, afterSuccess = { undo.offer(Undoable.Created(null, it)) }) {
             CreatedItem(repository.createRoutine(visibility, trimmed, description.normalized(), exercises), trimmed)
         }
     }
@@ -111,22 +118,35 @@ class RoutinesViewModel @Inject constructor(
         }
     }
 
-    // onDeleted se llama solo si el borrado termina bien: así el «Deshacer» no se ofrece para un borrado
-    // fallido. Con [undoable] el aviso lo da el snackbar de «Deshacer» de la pantalla; si no (una común), el suyo.
-    fun deleteRoutine(routineId: String, undoable: Boolean = true, onDeleted: () -> Unit = {}) {
-        val notice = if (undoable) null else RoutineUiMessage.Deleted
-        saver.run(notice = notice, afterSuccess = { onDeleted() }) { repository.deleteRoutine(routineId) }
+    // Una personal ofrece «Deshacer» solo si el borrado termina bien y sin aviso propio (el snackbar ya lo confirma);
+    // una común (la borra el admin) no se puede deshacer y avisa con el suyo.
+    fun deleteRoutine(routine: Routine) {
+        if (routine.canUndoDelete()) {
+            saver.run(afterSuccess = { undo.offer(Undoable.Deleted(null, routine)) }) {
+                repository.deleteRoutine(routine.id)
+            }
+        } else {
+            saver.run(notice = RoutineUiMessage.Deleted) { repository.deleteRoutine(routine.id) }
+        }
     }
 
-    // «Deshacer» el borrado de una rutina personal (con el mismo id; el dueño pasa a ser quien deshace).
-    fun restoreRoutine(routine: Routine) {
-        saver.run(force = true) { repository.restoreRoutine(routine) }
+    // Única entrada de «Deshacer». Sin aviso propio; si falla, sale el error.
+    fun undo(undoable: Undoable<Routine>) {
+        saver.run(force = true) {
+            when (undoable) {
+                // Borra justo esa rutina con el borrado de siempre.
+                is Undoable.Created -> repository.deleteRoutine(undoable.item.id)
+                // Con el mismo id; el dueño pasa a ser quien deshace.
+                is Undoable.Deleted -> repository.restoreRoutine(undoable.item)
+                is Undoable.Completed -> Unit
+            }
+        }
     }
 
     // Copia privada de una común («Guardar como mía»), enlazada con la original por sourceRoutineId.
     fun fork(source: Routine) {
-        // «Guardar como mía» deja `created` con la copia (su id, no el de la original) en lugar del aviso de copia.
-        saver.create {
+        // «Guardar como mía» ofrece «Deshacer» de la copia (su id, no el de la original) en lugar del aviso de copia.
+        saver.run<CreatedItem>(afterSuccess = { undo.offer(Undoable.Created(null, it)) }) {
             val id = repository.createRoutine(
                 visibility = RoutineVisibility.PRIVATE,
                 title = source.title,
@@ -137,9 +157,6 @@ class RoutinesViewModel @Inject constructor(
             CreatedItem(id, source.title)
         }
     }
-
-    // «Deshacer» el alta: borra justo esa rutina con el borrado de siempre (sin aviso; si falla, sale el error).
-    fun undoCreate(id: String) = saver.run(force = true) { repository.deleteRoutine(id) }
 
     private fun validate(title: String, description: String?): Boolean {
         val error = RoutinesValidation.validate(title, description) ?: return true
