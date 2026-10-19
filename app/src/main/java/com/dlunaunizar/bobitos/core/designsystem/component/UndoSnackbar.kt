@@ -1,15 +1,21 @@
 package com.dlunaunizar.bobitos.core.designsystem.component
 
+import androidx.annotation.StringRes
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.CreatedItem
+import com.dlunaunizar.bobitos.core.common.UndoOffer
+import com.dlunaunizar.bobitos.core.common.UndoOfferControls
+import com.dlunaunizar.bobitos.core.common.Undoable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -52,6 +58,38 @@ fun CreatedUndoEffect(created: CreatedItem?, onConsumed: () -> Unit, onUndo: (Cr
         if (created != null && message != null) {
             onConsumed()
             scope.launchUndo(snackbar, message, actionLabel) { onUndo(created) }
+        }
+    }
+}
+
+/**
+ * Muestra el aviso «Deshacer» de la primera de [offers]: la consume antes de mostrarla y llama a [onUndo] solo si el
+ * usuario pulsa la acción. Una oferta no se muestra dos veces. Los avisos se encolan en el host, uno tras otro. Sin
+ * host consume igual y no muestra nada. Se llama dentro del `content` del scaffold, que provee [LocalSnackbarHostState].
+ */
+@Composable
+fun <T> UndoOfferEffect(
+    offers: List<UndoOffer<T>>,
+    controls: UndoOfferControls,
+    @StringRes deletedMessage: Int? = null,
+    @StringRes completedMessage: Int? = null,
+    onUndo: (Undoable<T>) -> Unit,
+) {
+    val snackbar = LocalSnackbarHostState.current
+    val scope = rememberCoroutineScope()
+    val resources = LocalResources.current
+    val shown = remember { mutableSetOf<Long>() }
+    val first = offers.firstOrNull()
+    LaunchedEffect(first?.serial) {
+        if (first != null && shown.add(first.serial)) {
+            controls.consumeOffer(first.serial)
+            val undoable = first.undoable
+            val message = when (undoable) {
+                is Undoable.Created -> resources.getString(R.string.created_undo_message, undoable.item.name)
+                is Undoable.Deleted -> resources.getString(checkNotNull(deletedMessage))
+                is Undoable.Completed -> resources.getString(checkNotNull(completedMessage))
+            }
+            scope.launchUndo(snackbar, message, resources.getString(R.string.undo)) { onUndo(undoable) }
         }
     }
 }
