@@ -112,6 +112,7 @@ Depende de: ninguna
        - `target: google_apis`, `arch: x86_64`, `profile: pixel_6` (1080 × 2400 a 420 dpi, 411 dp de ancho) y `disable-animations: true`;
        - `script: ./gradlew :app:connectedDebugAndroidTest`;
        - sin caché de AVD ni reintentos.
+       - **Ruling R3 (ejecución):** en la CI, el sistema del emulador se cayó ~25 s después de `sys.boot_completed` («Can't find service: package/activity», 0 tests). Se permite ajustar `ram-size`, `cores`, `heap-size`, `disk-size` y `emulator-options`, y una espera acotada a que respondan los servicios `package` y `activity` antes de Gradle (no es un reintento de tests), y un volcado de `adb logcat -d` al artefacto si falla. Siguen fijos `target`, `arch`, `profile` y `api-level: '37.0'`.
        - Un comentario de una línea remite al ADR-0001.
     5. «Upload test reports», con `if: always()` y `actions/upload-artifact@v4`, nombre `instrumented-test-reports`, rutas `app/build/reports/androidTests/connected/debug/` y `app/build/outputs/androidTest-results/connected/debug/`, e `if-no-files-found: warn`.
 
