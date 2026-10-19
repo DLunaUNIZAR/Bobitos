@@ -4,6 +4,21 @@ Menores que las revisiones de cada rama dejaron sin arreglar. Cada línea dice s
 
 Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalogo-ejercicios-wger`) se cerraron en la rama `agent/menores-aplazados` (plan `docs/superpowers/plans/2026-10-10-menores-aplazados.md`).
 
+## 2026-10-19 — `agent/revision-compra-avisos`
+
+- **Efecto visible (TalkBack):** los controles de cada fila de la revisión de «Añadir a la compra» («No añadir a la lista», «Añadir»/«Sumar», «Cantidad», marca y tienda) no dicen de qué ingrediente son; ahora hay un selector por fila. La spec fija «No añadir a la lista»; casi todos esos controles son anteriores a la rama (`IngredientReview.kt` `ReviewRowContent`/`SkipOrIncludePicker`; M4, D1, CR4; ruling R7).
+- **Efecto visible:** el icono de las etiquetas es de 18 dp fijos y no crece con la letra (sin verificar en pantalla; `IngredientReview.kt` ~327; D2).
+- **Efecto visible:** las filas de la revisión se separan poco (2 dp dentro de la fila, 12 dp entre filas, sin divisor) y usan literales en dp en vez de tokens de `Spacing` (`IngredientReview.kt` ~279 y ~309, `InfoChip.kt`; D3).
+- **Efecto visible:** «De varias comidas» también sale en la revisión abierta desde Recetario (`meals_review_multi`, texto heredado; D4).
+- **Efecto visible:** «Volver a apuntar» salta a 2 líneas en el selector en la revisión más estrecha (232 dp) con la letra al 130 % (entra entero; ruling R9).
+- **Interno:** los KDoc de `ReviewRowKind.NEW` («se añade») y de `ReviewHint` están desfasados (`IngredientReview.kt` ~56 y ~382; M2, CR3).
+- **Interno:** ningún test pide `badges()` con `pantryIds` vacío (si no se pudo leer la despensa); se prueba por equivalencia (M3).
+- **Interno:** `kind` y `badges()` derivan por separado la misma clasificación (despensa, lista, comprado) (CR5).
+- **Interno:** el icono y el módulo de cada etiqueta se eligen en dos sitios y los iconos repiten los de `BobitosDestination.Pantry`/`Shopping`; si cambia el de la navegación, la etiqueta se queda con el viejo (CR6).
+- **Interno:** `chipColors` (par `container`/`onContainer` del módulo para un `InfoChip`) vive en la feature y no en el design system (CR7).
+- **Interno:** `badges()`, `hint()` y `chipColors` se recalculan en cada recomposición de la fila, también con cada tecla del campo de cantidad (CR8).
+- **Interno:** `lineCount` y `layoutsOf` repiten la búsqueda del nodo y del `TextLayoutResult` en `IngredientReviewUiTest.kt` (CR9).
+
 ## 2026-10-19 — `agent/deshacer`
 
 - **Efecto visible:** los avisos de «Deshacer» que esperan en la cola del host se consumen al encolarse: si se gira o se cambia de módulo con dos o tres en espera, los que no han salido se pierden; si no, el tercero sale hacia los 20 s, pasada su caducidad de 10 s. Ya pasaba antes; mostrarlos uno a uno choca con la caducidad y con el «ninguno se pierde» del plan: es una decisión de diseño (`UndoSnackbar.kt` `UndoOfferEffect`; M1 de la revisión final, CR1 del code-review, D-M3).
