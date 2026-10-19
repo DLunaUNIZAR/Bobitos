@@ -348,28 +348,36 @@ internal fun IngredientReviewRow.includeLabel(): Int = when {
     else -> R.string.meals_review_add
 }
 
-internal fun IngredientReviewRow.hint(): ReviewHint? = when (kind) {
-    ReviewRowKind.PENDING -> pendingHint()
-    ReviewRowKind.IN_PANTRY -> recipeQuantity?.let { ReviewHint(R.string.meals_review_in_pantry_recipe, listOf(it)) }
-        ?: ReviewHint(R.string.meals_review_in_pantry)
-    ReviewRowKind.PURCHASED -> recipeQuantity?.let { ReviewHint(R.string.meals_review_purchased_recipe, listOf(it)) }
-        ?: ReviewHint(R.string.meals_review_purchased)
-    ReviewRowKind.NEW -> when {
-        quantities.size >= 2 -> ReviewHint(R.string.meals_review_multi, listOf(quantities.joinToString(" + ")))
-        recipeQuantity != null -> ReviewHint(R.string.meals_review_recipe, listOf(recipeQuantity))
-        else -> null
-    }
+/** Qué avisa una etiqueta: la despensa o la lista de la compra. */
+internal enum class ReviewBadgeSource { PANTRY, SHOPPING }
+
+/** Etiqueta de una fila: de dónde viene, su texto y sus argumentos. */
+internal data class ReviewBadge(
+    val source: ReviewBadgeSource,
+    @StringRes val res: Int,
+    val args: List<String> = emptyList(),
+)
+
+/** Los avisos de la fila, despensa primero y lista después; una fila puede llevar los dos o ninguno. */
+internal fun IngredientReviewRow.badges(): List<ReviewBadge> = buildList {
+    if (inPantry) add(ReviewBadge(ReviewBadgeSource.PANTRY, R.string.meals_review_badge_pantry))
+    val listed = existing ?: return@buildList
+    val listedQuantity = listed.quantity?.trim()?.takeIf(String::isNotEmpty)
+    add(
+        when {
+            listed.purchased -> ReviewBadge(ReviewBadgeSource.SHOPPING, R.string.meals_review_badge_purchased)
+            listedQuantity != null ->
+                ReviewBadge(ReviewBadgeSource.SHOPPING, R.string.meals_review_badge_listed, listOf(listedQuantity))
+            else -> ReviewBadge(ReviewBadgeSource.SHOPPING, R.string.meals_review_badge_listed_plain)
+        },
+    )
 }
 
-private fun IngredientReviewRow.pendingHint(): ReviewHint {
-    val listed = existing?.quantity?.trim()?.takeIf(String::isNotEmpty)
-    val recipe = recipeQuantity
-    return when {
-        listed != null && recipe != null -> ReviewHint(R.string.meals_review_existing, listOf(listed, recipe))
-        listed != null -> ReviewHint(R.string.meals_review_existing_listed, listOf(listed))
-        recipe != null -> ReviewHint(R.string.meals_review_existing_recipe, listOf(recipe))
-        else -> ReviewHint(R.string.meals_review_existing_plain)
-    }
+/** La pista solo lleva lo que pide la receta, sea cual sea el tipo de fila. */
+internal fun IngredientReviewRow.hint(): ReviewHint? = when {
+    quantities.size >= 2 -> ReviewHint(R.string.meals_review_multi, listOf(quantities.joinToString(" + ")))
+    recipeQuantity != null -> ReviewHint(R.string.meals_review_recipe, listOf(recipeQuantity))
+    else -> null
 }
 
 // «Omitir» (no se toca el artículo de la lista) o «Sumar» / «Volver a apuntar» (se edita la cantidad propuesta).

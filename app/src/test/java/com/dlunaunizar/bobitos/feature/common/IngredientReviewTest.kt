@@ -188,49 +188,61 @@ class IngredientReviewTest {
     }
 
     @Test
-    fun `pending hints name only the quantities there are`() {
-        fun hintFor(listed: String?, ingredient: Ingredient) = buildIngredientReviewRows(
-            listOf(ingredient),
-            listOf(item("s1", "Sal", quantity = listed)),
+    fun `every row shows the pantry and the list badges it has, pantry first`() {
+        val rows = buildIngredientReviewRows(
+            listOf(
+                Ingredient("Sal", "200", "g"),
+                Ingredient("Leche", "1", "l"),
+                Ingredient("Arroz"),
+                Ingredient("Pimienta"),
+                Ingredient("Tomate"),
+            ),
+            listOf(
+                item("s1", "Sal", quantity = "1 kg"),
+                item("s2", "Leche", purchased = true),
+                item("s3", "Pimienta"),
+            ),
             data,
-        ).single().hint()
+            setOf(pantryId("Sal"), pantryId("Leche"), pantryId("Arroz")),
+        )
+        val pantry = ReviewBadge(ReviewBadgeSource.PANTRY, R.string.meals_review_badge_pantry)
+        val kg = listOf("1 kg")
 
         assertEquals(
-            ReviewHint(R.string.meals_review_existing, listOf("1 kg", "200 g")),
-            hintFor("1 kg", Ingredient("Sal", "200", "g")),
+            listOf(
+                listOf(pantry, ReviewBadge(ReviewBadgeSource.SHOPPING, R.string.meals_review_badge_listed, kg)),
+                listOf(pantry, ReviewBadge(ReviewBadgeSource.SHOPPING, R.string.meals_review_badge_purchased)),
+                listOf(pantry),
+                listOf(ReviewBadge(ReviewBadgeSource.SHOPPING, R.string.meals_review_badge_listed_plain)),
+                emptyList(),
+            ),
+            rows.map { it.badges() },
         )
-        assertEquals(
-            ReviewHint(R.string.meals_review_existing_listed, listOf("1 kg")),
-            hintFor("1 kg", Ingredient("Sal")),
-        )
-        assertEquals(
-            ReviewHint(R.string.meals_review_existing_recipe, listOf("200 g")),
-            hintFor(null, Ingredient("Sal", "200", "g")),
-        )
-        assertEquals(ReviewHint(R.string.meals_review_existing_plain), hintFor(null, Ingredient("Sal")))
     }
 
     @Test
-    fun `purchased and new hints`() {
+    fun `the hint only carries what the recipe asks for`() {
+        val salRow = buildIngredientReviewRows(
+            listOf(Ingredient("Sal", "200", "g")),
+            listOf(item("s1", "Sal", quantity = "1 kg")),
+            data,
+            setOf(pantryId("Sal")),
+        ).single()
+        assertEquals(ReviewHint(R.string.meals_review_recipe, listOf("200 g")), salRow.hint())
+
         val bought = listOf(item("s2", "Leche", purchased = true))
+        assertNull(buildIngredientReviewRows(listOf(Ingredient("Leche")), bought, data).single().hint())
+
         assertEquals(
-            ReviewHint(R.string.meals_review_purchased_recipe, listOf("1 l")),
-            buildIngredientReviewRows(listOf(Ingredient("Leche", "1", "l")), bought, data).single().hint(),
-        )
-        assertEquals(
-            ReviewHint(R.string.meals_review_purchased),
-            buildIngredientReviewRows(listOf(Ingredient("Leche")), bought, data).single().hint(),
-        )
-        assertEquals(
-            ReviewHint(R.string.meals_review_multi, listOf("200 g + 1 ud")),
-            buildIngredientReviewRows(
-                listOf(Ingredient("Sal", "200", "g"), Ingredient("Sal", "1", "ud")),
-                emptyList(),
-                data,
-            )
+            ReviewHint(R.string.meals_review_recipe, listOf("1 kg")),
+            buildIngredientReviewRows(listOf(Ingredient("Sal", "1", "kg")), emptyList(), data, setOf(pantryId("Sal")))
                 .single().hint(),
         )
-        assertEquals(null, buildIngredientReviewRows(listOf(Ingredient("Sal")), emptyList(), data).single().hint())
+
+        val pair = listOf(Ingredient("Sal", "200", "g"), Ingredient("Sal", "1", "ud"))
+        val multi = ReviewHint(R.string.meals_review_multi, listOf("200 g + 1 ud"))
+        assertEquals(multi, buildIngredientReviewRows(pair, listOf(item("s1", "Sal")), data).single().hint())
+        assertEquals(multi, buildIngredientReviewRows(pair, emptyList(), data).single().hint())
     }
 
     @Test
@@ -485,16 +497,23 @@ class IngredientReviewTest {
     }
 
     @Test
-    fun `pantry rows hint the pantry and offer Añadir`() {
-        fun rowFor(ingredient: Ingredient) =
-            buildIngredientReviewRows(listOf(ingredient), emptyList(), data, setOf(pantryId("Sal"))).single()
+    fun `a new row starts in Añadir and can be left out`() {
+        val row = buildIngredientReviewRows(listOf(Ingredient("Arroz", "300", "g")), emptyList(), data).single()
+        val state = row.initialState()
 
-        assertEquals(
-            ReviewHint(R.string.meals_review_in_pantry_recipe, listOf("1 kg")),
-            rowFor(Ingredient("Sal", "1", "kg")).hint(),
-        )
-        assertEquals(ReviewHint(R.string.meals_review_in_pantry), rowFor(Ingredient("Sal")).hint())
-        assertEquals(R.string.meals_review_add, rowFor(Ingredient("Sal")).includeLabel())
+        assertTrue(state.include)
+        assertEquals(R.string.meals_review_add, row.includeLabel())
+        val skipped = state.withInclude(false).toChoice(row)
+        assertTrue(skipped.skip)
+        assertTrue(listOf(skipped).writesNothing())
+        assertEquals(emptyList<ShoppingWrite>(), ingredientReviewWrites(listOf(row), listOf(skipped)))
+
+        val edited = state.copy(quantity = "1 kg").withStore(Supermarket.MERCADONA)
+        assertEquals(edited, edited.withInclude(false).withInclude(true))
+
+        fun rowFor(ingredient: Ingredient, items: List<ShoppingItem>) =
+            buildIngredientReviewRows(listOf(ingredient), items, data, setOf(pantryId("Sal"))).single()
+        assertEquals(R.string.meals_review_add, rowFor(Ingredient("Sal"), emptyList()).includeLabel())
         assertEquals(
             R.string.meals_review_sum,
             buildIngredientReviewRows(listOf(Ingredient("Sal")), listOf(item("s1", "Sal")), data).single()
