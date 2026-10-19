@@ -97,7 +97,8 @@ class SpaceHomeViewModel @Inject constructor(
                 onFinished(ok)
                 if (ok) onCompleted(task)
             },
-            onFailure = ::showError,
+            // Una cancelación lanzada por el repositorio (sin estar cancelado el scope) llega aquí como fallo normal.
+            onFailure = { mutableError.value = it.toUiMessage() },
         ) { taskRepository.setCompleted(spaceId, task.id, true) }
     }
 
