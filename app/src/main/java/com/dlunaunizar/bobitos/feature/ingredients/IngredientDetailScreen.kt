@@ -52,14 +52,12 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.formatDecimal
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
-import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.InfoChip
-import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SwitchRow
+import com.dlunaunizar.bobitos.core.designsystem.component.UndoOfferEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
-import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
@@ -112,7 +110,7 @@ fun IngredientDetailScreen(
         modifier = modifier,
         saving = savingOutsideEditor(state.save.isSaving, showFichaEditor || brandInitial != null),
     ) { padding ->
-        CreatedUndoEffect(state.save.created, viewModel.feedback::consumeCreated) { viewModel.undoCreate(it.id) }
+        BrandUndoEffect(viewModel)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -232,9 +230,6 @@ private fun IngredientContent(
     }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val snackbar = LocalSnackbarHostState.current
-    val brandDeletedMessage = stringResource(R.string.ingredients_brand_notice_deleted)
-    val undoLabel = stringResource(R.string.undo)
     FichaSection(
         ingredient = ingredient,
         canEdit = state.canEditIngredient,
@@ -257,11 +252,7 @@ private fun IngredientContent(
         onScan = { scope.launch { scanBarcode(context)?.let(viewModel::lookupBarcode) } },
         onEdit = { onOpenBrandEditor(it.id, BrandDraft.of(it)) },
         deleteEnabled = !state.save.isSaving,
-        onDelete = { brand ->
-            viewModel.deleteBrand(brand.id) {
-                scope.launchUndo(snackbar, brandDeletedMessage, undoLabel) { viewModel.restoreBrand(brand) }
-            }
-        },
+        onDelete = viewModel::deleteBrand,
     )
 }
 
@@ -558,3 +549,15 @@ private fun favoriteDescriptionRes(favorite: Boolean) =
 
 private fun nutritionToggleRes(shown: Boolean) =
     if (shown) R.string.ingredients_nutrition_hide else R.string.ingredients_nutrition_show
+
+/** El aviso «Deshacer» de lo que ofrece el ViewModel. */
+@Composable
+private fun BrandUndoEffect(viewModel: IngredientDetailViewModel) {
+    val undoOffers by viewModel.undoOffers.collectAsStateWithLifecycle()
+    UndoOfferEffect(
+        undoOffers,
+        viewModel.undoControls,
+        R.string.ingredients_brand_notice_deleted,
+        onUndo = viewModel::undo,
+    )
+}

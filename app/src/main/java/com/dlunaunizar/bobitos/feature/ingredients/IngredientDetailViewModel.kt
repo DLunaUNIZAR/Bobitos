@@ -5,6 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
 import com.dlunaunizar.bobitos.core.common.SaveRunner
+import com.dlunaunizar.bobitos.core.common.UndoOffer
+import com.dlunaunizar.bobitos.core.common.UndoOfferControls
+import com.dlunaunizar.bobitos.core.common.UndoOffers
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.Supermarket
@@ -49,6 +53,11 @@ class IngredientDetailViewModel @Inject constructor(
         Throwable::toDetailUiMessage,
     )
     val feedback: SaveFeedbackControls get() = saver
+
+    // Solo las marcas se deshacen aquí; el ingrediente borrado lo ofrece la lista, por el relevo.
+    private val undo = UndoOffers<IngredientBrand>(viewModelScope)
+    val undoOffers: StateFlow<List<UndoOffer<IngredientBrand>>> = undo.offers
+    val undoControls: UndoOfferControls get() = undo
 
     private var ingredientId: String = ""
     private var catalogJob: Job? = null
@@ -164,11 +173,13 @@ class IngredientDetailViewModel @Inject constructor(
     }
 
     // Un personal se borra sin aviso propio: tras terminar bien, la lista (adonde vuelve la pantalla) ofrece el
-    // «Deshacer» con lo que se llevó por delante. El común (solo el admin) conserva su aviso y no se deshace.
+    // «Deshacer» con lo que se llevó por delante. El común (solo el admin) conserva su aviso y no se deshace, y
+    // tampoco el personal sin cuenta actual (no hay a quién ofrecérselo).
     fun deleteIngredient() {
         val current = mutableUiState.value
+        val uid = repository.currentUserId()
         val snapshot = current.ingredient?.takeIf(CatalogIngredient::personal)
-            ?.let { DeletedIngredient(it, current.brands, current.stores, repository.currentUserId()) }
+            ?.let { ingredient -> uid?.let { DeletedIngredient(ingredient, current.brands, current.stores, it) } }
         saver.run(
             notice = if (snapshot == null) IngredientUiMessage.Deleted else null,
             onSuccess = { copy(finished = true) },
@@ -218,9 +229,11 @@ class IngredientDetailViewModel @Inject constructor(
         }
         val input = draft.toInput(ingredientId)
         val name = draft.name.trim()
-        // Una marca nueva deja `created` (con «Deshacer») en lugar del aviso de marca guardada; editarla, el de siempre.
+        // Una marca nueva ofrece «Deshacer» en lugar del aviso de marca guardada; editarla, el de siempre.
         if (brandId == null) {
-            saver.create(editor = true) { CreatedItem(brandRepository.addBrand(input), name) }
+            saver.run<CreatedItem>(editor = true, afterSuccess = { undo.offer(Undoable.Created(null, it)) }) {
+                CreatedItem(brandRepository.addBrand(input), name)
+            }
         } else {
             saver.run(notice = IngredientUiMessage.BrandSaved, editor = true) {
                 brandRepository.updateBrand(brandId, input)
@@ -228,17 +241,21 @@ class IngredientDetailViewModel @Inject constructor(
         }
     }
 
-    // «Deshacer» el alta de la marca: la borra con el borrado de siempre (sin aviso; si falla, sale el error).
-    fun undoCreate(id: String) = saver.run(force = true) { brandRepository.deleteBrand(id) }
-
-    // onDeleted se llama solo si el borrado termina bien: así el «Deshacer» no se ofrece para un borrado fallido.
-    fun deleteBrand(brandId: String, onDeleted: () -> Unit = {}) {
-        saver.run(afterSuccess = { onDeleted() }) { brandRepository.deleteBrand(brandId) }
+    // Borrar una marca ofrece «Deshacer» solo si el borrado termina bien.
+    fun deleteBrand(brand: IngredientBrand) {
+        saver.run(afterSuccess = {
+            undo.offer(Undoable.Deleted(null, brand))
+        }) { brandRepository.deleteBrand(brand.id) }
     }
 
-    // «Deshacer» el borrado de una marca (con el mismo id).
-    fun restoreBrand(brand: IngredientBrand) {
-        saver.run(force = true) { brandRepository.restoreBrand(brand) }
+    // «Deshacer» el borrado de una marca (con el mismo id) o su alta (la borra con el borrado de siempre). Sin aviso;
+    // si falla, sale el error.
+    fun undo(undoable: Undoable<IngredientBrand>) {
+        when (undoable) {
+            is Undoable.Deleted -> saver.run(force = true) { brandRepository.restoreBrand(undoable.item) }
+            is Undoable.Created -> saver.run(force = true) { brandRepository.deleteBrand(undoable.item.id) }
+            is Undoable.Completed -> Unit
+        }
     }
 
     /**

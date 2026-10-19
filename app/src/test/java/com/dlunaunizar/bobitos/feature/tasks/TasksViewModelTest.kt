@@ -88,7 +88,6 @@ class TasksViewModelTest {
             listOf(Undoable.Created("home", CreatedItem("new-1", "Fregar"))),
             viewModel.undoOffers.value.map { it.undoable },
         )
-        assertNull(viewModel.uiState.value.save.created)
         assertFalse(viewModel.uiState.value.save.isSaving)
     }
 

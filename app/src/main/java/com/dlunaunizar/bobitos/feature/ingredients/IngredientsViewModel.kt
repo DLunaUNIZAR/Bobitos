@@ -6,6 +6,10 @@ import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
 import com.dlunaunizar.bobitos.core.common.SaveRunner
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.UndoOffer
+import com.dlunaunizar.bobitos.core.common.UndoOfferControls
+import com.dlunaunizar.bobitos.core.common.UndoOffers
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.findByKey
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffException
@@ -21,6 +25,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -46,21 +51,20 @@ class IngredientsViewModel @Inject constructor(
     )
     val feedback: SaveFeedbackControls get() = saver
 
-    // Ingrediente personal recién borrado desde su detalle: la pantalla ofrece «Deshacer» y lo consume.
-    // Solo se ofrece si lo borró la cuenta actual: el relevo vive lo que el proceso y la sesión puede haber cambiado.
-    private val mutableDeleted = MutableStateFlow<DeletedIngredient?>(null)
-    val deleted: StateFlow<DeletedIngredient?> = mutableDeleted.asStateFlow()
+    // El borrado de un ingrediente personal llega del detalle por el relevo; el alta personal, de esta pantalla.
+    private val undo = UndoOffers<DeletedIngredient>(viewModelScope)
+    val undoOffers: StateFlow<List<UndoOffer<DeletedIngredient>>> = undo.offers
+    val undoControls: UndoOfferControls get() = undo
 
-    fun consumeDeleted() = deletedRelay.consume()
-
-    // «Deshacer» el borrado: devuelve el ingrediente con sus marcas y tiendas (si no puede, sale el error).
-    fun restoreIngredient(deleted: DeletedIngredient) {
-        if (!deleted.isOwnedByCurrentUser()) return
-        saver.run(force = true) { personalRepository.restore(deleted) }
+    // «Deshacer» el borrado devuelve el ingrediente con sus marcas y tiendas; el alta, lo borra con el borrado de
+    // siempre. Sin aviso: si falla, sale el error.
+    fun undo(undoable: Undoable<DeletedIngredient>) {
+        when (undoable) {
+            is Undoable.Deleted -> saver.run(force = true) { personalRepository.restore(undoable.item) }
+            is Undoable.Created -> saver.run(force = true) { personalRepository.delete(undoable.item.id) }
+            is Undoable.Completed -> Unit
+        }
     }
-
-    private fun DeletedIngredient.isOwnedByCurrentUser(): Boolean =
-        ownerUid != null && ownerUid == repository.currentUserId()
 
     private var catalogJob: Job? = null
     private var personalJob: Job? = null
@@ -79,11 +83,11 @@ class IngredientsViewModel @Inject constructor(
         mutableUiState.update { it.copy(isAdmin = repository.isCurrentUserCatalogAdmin()) }
         startCatalog()
         relayJob = viewModelScope.launch {
-            deletedRelay.deleted.collect { snapshot ->
-                if (snapshot == null || snapshot.isOwnedByCurrentUser()) {
-                    mutableDeleted.value = snapshot
-                } else {
-                    deletedRelay.consume()
+            deletedRelay.deleted.filterNotNull().collect { relayed ->
+                deletedRelay.consume(relayed)
+                // El relevo vive lo que el proceso: solo se ofrece si lo borró la cuenta actual.
+                if (relayed.deleted.ownerUid == repository.currentUserId()) {
+                    undo.offer(Undoable.Deleted(null, relayed.deleted), since = relayed.since)
                 }
             }
         }
@@ -166,20 +170,17 @@ class IngredientsViewModel @Inject constructor(
             return
         }
         val asCommon = common && mutableUiState.value.isAdmin
-        // El ingrediente personal deja `created` (con «Deshacer») en lugar del aviso de guardado; el común, el de siempre.
+        // El ingrediente personal ofrece «Deshacer» en lugar del aviso de guardado; el común, el de siempre.
         if (asCommon) {
             saver.run(notice = IngredientUiMessage.Saved, editor = true) {
                 repository.createIngredient(trimmed, category, defaultUnit)
             }
         } else {
-            saver.create(editor = true) {
+            saver.run<CreatedItem>(editor = true, afterSuccess = { undo.offer(Undoable.Created(null, it)) }) {
                 CreatedItem(personalRepository.create(trimmed, category, defaultUnit), trimmed)
             }
         }
     }
-
-    // «Deshacer» el alta del ingrediente personal: lo borra con el borrado de siempre (sin aviso; si falla, sale el error).
-    fun undoCreate(id: String) = saver.run(force = true) { personalRepository.delete(id) }
 
     fun consumeOpenIngredient() {
         mutableUiState.update { it.copy(openIngredientId = null) }

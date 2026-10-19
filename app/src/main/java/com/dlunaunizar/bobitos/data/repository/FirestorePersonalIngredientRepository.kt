@@ -90,6 +90,7 @@ class FirestorePersonalIngredientRepository @Inject constructor(
 
     override suspend fun restore(deleted: DeletedIngredient) = runOperation {
         val uid = requireVerifiedUid()
+        restoreOwnerFailure(deleted.ownerUid, uid)?.let { throw IngredientRepositoryException(it) }
         val ingredient = deleted.ingredient
         val values = validateIngredientInput(ingredient.name, ingredient.category, ingredient.defaultUnit)
         val batch = firestore.batch()
@@ -171,3 +172,7 @@ class FirestorePersonalIngredientRepository @Inject constructor(
         const val MAX_INGREDIENTS = 500L
     }
 }
+
+/** Solo la cuenta que lo borró puede restaurarlo. */
+internal fun restoreOwnerFailure(ownerUid: String, currentUid: String): IngredientFailure? =
+    if (ownerUid == currentUid) null else IngredientFailure.PermissionDenied

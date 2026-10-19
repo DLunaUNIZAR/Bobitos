@@ -87,8 +87,6 @@ private object NoOpFeedback : SaveFeedbackControls {
 
     override fun consumeNoticeIf(shown: Any) = Unit
 
-    override fun consumeCreated() = Unit
-
     override fun resetEditor() = Unit
 
     override fun releaseEditorError() = Unit

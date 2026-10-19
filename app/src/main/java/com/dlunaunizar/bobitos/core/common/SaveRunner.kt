@@ -17,8 +17,6 @@ interface SaveFeedbackControls {
     /** Como [consumeNotice], pero solo si el aviso pendiente sigue siendo [shown] (el que se mostró). */
     fun consumeNoticeIf(shown: Any)
 
-    fun consumeCreated()
-
     /** Editor a IDLE y `editorError` a null. */
     fun resetEditor()
 
@@ -28,7 +26,7 @@ interface SaveFeedbackControls {
 
 /**
  * Dueño de las transiciones de [SaveState] dentro del estado [S] de una pantalla: [read] saca el [SaveState]
- * y [write] lo devuelve puesto. Cada [run] o [create] es una acción en curso; solo una a la vez salvo `force`.
+ * y [write] lo devuelve puesto. Cada [run] es una acción en curso; solo una a la vez salvo `force`.
  */
 class SaveRunner<S, E, N>(
     private val scope: CoroutineScope,
@@ -63,28 +61,7 @@ class SaveRunner<S, E, N>(
         errorOf: (Throwable) -> E = toError,
         afterSuccess: (T) -> Unit = {},
         action: suspend () -> T,
-    ): Boolean =
-        launchAction(editor, force, clearError, noticeOf, null, onSuccess, onFailure, errorOf, afterSuccess, action)
-
-    /** Como [run], pero el resultado es lo creado y queda en `created` (con su `onSuccess` y `afterSuccess`). */
-    fun create(
-        editor: Boolean = false,
-        force: Boolean = false,
-        onSuccess: S.(CreatedItem) -> S = { this },
-        afterSuccess: (CreatedItem) -> Unit = {},
-        action: suspend () -> CreatedItem,
-    ): Boolean = launchAction(
-        editor = editor,
-        force = force,
-        clearError = false,
-        noticeOf = { null },
-        created = { it },
-        onSuccess = onSuccess,
-        onFailure = { this },
-        errorOf = toError,
-        afterSuccess = afterSuccess,
-        action = action,
-    )
+    ): Boolean = launchAction(editor, force, clearError, noticeOf, onSuccess, onFailure, errorOf, afterSuccess, action)
 
     @Suppress("LongParameterList", "TooGenericExceptionCaught")
     private fun <T> launchAction(
@@ -92,7 +69,6 @@ class SaveRunner<S, E, N>(
         force: Boolean,
         clearError: Boolean,
         noticeOf: (T) -> N?,
-        created: ((T) -> CreatedItem)?,
         onSuccess: S.(T) -> S,
         onFailure: S.(Throwable) -> S,
         errorOf: (Throwable) -> E,
@@ -129,7 +105,6 @@ class SaveRunner<S, E, N>(
             }
             result.onSuccess { value ->
                 val newNotice = noticeOf(value)
-                val newCreated = created?.invoke(value)
                 state.update { current ->
                     val save = read(current)
                     current.write(
@@ -137,7 +112,6 @@ class SaveRunner<S, E, N>(
                             running = save.running - 1,
                             notice = newNotice ?: save.notice,
                             editor = if (editor) EditorSaveStatus.SAVED else save.editor,
-                            created = newCreated ?: save.created,
                         ),
                     ).onSuccess(value)
                 }
@@ -203,8 +177,6 @@ class SaveRunner<S, E, N>(
     fun consumeErrorWhere(predicate: (E) -> Boolean) = update {
         if (it.error?.let(predicate) == true) it.copy(error = null) else it
     }
-
-    override fun consumeCreated() = update { it.copy(created = null) }
 
     override fun resetEditor() = update { it.copy(editor = EditorSaveStatus.IDLE, editorError = null) }
 

@@ -110,7 +110,6 @@ class SportViewModelTest {
             viewModel.undoOffers.value.map { it.undoable },
         )
         assertNull(viewModel.uiState.value.save.notice)
-        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test

@@ -249,7 +249,7 @@ class FirestoreSportActivityRepository @Inject constructor(
                 )
                 restore.event != null -> transaction.set(
                     requireNotNull(eventReference),
-                    restoredEventData(
+                    eventDataForRestore(
                         user,
                         restore.event,
                         activeMembers(eventParticipantIds, eventParticipantIds.map(records::get)),
@@ -544,7 +544,7 @@ private fun commonData(
 
 // El evento vuelve con los datos que tenía (título, horario, color…) y solo con los participantes que siguen activos,
 // en su orden y con el nombre de su membresía; solo la autoría y las fechas de creación son de quien deshace.
-internal fun restoredEventData(user: AuthUser, event: CalendarEvent, active: List<ActiveMember>): Map<String, Any?> =
+internal fun eventDataForRestore(user: AuthUser, event: CalendarEvent, active: List<ActiveMember>): Map<String, Any?> =
     event.toInput().copy(participantIds = active.map(ActiveMember::id)).data(user, active.map(ActiveMember::name))
 
 private val AuthUser.sportDisplayName: String

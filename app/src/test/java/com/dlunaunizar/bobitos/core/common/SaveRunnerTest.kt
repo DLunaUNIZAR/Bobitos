@@ -128,18 +128,6 @@ class SaveRunnerTest {
     }
 
     @Test
-    fun `a forced action ending does not clear a pending created`() {
-        runner.create { CreatedItem("1", "Pan") }
-        runCurrent()
-        assertEquals(CreatedItem("1", "Pan"), save.created)
-
-        runner.run<Unit>(force = true) { }
-        runCurrent()
-
-        assertEquals(CreatedItem("1", "Pan"), save.created)
-    }
-
-    @Test
     fun `an editor failure goes to the editor error and not to the screen error`() {
         runner.run<Unit>(editor = true) { error("fallo") }
         runCurrent()

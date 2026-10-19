@@ -51,7 +51,6 @@ import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.CollapsibleHeaderBand
-import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -60,15 +59,14 @@ import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
 import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
-import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.SwitchRow
+import com.dlunaunizar.bobitos.core.designsystem.component.UndoOfferEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
-import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
@@ -130,8 +128,7 @@ fun IngredientsScreen(
             )
         },
     ) { padding ->
-        CreatedUndoEffect(state.save.created, viewModel.feedback::consumeCreated) { viewModel.undoCreate(it.id) }
-        DeletedUndoEffect(viewModel)
+        IngredientsUndoEffect(viewModel)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -587,17 +584,9 @@ private fun ingredientMessageText(
     else -> stringResource(message.stringResourceId)
 }
 
-/** Avisa «Ingrediente borrado» con «Deshacer» cuando el detalle publica un personal recién borrado. */
+/** El aviso «Deshacer» de lo que ofrece el ViewModel. */
 @Composable
-private fun DeletedUndoEffect(viewModel: IngredientsViewModel) {
-    val deleted by viewModel.deleted.collectAsStateWithLifecycle()
-    val snackbar = LocalSnackbarHostState.current
-    val scope = rememberCoroutineScope()
-    val message = stringResource(R.string.ingredients_notice_deleted)
-    val undoLabel = stringResource(R.string.undo)
-    LaunchedEffect(deleted) {
-        val pending = deleted ?: return@LaunchedEffect
-        viewModel.consumeDeleted()
-        scope.launchUndo(snackbar, message, undoLabel) { viewModel.restoreIngredient(pending) }
-    }
+private fun IngredientsUndoEffect(viewModel: IngredientsViewModel) {
+    val undoOffers by viewModel.undoOffers.collectAsStateWithLifecycle()
+    UndoOfferEffect(undoOffers, viewModel.undoControls, R.string.ingredients_notice_deleted, onUndo = viewModel::undo)
 }

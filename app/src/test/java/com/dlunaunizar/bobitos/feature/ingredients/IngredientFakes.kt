@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.ingredients
 
+import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
@@ -8,6 +9,7 @@ import com.dlunaunizar.bobitos.core.model.slug
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffException
 import com.dlunaunizar.bobitos.data.openfoodfacts.OffProduct
 import com.dlunaunizar.bobitos.data.openfoodfacts.OpenFoodFactsClient
+import com.dlunaunizar.bobitos.data.repository.AuthRepository
 import com.dlunaunizar.bobitos.data.repository.BrandInput
 import com.dlunaunizar.bobitos.data.repository.DeletedIngredient
 import com.dlunaunizar.bobitos.data.repository.IngredientBrandRepository
@@ -19,6 +21,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flow
 
 // Fakes compartidos por los tests de Ingredientes, Detalle y Compra; cada test usa solo las puertas y
@@ -191,5 +194,23 @@ internal class FakeOffClient : OpenFoodFactsClient {
         calls++
         failure?.let { throw it }
         return result
+    }
+}
+
+internal fun ingredientTestUser(id: String) = AuthUser(id, "Yo", "$id@bobitos.test", true)
+
+// Solo importa la cuenta actual: es lo que vigila el relevo de ingredientes borrados.
+internal class FakeIngredientAuthRepository(initial: AuthUser? = ingredientTestUser("me")) : AuthRepository {
+    val user = MutableStateFlow(initial)
+    override val currentUser: StateFlow<AuthUser?> = user
+
+    override suspend fun register(displayName: String, email: String, password: String) = Unit
+    override suspend fun signIn(email: String, password: String) = Unit
+    override suspend fun sendEmailVerification() = Unit
+    override suspend fun refreshCurrentUser(): AuthUser = checkNotNull(user.value)
+    override suspend fun sendPasswordReset(email: String) = Unit
+    override suspend fun updateDisplayName(displayName: String) = Unit
+    override fun signOut() {
+        user.value = null
     }
 }

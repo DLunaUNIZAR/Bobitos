@@ -68,7 +68,7 @@ class SportActivityFieldsTest {
             event.id,
             false,
         )
-        val restoredEvent = restoredEventData(me, event, active)
+        val restoredEvent = eventDataForRestore(me, event, active)
 
         assertEquals(listOf("a", "d"), activity["participantIds"])
         assertEquals(listOf("Ana", "Dani"), activity["participantNames"])

@@ -4,7 +4,9 @@ import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.UNDO_OFFER_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
@@ -17,6 +19,7 @@ import com.dlunaunizar.bobitos.data.repository.DeletedIngredient
 import com.dlunaunizar.bobitos.data.repository.IngredientFailure
 import com.dlunaunizar.bobitos.data.repository.IngredientRepositoryException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -28,6 +31,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.TestTimeSource
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class IngredientsViewModelTest {
@@ -39,7 +44,13 @@ class IngredientsViewModelTest {
     private val prefsRepository = FakeIngredientPrefsRepository()
     private val brandRepository = FakeIngredientBrandRepository()
     private val offClient = FakeOffClient()
-    private val relay = DeletedIngredientRelay()
+    private val timeSource = TestTimeSource()
+    private val relay =
+        DeletedIngredientRelay(
+            FakeIngredientAuthRepository(),
+            CoroutineScope(mainDispatcherRule.testDispatcher),
+            timeSource,
+        )
     private val viewModel by lazy {
         IngredientsViewModel(repository, personalRepository, prefsRepository, brandRepository, offClient, relay)
     }
@@ -68,7 +79,7 @@ class IngredientsViewModelTest {
         }
 
     @Test
-    fun `restoreIngredient brings back brands and stores`() = runTest(mainDispatcherRule.testDispatcher) {
+    fun `undoing a delete brings back brands and stores`() = runTest(mainDispatcherRule.testDispatcher) {
         val deleted = DeletedIngredient(
             ingredient = CatalogIngredient("canela", "Canela", personal = true),
             brands = listOf(IngredientBrand(id = "b1", ingredientId = "canela", name = "Hida")),
@@ -76,7 +87,7 @@ class IngredientsViewModelTest {
             ownerUid = "me",
         )
 
-        viewModel.restoreIngredient(deleted)
+        viewModel.undo(Undoable.Deleted(null, deleted))
         advanceUntilIdle()
 
         assertEquals(deleted, personalRepository.restored)
@@ -88,27 +99,79 @@ class IngredientsViewModelTest {
         personalRepository.restoreError = IngredientRepositoryException(IngredientFailure.AlreadyExists)
 
         val deleted =
-            DeletedIngredient(CatalogIngredient("canela", "Canela", personal = true), emptyList(), emptyList(), "me")
-        viewModel.restoreIngredient(deleted)
+            deletedCanela()
+        viewModel.undo(Undoable.Deleted(null, deleted))
         advanceUntilIdle()
 
         assertEquals(IngredientUiMessage.AlreadyExists, viewModel.uiState.value.save.error)
     }
 
     @Test
-    fun `a deleted ingredient posted to the relay is exposed and consumed once`() =
+    fun `a deleted ingredient posted to the relay is offered and consumed once`() =
         runTest(mainDispatcherRule.testDispatcher) {
             val canela = CatalogIngredient("canela", "Canela", personal = true)
             val deleted = DeletedIngredient(canela, emptyList(), emptyList(), "me")
 
             viewModel.observe()
             relay.post(deleted)
-            assertEquals(deleted, viewModel.deleted.value)
+            runCurrent()
 
-            viewModel.consumeDeleted()
-            assertNull(viewModel.deleted.value)
+            assertEquals(listOf(Undoable.Deleted(null, deleted)), viewModel.undoOffers.value.map { it.undoable })
             assertNull(relay.deleted.value)
         }
+
+    @Test
+    fun `a post made before observe is offered once observing`() = runTest(mainDispatcherRule.testDispatcher) {
+        val deleted = deletedCanela()
+        relay.post(deleted)
+        runCurrent()
+        assertTrue(viewModel.undoOffers.value.isEmpty())
+
+        viewModel.observe()
+        runCurrent()
+
+        assertEquals(listOf(Undoable.Deleted(null, deleted)), viewModel.undoOffers.value.map { it.undoable })
+        assertNull(relay.deleted.value)
+    }
+
+    @Test
+    fun `with no current account the post is discarded and nothing is offered`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.uid = null
+            relay.post(deletedCanela())
+
+            viewModel.observe()
+            runCurrent()
+
+            assertTrue(viewModel.undoOffers.value.isEmpty())
+            assertNull(relay.deleted.value)
+        }
+
+    @Test
+    fun `stopObserving and observe again offers a post only once`() = runTest(mainDispatcherRule.testDispatcher) {
+        relay.post(deletedCanela())
+        viewModel.observe()
+        runCurrent()
+
+        viewModel.stopObserving()
+        viewModel.observe()
+        runCurrent()
+
+        assertEquals(1, viewModel.undoOffers.value.size)
+        assertNull(relay.deleted.value)
+    }
+
+    @Test
+    fun `a post older than UNDO_OFFER_TIMEOUT_MILLIS is not offered`() = runTest(mainDispatcherRule.testDispatcher) {
+        relay.post(deletedCanela())
+        timeSource += (UNDO_OFFER_TIMEOUT_MILLIS + 1).milliseconds
+
+        viewModel.observe()
+        runCurrent()
+
+        assertTrue(viewModel.undoOffers.value.isEmpty())
+        assertNull(relay.deleted.value)
+    }
 
     @Test
     fun `a deleted snapshot from another account is discarded`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -118,13 +181,10 @@ class IngredientsViewModelTest {
 
         viewModel.observe()
         relay.post(deleted)
-        advanceUntilIdle()
-        assertNull(viewModel.deleted.value)
-        assertNull(relay.deleted.value)
+        runCurrent()
 
-        viewModel.restoreIngredient(deleted)
-        advanceUntilIdle()
-        assertNull(personalRepository.restored)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
+        assertNull(relay.deleted.value)
     }
 
     @Test
@@ -165,22 +225,22 @@ class IngredientsViewModelTest {
     @Test
     fun creatingOneItemOffersUndoWithItsIdAndName() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe()
-        advanceUntilIdle()
+        runCurrent()
 
         viewModel.createIngredient("  Cebolla  ", null, "ud", common = false)
-        advanceUntilIdle()
+        runCurrent()
 
-        assertEquals(CreatedItem("cebolla", "Cebolla"), viewModel.uiState.value.save.created)
+        assertEquals(
+            listOf(Undoable.Created(null, CreatedItem("cebolla", "Cebolla"))),
+            viewModel.undoOffers.value.map { it.undoable },
+        )
         assertNull(viewModel.uiState.value.save.notice)
-
-        viewModel.feedback.consumeCreated()
-        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
     fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe()
-        viewModel.undoCreate("cebolla")
+        viewModel.undo(Undoable.Created(null, CreatedItem("cebolla", "Cebolla")))
         advanceUntilIdle()
 
         assertEquals("cebolla", personalRepository.deletedId)
@@ -190,16 +250,15 @@ class IngredientsViewModelTest {
     @Test
     fun editingDoesNotOfferUndo() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe()
-        advanceUntilIdle()
+        runCurrent()
 
         viewModel.createIngredient("Tomate", null, null, common = false)
-        advanceUntilIdle()
-        viewModel.feedback.consumeCreated()
+        runCurrent()
         // Un nombre que ya existe no escribe nada: abre la ficha existente y no ofrece deshacer.
         viewModel.createIngredient("Tomate", null, null, common = false)
-        advanceUntilIdle()
+        runCurrent()
 
-        assertNull(viewModel.uiState.value.save.created)
+        assertEquals(1, viewModel.undoOffers.value.size)
     }
 
     @Test
@@ -211,7 +270,7 @@ class IngredientsViewModelTest {
         viewModel.createIngredient("Cebolla", null, null, common = true)
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.save.created)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
         assertEquals(IngredientUiMessage.Saved, viewModel.uiState.value.save.notice)
     }
 
@@ -294,7 +353,7 @@ class IngredientsViewModelTest {
             val canela = CatalogIngredient("canela", "Canela", personal = true)
             val deleted = DeletedIngredient(canela, emptyList(), emptyList(), "me")
 
-            viewModel.restoreIngredient(deleted)
+            viewModel.undo(Undoable.Deleted(null, deleted))
             runCurrent()
 
             assertEquals(deleted, personalRepository.restored)
@@ -501,3 +560,6 @@ class IngredientsViewModelTest {
 }
 
 private fun ingredient(id: String, name: String) = CatalogIngredient(id = id, name = name)
+
+private fun deletedCanela(ownerUid: String = "me") =
+    DeletedIngredient(CatalogIngredient("canela", "Canela", personal = true), emptyList(), emptyList(), ownerUid)

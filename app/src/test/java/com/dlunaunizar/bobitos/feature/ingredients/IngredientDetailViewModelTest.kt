@@ -4,6 +4,7 @@ import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
@@ -18,6 +19,7 @@ import com.dlunaunizar.bobitos.data.repository.DeletedIngredient
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefFailure
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefsException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.advanceTimeBy
@@ -30,6 +32,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import kotlin.time.TestTimeSource
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class IngredientDetailViewModelTest {
@@ -41,7 +44,11 @@ class IngredientDetailViewModelTest {
     private val prefsRepository = FakeIngredientPrefsRepository()
     private val brandRepository = FakeIngredientBrandRepository()
     private val offClient = FakeOffClient()
-    private val relay = DeletedIngredientRelay()
+    private val relay = DeletedIngredientRelay(
+        FakeIngredientAuthRepository(),
+        CoroutineScope(mainDispatcherRule.testDispatcher),
+        TestTimeSource(),
+    )
     private val viewModel by lazy {
         IngredientDetailViewModel(repository, personalRepository, prefsRepository, brandRepository, offClient, relay)
     }
@@ -286,19 +293,19 @@ class IngredientDetailViewModelTest {
         advanceUntilIdle()
 
         viewModel.saveBrand(null, BrandDraft.of("  Hacendado ", "", null))
-        advanceUntilIdle()
+        runCurrent()
 
-        assertEquals(CreatedItem("new", "Hacendado"), viewModel.uiState.value.save.created)
+        assertEquals(
+            listOf(Undoable.Created(null, CreatedItem("new", "Hacendado"))),
+            viewModel.undoOffers.value.map { it.undoable },
+        )
         assertNull(viewModel.uiState.value.save.notice)
-
-        viewModel.feedback.consumeCreated()
-        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
     fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("tomate")
-        viewModel.undoCreate("new")
+        viewModel.undo(Undoable.Created(null, CreatedItem("new", "Hacendado")))
         advanceUntilIdle()
 
         assertEquals(listOf("new"), brandRepository.deleted)
@@ -313,7 +320,7 @@ class IngredientDetailViewModelTest {
         viewModel.saveBrand("b1", BrandDraft.of("Otra", "", null))
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.save.created)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
         assertEquals(IngredientUiMessage.BrandSaved, viewModel.uiState.value.save.notice)
     }
 
@@ -387,7 +394,7 @@ class IngredientDetailViewModelTest {
 
         assertEquals(
             DeletedIngredient(mine, listOf(brand), listOf(Supermarket.DIA, Supermarket.EROSKI), "me"),
-            relay.deleted.value,
+            relay.deleted.value?.deleted,
         )
     }
 
@@ -423,7 +430,7 @@ class IngredientDetailViewModelTest {
     fun `undoing a brand delete restores it with its id`() = runTest(mainDispatcherRule.testDispatcher) {
         val brand = detailBrand("b1", "tomate", "Hacendado").copy(favorite = true, stores = listOf(Supermarket.DIA))
 
-        viewModel.restoreBrand(brand)
+        viewModel.undo(Undoable.Deleted(null, brand))
         advanceUntilIdle()
 
         assertEquals(brand, brandRepository.restoredBrand)
@@ -442,7 +449,7 @@ class IngredientDetailViewModelTest {
             assertTrue(viewModel.uiState.value.save.isSaving)
             val brand = detailBrand("b1", "tomate", "Hacendado")
 
-            viewModel.restoreBrand(brand)
+            viewModel.undo(Undoable.Deleted(null, brand))
             runCurrent()
 
             assertEquals(brand, brandRepository.restoredBrand)
@@ -456,26 +463,43 @@ class IngredientDetailViewModelTest {
     fun `a failed brand undo shows the error`() = runTest(mainDispatcherRule.testDispatcher) {
         brandRepository.restoreError = BrandRepositoryException(BrandFailure.Network)
 
-        viewModel.restoreBrand(detailBrand("b1", "tomate", "Hacendado"))
+        viewModel.undo(Undoable.Deleted(null, detailBrand("b1", "tomate", "Hacendado")))
         advanceUntilIdle()
 
         assertEquals(IngredientUiMessage.NetworkError, viewModel.uiState.value.save.error)
     }
 
     @Test
-    fun `onDeleted of a brand runs only when the delete finished well`() = runTest(mainDispatcherRule.testDispatcher) {
-        var calls = 0
+    fun `deleting a brand offers undo with it`() = runTest(mainDispatcherRule.testDispatcher) {
+        val brand = detailBrand("b1", "tomate", "Hacendado")
         brandRepository.deleteError = BrandRepositoryException(BrandFailure.Network)
-        viewModel.deleteBrand("b1") { calls++ }
-        advanceUntilIdle()
-        assertEquals(0, calls)
+        viewModel.deleteBrand(brand)
+        runCurrent()
+        assertTrue(viewModel.undoOffers.value.isEmpty())
 
         brandRepository.deleteError = null
-        viewModel.deleteBrand("b1") { calls++ }
-        advanceUntilIdle()
-        assertEquals(1, calls)
+        viewModel.deleteBrand(brand)
+        runCurrent()
+
+        assertEquals(listOf(Undoable.Deleted(null, brand)), viewModel.undoOffers.value.map { it.undoable })
         assertEquals(listOf("b1"), brandRepository.deleted)
     }
+
+    @Test
+    fun `deleting a personal ingredient without a current account posts nothing and shows the notice`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            personalRepository.state.value = listOf(detailIngredient("mio", "Mío", personal = true))
+            viewModel.observe("mio")
+            advanceUntilIdle()
+            repository.uid = null
+
+            viewModel.deleteIngredient()
+            advanceUntilIdle()
+
+            assertNull(relay.deleted.value)
+            assertEquals(IngredientUiMessage.Deleted, viewModel.uiState.value.save.notice)
+            assertTrue(viewModel.uiState.value.finished)
+        }
 
     @Test
     fun `deleting a common ingredient as admin uses the catalog repository`() =
@@ -541,7 +565,7 @@ class IngredientDetailViewModelTest {
             viewModel.observe("tomate")
             advanceUntilIdle()
             brandRepository.deleteError = BrandRepositoryException(BrandFailure.Network)
-            viewModel.deleteBrand("b1") {}
+            viewModel.deleteBrand(detailBrand("b1", "tomate", "Hacendado"))
             advanceUntilIdle()
             assertEquals(IngredientUiMessage.NetworkError, viewModel.uiState.value.save.error)
 
@@ -678,7 +702,7 @@ class IngredientDetailViewModelTest {
         viewModel.observe("tomate")
         advanceUntilIdle()
 
-        viewModel.deleteBrand("b1")
+        viewModel.deleteBrand(detailBrand("b1", "tomate", "Hacendado"))
         advanceUntilIdle()
         viewModel.deleteIngredient()
         advanceUntilIdle()
