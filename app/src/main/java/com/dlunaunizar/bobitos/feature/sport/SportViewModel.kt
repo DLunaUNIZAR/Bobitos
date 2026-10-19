@@ -7,6 +7,10 @@ import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
 import com.dlunaunizar.bobitos.core.common.SaveRunner
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.UndoOffer
+import com.dlunaunizar.bobitos.core.common.UndoOfferControls
+import com.dlunaunizar.bobitos.core.common.UndoOffers
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.common.toFailureKind
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.RoutineExercise
@@ -43,6 +47,9 @@ class SportViewModel @Inject constructor(
     private val saver =
         SaveRunner(viewModelScope, mutableUiState, SportUiState::save, { copy(save = it) }, Throwable::toUiMessage)
     val feedback: SaveFeedbackControls get() = saver
+    private val undo = UndoOffers<DeletedActivity>(viewModelScope)
+    val undoOffers: StateFlow<List<UndoOffer<DeletedActivity>>> = undo.offers
+    val undoControls: UndoOfferControls get() = undo
 
     private var observedSpaceId: String? = null
     private var observedWeekStart: LocalDate? = null
@@ -140,25 +147,27 @@ class SportViewModel @Inject constructor(
         val spaceId = observedSpaceId ?: return
         if (!validate(name)) return
         val trimmed = name.trim()
-        // Un alta desde la hoja deja `created` (con «Deshacer») en lugar del aviso de actividad añadida.
-        saver.create(editor = true) {
+        // Un alta desde la hoja ofrece «Deshacer» (con el espacio de ahora) en lugar del aviso de actividad añadida.
+        saver.run<CreatedItem>(editor = true, afterSuccess = { undo.offer(Undoable.Created(spaceId, it)) }) {
             val id = repository.addActivity(spaceId, date, type, trimmed, participantIds, routineId, session)
             CreatedItem(id, trimmed)
         }
     }
 
-    // «Deshacer» el alta: borra justo esa actividad (y su evento enlazado) con el borrado de siempre (sin aviso; si
-    // falla, sale el error).
-    fun undoCreate(id: String) {
-        val spaceId = observedSpaceId ?: return
-        saver.run(force = true) { repository.deleteActivity(spaceId, id) }
-    }
-
-    // «Deshacer» el borrado: la actividad vuelve con su id y su estado, y con ella su evento enlazado tal como estaba,
-    // al espacio en que estaba (no al que se esté viendo ahora). No es un guardado del editor ni lleva aviso propio;
-    // si falla, sale el error.
-    fun restoreActivity(spaceId: String, activity: SportActivity, event: CalendarEvent?) {
-        saver.run(force = true) { repository.restoreActivity(spaceId, activity, event) }
+    // Única entrada de «Deshacer»: siempre en el espacio donde pasó (no en el que se esté viendo ahora). Restaurar
+    // devuelve la actividad con su id y su estado y, con ella, su evento enlazado tal como estaba; deshacer un alta
+    // borra solo lo que nadie más ha tocado. No es un guardado del editor ni lleva aviso propio; con force no se
+    // descarta en silencio por otra escritura en curso. Si falla (también si otro miembro cambió la actividad), sale
+    // el error.
+    fun undo(undoable: Undoable<DeletedActivity>) {
+        val spaceId = undoable.spaceId ?: return
+        saver.run<Unit>(force = true) {
+            when (undoable) {
+                is Undoable.Created -> repository.undoAddActivity(spaceId, undoable.item.id)
+                is Undoable.Deleted -> repository.restoreActivity(spaceId, undoable.item.activity, undoable.item.event)
+                is Undoable.Completed -> Unit
+            }
+        }
     }
 
     fun updateActivity(
@@ -184,11 +193,13 @@ class SportViewModel @Inject constructor(
         }
     }
 
-    // onDeleted recibe la foto del evento enlazado que ha borrado, y se llama solo si el borrado termina bien: así el
-    // «Deshacer» no se ofrece para un borrado fallido. Sin aviso propio: el snackbar de «Deshacer» ya confirma.
-    fun deleteActivity(activityId: String, onDeleted: (CalendarEvent?) -> Unit = {}) {
+    // La oferta de «Deshacer» sale solo si el borrado termina bien, con la foto del evento enlazado que ha borrado, y
+    // en el espacio de ahora. Sin aviso propio: el snackbar de «Deshacer» ya confirma el borrado.
+    fun deleteActivity(activity: SportActivity) {
         val spaceId = observedSpaceId ?: return
-        saver.run<CalendarEvent?>(afterSuccess = onDeleted) { repository.deleteActivity(spaceId, activityId) }
+        saver.run<CalendarEvent?>(
+            afterSuccess = { undo.offer(Undoable.Deleted(spaceId, DeletedActivity(activity, it))) },
+        ) { repository.deleteActivity(spaceId, activity.id) }
     }
 
     private fun validate(name: String): Boolean {
@@ -212,6 +223,7 @@ private fun Throwable.toRepositoryUiMessage() = when ((this as? SportRepositoryE
     SportFailure.EmailNotVerified -> SportUiMessage.EmailNotVerified
     SportFailure.SpaceNotFound -> SportUiMessage.SpaceNotFound
     SportFailure.ActivityNotFound -> SportUiMessage.ActivityNotFound
+    SportFailure.ActivityChanged -> SportUiMessage.ActivityChanged
     SportFailure.PermissionDenied -> SportUiMessage.PermissionDenied
     SportFailure.Network -> SportUiMessage.NetworkError
     SportFailure.Unknown, null -> SportUiMessage.UnexpectedError

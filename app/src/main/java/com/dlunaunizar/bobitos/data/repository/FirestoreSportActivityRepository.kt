@@ -10,6 +10,7 @@ import com.dlunaunizar.bobitos.data.sync.RealtimeMetrics
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
 import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -82,31 +83,9 @@ class FirestoreSportActivityRepository @Inject constructor(
         session: List<RoutineExercise>,
     ): String = runActivityOperation {
         val user = requireVerifiedUser()
-        val normalizedName = validate(name, participantIds)
-        val gym = GymSession(type, routineId, session)
-        val spaceReference = firestore.collection(SPACES).document(spaceId)
+        val draft = ActivityDraft(date, type, validate(name, participantIds), participantIds, routineId, session)
         val activityReference = activitiesCollection(spaceId).document()
-        val eventReference = eventsCollection(spaceId).document()
-        val memberReferences = participantIds.map { membership(spaceId, it) }
-
-        firestore.runTransaction { transaction ->
-            if (!transaction.get(spaceReference).exists()) {
-                throw SportRepositoryException(SportFailure.SpaceNotFound)
-            }
-            val members = memberReferences.map(transaction::get)
-            requireParticipants(participantIds, members)
-            val names = members.displayNames()
-            // La actividad guarda el id del evento enlazado; el evento (todo el día) aparece en el
-            // calendario del espacio y, por agregación, en el personal.
-            transaction.set(
-                activityReference,
-                activityData(user, date, type, normalizedName, participantIds, names, gym, eventReference.id),
-            )
-            transaction.set(
-                eventReference,
-                newSportEventData(user, user.id, user.sportDisplayName, date, normalizedName, participantIds, names),
-            )
-        }.await()
+        writeNewActivity(spaceId, user, activityReference, draft, restore = null)
         activityReference.id
     }
 
@@ -195,41 +174,107 @@ class FirestoreSportActivityRepository @Inject constructor(
             val eventSnapshot = eventReference?.let(transaction::get)?.takeIf { it.exists() }
             transaction.delete(reference)
             eventSnapshot?.let { transaction.delete(it.reference) }
-            // La foto del evento tal como estaba al borrar, para que «Deshacer» lo devuelva igual.
-            eventSnapshot?.toLinkedEvent()
+            // La foto del evento tal como estaba al borrar, para que «Deshacer» lo devuelva igual (null si no se lee).
+            eventSnapshot?.toCalendarEvent()
         }.await()
     }
 
     override suspend fun restoreActivity(spaceId: String, activity: SportActivity, event: CalendarEvent?) =
         runActivityOperation {
             val user = requireVerifiedUser()
-            val spaceReference = firestore.collection(SPACES).document(spaceId)
-            val activityReference = activitiesCollection(spaceId).document(activity.id)
-            val gym = GymSession(activity.type, activity.routineId, activity.session)
-            firestore.runTransaction { transaction ->
-                if (!transaction.get(spaceReference).exists()) {
-                    throw SportRepositoryException(SportFailure.SpaceNotFound)
-                }
-                // La regla de alta exige `done == false`: la actividad se crea sin hacer y se marca después.
-                transaction.set(
-                    activityReference,
-                    activityData(
+            val draft = ActivityDraft(
+                activity.date,
+                activity.type,
+                validate(activity.name, activity.participantIds),
+                activity.participantIds,
+                activity.routineId,
+                activity.session,
+            )
+            writeNewActivity(
+                spaceId,
+                user,
+                activitiesCollection(spaceId).document(activity.id),
+                draft,
+                restore = Restore(activity.done, event),
+            )
+        }
+
+    // El alta y la restauración escriben igual: misma validación, misma transacción y mismo mapa de campos. Al dar de
+    // alta, un participante que no es miembro activo es un error. Al restaurar se quita (de la actividad y de su
+    // evento), la actividad vuelve ya hecha si lo estaba y enlazada solo a un evento que vuelve con ella.
+    private suspend fun writeNewActivity(
+        spaceId: String,
+        user: AuthUser,
+        activityReference: DocumentReference,
+        draft: ActivityDraft,
+        restore: Restore?,
+    ) {
+        val gym = GymSession(draft.type, draft.routineId, draft.session)
+        val spaceReference = firestore.collection(SPACES).document(spaceId)
+        val eventParticipantIds = restore?.event?.participantIds.orEmpty()
+        val checkedIds = (draft.participantIds + eventParticipantIds).distinct()
+        val memberReferences = checkedIds.map { membership(spaceId, it) }
+        val eventReference = restore?.event?.let { eventsCollection(spaceId).document(it.id) }
+            ?: eventsCollection(spaceId).document().takeIf { restore == null }
+
+        firestore.runTransaction { transaction ->
+            if (!transaction.get(spaceReference).exists()) {
+                throw SportRepositoryException(SportFailure.SpaceNotFound)
+            }
+            val records = checkedIds.zip(memberReferences.map { transaction.get(it).toMembershipRecord() }).toMap()
+            val active = activeMembers(draft.participantIds, draft.participantIds.map(records::get))
+            if (restore == null && active.size != draft.participantIds.size) {
+                throw SportRepositoryException(SportFailure.InvalidParticipants)
+            }
+            val ids = active.map(ActiveMember::id)
+            val names = active.map(ActiveMember::name)
+            transaction.set(
+                activityReference,
+                activityData(
+                    user,
+                    draft.date,
+                    draft.type,
+                    draft.name,
+                    ids,
+                    names,
+                    gym,
+                    eventReference?.id,
+                    restore?.done ?: false,
+                ),
+            )
+            when {
+                restore == null -> transaction.set(
+                    requireNotNull(eventReference),
+                    newSportEventData(user, user.id, user.sportDisplayName, draft.date, draft.name, ids, names),
+                )
+                restore.event != null -> transaction.set(
+                    requireNotNull(eventReference),
+                    restoredEventData(
                         user,
-                        activity.date,
-                        activity.type,
-                        activity.name,
-                        activity.participantIds,
-                        activity.participantNames,
-                        gym,
-                        activity.eventId,
+                        restore.event,
+                        activeMembers(eventParticipantIds, eventParticipantIds.map(records::get)),
                     ),
                 )
-                event?.let {
-                    transaction.set(eventsCollection(spaceId).document(it.id), restoredEventData(user, it))
-                }
-            }.await()
-            if (activity.done) setDone(spaceId, activity.id, true)
-        }
+            }
+        }.await()
+    }
+
+    override suspend fun undoAddActivity(spaceId: String, activityId: String) = runActivityOperation {
+        val user = requireVerifiedUser()
+        val reference = activitiesCollection(spaceId).document(activityId)
+        firestore.runTransaction { transaction ->
+            val snapshot = requireActivity(transaction.get(reference))
+            val eventReference = snapshot.getString(FIELD_EVENT_ID)?.let { eventsCollection(spaceId).document(it) }
+            // Lecturas antes de escrituras. Si el evento enlazado ya no existe, solo se borra la actividad.
+            val eventSnapshot = eventReference?.let(transaction::get)?.takeIf { it.exists() }
+            val touched = !isLastWriter(snapshot.getString(FIELD_UPDATED_BY), user.id) ||
+                eventSnapshot?.let { !isLastWriter(it.getString(FIELD_UPDATED_BY), user.id) } == true
+            if (touched) throw SportRepositoryException(SportFailure.ActivityChanged)
+            transaction.delete(reference)
+            eventSnapshot?.let { transaction.delete(it.reference) }
+        }.await()
+        Unit
+    }
 
     private fun activitiesCollection(spaceId: String) = firestore
         .collection(SPACES)
@@ -286,31 +331,6 @@ class FirestoreSportActivityRepository @Inject constructor(
 
     private fun List<DocumentSnapshot>.displayNames(): List<String> = map { it.getString(FIELD_DISPLAY_NAME).orEmpty() }
 
-    // La rutina y la sesión solo tienen sentido en GIMNASIO: para el resto se fuerzan a vacío para
-    // que ningún tipo arrastre datos de sesión ajenos.
-    private class GymSession(type: SportType, routineId: String?, session: List<RoutineExercise>) {
-        val routineId: String? = routineId?.takeIf { type == SportType.GIMNASIO }
-        val session: List<RoutineExercise> = if (type == SportType.GIMNASIO) session else emptyList()
-    }
-
-    private fun activityData(
-        user: AuthUser,
-        date: LocalDate,
-        type: SportType,
-        name: String,
-        participantIds: List<String>,
-        participantNames: List<String>,
-        gym: GymSession,
-        eventId: String?,
-    ) = commonData(date, type, name, participantIds, participantNames, gym, eventId) + mapOf(
-        FIELD_DONE to false,
-        FIELD_CREATED_BY to user.id,
-        FIELD_CREATED_BY_NAME to user.sportDisplayName,
-        FIELD_CREATED_AT to FieldValue.serverTimestamp(),
-        FIELD_UPDATED_BY to user.id,
-        FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
-    )
-
     private fun activityUpdateData(
         user: AuthUser,
         date: LocalDate,
@@ -323,25 +343,6 @@ class FirestoreSportActivityRepository @Inject constructor(
     ) = commonData(date, type, name, participantIds, participantNames, gym, eventId) + mapOf(
         FIELD_UPDATED_BY to user.id,
         FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
-    )
-
-    private fun commonData(
-        date: LocalDate,
-        type: SportType,
-        name: String,
-        participantIds: List<String>,
-        participantNames: List<String>,
-        gym: GymSession,
-        eventId: String?,
-    ) = mapOf(
-        FIELD_DATE to date.toString(),
-        FIELD_TYPE to type.name,
-        FIELD_NAME to name,
-        FIELD_PARTICIPANT_IDS to participantIds,
-        FIELD_PARTICIPANT_NAMES to participantNames,
-        FIELD_ROUTINE_ID to gym.routineId,
-        FIELD_SESSION to gym.session.toFirestoreExercises(),
-        FIELD_EVENT_ID to eventId,
     )
 
     // Evento de calendario (todo el día) que refleja una actividad deportiva. Debe tener EXACTAMENTE
@@ -370,27 +371,6 @@ class FirestoreSportActivityRepository @Inject constructor(
             FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
         ) + dayFields(date, ZoneId.systemDefault())
     }
-
-    // El evento vuelve con los datos que tenía (título, horario, color…); solo la autoría y las fechas de creación
-    // son de quien deshace.
-    private fun restoredEventData(user: AuthUser, event: CalendarEvent): Map<String, Any?> = mapOf(
-        EV_TITLE to event.title,
-        EV_DESCRIPTION to event.description,
-        EV_ALL_DAY to event.allDay,
-        EV_START_AT to Timestamp(Date.from(event.startAt)),
-        EV_END_AT to Timestamp(Date.from(event.endAt)),
-        EV_START_DATE to event.startDate?.toString(),
-        EV_END_DATE_EXCLUSIVE to event.endDateExclusive?.toString(),
-        EV_TIME_ZONE to event.timeZone,
-        EV_COLOR to event.color.name,
-        FIELD_PARTICIPANT_IDS to event.participantIds,
-        FIELD_PARTICIPANT_NAMES to event.participantNames,
-        FIELD_CREATED_BY to user.id,
-        FIELD_CREATED_BY_NAME to user.sportDisplayName,
-        FIELD_CREATED_AT to FieldValue.serverTimestamp(),
-        FIELD_UPDATED_BY to user.id,
-        FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
-    )
 
     // Al editar solo se tocan los campos que dependen de la actividad (título, participantes y, si
     // cambia el día, las fechas): la descripción, el color o el horario que el usuario haya puesto al
@@ -504,6 +484,69 @@ class FirestoreSportActivityRepository @Inject constructor(
     }
 }
 
+// La rutina y la sesión solo tienen sentido en GIMNASIO: para el resto se fuerzan a vacío para
+// que ningún tipo arrastre datos de sesión ajenos.
+internal class GymSession(type: SportType, routineId: String?, session: List<RoutineExercise>) {
+    val routineId: String? = routineId?.takeIf { type == SportType.GIMNASIO }
+    val session: List<RoutineExercise> = if (type == SportType.GIMNASIO) session else emptyList()
+}
+
+private class ActivityDraft(
+    val date: LocalDate,
+    val type: SportType,
+    val name: String,
+    val participantIds: List<String>,
+    val routineId: String?,
+    val session: List<RoutineExercise>,
+)
+
+// Lo que distingue restaurar de dar de alta: si la actividad estaba hecha y la foto de su evento (null: vuelve sin él).
+private class Restore(val done: Boolean, val event: CalendarEvent?)
+
+// Mapa de campos de una actividad nueva: el alta la escribe no hecha y la restauración, como estaba.
+internal fun activityData(
+    user: AuthUser,
+    date: LocalDate,
+    type: SportType,
+    name: String,
+    participantIds: List<String>,
+    participantNames: List<String>,
+    gym: GymSession,
+    eventId: String?,
+    done: Boolean,
+): Map<String, Any?> = commonData(date, type, name, participantIds, participantNames, gym, eventId) + mapOf(
+    "done" to done,
+    "createdBy" to user.id,
+    "createdByName" to user.sportDisplayName,
+    "createdAt" to FieldValue.serverTimestamp(),
+    "updatedBy" to user.id,
+    "updatedAt" to FieldValue.serverTimestamp(),
+)
+
+private fun commonData(
+    date: LocalDate,
+    type: SportType,
+    name: String,
+    participantIds: List<String>,
+    participantNames: List<String>,
+    gym: GymSession,
+    eventId: String?,
+) = mapOf(
+    "date" to date.toString(),
+    "type" to type.name,
+    "name" to name,
+    "participantIds" to participantIds,
+    "participantNames" to participantNames,
+    "routineId" to gym.routineId,
+    "session" to gym.session.toFirestoreExercises(),
+    "eventId" to eventId,
+)
+
+// El evento vuelve con los datos que tenía (título, horario, color…) y solo con los participantes que siguen activos,
+// en su orden y con el nombre de su membresía; solo la autoría y las fechas de creación son de quien deshace.
+internal fun restoredEventData(user: AuthUser, event: CalendarEvent, active: List<ActiveMember>): Map<String, Any?> =
+    event.toInput().copy(participantIds = active.map(ActiveMember::id)).data(user, active.map(ActiveMember::name))
+
 private val AuthUser.sportDisplayName: String
     get() = displayName.ifBlank { email.substringBefore('@') }.take(60)
 
@@ -530,29 +573,6 @@ private fun DocumentSnapshot.toSportActivity(): SportActivity? {
         updatedAt = updatedAt,
     )
 }
-
-private fun DocumentSnapshot.toLinkedEvent(): CalendarEvent? = runCatching {
-    val createdAt = requireNotNull(getTimestamp("createdAt")).toDate().toInstant()
-    CalendarEvent(
-        id = id,
-        title = requireNotNull(getString("title")),
-        description = getString("description"),
-        allDay = requireNotNull(getBoolean("allDay")),
-        startAt = requireNotNull(getTimestamp("startAt")).toDate().toInstant(),
-        endAt = requireNotNull(getTimestamp("endAt")).toDate().toInstant(),
-        startDate = getString("startDate")?.let(LocalDate::parse),
-        endDateExclusive = getString("endDateExclusive")?.let(LocalDate::parse),
-        timeZone = requireNotNull(getString("timeZone")),
-        color = EventColor.valueOf(getString("color").orEmpty()),
-        participantIds = (get("participantIds") as? List<*>)?.filterIsInstance<String>().orEmpty(),
-        participantNames = (get("participantNames") as? List<*>)?.filterIsInstance<String>().orEmpty(),
-        createdBy = requireNotNull(getString("createdBy")),
-        createdByName = requireNotNull(getString("createdByName")),
-        createdAt = createdAt,
-        updatedBy = requireNotNull(getString("updatedBy")),
-        updatedAt = getTimestamp("updatedAt")?.toDate()?.toInstant() ?: createdAt,
-    )
-}.getOrNull()
 
 private fun Throwable.toSportRepositoryException(): SportRepositoryException = SportRepositoryException(
     failure = when ((this as? FirebaseFirestoreException)?.code) {

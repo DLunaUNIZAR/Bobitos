@@ -38,8 +38,14 @@ interface SportActivityRepository {
     suspend fun deleteActivity(spaceId: String, activityId: String): CalendarEvent?
 
     // «Deshacer» el borrado: la actividad vuelve con su id y su estado (hecha) y, con ella, su evento con su id y sus
-    // datos. La autoría y las fechas de creación pasan a ser de quien deshace, como exigen las reglas de alta.
+    // datos, todo en una sola transacción. Los participantes que ya no son miembros activos se quitan, de la actividad
+    // y del evento. La actividad solo vuelve enlazada a un evento que vuelve con ella. La autoría y las fechas de
+    // creación pasan a ser de quien deshace, como exigen las reglas de alta.
     suspend fun restoreActivity(spaceId: String, activity: SportActivity, event: CalendarEvent?)
+
+    // «Deshacer» un alta: borra la actividad y su evento enlazado solo si nadie más los ha tocado desde entonces
+    // (si no, ActivityChanged).
+    suspend fun undoAddActivity(spaceId: String, activityId: String)
 }
 
 enum class SportFailure {
@@ -50,6 +56,7 @@ enum class SportFailure {
     EmailNotVerified,
     SpaceNotFound,
     ActivityNotFound,
+    ActivityChanged,
     PermissionDenied,
     Network,
     Unknown,

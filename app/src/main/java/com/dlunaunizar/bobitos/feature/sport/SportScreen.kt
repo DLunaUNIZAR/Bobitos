@@ -37,7 +37,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -55,20 +54,18 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
-import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.DayTitleButton
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
-import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.UndoOfferEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.WeekDayStrip
 import com.dlunaunizar.bobitos.core.designsystem.component.cascadeIn
-import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberDayCascade
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
@@ -107,9 +104,7 @@ fun SportScreen(
     }
     val members = (state.members as? UiState.Content)?.value.orEmpty()
     val actionsEnabled = canWrite && !state.save.isSaving
-    val scope = rememberCoroutineScope()
-    val deletedMessage = stringResource(R.string.sport_undo_deleted)
-    val undoLabel = stringResource(R.string.undo)
+    val undoOffers by viewModel.undoOffers.collectAsStateWithLifecycle()
     // El editor sobrevive a una rotación: se guarda el id de la actividad, no el objeto.
     var editorOpen by rememberSaveable { mutableStateOf(false) }
     var editorActivityId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -131,7 +126,6 @@ fun SportScreen(
             }
         },
     ) { padding ->
-        val snackbar = LocalSnackbarHostState.current
         SaveFeedbackEffect(
             save = state.save,
             controls = viewModel.feedback,
@@ -139,16 +133,12 @@ fun SportScreen(
             errorText = { stringResource(it.stringResourceId) },
             noticeText = { stringResource(it.stringResourceId) },
         )
-        CreatedUndoEffect(state.save.created, viewModel.feedback::consumeCreated) { viewModel.undoCreate(it.id) }
-        val deleteWithUndo: (SportActivity) -> Unit = { activity ->
-            // El espacio se captura al borrar: «Deshacer» devuelve la actividad (y su evento) a su espacio.
-            val deletedFrom = spaceId
-            viewModel.deleteActivity(activity.id) { event ->
-                scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                    viewModel.restoreActivity(deletedFrom, activity, event)
-                }
-            }
-        }
+        UndoOfferEffect(
+            offers = undoOffers,
+            controls = viewModel.undoControls,
+            deletedMessage = R.string.sport_undo_deleted,
+            onUndo = viewModel::undo,
+        )
 
         Column(Modifier.fillMaxSize().padding(padding)) {
             // La tira queda fija bajo la barra: no se desplaza con la lista.
@@ -205,7 +195,7 @@ fun SportScreen(
                                                 editorActivityId = activity.id
                                                 editorOpen = true
                                             },
-                                            onDelete = { deleteWithUndo(activity) },
+                                            onDelete = { viewModel.deleteActivity(activity) },
                                             onToggleDone = { viewModel.setDone(activity.id, !activity.done) },
                                         )
                                     }
@@ -575,6 +565,7 @@ private val SportUiMessage.stringResourceId: Int
         SportUiMessage.EmailNotVerified -> R.string.space_error_email_not_verified
         SportUiMessage.SpaceNotFound -> R.string.space_error_not_found
         SportUiMessage.ActivityNotFound -> R.string.sport_error_not_found
+        SportUiMessage.ActivityChanged -> R.string.sport_error_changed
         SportUiMessage.PermissionDenied -> R.string.space_error_permission_denied
         SportUiMessage.NetworkError -> R.string.space_error_network
         SportUiMessage.UnexpectedError -> R.string.space_error_unexpected

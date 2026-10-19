@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.feature.sport
 
 import com.dlunaunizar.bobitos.core.common.SaveState
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.Routine
 import com.dlunaunizar.bobitos.core.model.SpaceMember
@@ -30,6 +31,9 @@ data class SportUiState(
     }
 }
 
+/** Lo que guarda el Deshacer de un borrado: la actividad y la foto de su evento (null si no se pudo leer). */
+data class DeletedActivity(val activity: SportActivity, val event: CalendarEvent?)
+
 // Mensajes de UI del módulo Deporte (mismo patrón que MealUiMessage). La pantalla los mapea a strings.
 enum class SportUiMessage {
     NameRequired,
@@ -39,6 +43,7 @@ enum class SportUiMessage {
     EmailNotVerified,
     SpaceNotFound,
     ActivityNotFound,
+    ActivityChanged,
     PermissionDenied,
     NetworkError,
     UnexpectedError,

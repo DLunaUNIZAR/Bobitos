@@ -438,6 +438,7 @@
     <string name="sport_error_name_too_long">El nombre no puede superar 120 caracteres.</string>
     <string name="sport_error_invalid_participants">Participantes no válidos.</string>
     <string name="sport_error_not_found">La actividad ya no existe.</string>
+    <string name="sport_error_changed">La actividad ha cambiado entretanto y no se ha deshecho.</string>
     <string name="sport_notice_added">Actividad creada</string>
     <string name="sport_notice_updated">Actividad actualizada</string>
     <string name="sport_notice_deleted">Actividad eliminada</string>

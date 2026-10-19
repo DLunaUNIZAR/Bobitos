@@ -6,6 +6,7 @@ import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.EventColor
@@ -97,36 +98,53 @@ class SportViewModelTest {
     }
 
     @Test
-    fun creatingOneItemOffersUndoWithItsIdAndName() = runTest(mainDispatcherRule.testDispatcher) {
+    fun creatingOneItemOffersUndoWithItsIdNameAndSpace() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("home")
         advanceUntilIdle()
 
         viewModel.addActivity(LocalDate.now(), SportType.PADEL, "  Pádel ", emptyList())
-        advanceUntilIdle()
+        runCurrent()
 
-        assertEquals(CreatedItem("new-1", "Pádel"), viewModel.uiState.value.save.created)
+        assertEquals(
+            listOf(Undoable.Created("home", CreatedItem("new-1", "Pádel"))),
+            viewModel.undoOffers.value.map { it.undoable },
+        )
         assertNull(viewModel.uiState.value.save.notice)
-
-        viewModel.feedback.consumeCreated()
         assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
-    fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
+    fun `undoing an add goes through undoAddActivity`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("home")
-        viewModel.undoCreate("new-1")
         advanceUntilIdle()
 
-        assertEquals(listOf("new-1"), repository.deleted)
+        viewModel.undo(Undoable.Created("home", CreatedItem("new-1", "Pádel")))
+        runCurrent()
+
+        assertEquals(listOf("home" to "new-1"), repository.undoneAdds)
+        assertTrue(repository.deleted.isEmpty())
+    }
+
+    @Test
+    fun `an add another member changed is not undone and says so`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        advanceUntilIdle()
+        repository.nextFailure = SportRepositoryException(SportFailure.ActivityChanged)
+
+        viewModel.undo(Undoable.Created("home", CreatedItem("new-1", "Pádel")))
+        runCurrent()
+
+        assertEquals(SportUiMessage.ActivityChanged, viewModel.uiState.value.save.error)
+        assertTrue(repository.undoneAdds.isEmpty())
     }
 
     @Test
     fun editingDoesNotOfferUndo() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("home")
         viewModel.updateActivity("a1", LocalDate.now(), SportType.PADEL, "Pádel", emptyList())
-        advanceUntilIdle()
+        runCurrent()
 
-        assertNull(viewModel.uiState.value.save.created)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
@@ -134,11 +152,32 @@ class SportViewModelTest {
         viewModel.observe("home")
         advanceUntilIdle()
 
-        viewModel.restoreActivity("home", activity("a1", LocalDate.now(), SportType.PADEL, "Pádel"), null)
-        advanceUntilIdle()
+        viewModel.undo(
+            Undoable.Deleted("home", DeletedActivity(activity("a1", LocalDate.now(), SportType.PADEL, "P"), null)),
+        )
+        runCurrent()
 
-        assertNull(viewModel.uiState.value.save.created)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
+
+    @Test
+    fun `deleting offers undo with the activity, its event and its space`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel.observe("home")
+            advanceUntilIdle()
+            val done = activity("a1", LocalDate.now(), SportType.GIMNASIO, "Pierna").copy(done = true, eventId = "e1")
+            val event = linkedEvent("e1", "Pierna (editado)")
+            repository.deletedEvent = event
+
+            viewModel.deleteActivity(done)
+            runCurrent()
+
+            assertEquals(
+                listOf(Undoable.Deleted("home", DeletedActivity(done, event))),
+                viewModel.undoOffers.value.map { it.undoable },
+            )
+            assertNull(viewModel.uiState.value.save.notice)
+        }
 
     @Test
     fun `undoing a delete keeps ids and done`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -148,11 +187,10 @@ class SportViewModelTest {
         // La foto del evento que devolvió el borrado: editado desde el Calendario (título distinto).
         repository.deletedEvent = linkedEvent("e1", "Pierna (editado)")
 
-        var offered: CalendarEvent? = null
-        viewModel.deleteActivity("a1") { offered = it }
-        advanceUntilIdle()
-        viewModel.restoreActivity("home", done, offered)
-        advanceUntilIdle()
+        viewModel.deleteActivity(done)
+        runCurrent()
+        viewModel.undo(viewModel.undoOffers.value.single().undoable)
+        runCurrent()
 
         val restored = repository.restored.single()
         assertEquals("home", restored.spaceId)
@@ -164,13 +202,17 @@ class SportViewModelTest {
     }
 
     @Test
-    fun `undo writes to the activity's own space`() = runTest(mainDispatcherRule.testDispatcher) {
+    fun `undo of a delete goes to the space where it was deleted`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("space-a")
+        advanceUntilIdle()
+        viewModel.deleteActivity(activity("a1", LocalDate.now(), SportType.PADEL, "Pádel"))
+        runCurrent()
+        val offer = viewModel.undoOffers.value.single().undoable
         viewModel.observe("space-b")
         advanceUntilIdle()
 
-        viewModel.restoreActivity("space-a", activity("a1", LocalDate.now(), SportType.PADEL, "Pádel"), null)
-        advanceUntilIdle()
+        viewModel.undo(offer)
+        runCurrent()
 
         assertEquals("space-a", repository.restored.single().spaceId)
     }
@@ -178,17 +220,17 @@ class SportViewModelTest {
     @Test
     fun `undo is offered only once the delete has finished`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("home")
-        var offered = 0
+        val victim = activity("a1", LocalDate.now(), SportType.PADEL, "Pádel")
         repository.nextFailure = SportRepositoryException(SportFailure.Network)
-        viewModel.deleteActivity("a1") { offered++ }
-        advanceUntilIdle()
-        assertEquals(0, offered)
+        viewModel.deleteActivity(victim)
+        runCurrent()
+        assertTrue(viewModel.undoOffers.value.isEmpty())
         assertEquals(SportUiMessage.NetworkError, viewModel.uiState.value.save.error)
 
         repository.nextFailure = null
-        viewModel.deleteActivity("a1") { offered++ }
-        advanceUntilIdle()
-        assertEquals(1, offered)
+        viewModel.deleteActivity(victim)
+        runCurrent()
+        assertEquals(1, viewModel.undoOffers.value.size)
     }
 
     @Test
@@ -196,7 +238,9 @@ class SportViewModelTest {
         viewModel.observe("home")
         repository.nextFailure = SportRepositoryException(SportFailure.SpaceNotFound)
 
-        viewModel.restoreActivity("home", activity("a1", LocalDate.now(), SportType.PADEL, "Pádel"), null)
+        viewModel.undo(
+            Undoable.Deleted("home", DeletedActivity(activity("a1", LocalDate.now(), SportType.PADEL, "Pádel"), null)),
+        )
         advanceUntilIdle()
 
         assertEquals(SportUiMessage.SpaceNotFound, viewModel.uiState.value.save.error)
@@ -322,7 +366,7 @@ class SportViewModelTest {
         advanceUntilIdle()
         repository.nextFailure = SportRepositoryException(SportFailure.Network)
 
-        viewModel.deleteActivity("a1")
+        viewModel.deleteActivity(activity("a1", LocalDate.now(), SportType.PADEL, "Pádel"))
         advanceUntilIdle()
 
         assertEquals(SportUiMessage.NetworkError, viewModel.uiState.value.save.error)
@@ -378,7 +422,9 @@ class SportViewModelTest {
         viewModel.observe("home")
         advanceUntilIdle()
 
-        viewModel.restoreActivity("home", activity("a1", LocalDate.now(), SportType.PADEL, "Pádel"), null)
+        viewModel.undo(
+            Undoable.Deleted("home", DeletedActivity(activity("a1", LocalDate.now(), SportType.PADEL, "Pádel"), null)),
+        )
         advanceUntilIdle()
 
         assertEquals("Pádel", repository.restored.single().activity.name)
@@ -395,7 +441,12 @@ class SportViewModelTest {
             viewModel.addActivity(LocalDate.now(), SportType.PADEL, "Pádel", emptyList())
             runCurrent() // sin avanzar el reloj: el alta del editor tiene tiempo máximo
 
-            viewModel.restoreActivity("home", activity("a1", LocalDate.now(), SportType.PADEL, "Pádel"), null)
+            viewModel.undo(
+                Undoable.Deleted(
+                    "home",
+                    DeletedActivity(activity("a1", LocalDate.now(), SportType.PADEL, "Pádel"), null),
+                ),
+            )
             runCurrent()
 
             assertEquals("a1", repository.restored.single().activity.id)
@@ -494,6 +545,13 @@ private class FakeSportActivityRepository : SportActivityRepository {
     override suspend fun restoreActivity(spaceId: String, activity: SportActivity, event: CalendarEvent?) {
         throwNextFailure()
         restored += Restored(spaceId, activity, event)
+    }
+
+    val undoneAdds = mutableListOf<Pair<String, String>>()
+
+    override suspend fun undoAddActivity(spaceId: String, activityId: String) {
+        throwNextFailure()
+        undoneAdds += spaceId to activityId
     }
 
     private fun throwNextFailure() {
