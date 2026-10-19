@@ -45,8 +45,8 @@ fun <E, N> SaveFeedbackEffect(
     }
     FeedbackSnackbarEffect(shown) {
         when (feedback) {
-            is ScreenFeedback.Error -> controls.consumeError()
-            is ScreenFeedback.Notice -> controls.consumeNotice()
+            is ScreenFeedback.Error -> controls.consumeErrorIf(feedback.error as Any)
+            is ScreenFeedback.Notice -> controls.consumeNoticeIf(feedback.notice as Any)
             null -> Unit
         }
     }

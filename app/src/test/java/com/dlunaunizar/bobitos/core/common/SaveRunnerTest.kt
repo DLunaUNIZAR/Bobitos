@@ -193,6 +193,57 @@ class SaveRunnerTest {
     }
 
     @Test
+    fun `consumeErrorIf and consumeNoticeIf drop only the value that was shown`() {
+        state.value = TestState(SaveState(error = "e2", notice = "n2"))
+
+        runner.consumeErrorIf("e1")
+        runner.consumeNoticeIf("n1")
+        assertEquals("e2", save.error)
+        assertEquals("n2", save.notice)
+
+        runner.consumeErrorIf("e2")
+        assertNull(save.error)
+        assertEquals("n2", save.notice)
+        runner.consumeNoticeIf("n2")
+        assertNull(save.notice)
+    }
+
+    @Test
+    fun `consumeErrorWhere drops the error only when the predicate holds`() {
+        state.value = TestState(SaveState(error = "import-x", notice = "n"))
+
+        runner.consumeErrorWhere { it.startsWith("other") }
+        assertEquals("import-x", save.error)
+
+        runner.consumeErrorWhere { it.startsWith("import") }
+        assertNull(save.error)
+        assertEquals("n", save.notice)
+    }
+
+    @Test
+    fun `noticeOf and errorOf run once per action even if the state is written meanwhile`() {
+        var noticeCalls = 0
+        runner.run(noticeOf = { _: Unit ->
+            noticeCalls++
+            if (noticeCalls == 1) state.value = state.value.copy(extra = "otro hilo")
+            "ok"
+        }) { }
+        runCurrent()
+        assertEquals(1, noticeCalls)
+        assertEquals("ok", save.notice)
+
+        var errorCalls = 0
+        runner.run<Unit>(errorOf = {
+            errorCalls++
+            if (errorCalls == 1) state.value = state.value.copy(extra = "otro hilo 2")
+            "fallo"
+        }) { error("x") }
+        runCurrent()
+        assertEquals(1, errorCalls)
+        assertEquals("fallo", save.error)
+    }
+
+    @Test
     fun `resetEditor discards only the editor error`() {
         state.value = TestState(
             SaveState(editor = EditorSaveStatus.FAILED, editorError = "x", error = "e", notice = "n"),

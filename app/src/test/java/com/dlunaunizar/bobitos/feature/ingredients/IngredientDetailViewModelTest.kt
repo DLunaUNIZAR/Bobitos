@@ -535,6 +535,23 @@ class IngredientDetailViewModelTest {
     }
 
     @Test
+    fun `scanning a new barcode does not clear an error left by another action`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            offClient.result = OffProduct("Tomate frito", "Hacendado", Nutrition(energyKcal = 80.0))
+            viewModel.observe("tomate")
+            advanceUntilIdle()
+            brandRepository.deleteError = BrandRepositoryException(BrandFailure.Network)
+            viewModel.deleteBrand("b1") {}
+            advanceUntilIdle()
+            assertEquals(IngredientUiMessage.NetworkError, viewModel.uiState.value.save.error)
+
+            viewModel.lookupBarcode("8410000000000")
+            advanceUntilIdle()
+
+            assertEquals(IngredientUiMessage.NetworkError, viewModel.uiState.value.save.error)
+        }
+
+    @Test
     fun `a network error while scanning surfaces an error`() = runTest(mainDispatcherRule.testDispatcher) {
         offClient.failure = OffException(OffFailure.Network)
         viewModel.observe("tomate")

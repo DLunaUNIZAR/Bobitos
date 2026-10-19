@@ -286,9 +286,9 @@ class MealsViewModel @Inject constructor(
             saver.consumeError()
             return
         }
-        // El error que el diálogo mostraba (el del «Listo» anterior) se suelta al reintentar; el aviso no se toca.
-        saver.consumeError()
+        // El error que el diálogo mostraba (el del «Listo» anterior) se suelta al reintentar, solo si empieza; el aviso no se toca.
         saver.run(
+            clearError = true,
             notice = MealUiMessage.CookedReviewApplied,
             onSuccess = { copy(cooked = null) },
             // Qué artículo ha cambiado, para nombrarlo en el diálogo (MealsUiState.cookedErrorItem).
@@ -331,7 +331,7 @@ class MealsViewModel @Inject constructor(
         val rows = mutableUiState.value.ingredientReview ?: return
         if (choices.writesNothing()) {
             mutableUiState.update { it.copy(ingredientReview = null) }
-            saver.replaceNotice(MealUiMessage.NothingToAddToShopping)
+            saver.showNotice(MealUiMessage.NothingToAddToShopping)
             return
         }
         mutableUiState.update { it.copy(ingredientReview = null) }

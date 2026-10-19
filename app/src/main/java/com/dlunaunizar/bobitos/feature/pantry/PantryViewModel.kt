@@ -122,9 +122,8 @@ class PantryViewModel @Inject constructor(
         val spaceId = observedSpaceId ?: return
         val entries = mutableUiState.value.picker?.selection?.values?.toList().orEmpty()
         if (entries.isEmpty()) return
-        // El error que el selector mostraba (el del «Añadir» anterior) se suelta al reintentar; el aviso no se toca.
-        saver.consumeError()
-        saver.run(noticeOf = { PantryUiMessage.ItemsAdded }, onSuccess = { copy(picker = null) }) {
+        // El error que el selector mostraba (el del «Añadir» anterior) se suelta al reintentar, solo si empieza; el aviso no se toca.
+        saver.run(clearError = true, noticeOf = { PantryUiMessage.ItemsAdded }, onSuccess = { copy(picker = null) }) {
             repository.add(spaceId, entries)
             stopCatalog()
         }

@@ -349,6 +349,32 @@ class PantryViewModelTest {
         }
 
     @Test
+    fun `confirming the picker while another action is saving keeps the picker error and writes nothing`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            pantry.itemsState.value = listOf(salt)
+            viewModel.observe("home")
+            viewModel.openPicker()
+            viewModel.togglePick(PantryEntry("Sal", "Especias y hierbas"))
+            pantry.addFailure = PantryRepositoryException(PantryFailure.Network)
+            viewModel.confirmPicker()
+            advanceUntilIdle()
+            assertEquals(PantryUiMessage.NetworkError, viewModel.uiState.value.save.error)
+            pantry.addFailure = null
+            pantry.removeGate = CompletableDeferred()
+            viewModel.markFinished(salt)
+            runCurrent()
+            val addedBefore = pantry.added.size
+
+            viewModel.confirmPicker()
+            runCurrent()
+
+            assertEquals(PantryUiMessage.NetworkError, viewModel.uiState.value.save.error)
+            assertEquals(addedBefore, pantry.added.size)
+            pantry.removeGate?.complete(Unit)
+            advanceUntilIdle()
+        }
+
+    @Test
     fun `restock never turns saving on`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("home")
         advanceUntilIdle()

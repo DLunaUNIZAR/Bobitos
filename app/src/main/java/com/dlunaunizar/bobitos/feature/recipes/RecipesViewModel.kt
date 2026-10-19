@@ -158,7 +158,7 @@ class RecipesViewModel @Inject constructor(
         val rows = mutableUiState.value.ingredientReview ?: return
         if (choices.writesNothing()) {
             mutableUiState.update { it.copy(ingredientReview = null) }
-            saver.replaceNotice(RecipeUiMessage.NothingToAddToShopping)
+            saver.showNotice(RecipeUiMessage.NothingToAddToShopping)
             return
         }
         mutableUiState.update { it.copy(ingredientReview = null) }
@@ -208,7 +208,7 @@ class RecipesViewModel @Inject constructor(
 
     /** Suelta el error de importación pendiente; el de otra acción sigue esperando. */
     fun consumeImportError() {
-        if (mutableUiState.value.save.error?.isImport == true) saver.consumeError()
+        saver.consumeErrorWhere { it.isImport }
     }
 
     /** Descarga la receta de [url] (schema.org/Recipe) y, si tiene éxito, la deja en `importDraft`. */

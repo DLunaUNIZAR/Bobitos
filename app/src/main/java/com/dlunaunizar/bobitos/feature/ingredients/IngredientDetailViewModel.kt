@@ -251,7 +251,6 @@ class IngredientDetailViewModel @Inject constructor(
             showKnownBrand(brand)
             return
         }
-        saver.clearFeedback()
         mutableUiState.update { it.copy(isLookingUp = true, barcodeConflict = null) }
         viewModelScope.launch {
             try {

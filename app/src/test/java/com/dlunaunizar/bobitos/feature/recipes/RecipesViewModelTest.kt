@@ -345,6 +345,45 @@ class RecipesViewModelTest {
         }
 
     @Test
+    fun `confirming an empty review keeps the pending error of another action`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            shoppingRepository.itemsState.value = listOf(pendingItem("s1", "Huevos"))
+            viewModel.observe()
+            advanceUntilIdle()
+            val tortilla = recipe("r1", RecipeVisibility.PRIVATE, "Tortilla", listOf(Ingredient("Huevo", "4", "uds")))
+            viewModel.addToShopping("home", tortilla)
+            advanceUntilIdle()
+            repository.nextFailure = RecipeRepositoryException(RecipeFailure.Network)
+            viewModel.restoreRecipe(tortilla)
+            advanceUntilIdle()
+            assertEquals(RecipeUiMessage.NetworkError, viewModel.uiState.value.save.error)
+
+            viewModel.confirmShoppingReview("home", listOf(IngredientReviewChoice(null, null, null, skip = true)))
+            advanceUntilIdle()
+
+            assertEquals(RecipeUiMessage.NetworkError, viewModel.uiState.value.save.error)
+            assertEquals(RecipeUiMessage.NothingToAddToShopping, viewModel.uiState.value.save.notice)
+        }
+
+    @Test
+    fun `consumeImportError drops an import error and keeps the error of another action`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            importer.failure = ImportFailure.NoRecipeFound
+            viewModel.importFromUrl("https://example.com/a")
+            advanceUntilIdle()
+            assertTrue(viewModel.uiState.value.save.error!!.isImport)
+            viewModel.consumeImportError()
+            assertNull(viewModel.uiState.value.save.error)
+
+            repository.nextFailure = RecipeRepositoryException(RecipeFailure.Network)
+            viewModel.deleteRecipe(recipe("r1", RecipeVisibility.PRIVATE, "Tortilla"))
+            advanceUntilIdle()
+            viewModel.consumeImportError()
+
+            assertEquals(RecipeUiMessage.NetworkError, viewModel.uiState.value.save.error)
+        }
+
+    @Test
     fun `while the shopping list is being read a second request is ignored and isSaving is on`() =
         runTest(mainDispatcherRule.testDispatcher) {
             viewModel.observe()

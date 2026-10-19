@@ -11,6 +11,12 @@ interface SaveFeedbackControls {
 
     fun consumeNotice()
 
+    /** Como [consumeError], pero solo si el error pendiente sigue siendo [shown] (el que se mostró). */
+    fun consumeErrorIf(shown: Any)
+
+    /** Como [consumeNotice], pero solo si el aviso pendiente sigue siendo [shown] (el que se mostró). */
+    fun consumeNoticeIf(shown: Any)
+
     fun consumeCreated()
 
     /** Editor a IDLE y `editorError` a null. */
@@ -36,22 +42,29 @@ class SaveRunner<S, E, N>(
     }
 
     /**
-     * Lanza [action] como acción en curso: empezar o fallar no borra el aviso ni el error que otra acción dejó
-     * pendientes, y acabar bien sin aviso propio tampoco. Devuelve false sin hacer nada si ya hay otra y no es [force].
+     * Lanza [action] como acción en curso: empezar no borra el aviso ni el error que otra acción dejó pendientes
+     * (salvo el error, con [clearError], y solo si la acción empieza de verdad), y acabar bien sin aviso propio
+     * tampoco. Si falla, su error sustituye al que esperaba; si acaba con aviso, el nuevo sustituye al que esperaba
+     * (sale el último). Ninguna acción borra un error o un aviso sin poner nada en su lugar, salvo [clearError].
+     * Devuelve false sin hacer nada (ni borrar el error) si ya hay otra y no es [force].
      * Con [editor], mueve también el estado del editor y la acción lleva tiempo máximo; un fallo va a
      * `editorError` y no a `error`. [afterSuccess] se llama después de actualizar el estado.
+     * [noticeOf] y [errorOf] se calculan una sola vez, antes de actualizar el estado; [onSuccess] y [onFailure] se
+     * ejecutan dentro de la actualización atómica del estado, que puede repetirse: deben ser puras.
      */
     fun <T> run(
         notice: N? = null,
         editor: Boolean = false,
         force: Boolean = false,
+        clearError: Boolean = false,
         noticeOf: (T) -> N? = { notice },
         onSuccess: S.(T) -> S = { this },
         onFailure: S.(Throwable) -> S = { this },
         errorOf: (Throwable) -> E = toError,
         afterSuccess: (T) -> Unit = {},
         action: suspend () -> T,
-    ): Boolean = launchAction(editor, force, noticeOf, null, onSuccess, onFailure, errorOf, afterSuccess, action)
+    ): Boolean =
+        launchAction(editor, force, clearError, noticeOf, null, onSuccess, onFailure, errorOf, afterSuccess, action)
 
     /** Como [run], pero el resultado es lo creado y queda en `created` (con su `onSuccess` y `afterSuccess`). */
     fun create(
@@ -63,6 +76,7 @@ class SaveRunner<S, E, N>(
     ): Boolean = launchAction(
         editor = editor,
         force = force,
+        clearError = false,
         noticeOf = { null },
         created = { it },
         onSuccess = onSuccess,
@@ -76,6 +90,7 @@ class SaveRunner<S, E, N>(
     private fun <T> launchAction(
         editor: Boolean,
         force: Boolean,
+        clearError: Boolean,
         noticeOf: (T) -> N?,
         created: ((T) -> CreatedItem)?,
         onSuccess: S.(T) -> S,
@@ -94,6 +109,7 @@ class SaveRunner<S, E, N>(
                 current.write(
                     save.copy(
                         running = save.running + 1,
+                        error = if (clearError) null else save.error,
                         editor = if (editor) EditorSaveStatus.SAVING else save.editor,
                         editorError = if (editor) null else save.editorError,
                     ),
@@ -112,22 +128,24 @@ class SaveRunner<S, E, N>(
                 Result.failure(e)
             }
             result.onSuccess { value ->
+                val newNotice = noticeOf(value)
+                val newCreated = created?.invoke(value)
                 state.update { current ->
                     val save = read(current)
                     current.write(
                         save.copy(
                             running = save.running - 1,
-                            notice = noticeOf(value) ?: save.notice,
+                            notice = newNotice ?: save.notice,
                             editor = if (editor) EditorSaveStatus.SAVED else save.editor,
-                            created = created?.invoke(value) ?: save.created,
+                            created = newCreated ?: save.created,
                         ),
                     ).onSuccess(value)
                 }
                 afterSuccess(value)
             }.onFailure { e ->
+                val error = errorOf(e)
                 state.update { current ->
                     val save = read(current)
-                    val error = errorOf(e)
                     current.write(
                         if (editor) {
                             save.copy(
@@ -170,15 +188,21 @@ class SaveRunner<S, E, N>(
 
     fun showNotice(notice: N) = update { it.copy(notice = notice) }
 
-    /** Cambia el error y el aviso de la pantalla por [notice], de una sola vez. */
-    fun replaceNotice(notice: N) = update { it.copy(error = null, notice = notice) }
-
     /** Borra el error y el aviso de la pantalla. */
     fun clearFeedback() = update { it.copy(error = null, notice = null) }
 
     override fun consumeError() = update { it.copy(error = null) }
 
     override fun consumeNotice() = update { it.copy(notice = null) }
+
+    override fun consumeErrorIf(shown: Any) = update { if (it.error == shown) it.copy(error = null) else it }
+
+    override fun consumeNoticeIf(shown: Any) = update { if (it.notice == shown) it.copy(notice = null) else it }
+
+    /** Borra el error pendiente solo si cumple [predicate], en una sola actualización. */
+    fun consumeErrorWhere(predicate: (E) -> Boolean) = update {
+        if (it.error?.let(predicate) == true) it.copy(error = null) else it
+    }
 
     override fun consumeCreated() = update { it.copy(created = null) }
 
