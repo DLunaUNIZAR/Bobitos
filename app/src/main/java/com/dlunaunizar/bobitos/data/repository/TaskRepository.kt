@@ -35,26 +35,36 @@ interface TaskRepository {
         startAt: Instant?,
     )
 
-    suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean)
+    /** Completa o reabre; devuelve las fechas que tiene la tarea después de escribir (adelantadas si se repite). */
+    suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean): TaskDates
 
     /**
      * «Deshacer» completar: deja [previous] (la tarea tal como estaba antes, siempre en TODO) otra vez pendiente con
      * sus fechas de entonces, en una sola escritura. Vale para una normal, que quedó en DONE, y para una recurrente,
-     * que siguió en TODO con las fechas adelantadas. Si la tarea ya no existe, lanza [TaskFailure.TaskNotFound]; si otro la cambió desde
-     * entonces (ver [completionUndoFailure]), [TaskFailure.TaskChanged] y no escribe nada.
+     * que siguió en TODO con las fechas adelantadas. Solo si la tarea sigue como la dejó [completed] (ver
+     * [completionUndoFailure]); si otro la cambió desde entonces, lanza [TaskFailure.TaskChanged] sin escribir. Si ya
+     * no existe, [TaskFailure.TaskNotFound].
      */
-    suspend fun restoreCompletion(spaceId: String, previous: TaskItem)
+    suspend fun restoreCompletion(spaceId: String, previous: TaskItem, completed: TaskItem)
 
     suspend fun deleteTask(spaceId: String, taskId: String)
 
     /**
-     * «Deshacer» un borrado: devuelve [task] con su id y su estado. Las reglas obligan a dar de alta una tarea
-     * pendiente, así que una completada se escribe después con una actualización directa del estado (nunca por
-     * [setCompleted], que en una tarea recurrente avanzaría las fechas). Autoría y fecha de creación son las de quien
-     * deshace.
+     * «Deshacer» un alta: borra la tarea [taskId] solo si quien deshace es el último que la escribió. Lanza
+     * [TaskFailure.TaskNotFound] si ya no existe y [TaskFailure.TaskChanged] si otro la tocó, sin borrar.
+     */
+    suspend fun undoCreateTask(spaceId: String, taskId: String)
+
+    /**
+     * «Deshacer» un borrado: devuelve [task] con su id y su estado, en una sola escritura por el mismo camino que
+     * [createTask]. Si estaba completada vuelve hecha por quien deshace. Si su responsable ya no es miembro activo,
+     * vuelve sin responsable en lugar de fallar. Autoría y fecha de creación son las de quien deshace.
      */
     suspend fun restoreTask(spaceId: String, task: TaskItem)
 }
+
+/** Las fechas que deja una escritura de completar, en milisegundos (como se guardan). */
+data class TaskDates(val startAt: Instant?, val dueAt: Instant?)
 
 enum class TaskFailure {
     TitleRequired,

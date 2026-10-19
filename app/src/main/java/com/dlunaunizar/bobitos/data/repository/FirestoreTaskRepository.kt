@@ -11,6 +11,7 @@ import com.dlunaunizar.bobitos.data.sync.RealtimeMetrics
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
 import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import java.time.Instant
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -70,29 +72,13 @@ class FirestoreTaskRepository @Inject constructor(
         recurrence: TaskRecurrence?,
         startAt: Instant?,
     ): String = runTaskOperation {
-        val user = requireVerifiedUser()
-        val values = validate(title, description, assigneeId)
-        val spaceReference = firestore.collection(SPACES).document(spaceId)
-        val taskReference = tasksCollection(spaceId).document()
-        firestore.runTransaction { transaction ->
-            if (!transaction.get(spaceReference).exists()) {
-                throw TaskRepositoryException(TaskFailure.SpaceNotFound)
-            }
-            transaction.set(
-                taskReference,
-                taskData(
-                    values = values,
-                    assigneeName = resolveAssigneeName(transaction, spaceId, values.assigneeId),
-                    dueAt = dueAt,
-                    priority = priority,
-                    type = type,
-                    recurrence = recurrence,
-                    startAt = startAt,
-                    user = user,
-                ),
-            )
-        }.await()
-        taskReference.id
+        writeNewTask(
+            spaceId = spaceId,
+            taskReference = tasksCollection(spaceId).document(),
+            fields = NewTask(title, description, assigneeId, dueAt, priority, type, recurrence, startAt),
+            completed = false,
+            restoring = false,
+        )
     }
 
     override suspend fun updateTask(
@@ -132,76 +118,79 @@ class FirestoreTaskRepository @Inject constructor(
         Unit
     }
 
-    override suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean) = runTaskOperation {
-        val user = requireVerifiedUser()
-        val taskReference = tasksCollection(spaceId).document(taskId)
-        firestore.runTransaction { transaction ->
-            val task = requireTask(transaction.get(taskReference))
-            val recurrence = task.taskRecurrence()
-            if (completed && recurrence != null) {
-                // Tarea recurrente: al marcarla hecha se reprograma a la siguiente
-                // fecha (avanza inicio y fin) en vez de completarse (sigue pendiente).
+    override suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean): TaskDates =
+        runTaskOperation {
+            val user = requireVerifiedUser()
+            val taskReference = tasksCollection(spaceId).document(taskId)
+            firestore.runTransaction { transaction ->
+                val task = requireTask(transaction.get(taskReference))
+                val recurrence = task.taskRecurrence()
                 val oldStart = task.getTimestamp(FIELD_START_AT)?.toDate()?.toInstant()
                 val oldDue = task.getTimestamp(FIELD_DUE_AT)?.toDate()?.toInstant()
-                val newStart = oldStart?.let { advanceRecurrence(it, recurrence) }
-                val newDue = when {
-                    oldDue != null -> advanceRecurrence(oldDue, recurrence)
-                    oldStart == null -> advanceRecurrence(Instant.now(), recurrence)
-                    else -> null
+                if (completed && recurrence != null) {
+                    // Tarea recurrente: al marcarla hecha se reprograma a la siguiente
+                    // fecha (avanza inicio y fin) en vez de completarse (sigue pendiente).
+                    val newStart = oldStart?.let { advanceRecurrence(it, recurrence) }?.truncatedTo(ChronoUnit.MILLIS)
+                    val newDue = when {
+                        oldDue != null -> advanceRecurrence(oldDue, recurrence)
+                        oldStart == null -> advanceRecurrence(Instant.now(), recurrence)
+                        else -> null
+                    }?.truncatedTo(ChronoUnit.MILLIS)
+                    transaction.update(
+                        taskReference,
+                        FIELD_START_AT,
+                        newStart?.toTimestamp(),
+                        FIELD_DUE_AT,
+                        newDue?.toTimestamp(),
+                        FIELD_UPDATED_BY,
+                        user.id,
+                        FIELD_UPDATED_AT,
+                        FieldValue.serverTimestamp(),
+                    )
+                    TaskDates(newStart, newDue)
+                } else {
+                    val targetStatus = if (completed) STATUS_DONE else STATUS_TODO
+                    if (task.getString(FIELD_STATUS) != targetStatus) {
+                        transaction.update(
+                            taskReference,
+                            FIELD_STATUS, targetStatus,
+                            FIELD_COMPLETED_BY, if (completed) user.id else null,
+                            FIELD_COMPLETED_BY_NAME, if (completed) user.taskDisplayName else null,
+                            FIELD_COMPLETED_AT,
+                            if (completed) FieldValue.serverTimestamp() else null,
+                            FIELD_UPDATED_BY, user.id,
+                            FIELD_UPDATED_AT, FieldValue.serverTimestamp(),
+                        )
+                    }
+                    TaskDates(oldStart, oldDue)
+                }
+            }.await()
+        }
+
+    override suspend fun restoreCompletion(spaceId: String, previous: TaskItem, completed: TaskItem) =
+        runTaskOperation {
+            require(previous.status == TaskStatus.TODO) { "La foto de antes de completar debe estar pendiente" }
+            val user = requireVerifiedUser()
+            val taskReference = tasksCollection(spaceId).document(previous.id)
+            firestore.runTransaction { transaction ->
+                val current = requireTask(transaction.get(taskReference)).toTaskItem()
+                if (current != null) {
+                    completionUndoFailure(current, completed, user.id)?.let { throw TaskRepositoryException(it) }
                 }
                 transaction.update(
                     taskReference,
-                    FIELD_START_AT,
-                    newStart?.toTimestamp(),
-                    FIELD_DUE_AT,
-                    newDue?.toTimestamp(),
-                    FIELD_UPDATED_BY,
-                    user.id,
-                    FIELD_UPDATED_AT,
-                    FieldValue.serverTimestamp(),
+                    FIELD_STATUS, STATUS_TODO,
+                    FIELD_COMPLETED_BY, null,
+                    FIELD_COMPLETED_BY_NAME, null,
+                    FIELD_COMPLETED_AT, null,
+                    FIELD_START_AT, previous.startAt?.toTimestamp(),
+                    FIELD_DUE_AT, previous.dueAt?.toTimestamp(),
+                    FIELD_UPDATED_BY, user.id,
+                    FIELD_UPDATED_AT, FieldValue.serverTimestamp(),
                 )
-            } else {
-                val targetStatus = if (completed) STATUS_DONE else STATUS_TODO
-                if (task.getString(FIELD_STATUS) != targetStatus) {
-                    transaction.update(
-                        taskReference,
-                        FIELD_STATUS, targetStatus,
-                        FIELD_COMPLETED_BY, if (completed) user.id else null,
-                        FIELD_COMPLETED_BY_NAME, if (completed) user.taskDisplayName else null,
-                        FIELD_COMPLETED_AT,
-                        if (completed) FieldValue.serverTimestamp() else null,
-                        FIELD_UPDATED_BY, user.id,
-                        FIELD_UPDATED_AT, FieldValue.serverTimestamp(),
-                    )
-                }
-            }
-        }.await()
-        Unit
-    }
-
-    override suspend fun restoreCompletion(spaceId: String, previous: TaskItem) = runTaskOperation {
-        require(previous.status == TaskStatus.TODO) { "La foto de antes de completar debe estar pendiente" }
-        val user = requireVerifiedUser()
-        val taskReference = tasksCollection(spaceId).document(previous.id)
-        firestore.runTransaction { transaction ->
-            val current = requireTask(transaction.get(taskReference)).toTaskItem()
-            if (current != null) {
-                completionUndoFailure(current, previous, user.id)?.let { throw TaskRepositoryException(it) }
-            }
-            transaction.update(
-                taskReference,
-                FIELD_STATUS, STATUS_TODO,
-                FIELD_COMPLETED_BY, null,
-                FIELD_COMPLETED_BY_NAME, null,
-                FIELD_COMPLETED_AT, null,
-                FIELD_START_AT, previous.startAt?.toTimestamp(),
-                FIELD_DUE_AT, previous.dueAt?.toTimestamp(),
-                FIELD_UPDATED_BY, user.id,
-                FIELD_UPDATED_AT, FieldValue.serverTimestamp(),
-            )
-        }.await()
-        Unit
-    }
+            }.await()
+            Unit
+        }
 
     override suspend fun deleteTask(spaceId: String, taskId: String) = runTaskOperation {
         requireVerifiedUser()
@@ -213,41 +202,79 @@ class FirestoreTaskRepository @Inject constructor(
         Unit
     }
 
-    override suspend fun restoreTask(spaceId: String, task: TaskItem) = runTaskOperation {
+    override suspend fun undoCreateTask(spaceId: String, taskId: String) = runTaskOperation {
         val user = requireVerifiedUser()
-        val values = validate(task.title, task.description, task.assigneeId)
+        val taskReference = tasksCollection(spaceId).document(taskId)
+        firestore.runTransaction { transaction ->
+            val task = requireTask(transaction.get(taskReference))
+            if (!isLastWriter(task.getString(FIELD_UPDATED_BY), user.id)) {
+                throw TaskRepositoryException(TaskFailure.TaskChanged)
+            }
+            transaction.delete(taskReference)
+        }.await()
+        Unit
+    }
+
+    override suspend fun restoreTask(spaceId: String, task: TaskItem) = runTaskOperation {
+        writeNewTask(
+            spaceId = spaceId,
+            taskReference = tasksCollection(spaceId).document(task.id),
+            fields = NewTask(
+                task.title,
+                task.description,
+                task.assigneeId,
+                task.dueAt,
+                task.priority,
+                task.type,
+                task.recurrence,
+                task.startAt,
+            ),
+            completed = task.status == TaskStatus.DONE,
+            restoring = true,
+        )
+        Unit
+    }
+
+    // El alta y la restauración pasan por aquí: misma validación, misma transacción y los mismos campos. Al
+    // restaurar, un responsable que ya no es miembro activo se quita en lugar de fallar.
+    private suspend fun writeNewTask(
+        spaceId: String,
+        taskReference: DocumentReference,
+        fields: NewTask,
+        completed: Boolean,
+        restoring: Boolean,
+    ): String {
+        val user = requireVerifiedUser()
+        val values = validate(fields.title, fields.description, fields.assigneeId)
         val spaceReference = firestore.collection(SPACES).document(spaceId)
-        val taskReference = tasksCollection(spaceId).document(task.id)
         firestore.runTransaction { transaction ->
             if (!transaction.get(spaceReference).exists()) {
                 throw TaskRepositoryException(TaskFailure.SpaceNotFound)
             }
+            val ids = listOfNotNull(values.assigneeId)
+            val assignee = activeMembers(
+                ids,
+                ids.map { transaction.get(membershipReference(spaceId, it)).toMembershipRecord() },
+            ).singleOrNull()
+            if (assignee == null && values.assigneeId != null && !restoring) {
+                throw TaskRepositoryException(TaskFailure.InvalidAssignee)
+            }
             transaction.set(
                 taskReference,
                 taskData(
-                    values = values,
-                    assigneeName = resolveAssigneeName(transaction, spaceId, values.assigneeId),
-                    dueAt = task.dueAt,
-                    priority = task.priority,
-                    type = task.type,
-                    recurrence = task.recurrence,
-                    startAt = task.startAt,
+                    values = values.copy(assigneeId = assignee?.id),
+                    assigneeName = assignee?.name,
+                    dueAt = fields.dueAt,
+                    priority = fields.priority,
+                    type = fields.type,
+                    recurrence = fields.recurrence,
+                    startAt = fields.startAt,
                     user = user,
+                    completed = completed,
                 ),
             )
         }.await()
-        if (task.status == TaskStatus.DONE) {
-            // Escritura directa del estado: no pasa por setCompleted, que con recurrencia avanzaría las fechas.
-            taskReference.update(
-                FIELD_STATUS, STATUS_DONE,
-                FIELD_COMPLETED_BY, user.id,
-                FIELD_COMPLETED_BY_NAME, user.taskDisplayName,
-                FIELD_COMPLETED_AT, FieldValue.serverTimestamp(),
-                FIELD_UPDATED_BY, user.id,
-                FIELD_UPDATED_AT, FieldValue.serverTimestamp(),
-            ).await()
-        }
-        Unit
+        return taskReference.id
     }
 
     private fun tasksCollection(spaceId: String) = firestore.collection(SPACES)
@@ -255,37 +282,6 @@ class FirestoreTaskRepository @Inject constructor(
 
     private fun membershipReference(spaceId: String, userId: String) = firestore
         .collection(MEMBERSHIPS).document("${spaceId}_$userId")
-
-    private fun taskData(
-        values: TaskValues,
-        assigneeName: String?,
-        dueAt: Instant?,
-        priority: TaskPriority,
-        type: TaskType?,
-        recurrence: TaskRecurrence?,
-        startAt: Instant?,
-        user: AuthUser,
-    ) = mapOf(
-        FIELD_TITLE to values.title,
-        FIELD_DESCRIPTION to values.description,
-        FIELD_ASSIGNEE_ID to values.assigneeId,
-        FIELD_ASSIGNEE_NAME to assigneeName,
-        FIELD_DUE_AT to dueAt?.toTimestamp(),
-        FIELD_START_AT to startAt?.toTimestamp(),
-        FIELD_PRIORITY to priority.name,
-        FIELD_TYPE to type?.name,
-        FIELD_RECURRENCE_UNIT to recurrence?.unit?.name,
-        FIELD_RECURRENCE_INTERVAL to recurrence?.interval,
-        FIELD_STATUS to STATUS_TODO,
-        FIELD_CREATED_BY to user.id,
-        FIELD_CREATED_BY_NAME to user.taskDisplayName,
-        FIELD_CREATED_AT to FieldValue.serverTimestamp(),
-        FIELD_UPDATED_BY to user.id,
-        FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
-        FIELD_COMPLETED_BY to null,
-        FIELD_COMPLETED_BY_NAME to null,
-        FIELD_COMPLETED_AT to null,
-    )
 
     private fun validate(title: String, description: String?, assigneeId: String?): TaskValues {
         val normalizedTitle = title.trim()
@@ -305,9 +301,10 @@ class FirestoreTaskRepository @Inject constructor(
     // responsable; si hay uno, exige que sea miembro activo (lee su ficha de membresía).
     private fun resolveAssigneeName(transaction: Transaction, spaceId: String, assigneeId: String?): String? {
         if (assigneeId == null) return null
-        val assignee = transaction.get(membershipReference(spaceId, assigneeId))
-        requireActiveAssignee(assignee, assigneeId)
-        return assignee.getString(FIELD_DISPLAY_NAME).orEmpty()
+        val record = transaction.get(membershipReference(spaceId, assigneeId)).toMembershipRecord()
+        val assignee = activeMembers(listOf(assigneeId), listOf(record)).singleOrNull()
+            ?: throw TaskRepositoryException(TaskFailure.InvalidAssignee)
+        return assignee.name
     }
 
     private fun requireVerifiedUser(): AuthUser {
@@ -315,15 +312,6 @@ class FirestoreTaskRepository @Inject constructor(
             ?: throw TaskRepositoryException(TaskFailure.NotAuthenticated)
         if (!user.isEmailVerified) throw TaskRepositoryException(TaskFailure.EmailNotVerified)
         return user
-    }
-
-    private fun requireActiveAssignee(snapshot: DocumentSnapshot, assigneeId: String) {
-        if (!snapshot.exists() ||
-            snapshot.getString(FIELD_USER_ID) != assigneeId ||
-            snapshot.getString(FIELD_MEMBERSHIP_STATUS) != MEMBERSHIP_ACTIVE
-        ) {
-            throw TaskRepositoryException(TaskFailure.InvalidAssignee)
-        }
     }
 
     private fun requireTask(snapshot: DocumentSnapshot): DocumentSnapshot {
@@ -344,43 +332,35 @@ class FirestoreTaskRepository @Inject constructor(
             throw error.toTaskRepositoryException()
         }
     }
-
-    private data class TaskValues(val title: String, val description: String?, val assigneeId: String?)
-
-    private companion object {
-        const val SPACES = "spaces"
-        const val TASKS = "tasks"
-        const val MEMBERSHIPS = "memberships"
-        const val FIELD_TITLE = "title"
-        const val FIELD_DESCRIPTION = "description"
-        const val FIELD_ASSIGNEE_ID = "assigneeId"
-        const val FIELD_ASSIGNEE_NAME = "assigneeName"
-        const val FIELD_DUE_AT = "dueAt"
-        const val FIELD_START_AT = "startAt"
-        const val FIELD_PRIORITY = "priority"
-        const val FIELD_TYPE = "type"
-        const val FIELD_RECURRENCE_UNIT = "recurrenceUnit"
-        const val FIELD_RECURRENCE_INTERVAL = "recurrenceInterval"
-        const val FIELD_STATUS = "status"
-        const val FIELD_CREATED_BY = "createdBy"
-        const val FIELD_CREATED_BY_NAME = "createdByName"
-        const val FIELD_CREATED_AT = "createdAt"
-        const val FIELD_UPDATED_BY = "updatedBy"
-        const val FIELD_UPDATED_AT = "updatedAt"
-        const val FIELD_COMPLETED_BY = "completedBy"
-        const val FIELD_COMPLETED_BY_NAME = "completedByName"
-        const val FIELD_COMPLETED_AT = "completedAt"
-        const val FIELD_DISPLAY_NAME = "displayName"
-        const val FIELD_USER_ID = "userId"
-        const val FIELD_MEMBERSHIP_STATUS = "status"
-        const val MEMBERSHIP_ACTIVE = "ACTIVE"
-        const val STATUS_TODO = "TODO"
-        const val STATUS_DONE = "DONE"
-        const val MAX_TITLE_LENGTH = 120
-        const val MAX_DESCRIPTION_LENGTH = 1000
-        const val MAX_VISIBLE_TASKS = 250L
-    }
 }
+
+private const val SPACES = "spaces"
+private const val TASKS = "tasks"
+private const val MEMBERSHIPS = "memberships"
+private const val FIELD_TITLE = "title"
+private const val FIELD_DESCRIPTION = "description"
+private const val FIELD_ASSIGNEE_ID = "assigneeId"
+private const val FIELD_ASSIGNEE_NAME = "assigneeName"
+private const val FIELD_DUE_AT = "dueAt"
+private const val FIELD_START_AT = "startAt"
+private const val FIELD_PRIORITY = "priority"
+private const val FIELD_TYPE = "type"
+private const val FIELD_RECURRENCE_UNIT = "recurrenceUnit"
+private const val FIELD_RECURRENCE_INTERVAL = "recurrenceInterval"
+private const val FIELD_STATUS = "status"
+private const val FIELD_CREATED_BY = "createdBy"
+private const val FIELD_CREATED_BY_NAME = "createdByName"
+private const val FIELD_CREATED_AT = "createdAt"
+private const val FIELD_UPDATED_BY = "updatedBy"
+private const val FIELD_UPDATED_AT = "updatedAt"
+private const val FIELD_COMPLETED_BY = "completedBy"
+private const val FIELD_COMPLETED_BY_NAME = "completedByName"
+private const val FIELD_COMPLETED_AT = "completedAt"
+private const val STATUS_TODO = "TODO"
+private const val STATUS_DONE = "DONE"
+private const val MAX_TITLE_LENGTH = 120
+private const val MAX_DESCRIPTION_LENGTH = 1000
+private const val MAX_VISIBLE_TASKS = 250L
 
 private val AuthUser.taskDisplayName: String
     get() = displayName.ifBlank { email.substringBefore('@') }.take(60)
@@ -442,4 +422,51 @@ private fun Throwable.toTaskRepositoryException() = TaskRepositoryException(
         else -> TaskFailure.Unknown
     },
     cause = this,
+)
+
+internal data class TaskValues(val title: String, val description: String?, val assigneeId: String?)
+
+private data class NewTask(
+    val title: String,
+    val description: String?,
+    val assigneeId: String?,
+    val dueAt: Instant?,
+    val priority: TaskPriority,
+    val type: TaskType?,
+    val recurrence: TaskRecurrence?,
+    val startAt: Instant?,
+)
+
+/** Los campos de una tarea nueva. Con [completed], nace hecha por [user] (así vuelve una tarea borrada y completada). */
+@Suppress("LongParameterList")
+internal fun taskData(
+    values: TaskValues,
+    assigneeName: String?,
+    dueAt: Instant?,
+    priority: TaskPriority,
+    type: TaskType?,
+    recurrence: TaskRecurrence?,
+    startAt: Instant?,
+    user: AuthUser,
+    completed: Boolean,
+) = mapOf(
+    FIELD_TITLE to values.title,
+    FIELD_DESCRIPTION to values.description,
+    FIELD_ASSIGNEE_ID to values.assigneeId,
+    FIELD_ASSIGNEE_NAME to assigneeName,
+    FIELD_DUE_AT to dueAt?.toTimestamp(),
+    FIELD_START_AT to startAt?.toTimestamp(),
+    FIELD_PRIORITY to priority.name,
+    FIELD_TYPE to type?.name,
+    FIELD_RECURRENCE_UNIT to recurrence?.unit?.name,
+    FIELD_RECURRENCE_INTERVAL to recurrence?.interval,
+    FIELD_STATUS to if (completed) STATUS_DONE else STATUS_TODO,
+    FIELD_CREATED_BY to user.id,
+    FIELD_CREATED_BY_NAME to user.taskDisplayName,
+    FIELD_CREATED_AT to FieldValue.serverTimestamp(),
+    FIELD_UPDATED_BY to user.id,
+    FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+    FIELD_COMPLETED_BY to if (completed) user.id else null,
+    FIELD_COMPLETED_BY_NAME to if (completed) user.taskDisplayName else null,
+    FIELD_COMPLETED_AT to if (completed) FieldValue.serverTimestamp() else null,
 )

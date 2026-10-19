@@ -4,6 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.CurrentDayProvider
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.UndoOffer
+import com.dlunaunizar.bobitos.core.common.UndoOfferControls
+import com.dlunaunizar.bobitos.core.common.UndoOffers
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.common.launchPerIdWrite
 import com.dlunaunizar.bobitos.core.common.rethrowIfCancelled
 import com.dlunaunizar.bobitos.core.common.toFailureKind
@@ -13,7 +17,9 @@ import com.dlunaunizar.bobitos.data.repository.MealRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.SportActivityRepository
+import com.dlunaunizar.bobitos.data.repository.TaskDates
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
+import com.dlunaunizar.bobitos.data.repository.completedWith
 import com.dlunaunizar.bobitos.feature.tasks.TaskUiMessage
 import com.dlunaunizar.bobitos.feature.tasks.toUiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -59,6 +65,9 @@ class SpaceHomeViewModel @Inject constructor(
     private val request = MutableStateFlow<Request?>(null)
     private val mutableError = MutableStateFlow<TaskUiMessage?>(null)
     private val completingIds = mutableSetOf<String>()
+    private val undo = UndoOffers<TaskItem>(viewModelScope)
+    val undoOffers: StateFlow<List<UndoOffer<TaskItem>>> = undo.offers
+    val undoControls: UndoOfferControls get() = undo
 
     // Para qué petición se empezó a observar por última vez: solo una petición nueva vuelve a `Loading`.
     private var lastObserved: Request? = null
@@ -83,31 +92,32 @@ class SpaceHomeViewModel @Inject constructor(
 
     /**
      * Completa [task] sin salir de Hoy. Si esa tarea ya tiene una escritura en curso no hace nada (un segundo toque no
-     * la completa otra vez). [onFinished] recibe cómo acabó la escritura; [onCompleted], la tarea tal como estaba,
-     * solo si termina bien.
+     * la completa otra vez). [onFinished] recibe cómo acabó la escritura. Si termina bien, ofrece «Deshacer» con el
+     * espacio de la petición en el momento de completar.
      */
-    fun complete(task: TaskItem, onFinished: (Boolean) -> Unit = {}, onCompleted: (TaskItem) -> Unit): Boolean {
+    fun complete(task: TaskItem, onFinished: (Boolean) -> Unit = {}): Boolean {
         val spaceId = request.value?.spaceId ?: return false
         if (task.id in completingIds) return false
         mutableError.value = null
+        var dates: TaskDates? = null
         return viewModelScope.launchPerIdWrite(
             completingIds,
             task.id,
-            onFinished = { ok ->
-                onFinished(ok)
-                if (ok) onCompleted(task)
-            },
+            onFinished = onFinished,
+            onSuccess = { dates?.let { undo.offer(Undoable.Completed(spaceId, task, task.completedWith(it))) } },
             // Una cancelación lanzada por el repositorio (sin estar cancelado el scope) llega aquí como fallo normal.
             onFailure = { mutableError.value = it.toUiMessage() },
-        ) { taskRepository.setCompleted(spaceId, task.id, true) }
+        ) { dates = taskRepository.setCompleted(spaceId, task.id, true) }
     }
 
-    /** «Deshacer» completar: la tarea vuelve a pendiente con las fechas de [previous]. */
-    fun undoCompletion(previous: TaskItem) {
-        val spaceId = request.value?.spaceId ?: return
+    /** «Deshacer» completar: la tarea vuelve a pendiente con las fechas de antes, en el espacio donde se completó. */
+    fun undo(undoable: Undoable<TaskItem>) {
+        val spaceId = undoable.spaceId ?: return
+        val completed = undoable as? Undoable.Completed ?: return
         mutableError.value = null
         viewModelScope.launch {
-            runCatching { taskRepository.restoreCompletion(spaceId, previous) }.onFailure { showError(it) }
+            runCatching { taskRepository.restoreCompletion(spaceId, completed.previous, completed.completed) }
+                .onFailure { showError(it) }
         }
     }
 

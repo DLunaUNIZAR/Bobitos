@@ -54,16 +54,16 @@ class TaskCompletionUndoTest {
 
     @Test
     fun sinTocarSePuedeDeshacer() {
-        assertNull(completionUndoFailure(hecha, antes, me))
-        assertNull(completionUndoFailure(repetidaDespues, repetidaAntes, me))
+        assertNull(completionUndoFailure(hecha, hecha, me))
+        assertNull(completionUndoFailure(repetidaDespues, repetidaDespues, me))
     }
 
     @Test
     fun otroMiembroLaTocoNoSeDeshace() {
-        assertEquals(TaskFailure.TaskChanged, completionUndoFailure(hecha.copy(updatedBy = "ana"), antes, me))
+        assertEquals(TaskFailure.TaskChanged, completionUndoFailure(hecha.copy(updatedBy = "ana"), hecha, me))
         assertEquals(
             TaskFailure.TaskChanged,
-            completionUndoFailure(repetidaDespues.copy(updatedBy = "ana"), repetidaAntes, me),
+            completionUndoFailure(repetidaDespues.copy(updatedBy = "ana"), repetidaDespues, me),
         )
     }
 
@@ -71,7 +71,7 @@ class TaskCompletionUndoTest {
     fun unaNormalReabiertaNoSeDeshace() {
         assertEquals(
             TaskFailure.TaskChanged,
-            completionUndoFailure(hecha.copy(status = TaskStatus.TODO), antes, me),
+            completionUndoFailure(hecha.copy(status = TaskStatus.TODO), hecha, me),
         )
     }
 
@@ -79,23 +79,23 @@ class TaskCompletionUndoTest {
     fun unaRepetidaQueYaNoEstaPendienteNoSeDeshace() {
         assertEquals(
             TaskFailure.TaskChanged,
-            completionUndoFailure(repetidaDespues.copy(status = TaskStatus.DONE), repetidaAntes, me),
+            completionUndoFailure(repetidaDespues.copy(status = TaskStatus.DONE), repetidaDespues, me),
         )
     }
 
     @Test
     fun unCambioDeTituloNoSeDeshace() {
-        assertEquals(TaskFailure.TaskChanged, completionUndoFailure(hecha.copy(title = "Fregar"), antes, me))
-        assertEquals(TaskFailure.TaskChanged, completionUndoFailure(hecha.copy(description = null), antes, me))
-        assertEquals(TaskFailure.TaskChanged, completionUndoFailure(hecha.copy(assigneeId = null), antes, me))
-        assertEquals(TaskFailure.TaskChanged, completionUndoFailure(hecha.copy(type = TaskType.OTROS), antes, me))
+        assertEquals(TaskFailure.TaskChanged, completionUndoFailure(hecha.copy(title = "Fregar"), hecha, me))
+        assertEquals(TaskFailure.TaskChanged, completionUndoFailure(hecha.copy(description = null), hecha, me))
+        assertEquals(TaskFailure.TaskChanged, completionUndoFailure(hecha.copy(assigneeId = null), hecha, me))
+        assertEquals(TaskFailure.TaskChanged, completionUndoFailure(hecha.copy(type = TaskType.OTROS), hecha, me))
     }
 
     @Test
     fun unCambioDePrioridadNoSeDeshace() {
         assertEquals(
             TaskFailure.TaskChanged,
-            completionUndoFailure(hecha.copy(priority = TaskPriority.HIGH), antes, me),
+            completionUndoFailure(hecha.copy(priority = TaskPriority.HIGH), hecha, me),
         )
     }
 
@@ -104,11 +104,71 @@ class TaskCompletionUndoTest {
         val diaria = TaskRecurrence(RecurrenceUnit.DAY, 1)
         assertEquals(
             TaskFailure.TaskChanged,
-            completionUndoFailure(repetidaDespues.copy(recurrence = diaria), repetidaAntes, me),
+            completionUndoFailure(repetidaDespues.copy(recurrence = diaria), repetidaDespues, me),
         )
         assertEquals(
             TaskFailure.TaskChanged,
-            completionUndoFailure(repetidaDespues.copy(recurrence = null), repetidaAntes, me),
+            completionUndoFailure(repetidaDespues.copy(recurrence = null), repetidaDespues, me),
         )
+    }
+
+    @Test
+    fun unaFechaMovidaPorLaMismaPersonaNoSeDeshace() {
+        assertEquals(
+            TaskFailure.TaskChanged,
+            completionUndoFailure(hecha.copy(dueAt = hoy), hecha, me),
+        )
+    }
+
+    @Test
+    fun unInicioMovidoNoSeDeshace() {
+        assertEquals(
+            TaskFailure.TaskChanged,
+            completionUndoFailure(repetidaDespues.copy(startAt = ayer), repetidaDespues, me),
+        )
+        assertEquals(
+            TaskFailure.TaskChanged,
+            completionUndoFailure(hecha.copy(startAt = ayer), hecha, me),
+        )
+    }
+
+    @Test
+    fun unaRepetidaSeComparaConLasFechasQueDejoAlCompletarla() {
+        // Lo que dejó el completar (fechas adelantadas) no es lo de antes: contra lo de antes sí cambió.
+        assertNull(completionUndoFailure(repetidaDespues, repetidaDespues, me))
+        assertEquals(TaskFailure.TaskChanged, completionUndoFailure(repetidaDespues, repetidaAntes, me))
+    }
+
+    @Test
+    fun lasFechasSeComparanEnMilisegundos() {
+        val conNanos = repetidaDespues.copy(
+            startAt = hoy.plusNanos(500),
+            dueAt = hoy.plusNanos(500),
+        )
+
+        assertNull(completionUndoFailure(repetidaDespues, conNanos, me))
+        assertNull(completionUndoFailure(conNanos, repetidaDespues, me))
+    }
+
+    @Test
+    fun completarUnaNormalLaDejaHechaConSusFechas() {
+        val dates = TaskDates(startAt = null, dueAt = ayer)
+
+        val resultado = antes.completedWith(dates)
+
+        assertEquals(TaskStatus.DONE, resultado.status)
+        assertNull(resultado.startAt)
+        assertEquals(ayer, resultado.dueAt)
+    }
+
+    @Test
+    fun completarUnaRepetidaLaDejaPendienteConLasFechasNuevas() {
+        val dates = TaskDates(startAt = hoy, dueAt = hoy.plusSeconds(60))
+
+        val resultado = repetidaAntes.completedWith(dates)
+
+        assertEquals(TaskStatus.TODO, resultado.status)
+        assertEquals(hoy, resultado.startAt)
+        assertEquals(hoy.plusSeconds(60), resultado.dueAt)
     }
 }

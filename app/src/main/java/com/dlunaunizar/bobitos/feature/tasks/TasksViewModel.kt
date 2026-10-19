@@ -7,6 +7,10 @@ import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
 import com.dlunaunizar.bobitos.core.common.SaveRunner
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.UndoOffer
+import com.dlunaunizar.bobitos.core.common.UndoOfferControls
+import com.dlunaunizar.bobitos.core.common.UndoOffers
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.common.launchPerIdWrite
 import com.dlunaunizar.bobitos.core.common.toFailureKind
 import com.dlunaunizar.bobitos.core.model.TaskItem
@@ -14,9 +18,11 @@ import com.dlunaunizar.bobitos.core.model.TaskPriority
 import com.dlunaunizar.bobitos.core.model.TaskRecurrence
 import com.dlunaunizar.bobitos.core.model.TaskType
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
+import com.dlunaunizar.bobitos.data.repository.TaskDates
 import com.dlunaunizar.bobitos.data.repository.TaskFailure
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
 import com.dlunaunizar.bobitos.data.repository.TaskRepositoryException
+import com.dlunaunizar.bobitos.data.repository.completedWith
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,12 +46,13 @@ class TasksViewModel @Inject constructor(
     val feedback: SaveFeedbackControls get() = saver
     private var tasksJob: Job? = null
     private var membersJob: Job? = null
-    private var activeSpaceId: String? = null
+    private val undo = UndoOffers<TaskItem>(viewModelScope)
+    val undoOffers: StateFlow<List<UndoOffer<TaskItem>>> = undo.offers
+    val undoControls: UndoOfferControls get() = undo
     private val completingIds = mutableSetOf<String>()
 
     fun observe(spaceId: String) {
         stopObserving()
-        activeSpaceId = spaceId
         mutableUiState.update { it.copy(tasks = UiState.Loading, members = UiState.Loading) }
         tasksJob = viewModelScope.launch {
             taskRepository.tasks(spaceId).catch { error ->
@@ -87,9 +94,8 @@ class TasksViewModel @Inject constructor(
     ) {
         if (!validate(title, description)) return
         val name = title.trim()
-        activeSpaceId = spaceId
-        // Un alta desde la hoja deja `created` (con «Deshacer») en lugar del aviso de tarea creada.
-        saver.create(editor = true) {
+        // Un alta desde la hoja ofrece «Deshacer» (con el espacio de ahora) en lugar del aviso de tarea creada.
+        saver.run<CreatedItem>(editor = true, afterSuccess = { undo.offer(Undoable.Created(spaceId, it)) }) {
             val id = taskRepository.createTask(
                 spaceId,
                 name,
@@ -136,51 +142,55 @@ class TasksViewModel @Inject constructor(
 
     // Completar y reabrir no pasan por el `SaveRunner` (no encienden «Guardando…»): cada tarea lleva su propia escritura en curso, así que
     // varias seguidas salen todas al momento y no apagan el resto de la pantalla. Devuelve false (sin escribir) si esa
-    // tarea ya tiene una escritura en curso. [onFinished] recibe cómo acabó; [onCompleted] recibe la tarea tal como
-    // estaba (estado y fechas) solo si completar termina bien, y la pantalla ofrece «Deshacer» con ella. Al completar no
-    // hay aviso propio; al reabrir, el de siempre.
+    // tarea ya tiene una escritura en curso. [onFinished] recibe cómo acabó. Si completar termina bien, ofrece
+    // «Deshacer» con la tarea de antes y como la dejó la escritura. Al completar no hay aviso propio; al reabrir, el
+    // de siempre.
     fun setCompleted(
         spaceId: String,
         task: TaskItem,
         completed: Boolean,
         onFinished: (Boolean) -> Unit = {},
-        onCompleted: (TaskItem) -> Unit = {},
     ): Boolean {
         if (task.id in completingIds) return false
+        var dates: TaskDates? = null
         return viewModelScope.launchPerIdWrite(
             completingIds,
             task.id,
-            onFinished = { ok ->
-                onFinished(ok)
-                if (ok && completed) onCompleted(task)
+            onFinished = onFinished,
+            onSuccess = {
+                if (completed) {
+                    dates?.let { undo.offer(Undoable.Completed(spaceId, task, task.completedWith(it))) }
+                } else {
+                    saver.showNotice(TaskUiMessage.TaskReopened)
+                }
             },
-            onSuccess = { if (!completed) saver.showNotice(TaskUiMessage.TaskReopened) },
             onFailure = { error -> saver.showError(error.toUiMessage()) },
-        ) { taskRepository.setCompleted(spaceId, task.id, completed) }
+        ) { dates = taskRepository.setCompleted(spaceId, task.id, completed) }
     }
 
-    // «Deshacer» completar: la tarea vuelve a pendiente con las fechas de [previous]. Sin aviso; si falla (también si
-    // la tarea ya no existe), sale el error.
-    fun undoCompletion(spaceId: String, previous: TaskItem) = saver.run(force = true) {
-        taskRepository.restoreCompletion(spaceId, previous)
+    // El espacio se lee al llamar. Sin notice: el feedback lo da el Snackbar de la pantalla, cuando el borrado acaba
+    // bien (así el «Deshacer» no se ofrece para un borrado fallido ni se pulsa mientras el borrado sigue en curso).
+    fun deleteTask(spaceId: String, task: TaskItem) {
+        saver.run(afterSuccess = { undo.offer(Undoable.Deleted(spaceId, task)) }) {
+            taskRepository.deleteTask(spaceId, task.id)
+        }
     }
 
-    // onDeleted se llama solo si el borrado termina bien: así el «Deshacer» no se ofrece para un borrado fallido ni
-    // se pulsa mientras el borrado sigue en curso. Sin notice: el feedback lo da el Snackbar de la pantalla.
-    fun deleteTask(spaceId: String, taskId: String, onDeleted: () -> Unit = {}) {
-        saver.run(afterSuccess = { onDeleted() }) { taskRepository.deleteTask(spaceId, taskId) }
-    }
-
-    // «Deshacer» el borrado: la tarea vuelve con su id y su estado, al espacio en que estaba. No es un guardado del
-    // editor ni lleva aviso propio; si falla, sale el error.
-    fun restoreTask(spaceId: String, task: TaskItem) = saver.run(force = true) {
-        taskRepository.restoreTask(spaceId, task)
-    }
-
-    // «Deshacer» el alta: borra justo esa tarea con el borrado de siempre (sin aviso; si falla, sale el error).
-    fun undoCreate(id: String) {
-        val spaceId = activeSpaceId ?: return
-        saver.run(force = true) { taskRepository.deleteTask(spaceId, id) }
+    // Única entrada de «Deshacer»: siempre en el espacio donde pasó. No es un guardado del editor ni lleva aviso
+    // propio; si falla (también si la tarea ya no existe o la cambió otro), sale el error.
+    fun undo(undoable: Undoable<TaskItem>) {
+        val spaceId = undoable.spaceId ?: return
+        saver.run(force = true) {
+            when (undoable) {
+                is Undoable.Created -> taskRepository.undoCreateTask(spaceId, undoable.item.id)
+                is Undoable.Deleted -> taskRepository.restoreTask(spaceId, undoable.item)
+                is Undoable.Completed -> taskRepository.restoreCompletion(
+                    spaceId,
+                    undoable.previous,
+                    undoable.completed,
+                )
+            }
+        }
     }
 
     // Solo se llama desde el editor.

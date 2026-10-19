@@ -5,7 +5,9 @@ import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
+import com.dlunaunizar.bobitos.core.common.UNDO_OFFER_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.model.RecurrenceUnit
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SpaceMember
@@ -17,9 +19,11 @@ import com.dlunaunizar.bobitos.core.model.TaskRecurrence
 import com.dlunaunizar.bobitos.core.model.TaskStatus
 import com.dlunaunizar.bobitos.core.model.TaskType
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
+import com.dlunaunizar.bobitos.data.repository.TaskDates
 import com.dlunaunizar.bobitos.data.repository.TaskFailure
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
 import com.dlunaunizar.bobitos.data.repository.TaskRepositoryException
+import com.dlunaunizar.bobitos.data.repository.completedWith
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -75,12 +79,16 @@ class TasksViewModelTest {
             null,
             null,
         )
-        advanceUntilIdle()
+        runCurrent()
 
         assertEquals("Fregar", taskRepository.createdTitle)
         assertEquals(TaskType.LIMPIEZA, taskRepository.createdType)
         assertNull(viewModel.uiState.value.save.notice)
-        assertEquals(CreatedItem("new-1", "Fregar"), viewModel.uiState.value.save.created)
+        assertEquals(
+            listOf(Undoable.Created("home", CreatedItem("new-1", "Fregar"))),
+            viewModel.undoOffers.value.map { it.undoable },
+        )
+        assertNull(viewModel.uiState.value.save.created)
         assertFalse(viewModel.uiState.value.save.isSaving)
     }
 
@@ -163,19 +171,33 @@ class TasksViewModelTest {
     }
 
     @Test
-    fun completarOfreceDeshacerConLaFotoDeAntes() = runTest(mainDispatcherRule.testDispatcher) {
+    fun `completing offers undo with the dates the write left`() = runTest(mainDispatcherRule.testDispatcher) {
         val start = Instant.parse("2026-10-01T08:00:00Z")
         val due = Instant.parse("2026-10-02T08:00:00Z")
-        val antes = task("t1", "Regar", null).copy(startAt = start, dueAt = due)
-        var ofrecida: TaskItem? = null
+        val dates = TaskDates(start.plusSeconds(604_800), due.plusSeconds(604_800))
+        val antes = task("t1", "Regar", null).copy(
+            startAt = start,
+            dueAt = due,
+            recurrence = TaskRecurrence(RecurrenceUnit.WEEK, 1),
+        )
+        taskRepository.completionDates = dates
 
-        viewModel.setCompleted("home", antes, true) { ofrecida = it }
+        viewModel.setCompleted("home", antes, true)
+        runCurrent()
+
+        assertEquals(
+            listOf(Undoable.Completed("home", antes, antes.completedWith(dates))),
+            viewModel.undoOffers.value.map { it.undoable },
+        )
+        assertNull(viewModel.uiState.value.save.notice)
+    }
+
+    @Test
+    fun `reopening a task offers no undo`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.setCompleted("home", task("t1", "Leche", null), false)
         advanceUntilIdle()
 
-        assertEquals(antes, ofrecida)
-        assertEquals(start, ofrecida?.startAt)
-        assertEquals(due, ofrecida?.dueAt)
-        assertNull(viewModel.uiState.value.save.notice)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
@@ -188,11 +210,14 @@ class TasksViewModelTest {
             recurrence = TaskRecurrence(RecurrenceUnit.WEEK, 1),
         )
 
-        viewModel.undoCompletion("home", antes)
+        val hecha = antes.completedWith(TaskDates(start, due))
+
+        viewModel.undo(Undoable.Completed("home", antes, hecha))
         advanceUntilIdle()
 
         assertEquals("home", taskRepository.completionRestoredSpaceId)
         assertEquals(antes, taskRepository.completionRestored.single())
+        assertEquals(hecha, taskRepository.completionRestoredTo.single())
         assertNull(taskRepository.completedChange)
     }
 
@@ -200,7 +225,7 @@ class TasksViewModelTest {
     fun deshacerSiLaTareaYaNoExisteAvisa() = runTest(mainDispatcherRule.testDispatcher) {
         taskRepository.nextFailure = TaskRepositoryException(TaskFailure.TaskNotFound)
 
-        viewModel.undoCompletion("home", task("t1", "Regar", null))
+        viewModel.undo(Undoable.Completed("home", task("t1", "Regar", null), task("t1", "Regar", null)))
         advanceUntilIdle()
 
         assertEquals(TaskUiMessage.TaskNotFound, viewModel.uiState.value.save.error)
@@ -210,7 +235,7 @@ class TasksViewModelTest {
     fun deshacerUnaTareaQueOtroCambioAvisa() = runTest(mainDispatcherRule.testDispatcher) {
         taskRepository.nextFailure = TaskRepositoryException(TaskFailure.TaskChanged)
 
-        viewModel.undoCompletion("home", task("t1", "Regar", null))
+        viewModel.undo(Undoable.Completed("home", task("t1", "Regar", null), task("t1", "Regar", null)))
         advanceUntilIdle()
 
         assertEquals(TaskUiMessage.TaskChanged, viewModel.uiState.value.save.error)
@@ -230,7 +255,7 @@ class TasksViewModelTest {
     fun `network failure is shown explicitly`() = runTest(mainDispatcherRule.testDispatcher) {
         taskRepository.nextFailure = TaskRepositoryException(TaskFailure.Network)
 
-        viewModel.deleteTask("home", "t1")
+        viewModel.deleteTask("home", task("t1", "Fregar", null))
         advanceUntilIdle()
 
         assertEquals(TaskUiMessage.NetworkError, viewModel.uiState.value.save.error)
@@ -345,19 +370,19 @@ class TasksViewModelTest {
 
     @Test
     fun `restoreTask does not touch the editor status`() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.restoreTask("home", task("t1", "Fregar", TaskType.LIMPIEZA))
+        viewModel.undo(Undoable.Deleted("home", task("t1", "Fregar", TaskType.LIMPIEZA)))
         advanceUntilIdle()
 
         assertEquals("Fregar", taskRepository.restored.single().title)
         assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
-        assertNull(viewModel.uiState.value.save.created)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
     fun `undoing a delete keeps the id and the completed state`() = runTest(mainDispatcherRule.testDispatcher) {
         val done = task("t1", "Fregar", TaskType.LIMPIEZA).copy(status = TaskStatus.DONE)
 
-        viewModel.restoreTask("home", done)
+        viewModel.undo(Undoable.Deleted("home", done))
         advanceUntilIdle()
 
         assertEquals("home", taskRepository.restoredSpaceId)
@@ -372,7 +397,7 @@ class TasksViewModelTest {
             recurrence = TaskRecurrence(RecurrenceUnit.WEEK, 1),
         )
 
-        viewModel.restoreTask("home", done)
+        viewModel.undo(Undoable.Deleted("home", done))
         advanceUntilIdle()
 
         assertEquals(done, taskRepository.restored.single())
@@ -384,7 +409,7 @@ class TasksViewModelTest {
     fun `a failed undo shows the error instead of staying silent`() = runTest(mainDispatcherRule.testDispatcher) {
         taskRepository.nextFailure = TaskRepositoryException(TaskFailure.PermissionDenied)
 
-        viewModel.restoreTask("home", task("t1", "Fregar", null))
+        viewModel.undo(Undoable.Deleted("home", task("t1", "Fregar", null)))
         advanceUntilIdle()
 
         assertEquals(TaskUiMessage.PermissionDenied, viewModel.uiState.value.save.error)
@@ -392,17 +417,95 @@ class TasksViewModelTest {
 
     @Test
     fun `undo is offered only once the delete has finished`() = runTest(mainDispatcherRule.testDispatcher) {
-        var offered = 0
+        val fregar = task("t1", "Fregar", null)
         taskRepository.nextFailure = TaskRepositoryException(TaskFailure.Network)
-        viewModel.deleteTask("home", "t1") { offered++ }
-        advanceUntilIdle()
-        assertEquals(0, offered)
+        viewModel.deleteTask("home", fregar)
+        runCurrent()
+        assertTrue(viewModel.undoOffers.value.isEmpty())
 
         taskRepository.nextFailure = null
-        viewModel.deleteTask("home", "t1") { offered++ }
-        advanceUntilIdle()
-        assertEquals(1, offered)
+        viewModel.deleteTask("home", fregar)
+        runCurrent()
+        assertEquals(listOf(Undoable.Deleted("home", fregar)), viewModel.undoOffers.value.map { it.undoable })
         assertEquals(listOf("t1"), taskRepository.deleted)
+    }
+
+    @Test
+    fun `deleting offers undo with the task and its space`() = runTest(mainDispatcherRule.testDispatcher) {
+        val fregar = task("t1", "Fregar", null)
+
+        viewModel.deleteTask("space-1", fregar)
+        runCurrent()
+
+        assertEquals(listOf(Undoable.Deleted("space-1", fregar)), viewModel.undoOffers.value.map { it.undoable })
+    }
+
+    @Test
+    fun `an offer made while nobody listens waits and expires after UNDO_OFFER_TIMEOUT_MILLIS`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel.deleteTask("space-1", task("t1", "Fregar", null))
+            runCurrent()
+            assertEquals(1, viewModel.undoOffers.value.size)
+
+            advanceTimeBy(UNDO_OFFER_TIMEOUT_MILLIS - 1_000)
+            runCurrent()
+            assertEquals(1, viewModel.undoOffers.value.size)
+
+            advanceTimeBy(1_001)
+            runCurrent()
+            assertTrue(viewModel.undoOffers.value.isEmpty())
+        }
+
+    @Test
+    fun `undo of a delete goes to the space where it was deleted`() = runTest(mainDispatcherRule.testDispatcher) {
+        val fregar = task("t1", "Fregar", null)
+        viewModel.observe("space-1")
+        viewModel.deleteTask("space-1", fregar)
+        runCurrent()
+        val offer = viewModel.undoOffers.value.single()
+
+        viewModel.observe("space-2")
+        viewModel.undo(offer.undoable)
+        runCurrent()
+
+        assertEquals("space-1", taskRepository.restoredSpaceId)
+        assertEquals(listOf(fregar), taskRepository.restored)
+    }
+
+    @Test
+    fun `two deletes leave two offers`() = runTest(mainDispatcherRule.testDispatcher) {
+        val fregar = task("t1", "Fregar", null)
+        val barrer = task("t2", "Barrer", null)
+
+        viewModel.deleteTask("home", fregar)
+        runCurrent()
+        viewModel.deleteTask("home", barrer)
+        runCurrent()
+
+        assertEquals(
+            listOf(Undoable.Deleted("home", fregar), Undoable.Deleted("home", barrer)),
+            viewModel.undoOffers.value.map { it.undoable },
+        )
+    }
+
+    @Test
+    fun `undoing an add goes through undoCreateTask`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.undo(Undoable.Created("home", CreatedItem("new-1", "Fregar")))
+        advanceUntilIdle()
+
+        assertEquals(listOf("home" to "new-1"), taskRepository.createUndone)
+        assertTrue(taskRepository.deleted.isEmpty())
+    }
+
+    @Test
+    fun `an add another member changed is not undone and says so`() = runTest(mainDispatcherRule.testDispatcher) {
+        taskRepository.nextFailure = TaskRepositoryException(TaskFailure.TaskChanged)
+
+        viewModel.undo(Undoable.Created("home", CreatedItem("new-1", "Fregar")))
+        advanceUntilIdle()
+
+        assertEquals(TaskUiMessage.TaskChanged, viewModel.uiState.value.save.error)
+        assertTrue(taskRepository.createUndone.isEmpty())
     }
 
     @Test
@@ -419,36 +522,27 @@ class TasksViewModelTest {
     @Test
     fun creatingOneItemOffersUndoWithItsIdAndName() = runTest(mainDispatcherRule.testDispatcher) {
         editorCreate("Leche")
-        advanceUntilIdle()
+        runCurrent()
 
-        assertEquals(CreatedItem("new-1", "Leche"), viewModel.uiState.value.save.created)
+        val offer = viewModel.undoOffers.value.single()
+        assertEquals(Undoable.Created("home", CreatedItem("new-1", "Leche")), offer.undoable)
         assertNull(viewModel.uiState.value.save.notice)
 
-        viewModel.feedback.consumeCreated()
-        assertNull(viewModel.uiState.value.save.created)
+        viewModel.undoControls.consumeOffer(offer.serial)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
-    fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.observe("home")
-        viewModel.undoCreate("new-1")
-        advanceUntilIdle()
-
-        assertEquals(listOf("new-1"), taskRepository.deleted)
-    }
-
-    @Test
-    fun undoWhileAnotherActionIsSavingStillDeletes() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.observe("home")
+    fun undoWhileAnotherActionIsSavingStillUndoes() = runTest(mainDispatcherRule.testDispatcher) {
         taskRepository.createGate = CompletableDeferred()
         editorCreate("Fregar")
         assertTrue(viewModel.uiState.value.save.isSaving)
 
-        viewModel.undoCreate("new-1")
+        viewModel.undo(Undoable.Created("home", CreatedItem("new-1", "Fregar")))
         runCurrent() // sin avanzar el reloj: el alta del editor tiene tiempo máximo
 
         // El deshacer acaba antes, pero «Guardando…» sigue hasta que acaba también el alta.
-        assertEquals(listOf("new-1"), taskRepository.deleted)
+        assertEquals(listOf("home" to "new-1"), taskRepository.createUndone)
         assertTrue(viewModel.uiState.value.save.isSaving)
 
         taskRepository.createGate?.complete(Unit)
@@ -462,7 +556,7 @@ class TasksViewModelTest {
         runTest(mainDispatcherRule.testDispatcher) {
             val gate = CompletableDeferred<Unit>()
             taskRepository.restoreGate = gate
-            viewModel.restoreTask("home", task("t1", "Fregar", null))
+            viewModel.undo(Undoable.Deleted("home", task("t1", "Fregar", null)))
             runCurrent()
 
             viewModel.showInvalidDate()
@@ -483,23 +577,25 @@ class TasksViewModelTest {
         }
 
     @Test
-    fun `a forced undo that ends first keeps saving on and keeps the pending created`() =
+    fun `a forced undo that ends first keeps saving on and keeps the pending offer`() =
         runTest(mainDispatcherRule.testDispatcher) {
             taskRepository.createGate = CompletableDeferred()
             editorCreate("Fregar")
             runCurrent()
 
-            viewModel.undoCompletion("home", task("t1", "Regar", null))
+            val regar = task("t1", "Regar", null)
+            viewModel.undo(Undoable.Completed("home", regar, regar))
             runCurrent() // sin avanzar el reloj: el alta del editor tiene tiempo máximo
             assertTrue(viewModel.uiState.value.save.isSaving)
 
             taskRepository.createGate?.complete(Unit)
-            advanceUntilIdle()
-            assertEquals(CreatedItem("new-1", "Fregar"), viewModel.uiState.value.save.created)
+            runCurrent()
+            val created = Undoable.Created("home", CreatedItem("new-1", "Fregar"))
+            assertEquals(listOf(created), viewModel.undoOffers.value.map { it.undoable })
 
-            viewModel.restoreTask("home", task("t2", "Pan", null))
-            advanceUntilIdle()
-            assertEquals(CreatedItem("new-1", "Fregar"), viewModel.uiState.value.save.created)
+            viewModel.undo(Undoable.Deleted("home", task("t2", "Pan", null)))
+            runCurrent()
+            assertEquals(listOf(created), viewModel.undoOffers.value.map { it.undoable })
         }
 
     @Test
@@ -533,7 +629,7 @@ class TasksViewModelTest {
         viewModel.updateTask("home", "t1", "Leche", null, "ana", null, TaskPriority.MEDIUM, null, null, null)
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.save.created)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     private fun editorCreate(title: String) =
@@ -547,6 +643,7 @@ private class FakeTaskRepository : TaskRepository {
     var createdAssignee: String? = null
     var createdAssigneeSet = false
     var completedChange: Triple<String, String, Boolean>? = null
+    var completionDates = TaskDates(null, null)
     var nextFailure: TaskRepositoryException? = null
     var loadFailure: Throwable? = null
     var createGate: CompletableDeferred<Unit>? = null
@@ -557,6 +654,8 @@ private class FakeTaskRepository : TaskRepository {
     val restored = mutableListOf<TaskItem>()
     var restoredSpaceId: String? = null
     val completionRestored = mutableListOf<TaskItem>()
+    val completionRestoredTo = mutableListOf<TaskItem>()
+    val createUndone = mutableListOf<Pair<String, String>>()
     var completionRestoredSpaceId: String? = null
 
     // Nunca responde; como los repositorios reales, convierte la cancelación en otra excepción.
@@ -611,11 +710,17 @@ private class FakeTaskRepository : TaskRepository {
         throwNextFailure()
     }
 
-    override suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean) {
+    override suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean): TaskDates {
         completeStarted += taskId
         completeGate?.await()
         throwNextFailure()
         completedChange = Triple(spaceId, taskId, completed)
+        return completionDates
+    }
+
+    override suspend fun undoCreateTask(spaceId: String, taskId: String) {
+        throwNextFailure()
+        createUndone += spaceId to taskId
     }
 
     override suspend fun deleteTask(spaceId: String, taskId: String) {
@@ -630,10 +735,11 @@ private class FakeTaskRepository : TaskRepository {
         restored += task
     }
 
-    override suspend fun restoreCompletion(spaceId: String, previous: TaskItem) {
+    override suspend fun restoreCompletion(spaceId: String, previous: TaskItem, completed: TaskItem) {
         throwNextFailure()
         completionRestoredSpaceId = spaceId
         completionRestored += previous
+        completionRestoredTo += completed
     }
 
     private fun throwNextFailure() {

@@ -54,7 +54,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -84,7 +83,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.Celebration
 import com.dlunaunizar.bobitos.core.designsystem.component.CollapsibleHeaderBand
-import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
@@ -93,7 +91,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
 import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
-import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
@@ -103,10 +100,10 @@ import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
 import com.dlunaunizar.bobitos.core.designsystem.component.TopBarActions
+import com.dlunaunizar.bobitos.core.designsystem.component.UndoOfferEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.checkBounce
 import com.dlunaunizar.bobitos.core.designsystem.component.completingExit
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
-import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberCelebrationState
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberCompletingItems
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
@@ -185,8 +182,7 @@ fun TasksScreen(
             }
         },
     ) { padding ->
-        val snackbar = LocalSnackbarHostState.current
-        val scope = rememberCoroutineScope()
+        val undoOffers by viewModel.undoOffers.collectAsStateWithLifecycle()
         SaveFeedbackEffect(
             save = state.save,
             controls = viewModel.feedback,
@@ -194,30 +190,23 @@ fun TasksScreen(
             errorText = { stringResource(it.stringRes()) },
             noticeText = { stringResource(it.stringRes()) },
         )
-        CreatedUndoEffect(state.save.created, viewModel.feedback::consumeCreated) { viewModel.undoCreate(it.id) }
-        val deletedMessage = stringResource(R.string.tasks_undo_deleted)
-        val undoLabel = stringResource(R.string.undo)
-        val completedMessage = stringResource(R.string.tasks_undo_completed)
+        UndoOfferEffect(
+            offers = undoOffers,
+            controls = viewModel.undoControls,
+            deletedMessage = R.string.tasks_undo_deleted,
+            completedMessage = R.string.tasks_undo_completed,
+            onUndo = viewModel::undo,
+        )
         val deleteColor = MaterialTheme.colorScheme.error
         val checkColor = MaterialTheme.colorScheme.primary
-        val deleteTaskWithUndo: (TaskItem) -> Unit = { task ->
-            viewModel.deleteTask(spaceId, task.id) {
-                scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                    viewModel.restoreTask(spaceId, task)
-                }
-            }
-        }
+        val deleteTaskWithUndo: (TaskItem) -> Unit = { task -> viewModel.deleteTask(spaceId, task) }
         // Completar y reabrir no esperan a la puerta de `isSaving`: cada tarea escribe a la suya, y un segundo toque sobre
         // la misma mientras se completa no hace nada.
         val setCompletedWithUndo: (TaskItem, Boolean) -> Unit = { task, completed ->
             if (!completing.isCompleting(task.id)) {
                 val animate = completed && task.status != TaskStatus.DONE
                 val write: (onFinished: (Boolean) -> Unit) -> Boolean = { onFinished ->
-                    viewModel.setCompleted(spaceId, task, completed, onFinished = onFinished) {
-                        scope.launchUndo(snackbar, completedMessage, undoLabel) {
-                            viewModel.undoCompletion(spaceId, it)
-                        }
-                    }
+                    viewModel.setCompleted(spaceId, task, completed, onFinished = onFinished)
                 }
                 // Solo se anima al completar una que no estaba hecha; si era la última de hoy, se celebra.
                 if (animate) completing.begin(task.id, celebration, write) else write {}

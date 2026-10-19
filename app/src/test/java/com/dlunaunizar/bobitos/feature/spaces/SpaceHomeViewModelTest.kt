@@ -4,6 +4,7 @@ import com.dlunaunizar.bobitos.MainDispatcherRule
 import com.dlunaunizar.bobitos.core.common.CurrentDayProvider
 import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.Meal
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
@@ -21,9 +22,11 @@ import com.dlunaunizar.bobitos.data.repository.MealRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.SportActivityRepository
+import com.dlunaunizar.bobitos.data.repository.TaskDates
 import com.dlunaunizar.bobitos.data.repository.TaskFailure
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
 import com.dlunaunizar.bobitos.data.repository.TaskRepositoryException
+import com.dlunaunizar.bobitos.data.repository.completedWith
 import com.dlunaunizar.bobitos.feature.tasks.TaskUiMessage
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -69,6 +72,8 @@ class SpaceHomeViewModelTest {
     private var failRestoration: Throwable? = null
     private val completions = mutableListOf<Triple<String, String, Boolean>>()
     private val restorations = mutableListOf<Pair<String, TaskItem>>()
+    private val restoredTo = mutableListOf<TaskItem>()
+    private var completionDates = TaskDates(null, null)
 
     private fun <T> MutableMap<String, MutableSharedFlow<T>>.source(space: String) =
         getOrPut(space) { MutableSharedFlow(replay = 1) }
@@ -86,15 +91,17 @@ class SpaceHomeViewModelTest {
                 override fun tasks(spaceId: String): Flow<List<TaskItem>> =
                     if (spaceId == failTasksOf) flow { throw IOException("sin conexión") } else tasks.of(spaceId)
 
-                override suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean) {
+                override suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean): TaskDates {
                     completions += Triple(spaceId, taskId, completed)
                     completionGate?.await()
                     if (failCompletion) throw IOException("sin conexión")
+                    return completionDates
                 }
 
-                override suspend fun restoreCompletion(spaceId: String, previous: TaskItem) {
+                override suspend fun restoreCompletion(spaceId: String, previous: TaskItem, completed: TaskItem) {
                     failRestoration?.let { throw it }
                     restorations += spaceId to previous
+                    restoredTo += completed
                 }
             },
             mealRepository = object : MealRepository by NoMeals {
@@ -176,15 +183,35 @@ class SpaceHomeViewModelTest {
     fun completarDesdeHoyOfreceDeshacerYDeshacerLaDevuelve() = runTest {
         viewModel.show("a", me)
         val task = taskDueToday("t1")
-        var offered: TaskItem? = null
+        val dates = TaskDates(null, Instant.parse("2026-10-20T10:00:00Z"))
+        completionDates = dates
 
-        viewModel.complete(task) { offered = it }
+        viewModel.complete(task)
         runCurrent()
 
         assertEquals(listOf(Triple("a", "t1", true)), completions)
-        assertEquals(task, offered)
+        val offered = viewModel.undoOffers.value.single().undoable
+        assertEquals(Undoable.Completed("a", task, task.completedWith(dates)), offered)
 
-        viewModel.undoCompletion(offered!!)
+        viewModel.undo(offered)
+        runCurrent()
+
+        assertEquals(listOf("a" to task), restorations)
+        assertEquals(listOf(task.completedWith(dates)), restoredTo)
+    }
+
+    @Test
+    fun `completing in Hoy offers undo with its space and undo restores there after showing another space`() = runTest {
+        viewModel.show("a", me)
+        val task = taskDueToday("t1")
+
+        viewModel.complete(task)
+        runCurrent()
+        val offered = viewModel.undoOffers.value.single().undoable
+        assertEquals("a", offered.spaceId)
+
+        viewModel.show("b", me)
+        viewModel.undo(offered)
         runCurrent()
 
         assertEquals(listOf("a" to task), restorations)
@@ -195,7 +222,8 @@ class SpaceHomeViewModelTest {
         viewModel.show("a", me)
         failRestoration = TaskRepositoryException(TaskFailure.TaskChanged)
 
-        viewModel.undoCompletion(taskDueToday("t1"))
+        val task = taskDueToday("t1")
+        viewModel.undo(Undoable.Completed("a", task, task))
         runCurrent()
 
         assertEquals(TaskUiMessage.TaskChanged, viewModel.error.value)
@@ -281,20 +309,19 @@ class SpaceHomeViewModelTest {
         viewModel.show("a", me)
         completionGate = CompletableDeferred()
         val task = taskDueToday("t1")
-        val offered = mutableListOf<TaskItem>()
 
-        viewModel.complete(task) { offered += it }
-        viewModel.complete(task) { offered += it }
+        viewModel.complete(task)
+        viewModel.complete(task)
         runCurrent()
         completionGate!!.complete(Unit)
         runCurrent()
 
         assertEquals(listOf(Triple("a", "t1", true)), completions)
-        assertEquals(listOf(task), offered)
+        assertEquals(1, viewModel.undoOffers.value.size)
 
         // Ya terminó: se puede volver a completar (por ejemplo, una repetición del día siguiente).
         completionGate = null
-        viewModel.complete(task) { offered += it }
+        viewModel.complete(task)
         runCurrent()
         assertEquals(2, completions.size)
     }
@@ -303,13 +330,13 @@ class SpaceHomeViewModelTest {
     fun completarSinEscribirDevuelveFalseYNoTocaElRepositorio() = runTest {
         val task = taskDueToday("t1")
         // Sin espacio fijado no hay a dónde escribir.
-        assertFalse(viewModel.complete(task) {})
+        assertFalse(viewModel.complete(task))
 
         viewModel.show("a", me)
         completionGate = CompletableDeferred()
-        assertTrue(viewModel.complete(task) {})
+        assertTrue(viewModel.complete(task))
         // Con una escritura en curso para esa tarea, el segundo toque no escribe ni lo dice como lanzado.
-        assertFalse(viewModel.complete(task) {})
+        assertFalse(viewModel.complete(task))
         runCurrent()
 
         assertEquals(listOf(Triple("a", "t1", true)), completions)
@@ -323,14 +350,14 @@ class SpaceHomeViewModelTest {
         val task = taskDueToday("t1")
         val resultados = mutableListOf<Boolean>()
 
-        assertTrue(viewModel.complete(task, { resultados += it }) {})
+        assertTrue(viewModel.complete(task, { resultados += it }))
         runCurrent()
         gate.cancel()
         runCurrent()
 
         assertEquals(listOf(false), resultados)
         completionGate = null
-        assertTrue(viewModel.complete(task, { resultados += it }) {})
+        assertTrue(viewModel.complete(task, { resultados += it }))
         runCurrent()
         // La primera escritura llegó a empezar; la segunda, ya libre, también.
         assertEquals(listOf(Triple("a", "t1", true), Triple("a", "t1", true)), completions)
@@ -341,13 +368,12 @@ class SpaceHomeViewModelTest {
         viewModel.show("a", me)
         failCompletion = true
         val resultados = mutableListOf<Boolean>()
-        val offered = mutableListOf<TaskItem>()
 
-        viewModel.complete(taskDueToday("t1"), { resultados += it }) { offered += it }
+        viewModel.complete(taskDueToday("t1"), { resultados += it })
         runCurrent()
 
         assertEquals(listOf(false), resultados)
-        assertTrue(offered.isEmpty())
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
@@ -427,10 +453,13 @@ private object NoTasks : TaskRepository {
         startAt: Instant?,
     ): Unit = error("no usado")
 
-    override suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean): Unit = error("no usado")
+    override suspend fun setCompleted(spaceId: String, taskId: String, completed: Boolean): TaskDates =
+        error("no usado")
+    override suspend fun undoCreateTask(spaceId: String, taskId: String): Unit = error("no usado")
     override suspend fun deleteTask(spaceId: String, taskId: String): Unit = error("no usado")
     override suspend fun restoreTask(spaceId: String, task: TaskItem): Unit = error("no usado")
-    override suspend fun restoreCompletion(spaceId: String, previous: TaskItem): Unit = error("no usado")
+    override suspend fun restoreCompletion(spaceId: String, previous: TaskItem, completed: TaskItem): Unit =
+        error("no usado")
 }
 
 private object NoMeals : MealRepository {

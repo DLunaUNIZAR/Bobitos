@@ -17,7 +17,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -41,7 +40,7 @@ import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.NavMotion
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
-import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
+import com.dlunaunizar.bobitos.core.designsystem.component.UndoOfferEffect
 import com.dlunaunizar.bobitos.core.designsystem.navMotionFor
 import com.dlunaunizar.bobitos.core.designsystem.rememberReduceMotion
 import com.dlunaunizar.bobitos.core.designsystem.rememberToday
@@ -672,9 +671,13 @@ private fun SpaceHomeContent(
     onOpen: (BobitosDestination) -> Unit,
 ) {
     val snackbar = LocalSnackbarHostState.current
-    val scope = rememberCoroutineScope()
-    val completedMessage = stringResource(R.string.tasks_undo_completed)
-    val undoLabel = stringResource(R.string.undo)
+    val undoOffers by viewModel.undoOffers.collectAsStateWithLifecycle()
+    UndoOfferEffect(
+        offers = undoOffers,
+        controls = viewModel.undoControls,
+        completedMessage = R.string.tasks_undo_completed,
+        onUndo = viewModel::undo,
+    )
     val error by viewModel.error.collectAsStateWithLifecycle()
     error?.let { message ->
         val text = stringResource(message.stringRes())
@@ -686,11 +689,7 @@ private fun SpaceHomeContent(
     SpaceTodayScreen(
         agenda = agenda,
         canWrite = canWrite,
-        onToggleTask = { task, onFinished ->
-            viewModel.complete(task, onFinished) {
-                scope.launchUndo(snackbar, completedMessage, undoLabel) { viewModel.undoCompletion(it) }
-            }
-        },
+        onToggleTask = { task, onFinished -> viewModel.complete(task, onFinished) },
         onRetry = viewModel::retry,
         onOpen = onOpen,
     )
