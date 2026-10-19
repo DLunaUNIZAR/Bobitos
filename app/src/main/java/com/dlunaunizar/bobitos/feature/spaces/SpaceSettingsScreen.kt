@@ -35,16 +35,15 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.BobitosDates
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
-import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.QrCodeImage
+import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
-import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
 import com.dlunaunizar.bobitos.core.model.SpaceMember
@@ -70,8 +69,7 @@ fun SpaceSettingsScreen(
     onCreateInvitation: (String) -> Unit,
     onRevokeInvitation: (String) -> Unit,
     onShareInvitation: (SpaceInvitation) -> Unit,
-    onClearFeedback: () -> Unit,
-    onEditorSaveConsumed: () -> Unit,
+    feedback: SaveFeedbackControls,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -89,7 +87,7 @@ fun SpaceSettingsScreen(
         onBack = onBack,
         modifier = modifier,
         syncStatus = syncStatus,
-        saving = savingOutsideEditor(state.writeStatus == WriteStatus.SAVING, showRenameDialog),
+        saving = savingOutsideEditor(state.save.isSaving, showRenameDialog),
     ) { padding ->
         Column(
             modifier = Modifier
@@ -112,18 +110,18 @@ fun SpaceSettingsScreen(
                 ),
                 style = MaterialTheme.typography.labelLarge,
             )
-            FeedbackSnackbarEffect(
-                error = state.error,
-                notice = state.notice,
-                editorSave = state.editorSave,
-                editorOpen = showRenameDialog,
-                onShown = onClearFeedback,
-            ) { stringResource(it.stringResourceId) }
+            SaveFeedbackEffect(
+                save = state.save,
+                controls = feedback,
+                covered = showRenameDialog,
+                errorText = { stringResource(it.stringResourceId) },
+                noticeText = { stringResource(it.stringResourceId) },
+            )
 
             if (space.role == SpaceRole.OWNER) {
                 Button(
                     onClick = { showRenameDialog = true },
-                    enabled = !state.isLoading && canWrite,
+                    enabled = !state.save.isSaving && canWrite,
                 ) {
                     Text(text = stringResource(R.string.space_rename))
                 }
@@ -132,7 +130,7 @@ fun SpaceSettingsScreen(
                 OwnerInvitations(
                     invitations = state.invitations,
                     spaceIsFull = space.memberCount >= 10,
-                    actionsEnabled = !state.isLoading && canWrite,
+                    actionsEnabled = !state.save.isSaving && canWrite,
                     onCreateInvitation = { onCreateInvitation(space.id) },
                     onRevokeInvitation = onRevokeInvitation,
                     onShareInvitation = onShareInvitation,
@@ -162,7 +160,7 @@ fun SpaceSettingsScreen(
                             member = member,
                             isCurrentUser = member.userId == currentUserId,
                             canManage = space.role == SpaceRole.OWNER,
-                            actionsEnabled = !state.isLoading && canWrite,
+                            actionsEnabled = !state.save.isSaving && canWrite,
                             onTransfer = {
                                 pendingAction = MemberAction(
                                     type = MemberActionType.Transfer,
@@ -191,7 +189,7 @@ fun SpaceSettingsScreen(
                             memberName = "",
                         )
                     },
-                    enabled = !state.isLoading && canWrite,
+                    enabled = !state.save.isSaving && canWrite,
                 ) {
                     Text(text = stringResource(R.string.space_leave))
                 }
@@ -202,17 +200,17 @@ fun SpaceSettingsScreen(
                 )
                 TextButton(
                     onClick = { showDeleteSpaceDialog = true },
-                    enabled = !state.isLoading && canWrite,
+                    enabled = !state.save.isSaving && canWrite,
                 ) { Text(stringResource(R.string.space_delete), color = MaterialTheme.colorScheme.error) }
             }
         }
     }
 
     EditorSaveEffect(
-        status = state.editorSave,
+        editor = state.save.editor,
         editorOpen = showRenameDialog,
+        controls = feedback,
         onClose = { showRenameDialog = false },
-        onConsume = onEditorSaveConsumed,
     )
     if (showRenameDialog) {
         SpaceNameDialog(
@@ -220,14 +218,12 @@ fun SpaceSettingsScreen(
             confirmLabel = stringResource(R.string.space_rename),
             initialName = space.name,
             enabled = canWrite,
-            saving = state.editorSave == EditorSaveStatus.SAVING,
-            serverError = state.error
-                ?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
-                ?.let { stringResource(it.stringResourceId) },
-            onEdited = onClearFeedback,
+            saving = state.save.isSaving,
+            serverError = state.save.editorError?.let { stringResource(it.stringResourceId) },
+            onEdited = feedback::resetEditor,
             onDismiss = {
                 // Cerrar tras un guardado fallido descarta ese error (ya se veía en el diálogo).
-                state.editorSave.discardFailure(onClearFeedback)
+                feedback.resetEditor()
                 showRenameDialog = false
             },
             onConfirm = { name -> onRenameSpace(space.id, name) },
@@ -237,7 +233,7 @@ fun SpaceSettingsScreen(
     pendingAction?.let { action ->
         ConfirmMemberActionDialog(
             action = action,
-            confirmEnabled = canWrite && !state.isLoading,
+            confirmEnabled = canWrite && !state.save.isSaving,
             onDismiss = { pendingAction = null },
             onConfirm = {
                 when (action.type) {
@@ -258,7 +254,7 @@ fun SpaceSettingsScreen(
             message = stringResource(R.string.space_delete_body, space.name),
             confirmLabel = stringResource(R.string.space_delete_confirm),
             destructive = true,
-            confirmEnabled = canWrite && !state.isLoading,
+            confirmEnabled = canWrite && !state.save.isSaving,
             onConfirm = {
                 onDeleteSpace(space.id)
                 showDeleteSpaceDialog = false

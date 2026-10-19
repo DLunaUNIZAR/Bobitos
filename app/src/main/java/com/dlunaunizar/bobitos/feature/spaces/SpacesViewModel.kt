@@ -2,20 +2,16 @@ package com.dlunaunizar.bobitos.feature.spaces
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
+import com.dlunaunizar.bobitos.core.common.SaveRunner
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
-import com.dlunaunizar.bobitos.core.common.failed
-import com.dlunaunizar.bobitos.core.common.started
-import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.toFailureKind
-import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.InvitationCode
 import com.dlunaunizar.bobitos.data.repository.SpaceFailure
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepositoryException
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +25,14 @@ import javax.inject.Inject
 class SpacesViewModel @Inject constructor(private val spaceRepository: SpaceRepository) : ViewModel() {
     private val mutableUiState = MutableStateFlow(SpaceManagementUiState())
     val uiState: StateFlow<SpaceManagementUiState> = mutableUiState.asStateFlow()
+    private val saver = SaveRunner(
+        viewModelScope,
+        mutableUiState,
+        SpaceManagementUiState::save,
+        { copy(save = it) },
+        Throwable::toUiMessage,
+    )
+    val feedback: SaveFeedbackControls get() = saver
     private var membersJob: Job? = null
     private var invitationsJob: Job? = null
 
@@ -79,10 +83,10 @@ class SpacesViewModel @Inject constructor(private val spaceRepository: SpaceRepo
     fun createSpace(name: String) {
         val error = SpaceValidation.validateName(name)
         if (error != null) {
-            showValidationError(error, editor = true)
+            saver.showEditorError(error)
             return
         }
-        runAction(SpaceUiMessage.SpaceCreated, editor = true) {
+        saver.run(notice = SpaceUiMessage.SpaceCreated, editor = true) {
             spaceRepository.createSpace(name.trim())
         }
     }
@@ -90,138 +94,67 @@ class SpacesViewModel @Inject constructor(private val spaceRepository: SpaceRepo
     fun renameSpace(spaceId: String, name: String) {
         val error = SpaceValidation.validateName(name)
         if (error != null) {
-            showValidationError(error, editor = true)
+            saver.showEditorError(error)
             return
         }
-        runAction(SpaceUiMessage.SpaceRenamed, editor = true) {
+        saver.run(notice = SpaceUiMessage.SpaceRenamed, editor = true) {
             spaceRepository.renameSpace(spaceId, name.trim())
         }
     }
 
     fun leaveSpace(spaceId: String) {
-        runAction(SpaceUiMessage.SpaceLeft) {
+        saver.run(notice = SpaceUiMessage.SpaceLeft) {
             spaceRepository.leaveSpace(spaceId)
         }
     }
 
     fun removeMember(spaceId: String, userId: String) {
-        runAction(SpaceUiMessage.MemberRemoved) {
+        saver.run(notice = SpaceUiMessage.MemberRemoved) {
             spaceRepository.removeMember(spaceId, userId)
         }
     }
 
     fun transferOwnership(spaceId: String, newOwnerId: String) {
-        runAction(SpaceUiMessage.OwnershipTransferred) {
+        saver.run(notice = SpaceUiMessage.OwnershipTransferred) {
             spaceRepository.transferOwnership(spaceId, newOwnerId)
         }
     }
 
     fun deleteSpace(spaceId: String) {
-        runAction(SpaceUiMessage.SpaceDeleted) { spaceRepository.deleteSpace(spaceId) }
+        saver.run(notice = SpaceUiMessage.SpaceDeleted) { spaceRepository.deleteSpace(spaceId) }
     }
 
     fun createInvitation(spaceId: String) {
-        runAction(SpaceUiMessage.InvitationCreated) {
+        saver.run(notice = SpaceUiMessage.InvitationCreated) {
             spaceRepository.createInvitation(spaceId)
         }
     }
 
     fun revokeInvitation(invitationId: String) {
-        runAction(SpaceUiMessage.InvitationRevokedNotice) {
+        saver.run(notice = SpaceUiMessage.InvitationRevokedNotice) {
             spaceRepository.revokeInvitation(invitationId)
         }
     }
 
     fun acceptInvitation(code: String) {
         if (InvitationCode.normalize(code) == null) {
-            showValidationError(SpaceUiMessage.InvalidInvitationCode, editor = true)
+            saver.showEditorError(SpaceUiMessage.InvalidInvitationCode)
             return
         }
         // El id y SAVED se publican a la vez, al confirmar.
-        runAction(
-            SpaceUiMessage.InvitationAccepted,
+        saver.run(
+            notice = SpaceUiMessage.InvitationAccepted,
             editor = true,
-            action = { spaceRepository.acceptInvitation(code) },
-            onResult = { spaceId -> copy(acceptedSpaceId = spaceId) },
-        )
+            onSuccess = { spaceId -> copy(acceptedSpaceId = spaceId) },
+        ) { spaceRepository.acceptInvitation(code) }
     }
 
     fun consumeAcceptedSpace() {
         mutableUiState.update { it.copy(acceptedSpaceId = null) }
     }
 
-    fun clearFeedback() {
-        mutableUiState.update {
-            it.copy(
-                writeStatus = if (it.isLoading) WriteStatus.SAVING else WriteStatus.IDLE,
-                error = null,
-                notice = null,
-            )
-        }
-    }
-
-    fun consumeEditorSave() {
-        mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
-    }
-
-    private fun showValidationError(message: SpaceUiMessage, editor: Boolean = false) {
-        mutableUiState.update {
-            it.copy(
-                isLoading = false,
-                writeStatus = WriteStatus.ERROR,
-                editorSave = it.editorSave.failed(editor),
-                error = message,
-                notice = null,
-            )
-        }
-    }
-
-    private fun runAction(successNotice: SpaceUiMessage, editor: Boolean = false, action: suspend () -> Unit) =
-        runAction(successNotice, editor, onResult = { this }, action = action)
-
-    // [onResult] completa el estado final con el resultado de [action], a la vez que SAVED.
-    private fun <T> runAction(
-        successNotice: SpaceUiMessage,
-        editor: Boolean = false,
-        onResult: SpaceManagementUiState.(T) -> SpaceManagementUiState,
-        action: suspend () -> T,
-    ) {
-        if (mutableUiState.value.isLoading) return
-        mutableUiState.update {
-            it.copy(
-                isLoading = true,
-                writeStatus = WriteStatus.SAVING,
-                editorSave = it.editorSave.started(editor),
-                error = null,
-                notice = null,
-            )
-        }
-        viewModelScope.launch {
-            runCatching { withEditorSaveTimeout(editor) { action() } }
-                .onSuccess { result ->
-                    mutableUiState.update {
-                        it.onResult(result).copy(
-                            isLoading = false,
-                            writeStatus = WriteStatus.SAVED,
-                            editorSave = it.editorSave.succeeded(editor),
-                            notice = successNotice,
-                        )
-                    }
-                }
-                .onFailure { error ->
-                    if (error is CancellationException) throw error
-                    mutableUiState.update {
-                        it.copy(
-                            isLoading = false,
-                            writeStatus = WriteStatus.ERROR,
-                            editorSave = it.editorSave.failed(editor),
-                            error = error.toUiMessage(),
-                            notice = null,
-                        )
-                    }
-                }
-        }
-    }
+    // Lo usa también el marco de las demás pantallas del espacio: borra el error y el aviso de la pantalla.
+    fun clearFeedback() = saver.clearFeedback()
 }
 
 private fun Throwable.toUiMessage(): SpaceUiMessage {

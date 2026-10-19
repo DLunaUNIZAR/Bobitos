@@ -38,7 +38,9 @@ class SpacesViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val repository = FakeSpaceRepository()
-    private val viewModel = SpacesViewModel(repository)
+
+    // Por `lazy`: el SaveRunner toca viewModelScope al construirse, antes de que la regla ponga el dispatcher.
+    private val viewModel by lazy { SpacesViewModel(repository) }
 
     @Test
     fun `create space trims its name and reports success`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -46,10 +48,10 @@ class SpacesViewModelTest {
         advanceUntilIdle()
 
         assertEquals("Casa", repository.createdName)
-        assertEquals(SpaceUiMessage.SpaceCreated, viewModel.uiState.value.notice)
-        assertFalse(viewModel.uiState.value.isLoading)
-        assertEquals(WriteStatus.SAVED, viewModel.uiState.value.writeStatus)
-        assertNull(viewModel.uiState.value.error)
+        assertEquals(SpaceUiMessage.SpaceCreated, viewModel.uiState.value.save.notice)
+        assertFalse(viewModel.uiState.value.save.isSaving)
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.save.editor)
+        assertNull(viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -68,8 +70,9 @@ class SpacesViewModelTest {
         viewModel.createSpace("  ")
 
         assertNull(repository.createdName)
-        assertEquals(SpaceUiMessage.NameRequired, viewModel.uiState.value.error)
-        assertEquals(WriteStatus.ERROR, viewModel.uiState.value.writeStatus)
+        assertEquals(SpaceUiMessage.NameRequired, viewModel.uiState.value.save.editorError)
+        assertNull(viewModel.uiState.value.save.error)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
     }
 
     @Test
@@ -79,7 +82,7 @@ class SpacesViewModelTest {
         viewModel.leaveSpace("home")
         advanceUntilIdle()
 
-        assertEquals(SpaceUiMessage.OwnerMustTransfer, viewModel.uiState.value.error)
+        assertEquals(SpaceUiMessage.OwnerMustTransfer, viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -87,15 +90,16 @@ class SpacesViewModelTest {
         repository.createGate = CompletableDeferred()
 
         viewModel.createSpace("Casa")
-        assertEquals(WriteStatus.SAVING, viewModel.uiState.value.writeStatus)
+        runCurrent()
+        assertTrue(viewModel.uiState.value.save.isSaving)
 
         repository.nextFailure = SpaceRepositoryException(SpaceFailure.Network)
         repository.createGate?.complete(Unit)
         advanceUntilIdle()
 
-        assertEquals(WriteStatus.ERROR, viewModel.uiState.value.writeStatus)
-        assertEquals(SpaceUiMessage.NetworkError, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.isLoading)
+        assertEquals(SpaceUiMessage.NetworkError, viewModel.uiState.value.save.editorError)
+        assertNull(viewModel.uiState.value.save.error)
+        assertFalse(viewModel.uiState.value.save.isSaving)
     }
 
     @Test
@@ -116,7 +120,7 @@ class SpacesViewModelTest {
 
         assertEquals(token.lowercase(), repository.acceptedCode)
         assertEquals("home", viewModel.uiState.value.acceptedSpaceId)
-        assertEquals(SpaceUiMessage.InvitationAccepted, viewModel.uiState.value.notice)
+        assertEquals(SpaceUiMessage.InvitationAccepted, viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -124,14 +128,14 @@ class SpacesViewModelTest {
         viewModel.acceptInvitation("invalid")
 
         assertNull(repository.acceptedCode)
-        assertEquals(SpaceUiMessage.InvalidInvitationCode, viewModel.uiState.value.error)
+        assertEquals(SpaceUiMessage.InvalidInvitationCode, viewModel.uiState.value.save.editorError)
     }
 
     @Test fun `space deletion delegates and reports success`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.deleteSpace("home")
         advanceUntilIdle()
         assertEquals("home", repository.deletedSpaceId)
-        assertEquals(SpaceUiMessage.SpaceDeleted, viewModel.uiState.value.notice)
+        assertEquals(SpaceUiMessage.SpaceDeleted, viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -139,29 +143,29 @@ class SpacesViewModelTest {
         val gate = CompletableDeferred<Unit>()
         repository.createGate = gate
         viewModel.createSpace("Casa")
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
         gate.complete(Unit)
         advanceUntilIdle()
-        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
-        viewModel.consumeEditorSave()
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.save.editor)
+        viewModel.feedback.resetEditor()
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
 
         val renameGate = CompletableDeferred<Unit>()
         repository.renameGate = renameGate
         viewModel.renameSpace("home", "Nueva")
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
         renameGate.complete(Unit)
         advanceUntilIdle()
-        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
-        viewModel.consumeEditorSave()
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.save.editor)
+        viewModel.feedback.resetEditor()
 
         val acceptGate = CompletableDeferred<Unit>()
         repository.acceptGate = acceptGate
         viewModel.acceptInvitation("ABCDEFGHIJKLMNOPQRSTUVWXYZ234567")
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
         acceptGate.complete(Unit)
         advanceUntilIdle()
-        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.save.editor)
     }
 
     @Test
@@ -176,46 +180,77 @@ class SpacesViewModelTest {
 
         val state = viewModel.uiState.value
         assertEquals("home", state.acceptedSpaceId)
-        assertEquals(EditorSaveStatus.SAVED, state.editorSave)
+        assertEquals(EditorSaveStatus.SAVED, state.save.editor)
     }
 
     @Test
     fun `validation errors and timeouts leave FAILED`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.createSpace("  ")
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        viewModel.consumeEditorSave()
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        viewModel.feedback.resetEditor()
         viewModel.acceptInvitation("invalid")
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        viewModel.consumeEditorSave()
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        viewModel.feedback.resetEditor()
 
         repository.hang = true
         viewModel.createSpace("Casa")
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
         advanceTimeBy(EDITOR_SAVE_TIMEOUT_MILLIS + 1)
         runCurrent()
 
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        assertEquals(SpaceUiMessage.SaveTimeout, viewModel.uiState.value.error)
-        assertEquals(WriteStatus.ERROR, viewModel.uiState.value.writeStatus)
-        assertFalse(viewModel.uiState.value.isLoading)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        assertEquals(SpaceUiMessage.SaveTimeout, viewModel.uiState.value.save.editorError)
+        assertFalse(viewModel.uiState.value.save.isSaving)
     }
+
+    @Test
+    fun `a failed create shows the error only in the dialog`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.nextFailure = SpaceRepositoryException(SpaceFailure.Network)
+
+        viewModel.createSpace("Casa")
+        advanceUntilIdle()
+
+        val save = viewModel.uiState.value.save
+        assertEquals(SpaceUiMessage.NetworkError, save.editorError)
+        assertNull(save.error)
+        assertEquals(EditorSaveStatus.FAILED, save.editor)
+    }
+
+    @Test
+    fun `a validation error while another action is in flight keeps saving`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val gate = CompletableDeferred<Unit>()
+            repository.renameGate = gate
+            viewModel.renameSpace("home", "Nueva")
+            runCurrent()
+            assertTrue(viewModel.uiState.value.save.isSaving)
+
+            viewModel.createSpace("  ")
+
+            val save = viewModel.uiState.value.save
+            assertTrue(save.isSaving)
+            assertEquals(SpaceUiMessage.NameRequired, save.editorError)
+            gate.complete(Unit)
+            advanceUntilIdle()
+            assertFalse(viewModel.uiState.value.save.isSaving)
+        }
 
     @Test
     fun `leave, remove and delete never touch editorSave`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.leaveSpace("home")
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
         advanceUntilIdle()
         viewModel.removeMember("home", "u")
         advanceUntilIdle()
         viewModel.deleteSpace("home")
         advanceUntilIdle()
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
 
         repository.nextFailure = SpaceRepositoryException(SpaceFailure.Network)
         viewModel.leaveSpace("home")
         advanceUntilIdle()
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
-        assertTrue(viewModel.uiState.value.error != null)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
+        assertTrue(viewModel.uiState.value.save.error != null)
     }
 }
 

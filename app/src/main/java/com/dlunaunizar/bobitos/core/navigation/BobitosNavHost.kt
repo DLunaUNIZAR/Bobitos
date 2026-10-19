@@ -37,6 +37,7 @@ import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.app.AppUiState
 import com.dlunaunizar.bobitos.app.RealtimeScope
 import com.dlunaunizar.bobitos.core.common.BobitosDates
+import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.NavMotion
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
@@ -105,7 +106,7 @@ fun BobitosNavHost(
     pendingRecipeImportUrl: String?,
     onRecipeImportUrlConsumed: () -> Unit,
     onClearSpaceFeedback: () -> Unit,
-    onEditorSaveConsumed: () -> Unit,
+    spaceFeedback: SaveFeedbackControls,
     onUpdateDisplayName: (String) -> Unit,
     onSignOut: () -> Unit,
     onDeleteAccount: (String) -> Unit,
@@ -251,8 +252,7 @@ fun BobitosNavHost(
                 onAcceptInvitation = onAcceptInvitation,
                 pendingInvitationCode = pendingInvitationCode,
                 onInvitationCodeConsumed = onInvitationCodeConsumed,
-                onClearFeedback = onClearSpaceFeedback,
-                onEditorSaveConsumed = onEditorSaveConsumed,
+                feedback = spaceFeedback,
             )
         }
 
@@ -590,8 +590,7 @@ fun BobitosNavHost(
                     onCreateInvitation = onCreateInvitation,
                     onRevokeInvitation = onRevokeInvitation,
                     onShareInvitation = onShareInvitation,
-                    onClearFeedback = onClearSpaceFeedback,
-                    onEditorSaveConsumed = onEditorSaveConsumed,
+                    feedback = spaceFeedback,
                     onBack = { navController.popBackStack() },
                 )
             }

@@ -14,6 +14,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.FullScreenLoading
 import com.dlunaunizar.bobitos.core.model.SpaceInvitation
@@ -56,7 +57,7 @@ fun BobitosApp(
     pendingRecipeImportUrl: String?,
     onRecipeImportUrlConsumed: () -> Unit,
     onClearSpaceFeedback: () -> Unit,
-    onEditorSaveConsumed: () -> Unit,
+    spaceFeedback: SaveFeedbackControls,
     onSignIn: (email: String, password: String) -> Unit,
     onRegister: (
         displayName: String,
@@ -144,7 +145,7 @@ fun BobitosApp(
                                 pendingRecipeImportUrl = pendingRecipeImportUrl,
                                 onRecipeImportUrlConsumed = onRecipeImportUrlConsumed,
                                 onClearSpaceFeedback = onClearSpaceFeedback,
-                                onEditorSaveConsumed = onEditorSaveConsumed,
+                                spaceFeedback = spaceFeedback,
                                 onUpdateDisplayName = onUpdateDisplayName,
                                 onSignOut = onSignOut,
                                 onDeleteAccount = onDeleteAccount,

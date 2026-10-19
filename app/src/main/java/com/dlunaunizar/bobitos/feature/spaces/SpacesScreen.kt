@@ -49,16 +49,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
+import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
-import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
+import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
-import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
@@ -80,8 +79,7 @@ fun SpacesScreen(
     pendingInvitationCode: String?,
     onInvitationCodeConsumed: () -> Unit,
     onProfileClick: () -> Unit,
-    onClearFeedback: () -> Unit,
-    onEditorSaveConsumed: () -> Unit,
+    feedback: SaveFeedbackControls,
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
 ) {
@@ -99,8 +97,7 @@ fun SpacesScreen(
             pendingInvitationCode = pendingInvitationCode,
             onInvitationCodeConsumed = onInvitationCodeConsumed,
             onProfileClick = onProfileClick,
-            onClearFeedback = onClearFeedback,
-            onEditorSaveConsumed = onEditorSaveConsumed,
+            feedback = feedback,
             onBack = onBack,
             modifier = modifier,
         )
@@ -119,8 +116,7 @@ private fun SpacesContent(
     pendingInvitationCode: String?,
     onInvitationCodeConsumed: () -> Unit,
     onProfileClick: () -> Unit,
-    onClearFeedback: () -> Unit,
-    onEditorSaveConsumed: () -> Unit,
+    feedback: SaveFeedbackControls,
     onBack: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
@@ -131,11 +127,11 @@ private fun SpacesContent(
     val editorOpen = showCreateDialog || showJoinDialog
     // Cerrar un diálogo tras un guardado fallido descarta ese error (ya se veía en el diálogo).
     val closeCreate = {
-        managementState.editorSave.discardFailure(onClearFeedback)
+        feedback.resetEditor()
         showCreateDialog = false
     }
     val closeJoin = {
-        managementState.editorSave.discardFailure(onClearFeedback)
+        feedback.resetEditor()
         showJoinDialog = false
     }
 
@@ -153,7 +149,7 @@ private fun SpacesContent(
         onBack = onBack,
         modifier = modifier,
         syncStatus = syncStatus,
-        saving = savingOutsideEditor(managementState.writeStatus == WriteStatus.SAVING, editorOpen),
+        saving = savingOutsideEditor(managementState.save.isSaving, editorOpen),
         actions = {
             IconButton(onClick = onProfileClick) {
                 Icon(
@@ -185,19 +181,19 @@ private fun SpacesContent(
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            FeedbackSnackbarEffect(
-                error = managementState.error,
-                notice = managementState.notice,
-                editorSave = managementState.editorSave,
-                editorOpen = editorOpen,
-                onShown = onClearFeedback,
-            ) { stringResource(it.stringResourceId) }
+            SaveFeedbackEffect(
+                save = managementState.save,
+                controls = feedback,
+                covered = editorOpen,
+                errorText = { stringResource(it.stringResourceId) },
+                noticeText = { stringResource(it.stringResourceId) },
+            )
             OutlinedButton(
                 onClick = {
                     invitationCode = ""
                     showJoinDialog = true
                 },
-                enabled = !managementState.isLoading && canWrite,
+                enabled = !managementState.save.isSaving && canWrite,
             ) {
                 Text(text = stringResource(R.string.invitation_join))
             }
@@ -225,18 +221,16 @@ private fun SpacesContent(
     }
 
     EditorSaveEffect(
-        status = managementState.editorSave,
+        editor = managementState.save.editor,
         editorOpen = editorOpen,
+        controls = feedback,
         onClose = {
             showCreateDialog = false
             showJoinDialog = false
         },
-        onConsume = onEditorSaveConsumed,
     )
-    val saving = managementState.editorSave == EditorSaveStatus.SAVING
-    val editorError = managementState.error
-        ?.takeIf { managementState.editorSave == EditorSaveStatus.FAILED }
-        ?.let { stringResource(it.stringResourceId) }
+    val saving = managementState.save.isSaving
+    val editorError = managementState.save.editorError?.let { stringResource(it.stringResourceId) }
 
     if (showCreateDialog) {
         SpaceNameDialog(
@@ -246,7 +240,7 @@ private fun SpacesContent(
             enabled = canWrite,
             saving = saving,
             serverError = editorError,
-            onEdited = onClearFeedback,
+            onEdited = feedback::resetEditor,
             onDismiss = closeCreate,
             onConfirm = onCreateSpace,
         )
@@ -258,8 +252,8 @@ private fun SpacesContent(
             enabled = canWrite,
             saving = saving,
             serverError = editorError,
-            serverErrorOnField = managementState.error?.isInvitationCodeError() == true,
-            onEdited = onClearFeedback,
+            serverErrorOnField = managementState.save.editorError?.isInvitationCodeError() == true,
+            onEdited = feedback::resetEditor,
             onDismiss = closeJoin,
             onConfirm = onAcceptInvitation,
         )
