@@ -91,17 +91,6 @@ class EditorSaveTest {
     }
 
     @Test
-    fun `status only moves for editor saves`() {
-        assertEquals(EditorSaveStatus.SAVING, EditorSaveStatus.IDLE.started(true))
-        assertEquals(EditorSaveStatus.IDLE, EditorSaveStatus.IDLE.started(false))
-        assertEquals(EditorSaveStatus.SAVED, EditorSaveStatus.SAVING.succeeded(true))
-        assertEquals(EditorSaveStatus.SAVING, EditorSaveStatus.SAVING.succeeded(false))
-        assertEquals(EditorSaveStatus.FAILED, EditorSaveStatus.SAVING.failed(true))
-        assertEquals(EditorSaveStatus.SAVING, EditorSaveStatus.SAVING.failed(false))
-        assertEquals(EditorSaveStatus.IDLE, EditorSaveStatus.IDLE.failed(false))
-    }
-
-    @Test
     fun `timeout message matches write_timeout in strings xml`() {
         val xml = File("src/main/res/values/strings.xml").readText()
         val text = Regex("""<string name="write_timeout">(.*?)</string>""").find(xml)!!.groupValues[1]

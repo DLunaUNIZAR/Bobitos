@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.common
 
+import com.dlunaunizar.bobitos.core.common.rethrowIfCancelled
 import com.dlunaunizar.bobitos.core.model.PantryEntry
 import com.dlunaunizar.bobitos.core.model.PantryItem
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
@@ -8,7 +9,6 @@ import com.dlunaunizar.bobitos.core.model.shoppingMatchKey
 import com.dlunaunizar.bobitos.data.repository.PantryRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingWrite
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -96,7 +96,7 @@ internal suspend fun IngredientShoppingSource.firstOrEmpty(): IngredientShopping
 /** Los ids de la despensa de [spaceId] leídos del servidor, o `null` si no se puede leer (se sigue sin ella). */
 internal suspend fun PantryRepository.currentIdsOrNull(spaceId: String): Set<String>? =
     runCatching { currentIds(spaceId) }
-        .onFailure { if (it is CancellationException) throw it }
+        .onFailure { it.rethrowIfCancelled() }
         .getOrNull()
 
 /**

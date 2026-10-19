@@ -2,7 +2,10 @@ package com.dlunaunizar.bobitos.feature.pantry
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
+import com.dlunaunizar.bobitos.core.common.SaveRunner
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.rethrowIfCancelled
 import com.dlunaunizar.bobitos.core.model.PantryEntry
 import com.dlunaunizar.bobitos.core.model.PantryItem
 import com.dlunaunizar.bobitos.core.model.pantryId
@@ -17,7 +20,6 @@ import com.dlunaunizar.bobitos.feature.common.IngredientShoppingSource
 import com.dlunaunizar.bobitos.feature.common.firstOrEmpty
 import com.dlunaunizar.bobitos.feature.common.restockFromPantry
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +37,11 @@ class PantryViewModel @Inject constructor(
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(PantryUiState())
     val uiState: StateFlow<PantryUiState> = mutableUiState.asStateFlow()
+
+    // Sin editor ni tiempo máximo: la Despensa solo tiene el selector, que es un diálogo y no un editor.
+    private val saver =
+        SaveRunner(viewModelScope, mutableUiState, PantryUiState::save, { copy(save = it) }, Throwable::toUiMessage)
+    val feedback: SaveFeedbackControls get() = saver
     private var itemsJob: Job? = null
     private var observedSpaceId: String? = null
     private var catalogJob: Job? = null
@@ -63,30 +70,28 @@ class PantryViewModel @Inject constructor(
     /** «Se acabó»: quita [item]; cuando se confirma, la pantalla ofrece apuntarlo a la compra ([PantryUiState.finished]). */
     fun markFinished(item: PantryItem) {
         val spaceId = observedSpaceId ?: return
-        runAction(onSuccess = { it.copy(finished = item) }) {
+        saver.run(onSuccess = { copy(finished = item) }) {
             repository.remove(spaceId, listOf(item.id))
-            null
         }
     }
 
     fun consumeFinished() = mutableUiState.update { it.copy(finished = null) }
 
     /**
-     * «A la compra»: apunta [item] en la Compra (ver [restockFromPantry]); si ya estaba pendiente, solo lo avisa. No pasa
-     * por [runAction]: el aviso del Snackbar ya se consumió y no debe perderse porque otra acción esté guardando.
+     * «A la compra»: apunta [item] en la Compra (ver [restockFromPantry]); si ya estaba pendiente, solo lo avisa. No
+     * enciende «Guardando…» ni bloquea otras acciones: su fallo y su aviso van directos a la pantalla.
      */
     fun restock(item: PantryItem) {
         val spaceId = observedSpaceId ?: return
-        mutableUiState.update { it.copy(error = null, notice = null) }
         viewModelScope.launch {
             runCatching {
                 val plan = restockFromPantry(spaceId, listOf(item.name), shoppingRepository, ingredientData())
                 if (plan.writes.isEmpty()) PantryUiMessage.AlreadyInShopping else PantryUiMessage.AddedToShopping
             }
-                .onSuccess { notice -> mutableUiState.update { it.copy(notice = notice) } }
+                .onSuccess(saver::showNotice)
                 .onFailure { error ->
-                    if (error is CancellationException) throw error
-                    mutableUiState.update { it.copy(error = error.toUiMessage()) }
+                    error.rethrowIfCancelled()
+                    saver.showError(error.toUiMessage())
                 }
         }
     }
@@ -107,6 +112,8 @@ class PantryViewModel @Inject constructor(
     fun closePicker() {
         stopCatalog()
         mutableUiState.update { it.copy(picker = null) }
+        // El error que se veía dentro del selector se da por visto: no vuelve a salir en el aviso de la pantalla.
+        saver.consumeError()
     }
 
     fun setPickerQuery(query: String) = mutableUiState.update { it.copy(picker = it.picker?.copy(query = query)) }
@@ -123,10 +130,9 @@ class PantryViewModel @Inject constructor(
         val spaceId = observedSpaceId ?: return
         val entries = mutableUiState.value.picker?.selection?.values?.toList().orEmpty()
         if (entries.isEmpty()) return
-        runAction(onSuccess = { it.copy(picker = null) }) {
+        saver.run(noticeOf = { PantryUiMessage.ItemsAdded }, onSuccess = { copy(picker = null) }) {
             repository.add(spaceId, entries)
             stopCatalog()
-            PantryUiMessage.ItemsAdded
         }
     }
 
@@ -135,54 +141,32 @@ class PantryViewModel @Inject constructor(
         catalogJob = null
     }
 
-    fun clearFeedback() = mutableUiState.update { it.copy(error = null, notice = null) }
-
     // Marcas y tiendas para un artículo nuevo: las que ya cargó el selector; si no, se esperan (5 s como máximo) y,
     // si no llegan a tiempo, se apunta sin marca ni tienda.
     private suspend fun ingredientData(): IngredientShoppingData =
         mutableUiState.value.ingredientData.takeIf { it.ingredients.isNotEmpty() } ?: ingredientSource.firstOrEmpty()
-
-    // Ejecuta [action] (devuelve el aviso de éxito) y, si sale bien, aplica [onSuccess] al estado.
-    private fun runAction(
-        onSuccess: (PantryUiState) -> PantryUiState = { it },
-        action: suspend () -> PantryUiMessage?,
-    ) {
-        if (mutableUiState.value.isSaving) return
-        mutableUiState.update { it.copy(isSaving = true, error = null, notice = null) }
-        viewModelScope.launch {
-            runCatching { action() }
-                .onSuccess { notice -> mutableUiState.update { onSuccess(it.copy(isSaving = false, notice = notice)) } }
-                .onFailure { error ->
-                    if (error is CancellationException) throw error
-                    mutableUiState.update { it.copy(isSaving = false, error = error.toUiMessage()) }
-                }
-        }
-    }
 }
 
+// Una sola traducción para los fallos de la Despensa y de la Compra: los comunes se leen por su nombre.
 private fun Throwable.toUiMessage(): PantryUiMessage = when (this) {
-    is PantryRepositoryException -> failure.toUiMessage()
-    is ShoppingRepositoryException -> failure.toUiMessage()
+    is PantryRepositoryException -> when (failure) {
+        PantryFailure.NameRequired -> PantryUiMessage.NameRequired
+        PantryFailure.NameTooLong -> PantryUiMessage.NameTooLong
+        else -> failure.name.toCommonMessage()
+    }
+    is ShoppingRepositoryException -> when (failure) {
+        ShoppingFailure.ItemChanged, ShoppingFailure.ItemNotFound -> PantryUiMessage.ShoppingChanged
+        else -> failure.name.toCommonMessage()
+    }
     else -> PantryUiMessage.UnexpectedError
 }
 
-private fun PantryFailure.toUiMessage(): PantryUiMessage = when (this) {
-    PantryFailure.NameRequired -> PantryUiMessage.NameRequired
-    PantryFailure.NameTooLong -> PantryUiMessage.NameTooLong
-    PantryFailure.NotAuthenticated -> PantryUiMessage.NotAuthenticated
-    PantryFailure.EmailNotVerified -> PantryUiMessage.EmailNotVerified
-    PantryFailure.SpaceNotFound -> PantryUiMessage.SpaceNotFound
-    PantryFailure.PermissionDenied -> PantryUiMessage.PermissionDenied
-    PantryFailure.Network -> PantryUiMessage.NetworkError
-    PantryFailure.Unknown -> PantryUiMessage.UnexpectedError
-}
-
-private fun ShoppingFailure.toUiMessage(): PantryUiMessage = when (this) {
-    ShoppingFailure.ItemChanged, ShoppingFailure.ItemNotFound -> PantryUiMessage.ShoppingChanged
-    ShoppingFailure.NotAuthenticated -> PantryUiMessage.NotAuthenticated
-    ShoppingFailure.EmailNotVerified -> PantryUiMessage.EmailNotVerified
-    ShoppingFailure.SpaceNotFound -> PantryUiMessage.SpaceNotFound
-    ShoppingFailure.PermissionDenied -> PantryUiMessage.PermissionDenied
-    ShoppingFailure.Network -> PantryUiMessage.NetworkError
+// Los fallos con el mismo nombre en `PantryFailure` y `ShoppingFailure`; el resto es un error inesperado.
+private fun String.toCommonMessage(): PantryUiMessage = when (this) {
+    "NotAuthenticated" -> PantryUiMessage.NotAuthenticated
+    "EmailNotVerified" -> PantryUiMessage.EmailNotVerified
+    "SpaceNotFound" -> PantryUiMessage.SpaceNotFound
+    "PermissionDenied" -> PantryUiMessage.PermissionDenied
+    "Network" -> PantryUiMessage.NetworkError
     else -> PantryUiMessage.UnexpectedError
 }

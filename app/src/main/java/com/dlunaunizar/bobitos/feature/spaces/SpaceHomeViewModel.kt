@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.CurrentDayProvider
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.launchPerIdWrite
+import com.dlunaunizar.bobitos.core.common.rethrowIfCancelled
 import com.dlunaunizar.bobitos.core.common.toFailureKind
 import com.dlunaunizar.bobitos.core.model.TaskItem
 import com.dlunaunizar.bobitos.data.repository.CalendarRepository
@@ -16,7 +17,6 @@ import com.dlunaunizar.bobitos.data.repository.TaskRepository
 import com.dlunaunizar.bobitos.feature.tasks.TaskUiMessage
 import com.dlunaunizar.bobitos.feature.tasks.toUiMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -107,7 +107,7 @@ class SpaceHomeViewModel @Inject constructor(
         val spaceId = request.value?.spaceId ?: return
         mutableError.value = null
         viewModelScope.launch {
-            runCatching { taskRepository.restoreCompletion(spaceId, previous) }.onFailure(::showError)
+            runCatching { taskRepository.restoreCompletion(spaceId, previous) }.onFailure { showError(it) }
         }
     }
 
@@ -115,8 +115,8 @@ class SpaceHomeViewModel @Inject constructor(
         mutableError.value = null
     }
 
-    private fun showError(error: Throwable) {
-        if (error is CancellationException) throw error
+    private suspend fun showError(error: Throwable) {
+        error.rethrowIfCancelled()
         mutableError.value = error.toUiMessage()
     }
 
@@ -157,7 +157,7 @@ class SpaceHomeViewModel @Inject constructor(
                 }
             }
             .catch {
-                if (it is CancellationException) throw it
+                it.rethrowIfCancelled()
                 emit(ScopedAgenda(spaceId, UiState.Error(it.toFailureKind())))
             }
     }

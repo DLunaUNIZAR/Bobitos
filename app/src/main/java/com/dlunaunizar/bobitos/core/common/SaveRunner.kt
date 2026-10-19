@@ -152,7 +152,7 @@ class SaveRunner<S, E, N>(
     /** Error del formulario abierto, sin tocar nada más. */
     fun showEditorError(error: E) = update { it.copy(editor = EditorSaveStatus.FAILED, editorError = error) }
 
-    fun showError(error: E) = update { it.copy(error = error, notice = null) }
+    fun showError(error: E) = update { it.copy(error = error) }
 
     fun showNotice(notice: N) = update { it.copy(notice = notice) }
 

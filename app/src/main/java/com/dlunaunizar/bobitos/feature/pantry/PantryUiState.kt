@@ -1,5 +1,6 @@
 package com.dlunaunizar.bobitos.feature.pantry
 
+import com.dlunaunizar.bobitos.core.common.SaveState
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.PantryEntry
 import com.dlunaunizar.bobitos.core.model.PantryItem
@@ -8,11 +9,9 @@ import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
 data class PantryUiState(
     val items: UiState<List<PantryItem>> = UiState.Loading,
     val query: String = "",
-    val isSaving: Boolean = false,
     /** Lo último que se ha acabado: la pantalla ofrece apuntarlo a la compra con un Snackbar. */
     val finished: PantryItem? = null,
-    val error: PantryUiMessage? = null,
-    val notice: PantryUiMessage? = null,
+    val save: SaveState<PantryUiMessage, PantryUiMessage> = SaveState(),
     /** Selector «Añadir a la despensa»; `null` si está cerrado. */
     val picker: PantryPickerState? = null,
     /** Comunes y personales (con marcas y tiendas), que se escuchan mientras el selector está abierto. */

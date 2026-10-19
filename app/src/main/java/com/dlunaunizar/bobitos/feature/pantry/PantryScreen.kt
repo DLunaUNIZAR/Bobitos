@@ -27,22 +27,20 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.CollapsibleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.Feedback
-import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
+import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
-import com.dlunaunizar.bobitos.core.designsystem.component.feedbackFor
 import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
 import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
 import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
@@ -97,9 +95,12 @@ fun PantryScreen(
             )
         }
         // Con el selector abierto, el error sale dentro del selector (el snackbar de aquí quedaría tapado).
-        FeedbackSnackbarEffect(
-            feedback = if (state.picker == null) pantryFeedback(state) else null,
-            onShown = viewModel::clearFeedback,
+        SaveFeedbackEffect(
+            save = state.save,
+            controls = viewModel.feedback,
+            covered = state.picker != null,
+            errorText = { stringResource(it.stringRes()) },
+            noticeText = { stringResource(it.stringRes()) },
         )
         Column(Modifier.padding(innerPadding).fillMaxSize()) {
             when (val loaded = state.items) {
@@ -112,7 +113,7 @@ fun PantryScreen(
                 is UiState.Content -> PantryContent(
                     items = loaded.value,
                     query = state.query,
-                    enabled = canEdit && !state.isSaving,
+                    enabled = canEdit && !state.save.isSaving,
                     onQueryChange = viewModel::setQuery,
                     onFinished = viewModel::markFinished,
                     modifier = Modifier.weight(1f),
@@ -127,12 +128,12 @@ fun PantryScreen(
             picker = picker,
             ingredients = state.ingredientData.ingredients,
             pantryIds = remember(items) { items.mapTo(HashSet(), PantryItem::id) },
-            saving = state.isSaving,
+            saving = state.save.isSaving,
             onQueryChange = viewModel::setPickerQuery,
             onToggle = viewModel::togglePick,
             onConfirm = viewModel::confirmPicker,
-            feedback = pantryFeedback(state),
-            onFeedbackShown = viewModel::clearFeedback,
+            feedback = state.save.error?.let { Feedback(stringResource(it.stringRes()), isError = true) },
+            onFeedbackShown = viewModel.feedback::consumeError,
             onDismiss = viewModel::closePicker,
         )
     }
@@ -208,12 +209,6 @@ private fun PantryRow(item: PantryItem, position: RowPosition, enabled: Boolean,
         Text(item.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
         TextButton(onClick = onFinished, enabled = enabled) { Text(stringResource(R.string.pantry_finished)) }
     }
-}
-
-@Composable
-private fun pantryFeedback(state: PantryUiState): Feedback<String>? {
-    val feedback = feedbackFor(state.error, state.notice, EditorSaveStatus.IDLE, editorOpen = false)
-    return feedback?.let { Feedback(stringResource(it.message.stringRes()), it.isError) }
 }
 
 // «Se acabó», con la acción «A la compra» durante más tiempo.

@@ -5,12 +5,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 /** Estado del guardado del editor abierto; solo los guardados del propio editor lo mueven. */
 enum class EditorSaveStatus { IDLE, SAVING, SAVED, FAILED }
 
-fun EditorSaveStatus.started(editor: Boolean): EditorSaveStatus = if (editor) EditorSaveStatus.SAVING else this
-
-fun EditorSaveStatus.succeeded(editor: Boolean): EditorSaveStatus = if (editor) EditorSaveStatus.SAVED else this
-
-fun EditorSaveStatus.failed(editor: Boolean): EditorSaveStatus = if (editor) EditorSaveStatus.FAILED else this
-
 const val EDITOR_SAVE_TIMEOUT_MILLIS = 20_000L
 
 private const val SAVE_TIMEOUT_MESSAGE =

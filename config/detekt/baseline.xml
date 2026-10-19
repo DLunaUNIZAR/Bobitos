@@ -18,7 +18,6 @@
     <ID>LongMethod:BobitosNavHost.kt$@Composable fun BobitosNavHost( navController: NavHostController, uiState: AppUiState, authUser: AuthUser, authActionState: AuthActionUiState, spaceManagementState: SpaceManagementUiState, onSpaceSelected: (String) -&gt; Unit, onRetrySpaces: () -&gt; Unit, onRealtimeScopeChanged: (RealtimeScope) -&gt; Unit, onCreateSpace: (String) -&gt; Unit, onObserveSpaceSettings: (String, Boolean) -&gt; Unit, onStopObservingSpaceSettings: () -&gt; Unit, onRenameSpace: (String, String) -&gt; Unit, onLeaveSpace: (String) -&gt; Unit, onRemoveMember: (String, String) -&gt; Unit, onTransferOwnership: (String, String) -&gt; Unit, onDeleteSpace: (String) -&gt; Unit, onCreateInvitation: (String) -&gt; Unit, onRevokeInvitation: (String) -&gt; Unit, onAcceptInvitation: (String) -&gt; Unit, onShareInvitation: (SpaceInvitation) -&gt; Unit, onConsumeAcceptedSpace: () -&gt; Unit, pendingInvitationCode: String?, onInvitationCodeConsumed: () -&gt; Unit, pendingRecipeImportUrl: String?, onRecipeImportUrlConsumed: () -&gt; Unit, onClearSpaceFeedback: () -&gt; Unit, spaceFeedback: SaveFeedbackControls, onUpdateDisplayName: (String) -&gt; Unit, onSignOut: () -&gt; Unit, onDeleteAccount: (String) -&gt; Unit, onClearAuthFeedback: () -&gt; Unit, betaUpdateState: BetaUpdateUiState, onCheckForBetaUpdate: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
     <ID>LongMethod:CalendarScreen.kt$@Composable fun CalendarScreen( spaceId: String, canWrite: Boolean, modifier: Modifier = Modifier, initialEventId: String? = null, initialDate: LocalDate? = null, viewModel: CalendarViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:ExercisesScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ExercisesScreen( onBack: () -&gt; Unit, modifier: Modifier = Modifier, viewModel: ExercisesViewModel = hiltViewModel(), )</ID>
-    <ID>LongMethod:IngredientsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun IngredientsScreen( onBack: () -&gt; Unit, onOpenIngredient: (String) -&gt; Unit, onOpenBrand: (ingredientId: String, brandId: String) -&gt; Unit, modifier: Modifier = Modifier, viewModel: IngredientsViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:LoginScreen.kt$@Composable fun LoginScreen( actionState: AuthActionUiState, onSignIn: (email: String, password: String) -&gt; Unit, onRegisterClick: () -&gt; Unit, onPasswordResetClick: () -&gt; Unit, onClearFeedback: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
     <ID>LongMethod:MealsScreen.kt$@Composable fun MealsScreen( spaceId: String, canWrite: Boolean, modifier: Modifier = Modifier, initialDate: LocalDate? = null, viewModel: MealsViewModel = hiltViewModel(), )</ID>
     <ID>LongMethod:NotesScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun NotesScreen( onBack: () -&gt; Unit, canWrite: Boolean, modifier: Modifier = Modifier, spaceId: String? = null, viewModel: NotesViewModel = hiltViewModel(), )</ID>
@@ -75,13 +74,9 @@
     <ID>TooGenericExceptionCaught:FirestoreSportActivityRepository.kt$FirestoreSportActivityRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreSyncRepository.kt$FirestoreSyncRepository$error: Throwable</ID>
     <ID>TooGenericExceptionCaught:FirestoreTaskRepository.kt$FirestoreTaskRepository$error: Throwable</ID>
-    <ID>TooGenericExceptionCaught:MealsViewModel.kt$MealsViewModel$error: Throwable</ID>
-    <ID>TooGenericExceptionCaught:ShoppingViewModel.kt$ShoppingViewModel$error: Throwable</ID>
     <ID>TooManyFunctions:DataModule.kt$DataModule</ID>
     <ID>TooManyFunctions:FirestoreShoppingRepository.kt$FirestoreShoppingRepository : ShoppingRepository</ID>
     <ID>TooManyFunctions:MealsViewModel.kt$MealsViewModel : ViewModel</ID>
-    <ID>TooManyFunctions:RecipesViewModel.kt$RecipesViewModel : ViewModel</ID>
-    <ID>TooManyFunctions:ShoppingViewModel.kt$ShoppingViewModel : ViewModel</ID>
     <ID>TooManyFunctions:SpaceRepository.kt$SpaceRepository</ID>
   </CurrentIssues>
 </SmellBaseline>

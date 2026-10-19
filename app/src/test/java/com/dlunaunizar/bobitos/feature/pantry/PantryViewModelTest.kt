@@ -39,11 +39,13 @@ class PantryViewModelTest {
     private val pantry = FakePantryRepository()
     private val shopping = RecordingShoppingRepository()
     private val ingredients = FakeIngredientRepository()
-    private val viewModel = PantryViewModel(
-        pantry,
-        shopping,
-        ingredientShoppingSource(ingredients, FakeIngredientBrandRepository(), FakeIngredientPrefsRepository()),
-    )
+    private val viewModel by lazy {
+        PantryViewModel(
+            pantry,
+            shopping,
+            ingredientShoppingSource(ingredients, FakeIngredientBrandRepository(), FakeIngredientPrefsRepository()),
+        )
+    }
 
     private val salt = PantryItem("sal", "Sal", "Especias y hierbas", null)
     private val tomato = PantryItem("tomat", "Tomate", "Verduras y hortalizas", null)
@@ -112,7 +114,7 @@ class PantryViewModelTest {
         viewModel.markFinished(tomato)
         advanceUntilIdle()
 
-        assertEquals(PantryUiMessage.NetworkError, viewModel.uiState.value.error)
+        assertEquals(PantryUiMessage.NetworkError, viewModel.uiState.value.save.error)
         assertNull(viewModel.uiState.value.finished)
     }
 
@@ -126,7 +128,7 @@ class PantryViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf("Tomate"), shopping.addedNames)
-        assertEquals(PantryUiMessage.AddedToShopping, viewModel.uiState.value.notice)
+        assertEquals(PantryUiMessage.AddedToShopping, viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -139,7 +141,7 @@ class PantryViewModelTest {
         advanceUntilIdle()
 
         assertTrue(shopping.appliedBatches.isEmpty())
-        assertEquals(PantryUiMessage.AlreadyInShopping, viewModel.uiState.value.notice)
+        assertEquals(PantryUiMessage.AlreadyInShopping, viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -152,7 +154,7 @@ class PantryViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf("s1"), shopping.relistedIds)
-        assertEquals(PantryUiMessage.AddedToShopping, viewModel.uiState.value.notice)
+        assertEquals(PantryUiMessage.AddedToShopping, viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -166,7 +168,7 @@ class PantryViewModelTest {
         advanceUntilIdle()
 
         assertTrue(shopping.appliedBatches.isEmpty())
-        assertEquals(PantryUiMessage.AlreadyInShopping, viewModel.uiState.value.notice)
+        assertEquals(PantryUiMessage.AlreadyInShopping, viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -179,7 +181,7 @@ class PantryViewModelTest {
         viewModel.restock(tomato)
         advanceUntilIdle()
 
-        assertEquals(PantryUiMessage.ShoppingChanged, viewModel.uiState.value.error)
+        assertEquals(PantryUiMessage.ShoppingChanged, viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -209,7 +211,7 @@ class PantryViewModelTest {
         pantry.removeGate = gate
         viewModel.markFinished(salt)
         runCurrent()
-        assertTrue(viewModel.uiState.value.isSaving)
+        assertTrue(viewModel.uiState.value.save.isSaving)
 
         viewModel.restock(tomato)
         advanceUntilIdle()
@@ -276,7 +278,7 @@ class PantryViewModelTest {
             pantry.added.single(),
         )
         assertNull(viewModel.uiState.value.picker)
-        assertEquals(PantryUiMessage.ItemsAdded, viewModel.uiState.value.notice)
+        assertEquals(PantryUiMessage.ItemsAdded, viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -290,7 +292,7 @@ class PantryViewModelTest {
         viewModel.confirmPicker()
         advanceUntilIdle()
 
-        assertEquals(PantryUiMessage.NetworkError, viewModel.uiState.value.error)
+        assertEquals(PantryUiMessage.NetworkError, viewModel.uiState.value.save.error)
         assertEquals(setOf("sal"), viewModel.uiState.value.picker?.selection?.keys)
     }
 
@@ -304,5 +306,86 @@ class PantryViewModelTest {
         advanceUntilIdle()
 
         assertTrue(pantry.added.isEmpty())
+    }
+
+    @Test
+    fun `a restock failure keeps a pending notice after the error is shown`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel.observe("home")
+            advanceUntilIdle()
+            viewModel.openPicker()
+            viewModel.togglePick(PantryEntry("Sal", "Especias y hierbas"))
+            viewModel.confirmPicker()
+            advanceUntilIdle()
+            shopping.itemsState.value = listOf(shoppingItem("s1", "Tomate", purchased = true))
+            shopping.applyFailure = ShoppingRepositoryException(ShoppingFailure.ItemChanged)
+
+            viewModel.restock(tomato)
+            advanceUntilIdle()
+            viewModel.feedback.consumeError()
+
+            assertNull(viewModel.uiState.value.save.error)
+            assertEquals(PantryUiMessage.ItemsAdded, viewModel.uiState.value.save.notice)
+        }
+
+    @Test
+    fun `restock never turns saving on`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        viewModel.restock(tomato)
+        runCurrent()
+
+        assertEquals(false, viewModel.uiState.value.save.isSaving)
+    }
+
+    @Test
+    fun `every pantry and shopping failure keeps its message`() = runTest(mainDispatcherRule.testDispatcher) {
+        val pantryExpected = mapOf(
+            PantryFailure.NameRequired to PantryUiMessage.NameRequired,
+            PantryFailure.NameTooLong to PantryUiMessage.NameTooLong,
+            PantryFailure.NotAuthenticated to PantryUiMessage.NotAuthenticated,
+            PantryFailure.EmailNotVerified to PantryUiMessage.EmailNotVerified,
+            PantryFailure.SpaceNotFound to PantryUiMessage.SpaceNotFound,
+            PantryFailure.PermissionDenied to PantryUiMessage.PermissionDenied,
+            PantryFailure.Network to PantryUiMessage.NetworkError,
+            PantryFailure.Unknown to PantryUiMessage.UnexpectedError,
+        )
+        assertEquals(PantryFailure.entries.toSet(), pantryExpected.keys)
+        pantry.itemsState.value = listOf(tomato)
+        viewModel.observe("home")
+        advanceUntilIdle()
+        pantryExpected.forEach { (failure, message) ->
+            pantry.removeFailure = PantryRepositoryException(failure)
+            viewModel.markFinished(tomato)
+            advanceUntilIdle()
+            assertEquals("$failure", message, viewModel.uiState.value.save.error)
+            viewModel.feedback.consumeError()
+        }
+
+        val shoppingExpected = mapOf(
+            ShoppingFailure.NameRequired to PantryUiMessage.UnexpectedError,
+            ShoppingFailure.NameTooLong to PantryUiMessage.UnexpectedError,
+            ShoppingFailure.QuantityTooLong to PantryUiMessage.UnexpectedError,
+            ShoppingFailure.NotesTooLong to PantryUiMessage.UnexpectedError,
+            ShoppingFailure.BrandTooLong to PantryUiMessage.UnexpectedError,
+            ShoppingFailure.NotAuthenticated to PantryUiMessage.NotAuthenticated,
+            ShoppingFailure.EmailNotVerified to PantryUiMessage.EmailNotVerified,
+            ShoppingFailure.SpaceNotFound to PantryUiMessage.SpaceNotFound,
+            ShoppingFailure.ItemNotFound to PantryUiMessage.ShoppingChanged,
+            ShoppingFailure.ItemChanged to PantryUiMessage.ShoppingChanged,
+            ShoppingFailure.PermissionDenied to PantryUiMessage.PermissionDenied,
+            ShoppingFailure.Network to PantryUiMessage.NetworkError,
+            ShoppingFailure.Unknown to PantryUiMessage.UnexpectedError,
+        )
+        assertEquals(ShoppingFailure.entries.toSet(), shoppingExpected.keys)
+        shopping.itemsState.value = listOf(shoppingItem("s1", "Tomate", purchased = true))
+        shoppingExpected.forEach { (failure, message) ->
+            shopping.applyFailure = ShoppingRepositoryException(failure)
+            viewModel.restock(tomato)
+            advanceUntilIdle()
+            assertEquals("$failure", message, viewModel.uiState.value.save.error)
+            viewModel.feedback.consumeError()
+        }
     }
 }
