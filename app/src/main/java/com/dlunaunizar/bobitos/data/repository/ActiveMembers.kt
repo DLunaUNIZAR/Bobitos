@@ -19,6 +19,13 @@ internal fun activeMembers(ids: List<String>, records: List<MembershipRecord?>):
             ?.let { ActiveMember(id, it.displayName.orEmpty()) }
     }
 
+/** Como [activeMembers], pero si alguno de [ids] ya no es miembro activo lanza lo que devuelva [invalid]. */
+internal fun activeMembersOrThrow(
+    ids: List<String>,
+    records: List<MembershipRecord?>,
+    invalid: () -> Throwable,
+): List<ActiveMember> = activeMembers(ids, records).also { if (it.size != ids.size) throw invalid() }
+
 internal fun DocumentSnapshot.toMembershipRecord(): MembershipRecord? = if (exists()) {
     MembershipRecord(getString("userId"), getString("status"), getString("displayName"))
 } else {

@@ -99,9 +99,11 @@ class FirestoreMealRepository @Inject constructor(
 
         firestore.runTransaction { transaction ->
             requireMeal(transaction.get(reference))
-            val members = memberReferences.map(transaction::get)
-            requireParticipants(participantIds, members)
-            val names = members.displayNames()
+            val active = activeMembersOrThrow(
+                participantIds,
+                memberReferences.map { transaction.get(it).toMembershipRecord() },
+            ) { MealRepositoryException(MealFailure.InvalidParticipants) }
+            val names = active.map(ActiveMember::name)
             transaction.update(
                 reference,
                 mealUpdateData(
@@ -147,14 +149,12 @@ class FirestoreMealRepository @Inject constructor(
     override suspend fun undoAddMeal(spaceId: String, mealId: String) = runMealOperation {
         val user = requireVerifiedUser()
         val reference = mealsCollection(spaceId).document(mealId)
-        firestore.runTransaction { transaction ->
-            val meal = requireMeal(transaction.get(reference))
-            if (!isLastWriter(meal.getString(FIELD_UPDATED_BY), user.id)) {
-                throw MealRepositoryException(MealFailure.MealChanged)
-            }
-            transaction.delete(reference)
-        }.await()
-        Unit
+        firestore.deleteIfLastWriter(
+            reference,
+            user.id,
+            notFound = { MealRepositoryException(MealFailure.MealNotFound) },
+            changed = { MealRepositoryException(MealFailure.MealChanged) },
+        )
     }
 
     override suspend fun restoreMeal(spaceId: String, meal: Meal) = runMealOperation {
@@ -188,10 +188,13 @@ class FirestoreMealRepository @Inject constructor(
             if (!transaction.get(spaceReference).exists()) {
                 throw MealRepositoryException(MealFailure.SpaceNotFound)
             }
-            val active =
-                activeMembers(participantIds, memberReferences.map { transaction.get(it).toMembershipRecord() })
-            if (!restoring && active.size != participantIds.size) {
-                throw MealRepositoryException(MealFailure.InvalidParticipants)
+            val records = memberReferences.map { transaction.get(it).toMembershipRecord() }
+            val active = if (restoring) {
+                activeMembers(participantIds, records)
+            } else {
+                activeMembersOrThrow(participantIds, records) {
+                    MealRepositoryException(MealFailure.InvalidParticipants)
+                }
             }
             transaction.set(
                 mealReference,
@@ -237,25 +240,12 @@ class FirestoreMealRepository @Inject constructor(
     private fun cookName(cookId: String?, participantIds: List<String>, names: List<String>): String? =
         cookId?.let { id -> names.getOrNull(participantIds.indexOf(id)) }
 
-    private fun requireParticipants(ids: List<String>, docs: List<DocumentSnapshot>) {
-        if (docs.zip(ids).any { (doc, id) ->
-                !doc.exists() ||
-                    doc.getString(FIELD_USER_ID) != id ||
-                    doc.getString(FIELD_STATUS) != ACTIVE
-            }
-        ) {
-            throw MealRepositoryException(MealFailure.InvalidParticipants)
-        }
-    }
-
     private fun requireMeal(snapshot: DocumentSnapshot): DocumentSnapshot {
         if (!snapshot.exists()) {
             throw MealRepositoryException(MealFailure.MealNotFound)
         }
         return snapshot
     }
-
-    private fun List<DocumentSnapshot>.displayNames(): List<String> = map { it.getString(FIELD_DISPLAY_NAME).orEmpty() }
 
     @Suppress("LongParameterList")
     private fun mealUpdateData(
@@ -298,10 +288,6 @@ class FirestoreMealRepository @Inject constructor(
         const val FIELD_COOKED = "cooked"
         const val FIELD_UPDATED_BY = "updatedBy"
         const val FIELD_UPDATED_AT = "updatedAt"
-        const val FIELD_USER_ID = "userId"
-        const val FIELD_STATUS = "status"
-        const val FIELD_DISPLAY_NAME = "displayName"
-        const val ACTIVE = "ACTIVE"
         const val MAX_NAME_LENGTH = 120
         const val MAX_PARTICIPANTS = 10
         const val MAX_VISIBLE_MEALS = 250L

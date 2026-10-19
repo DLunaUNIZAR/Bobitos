@@ -82,9 +82,13 @@ class FirestoreCalendarRepository @Inject constructor(
         val memberRefs = value.participantIds.map { membership(spaceId, it) }
         firestore.runTransaction { tx ->
             if (!tx.get(space).exists()) throw CalendarRepositoryException(CalendarFailure.SpaceNotFound)
-            val active = activeMembers(value.participantIds, memberRefs.map { tx.get(it).toMembershipRecord() })
-            if (!restoring && active.size != value.participantIds.size) {
-                throw CalendarRepositoryException(CalendarFailure.InvalidParticipants)
+            val records = memberRefs.map { tx.get(it).toMembershipRecord() }
+            val active = if (restoring) {
+                activeMembers(value.participantIds, records)
+            } else {
+                activeMembersOrThrow(value.participantIds, records) {
+                    CalendarRepositoryException(CalendarFailure.InvalidParticipants)
+                }
             }
             tx.set(
                 event,
@@ -97,15 +101,12 @@ class FirestoreCalendarRepository @Inject constructor(
     override suspend fun undoCreateEvent(spaceId: String, eventId: String) = operation {
         val user = verifiedUser()
         val event = collection(spaceId).document(eventId)
-        firestore.runTransaction { tx ->
-            val snapshot = tx.get(event)
-            if (!snapshot.exists()) throw CalendarRepositoryException(CalendarFailure.EventNotFound)
-            if (!isLastWriter(snapshot.getString(FIELD_UPDATED_BY), user.id)) {
-                throw CalendarRepositoryException(CalendarFailure.EventChanged)
-            }
-            tx.delete(event)
-        }.await()
-        Unit
+        firestore.deleteIfLastWriter(
+            event,
+            user.id,
+            notFound = { CalendarRepositoryException(CalendarFailure.EventNotFound) },
+            changed = { CalendarRepositoryException(CalendarFailure.EventChanged) },
+        )
     }
 
     override suspend fun updateEvent(spaceId: String, eventId: String, input: EventInput) = operation {
@@ -115,9 +116,11 @@ class FirestoreCalendarRepository @Inject constructor(
         val memberRefs = value.participantIds.map { membership(spaceId, it) }
         firestore.runTransaction { tx ->
             if (!tx.get(event).exists()) throw CalendarRepositoryException(CalendarFailure.EventNotFound)
-            val members = memberRefs.map(tx::get)
-            requireParticipants(value.participantIds, members)
-            tx.update(event, value.updateData(user, members.map { it.getString(FIELD_DISPLAY_NAME).orEmpty() }))
+            val active = activeMembersOrThrow(
+                value.participantIds,
+                memberRefs.map { tx.get(it).toMembershipRecord() },
+            ) { CalendarRepositoryException(CalendarFailure.InvalidParticipants) }
+            tx.update(event, value.updateData(user, active.map(ActiveMember::name)))
         }.await()
         Unit
     }
@@ -135,16 +138,6 @@ class FirestoreCalendarRepository @Inject constructor(
     private fun collection(spaceId: String) = firestore.collection(SPACES).document(spaceId).collection(EVENTS)
     private fun membership(spaceId: String, userId: String) =
         firestore.collection(MEMBERSHIPS).document("${spaceId}_$userId")
-    private fun requireParticipants(ids: List<String>, docs: List<DocumentSnapshot>) {
-        if (docs.zip(ids).any { (doc, id) ->
-                !doc.exists() ||
-                    doc.getString(FIELD_USER_ID) != id ||
-                    doc.getString(FIELD_STATUS) != ACTIVE
-            }
-        ) {
-            throw CalendarRepositoryException(CalendarFailure.InvalidParticipants)
-        }
-    }
     private fun verifiedUser(): AuthUser {
         val user =
             authRepository.currentUser.value ?: throw CalendarRepositoryException(CalendarFailure.NotAuthenticated)
@@ -169,10 +162,6 @@ class FirestoreCalendarRepository @Inject constructor(
         const val MEMBERSHIPS = "memberships"
         const val FIELD_START_AT = "startAt"
         const val FIELD_UPDATED_BY = "updatedBy"
-        const val FIELD_USER_ID = "userId"
-        const val FIELD_STATUS = "status"
-        const val FIELD_DISPLAY_NAME = "displayName"
-        const val ACTIVE = "ACTIVE"
         const val MAX_VISIBLE_EVENTS = 250L
     }
 }

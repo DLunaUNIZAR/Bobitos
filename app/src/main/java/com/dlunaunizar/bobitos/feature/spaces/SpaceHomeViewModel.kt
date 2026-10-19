@@ -17,7 +17,6 @@ import com.dlunaunizar.bobitos.data.repository.MealRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.SportActivityRepository
-import com.dlunaunizar.bobitos.data.repository.TaskDates
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
 import com.dlunaunizar.bobitos.data.repository.completedWith
 import com.dlunaunizar.bobitos.feature.tasks.TaskUiMessage
@@ -99,21 +98,20 @@ class SpaceHomeViewModel @Inject constructor(
         val spaceId = request.value?.spaceId ?: return false
         if (task.id in completingIds) return false
         mutableError.value = null
-        var dates: TaskDates? = null
         return viewModelScope.launchPerIdWrite(
             completingIds,
             task.id,
             onFinished = onFinished,
-            onSuccess = { dates?.let { undo.offer(Undoable.Completed(spaceId, task, task.completedWith(it))) } },
+            onSuccess = { dates -> undo.offer(Undoable.Completed(spaceId, task, task.completedWith(dates))) },
             // Una cancelación lanzada por el repositorio (sin estar cancelado el scope) llega aquí como fallo normal.
             onFailure = { mutableError.value = it.toUiMessage() },
-        ) { dates = taskRepository.setCompleted(spaceId, task.id, true) }
+        ) { taskRepository.setCompleted(spaceId, task.id, true) }
     }
 
     /** «Deshacer» completar: la tarea vuelve a pendiente con las fechas de antes, en el espacio donde se completó. */
     fun undo(undoable: Undoable<TaskItem>) {
-        val spaceId = undoable.spaceId ?: return
         val completed = undoable as? Undoable.Completed ?: return
+        val spaceId = completed.spaceId ?: return
         mutableError.value = null
         viewModelScope.launch {
             runCatching { taskRepository.restoreCompletion(spaceId, completed.previous, completed.completed) }

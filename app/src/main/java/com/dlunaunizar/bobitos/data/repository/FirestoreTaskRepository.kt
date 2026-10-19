@@ -205,14 +205,12 @@ class FirestoreTaskRepository @Inject constructor(
     override suspend fun undoCreateTask(spaceId: String, taskId: String) = runTaskOperation {
         val user = requireVerifiedUser()
         val taskReference = tasksCollection(spaceId).document(taskId)
-        firestore.runTransaction { transaction ->
-            val task = requireTask(transaction.get(taskReference))
-            if (!isLastWriter(task.getString(FIELD_UPDATED_BY), user.id)) {
-                throw TaskRepositoryException(TaskFailure.TaskChanged)
-            }
-            transaction.delete(taskReference)
-        }.await()
-        Unit
+        firestore.deleteIfLastWriter(
+            taskReference,
+            user.id,
+            notFound = { TaskRepositoryException(TaskFailure.TaskNotFound) },
+            changed = { TaskRepositoryException(TaskFailure.TaskChanged) },
+        )
     }
 
     override suspend fun restoreTask(spaceId: String, task: TaskItem) = runTaskOperation {

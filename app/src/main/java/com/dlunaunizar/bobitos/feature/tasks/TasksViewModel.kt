@@ -18,7 +18,6 @@ import com.dlunaunizar.bobitos.core.model.TaskPriority
 import com.dlunaunizar.bobitos.core.model.TaskRecurrence
 import com.dlunaunizar.bobitos.core.model.TaskType
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
-import com.dlunaunizar.bobitos.data.repository.TaskDates
 import com.dlunaunizar.bobitos.data.repository.TaskFailure
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
 import com.dlunaunizar.bobitos.data.repository.TaskRepositoryException
@@ -152,20 +151,19 @@ class TasksViewModel @Inject constructor(
         onFinished: (Boolean) -> Unit = {},
     ): Boolean {
         if (task.id in completingIds) return false
-        var dates: TaskDates? = null
         return viewModelScope.launchPerIdWrite(
             completingIds,
             task.id,
             onFinished = onFinished,
-            onSuccess = {
+            onSuccess = { dates ->
                 if (completed) {
-                    dates?.let { undo.offer(Undoable.Completed(spaceId, task, task.completedWith(it))) }
+                    undo.offer(Undoable.Completed(spaceId, task, task.completedWith(dates)))
                 } else {
                     saver.showNotice(TaskUiMessage.TaskReopened)
                 }
             },
             onFailure = { error -> saver.showError(error.toUiMessage()) },
-        ) { dates = taskRepository.setCompleted(spaceId, task.id, completed) }
+        ) { taskRepository.setCompleted(spaceId, task.id, completed) }
     }
 
     // El espacio se lee al llamar. Sin notice: el feedback lo da el Snackbar de la pantalla, cuando el borrado acaba

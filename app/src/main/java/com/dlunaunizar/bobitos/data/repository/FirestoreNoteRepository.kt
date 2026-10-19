@@ -66,14 +66,12 @@ class FirestoreNoteRepository @Inject constructor(
     override suspend fun undoAddNote(spaceId: String, noteId: String) = runNoteOperation {
         val user = requireVerifiedUser()
         val noteReference = notesCollection(spaceId).document(noteId)
-        firestore.runTransaction { transaction ->
-            val note = requireNote(transaction.get(noteReference))
-            if (!isLastWriter(note.getString(FIELD_UPDATED_BY), user.id)) {
-                throw NoteRepositoryException(NoteFailure.NoteChanged)
-            }
-            transaction.delete(noteReference)
-        }.await()
-        Unit
+        firestore.deleteIfLastWriter(
+            noteReference,
+            user.id,
+            notFound = { NoteRepositoryException(NoteFailure.NoteNotFound) },
+            changed = { NoteRepositoryException(NoteFailure.NoteChanged) },
+        )
     }
 
     override suspend fun restoreNote(spaceId: String, note: Note) = runNoteOperation {
@@ -192,9 +190,6 @@ class FirestoreNoteRepository @Inject constructor(
         const val FIELD_TITLE = "title"
         const val FIELD_BODY = "body"
         const val FIELD_PINNED = "pinned"
-        const val FIELD_CREATED_BY = "createdBy"
-        const val FIELD_CREATED_BY_NAME = "createdByName"
-        const val FIELD_CREATED_AT = "createdAt"
         const val FIELD_UPDATED_BY = "updatedBy"
         const val FIELD_UPDATED_AT = "updatedAt"
         const val MAX_TITLE_LENGTH = 120

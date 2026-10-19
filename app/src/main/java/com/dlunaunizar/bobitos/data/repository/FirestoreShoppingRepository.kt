@@ -297,14 +297,12 @@ class FirestoreShoppingRepository @Inject constructor(
     override suspend fun undoAddItem(spaceId: String, itemId: String) = runShoppingOperation {
         val user = requireVerifiedUser()
         val reference = itemsCollection(spaceId).document(itemId)
-        firestore.runTransaction { transaction ->
-            val item = requireItem(transaction.get(reference))
-            if (!isLastWriter(item.getString(FIELD_UPDATED_BY), user.id)) {
-                throw ShoppingRepositoryException(ShoppingFailure.CreatedItemChanged)
-            }
-            transaction.delete(reference)
-        }.await()
-        Unit
+        firestore.deleteIfLastWriter(
+            reference,
+            user.id,
+            notFound = { ShoppingRepositoryException(ShoppingFailure.ItemNotFound) },
+            changed = { ShoppingRepositoryException(ShoppingFailure.CreatedItemChanged) },
+        )
     }
 
     override suspend fun restoreItem(spaceId: String, item: ShoppingItem) = runShoppingOperation {
@@ -453,8 +451,6 @@ class FirestoreShoppingRepository @Inject constructor(
         const val FIELD_SUPERMARKET = "supermarket"
         const val FIELD_BRAND = "brand"
         const val FIELD_PURCHASED = "purchased"
-        const val FIELD_CREATED_BY = "createdBy"
-        const val FIELD_CREATED_BY_NAME = "createdByName"
         const val FIELD_CREATED_AT = "createdAt"
         const val FIELD_UPDATED_BY = "updatedBy"
         const val FIELD_UPDATED_AT = "updatedAt"

@@ -9,7 +9,6 @@ import com.dlunaunizar.bobitos.core.model.SportType
 import com.dlunaunizar.bobitos.data.sync.RealtimeMetrics
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
 import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
-import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
@@ -22,7 +21,6 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import java.time.LocalDate
 import java.time.ZoneId
-import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -115,9 +113,11 @@ class FirestoreSportActivityRepository @Inject constructor(
                 ?.let { eventsCollection(spaceId).document(it) }
                 ?: eventsCollection(spaceId).document()
             val eventSnapshot = existingEventId?.let { transaction.get(eventReference) }
-            val members = memberReferences.map(transaction::get)
-            requireParticipants(participantIds, members)
-            val names = members.displayNames()
+            val active = activeMembersOrThrow(
+                participantIds,
+                memberReferences.map { transaction.get(it).toMembershipRecord() },
+            ) { SportRepositoryException(SportFailure.InvalidParticipants) }
+            val names = active.map(ActiveMember::name)
             // El organizador del evento es siempre el creador de la actividad, no quien edita.
             val organizerId = snapshot.getString(FIELD_CREATED_BY) ?: user.id
             val organizerName = snapshot.getString(FIELD_CREATED_BY_NAME) ?: user.sportDisplayName
@@ -214,17 +214,21 @@ class FirestoreSportActivityRepository @Inject constructor(
         val eventParticipantIds = restore?.event?.participantIds.orEmpty()
         val checkedIds = (draft.participantIds + eventParticipantIds).distinct()
         val memberReferences = checkedIds.map { membership(spaceId, it) }
-        val eventReference = restore?.event?.let { eventsCollection(spaceId).document(it.id) }
-            ?: eventsCollection(spaceId).document().takeIf { restore == null }
+        val restoredEvent = restore?.event
+        val newEvent = if (restore == null) eventsCollection(spaceId).document() else null
 
         firestore.runTransaction { transaction ->
             if (!transaction.get(spaceReference).exists()) {
                 throw SportRepositoryException(SportFailure.SpaceNotFound)
             }
             val records = checkedIds.zip(memberReferences.map { transaction.get(it).toMembershipRecord() }).toMap()
-            val active = activeMembers(draft.participantIds, draft.participantIds.map(records::get))
-            if (restore == null && active.size != draft.participantIds.size) {
-                throw SportRepositoryException(SportFailure.InvalidParticipants)
+            val participantRecords = draft.participantIds.map(records::get)
+            val active = if (restore == null) {
+                activeMembersOrThrow(draft.participantIds, participantRecords) {
+                    SportRepositoryException(SportFailure.InvalidParticipants)
+                }
+            } else {
+                activeMembers(draft.participantIds, participantRecords)
             }
             val ids = active.map(ActiveMember::id)
             val names = active.map(ActiveMember::name)
@@ -238,20 +242,20 @@ class FirestoreSportActivityRepository @Inject constructor(
                     ids,
                     names,
                     gym,
-                    eventReference?.id,
+                    newEvent?.id ?: restoredEvent?.id,
                     restore?.done ?: false,
                 ),
             )
             when {
-                restore == null -> transaction.set(
-                    requireNotNull(eventReference),
+                newEvent != null -> transaction.set(
+                    newEvent,
                     newSportEventData(user, user.id, user.sportDisplayName, draft.date, draft.name, ids, names),
                 )
-                restore.event != null -> transaction.set(
-                    requireNotNull(eventReference),
+                restoredEvent != null -> transaction.set(
+                    eventsCollection(spaceId).document(restoredEvent.id),
                     eventDataForRestore(
                         user,
-                        restore.event,
+                        restoredEvent,
                         activeMembers(eventParticipantIds, eventParticipantIds.map(records::get)),
                     ),
                 )
@@ -311,25 +315,12 @@ class FirestoreSportActivityRepository @Inject constructor(
         return normalizedName
     }
 
-    private fun requireParticipants(ids: List<String>, docs: List<DocumentSnapshot>) {
-        if (docs.zip(ids).any { (doc, id) ->
-                !doc.exists() ||
-                    doc.getString(FIELD_USER_ID) != id ||
-                    doc.getString(FIELD_STATUS) != ACTIVE
-            }
-        ) {
-            throw SportRepositoryException(SportFailure.InvalidParticipants)
-        }
-    }
-
     private fun requireActivity(snapshot: DocumentSnapshot): DocumentSnapshot {
         if (!snapshot.exists()) {
             throw SportRepositoryException(SportFailure.ActivityNotFound)
         }
         return snapshot
     }
-
-    private fun List<DocumentSnapshot>.displayNames(): List<String> = map { it.getString(FIELD_DISPLAY_NAME).orEmpty() }
 
     private fun activityUpdateData(
         user: AuthUser,
@@ -401,8 +392,8 @@ class FirestoreSportActivityRepository @Inject constructor(
     }
 
     private fun dayFields(date: LocalDate, zone: ZoneId): Map<String, Any?> = mapOf(
-        EV_START_AT to Timestamp(Date.from(date.atStartOfDay(zone).toInstant())),
-        EV_END_AT to Timestamp(Date.from(date.plusDays(1).atStartOfDay(zone).toInstant())),
+        EV_START_AT to date.atStartOfDay(zone).toInstant().timestamp(),
+        EV_END_AT to date.plusDays(1).atStartOfDay(zone).toInstant().timestamp(),
         EV_START_DATE to date.toString(),
         EV_END_DATE_EXCLUSIVE to date.plusDays(1).toString(),
         EV_TIME_ZONE to zone.id,
@@ -451,12 +442,8 @@ class FirestoreSportActivityRepository @Inject constructor(
         const val EVENTS = "events"
         const val MEMBERSHIPS = "memberships"
         const val FIELD_DATE = "date"
-        const val FIELD_TYPE = "type"
-        const val FIELD_NAME = "name"
         const val FIELD_PARTICIPANT_IDS = "participantIds"
         const val FIELD_PARTICIPANT_NAMES = "participantNames"
-        const val FIELD_ROUTINE_ID = "routineId"
-        const val FIELD_SESSION = "session"
         const val FIELD_EVENT_ID = "eventId"
         const val EV_TITLE = "title"
         const val EV_DESCRIPTION = "description"
@@ -473,10 +460,6 @@ class FirestoreSportActivityRepository @Inject constructor(
         const val FIELD_CREATED_AT = "createdAt"
         const val FIELD_UPDATED_BY = "updatedBy"
         const val FIELD_UPDATED_AT = "updatedAt"
-        const val FIELD_USER_ID = "userId"
-        const val FIELD_STATUS = "status"
-        const val FIELD_DISPLAY_NAME = "displayName"
-        const val ACTIVE = "ACTIVE"
         const val MAX_NAME_LENGTH = 120
         const val MAX_PARTICIPANTS = 10
         const val MAX_EVENT_PARTICIPANTS = 10
