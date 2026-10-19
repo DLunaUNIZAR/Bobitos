@@ -3,14 +3,12 @@ package com.dlunaunizar.bobitos.feature.shopping
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.CreatedItem
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
+import com.dlunaunizar.bobitos.core.common.SaveRunner
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
-import com.dlunaunizar.bobitos.core.common.failed
 import com.dlunaunizar.bobitos.core.common.launchPerIdWrite
-import com.dlunaunizar.bobitos.core.common.started
-import com.dlunaunizar.bobitos.core.common.succeeded
-import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
+import com.dlunaunizar.bobitos.core.common.rethrowIfCancelled
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
@@ -33,7 +31,6 @@ import com.dlunaunizar.bobitos.feature.common.idsFlow
 import com.dlunaunizar.bobitos.feature.common.pantryEntryFor
 import com.dlunaunizar.bobitos.feature.ingredients.mergeIngredients
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -58,6 +55,9 @@ class ShoppingViewModel @Inject constructor(
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(ShoppingUiState())
     val uiState: StateFlow<ShoppingUiState> = mutableUiState.asStateFlow()
+    private val saver =
+        SaveRunner(viewModelScope, mutableUiState, ShoppingUiState::save, { copy(save = it) }, Throwable::toUiMessage)
+    val feedback: SaveFeedbackControls get() = saver
     private var itemsJob: Job? = null
     private var observedSpaceId: String? = null
     private var catalogJob: Job? = null
@@ -126,14 +126,25 @@ class ShoppingViewModel @Inject constructor(
     /** Crea una ficha de ingrediente a partir del ítem (si aún no existe en el catálogo). */
     fun createIngredientFromItem(item: ShoppingItem) {
         val name = item.name.trim()
-        runAction(ShoppingUiMessage.IngredientCreated) {
-            // El catálogo solo está cargado con el editor abierto: se carga bajo demanda (comunes y
-            // personales). Si no se puede, no se escribe: sin la lista no se puede detectar el duplicado.
-            if (findByKey(loadIngredientsOnDemand(), name) != null) throw IngredientAlreadyKnown()
-            personalIngredients.create(name, null, null)
-            // El ingrediente nuevo tiene que reconocerse al marcar: se descarta lo guardado y se vuelve a leer.
-            pantryData = null
-            startPantryLoad(restart = true)
+        // El resultado dice si se creó: un ingrediente que ya existe no es un fallo, acaba con su propio aviso.
+        saver.run(
+            noticeOf = { created ->
+                if (created) ShoppingUiMessage.IngredientCreated else ShoppingUiMessage.IngredientExists
+            },
+        ) {
+            try {
+                // El catálogo solo está cargado con el editor abierto: se carga bajo demanda (comunes y
+                // personales). Si no se puede, no se escribe: sin la lista no se puede detectar el duplicado.
+                if (findByKey(loadIngredientsOnDemand(), name) != null) throw IngredientAlreadyKnown()
+                personalIngredients.create(name, null, null)
+                // El ingrediente nuevo tiene que reconocerse al marcar: se descarta lo guardado y se vuelve a leer.
+                pantryData = null
+                startPantryLoad(restart = true)
+                true
+            } catch (@Suppress("TooGenericExceptionCaught") error: Throwable) {
+                error.rethrowIfCancelled()
+                if (error.isIngredientDuplicate()) false else throw error
+            }
         }
     }
 
@@ -145,9 +156,8 @@ class ShoppingViewModel @Inject constructor(
         withTimeoutOrNull(INGREDIENT_LOAD_TIMEOUT_MILLIS) {
             mergeIngredients(ingredientRepository.catalog().first(), personalIngredients.ingredients().first())
         }
-    } catch (cancelled: CancellationException) {
-        throw cancelled
     } catch (@Suppress("TooGenericExceptionCaught") error: Exception) {
+        error.rethrowIfCancelled()
         throw error as? IngredientRepositoryException ?: error.toIngredientRepositoryException()
     }
 
@@ -186,12 +196,14 @@ class ShoppingViewModel @Inject constructor(
         }
         // Solo el artículo nuevo deja `created` (con «Deshacer») en lugar del aviso; reapuntar un comprado conserva el
         // suyo y nunca ofrece deshacer, para no borrar algo que ya existía.
-        runAction(if (match == null) null else ShoppingUiMessage.ItemAdded, editor = true) {
-            if (match == null) {
+        if (match == null) {
+            saver.create(editor = true) {
                 val newName = name.trim()
                 val id = repository.addItem(spaceId, newName, normalizedQuantity, normalizedNotes, supermarket, brand)
                 CreatedItem(id, newName)
-            } else {
+            }
+        } else {
+            saver.run(notice = ShoppingUiMessage.ItemAdded, editor = true) {
                 repository.applyWrites(
                     spaceId,
                     listOf(
@@ -222,7 +234,7 @@ class ShoppingViewModel @Inject constructor(
         val notes = existing.notes.normalized() ?: duplicate.notes
         val (store, brand) = duplicate.storeAndBrandAfterSum()
         if (!validate(existing.name, duplicate.summed, notes, brand)) return
-        runAction(ShoppingUiMessage.ItemUpdated, editor = true) {
+        saver.run(notice = ShoppingUiMessage.ItemUpdated, editor = true) {
             repository.applyWrites(
                 spaceId,
                 listOf(
@@ -246,28 +258,24 @@ class ShoppingViewModel @Inject constructor(
     // editor y devuelve null: sin ella no se pueden buscar repetidos.
     private fun itemsForAdd(spaceId: String): List<ShoppingItem>? = when (val items = mutableUiState.value.items) {
         is UiState.Content -> items.value
-        UiState.Loading -> null.also { showError(ShoppingUiMessage.ListNotLoaded, editor = true) }
+        UiState.Loading -> null.also { saver.showEditorError(ShoppingUiMessage.ListNotLoaded) }
         is UiState.Error -> null.also {
-            showError(ShoppingUiMessage.ListUnavailable, editor = true)
+            saver.showEditorError(ShoppingUiMessage.ListUnavailable)
             observe(spaceId)
         }
     }
 
     // «Deshacer» el borrado: el artículo vuelve con su id y su estado, al espacio en que estaba. No es un guardado
     // del editor ni lleva aviso propio; si falla, sale el error.
-    fun restoreItem(spaceId: String, item: ShoppingItem) = runAction(null, force = true) {
+    fun restoreItem(spaceId: String, item: ShoppingItem) = saver.run(force = true) {
         repository.restoreItem(spaceId, item)
     }
-
-    fun consumeCreated() = mutableUiState.update { it.copy(created = null) }
 
     // «Deshacer» el alta: borra justo ese artículo con el borrado de siempre (sin aviso; si falla, sale el error).
     fun undoCreate(id: String) {
         val spaceId = observedSpaceId ?: return
-        runAction(null, force = true) { repository.deleteItem(spaceId, id) }
+        saver.run(force = true) { repository.deleteItem(spaceId, id) }
     }
-
-    fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
 
     fun updateItem(
         spaceId: String,
@@ -279,7 +287,7 @@ class ShoppingViewModel @Inject constructor(
         brand: String?,
     ) {
         if (!validate(name, quantity, notes, brand)) return
-        runAction(ShoppingUiMessage.ItemUpdated, editor = true) {
+        saver.run(notice = ShoppingUiMessage.ItemUpdated, editor = true) {
             repository.updateItem(
                 spaceId,
                 itemId,
@@ -292,7 +300,7 @@ class ShoppingViewModel @Inject constructor(
         }
     }
 
-    // Marcar y desmarcar no pasan por la puerta de `isSaving`: cada producto lleva su propia escritura en curso, así que
+    // Marcar y desmarcar no pasan por el `SaveRunner` (no encienden «Guardando…»): cada producto lleva su propia escritura en curso, así que
     // varios seguidos salen todos al momento y no apagan el resto de la pantalla. Devuelve false (sin escribir) si ese
     // producto ya tiene una escritura en curso. [onFinished] recibe cómo acabó.
     fun setPurchased(
@@ -303,16 +311,16 @@ class ShoppingViewModel @Inject constructor(
     ): Boolean {
         if (itemId in purchasingIds) return false
         val item = (mutableUiState.value.items as? UiState.Content)?.value?.firstOrNull { it.id == itemId }
-        mutableUiState.update { it.copy(error = null, notice = null) }
+        saver.clearFeedback()
         return viewModelScope.launchPerIdWrite(
             purchasingIds,
             itemId,
             onFinished = onFinished,
             onSuccess = {
                 val notice = if (purchased) ShoppingUiMessage.ItemMarked else ShoppingUiMessage.ItemUnmarked
-                mutableUiState.update { it.copy(notice = notice) }
+                saver.showNotice(notice)
             },
-            onFailure = { error -> mutableUiState.update { it.copy(error = error.toUiMessage(), notice = null) } },
+            onFailure = { error -> saver.showError(error.toUiMessage()) },
         ) {
             val entry = if (purchased && item != null) pantryEntryFor(item.name, dataForPantry()) else null
             repository.setPurchased(spaceId, itemId, purchased, entry)
@@ -345,117 +353,22 @@ class ShoppingViewModel @Inject constructor(
     // onDeleted se llama solo si el borrado termina bien: así el «Deshacer» no se ofrece para un borrado fallido ni
     // se pulsa mientras el borrado sigue en curso. Sin notice: el feedback lo da el Snackbar de la pantalla.
     fun deleteItem(spaceId: String, itemId: String, onDeleted: () -> Unit = {}) {
-        runAction(null, onSuccess = onDeleted) {
+        saver.run(afterSuccess = { onDeleted() }) {
             repository.deleteItem(spaceId, itemId)
         }
     }
 
     fun clearPurchased(spaceId: String) {
-        if (mutableUiState.value.isSaving) return
-        mutableUiState.update {
-            it.copy(
-                isSaving = true,
-                writeStatus = ShoppingWriteStatus.SAVING,
-                error = null,
-                notice = null,
-            )
-        }
-        viewModelScope.launch {
-            try {
-                val count = repository.clearPurchased(spaceId)
-                mutableUiState.update {
-                    it.copy(
-                        isSaving = false,
-                        writeStatus = ShoppingWriteStatus.SAVED,
-                        notice = ShoppingUiMessage.PurchasedCleared,
-                        lastClearedCount = count,
-                    )
-                }
-            } catch (error: Throwable) {
-                showError(error.toUiMessage())
-            }
-        }
-    }
-
-    fun clearFeedback() {
-        mutableUiState.update {
-            it.copy(
-                writeStatus = if (it.isSaving) {
-                    ShoppingWriteStatus.SAVING
-                } else {
-                    ShoppingWriteStatus.IDLE
-                },
-                error = null,
-                notice = null,
-            )
-        }
+        saver.run(
+            notice = ShoppingUiMessage.PurchasedCleared,
+            onSuccess = { count -> copy(lastClearedCount = count) },
+        ) { repository.clearPurchased(spaceId) }
     }
 
     private fun validate(name: String, quantity: String?, notes: String?, brand: String?): Boolean {
         val error = ShoppingValidation.validate(name, quantity, notes, brand) ?: return true
-        showError(error, editor = true)
+        saver.showEditorError(error)
         return false
-    }
-
-    private fun showError(message: ShoppingUiMessage, editor: Boolean = false) {
-        mutableUiState.update {
-            it.copy(
-                isSaving = false,
-                editorSave = it.editorSave.failed(editor),
-                writeStatus = ShoppingWriteStatus.ERROR,
-                error = message,
-                notice = null,
-            )
-        }
-    }
-
-    // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
-    private fun runAction(
-        successNotice: ShoppingUiMessage?,
-        editor: Boolean = false,
-        force: Boolean = false,
-        onSuccess: () -> Unit = {},
-        action: suspend () -> Any?,
-    ) {
-        if (mutableUiState.value.isSaving && !force) return
-        mutableUiState.update {
-            it.copy(
-                isSaving = true,
-                writeStatus = ShoppingWriteStatus.SAVING,
-                editorSave = it.editorSave.started(editor),
-                error = null,
-                notice = null,
-            )
-        }
-        viewModelScope.launch {
-            runCatching { withEditorSaveTimeout(editor) { action() } }
-                .onSuccess { result ->
-                    mutableUiState.update {
-                        it.copy(
-                            isSaving = false,
-                            writeStatus = ShoppingWriteStatus.SAVED,
-                            editorSave = it.editorSave.succeeded(editor),
-                            notice = successNotice,
-                            created = result as? CreatedItem,
-                        )
-                    }
-                    onSuccess()
-                }
-                .onFailure { error ->
-                    if (error is CancellationException) throw error
-                    if (error.isIngredientDuplicate()) {
-                        mutableUiState.update {
-                            it.copy(
-                                isSaving = false,
-                                writeStatus = ShoppingWriteStatus.SAVED,
-                                notice = ShoppingUiMessage.IngredientExists,
-                            )
-                        }
-                        return@onFailure
-                    }
-                    showError(error.toUiMessage(), editor)
-                }
-        }
     }
 }
 

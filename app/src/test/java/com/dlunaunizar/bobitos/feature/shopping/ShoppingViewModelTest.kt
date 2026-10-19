@@ -57,13 +57,15 @@ class ShoppingViewModelTest {
     private val brandRepository = FakeIngredientBrandRepository()
     private val prefsRepository = FakeIngredientPrefsRepository()
     private val pantryRepository = FakePantryRepository()
-    private val viewModel = ShoppingViewModel(
-        repository,
-        ingredientRepository,
-        personalRepository,
-        ingredientShoppingSource(ingredientRepository, brandRepository, prefsRepository, personalRepository),
-        pantryRepository,
-    )
+    private val viewModel by lazy {
+        ShoppingViewModel(
+            repository,
+            ingredientRepository,
+            personalRepository,
+            ingredientShoppingSource(ingredientRepository, brandRepository, prefsRepository, personalRepository),
+            pantryRepository,
+        )
+    }
 
     @Test
     fun `the editor assist listens to the pantry of the space only while it is open`() =
@@ -95,7 +97,7 @@ class ShoppingViewModelTest {
         advanceUntilIdle()
 
         assertEquals(emptySet<String>(), viewModel.uiState.value.pantryIds)
-        assertNull(viewModel.uiState.value.error)
+        assertNull(viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -121,10 +123,9 @@ class ShoppingViewModelTest {
         assertNull(repository.addedNotes)
         assertEquals(Supermarket.MERCADONA, repository.addedSupermarket)
         assertEquals("Hacendado", repository.addedBrand)
-        assertNull(viewModel.uiState.value.notice)
-        assertEquals(CreatedItem("new-1", "Leche"), viewModel.uiState.value.created)
-        assertEquals(ShoppingWriteStatus.SAVED, viewModel.uiState.value.writeStatus)
-        assertFalse(viewModel.uiState.value.isSaving)
+        assertNull(viewModel.uiState.value.save.notice)
+        assertEquals(CreatedItem("new-1", "Leche"), viewModel.uiState.value.save.created)
+        assertFalse(viewModel.uiState.value.save.isSaving)
     }
 
     @Test
@@ -148,7 +149,7 @@ class ShoppingViewModelTest {
         assertEquals(0, ingredientRepository.createCount)
         assertEquals(1, personalRepository.createCount)
         assertEquals("Leche", personalRepository.lastCreatedName)
-        assertEquals(ShoppingUiMessage.IngredientCreated, viewModel.uiState.value.notice)
+        assertEquals(ShoppingUiMessage.IngredientCreated, viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -160,8 +161,8 @@ class ShoppingViewModelTest {
             advanceUntilIdle()
 
             assertEquals(0, personalRepository.createCount)
-            assertEquals(ShoppingUiMessage.IngredientExists, viewModel.uiState.value.notice)
-            assertFalse(viewModel.uiState.value.isSaving)
+            assertEquals(ShoppingUiMessage.IngredientExists, viewModel.uiState.value.save.notice)
+            assertFalse(viewModel.uiState.value.save.isSaving)
         }
 
     @Test
@@ -173,7 +174,7 @@ class ShoppingViewModelTest {
             advanceUntilIdle()
 
             assertEquals(0, personalRepository.createCount)
-            assertEquals(ShoppingUiMessage.IngredientExists, viewModel.uiState.value.notice)
+            assertEquals(ShoppingUiMessage.IngredientExists, viewModel.uiState.value.save.notice)
         }
 
     @Test
@@ -185,7 +186,7 @@ class ShoppingViewModelTest {
             advanceUntilIdle()
 
             assertEquals(0, personalRepository.createCount)
-            assertEquals(ShoppingUiMessage.IngredientExists, viewModel.uiState.value.notice)
+            assertEquals(ShoppingUiMessage.IngredientExists, viewModel.uiState.value.save.notice)
         }
 
     @Test
@@ -196,9 +197,9 @@ class ShoppingViewModelTest {
             viewModel.createIngredientFromItem(shoppingItem())
             advanceUntilIdle()
 
-            assertEquals(ShoppingUiMessage.IngredientExists, viewModel.uiState.value.notice)
-            assertNull(viewModel.uiState.value.error)
-            assertFalse(viewModel.uiState.value.isSaving)
+            assertEquals(ShoppingUiMessage.IngredientExists, viewModel.uiState.value.save.notice)
+            assertNull(viewModel.uiState.value.save.error)
+            assertFalse(viewModel.uiState.value.save.isSaving)
         }
 
     @Test
@@ -209,7 +210,7 @@ class ShoppingViewModelTest {
             viewModel.createIngredientFromItem(shoppingItem())
             advanceUntilIdle()
 
-            assertEquals(ShoppingUiMessage.NetworkError, viewModel.uiState.value.error)
+            assertEquals(ShoppingUiMessage.NetworkError, viewModel.uiState.value.save.error)
         }
 
     @Test
@@ -222,8 +223,8 @@ class ShoppingViewModelTest {
             advanceUntilIdle()
 
             assertEquals(0, personalRepository.createCount)
-            assertEquals(ShoppingUiMessage.NetworkError, viewModel.uiState.value.error)
-            assertFalse(viewModel.uiState.value.isSaving)
+            assertEquals(ShoppingUiMessage.NetworkError, viewModel.uiState.value.save.error)
+            assertFalse(viewModel.uiState.value.save.isSaving)
         }
 
     @Test
@@ -236,7 +237,7 @@ class ShoppingViewModelTest {
             advanceUntilIdle()
 
             assertEquals(0, personalRepository.createCount)
-            assertEquals(ShoppingUiMessage.PermissionDenied, viewModel.uiState.value.error)
+            assertEquals(ShoppingUiMessage.PermissionDenied, viewModel.uiState.value.save.error)
         }
 
     @Test
@@ -295,13 +296,13 @@ class ShoppingViewModelTest {
             viewModel.createIngredientFromItem(shoppingItem())
             advanceTimeBy(29_999)
             runCurrent()
-            assertNull(viewModel.uiState.value.error)
+            assertNull(viewModel.uiState.value.save.error)
             advanceTimeBy(1)
             runCurrent()
 
             assertEquals(0, personalRepository.createCount)
-            assertEquals(ShoppingUiMessage.NetworkError, viewModel.uiState.value.error)
-            assertFalse(viewModel.uiState.value.isSaving)
+            assertEquals(ShoppingUiMessage.NetworkError, viewModel.uiState.value.save.error)
+            assertFalse(viewModel.uiState.value.save.isSaving)
         }
 
     @Test
@@ -309,7 +310,7 @@ class ShoppingViewModelTest {
         viewModel.addItem("home", " ", null, null, null, null)
 
         assertNull(repository.addedName)
-        assertEquals(ShoppingUiMessage.NameRequired, viewModel.uiState.value.error)
+        assertEquals(ShoppingUiMessage.NameRequired, viewModel.uiState.value.save.editorError)
     }
 
     @Test
@@ -318,7 +319,7 @@ class ShoppingViewModelTest {
         advanceUntilIdle()
 
         assertEquals(Triple("home", "milk", true), repository.purchaseChange)
-        assertEquals(ShoppingUiMessage.ItemMarked, viewModel.uiState.value.notice)
+        assertEquals(ShoppingUiMessage.ItemMarked, viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -332,7 +333,7 @@ class ShoppingViewModelTest {
 
         // Las tres escrituras están en curso a la vez y no apagan el resto de la pantalla.
         assertEquals(listOf("milk", "bread", "salt"), repository.purchaseStarted)
-        assertFalse(viewModel.uiState.value.isSaving)
+        assertFalse(viewModel.uiState.value.save.isSaving)
     }
 
     @Test
@@ -358,7 +359,7 @@ class ShoppingViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf(false, true), resultados)
-        assertEquals(ShoppingUiMessage.ItemMarked, viewModel.uiState.value.notice)
+        assertEquals(ShoppingUiMessage.ItemMarked, viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -389,8 +390,54 @@ class ShoppingViewModelTest {
         advanceUntilIdle()
 
         assertEquals(2, viewModel.uiState.value.lastClearedCount)
-        assertEquals(ShoppingUiMessage.PurchasedCleared, viewModel.uiState.value.notice)
+        assertEquals(ShoppingUiMessage.PurchasedCleared, viewModel.uiState.value.save.notice)
     }
+
+    @Test
+    fun `restoring an item while another write is in flight keeps saving until both end`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val deleteGate = CompletableDeferred<Unit>()
+            val restoreGate = CompletableDeferred<Unit>()
+            repository.deleteGate = deleteGate
+            repository.restoreGate = restoreGate
+
+            viewModel.deleteItem("home", "milk")
+            runCurrent()
+            viewModel.restoreItem("home", shoppingItem())
+            runCurrent()
+            assertTrue(viewModel.uiState.value.save.isSaving)
+
+            restoreGate.complete(Unit)
+            runCurrent()
+            assertTrue(viewModel.uiState.value.save.isSaving)
+
+            deleteGate.complete(Unit)
+            runCurrent()
+            assertFalse(viewModel.uiState.value.save.isSaving)
+        }
+
+    @Test
+    fun `marking an item bought does not turn saving on`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.purchaseGate = CompletableDeferred()
+
+        assertTrue(viewModel.setPurchased("home", "milk", true))
+        runCurrent()
+
+        assertFalse(viewModel.uiState.value.save.isSaving)
+    }
+
+    @Test
+    fun `a duplicate ingredient ends with the IngredientExists notice and no error`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            personalRepository.createError = IngredientRepositoryException(IngredientFailure.AlreadyExists)
+
+            viewModel.createIngredientFromItem(shoppingItem())
+            advanceUntilIdle()
+
+            assertEquals(ShoppingUiMessage.IngredientExists, viewModel.uiState.value.save.notice)
+            assertNull(viewModel.uiState.value.save.error)
+            assertFalse(viewModel.uiState.value.save.isSaving)
+        }
 
     @Test
     fun `network failure is shown explicitly`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -399,8 +446,8 @@ class ShoppingViewModelTest {
         viewModel.deleteItem("home", "milk")
         advanceUntilIdle()
 
-        assertEquals(ShoppingUiMessage.NetworkError, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.isSaving)
+        assertEquals(ShoppingUiMessage.NetworkError, viewModel.uiState.value.save.error)
+        assertFalse(viewModel.uiState.value.save.isSaving)
     }
 
     @Test
@@ -412,16 +459,16 @@ class ShoppingViewModelTest {
         repository.addGate = gate
 
         viewModel.addItem("home", "Leche", null, null, null, null)
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
-        assertTrue(viewModel.uiState.value.isSaving)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
+        assertTrue(viewModel.uiState.value.save.isSaving)
 
         gate.complete(Unit)
         advanceUntilIdle()
 
-        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
-        assertFalse(viewModel.uiState.value.isSaving)
-        viewModel.consumeEditorSave()
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.save.editor)
+        assertFalse(viewModel.uiState.value.save.isSaving)
+        viewModel.feedback.resetEditor()
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
     }
 
     @Test
@@ -432,21 +479,21 @@ class ShoppingViewModelTest {
         repository.nextFailure = ShoppingRepositoryException(ShoppingFailure.Network)
         viewModel.addItem("home", "Leche", null, null, null, null)
         advanceUntilIdle()
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        assertEquals(ShoppingUiMessage.NetworkError, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.isSaving)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        assertEquals(ShoppingUiMessage.NetworkError, viewModel.uiState.value.save.editorError)
+        assertFalse(viewModel.uiState.value.save.isSaving)
 
         repository.nextFailure = null
-        viewModel.consumeEditorSave()
+        viewModel.feedback.resetEditor()
         repository.hang = true
         viewModel.addItem("home", "Leche", null, null, null, null)
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
         advanceTimeBy(EDITOR_SAVE_TIMEOUT_MILLIS + 1)
         runCurrent()
 
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        assertEquals(ShoppingUiMessage.SaveTimeout, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.isSaving)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        assertEquals(ShoppingUiMessage.SaveTimeout, viewModel.uiState.value.save.editorError)
+        assertFalse(viewModel.uiState.value.save.isSaving)
     }
 
     @Test
@@ -454,7 +501,7 @@ class ShoppingViewModelTest {
         viewModel.updateItem("home", "milk", "Leche", "2", null, null, null)
         advanceUntilIdle()
 
-        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.save.editor)
     }
 
     @Test
@@ -478,8 +525,8 @@ class ShoppingViewModelTest {
         advanceUntilIdle()
 
         assertEquals("Leche", repository.restored.single().name)
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
-        assertNull(viewModel.uiState.value.created)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
+        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
@@ -502,7 +549,7 @@ class ShoppingViewModelTest {
         viewModel.restoreItem("home", shoppingItem())
         advanceUntilIdle()
 
-        assertEquals(ShoppingUiMessage.PermissionDenied, viewModel.uiState.value.error)
+        assertEquals(ShoppingUiMessage.PermissionDenied, viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -516,7 +563,7 @@ class ShoppingViewModelTest {
 
         assertEquals(ShoppingDuplicate(listItem(quantity = "1 l"), "2 l"), viewModel.uiState.value.duplicate)
         assertNull(repository.addedName)
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
     }
 
     @Test
@@ -536,8 +583,8 @@ class ShoppingViewModelTest {
             assertEquals(Supermarket.DIA, repository.updatedSupermarket)
             assertEquals("Pascual", repository.updatedBrand)
             assertNull(viewModel.uiState.value.duplicate)
-            assertEquals(ShoppingUiMessage.ItemUpdated, viewModel.uiState.value.notice)
-            assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+            assertEquals(ShoppingUiMessage.ItemUpdated, viewModel.uiState.value.save.notice)
+            assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.save.editor)
         }
 
     @Test
@@ -572,8 +619,8 @@ class ShoppingViewModelTest {
             )
             assertNull(repository.addedName)
             assertNull(viewModel.uiState.value.duplicate)
-            assertEquals(ShoppingUiMessage.ItemAdded, viewModel.uiState.value.notice)
-            assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+            assertEquals(ShoppingUiMessage.ItemAdded, viewModel.uiState.value.save.notice)
+            assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.save.editor)
         }
 
     @Test
@@ -585,11 +632,11 @@ class ShoppingViewModelTest {
         viewModel.addItem("home", "Leche", null, null, null, null)
         advanceUntilIdle()
 
-        assertEquals(CreatedItem("new-1", "Leche"), viewModel.uiState.value.created)
-        assertNull(viewModel.uiState.value.notice)
+        assertEquals(CreatedItem("new-1", "Leche"), viewModel.uiState.value.save.created)
+        assertNull(viewModel.uiState.value.save.notice)
 
-        viewModel.consumeCreated()
-        assertNull(viewModel.uiState.value.created)
+        viewModel.feedback.consumeCreated()
+        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
@@ -609,7 +656,7 @@ class ShoppingViewModelTest {
         val gate = CompletableDeferred<Unit>()
         repository.addGate = gate
         viewModel.addItem("home", "Leche", null, null, null, null)
-        assertTrue(viewModel.uiState.value.isSaving)
+        assertTrue(viewModel.uiState.value.save.isSaving)
 
         viewModel.undoCreate("new-1")
         advanceUntilIdle()
@@ -625,7 +672,7 @@ class ShoppingViewModelTest {
         viewModel.updateItem("home", "milk", "Leche", "2", null, null, null)
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
@@ -637,8 +684,8 @@ class ShoppingViewModelTest {
         viewModel.addItem("home", "Leche", "2", null, null, null)
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.created)
-        assertEquals(ShoppingUiMessage.ItemAdded, viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.save.created)
+        assertEquals(ShoppingUiMessage.ItemAdded, viewModel.uiState.value.save.notice)
         assertTrue(repository.deleted.isEmpty())
     }
 
@@ -653,8 +700,8 @@ class ShoppingViewModelTest {
         viewModel.sumDuplicate("home")
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.created)
-        assertEquals(ShoppingUiMessage.ItemUpdated, viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.save.created)
+        assertEquals(ShoppingUiMessage.ItemUpdated, viewModel.uiState.value.save.notice)
         assertTrue(repository.deleted.isEmpty())
     }
 
@@ -752,7 +799,7 @@ class ShoppingViewModelTest {
 
             assertNull(repository.applied)
             assertTrue(viewModel.uiState.value.duplicate?.sumTooLong == true)
-            assertNull(viewModel.uiState.value.error)
+            assertNull(viewModel.uiState.value.save.error)
         }
 
     @Test
@@ -763,8 +810,8 @@ class ShoppingViewModelTest {
 
             assertNull(repository.addedName)
             assertNull(repository.applied)
-            assertEquals(ShoppingUiMessage.ListNotLoaded, viewModel.uiState.value.error)
-            assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+            assertEquals(ShoppingUiMessage.ListNotLoaded, viewModel.uiState.value.save.editorError)
+            assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
         }
 
     @Test
@@ -779,8 +826,8 @@ class ShoppingViewModelTest {
             advanceUntilIdle()
 
             assertNull(repository.addedName)
-            assertEquals(ShoppingUiMessage.ListUnavailable, viewModel.uiState.value.error)
-            assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+            assertEquals(ShoppingUiMessage.ListUnavailable, viewModel.uiState.value.save.editorError)
+            assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
             assertEquals(2, repository.itemsCalls)
             assertTrue(viewModel.uiState.value.items is UiState.Content)
 
@@ -804,7 +851,7 @@ class ShoppingViewModelTest {
 
             assertNull(repository.addedName)
             assertNull(repository.applied)
-            assertEquals(ShoppingUiMessage.ListUnavailable, viewModel.uiState.value.error)
+            assertEquals(ShoppingUiMessage.ListUnavailable, viewModel.uiState.value.save.editorError)
             assertEquals(3, repository.itemsCalls)
             assertTrue(viewModel.uiState.value.items is UiState.Error)
         }
@@ -837,8 +884,8 @@ class ShoppingViewModelTest {
 
             assertNull(viewModel.uiState.value.duplicate)
             assertNull(repository.applied)
-            assertEquals(ShoppingUiMessage.BrandTooLong, viewModel.uiState.value.error)
-            assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+            assertEquals(ShoppingUiMessage.BrandTooLong, viewModel.uiState.value.save.editorError)
+            assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
 
             viewModel.addItem("home", "Pan", "1", null, null, longBrand)
             advanceUntilIdle()
@@ -847,7 +894,7 @@ class ShoppingViewModelTest {
 
             assertNull(repository.addedName)
             assertNull(repository.updatedItemId)
-            assertEquals(ShoppingUiMessage.BrandTooLong, viewModel.uiState.value.error)
+            assertEquals(ShoppingUiMessage.BrandTooLong, viewModel.uiState.value.save.editorError)
         }
 
     @Test
@@ -877,8 +924,8 @@ class ShoppingViewModelTest {
             viewModel.addItem("home", "Leche", "2", null, null, null)
             advanceUntilIdle()
 
-            assertEquals(ShoppingUiMessage.ItemChanged, viewModel.uiState.value.error)
-            assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+            assertEquals(ShoppingUiMessage.ItemChanged, viewModel.uiState.value.save.editorError)
+            assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
         }
 
     @Test
@@ -1038,12 +1085,17 @@ internal class FakeShoppingRepository : ShoppingRepository {
         restock: List<ShoppingWrite>,
     ) = Unit
 
+    var deleteGate: CompletableDeferred<Unit>? = null
+    var restoreGate: CompletableDeferred<Unit>? = null
+
     override suspend fun deleteItem(spaceId: String, itemId: String) {
+        deleteGate?.await()
         throwNextFailure()
         deleted += itemId
     }
 
     override suspend fun restoreItem(spaceId: String, item: ShoppingItem) {
+        restoreGate?.await()
         throwNextFailure()
         restoredSpaceId = spaceId
         restored += item

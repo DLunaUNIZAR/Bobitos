@@ -31,18 +31,20 @@ class ShoppingViewModelPantryTest {
     private val repository = FakeShoppingRepository()
     private val ingredientRepository = FakeIngredientRepository()
     private val personalRepository = FakePersonalIngredientRepository()
-    private val viewModel = ShoppingViewModel(
-        repository,
-        ingredientRepository,
-        personalRepository,
-        ingredientShoppingSource(
+    private val viewModel by lazy {
+        ShoppingViewModel(
+            repository,
             ingredientRepository,
-            FakeIngredientBrandRepository(),
-            FakeIngredientPrefsRepository(),
             personalRepository,
-        ),
-        FakePantryRepository(),
-    )
+            ingredientShoppingSource(
+                ingredientRepository,
+                FakeIngredientBrandRepository(),
+                FakeIngredientPrefsRepository(),
+                personalRepository,
+            ),
+            FakePantryRepository(),
+        )
+    }
 
     @Test
     fun `marking a recognized ingredient sends its pantry entry`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -105,7 +107,7 @@ class ShoppingViewModelPantryTest {
             runCurrent()
             assertEquals(Triple("home", "t1", true), repository.purchaseChange)
             assertNull(repository.purchaseEntry)
-            assertEquals(ShoppingUiMessage.ItemMarked, viewModel.uiState.value.notice)
+            assertEquals(ShoppingUiMessage.ItemMarked, viewModel.uiState.value.save.notice)
         }
 
     @Test

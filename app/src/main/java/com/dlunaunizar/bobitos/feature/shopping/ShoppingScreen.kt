@@ -57,7 +57,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosDialog
@@ -68,7 +67,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
-import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdown
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
@@ -78,13 +76,13 @@ import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostStat
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
+import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeAction
 import com.dlunaunizar.bobitos.core.designsystem.component.SwipeActionsBox
 import com.dlunaunizar.bobitos.core.designsystem.component.checkBounce
 import com.dlunaunizar.bobitos.core.designsystem.component.completingExit
-import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberCelebrationState
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberCompletingItems
@@ -151,7 +149,7 @@ fun ShoppingScreen(
     }
     // Cerrar el editor tras un guardado fallido descarta ese error (ya se veía en la hoja).
     val closeEditor: () -> Unit = {
-        state.editorSave.discardFailure(viewModel::clearFeedback)
+        viewModel.feedback.resetEditor()
         editorVisible = false
     }
     var clearConfirmationVisible by remember { mutableStateOf(false) }
@@ -173,7 +171,7 @@ fun ShoppingScreen(
     // Lo que acaba de marcarse sigue unos instantes entre las pendientes, y no se repite entre las compradas.
     val pending = completing.retain(filteredItems.filterNot(ShoppingItem::purchased), ShoppingItem::id)
     val purchased = filteredItems.filter { it.purchased && !completing.isCompleting(it.id) }
-    val actionsEnabled = canWrite && !state.isSaving
+    val actionsEnabled = canWrite && !state.save.isSaving
     val listState = rememberLazyListState()
     val celebration = rememberCelebrationState(
         source = allItems,
@@ -191,7 +189,7 @@ fun ShoppingScreen(
     }
     ModuleScaffold(
         modifier = modifier.fillMaxSize(),
-        saving = savingOutsideEditor(state.isSaving, editorVisible),
+        saving = savingOutsideEditor(state.save.isSaving, editorVisible),
         floatingActionButton = {
             if (canWrite) {
                 val fabExpanded = rememberFabExpanded(listState)
@@ -209,14 +207,14 @@ fun ShoppingScreen(
     ) { padding ->
         val snackbar = LocalSnackbarHostState.current
         val scope = rememberCoroutineScope()
-        FeedbackSnackbarEffect(
-            error = state.error,
-            notice = state.notice,
-            editorSave = state.editorSave,
-            editorOpen = editorVisible,
-            onShown = viewModel::clearFeedback,
-        ) { shoppingMessageText(it, state.lastClearedCount) }
-        CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
+        SaveFeedbackEffect(
+            save = state.save,
+            controls = viewModel.feedback,
+            covered = editorVisible,
+            errorText = { shoppingMessageText(it, state.lastClearedCount) },
+            noticeText = { shoppingMessageText(it, state.lastClearedCount) },
+        )
+        CreatedUndoEffect(state.save.created, viewModel.feedback::consumeCreated) { viewModel.undoCreate(it.id) }
         val deletedMessage = stringResource(R.string.shopping_undo_deleted)
         val undoLabel = stringResource(R.string.undo)
         val deleteColor = MaterialTheme.colorScheme.error
@@ -386,10 +384,10 @@ fun ShoppingScreen(
     }
 
     EditorSaveEffect(
-        status = state.editorSave,
+        editor = state.save.editor,
         editorOpen = editorVisible,
+        controls = viewModel.feedback,
         onClose = { editorVisible = false },
-        onConsume = viewModel::consumeEditorSave,
     )
     rememberEditorSlot(
         open = editorVisible,
@@ -402,9 +400,8 @@ fun ShoppingScreen(
         ShoppingItemEditor(
             item = editedItem,
             initialDraft = initialDraft,
-            saving = state.isSaving,
-            errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
-                ?.let { stringResource(it.stringResourceId) },
+            saving = state.save.isSaving,
+            errorMessage = state.save.editorError?.let { stringResource(it.stringResourceId) },
             resolveDuplicate = pendingMatch,
             pantryIds = state.pantryIds,
             ingredientData = state.ingredientData,
