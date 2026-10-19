@@ -26,6 +26,11 @@ class IngredientReviewStringsTest {
     }
 
     @Test
+    fun `the skip option is read as No añadir a la lista`() {
+        assertEquals("No añadir a la lista", text("meals_review_skip_description"))
+    }
+
+    @Test
     fun `the old combined hints are gone`() {
         listOf(
             "meals_review_existing",

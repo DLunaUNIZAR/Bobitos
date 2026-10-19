@@ -505,6 +505,7 @@
     <string name="meals_review_add">Añadir</string>
     <string name="meals_review_relist">Volver a apuntar</string>
     <string name="meals_review_skip">No añadir</string>
+    <string name="meals_review_skip_description">No añadir a la lista</string>
     <string name="meals_review_badge_pantry">En la despensa</string>
     <string name="meals_review_badge_listed">En la lista: %1$s</string>
     <string name="meals_review_badge_listed_plain">En la lista</string>

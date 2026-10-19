@@ -6,10 +6,17 @@ package com.dlunaunizar.bobitos.feature.common
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Inventory2
+import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
@@ -21,9 +28,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.designsystem.component.InfoChip
+import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
+import com.dlunaunizar.bobitos.core.designsystem.theme.LocalDarkTheme
+import com.dlunaunizar.bobitos.core.designsystem.theme.ModulePalette
+import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.ShoppingQuantity
@@ -41,16 +56,16 @@ enum class ReviewRowKind {
     /** No está en la lista: se añade. */
     NEW,
 
-    /** Ya está pendiente: «Omitir» (por defecto) o «Sumar». */
+    /** Ya está pendiente: «No añadir» (por defecto) o «Sumar». */
     PENDING,
 
     /**
-     * No está pendiente y hay en la despensa: «Omitir» (por defecto) o «Añadir», como una nueva o, si hay un comprado,
+     * No está pendiente y hay en la despensa: «No añadir» (por defecto) o «Añadir», como una nueva o, si hay un comprado,
      * volviéndolo a apuntar.
      */
     IN_PANTRY,
 
-    /** Está, pero comprado: «Omitir» (por defecto) o «Volver a apuntar» ese artículo (pendiente, con la cantidad nueva). */
+    /** Está, pero comprado: «No añadir» (por defecto) o «Volver a apuntar» ese artículo (pendiente, con la cantidad nueva). */
     PURCHASED,
 }
 
@@ -80,7 +95,7 @@ data class IngredientReviewRow(
         }
 }
 
-/** Lo que el usuario confirma en cada fila; `skip` = «Omitir» (no se escribe nada). */
+/** Lo que el usuario confirma en cada fila; `skip` = «No añadir» (no se escribe nada). */
 data class IngredientReviewChoice(
     val quantity: String?,
     val supermarket: Supermarket?,
@@ -88,7 +103,7 @@ data class IngredientReviewChoice(
     val skip: Boolean = false,
 )
 
-/** Estado editable de una fila en el diálogo; `include` = false en una fila ya en la lista (pendiente o comprada) con «Omitir». */
+/** Estado editable de una fila en el diálogo; `include` = false con «No añadir» (también en las filas nuevas). */
 internal data class ReviewRowState(
     val quantity: String,
     val selection: BrandStoreSelection,
@@ -96,8 +111,8 @@ internal data class ReviewRowState(
     val include: Boolean = true,
 )
 
-// Ya en la lista (pendiente o comprado): «Omitir» marcado; con «Sumar», la suma preparada; con «Volver a apuntar»,
-// la cantidad de la receta. En la despensa: «Omitir» marcado, con la cantidad de la receta y la marca y la tienda
+// Ya en la lista (pendiente o comprado): «No añadir» marcado; con «Sumar», la suma preparada; con «Volver a apuntar»,
+// la cantidad de la receta. En la despensa: «No añadir» marcado, con la cantidad de la receta y la marca y la tienda
 // por defecto. Nueva: la de la receta, con la marca y la tienda por defecto.
 internal fun IngredientReviewRow.initialState(): ReviewRowState = when (kind) {
     ReviewRowKind.PENDING -> ReviewRowState(
@@ -163,7 +178,7 @@ internal fun ReviewRowState.toChoice(row: IngredientReviewRow): IngredientReview
     }
 }
 
-/** Si al confirmar no se escribe nada (todas las filas en «Omitir»). */
+/** Si al confirmar no se escribe nada (todas las filas en «No añadir»). */
 fun List<IngredientReviewChoice>.writesNothing(): Boolean = all(IngredientReviewChoice::skip)
 
 /**
@@ -222,7 +237,7 @@ internal suspend fun ShoppingRepository.applySeenWrites(spaceId: String, writes:
 }
 
 /**
- * Lo que escribe la revisión, en el orden de las filas: «Omitir» no escribe; un pendiente con «Sumar» cambia solo su
+ * Lo que escribe la revisión, en el orden de las filas: «No añadir» no escribe; un pendiente con «Sumar» cambia solo su
  * cantidad; un comprado se vuelve a apuntar; los dos conservan notas, tienda y marca y van con el artículo tal como
  * se vio. El resto se añade con la cantidad (que ya lleva la unidad) y el súper y la marca elegidos.
  */
@@ -284,6 +299,7 @@ fun IngredientReviewDialog(
 
 // El spread copia un array de 0-2 textos: no importa.
 @Suppress("SpreadOperator")
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun ReviewRowContent(
     row: IngredientReviewRow,
@@ -292,6 +308,34 @@ internal fun ReviewRowContent(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(text = row.name, style = MaterialTheme.typography.titleSmall)
+        val badges = row.badges()
+        if (badges.isNotEmpty()) {
+            val dark = LocalDarkTheme.current
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
+                badges.forEach { badge ->
+                    val (container, content) = badge.source.chipColors(dark)
+                    InfoChip(
+                        label = stringResource(badge.res, *badge.args.toTypedArray()),
+                        contentColor = content,
+                        containerColor = container,
+                        icon = {
+                            Icon(
+                                imageVector = if (badge.source == ReviewBadgeSource.PANTRY) {
+                                    Icons.Rounded.Inventory2
+                                } else {
+                                    Icons.Rounded.ShoppingCart
+                                },
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        },
+                    )
+                }
+            }
+        }
         row.hint()?.let { hint ->
             Text(
                 text = stringResource(hint.res, *hint.args.toTypedArray()),
@@ -299,13 +343,11 @@ internal fun ReviewRowContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (row.kind != ReviewRowKind.NEW) {
-            SkipOrIncludePicker(
-                include = state.include,
-                includeLabel = row.includeLabel(),
-                onChange = { value -> update { it.withInclude(value) } },
-            )
-        }
+        SkipOrIncludePicker(
+            include = state.include,
+            includeLabel = row.includeLabel(),
+            onChange = { value -> update { it.withInclude(value) } },
+        )
         if (state.include) {
             val tooLong = state.quantityTooLong()
             OutlinedTextField(
@@ -340,7 +382,7 @@ internal fun ReviewRowContent(
 /** Pista bajo el nombre de una fila: su texto y sus argumentos. Si falta una cantidad, no se nombra (sin «—»). */
 internal data class ReviewHint(@StringRes val res: Int, val args: List<String> = emptyList())
 
-/** La opción que no omite: «Sumar» en un pendiente; «Volver a apuntar» si hay un comprado; si no, «Añadir». */
+/** La opción que añade: «Sumar» en un pendiente; «Volver a apuntar» si hay un comprado; si no, «Añadir». */
 @StringRes
 internal fun IngredientReviewRow.includeLabel(): Int = when {
     kind == ReviewRowKind.PENDING -> R.string.meals_review_sum
@@ -357,6 +399,16 @@ internal data class ReviewBadge(
     @StringRes val res: Int,
     val args: List<String> = emptyList(),
 )
+
+/**
+ * Fondo y texto de la etiqueta: el `container` y el `onContainer` del módulo (Despensa o Compra), que llegan a 4,5:1;
+ * el acento no llega en claro.
+ */
+internal fun ReviewBadgeSource.chipColors(dark: Boolean): Pair<Color, Color> {
+    val module = if (this == ReviewBadgeSource.PANTRY) AppModule.PANTRY else AppModule.SHOPPING
+    val colors = ModulePalette.colors(module, dark)
+    return colors.container to colors.onContainer
+}
 
 /** Los avisos de la fila, despensa primero y lista después; una fila puede llevar los dos o ninguno. */
 internal fun IngredientReviewRow.badges(): List<ReviewBadge> = buildList {
@@ -380,16 +432,18 @@ internal fun IngredientReviewRow.hint(): ReviewHint? = when {
     else -> null
 }
 
-// «Omitir» (no se toca el artículo de la lista) o «Sumar» / «Volver a apuntar» (se edita la cantidad propuesta).
+// «No añadir» (no se escribe nada) o «Añadir» / «Sumar» / «Volver a apuntar» (se edita la cantidad propuesta); en todas las filas.
 @Composable
 private fun SkipOrIncludePicker(include: Boolean, @StringRes includeLabel: Int, onChange: (Boolean) -> Unit) {
     val options = listOf(false to R.string.meals_review_skip, true to includeLabel)
+    val skipDescription = stringResource(R.string.meals_review_skip_description)
     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
         options.forEachIndexed { index, (value, label) ->
             SegmentedButton(
                 selected = include == value,
                 onClick = { onChange(value) },
                 shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                modifier = if (value) Modifier else Modifier.semantics { contentDescription = skipDescription },
             ) {
                 Text(stringResource(label))
             }
