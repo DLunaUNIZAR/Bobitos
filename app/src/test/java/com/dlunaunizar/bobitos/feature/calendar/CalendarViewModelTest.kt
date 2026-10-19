@@ -60,7 +60,7 @@ class CalendarViewModelTest {
         viewModel.restore("event-1", input)
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -71,12 +71,17 @@ class CalendarViewModelTest {
 
         viewModel.delete("event-2")
         runCurrent()
-        assertTrue(viewModel.uiState.value.saving)
+        assertTrue(viewModel.uiState.value.save.isSaving)
 
         viewModel.restore("event-1", input)
         runCurrent()
 
         assertEquals(listOf(Triple("space-1", "event-1", input)), repository.created)
+        // El deshacer ya acabó, pero el borrado sigue en curso: «Guardando…» sigue hasta el final.
+        assertTrue(viewModel.uiState.value.save.isSaving)
+        repository.pendingDelete.complete(Unit)
+        advanceUntilIdle()
+        assertFalse(viewModel.uiState.value.save.isSaving)
     }
 
     @Test
@@ -98,7 +103,7 @@ class CalendarViewModelTest {
         viewModel.observe("space-1")
         var savingWhenOffered: Boolean? = null
 
-        viewModel.delete("event-1") { savingWhenOffered = viewModel.uiState.value.saving }
+        viewModel.delete("event-1") { savingWhenOffered = viewModel.uiState.value.save.isSaving }
         runCurrent()
         assertNull(savingWhenOffered)
 
@@ -130,16 +135,16 @@ class CalendarViewModelTest {
         viewModel.observe("space-1")
 
         viewModel.save(null, input)
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
-        assertTrue(viewModel.uiState.value.saving)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
+        assertTrue(viewModel.uiState.value.save.isSaving)
 
         gate.complete(Unit)
         advanceUntilIdle()
 
-        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
-        assertFalse(viewModel.uiState.value.saving)
-        viewModel.consumeEditorSave()
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.save.editor)
+        assertFalse(viewModel.uiState.value.save.isSaving)
+        viewModel.feedback.resetEditor()
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
     }
 
     @Test
@@ -163,8 +168,8 @@ class CalendarViewModelTest {
         viewModel.save("event-1", input)
         advanceUntilIdle()
 
-        assertEquals(CalendarNotice.SAVED, viewModel.uiState.value.notice)
-        assertNull(viewModel.uiState.value.error)
+        assertEquals(CalendarNotice.SAVED, viewModel.uiState.value.save.notice)
+        assertNull(viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -219,11 +224,11 @@ class CalendarViewModelTest {
         viewModel.save(null, input)
         advanceUntilIdle()
 
-        assertEquals(CreatedItem("new-1", "Correr"), viewModel.uiState.value.created)
-        assertNull(viewModel.uiState.value.notice)
+        assertEquals(CreatedItem("new-1", "Correr"), viewModel.uiState.value.save.created)
+        assertNull(viewModel.uiState.value.save.notice)
 
-        viewModel.consumeCreated()
-        assertNull(viewModel.uiState.value.created)
+        viewModel.feedback.consumeCreated()
+        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
@@ -250,7 +255,7 @@ class CalendarViewModelTest {
         viewModel.restore("event-2", input)
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
@@ -266,8 +271,8 @@ class CalendarViewModelTest {
             advanceUntilIdle()
 
             assertEquals(true, deleted)
-            assertNull(viewModel.uiState.value.notice)
-            assertNull(viewModel.uiState.value.error)
+            assertNull(viewModel.uiState.value.save.notice)
+            assertNull(viewModel.uiState.value.save.error)
         }
 
     @Test
@@ -278,21 +283,21 @@ class CalendarViewModelTest {
         repository.failure = IllegalStateException("sin permiso")
         viewModel.save(null, input)
         advanceUntilIdle()
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        assertEquals(FailureKind.UNKNOWN, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.saving)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        assertEquals(FailureKind.UNKNOWN, viewModel.uiState.value.save.editorError)
+        assertFalse(viewModel.uiState.value.save.isSaving)
 
         repository.failure = null
-        viewModel.consumeEditorSave()
+        viewModel.feedback.resetEditor()
         repository.hang = true
         viewModel.save("event-1", input)
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
         advanceTimeBy(EDITOR_SAVE_TIMEOUT_MILLIS + 1)
         runCurrent()
 
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        assertEquals(FailureKind.TIMEOUT, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.saving)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        assertEquals(FailureKind.TIMEOUT, viewModel.uiState.value.save.editorError)
+        assertFalse(viewModel.uiState.value.save.isSaving)
     }
 
     @Test
@@ -303,13 +308,13 @@ class CalendarViewModelTest {
 
         viewModel.restore("event-1", input)
         advanceUntilIdle()
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
 
         viewModel.delete("event-1")
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
         repository.pendingDelete.complete(Unit)
         advanceUntilIdle()
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
     }
 
     private fun viewModelWithMembers(members: MutableStateFlow<List<SpaceMember>>): CalendarViewModel {

@@ -3,14 +3,12 @@ package com.dlunaunizar.bobitos.feature.calendar
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.CreatedItem
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
+import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
+import com.dlunaunizar.bobitos.core.common.SaveRunner
+import com.dlunaunizar.bobitos.core.common.SaveState
 import com.dlunaunizar.bobitos.core.common.UiState
-import com.dlunaunizar.bobitos.core.common.failed
-import com.dlunaunizar.bobitos.core.common.started
-import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.toFailureKind
-import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.SpaceSummary
@@ -18,7 +16,6 @@ import com.dlunaunizar.bobitos.data.repository.CalendarRepository
 import com.dlunaunizar.bobitos.data.repository.EventInput
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,11 +40,7 @@ data class PersonalCalendarUiState(
     val knownSpaceIds: Set<String> = emptySet(),
     // Miembros del espacio para el que está abierto el editor (para elegir participantes).
     val editorMembers: List<SpaceMember> = emptyList(),
-    val saving: Boolean = false,
-    val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
-    val error: FailureKind? = null,
-    // Alta recién hecha desde la hoja: la pantalla la avisa con «Deshacer» y la consume.
-    val created: CreatedItem? = null,
+    val save: SaveState<FailureKind, Nothing> = SaveState(),
 )
 
 // Con eventos ya a la vista se conservan mientras llega el periodo nuevo; solo la primera carga es «Cargando».
@@ -61,6 +54,14 @@ class PersonalCalendarViewModel @Inject constructor(
 ) : ViewModel() {
     private val mutable = MutableStateFlow(PersonalCalendarUiState())
     val uiState: StateFlow<PersonalCalendarUiState> = mutable.asStateFlow()
+    private val saver = SaveRunner(
+        viewModelScope,
+        mutable,
+        PersonalCalendarUiState::save,
+        { copy(save = it) },
+        Throwable::toFailureKind,
+    )
+    val feedback: SaveFeedbackControls get() = saver
 
     private var userId: String? = null
     private var spaces: List<SpaceSummary> = emptyList()
@@ -136,71 +137,33 @@ class PersonalCalendarViewModel @Inject constructor(
         mutable.update { it.copy(editorMembers = emptyList()) }
     }
 
-    fun saveEvent(spaceId: String, eventId: String?, input: EventInput) = action(editor = true) {
+    fun saveEvent(spaceId: String, eventId: String?, input: EventInput) {
         if (eventId == null) {
-            val id = repository.createEvent(spaceId, input)
-            createdSpaces[id] = spaceId
-            CreatedItem(id, input.title)
+            saver.create(editor = true) {
+                val id = repository.createEvent(spaceId, input)
+                createdSpaces[id] = spaceId
+                CreatedItem(id, input.title)
+            }
         } else {
-            repository.updateEvent(spaceId, eventId, input)
+            saver.run<Unit>(editor = true) { repository.updateEvent(spaceId, eventId, input) }
         }
     }
 
     // onDeleted se llama solo si el borrado termina bien: así el «Deshacer» no se ofrece para un borrado fallido.
     // Sin aviso propio: el snackbar de «Deshacer» ya confirma el borrado.
     fun deleteEvent(spaceId: String, eventId: String, onDeleted: () -> Unit = {}) =
-        action(onSuccess = onDeleted) { repository.deleteEvent(spaceId, eventId) }
+        saver.run<Unit>(afterSuccess = { onDeleted() }) { repository.deleteEvent(spaceId, eventId) }
 
     // «Deshacer» el borrado: el evento vuelve con su id, al espacio en que estaba. No es un guardado del editor ni
     // lleva aviso propio; si falla, sale el error.
-    fun restore(spaceId: String, eventId: String, input: EventInput) = action(force = true) {
+    fun restore(spaceId: String, eventId: String, input: EventInput) = saver.run<Unit>(force = true) {
         repository.createEvent(spaceId, input, eventId)
-        null
     }
-
-    fun consumeCreated() = mutable.update { it.copy(created = null) }
 
     // «Deshacer» el alta: borra justo ese evento, en el espacio donde se creó, con el borrado de siempre.
     fun undoCreate(id: String) {
         val spaceId = createdSpaces[id] ?: return
-        action(force = true) { repository.deleteEvent(spaceId, id) }
-    }
-
-    fun consumeEditorSave() = mutable.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
-
-    fun clearMessage() = mutable.update { it.copy(error = null) }
-
-    private fun action(
-        editor: Boolean = false,
-        force: Boolean = false,
-        onSuccess: () -> Unit = {},
-        block: suspend () -> Any?,
-    ) {
-        if (mutable.value.saving && !force) return
-        mutable.update { it.copy(saving = true, error = null, editorSave = it.editorSave.started(editor)) }
-        viewModelScope.launch {
-            runCatching { withEditorSaveTimeout(editor) { block() } }
-                .onSuccess { result ->
-                    mutable.update {
-                        it.copy(
-                            saving = false,
-                            created = result as? CreatedItem,
-                            editorSave = it.editorSave.succeeded(editor),
-                        )
-                    }
-                    onSuccess()
-                }
-                .onFailure { error ->
-                    if (error is CancellationException) throw error
-                    mutable.update {
-                        it.copy(
-                            saving = false,
-                            error = error.toFailureKind(),
-                            editorSave = it.editorSave.failed(editor),
-                        )
-                    }
-                }
-        }
+        saver.run<Unit>(force = true) { repository.deleteEvent(spaceId, id) }
     }
 
     private fun move(amount: Long) {

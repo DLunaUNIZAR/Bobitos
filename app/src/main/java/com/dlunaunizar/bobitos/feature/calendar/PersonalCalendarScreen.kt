@@ -40,19 +40,17 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.BobitosDates
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
-import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
+import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
-import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.rememberFabExpanded
 import com.dlunaunizar.bobitos.core.designsystem.rememberToday
@@ -218,7 +216,7 @@ fun PersonalCalendarScreen(
                             onDelete = { id -> dayEventsById[id]?.let(deleteWithUndo) },
                             onCreateAt = onCreateAt,
                             modifier = Modifier.weight(1f),
-                            deleteEnabled = !state.saving,
+                            deleteEnabled = !state.save.isSaving,
                             listState = dayListState,
                         )
                         CalendarDisplayMode.WEEK -> PersonalWeekEventList(
@@ -231,15 +229,17 @@ fun PersonalCalendarScreen(
                     }
                 }
 
-                FeedbackSnackbarEffect(
-                    error = state.error?.messageRes(),
-                    notice = null,
-                    editorSave = state.editorSave,
-                    editorOpen = editorOpen,
-                    onShown = viewModel::clearMessage,
-                    text = { stringResource(it) },
+                SaveFeedbackEffect(
+                    save = state.save,
+                    controls = viewModel.feedback,
+                    covered = editorOpen,
+                    errorText = { stringResource(it.messageRes()) },
+                    noticeText = { "" },
                 )
-                CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
+                CreatedUndoEffect(
+                    state.save.created,
+                    viewModel.feedback::consumeCreated,
+                ) { viewModel.undoCreate(it.id) }
             }
         }
     }
@@ -257,17 +257,17 @@ fun PersonalCalendarScreen(
 
     val closeEditor = {
         // Cerrar tras un guardado fallido descarta ese error (ya se veía en la hoja).
-        state.editorSave.discardFailure(viewModel::clearMessage)
+        viewModel.feedback.resetEditor()
         editorOpen = false
         editorEventId = null
         editorStartText = null
         viewModel.clearEditorMembers()
     }
     EditorSaveEffect(
-        status = state.editorSave,
+        editor = state.save.editor,
         editorOpen = editorOpen,
+        controls = viewModel.feedback,
         onClose = closeEditor,
-        onConsume = viewModel::consumeEditorSave,
     )
     CalendarEditorHost(
         editorEventId = editorEventId,
@@ -278,10 +278,8 @@ fun PersonalCalendarScreen(
         creatingAt = editorStartText?.let(LocalTime::parse),
         day = state.focusedDate,
         members = state.editorMembers,
-        saving = state.saving,
-        errorMessage = state.error
-            ?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
-            ?.let { stringResource(it.messageRes()) },
+        saving = state.save.isSaving,
+        errorMessage = state.save.editorError?.let { stringResource(it.messageRes()) },
         canWrite = canWrite,
         onClose = closeEditor,
         onSave = { id, input -> editorSpaceId?.let { viewModel.saveEvent(it, id, input) } },

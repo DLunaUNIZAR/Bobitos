@@ -39,7 +39,7 @@ class PersonalCalendarViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val repository = PersonalRecordingCalendarRepository()
-    private val viewModel = PersonalCalendarViewModel(repository, personalEmptyFlows<SpaceRepository>())
+    private val viewModel by lazy { PersonalCalendarViewModel(repository, personalEmptyFlows<SpaceRepository>()) }
 
     @Test
     fun `editor save is SAVED only after the repository answers`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -47,16 +47,16 @@ class PersonalCalendarViewModelTest {
         repository.createGate = gate
 
         viewModel.saveEvent("space-1", null, input)
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
-        assertTrue(viewModel.uiState.value.saving)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
+        assertTrue(viewModel.uiState.value.save.isSaving)
 
         gate.complete(Unit)
         advanceUntilIdle()
 
-        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
-        assertFalse(viewModel.uiState.value.saving)
-        viewModel.consumeEditorSave()
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.save.editor)
+        assertFalse(viewModel.uiState.value.save.isSaving)
+        viewModel.feedback.resetEditor()
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
     }
 
     @Test
@@ -157,10 +157,10 @@ class PersonalCalendarViewModelTest {
         viewModel.saveEvent("space-1", null, input)
         advanceUntilIdle()
 
-        assertEquals(CreatedItem("new-1", "Correr"), viewModel.uiState.value.created)
+        assertEquals(CreatedItem("new-1", "Correr"), viewModel.uiState.value.save.created)
 
-        viewModel.consumeCreated()
-        assertNull(viewModel.uiState.value.created)
+        viewModel.feedback.consumeCreated()
+        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
@@ -179,7 +179,7 @@ class PersonalCalendarViewModelTest {
         viewModel.saveEvent("space-1", "event-1", input)
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
@@ -187,21 +187,21 @@ class PersonalCalendarViewModelTest {
         repository.failure = IllegalStateException("sin permiso")
         viewModel.saveEvent("space-1", null, input)
         advanceUntilIdle()
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        assertEquals(FailureKind.UNKNOWN, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.saving)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        assertEquals(FailureKind.UNKNOWN, viewModel.uiState.value.save.editorError)
+        assertFalse(viewModel.uiState.value.save.isSaving)
 
         repository.failure = null
-        viewModel.consumeEditorSave()
+        viewModel.feedback.resetEditor()
         repository.hang = true
         viewModel.saveEvent("space-1", "event-1", input)
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
         advanceTimeBy(EDITOR_SAVE_TIMEOUT_MILLIS + 1)
         runCurrent()
 
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        assertEquals(FailureKind.TIMEOUT, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.saving)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        assertEquals(FailureKind.TIMEOUT, viewModel.uiState.value.save.editorError)
+        assertFalse(viewModel.uiState.value.save.isSaving)
     }
 
     @Test
@@ -209,8 +209,8 @@ class PersonalCalendarViewModelTest {
         viewModel.deleteEvent("space-1", "event-1")
         advanceUntilIdle()
 
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
-        assertFalse(viewModel.uiState.value.saving)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
+        assertFalse(viewModel.uiState.value.save.isSaving)
     }
 
     @Test
@@ -220,9 +220,29 @@ class PersonalCalendarViewModelTest {
             advanceUntilIdle()
 
             assertEquals(listOf(Triple("space-a", "event-9", input)), repository.created)
-            assertNull(viewModel.uiState.value.created)
-            assertNull(viewModel.uiState.value.error)
+            assertNull(viewModel.uiState.value.save.created)
+            assertNull(viewModel.uiState.value.save.error)
         }
+
+    @Test
+    fun `undo runs even while another write is in flight`() = runTest(mainDispatcherRule.testDispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        repository.deleteGate = gate
+
+        viewModel.deleteEvent("space-1", "event-2")
+        runCurrent()
+        assertTrue(viewModel.uiState.value.save.isSaving)
+
+        viewModel.restore("space-a", "event-1", input)
+        runCurrent()
+
+        assertEquals(listOf(Triple("space-a", "event-1", input)), repository.created)
+        // El deshacer ya acabó, pero el borrado sigue en curso: «Guardando…» sigue hasta el final.
+        assertTrue(viewModel.uiState.value.save.isSaving)
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertFalse(viewModel.uiState.value.save.isSaving)
+    }
 
     @Test
     fun `a failed undo surfaces the error`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -231,7 +251,7 @@ class PersonalCalendarViewModelTest {
         viewModel.restore("space-a", "event-9", input)
         advanceUntilIdle()
 
-        assertEquals(FailureKind.UNKNOWN, viewModel.uiState.value.error)
+        assertEquals(FailureKind.UNKNOWN, viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -241,7 +261,7 @@ class PersonalCalendarViewModelTest {
         viewModel.deleteEvent("space-1", "event-1") { offered++ }
         advanceUntilIdle()
         assertEquals(0, offered)
-        assertEquals(FailureKind.UNKNOWN, viewModel.uiState.value.error)
+        assertEquals(FailureKind.UNKNOWN, viewModel.uiState.value.save.error)
 
         repository.deleteFailure = null
         viewModel.deleteEvent("space-1", "event-1") { offered++ }
@@ -328,7 +348,10 @@ private class PersonalRecordingCalendarRepository : CalendarRepository {
         awaitIfHanging()
     }
 
+    var deleteGate: CompletableDeferred<Unit>? = null
+
     override suspend fun deleteEvent(spaceId: String, eventId: String) {
+        deleteGate?.await()
         deleteFailure?.let { throw it }
         deletedSpaces += spaceId
         deleted += eventId

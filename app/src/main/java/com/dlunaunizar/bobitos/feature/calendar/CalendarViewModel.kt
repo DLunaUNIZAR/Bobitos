@@ -3,14 +3,12 @@ package com.dlunaunizar.bobitos.feature.calendar
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.CreatedItem
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
+import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
+import com.dlunaunizar.bobitos.core.common.SaveRunner
+import com.dlunaunizar.bobitos.core.common.SaveState
 import com.dlunaunizar.bobitos.core.common.UiState
-import com.dlunaunizar.bobitos.core.common.failed
-import com.dlunaunizar.bobitos.core.common.started
-import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.toFailureKind
-import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.SpaceMember
 import com.dlunaunizar.bobitos.core.model.TaskItem
@@ -19,7 +17,6 @@ import com.dlunaunizar.bobitos.data.repository.EventInput
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,12 +40,7 @@ data class CalendarUiState(
     val tasks: List<TaskItem> = emptyList(),
     val selectedMemberIds: Set<String> = emptySet(),
     val knownMemberIds: Set<String> = emptySet(),
-    val saving: Boolean = false,
-    val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
-    val error: FailureKind? = null,
-    val notice: CalendarNotice? = null,
-    // Alta recién hecha desde la hoja: la pantalla la avisa con «Deshacer» y la consume.
-    val created: CreatedItem? = null,
+    val save: SaveState<FailureKind, CalendarNotice> = SaveState(),
 )
 
 // Con eventos ya a la vista se conservan mientras llega el periodo nuevo; solo la primera carga es «Cargando».
@@ -63,6 +55,9 @@ class CalendarViewModel @Inject constructor(
 ) : ViewModel() {
     private val mutable = MutableStateFlow(CalendarUiState())
     val uiState: StateFlow<CalendarUiState> = mutable.asStateFlow()
+    private val saver =
+        SaveRunner(viewModelScope, mutable, CalendarUiState::save, { copy(save = it) }, Throwable::toFailureKind)
+    val feedback: SaveFeedbackControls get() = saver
 
     private var spaceId: String? = null
     private var eventJob: Job? = null
@@ -140,41 +135,34 @@ class CalendarViewModel @Inject constructor(
     }
 
     // Un alta deja `created` (con «Deshacer») en lugar del aviso de guardado; una edición conserva el suyo.
-    fun save(eventId: String?, input: EventInput) = action(
-        editor = true,
-        notice = if (eventId == null) null else CalendarNotice.SAVED,
-    ) {
-        val id = spaceId ?: return@action null
-        if (eventId == null) {
-            CreatedItem(repository.createEvent(id, input), input.title)
+    // Sin espacio no se escribe nada: la acción acaba en Unit.
+    fun save(eventId: String?, input: EventInput) {
+        val id = spaceId
+        if (eventId == null && id != null) {
+            saver.create(editor = true) { CreatedItem(repository.createEvent(id, input), input.title) }
         } else {
-            repository.updateEvent(id, eventId, input)
+            saver.run<Unit>(editor = true, notice = if (eventId == null) null else CalendarNotice.SAVED) {
+                if (id != null && eventId != null) repository.updateEvent(id, eventId, input)
+            }
         }
     }
 
     // Con force: un «Deshacer» pulsado con otra escritura en curso no se descarta en silencio. Sin aviso propio.
-    fun restore(eventId: String, input: EventInput) = action(notice = null, force = true) {
-        repository.createEvent(spaceId ?: return@action null, input, eventId)
+    fun restore(eventId: String, input: EventInput) = saver.run<Unit>(force = true) {
+        val id = spaceId ?: return@run
+        repository.createEvent(id, input, eventId)
     }
 
     // onDeleted se llama solo si el borrado termina bien (y ya sin «guardando»): así el deshacer no se
     // ofrece para un borrado fallido ni se descarta por pulsarlo mientras el borrado sigue en curso.
     // Sin aviso propio: el snackbar de «Deshacer» ya confirma el borrado.
-    fun delete(eventId: String, onDeleted: () -> Unit = {}) = action(notice = null, onSuccess = onDeleted) {
-        repository.deleteEvent(spaceId ?: return@action null, eventId)
+    fun delete(eventId: String, onDeleted: () -> Unit = {}) = saver.run<Unit>(afterSuccess = { onDeleted() }) {
+        repository.deleteEvent(spaceId ?: return@run, eventId)
     }
-
-    fun consumeCreated() = mutable.update { it.copy(created = null) }
 
     // «Deshacer» el alta: borra justo ese evento con el borrado de siempre (sin aviso; si falla, sale el error).
-    fun undoCreate(id: String) = action(notice = null, force = true) {
-        repository.deleteEvent(spaceId ?: return@action null, id)
-    }
-
-    fun consumeEditorSave() = mutable.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
-
-    fun clearMessage() {
-        mutable.update { it.copy(error = null, notice = null) }
+    fun undoCreate(id: String) = saver.run<Unit>(force = true) {
+        repository.deleteEvent(spaceId ?: return@run, id)
     }
 
     private fun move(amount: Long) {
@@ -208,45 +196,6 @@ class CalendarViewModel @Inject constructor(
                 }
                 .collect { events ->
                     mutable.update { it.copy(events = UiState.Content(events), refreshing = false) }
-                }
-        }
-    }
-
-    private fun action(
-        editor: Boolean = false,
-        notice: CalendarNotice? = CalendarNotice.SAVED,
-        onSuccess: () -> Unit = {},
-        force: Boolean = false,
-        block: suspend () -> Any?,
-    ) {
-        if (mutable.value.saving && !force) return
-        mutable.update {
-            it.copy(saving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
-        }
-        viewModelScope.launch {
-            runCatching { withEditorSaveTimeout(editor) { block() } }
-                .onSuccess { result ->
-                    mutable.update {
-                        it.copy(
-                            saving = false,
-                            error = null,
-                            notice = notice,
-                            created = result as? CreatedItem,
-                            editorSave = it.editorSave.succeeded(editor),
-                        )
-                    }
-                    onSuccess()
-                }
-                .onFailure { error ->
-                    if (error is CancellationException) throw error
-                    mutable.update {
-                        it.copy(
-                            saving = false,
-                            error = error.toFailureKind(),
-                            notice = null,
-                            editorSave = it.editorSave.failed(editor),
-                        )
-                    }
                 }
         }
     }
