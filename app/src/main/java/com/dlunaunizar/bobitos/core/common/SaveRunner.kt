@@ -105,11 +105,9 @@ class SaveRunner<S, E, N>(
             val result = try {
                 Result.success(withEditorSaveTimeout(editor, action))
             } catch (e: Throwable) {
-                try {
-                    e.rethrowIfCancelled()
-                } catch (cancelled: Throwable) {
+                if (e.isOwnCancellation()) {
                     update { it.copy(running = it.running - 1) }
-                    throw cancelled
+                    throw e
                 }
                 Result.failure(e)
             }
@@ -147,12 +145,33 @@ class SaveRunner<S, E, N>(
         return true
     }
 
+    /**
+     * Acción en segundo plano: no enciende «Guardando…» ni bloquea otras. Si acaba bien, muestra [noticeOf] de su
+     * resultado (si hay); si falla, su error va a la pantalla. La cancelación del propio scope no es un fallo.
+     */
+    @Suppress("TooGenericExceptionCaught")
+    fun <T> launchQuiet(noticeOf: (T) -> N? = { null }, action: suspend () -> T) {
+        scope.launch {
+            val value = try {
+                action()
+            } catch (e: Throwable) {
+                if (e.isOwnCancellation()) throw e
+                showError(toError(e))
+                return@launch
+            }
+            noticeOf(value)?.let(::showNotice)
+        }
+    }
+
     /** Error del formulario abierto, sin tocar nada más. */
     fun showEditorError(error: E) = update { it.copy(editor = EditorSaveStatus.FAILED, editorError = error) }
 
     fun showError(error: E) = update { it.copy(error = error) }
 
     fun showNotice(notice: N) = update { it.copy(notice = notice) }
+
+    /** Cambia el error y el aviso de la pantalla por [notice], de una sola vez. */
+    fun replaceNotice(notice: N) = update { it.copy(error = null, notice = notice) }
 
     /** Borra el error y el aviso de la pantalla. */
     fun clearFeedback() = update { it.copy(error = null, notice = null) }

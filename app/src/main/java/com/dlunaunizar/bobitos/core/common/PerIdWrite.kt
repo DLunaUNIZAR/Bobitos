@@ -1,6 +1,5 @@
 package com.dlunaunizar.bobitos.core.common
 
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -23,11 +22,9 @@ fun CoroutineScope.launchPerIdWrite(
     launch {
         val failure = runCatching { block() }.exceptionOrNull()
         ids.remove(id)
-        try {
-            failure?.rethrowIfCancelled()
-        } catch (cancelled: CancellationException) {
+        if (failure != null && failure.isOwnCancellation()) {
             onFinished(false)
-            throw cancelled
+            throw failure
         }
         if (failure == null) onSuccess() else onFailure(failure)
         onFinished(failure == null)

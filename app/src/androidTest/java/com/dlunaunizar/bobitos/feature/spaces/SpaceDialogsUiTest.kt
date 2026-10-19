@@ -36,6 +36,7 @@ class SpaceDialogsUiTest {
                     onDismiss = {},
                     onConfirm = { confirmed++ },
                     serverError = serverError,
+                    dismissible = true,
                     onEdited = { edited++ },
                 )
             }
@@ -50,6 +51,7 @@ class SpaceDialogsUiTest {
                     enabled = true,
                     saving = false,
                     serverError = serverError,
+                    dismissible = true,
                     onEdited = { edited++ },
                     onDismiss = {},
                     onConfirm = { confirmed++ },

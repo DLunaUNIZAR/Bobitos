@@ -286,7 +286,7 @@ internal fun InvitationCodeDialog(
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
     serverErrorOnField: Boolean = false,
-    dismissible: Boolean = !saving,
+    dismissible: Boolean,
 ) {
     var code by rememberSaveable(initialCode) { mutableStateOf(initialCode) }
     val form = rememberFormValidationState()
@@ -435,7 +435,7 @@ internal fun SpaceNameDialog(
     onEdited: () -> Unit,
     enabled: Boolean = true,
     saving: Boolean = false,
-    dismissible: Boolean = !saving,
+    dismissible: Boolean,
 ) {
     var name by rememberSaveable(initialName) { mutableStateOf(initialName) }
     val form = rememberFormValidationState()

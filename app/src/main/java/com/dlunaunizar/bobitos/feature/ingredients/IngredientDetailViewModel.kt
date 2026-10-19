@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.CreatedItem
 import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
 import com.dlunaunizar.bobitos.core.common.SaveRunner
-import com.dlunaunizar.bobitos.core.common.rethrowIfCancelled
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.Supermarket
@@ -208,12 +207,7 @@ class IngredientDetailViewModel @Inject constructor(
     }
 
     private fun writeOptimistically(action: suspend () -> Unit) {
-        viewModelScope.launch {
-            runCatching { action() }.onFailure { error ->
-                error.rethrowIfCancelled()
-                saver.showError(error.toDetailUiMessage())
-            }
-        }
+        saver.launchQuiet(action = action)
     }
 
     /** Alta ([brandId] nulo) o edición de una marca desde el editor. */

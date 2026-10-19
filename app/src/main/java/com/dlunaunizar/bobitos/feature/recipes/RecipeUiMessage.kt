@@ -43,7 +43,5 @@ private val IMPORT_MESSAGES = setOf(
 )
 
 /** El diálogo de importar tapa la pantalla salvo que haya un error pendiente que no es de importación. */
-internal fun RecipeUiMessage?.coveredByImportDialog(): Boolean = this == null || isImport
-
 internal fun importDialogCovers(showImport: Boolean, error: RecipeUiMessage?): Boolean =
-    showImport && error.coveredByImportDialog()
+    showImport && (error == null || error.isImport)

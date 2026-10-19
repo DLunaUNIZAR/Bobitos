@@ -262,9 +262,10 @@ class RecipesViewModelTest {
 
     @Test
     fun `the import dialog covers the screen only for an import error or none`() {
-        assertTrue(null.coveredByImportDialog())
-        assertTrue(RecipeUiMessage.ImportNoRecipe.coveredByImportDialog())
-        assertFalse(RecipeUiMessage.NetworkError.coveredByImportDialog())
+        assertTrue(importDialogCovers(true, null))
+        assertTrue(importDialogCovers(true, RecipeUiMessage.ImportNoRecipe))
+        assertFalse(importDialogCovers(true, RecipeUiMessage.NetworkError))
+        assertFalse(importDialogCovers(false, null))
         assertTrue(RecipeUiMessage.ImportNetwork.isImport)
         assertFalse(RecipeUiMessage.NetworkError.isImport)
     }

@@ -331,8 +331,7 @@ class MealsViewModel @Inject constructor(
         val rows = mutableUiState.value.ingredientReview ?: return
         if (choices.writesNothing()) {
             mutableUiState.update { it.copy(ingredientReview = null) }
-            saver.clearFeedback()
-            saver.showNotice(MealUiMessage.NothingToAddToShopping)
+            saver.replaceNotice(MealUiMessage.NothingToAddToShopping)
             return
         }
         mutableUiState.update { it.copy(ingredientReview = null) }

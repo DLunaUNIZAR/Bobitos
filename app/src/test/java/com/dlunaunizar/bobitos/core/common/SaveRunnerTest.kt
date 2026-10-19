@@ -255,6 +255,54 @@ class SaveRunnerTest {
     }
 
     @Test
+    fun `launchQuiet shows the notice of the result without turning on saving`() {
+        val gate = CompletableDeferred<Int>()
+
+        runner.launchQuiet(noticeOf = { "res=$it" }) { gate.await() }
+        runCurrent()
+        assertFalse(save.isSaving)
+
+        gate.complete(7)
+        runCurrent()
+
+        assertEquals("res=7", save.notice)
+        assertNull(save.error)
+        assertEquals(0, save.running)
+    }
+
+    @Test
+    fun `launchQuiet without notice leaves the pending notice and shows a failure translated`() {
+        state.value = TestState(SaveState(notice = "n"))
+
+        runner.launchQuiet<Unit> { error("fallo") }
+        runCurrent()
+
+        assertEquals("n", save.notice)
+        assertEquals("IllegalStateException", save.error)
+        assertEquals(0, save.running)
+    }
+
+    @Test
+    fun `launchQuiet treats a CancellationException from the action as a normal failure`() {
+        runner.launchQuiet<Unit> { throw CancellationException("del repositorio") }
+        runCurrent()
+
+        assertEquals("CancellationException", save.error)
+    }
+
+    @Test
+    fun `launchQuiet ends without an error when the scope is cancelled`() {
+        runner.launchQuiet<Unit> { awaitCancellation() }
+        runCurrent()
+
+        scope.cancel()
+        runCurrent()
+
+        assertNull(save.error)
+        assertNull(save.notice)
+    }
+
+    @Test
     fun `onSuccess and onFailure change the screen state with the result`() {
         runner.run(onSuccess = { copy(extra = "res=$it") }) { 5 }
         runCurrent()

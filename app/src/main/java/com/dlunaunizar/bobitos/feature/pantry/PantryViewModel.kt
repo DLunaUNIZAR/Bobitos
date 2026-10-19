@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
 import com.dlunaunizar.bobitos.core.common.SaveRunner
 import com.dlunaunizar.bobitos.core.common.UiState
-import com.dlunaunizar.bobitos.core.common.rethrowIfCancelled
 import com.dlunaunizar.bobitos.core.model.PantryEntry
 import com.dlunaunizar.bobitos.core.model.PantryItem
 import com.dlunaunizar.bobitos.core.model.pantryId
@@ -83,16 +82,9 @@ class PantryViewModel @Inject constructor(
      */
     fun restock(item: PantryItem) {
         val spaceId = observedSpaceId ?: return
-        viewModelScope.launch {
-            runCatching {
-                val plan = restockFromPantry(spaceId, listOf(item.name), shoppingRepository, ingredientData())
-                if (plan.writes.isEmpty()) PantryUiMessage.AlreadyInShopping else PantryUiMessage.AddedToShopping
-            }
-                .onSuccess(saver::showNotice)
-                .onFailure { error ->
-                    error.rethrowIfCancelled()
-                    saver.showError(error.toUiMessage())
-                }
+        saver.launchQuiet(noticeOf = { it }) {
+            val plan = restockFromPantry(spaceId, listOf(item.name), shoppingRepository, ingredientData())
+            if (plan.writes.isEmpty()) PantryUiMessage.AlreadyInShopping else PantryUiMessage.AddedToShopping
         }
     }
 
