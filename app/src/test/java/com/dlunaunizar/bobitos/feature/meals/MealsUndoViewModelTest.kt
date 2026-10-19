@@ -1,6 +1,8 @@
 package com.dlunaunizar.bobitos.feature.meals
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.CreatedItem
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.model.MealSlot
 import com.dlunaunizar.bobitos.data.repository.MealFailure
 import com.dlunaunizar.bobitos.data.repository.MealRepositoryException
@@ -50,7 +52,9 @@ class MealsUndoViewModelTest {
         viewModel.observe("home")
         advanceUntilIdle()
 
-        viewModel.restoreMeal("home", meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas").copy(cooked = true))
+        viewModel.undo(
+            Undoable.Deleted("home", meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas").copy(cooked = true)),
+        )
         advanceUntilIdle()
 
         val (space, restored) = mealRepository.restored.single()
@@ -66,7 +70,7 @@ class MealsUndoViewModelTest {
         viewModel.observe("space-b")
         advanceUntilIdle()
 
-        viewModel.restoreMeal("space-a", meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas"))
+        viewModel.undo(Undoable.Deleted("space-a", meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas")))
         advanceUntilIdle()
 
         assertEquals("space-a", mealRepository.restored.single().first)
@@ -75,18 +79,62 @@ class MealsUndoViewModelTest {
     @Test
     fun `undo is offered only once the delete has finished`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("home")
-        var offered = 0
+        val lentejas = meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas")
         mealRepository.nextFailure = MealRepositoryException(MealFailure.Network)
-        viewModel.deleteMeal("m1") { offered++ }
-        advanceUntilIdle()
-        assertEquals(0, offered)
+        viewModel.deleteMeal(lentejas)
+        runCurrent()
+        assertTrue(viewModel.undoOffers.value.isEmpty())
         assertEquals(MealUiMessage.NetworkError, viewModel.uiState.value.save.error)
 
         mealRepository.nextFailure = null
-        viewModel.deleteMeal("m1") { offered++ }
-        advanceUntilIdle()
-        assertEquals(1, offered)
+        viewModel.deleteMeal(lentejas)
+        runCurrent()
+        assertEquals(1, viewModel.undoOffers.value.size)
         assertEquals(listOf("m1"), mealRepository.deleted)
+    }
+
+    @Test
+    fun `deleting offers undo with the meal and its space`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("space-a")
+        val lentejas = meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas").copy(cooked = true)
+        viewModel.deleteMeal(lentejas)
+        runCurrent()
+
+        assertEquals(Undoable.Deleted("space-a", lentejas), viewModel.undoOffers.value.single().undoable)
+    }
+
+    @Test
+    fun `undo of a delete goes to the space where it was deleted`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("space-a")
+        viewModel.deleteMeal(meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas"))
+        runCurrent()
+        val offered = viewModel.undoOffers.value.single().undoable
+        viewModel.observe("space-b")
+
+        viewModel.undo(offered)
+        advanceUntilIdle()
+
+        assertEquals("space-a", mealRepository.restored.single().first)
+    }
+
+    @Test
+    fun `undoing an add goes through undoAddMeal`() = runTest(mainDispatcherRule.testDispatcher) {
+        viewModel.observe("home")
+        viewModel.undo(Undoable.Created("space-a", CreatedItem("new-1", "Cena")))
+        advanceUntilIdle()
+
+        assertEquals(listOf("space-a" to "new-1"), mealRepository.undoneAdds)
+        assertTrue(mealRepository.deleted.isEmpty())
+    }
+
+    @Test
+    fun `an add another member changed is not undone and says so`() = runTest(mainDispatcherRule.testDispatcher) {
+        mealRepository.nextFailure = MealRepositoryException(MealFailure.MealChanged)
+        viewModel.undo(Undoable.Created("home", CreatedItem("new-1", "Cena")))
+        advanceUntilIdle()
+
+        assertEquals(MealUiMessage.MealChanged, viewModel.uiState.value.save.error)
+        assertTrue(mealRepository.deleted.isEmpty())
     }
 
     @Test
@@ -94,7 +142,7 @@ class MealsUndoViewModelTest {
         viewModel.observe("home")
         mealRepository.nextFailure = MealRepositoryException(MealFailure.SpaceNotFound)
 
-        viewModel.restoreMeal("home", meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas"))
+        viewModel.undo(Undoable.Deleted("home", meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas")))
         advanceUntilIdle()
 
         assertEquals(MealUiMessage.SpaceNotFound, viewModel.uiState.value.save.error)
@@ -112,7 +160,7 @@ class MealsUndoViewModelTest {
 
             viewModel.addMeal(LocalDate.now(), MealSlot.CENA, "Cena", emptyList(), recipeId = null, cookId = null)
             runCurrent()
-            viewModel.restoreMeal("home", meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas"))
+            viewModel.undo(Undoable.Deleted("home", meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas")))
             runCurrent()
             assertEquals(2, viewModel.uiState.value.save.running)
 

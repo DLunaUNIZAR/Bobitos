@@ -10,6 +10,7 @@ enum class MealUiMessage {
     EmailNotVerified,
     SpaceNotFound,
     MealNotFound,
+    MealChanged,
     PermissionDenied,
     NetworkError,
     UnexpectedError,

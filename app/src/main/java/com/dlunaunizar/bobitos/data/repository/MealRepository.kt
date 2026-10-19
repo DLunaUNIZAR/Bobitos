@@ -33,8 +33,15 @@ interface MealRepository {
 
     suspend fun deleteMeal(spaceId: String, mealId: String)
 
-    // «Deshacer» el borrado: la comida vuelve con su id y su estado (cocinada, receta, cocinero, participantes). La
-    // autoría y las fechas de creación pasan a ser de quien deshace, como exigen las reglas de alta.
+    /**
+     * «Deshacer» un alta: borra [mealId] solo si quien deshace fue el último en escribirla. Si no existe, falla con
+     * [MealFailure.MealNotFound]; si la ha cambiado otro miembro, con [MealFailure.MealChanged].
+     */
+    suspend fun undoAddMeal(spaceId: String, mealId: String)
+
+    // «Deshacer» el borrado: la comida vuelve con su id y su estado (cocinada, receta, cocinero, participantes), sin
+    // los participantes ni el cocinero que ya no son miembros activos. La autoría y las fechas de creación pasan a
+    // ser de quien deshace, como exigen las reglas de alta.
     suspend fun restoreMeal(spaceId: String, meal: Meal)
 }
 
@@ -46,6 +53,7 @@ enum class MealFailure {
     EmailNotVerified,
     SpaceNotFound,
     MealNotFound,
+    MealChanged,
     PermissionDenied,
     Network,
     Unknown,

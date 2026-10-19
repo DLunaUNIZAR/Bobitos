@@ -7,6 +7,10 @@ import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
 import com.dlunaunizar.bobitos.core.common.SaveRunner
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.UndoOffer
+import com.dlunaunizar.bobitos.core.common.UndoOfferControls
+import com.dlunaunizar.bobitos.core.common.UndoOffers
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.common.rethrowIfCancelled
 import com.dlunaunizar.bobitos.core.common.toFailureKind
 import com.dlunaunizar.bobitos.core.model.Meal
@@ -58,6 +62,9 @@ class MealsViewModel @Inject constructor(
     private val saver =
         SaveRunner(viewModelScope, mutableUiState, MealsUiState::save, { copy(save = it) }, Throwable::toUiMessage)
     val feedback: SaveFeedbackControls get() = saver
+    private val undo = UndoOffers<Meal>(viewModelScope)
+    val undoOffers: StateFlow<List<UndoOffer<Meal>>> = undo.offers
+    val undoControls: UndoOfferControls get() = undo
 
     private var observedSpaceId: String? = null
     private var observedWeekStart: LocalDate? = null
@@ -145,22 +152,23 @@ class MealsViewModel @Inject constructor(
         val spaceId = observedSpaceId ?: return
         if (!validate(name)) return
         val trimmed = name.trim()
-        // Un alta desde la hoja deja `created` (con «Deshacer») en lugar del aviso de comida añadida.
-        saver.create(editor = true) {
+        // Un alta desde la hoja ofrece «Deshacer» (con el espacio de ahora) en lugar del aviso de comida añadida.
+        saver.run<CreatedItem>(editor = true, afterSuccess = { undo.offer(Undoable.Created(spaceId, it)) }) {
             CreatedItem(repository.addMeal(spaceId, date, slot, trimmed, participantIds, recipeId, cookId), trimmed)
         }
     }
 
-    // «Deshacer» el alta: borra justo esa comida con el borrado de siempre (sin aviso; si falla, sale el error).
-    fun undoCreate(id: String) {
-        val spaceId = observedSpaceId ?: return
-        saver.run(force = true) { repository.deleteMeal(spaceId, id) }
-    }
-
-    // «Deshacer» el borrado: la comida vuelve con su id y su estado, al espacio en que estaba (no al que se esté
-    // viendo ahora). No es un guardado del editor ni lleva aviso propio; si falla, sale el error.
-    fun restoreMeal(spaceId: String, meal: Meal) {
-        saver.run(force = true) { repository.restoreMeal(spaceId, meal) }
+    // Única entrada de «Deshacer»: siempre en el espacio donde pasó. No es un guardado del editor ni lleva aviso
+    // propio; si falla (también si otro miembro cambió lo que se dio de alta), sale el error.
+    fun undo(undoable: Undoable<Meal>) {
+        val spaceId = undoable.spaceId ?: return
+        saver.run(force = true) {
+            when (undoable) {
+                is Undoable.Created -> repository.undoAddMeal(spaceId, undoable.item.id)
+                is Undoable.Deleted -> repository.restoreMeal(spaceId, undoable.item)
+                is Undoable.Completed -> Unit
+            }
+        }
     }
 
     fun updateMeal(
@@ -179,12 +187,12 @@ class MealsViewModel @Inject constructor(
         }
     }
 
-    // onDeleted se llama solo si el borrado termina bien: así el «Deshacer» no se ofrece para un borrado fallido.
-    // Sin aviso propio: el snackbar de «Deshacer» ya confirma el borrado.
-    fun deleteMeal(mealId: String, onDeleted: () -> Unit = {}) {
+    // La oferta de «Deshacer» sale solo si el borrado termina bien. Sin aviso propio: el snackbar de «Deshacer» ya
+    // confirma el borrado.
+    fun deleteMeal(meal: Meal) {
         val spaceId = observedSpaceId ?: return
-        saver.run(afterSuccess = { onDeleted() }) {
-            repository.deleteMeal(spaceId, mealId)
+        saver.run(afterSuccess = { undo.offer(Undoable.Deleted(spaceId, meal)) }) {
+            repository.deleteMeal(spaceId, meal.id)
         }
     }
 
@@ -395,6 +403,7 @@ private fun MealFailure.toUiMessage(): MealUiMessage = when (this) {
     MealFailure.EmailNotVerified -> MealUiMessage.EmailNotVerified
     MealFailure.SpaceNotFound -> MealUiMessage.SpaceNotFound
     MealFailure.MealNotFound -> MealUiMessage.MealNotFound
+    MealFailure.MealChanged -> MealUiMessage.MealChanged
     MealFailure.PermissionDenied -> MealUiMessage.PermissionDenied
     MealFailure.Network -> MealUiMessage.NetworkError
     MealFailure.Unknown -> MealUiMessage.UnexpectedError

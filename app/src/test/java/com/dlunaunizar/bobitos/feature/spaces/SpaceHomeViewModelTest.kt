@@ -491,6 +491,7 @@ private object NoMeals : MealRepository {
     override suspend fun setCooked(spaceId: String, mealId: String, cooked: Boolean): Unit = error("no usado")
     override suspend fun restoreMeal(spaceId: String, meal: Meal): Unit = error("no usado")
     override suspend fun deleteMeal(spaceId: String, mealId: String): Unit = error("no usado")
+    override suspend fun undoAddMeal(spaceId: String, mealId: String): Unit = error("no usado")
 }
 
 private object NoEvents : CalendarRepository {

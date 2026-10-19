@@ -1,6 +1,7 @@
 package com.dlunaunizar.bobitos.feature.meals
 
 import com.dlunaunizar.bobitos.MainDispatcherRule
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.MealSlot
 import com.dlunaunizar.bobitos.core.model.pantryId
@@ -67,7 +68,7 @@ class MealsPendingFeedbackViewModelTest {
             assertEquals(MealUiMessage.CookedShoppingChanged, viewModel.uiState.value.save.error)
             shoppingRepository.cookedFailure = null
             mealRepository.restoreGate = CompletableDeferred()
-            viewModel.restoreMeal("home", meal("m2", LocalDate.now(), MealSlot.COMIDA, "Lentejas"))
+            viewModel.undo(Undoable.Deleted("home", meal("m2", LocalDate.now(), MealSlot.COMIDA, "Lentejas")))
             runCurrent()
             val callsBefore = shoppingRepository.cookedCalls.size
 
@@ -92,7 +93,7 @@ class MealsPendingFeedbackViewModelTest {
             advanceUntilIdle()
             val review = viewModel.uiState.value.ingredientReview!!
             mealRepository.nextFailure = MealRepositoryException(MealFailure.SpaceNotFound)
-            viewModel.restoreMeal("home", meal)
+            viewModel.undo(Undoable.Deleted("home", meal))
             advanceUntilIdle()
             assertEquals(MealUiMessage.SpaceNotFound, viewModel.uiState.value.save.error)
 

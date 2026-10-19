@@ -6,6 +6,7 @@ import com.dlunaunizar.bobitos.core.common.EDITOR_SAVE_TIMEOUT_MILLIS
 import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.UiState
+import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
@@ -164,22 +165,14 @@ class MealsViewModelTest {
         advanceUntilIdle()
 
         viewModel.addMeal(LocalDate.now(), MealSlot.COMIDA, "  Lentejas ", emptyList(), recipeId = null, cookId = null)
-        advanceUntilIdle()
+        runCurrent()
 
-        assertEquals(CreatedItem("new-1", "Lentejas"), viewModel.uiState.value.save.created)
+        val offer = viewModel.undoOffers.value.single()
+        assertEquals(Undoable.Created("home", CreatedItem("new-1", "Lentejas")), offer.undoable)
         assertNull(viewModel.uiState.value.save.notice)
 
-        viewModel.feedback.consumeCreated()
-        assertNull(viewModel.uiState.value.save.created)
-    }
-
-    @Test
-    fun undoCreateDeletesExactlyThatItem() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.observe("home")
-        viewModel.undoCreate("new-1")
-        advanceUntilIdle()
-
-        assertEquals(listOf("new-1"), mealRepository.deleted)
+        viewModel.undoControls.consumeOffer(offer.serial)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
@@ -188,7 +181,7 @@ class MealsViewModelTest {
         viewModel.updateMeal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas", emptyList(), null, null)
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.save.created)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
@@ -201,7 +194,7 @@ class MealsViewModelTest {
         viewModel.duplicateDay(today.plusDays(1))
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.save.created)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
         assertEquals(MealUiMessage.MealsDuplicated, viewModel.uiState.value.save.notice)
     }
 
@@ -210,10 +203,10 @@ class MealsViewModelTest {
         viewModel.observe("home")
         advanceUntilIdle()
 
-        viewModel.restoreMeal("home", meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas"))
+        viewModel.undo(Undoable.Deleted("home", meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas")))
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.save.created)
+        assertTrue(viewModel.undoOffers.value.isEmpty())
     }
 
     @Test
@@ -263,7 +256,7 @@ class MealsViewModelTest {
         advanceUntilIdle()
         mealRepository.nextFailure = MealRepositoryException(MealFailure.Network)
 
-        viewModel.deleteMeal("m1")
+        viewModel.deleteMeal(meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas"))
         advanceUntilIdle()
 
         assertEquals(MealUiMessage.NetworkError, viewModel.uiState.value.save.error)
@@ -542,7 +535,7 @@ class MealsViewModelTest {
         viewModel.observe("home")
         advanceUntilIdle()
 
-        viewModel.restoreMeal("home", meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas"))
+        viewModel.undo(Undoable.Deleted("home", meal("m1", LocalDate.now(), MealSlot.COMIDA, "Lentejas")))
         advanceUntilIdle()
 
         assertEquals("Lentejas", mealRepository.restored.single().second.name)
@@ -868,6 +861,13 @@ internal class FakeMealRepository : MealRepository {
         throwNextFailure()
         restoreGate?.await()
         restored += spaceId to meal
+    }
+
+    val undoneAdds = mutableListOf<Pair<String, String>>()
+
+    override suspend fun undoAddMeal(spaceId: String, mealId: String) {
+        throwNextFailure()
+        undoneAdds += spaceId to mealId
     }
 
     val deleted = mutableListOf<String>()

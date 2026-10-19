@@ -34,7 +34,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -57,14 +56,12 @@ import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
 import com.dlunaunizar.bobitos.core.designsystem.component.AppDatePickerDialog
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.ClickableCard
-import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.DayTitleButton
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
 import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
-import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleHeaderBand
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
@@ -72,10 +69,10 @@ import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
+import com.dlunaunizar.bobitos.core.designsystem.component.UndoOfferEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.WeekDayStrip
 import com.dlunaunizar.bobitos.core.designsystem.component.cascadeIn
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
-import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberDayCascade
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorSlot
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
@@ -123,9 +120,6 @@ fun MealsScreen(
     var duplicateDayPicker by remember { mutableStateOf(false) }
     val members = (state.members as? UiState.Content)?.value.orEmpty()
     val actionsEnabled = canWrite && !state.save.isSaving
-    val scope = rememberCoroutineScope()
-    val deletedMessage = stringResource(R.string.meals_undo_deleted)
-    val undoLabel = stringResource(R.string.undo)
 
     val listState = rememberLazyListState()
     ModuleScaffold(
@@ -139,7 +133,7 @@ fun MealsScreen(
             )
         },
     ) { padding ->
-        val snackbar = LocalSnackbarHostState.current
+        val undoOffers by viewModel.undoOffers.collectAsStateWithLifecycle()
         // Con el editor o «Has cocinado …» abiertos, cubren la pantalla: el error de «Listo» se ve dentro del diálogo.
         SaveFeedbackEffect(
             save = state.save,
@@ -148,7 +142,12 @@ fun MealsScreen(
             errorText = { stringResource(it.stringResourceId) },
             noticeText = { stringResource(it.stringResourceId) },
         )
-        CreatedUndoEffect(state.save.created, viewModel.feedback::consumeCreated) { viewModel.undoCreate(it.id) }
+        UndoOfferEffect(
+            offers = undoOffers,
+            controls = viewModel.undoControls,
+            deletedMessage = R.string.meals_undo_deleted,
+            onUndo = viewModel::undo,
+        )
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             // La tira queda fija bajo la barra: no se desplaza con la lista.
             ModuleHeaderBand {
@@ -253,15 +252,7 @@ fun MealsScreen(
                                             actionsEnabled = actionsEnabled,
                                             onAdd = { openEditor(null, it) },
                                             onEdit = { meal -> openEditor(meal, meal.slot) },
-                                            onDelete = { meal ->
-                                                // El espacio se captura al borrar: «Deshacer» devuelve la comida a su espacio.
-                                                val deletedFrom = spaceId
-                                                viewModel.deleteMeal(meal.id) {
-                                                    scope.launchUndo(snackbar, deletedMessage, undoLabel) {
-                                                        viewModel.restoreMeal(deletedFrom, meal)
-                                                    }
-                                                }
-                                            },
+                                            onDelete = viewModel::deleteMeal,
                                             onAddToShopping = { viewModel.addIngredientsToShopping(it) },
                                             onToggleCooked = {
                                                 if (it.cooked) viewModel.unmarkCooked(it) else viewModel.markCooked(it)
@@ -733,6 +724,7 @@ private val MealUiMessage.stringResourceId: Int
         MealUiMessage.EmailNotVerified -> R.string.space_error_email_not_verified
         MealUiMessage.SpaceNotFound -> R.string.space_error_not_found
         MealUiMessage.MealNotFound -> R.string.meals_error_not_found
+        MealUiMessage.MealChanged -> R.string.meals_error_changed
         MealUiMessage.PermissionDenied -> R.string.space_error_permission_denied
         MealUiMessage.NetworkError -> R.string.space_error_network
         MealUiMessage.UnexpectedError -> R.string.space_error_unexpected

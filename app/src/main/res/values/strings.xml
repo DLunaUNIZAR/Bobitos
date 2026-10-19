@@ -471,6 +471,7 @@
     <string name="meals_error_name_too_long">El nombre es demasiado largo.</string>
     <string name="meals_error_invalid_participants">La selección de comensales no es válida.</string>
     <string name="meals_error_not_found">No se encontró la comida.</string>
+    <string name="meals_error_changed">La comida ha cambiado entretanto y no se ha deshecho.</string>
     <string name="meals_error_shopping_changed">La lista de la compra ha cambiado mientras la revisabas. Vuelve a añadir los ingredientes.</string>
     <string name="meals_error_cooked_shopping_changed">La lista de la compra ha cambiado mientras guardabas. No se ha guardado nada: vuelve a pulsar «Listo».</string>
     <string name="meals_error_cooked_item_changed">Mientras guardabas, alguien ha cambiado «%1$s» en la lista de la compra. No se ha guardado nada: vuelve a pulsar «Listo».</string>

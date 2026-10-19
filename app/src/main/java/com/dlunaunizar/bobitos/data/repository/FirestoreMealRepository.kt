@@ -6,6 +6,7 @@ import com.dlunaunizar.bobitos.core.model.MealSlot
 import com.dlunaunizar.bobitos.data.sync.RealtimeMetrics
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
 import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
+import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -73,31 +74,11 @@ class FirestoreMealRepository @Inject constructor(
         recipeId: String?,
         cookId: String?,
     ): String = runMealOperation {
-        val user = requireVerifiedUser()
-        val normalizedName = validate(name, participantIds, cookId)
-        val spaceReference = firestore.collection(SPACES).document(spaceId)
         val mealReference = mealsCollection(spaceId).document()
-        val memberReferences = participantIds.map { membership(spaceId, it) }
-
-        firestore.runTransaction { transaction ->
-            if (!transaction.get(spaceReference).exists()) {
-                throw MealRepositoryException(MealFailure.SpaceNotFound)
-            }
-            val members = memberReferences.map(transaction::get)
-            requireParticipants(participantIds, members)
-            val names = members.displayNames()
-            transaction.set(
-                mealReference,
-                mealData(
-                    user, date, slot, normalizedName, participantIds, names, recipeId, cookId,
-                    cookName(
-                        cookId,
-                        participantIds,
-                        names,
-                    ),
-                ),
-            )
-        }.await()
+        writeNewMeal(
+            spaceId, mealReference, date, slot, name, participantIds, recipeId, cookId,
+            cooked = false, restoring = false,
+        )
         mealReference.id
     }
 
@@ -163,23 +144,60 @@ class FirestoreMealRepository @Inject constructor(
         Unit
     }
 
-    override suspend fun restoreMeal(spaceId: String, meal: Meal) = runMealOperation {
+    override suspend fun undoAddMeal(spaceId: String, mealId: String) = runMealOperation {
         val user = requireVerifiedUser()
+        val reference = mealsCollection(spaceId).document(mealId)
+        firestore.runTransaction { transaction ->
+            val meal = requireMeal(transaction.get(reference))
+            if (!isLastWriter(meal.getString(FIELD_UPDATED_BY), user.id)) {
+                throw MealRepositoryException(MealFailure.MealChanged)
+            }
+            transaction.delete(reference)
+        }.await()
+        Unit
+    }
+
+    override suspend fun restoreMeal(spaceId: String, meal: Meal) = runMealOperation {
+        writeNewMeal(
+            spaceId, mealsCollection(spaceId).document(meal.id), meal.date, meal.slot, meal.name,
+            meal.participantIds, meal.recipeId, meal.cookId, meal.cooked, restoring = true,
+        )
+    }
+
+    // El alta y la restauración escriben igual: misma validación y mismo mapa de campos, en una sola escritura. Al
+    // restaurar vuelven solo los participantes que siguen activos, y el cocinero si es uno de ellos.
+    @Suppress("LongParameterList")
+    private suspend fun writeNewMeal(
+        spaceId: String,
+        mealReference: DocumentReference,
+        date: LocalDate,
+        slot: MealSlot,
+        name: String,
+        participantIds: List<String>,
+        recipeId: String?,
+        cookId: String?,
+        cooked: Boolean,
+        restoring: Boolean,
+    ) {
+        val user = requireVerifiedUser()
+        val normalizedName = validate(name, participantIds, cookId)
         val spaceReference = firestore.collection(SPACES).document(spaceId)
-        val reference = mealsCollection(spaceId).document(meal.id)
+        val memberReferences = participantIds.map { membership(spaceId, it) }
+
         firestore.runTransaction { transaction ->
             if (!transaction.get(spaceReference).exists()) {
                 throw MealRepositoryException(MealFailure.SpaceNotFound)
             }
+            val active =
+                activeMembers(participantIds, memberReferences.map { transaction.get(it).toMembershipRecord() })
+            if (!restoring && active.size != participantIds.size) {
+                throw MealRepositoryException(MealFailure.InvalidParticipants)
+            }
             transaction.set(
-                reference,
-                mealData(
-                    user, meal.date, meal.slot, meal.name, meal.participantIds, meal.participantNames,
-                    meal.recipeId, meal.cookId, meal.cookName,
-                ) + (FIELD_COOKED to meal.cooked),
+                mealReference,
+                mealData(user, date, slot, normalizedName, mealPeople(cookId, active), recipeId, cooked),
             )
         }.await()
-        Unit
     }
 
     private fun mealsCollection(spaceId: String) = firestore
@@ -240,25 +258,6 @@ class FirestoreMealRepository @Inject constructor(
     private fun List<DocumentSnapshot>.displayNames(): List<String> = map { it.getString(FIELD_DISPLAY_NAME).orEmpty() }
 
     @Suppress("LongParameterList")
-    private fun mealData(
-        user: AuthUser,
-        date: LocalDate,
-        slot: MealSlot,
-        name: String,
-        participantIds: List<String>,
-        participantNames: List<String>,
-        recipeId: String?,
-        cookId: String?,
-        cookName: String?,
-    ) = commonData(date, slot, name, participantIds, participantNames, recipeId, cookId, cookName) + mapOf(
-        FIELD_CREATED_BY to user.id,
-        FIELD_CREATED_BY_NAME to user.mealDisplayName,
-        FIELD_CREATED_AT to FieldValue.serverTimestamp(),
-        FIELD_UPDATED_BY to user.id,
-        FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
-    )
-
-    @Suppress("LongParameterList")
     private fun mealUpdateData(
         user: AuthUser,
         date: LocalDate,
@@ -269,30 +268,9 @@ class FirestoreMealRepository @Inject constructor(
         recipeId: String?,
         cookId: String?,
         cookName: String?,
-    ) = commonData(date, slot, name, participantIds, participantNames, recipeId, cookId, cookName) + mapOf(
+    ) = mealCommonFields(date, slot, name, participantIds, participantNames, recipeId, cookId, cookName) + mapOf(
         FIELD_UPDATED_BY to user.id,
         FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
-    )
-
-    @Suppress("LongParameterList")
-    private fun commonData(
-        date: LocalDate,
-        slot: MealSlot,
-        name: String,
-        participantIds: List<String>,
-        participantNames: List<String>,
-        recipeId: String?,
-        cookId: String?,
-        cookName: String?,
-    ) = mapOf(
-        FIELD_DATE to date.toString(),
-        FIELD_SLOT to slot.name,
-        FIELD_NAME to name,
-        FIELD_PARTICIPANT_IDS to participantIds,
-        FIELD_PARTICIPANT_NAMES to participantNames,
-        FIELD_RECIPE_ID to recipeId,
-        FIELD_COOK_ID to cookId,
-        FIELD_COOK_NAME to cookName,
     )
 
     private suspend inline fun <T> runMealOperation(crossinline operation: suspend () -> T): T {
@@ -317,17 +295,7 @@ class FirestoreMealRepository @Inject constructor(
         const val MEALS = "meals"
         const val MEMBERSHIPS = "memberships"
         const val FIELD_DATE = "date"
-        const val FIELD_SLOT = "slot"
-        const val FIELD_NAME = "name"
-        const val FIELD_PARTICIPANT_IDS = "participantIds"
-        const val FIELD_PARTICIPANT_NAMES = "participantNames"
-        const val FIELD_RECIPE_ID = "recipeId"
         const val FIELD_COOKED = "cooked"
-        const val FIELD_COOK_ID = "cookId"
-        const val FIELD_COOK_NAME = "cookName"
-        const val FIELD_CREATED_BY = "createdBy"
-        const val FIELD_CREATED_BY_NAME = "createdByName"
-        const val FIELD_CREATED_AT = "createdAt"
         const val FIELD_UPDATED_BY = "updatedBy"
         const val FIELD_UPDATED_AT = "updatedAt"
         const val FIELD_USER_ID = "userId"
@@ -339,6 +307,70 @@ class FirestoreMealRepository @Inject constructor(
         const val MAX_VISIBLE_MEALS = 250L
     }
 }
+
+/** Quienes comen y cocinan una comida, ya comprobados contra las membresías activas. */
+internal data class MealPeople(
+    val participantIds: List<String>,
+    val participantNames: List<String>,
+    val cookId: String?,
+    val cookName: String?,
+)
+
+/** Participantes que siguen activos ([active], en orden) y el cocinero solo si está entre ellos. */
+internal fun mealPeople(cookId: String?, active: List<ActiveMember>): MealPeople {
+    val cook = active.firstOrNull { it.id == cookId }
+    return MealPeople(active.map(ActiveMember::id), active.map(ActiveMember::name), cook?.id, cook?.name)
+}
+
+// Campos de una comida que se da de alta o se restaura: la autoría y las fechas son de quien escribe, como exigen las
+// reglas; `cooked` va en la misma escritura (false en un alta, el de la comida al restaurar).
+@Suppress("LongParameterList")
+internal fun mealData(
+    user: AuthUser,
+    date: LocalDate,
+    slot: MealSlot,
+    name: String,
+    people: MealPeople,
+    recipeId: String?,
+    cooked: Boolean,
+): Map<String, Any?> = mealCommonFields(
+    date,
+    slot,
+    name,
+    people.participantIds,
+    people.participantNames,
+    recipeId,
+    people.cookId,
+    people.cookName,
+) + mapOf(
+    "cooked" to cooked,
+    "createdBy" to user.id,
+    "createdByName" to user.mealDisplayName,
+    "createdAt" to FieldValue.serverTimestamp(),
+    "updatedBy" to user.id,
+    "updatedAt" to FieldValue.serverTimestamp(),
+)
+
+@Suppress("LongParameterList")
+private fun mealCommonFields(
+    date: LocalDate,
+    slot: MealSlot,
+    name: String,
+    participantIds: List<String>,
+    participantNames: List<String>,
+    recipeId: String?,
+    cookId: String?,
+    cookName: String?,
+) = mapOf(
+    "date" to date.toString(),
+    "slot" to slot.name,
+    "name" to name,
+    "participantIds" to participantIds,
+    "participantNames" to participantNames,
+    "recipeId" to recipeId,
+    "cookId" to cookId,
+    "cookName" to cookName,
+)
 
 private val AuthUser.mealDisplayName: String
     get() = displayName.ifBlank { email.substringBefore('@') }.take(60)
