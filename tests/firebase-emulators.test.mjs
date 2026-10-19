@@ -647,7 +647,7 @@ test("deshacer completar devuelve estado y fechas en una escritura", async () =>
   }));
 });
 
-test("deshacer el borrado de una tarea completada la devuelve con su id y completada (alta y actualización)", async () => {
+test("deshacer el borrado de una tarea completada la devuelve con su id y completada en una sola escritura", async () => {
   await seedSpace("tasks-restore", "task-restore-owner", ["task-restore-member"]);
   const owner = verifiedFirestore("task-restore-owner");
   const member = verifiedFirestore("task-restore-member");
@@ -657,14 +657,9 @@ test("deshacer el borrado de una tarea completada la devuelve con su id y comple
   await assertSucceeds(writeBatch(owner).delete(reference).commit());
 
   const restoredReference = doc(member, "spaces", "tasks-restore", "tasks", "done-task");
-  await assertSucceeds(setDoc(restoredReference, taskData("task-restore-member", null, { title: "Fregar" })));
-  await assertSucceeds(updateDoc(restoredReference, {
-    status: "DONE",
-    completedBy: "task-restore-member",
-    completedByName: "task-restore-member",
-    completedAt: serverTimestamp(),
-    updatedBy: "task-restore-member",
-    updatedAt: serverTimestamp(),
+  await assertSucceeds(runTransaction(member, async (transaction) => {
+    await transaction.get(doc(member, "spaces", "tasks-restore"));
+    transaction.set(restoredReference, doneTask("task-restore-member", { title: "Fregar" }));
   }));
   const restored = await getDoc(restoredReference);
   assert.equal(restored.exists(), true);
@@ -673,7 +668,7 @@ test("deshacer el borrado de una tarea completada la devuelve con su id y comple
   assert.equal(restored.data().createdBy, "task-restore-member");
 });
 
-test("deshacer el borrado de un producto comprado lo devuelve con su id y comprado (alta y actualización)", async () => {
+test("deshacer el borrado de un producto comprado lo devuelve con su id y comprado en una sola escritura", async () => {
   await seedSpace("shopping-restore", "shop-restore-owner", ["shop-restore-member"]);
   const owner = verifiedFirestore("shop-restore-owner");
   const member = verifiedFirestore("shop-restore-member");
@@ -682,15 +677,7 @@ test("deshacer el borrado de un producto comprado lo devuelve con su id y compra
   await assertSucceeds(writeBatch(owner).delete(reference).commit());
 
   const restoredReference = doc(member, "spaces", "shopping-restore", "shoppingItems", "bought");
-  await assertSucceeds(setDoc(restoredReference, shoppingItem("shop-restore-member", { name: "Pan" })));
-  await assertSucceeds(updateDoc(restoredReference, {
-    purchased: true,
-    purchasedBy: "shop-restore-member",
-    purchasedByName: "shop-restore-member",
-    purchasedAt: serverTimestamp(),
-    updatedBy: "shop-restore-member",
-    updatedAt: serverTimestamp(),
-  }));
+  await assertSucceeds(setDoc(restoredReference, boughtItem("shop-restore-member", { name: "Pan" })));
   const restored = await getDoc(restoredReference);
   assert.equal(restored.exists(), true);
   assert.equal(restored.data().name, "Pan");
@@ -717,7 +704,7 @@ test("deshacer el borrado de una comida cocinada la devuelve con su id y cocinad
   assert.equal(restored.data().createdBy, "meal-restore-member");
 });
 
-test("deshacer el borrado de una actividad hecha devuelve actividad y evento con sus ids, y después se marca hecha", async () => {
+test("deshacer el borrado de una actividad hecha devuelve actividad y evento con sus ids, y ya hecha, en un único lote", async () => {
   await seedSpace("act-restore", "act-restore-owner", ["act-restore-member"]);
   const owner = verifiedFirestore("act-restore-owner");
   const member = verifiedFirestore("act-restore-member");
@@ -732,19 +719,30 @@ test("deshacer el borrado de una actividad hecha devuelve actividad y evento con
   const restoredEvent = doc(member, "spaces", "act-restore", "events", "leg-event");
   await assertSucceeds(
     writeBatch(member)
-      .set(restoredActivity, activityData("act-restore-member", { name: "Pierna", eventId: "leg-event" }))
+      .set(restoredActivity, activityData("act-restore-member", { name: "Pierna", eventId: "leg-event", done: true }))
       .set(restoredEvent, eventData("act-restore-member", { title: "Pierna (editado)" }))
       .commit(),
   );
-  await assertSucceeds(updateDoc(restoredActivity, {
-    done: true, updatedBy: "act-restore-member", updatedAt: serverTimestamp(),
-  }));
   const activity = await getDoc(restoredActivity);
   const event = await getDoc(restoredEvent);
   assert.equal(activity.data().done, true);
   assert.equal(activity.data().eventId, "leg-event");
   assert.equal(event.exists(), true);
   assert.equal(event.data().title, "Pierna (editado)");
+});
+
+test("el alta de una tarea o un producto completado con atribución falsa es rechazada", async () => {
+  await seedSpace("create-done-negatives", "neg-owner", ["neg-member"]);
+  const member = verifiedFirestore("neg-member");
+  const tasks = (id) => doc(member, "spaces", "create-done-negatives", "tasks", id);
+  const items = (id) => doc(member, "spaces", "create-done-negatives", "shoppingItems", id);
+  await assertFails(setDoc(tasks("t1"), doneTask("neg-member", { completedBy: "neg-owner" })));
+  await assertFails(setDoc(tasks("t2"), doneTask("neg-member", { completedAt: Timestamp.fromMillis(1000) })));
+  await assertFails(setDoc(tasks("t3"), doneTask("neg-member", { completedByName: null })));
+  await assertFails(setDoc(tasks("t4"), taskData("neg-member", null, { completedBy: "neg-member" })));
+  await assertFails(setDoc(items("i1"), boughtItem("neg-member", { purchasedBy: "neg-owner" })));
+  await assertFails(setDoc(items("i2"), boughtItem("neg-member", { purchasedAt: Timestamp.fromMillis(1000) })));
+  await assertFails(setDoc(items("i3"), shoppingItem("neg-member", { purchasedBy: "neg-member" })));
 });
 
 test("una atribución de completado falsa es rechazada", async () => {
@@ -3431,6 +3429,26 @@ function taskData(userId, assigneeId, overrides = {}) {
     completedAt: null,
     ...overrides,
   };
+}
+
+function doneTask(userId, overrides = {}) {
+  return taskData(userId, null, {
+    status: "DONE",
+    completedBy: userId,
+    completedByName: userId,
+    completedAt: serverTimestamp(),
+    ...overrides,
+  });
+}
+
+function boughtItem(userId, overrides = {}) {
+  return shoppingItem(userId, {
+    purchased: true,
+    purchasedBy: userId,
+    purchasedByName: userId,
+    purchasedAt: serverTimestamp(),
+    ...overrides,
+  });
 }
 
 function completeTask(firestore, spaceId, taskId, userId) {

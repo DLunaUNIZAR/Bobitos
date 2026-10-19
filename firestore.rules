@@ -225,14 +225,12 @@ service cloud.firestore {
     function validNewShoppingItem(spaceId) {
       return isActiveMember(spaceId)
         && validShoppingItemShape()
-        && request.resource.data.purchased == false
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.createdAt == request.time
         && request.resource.data.updatedBy == request.auth.uid
         && request.resource.data.updatedAt == request.time
-        && request.resource.data.purchasedBy == null
-        && request.resource.data.purchasedByName == null
-        && request.resource.data.purchasedAt == null;
+        // Pendiente, o ya comprado por quien lo crea y ahora (deshacer el borrado de un comprado).
+        && validShoppingPurchaseAttribution();
     }
 
     function validShoppingItemUpdate(spaceId) {
@@ -360,14 +358,12 @@ service cloud.firestore {
     function validNewTask(spaceId) {
       return isActiveMember(spaceId)
         && validTaskShape(spaceId)
-        && request.resource.data.status == "TODO"
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.createdAt == request.time
         && request.resource.data.updatedBy == request.auth.uid
         && request.resource.data.updatedAt == request.time
-        && request.resource.data.completedBy == null
-        && request.resource.data.completedByName == null
-        && request.resource.data.completedAt == null;
+        // Pendiente, o ya completada por quien la crea y ahora (deshacer el borrado de una completada).
+        && validTaskCompletion();
     }
 
     function validTaskUpdate(spaceId) {
@@ -629,7 +625,6 @@ service cloud.firestore {
 
     function validNewActivity(spaceId) {
       return isActiveMember(spaceId) && validActivityShape()
-        && request.resource.data.done == false
         && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time
         && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
     }
