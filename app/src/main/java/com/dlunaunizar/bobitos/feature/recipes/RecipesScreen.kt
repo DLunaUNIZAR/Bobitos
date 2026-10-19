@@ -54,7 +54,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
-import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdown
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
@@ -62,9 +61,9 @@ import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
+import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
-import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rowPosition
 import com.dlunaunizar.bobitos.core.designsystem.component.savingOutsideEditor
@@ -144,7 +143,7 @@ fun RecipesScreen(
 
     val closeEditor: () -> Unit = {
         // Cerrar tras un guardado fallido descarta ese error (ya se veía en la hoja).
-        state.editorSave.discardFailure(viewModel::clearFeedback)
+        viewModel.feedback.resetEditor()
         editorOpen = false
         editorRecipeId = null
         imported = null
@@ -156,7 +155,7 @@ fun RecipesScreen(
         title = stringResource(R.string.recipes_title),
         onBack = onBack,
         modifier = modifier,
-        saving = savingOutsideEditor(state.isSaving, editorOpen),
+        saving = savingOutsideEditor(state.save.isSaving, editorOpen),
         actions = {
             if (canWrite) {
                 IconButton(onClick = { showImport = true }) {
@@ -189,21 +188,19 @@ fun RecipesScreen(
             viewModel.consumeDeletedRecipe()
             scope.launchUndo(snackbarHost, deletedMessage, undoLabel) { viewModel.restoreRecipe(deleted) }
         }
-        CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
+        CreatedUndoEffect(state.save.created, viewModel.feedback::consumeCreated) { viewModel.undoCreate(it.id) }
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            // El error de la importación ya se ve dentro de su diálogo.
-            val error = state.visibleError(importDialogOpen = showImport)
-            FeedbackSnackbarEffect(
-                error = error,
-                notice = state.notice,
-                editorSave = state.editorSave,
-                editorOpen = editorOpen,
-                onShown = viewModel::clearFeedback,
-                text = { stringResource(it.stringResourceId) },
+            // El error de la importación ya se ve dentro de su diálogo: abierto, cubre la pantalla.
+            SaveFeedbackEffect(
+                save = state.save,
+                controls = viewModel.feedback,
+                covered = editorOpen || showImport,
+                errorText = { stringResource(it.stringResourceId) },
+                noticeText = { stringResource(it.stringResourceId) },
             )
             val filtering = state.query.isNotBlank() || selectedCategory != null || pantryIds != null
             // Búsqueda o «Con lo que hay»: lista plana (sin cabeceras); si no, agrupada por categoría.
@@ -254,10 +251,10 @@ fun RecipesScreen(
     }
 
     EditorSaveEffect(
-        status = state.editorSave,
+        editor = state.save.editor,
         editorOpen = editorOpen,
+        controls = viewModel.feedback,
         onClose = closeEditor,
-        onConsume = viewModel::consumeEditorSave,
     )
     RecipeSheetsHost(
         state = state,
@@ -297,11 +294,11 @@ fun RecipesScreen(
     if (showImport) {
         ImportUrlDialog(
             importing = state.isImporting,
-            errorRes = state.error?.takeIf(RecipeUiMessage::isImport)?.stringResourceId,
+            errorRes = state.save.error?.takeIf(RecipeUiMessage::isImport)?.stringResourceId,
             onImport = viewModel::importFromUrl,
             onDismiss = {
                 showImport = false
-                viewModel.clearFeedback()
+                viewModel.feedback.consumeError()
             },
         )
     }
@@ -572,9 +569,6 @@ private fun ImportUrlDialog(
 }
 
 private fun UiState<List<Recipe>>.contentOrEmpty(): List<Recipe> = (this as? UiState.Content)?.value.orEmpty()
-
-private fun RecipesUiState.visibleError(importDialogOpen: Boolean): RecipeUiMessage? =
-    error?.takeUnless { importDialogOpen && it.isImport() }
 
 private fun RecipeUiMessage.isImport(): Boolean = this in IMPORT_MESSAGES
 

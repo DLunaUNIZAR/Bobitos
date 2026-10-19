@@ -3,14 +3,11 @@ package com.dlunaunizar.bobitos.feature.recipes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.CreatedItem
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
+import com.dlunaunizar.bobitos.core.common.SaveRunner
 import com.dlunaunizar.bobitos.core.common.SaveTimeoutException
 import com.dlunaunizar.bobitos.core.common.UiState
-import com.dlunaunizar.bobitos.core.common.failed
-import com.dlunaunizar.bobitos.core.common.started
-import com.dlunaunizar.bobitos.core.common.succeeded
 import com.dlunaunizar.bobitos.core.common.toFailureKind
-import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
 import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
@@ -34,7 +31,6 @@ import com.dlunaunizar.bobitos.feature.common.idsFlow
 import com.dlunaunizar.bobitos.feature.common.withCurrentIds
 import com.dlunaunizar.bobitos.feature.common.writesNothing
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -54,6 +50,9 @@ class RecipesViewModel @Inject constructor(
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(RecipesUiState())
     val uiState: StateFlow<RecipesUiState> = mutableUiState.asStateFlow()
+    private val saver =
+        SaveRunner(viewModelScope, mutableUiState, RecipesUiState::save, { copy(save = it) }, Throwable::toUiMessage)
+    val feedback: SaveFeedbackControls get() = saver
 
     private var globalJob: Job? = null
     private var mineJob: Job? = null
@@ -142,42 +141,29 @@ class RecipesViewModel @Inject constructor(
     fun addToShopping(spaceId: String, recipe: Recipe) {
         val ingredients = recipe.ingredients.orEmpty()
         if (ingredients.isEmpty()) {
-            showError(RecipeUiMessage.NoIngredients)
+            saver.showError(RecipeUiMessage.NoIngredients)
             return
         }
-        // La lectura del servidor puede tardar: mientras espera, isSaving evita lecturas en paralelo.
-        if (mutableUiState.value.isSaving) return
-        mutableUiState.update { it.copy(isSaving = true) }
-        viewModelScope.launch {
-            try {
-                // La lista y la despensa del servidor, a la vez. Sin la lista no se pueden buscar repetidos: si no se
-                // puede leer, no se abre la revisión; si no se puede leer la despensa, la revisión sale sin ella.
-                val (current, pantryIds) = runCatching {
-                    pantryRepository.withCurrentIds(spaceId) { shoppingRepository.currentItems(spaceId) }
-                }
-                    .onFailure { if (it is CancellationException) throw it }
-                    .getOrElse { error ->
-                        showError(error.toUiMessage())
-                        return@launch
-                    }
-                val rows = buildIngredientReviewRows(ingredients, current, shoppingData, pantryIds.orEmpty())
-                mutableUiState.update { it.copy(ingredientReview = rows) }
-            } finally {
-                mutableUiState.update { it.copy(isSaving = false) }
-            }
+        // La lectura del servidor puede tardar: mientras espera, «en curso» evita lecturas en paralelo. La lista y la
+        // despensa del servidor, a la vez. Sin la lista no se pueden buscar repetidos: si no se puede leer, no se abre
+        // la revisión; si no se puede leer la despensa, la revisión sale sin ella.
+        saver.run(onSuccess = { rows -> copy(ingredientReview = rows) }) {
+            val (current, pantryIds) =
+                pantryRepository.withCurrentIds(spaceId) { shoppingRepository.currentItems(spaceId) }
+            buildIngredientReviewRows(ingredients, current, shoppingData, pantryIds.orEmpty())
         }
     }
 
     fun confirmShoppingReview(spaceId: String, choices: List<IngredientReviewChoice>) {
         val rows = mutableUiState.value.ingredientReview ?: return
         if (choices.writesNothing()) {
-            mutableUiState.update {
-                it.copy(ingredientReview = null, error = null, notice = RecipeUiMessage.NothingToAddToShopping)
-            }
+            mutableUiState.update { it.copy(ingredientReview = null) }
+            saver.clearFeedback()
+            saver.showNotice(RecipeUiMessage.NothingToAddToShopping)
             return
         }
         mutableUiState.update { it.copy(ingredientReview = null) }
-        runAction(RecipeUiMessage.AddedToShopping) {
+        saver.run(notice = RecipeUiMessage.AddedToShopping) {
             applyIngredientReview(spaceId, rows, choices, shoppingRepository)
         }
     }
@@ -204,7 +190,7 @@ class RecipesViewModel @Inject constructor(
         if (!validate(title, description, category, steps, servings, totalMinutes)) return
         val trimmed = title.trim()
         // Un alta desde la hoja (crear o importar) deja `created` (con «Deshacer») en lugar del aviso de guardado.
-        runAction(null, editor = true) {
+        saver.create(editor = true) {
             val id = repository.createRecipe(
                 visibility = safeVisibility(visibility),
                 title = trimmed,
@@ -224,13 +210,15 @@ class RecipesViewModel @Inject constructor(
     /** Descarga la receta de [url] (schema.org/Recipe) y, si tiene éxito, la deja en `importDraft`. */
     fun importFromUrl(url: String) {
         if (mutableUiState.value.isImporting) return
-        mutableUiState.update { it.copy(isImporting = true, error = null, notice = null) }
+        saver.clearFeedback()
+        mutableUiState.update { it.copy(isImporting = true) }
         viewModelScope.launch {
             try {
                 val draft = importer.import(url)
                 mutableUiState.update { it.copy(isImporting = false, importDraft = draft) }
             } catch (error: RecipeImportException) {
-                mutableUiState.update { it.copy(isImporting = false, error = error.failure.toUiMessage()) }
+                mutableUiState.update { it.copy(isImporting = false) }
+                saver.showError(error.failure.toUiMessage())
             }
         }
     }
@@ -251,7 +239,7 @@ class RecipesViewModel @Inject constructor(
         totalMinutes: Int? = null,
     ) {
         if (!validate(title, description, category, steps, servings, totalMinutes)) return
-        runAction(RecipeUiMessage.RecipeSaved, editor = true) {
+        saver.run(notice = RecipeUiMessage.RecipeSaved, editor = true) {
             repository.updateRecipe(
                 recipeId = recipeId,
                 title = title.trim(),
@@ -300,19 +288,19 @@ class RecipesViewModel @Inject constructor(
     // no duplica una común recuperada y las comidas que la enlazaban la vuelven a encontrar. Si quien deshace ya no
     // puede publicar comunes, las reglas lo rechazan y sale el error (nunca se guarda como privada con el id del
     // catálogo). No es un guardado del editor, no mueve su estado.
-    fun restoreRecipe(recipe: Recipe) = runAction(null, force = true) { repository.restoreRecipe(recipe) }
+    fun restoreRecipe(recipe: Recipe) = saver.run(force = true) { repository.restoreRecipe(recipe) }
 
     // Sin notice: el «Deshacer» lo ofrece la pantalla cuando el servidor confirma el borrado (deletedRecipe); si
     // falla, sale el error y no se ofrece.
     fun deleteRecipe(recipe: Recipe) {
-        runAction(null, onSuccess = { it.copy(deletedRecipe = recipe) }) { repository.deleteRecipe(recipe.id) }
+        saver.run(onSuccess = { copy(deletedRecipe = recipe) }) { repository.deleteRecipe(recipe.id) }
     }
 
     fun consumeDeletedRecipe() = mutableUiState.update { it.copy(deletedRecipe = null) }
 
     fun fork(source: Recipe) {
         // «Guardar como mía» deja `created` con la copia (su id, no el de la original) en lugar del aviso de copia.
-        runAction(null) {
+        saver.create {
             val id = repository.createRecipe(
                 visibility = RecipeVisibility.PRIVATE,
                 title = source.title,
@@ -328,19 +316,9 @@ class RecipesViewModel @Inject constructor(
         }
     }
 
-    fun consumeCreated() = mutableUiState.update { it.copy(created = null) }
-
     // «Deshacer» el alta: borra justo esa receta con el borrado de siempre, sin ofrecer otro «Deshacer» (sin aviso; si
     // falla, sale el error).
-    fun undoCreate(id: String) = runAction(null, force = true) { repository.deleteRecipe(id) }
-
-    fun consumeEditorSave() {
-        mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
-    }
-
-    fun clearFeedback() {
-        mutableUiState.update { it.copy(error = null, notice = null) }
-    }
+    fun undoCreate(id: String) = saver.run(force = true) { repository.deleteRecipe(id) }
 
     // GLOBAL solo para admins; el resto siempre PRIVATE aunque llegue otra cosa (las reglas también lo exigen).
     private fun safeVisibility(visibility: RecipeVisibility) =
@@ -360,48 +338,8 @@ class RecipesViewModel @Inject constructor(
     ): Boolean {
         val error = RecipesValidation.validate(title, description, category, steps, servings, totalMinutes)
             ?: return true
-        showError(error, editor = true)
+        saver.showEditorError(error)
         return false
-    }
-
-    private fun showError(message: RecipeUiMessage, editor: Boolean = false) {
-        mutableUiState.update {
-            it.copy(isSaving = false, error = message, notice = null, editorSave = it.editorSave.failed(editor))
-        }
-    }
-
-    private fun runAction(
-        successNotice: RecipeUiMessage?,
-        editor: Boolean = false,
-        onSuccess: (RecipesUiState) -> RecipesUiState = { it },
-        force: Boolean = false,
-        // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
-        action: suspend () -> Any?,
-    ) {
-        if (mutableUiState.value.isSaving && !force) return
-        mutableUiState.update {
-            it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
-        }
-        viewModelScope.launch {
-            runCatching { withEditorSaveTimeout(editor) { action() } }
-                .onSuccess { result ->
-                    mutableUiState.update {
-                        val saved = it.editorSave.succeeded(editor)
-                        onSuccess(
-                            it.copy(
-                                isSaving = false,
-                                notice = successNotice,
-                                created = result as? CreatedItem,
-                                editorSave = saved,
-                            ),
-                        )
-                    }
-                }
-                .onFailure { error ->
-                    if (error is CancellationException) throw error
-                    showError(error.toUiMessage(), editor)
-                }
-        }
     }
 }
 

@@ -32,7 +32,6 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosFormSheet
 import com.dlunaunizar.bobitos.core.designsystem.component.BobitosInfoSheet
@@ -85,7 +84,7 @@ internal fun RecipeSheetsHost(
             recipe = recipe,
             detailActions = recipeDetailActions(recipe, canWrite, state.isAdmin),
             canAddToShopping = canWrite && canAddToShopping,
-            deleteEnabled = !state.isSaving,
+            deleteEnabled = !state.save.isSaving,
             actions = actions,
         )
     }
@@ -94,9 +93,8 @@ internal fun RecipeSheetsHost(
         RecipeEditor(
             recipe = editing,
             imported = imported,
-            saving = state.isSaving,
-            errorMessage = state.error?.takeIf { state.editorSave == EditorSaveStatus.FAILED }
-                ?.let { stringResource(it.stringResourceId) },
+            saving = state.save.isSaving,
+            errorMessage = state.save.editorError?.let { stringResource(it.stringResourceId) },
             canWrite = canWrite,
             isAdmin = state.isAdmin,
             onDismiss = actions.onCloseEditor,

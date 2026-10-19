@@ -69,13 +69,17 @@ class RecipesViewModelTest {
     private val brandRepository = FakeIngredientBrandRepository()
     private val prefsRepository = FakeIngredientPrefsRepository()
     private val pantryRepository = FakePantryRepository()
-    private val viewModel = RecipesViewModel(
-        repository,
-        importer,
-        shoppingRepository,
-        ingredientShoppingSource(ingredientRepository, brandRepository, prefsRepository),
-        pantryRepository,
-    )
+
+    // Perezoso: el SaveRunner toca viewModelScope al construirse, antes de que MainDispatcherRule ponga el dispatcher.
+    private val viewModel by lazy {
+        RecipesViewModel(
+            repository,
+            importer,
+            shoppingRepository,
+            ingredientShoppingSource(ingredientRepository, brandRepository, prefsRepository),
+            pantryRepository,
+        )
+    }
 
     @Test
     fun `observes global and personal recipes`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -106,7 +110,7 @@ class RecipesViewModelTest {
         assertEquals(RecipeVisibility.PRIVATE, repository.lastVisibility)
         assertEquals("Tortilla", repository.lastTitle)
         assertEquals(null, repository.lastSourceRecipeId)
-        assertNull(viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -126,7 +130,7 @@ class RecipesViewModelTest {
         viewModel.createRecipe(RecipeVisibility.PRIVATE, "Lentejas", null, null)
         advanceUntilIdle()
 
-        assertEquals(RecipeUiMessage.ServingsInvalid, viewModel.uiState.value.error)
+        assertEquals(RecipeUiMessage.ServingsInvalid, viewModel.uiState.value.save.editorError)
     }
 
     @Test
@@ -143,7 +147,7 @@ class RecipesViewModelTest {
         viewModel.createRecipe(RecipeVisibility.PRIVATE, "   ", null, null)
 
         assertEquals(0, repository.createCount)
-        assertEquals(RecipeUiMessage.TitleRequired, viewModel.uiState.value.error)
+        assertEquals(RecipeUiMessage.TitleRequired, viewModel.uiState.value.save.editorError)
     }
 
     @Test
@@ -183,7 +187,7 @@ class RecipesViewModelTest {
             assertEquals("Paella común", repository.lastTitle)
             assertEquals("origin", repository.lastSourceRecipeId)
             assertEquals(ingredients, repository.lastIngredients)
-            assertNull(viewModel.uiState.value.notice)
+            assertNull(viewModel.uiState.value.save.notice)
         }
 
     @Test
@@ -224,7 +228,7 @@ class RecipesViewModelTest {
         advanceUntilIdle()
 
         assertEquals(null, viewModel.uiState.value.importDraft)
-        assertEquals(RecipeUiMessage.ImportNoRecipe, viewModel.uiState.value.error)
+        assertEquals(RecipeUiMessage.ImportNoRecipe, viewModel.uiState.value.save.error)
         assertEquals(false, viewModel.uiState.value.isImporting)
     }
 
@@ -277,7 +281,7 @@ class RecipesViewModelTest {
         assertEquals(listOf("Huevo"), shoppingRepository.addedNames)
         assertEquals(listOf(Supermarket.EROSKI), shoppingRepository.addedSupermarkets)
         assertEquals(listOf<String?>("Camperos"), shoppingRepository.addedBrands)
-        assertEquals(RecipeUiMessage.AddedToShopping, viewModel.uiState.value.notice)
+        assertEquals(RecipeUiMessage.AddedToShopping, viewModel.uiState.value.save.notice)
         assertEquals(null, viewModel.uiState.value.ingredientReview)
     }
 
@@ -298,7 +302,7 @@ class RecipesViewModelTest {
 
             assertTrue(shoppingRepository.addedNames.isEmpty())
             assertTrue(shoppingRepository.updatedIds.isEmpty())
-            assertEquals(RecipeUiMessage.NothingToAddToShopping, viewModel.uiState.value.notice)
+            assertEquals(RecipeUiMessage.NothingToAddToShopping, viewModel.uiState.value.save.notice)
             assertEquals(null, viewModel.uiState.value.ingredientReview)
         }
 
@@ -316,10 +320,35 @@ class RecipesViewModelTest {
             runCurrent()
 
             assertEquals(1, shoppingRepository.currentItemsCalls)
-            assertTrue(viewModel.uiState.value.isSaving)
+            assertTrue(viewModel.uiState.value.save.isSaving)
             gate.complete(Unit)
             advanceUntilIdle()
-            assertFalse(viewModel.uiState.value.isSaving)
+            assertFalse(viewModel.uiState.value.save.isSaving)
+            assertEquals(listOf("Huevo"), viewModel.uiState.value.ingredientReview?.map { it.name })
+        }
+
+    @Test
+    fun `adding to shopping keeps saving on while it reads and blocks another action`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel.observe()
+            advanceUntilIdle()
+            val gate = CompletableDeferred<Unit>()
+            shoppingRepository.currentItemsGate = gate
+            val recipe = recipe("r1", RecipeVisibility.PRIVATE, "Tortilla", listOf(Ingredient("Huevo", "4", "uds")))
+
+            viewModel.addToShopping("home", recipe)
+            runCurrent()
+            assertTrue(viewModel.uiState.value.save.isSaving)
+            viewModel.deleteRecipe(recipe)
+            runCurrent()
+            assertTrue(repository.deletedIds.isEmpty())
+            assertTrue(viewModel.uiState.value.save.isSaving)
+
+            gate.complete(Unit)
+            advanceUntilIdle()
+
+            assertFalse(viewModel.uiState.value.save.isSaving)
+            assertNull(viewModel.uiState.value.save.notice)
             assertEquals(listOf("Huevo"), viewModel.uiState.value.ingredientReview?.map { it.name })
         }
 
@@ -336,9 +365,9 @@ class RecipesViewModelTest {
             )
             advanceUntilIdle()
 
-            assertFalse(viewModel.uiState.value.isSaving)
+            assertFalse(viewModel.uiState.value.save.isSaving)
             assertEquals(null, viewModel.uiState.value.ingredientReview)
-            assertEquals(RecipeUiMessage.NetworkError, viewModel.uiState.value.error)
+            assertEquals(RecipeUiMessage.NetworkError, viewModel.uiState.value.save.error)
         }
 
     @Test
@@ -350,7 +379,7 @@ class RecipesViewModelTest {
         advanceUntilIdle()
 
         assertEquals(null, viewModel.uiState.value.ingredientReview)
-        assertEquals(RecipeUiMessage.NoIngredients, viewModel.uiState.value.error)
+        assertEquals(RecipeUiMessage.NoIngredients, viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -359,16 +388,16 @@ class RecipesViewModelTest {
         repository.addGate = gate
 
         viewModel.createRecipe(RecipeVisibility.PRIVATE, "Tortilla", null, null)
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
-        assertTrue(viewModel.uiState.value.isSaving)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
+        assertTrue(viewModel.uiState.value.save.isSaving)
 
         gate.complete(Unit)
         advanceUntilIdle()
 
-        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
-        assertFalse(viewModel.uiState.value.isSaving)
-        viewModel.consumeEditorSave()
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.save.editor)
+        assertFalse(viewModel.uiState.value.save.isSaving)
+        viewModel.feedback.resetEditor()
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
     }
 
     @Test
@@ -376,21 +405,21 @@ class RecipesViewModelTest {
         repository.nextFailure = RecipeRepositoryException(RecipeFailure.Network)
         viewModel.createRecipe(RecipeVisibility.PRIVATE, "Tortilla", null, null)
         advanceUntilIdle()
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        assertEquals(RecipeUiMessage.NetworkError, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.isSaving)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        assertEquals(RecipeUiMessage.NetworkError, viewModel.uiState.value.save.editorError)
+        assertFalse(viewModel.uiState.value.save.isSaving)
 
         repository.nextFailure = null
-        viewModel.consumeEditorSave()
+        viewModel.feedback.resetEditor()
         repository.hang = true
         viewModel.updateRecipe("r1", "Tortilla", null, null)
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
         advanceTimeBy(EDITOR_SAVE_TIMEOUT_MILLIS + 1)
         runCurrent()
 
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        assertEquals(RecipeUiMessage.SaveTimeout, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.isSaving)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        assertEquals(RecipeUiMessage.SaveTimeout, viewModel.uiState.value.save.editorError)
+        assertFalse(viewModel.uiState.value.save.isSaving)
     }
 
     @Test
@@ -399,8 +428,8 @@ class RecipesViewModelTest {
         advanceUntilIdle()
 
         assertEquals("Tortilla", repository.restored?.title)
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
-        assertNull(viewModel.uiState.value.notice)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
+        assertNull(viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -424,7 +453,7 @@ class RecipesViewModelTest {
             assertEquals(listOf("Remoja.", "Cuece."), repository.lastSteps)
             assertEquals(4, repository.lastServings)
             assertEquals(60, repository.lastTotalMinutes)
-            assertNull(viewModel.uiState.value.notice)
+            assertNull(viewModel.uiState.value.save.notice)
         }
 
     @Test
@@ -432,11 +461,11 @@ class RecipesViewModelTest {
         viewModel.saveDraft(null, RecipeDraft.of(null, null).copy(title = "  Lentejas "))
         advanceUntilIdle()
 
-        assertEquals(CreatedItem("new-1", "Lentejas"), viewModel.uiState.value.created)
-        assertNull(viewModel.uiState.value.notice)
+        assertEquals(CreatedItem("new-1", "Lentejas"), viewModel.uiState.value.save.created)
+        assertNull(viewModel.uiState.value.save.notice)
 
-        viewModel.consumeCreated()
-        assertNull(viewModel.uiState.value.created)
+        viewModel.feedback.consumeCreated()
+        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
@@ -444,8 +473,8 @@ class RecipesViewModelTest {
         viewModel.fork(recipe("origin", RecipeVisibility.GLOBAL, "Paella común"))
         advanceUntilIdle()
 
-        assertEquals(CreatedItem("new-1", "Paella común"), viewModel.uiState.value.created)
-        assertNull(viewModel.uiState.value.notice)
+        assertEquals(CreatedItem("new-1", "Paella común"), viewModel.uiState.value.save.created)
+        assertNull(viewModel.uiState.value.save.notice)
 
         viewModel.undoCreate("new-1")
         advanceUntilIdle()
@@ -466,7 +495,7 @@ class RecipesViewModelTest {
         viewModel.saveDraft("r1", RecipeDraft.of(null, null).copy(title = "Lentejas"))
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
@@ -474,7 +503,7 @@ class RecipesViewModelTest {
         viewModel.restoreRecipe(recipe("r1", RecipeVisibility.PRIVATE, "Tortilla"))
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
@@ -509,8 +538,8 @@ class RecipesViewModelTest {
         advanceUntilIdle()
 
         assertEquals(0, repository.createCount)
-        assertEquals(RecipeUiMessage.ServingsInvalid, viewModel.uiState.value.error)
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        assertEquals(RecipeUiMessage.ServingsInvalid, viewModel.uiState.value.save.editorError)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
     }
 
     @Test
@@ -592,14 +621,19 @@ class RecipesViewModelTest {
             repository.deleteGate = CompletableDeferred()
             viewModel.deleteRecipe(recipe("r2", RecipeVisibility.PRIVATE, "Sopa"))
             runCurrent()
-            assertTrue(viewModel.uiState.value.isSaving)
+            assertTrue(viewModel.uiState.value.save.isSaving)
 
             val tortilla = recipe("r1", RecipeVisibility.PRIVATE, "Tortilla")
             viewModel.restoreRecipe(tortilla)
             runCurrent()
 
             assertEquals(tortilla, repository.restored)
-            assertNull(viewModel.uiState.value.notice)
+            assertNull(viewModel.uiState.value.save.notice)
+            // El deshacer acabó pero el borrado sigue en curso: «Guardando…» sigue encendido hasta que acaben las dos.
+            assertTrue(viewModel.uiState.value.save.isSaving)
+            repository.deleteGate?.complete(Unit)
+            advanceUntilIdle()
+            assertFalse(viewModel.uiState.value.save.isSaving)
         }
 
     @Test
@@ -610,7 +644,7 @@ class RecipesViewModelTest {
         advanceUntilIdle()
 
         assertNull(viewModel.uiState.value.deletedRecipe)
-        assertEquals(RecipeUiMessage.NetworkError, viewModel.uiState.value.error)
+        assertEquals(RecipeUiMessage.NetworkError, viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -625,7 +659,7 @@ class RecipesViewModelTest {
             repository.nextFailure = RecipeRepositoryException(RecipeFailure.PermissionDenied)
             viewModel.restoreRecipe(common)
             advanceUntilIdle()
-            assertEquals(RecipeUiMessage.PermissionDenied, viewModel.uiState.value.error)
+            assertEquals(RecipeUiMessage.PermissionDenied, viewModel.uiState.value.save.error)
         }
 
     @Test
@@ -643,7 +677,7 @@ class RecipesViewModelTest {
         viewModel.confirmShoppingReview("home", rows.map { it.initialState().toChoice(it) })
         advanceUntilIdle()
 
-        assertEquals(RecipeUiMessage.ShoppingChanged, viewModel.uiState.value.error)
+        assertEquals(RecipeUiMessage.ShoppingChanged, viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -680,7 +714,7 @@ class RecipesViewModelTest {
             viewModel.confirmShoppingReview("home", rows.map { it.initialState().toChoice(it) })
             advanceUntilIdle()
 
-            assertEquals(RecipeUiMessage.ShoppingChanged, viewModel.uiState.value.error)
+            assertEquals(RecipeUiMessage.ShoppingChanged, viewModel.uiState.value.save.error)
         }
 
     @Test
@@ -697,7 +731,7 @@ class RecipesViewModelTest {
             advanceUntilIdle()
 
             assertEquals(null, viewModel.uiState.value.ingredientReview)
-            assertEquals(RecipeUiMessage.NetworkError, viewModel.uiState.value.error)
+            assertEquals(RecipeUiMessage.NetworkError, viewModel.uiState.value.save.error)
         }
 
     @Test
@@ -732,7 +766,7 @@ class RecipesViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf(ReviewRowKind.NEW), viewModel.uiState.value.ingredientReview?.map { it.kind })
-        assertNull(viewModel.uiState.value.error)
+        assertNull(viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -759,7 +793,7 @@ class RecipesViewModelTest {
         advanceUntilIdle()
 
         assertNull(viewModel.uiState.value.pantryIds)
-        assertNull(viewModel.uiState.value.error)
+        assertNull(viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -848,9 +882,9 @@ class RecipesViewModelTest {
             viewModel.addToShopping("home", recipe)
             runCurrent()
 
-            assertEquals(RecipeUiMessage.NetworkError, viewModel.uiState.value.error)
+            assertEquals(RecipeUiMessage.NetworkError, viewModel.uiState.value.save.error)
             assertNull(viewModel.uiState.value.ingredientReview)
-            assertFalse(viewModel.uiState.value.isSaving)
+            assertFalse(viewModel.uiState.value.save.isSaving)
         }
 }
 
