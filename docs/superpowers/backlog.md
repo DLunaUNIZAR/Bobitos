@@ -4,6 +4,23 @@ Menores que las revisiones de cada rama dejaron sin arreglar. Cada línea dice s
 
 Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalogo-ejercicios-wger`) se cerraron en la rama `agent/menores-aplazados` (plan `docs/superpowers/plans/2026-10-10-menores-aplazados.md`).
 
+## 2026-10-19 — `agent/guardado-y-errores`
+
+- **Efecto visible:** en el detalle de ingrediente, «No encontramos el producto… Rellena la marca a mano» llega a la vez que se abre la hoja de la marca, espera tapado y sale al cerrarla (también tras guardarla), cuando ya no sirve; debería salir dentro de la hoja o no emitirse (`IngredientDetailViewModel.lookupBarcode`, M5).
+- **Efecto visible (TalkBack, previo):** el error del servidor dentro de los diálogos de Espacios y el botón que pasa a «Guardando…» no se anuncian; no hay `liveRegion` en el código (`SpacesScreen.kt` `DialogServerError`, `SpaceSettingsScreen.kt`; D1 de la revisión de diseño).
+- **Efecto visible (previo):** en Crear, Unirse y Renombrar de Espacios los campos siguen editables mientras guarda; además el botón dice «Guardando…» por una acción ajena, como pide la spec (D2).
+- **Efecto visible:** un aviso que esperó tras una hoja o un diálogo sale al cerrarlo sin contexto de a qué acción corresponde (conforme a la spec, punto 3; D3).
+- **Efecto visible:** Ajustes del espacio apaga todos sus controles mientras guarda cualquier acción, sin más señal que la barra «Guardando…» (D5).
+- **Efecto visible (previo):** en el Calendario del espacio, editar un evento con `spaceId` nulo cierra el editor como guardado y avisa «Guardado» sin escribir nada (`CalendarViewModel.save`; el plan conservó ese camino).
+- **Efecto visible (previo):** los avisos salen detrás de hojas y diálogos que no son editores (detalle de receta, revisión de ingredientes, `ScanPickDialog`, detalle de ejercicio, diálogos de borrado); la spec limita `covered` a los editores y a tres diálogos.
+- **Interno:** no hay test de Compose de `SaveFeedbackEffect` ni de `EditorSaveEffect` (no llamar a `consumeNotice` mientras `covered`, SAVED cierra y después avisa, FAILED con el editor cerrado pasa el error a la pantalla); solo se prueba `screenFeedback` (M6).
+- **Interno:** la Despensa traduce `PantryFailure`/`ShoppingFailure` comparando el nombre del enum como texto (`PantryViewModel.toCommonMessage`); se pierde la exhaustividad del `when` (lo cubre el test de tabla; encaja con G3).
+- **Interno:** comentarios de más de 120 columnas en `TasksViewModel.kt:137` y `ShoppingViewModel.kt:303`; el KDoc de `SaveState.created` dice «desde una hoja» pero `fork` lo deja sin hoja; la semántica de `showError` de la tarea 1 del plan ya no coincide con el código (R7).
+- **Interno:** restos de API: `ingredientMessageText(it, null, barcodeConflict)` con `existingName` siempre nulo; `noticeText = { "" }` obligatorio para un `SaveState<…, Nothing>` en Mi calendario; `SpacesViewModel.clearFeedback()` pública solo para el marco.
+- **Interno:** `SaveRunner.run` recibe `notice` y `noticeOf` a la vez; con los dos, `notice` se ignora.
+- **Interno:** `savingOutsideEditor` (`FeedbackSnackbar.kt`) sigue en uso en 7 pantallas; podría ser `save.isSaving && !editorOpen` en cada una.
+- **Interno:** `AuthViewModel` conserva su `runAction` propio, fuera del alcance de G2 (14 ViewModels).
+
 ## 2026-10-19 — `agent/red-de-seguridad`
 
 - **Interno:** `SpaceHomeAnchorTest` usa `createAndroidComposeRule` de `junit4`, obsoleto, en vez de `junit4.v2`, y añade un aviso del compilador.
@@ -113,7 +130,7 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - **Efecto visible (raro):** Deshacer de una tarea completada, un producto comprado o una actividad hecha son dos escrituras (alta pendiente y actualización); si falla la segunda, vuelve pendiente con error y reintentar Deshacer da «sin permiso» (`FirestoreTaskRepository.restoreTask`, `FirestoreShoppingRepository.restoreItem`, `FirestoreSportActivityRepository.restoreActivity`).
 - **Efecto visible (raro):** `restoreMeal` y `restoreActivity` no revalidan participantes ni cocinero (sí lo hacen `addMeal`, `restoreTask` y `createEvent`): si un miembro salió del espacio, la comida vuelve con él.
 - **Efecto visible (raro):** si el evento enlazado de una actividad está mal formado, `toLinkedEvent` devuelve null: el evento se borra y no vuelve con Deshacer, y la actividad queda con un `eventId` colgante y fuera del calendario (`FirestoreSportActivityRepository.kt`).
-- **Efecto visible (raro):** los Deshacer con `force = true` ponen `isSaving = false` antes de que acabe otra escritura (reactivan los borrados) y pueden pisar el `created` de un alta simultánea, que pierde su Deshacer.
+- ~~**Efecto visible (raro):** los Deshacer con `force = true` ponen `isSaving = false` antes de que acabe otra escritura (reactivan los borrados) y pueden pisar el `created` de un alta simultánea, que pierde su Deshacer.~~ **Resuelto** en `agent/guardado-y-errores` (tarea 2).
 - ~~**Efecto visible:** con todas las tareas hechas y los filtros por defecto, Tareas dice «Ninguna tarea coincide con los filtros» sin ninguna acción; «Quitar filtros» vuelve a Pendientes y puede seguir vacío (`TasksScreen.kt`, `canClearFilters`).~~ **Resuelto** en `agent/evolucion-visual-fase-c` (C4, «Lo tienes todo hecho» con «Ver completadas»).
 - ~~**Efecto visible:** con filtro, los chips de Tareas leen solo el valor («Alta», «Pendientes») sin decir qué filtran; mejor «Prioridad: Alta» como descripción.~~ **Resuelto** en `agent/evolucion-visual-fase-c` (C4, desplegables con su nombre).
 - ~~**Efecto visible:** la descripción accesible de un grupo plegado de un solo día repite la fecha y lleva mayúscula a mitad de frase («Del Domingo, 18 de octubre al Domingo, 18 de octubre, sin eventos») (`FoldedDaysRow.kt`, `calendar_empty_run_description`).~~ **Resuelto** en `agent/evolucion-visual-fase-c` (C11).
@@ -140,12 +157,12 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - ~~**Efecto visible:** «Mi día» sigue usando emoji (✅ 🍳 🍽 🎉) en sus cadenas, junto a la fila de eventos que ya lleva un icono de Material (`strings.xml`, cadenas `home_my_day_*`).~~ **Resuelto** en `agent/evolucion-visual-fase-b` (B9).
 - ~~**Efecto visible:** en los diálogos de crear, unirse a y renombrar un espacio, el error llega del ViewModel: no desaparece al corregir el campo (solo al volver a pulsar) y no lleva el foco al campo (`SpacesScreen.kt`, `SpaceNameDialog`, `InvitationCodeDialog`).~~ **Resuelto** en `agent/evolucion-visual-fase-b` (B11).
 - **Efecto visible (raro):** Deshacer al añadir borra aunque otro miembro haya cambiado el elemento en los segundos del snackbar; la spec pide avisar (ruling R11 del plan). Arreglo: comprobar `updatedAt`/`updatedBy` en el borrado.
-- **Efecto visible (raro):** `showError(editor = true)` (p. ej. fecha inválida en Tareas) pone `isSaving = false` aunque otra acción siga guardando; al cerrar la hoja, `discardFailure` limpia también el aviso de esa acción («Tarea completada» no sale). Mismo patrón en Compra, Notas, Deporte y Ejercicios (`TasksViewModel.kt` `showError`).
+- ~~**Efecto visible (raro):** `showError(editor = true)` (p. ej. fecha inválida en Tareas) pone `isSaving = false` aunque otra acción siga guardando; al cerrar la hoja, `discardFailure` limpia también el aviso de esa acción («Tarea completada» no sale). Mismo patrón en Compra, Notas, Deporte y Ejercicios (`TasksViewModel.kt` `showError`).~~ **Resuelto** en `agent/guardado-y-errores` (tarea 2 y arreglo M1 de la revisión final).
 - ~~**Interno:** Hoy mantiene cuatro escuchas de Firestore (miembros, tareas, comidas y eventos de hoy) abiertas en `viewModelScope` mientras se está en otras pestañas, y las recrea al volver. Cuesta lecturas y batería; mejor recoger solo con Hoy visible (`SpaceHomeViewModel.observeDigest`).~~ **Resuelto** en `agent/evolucion-visual-fase-c` (C6, escucha solo mientras se recoge).
 - **Interno:** `PersonalCalendarViewModel.createdSpaces` solo crece (un id → espacio por alta); el espacio podría viajar con el elemento creado.
-- **Interno:** los `runAction`/`action` de 12 ViewModels devuelven `Any?` y hacen `result as? CreatedItem`; tiparlo obligaría a acabar en `null` cada lambda (ruling R19 del plan).
+- ~~**Interno:** los `runAction`/`action` de 12 ViewModels devuelven `Any?` y hacen `result as? CreatedItem`; tiparlo obligaría a acabar en `null` cada lambda (ruling R19 del plan).~~ **Resuelto** en `agent/guardado-y-errores` (tareas 1-10: `SaveRunner.create` tipado).
 - ~~**Interno:** `ProfileScreenTest.privacyPolicyAndAccountDeletionAreReachable` (instrumentado) falla ya en `main` por Hilt: `ProfileScreen` crea sus `hiltViewModel()` por defecto y `ComponentActivity` no es `GeneratedComponent`. Pasarle ViewModels falsos o pasar el test a `@HiltAndroidTest`.~~ **Resuelto** en `agent/red-de-seguridad` (tarea 3).
-- **Interno:** el deshacer forzado (`force = true`) solo tiene test propio en Tareas y Compra; las otras diez áreas llevan el mismo cambio sin test.
+- ~~**Interno:** el deshacer forzado (`force = true`) solo tiene test propio en Tareas y Compra; las otras diez áreas llevan el mismo cambio sin test.~~ **Resuelto** en `agent/guardado-y-errores` (tareas 2-8).
 
 ## 2026-10-14 — `agent/menores-listo-duplicado`
 
@@ -158,14 +175,14 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 
 - ~~**Efecto visible (raro):** lo que «Listo» vuelve a apuntar a la compra (`ShoppingWrite.Add`) no lleva precondición: si otro miembro apunta el mismo artículo entre la lectura de la lista (`currentItems`) y la transacción de `applyCooked`, sale duplicado. La rama cerró la ventana de hasta 5 s de espera al catálogo; queda la de milisegundos (`MealsViewModel.confirmCooked`, `FirestoreShoppingRepository.applyCooked`).~~ **Resuelto** en `agent/menores-listo-duplicado`. Justo antes de escribir, «Listo» vuelve a leer la lista dentro de la transacción. Si ya tiene algo de lo que añade, no escribe nada y pide volver a pulsar «Listo» (rulings 1 y 2). Queda la ventana entre esa lectura y el commit: no se puede cerrar sin cambiar el esquema.
 - **Interno:** ningún test protege que «Cancelar» sin error previo conserve el aviso «Comida marcada como cocinada» (ruling 2 del plan; `MealsCookedViewModelTest`).
-- **Interno:** la lambda `toMessage` de `confirmCooked` escribe estado (`changedItemName`) además de traducir el error; depende de que `runAction` la llame una sola vez y justo antes de `showError`, y ese contrato no está comentado (`MealsViewModel.runAction`).
+- ~~**Interno:** la lambda `toMessage` de `confirmCooked` escribe estado (`changedItemName`) además de traducir el error; depende de que `runAction` la llame una sola vez y justo antes de `showError`, y ese contrato no está comentado (`MealsViewModel.runAction`).~~ **Resuelto** en `agent/guardado-y-errores` (tarea 6).
 
 ## 2026-10-14 — `agent/menores-has-cocinado`
 
 - ~~**Efecto visible (raro):** si «Listo» falla porque la lista ha cambiado y se pulsa «Cancelar» (después del error o mientras guarda, ruling 2 del plan), el aviso de Comidas sigue diciendo «…vuelve a pulsar «Listo».», aunque ya no hay diálogo: `dismissCooked` no limpia el error (`MealsViewModel.dismissCooked`, `MealsFeedback`).~~ **Resuelto** en `agent/menores-listo-has-cocinado`. «Cancelar» y «Listo» sin nada que escribir se llevan el error; si se cancela mientras guarda y falla por la lista, la pantalla dice que la compra y la despensa se han quedado como estaban.
 - ~~**Efecto visible (raro):** «Listo» lee la lista mientras espera al catálogo. Si el catálogo aún no ha llegado (hasta 5 s), «A la compra» usa una lista de hasta 5 s antes: si otro miembro apunta entretanto el mismo ingrediente, sale duplicado (`ShoppingWrite.Add` no tiene precondición), y si toca un comprado que se vuelve a apuntar, sale «vuelve a pulsar «Listo»» más a menudo. Es el diseño del ruling 6 del plan. Arreglo posible: esperar al catálogo antes de leer la lista solo cuando no ha llegado, o precargarlo al abrir «Has cocinado …» (`MealsViewModel.confirmCooked`).~~ **Resuelto** en `agent/menores-listo-has-cocinado`. «Listo» espera primero al catálogo y después lee la lista (ruling 1).
 - ~~**Efecto visible (raro):** si otro miembro sigue tocando el artículo, «vuelve a pulsar «Listo»» se repite sin decir qué artículo ha cambiado (`meals_error_cooked_shopping_changed`).~~ **Resuelto** en `agent/menores-listo-has-cocinado`. El diálogo nombra el artículo que ha cambiado (`ShoppingRepositoryException.itemName`).
-- **Interno:** en el mapeo general de Comidas, `ItemNotFound` cae ahora en `UnexpectedError` (ruling 3). Hoy ningún camino lo alcanza, pero uno nuevo que no pase por `applySeenWrites` lo mostraría como «error inesperado». Alternativa: convertir `ItemNotFound` en `ItemChanged` en la escritura de `applyCooked`, como `applySeenWrites`, y quitar `toCookedUiMessage` y el parámetro `toMessage` de `runAction`. Tras `agent/menores-listo-has-cocinado`, `toCookedUiMessage` también distingue si el diálogo sigue abierto (ruling 3): ya no se puede quitar sin más.
+- ~~**Interno:** en el mapeo general de Comidas, `ItemNotFound` cae ahora en `UnexpectedError` (ruling 3). Hoy ningún camino lo alcanza, pero uno nuevo que no pase por `applySeenWrites` lo mostraría como «error inesperado». Alternativa: convertir `ItemNotFound` en `ItemChanged` en la escritura de `applyCooked`, como `applySeenWrites`, y quitar `toCookedUiMessage` y el parámetro `toMessage` de `runAction`. Tras `agent/menores-listo-has-cocinado`, `toCookedUiMessage` también distingue si el diálogo sigue abierto (ruling 3): ya no se puede quitar sin más.~~ **Resuelto** en `agent/guardado-y-errores` (tarea 6).
 - ~~**Interno:** `confirmCooked` repite en línea el patrón `coroutineScope` + `async` de `withCurrentIds` (`PantryShopping.kt`), con un `Deferred` que puede ser `null`. Un helper común lo unificaría.~~ **Ya no aplica** tras `agent/menores-listo-has-cocinado`: «Listo» ya no lee nada a la vez (ruling 1).
 
 ## 2026-10-14 — `agent/menores-despensa-recetas`
@@ -199,7 +216,7 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 
 - **Efecto visible:** si se dice «Se acabó» de varias cosas seguidas, solo la última ofrece «A la compra»: cada Snackbar nuevo cancela el anterior. `pantryRestock` ya acepta una lista, así que se podrían juntar («Leche y huevos: se han acabado») (`PantryScreen.kt`).
 - **Efecto visible:** renombrar un artículo comprado y después desmarcarlo deja en la despensa la entrada del nombre viejo, porque la transacción la busca por el nombre que hay en el servidor. Para arreglarlo habría que guardar el id de la despensa en el artículo, lo que cambia el esquema y las reglas (`FirestoreShoppingRepository.setPurchased`).
-- **Efecto visible (raro):** `PantryUiMessage` junta errores y avisos, y `clearFeedback` borra los dos: al cerrar el banner de error se puede perder un aviso pendiente. Además repite `PantryFailure` y `ShoppingFailure` en tres `when` (`PantryUiState.kt`, `PantryViewModel.kt`).
+- ~~**Efecto visible (raro):** `PantryUiMessage` junta errores y avisos, y `clearFeedback` borra los dos: al cerrar el banner de error se puede perder un aviso pendiente. Además repite `PantryFailure` y `ShoppingFailure` en tres `when` (`PantryUiState.kt`, `PantryViewModel.kt`).~~ **Resuelto** en `agent/guardado-y-errores` (tarea 10).
 - **Efecto visible (residual):** si se marca algo como comprado antes de que termine de precargarse el catálogo, la lista de la Compra se queda bloqueada hasta 5 s (`isSaving`) (`ShoppingViewModel.dataForPantry`).
 - **Efecto visible (accesibilidad):** el lector de pantalla anuncia cada «Se acabó» sin el nombre del artículo (`PantryScreen.kt`).
 - **Efecto visible (previo, visto en el recorrido del emulador):** la confirmación «Eliminar espacio definitivamente» solo nombra la compra, las tareas y los eventos. No dice nada de comidas, notas, deporte ni despensa, que también se borran.
@@ -208,7 +225,7 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 
 ## 2026-10-13 — `agent/menores-compra-membresia-y-comunes`
 
-- **Efecto visible (previo):** Tareas, Notas, Comidas, Deporte, Recetario, Rutinas y los ajustes del espacio (miembros, invitaciones) muestran el texto crudo de la excepción (`UiState.Error(error.message)`), en inglés; al perder la membresía pueden enseñarlo un instante antes de volver a «Espacios». Arreglo de raíz: que `UiState.Error`/`ErrorState` no lleven el texto de la excepción.
+- ~~**Efecto visible (previo):** Tareas, Notas, Comidas, Deporte, Recetario, Rutinas y los ajustes del espacio (miembros, invitaciones) muestran el texto crudo de la excepción (`UiState.Error(error.message)`), en inglés; al perder la membresía pueden enseñarlo un instante antes de volver a «Espacios». Arreglo de raíz: que `UiState.Error`/`ErrorState` no lleven el texto de la excepción.~~ **Resuelto** en `agent/evolucion-visual-fase-a` (`a21ce42`): `UiState.Error` solo lleva `FailureKind`.
 - **Efecto visible (previo):** `AppLoadError` no tiene «Reintentar» ni salida: si falla la consulta de membresías (p. ej. un token aún sin `email_verified`), la app se queda en «No se ha podido iniciar Bobitos.» hasta cerrarla (`BobitosApp.kt`, `AppViewModel`).
 - **Efecto visible (raro):** con `PERMISSION_DENIED`, `observeSpace` emite `null` y deja el listener muerto (y `RealtimeMetrics` lo cuenta activo): si la membresía no cambia (token sin `email_verified`, despliegue de reglas, re-invitación entre dos snapshots), el espacio queda oculto en «Espacios» hasta reiniciar la app. Antes, en ese caso, salía `AppLoadError` (`FirestoreSpaceRepository.observeSpace`).
 - **Efecto visible:** las mayúsculas no se conservan en «-ces» → «-z» («1/2 NUECES» × 2 → «1 NUEz») ni en el plural («1 PAN ALEMÁN» × 2 → «2 PANes ALEMÁNes»: el sufijo va en minúscula y `withoutFinalAccent` no reconoce la vocal con tilde en mayúscula). Lo del plural viene de antes (`ShoppingQuantity.kt`).
@@ -216,7 +233,7 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - **Efecto visible (sin confirmar, previo; visto en el recorrido del emulador):** en «Tus espacios», la cabecera va pegada a la barra de estado, sin el margen superior de otras pantallas, y un toque en su icono «Perfil» no hizo nada (desde la Compra y el hub sí funciona). Puede ser de insets o de la herramienta de toques.
 - **Interno:** `docs/ARCHITECTURE.md` (líneas 55 y 78) describe el módulo activo con el documento de la membresía; ahora es la consulta de las membresías activas del usuario.
 - **Interno:** `space()` escucha todas las membresías activas del usuario (N lecturas por suscripción y cambios de otros espacios); bastaría la consulta `userId` + `spaceId` + `status` + `limit(1)` de `FirestoreSyncRepository.refresh`.
-- **Interno:** `AppViewModel` sigue copiando `error.message` a `UiState.Error` (líneas 69 y 202), que ya no se muestra.
+- ~~**Interno:** `AppViewModel` sigue copiando `error.message` a `UiState.Error` (líneas 69 y 202), que ya no se muestra.~~ **Resuelto** en `agent/evolucion-visual-fase-a` (`a21ce42`): emite `UiState.Error(error.toFailureKind())`.
 
 ## 2026-10-13 — `agent/menores-compra-y-deshacer-comunes`
 
@@ -369,13 +386,13 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 
 ## 2026-10-10 — `agent/menores-aplazados`
 
-- **Efecto visible:** los diálogos de Espacios sacan «guardando» de un `editorSave` que comparten varias pantallas. Si hay en curso una acción que no es del editor, el botón no hace nada (`SpacesScreen.kt`, `SpaceSettingsScreen.kt`).
+- ~~**Efecto visible:** los diálogos de Espacios sacan «guardando» de un `editorSave` que comparten varias pantallas. Si hay en curso una acción que no es del editor, el botón no hace nada (`SpacesScreen.kt`, `SpaceSettingsScreen.kt`).~~ **Resuelto** en `agent/guardado-y-errores` (tarea 9).
 - **Efecto visible:** el filtro por grupo compara el `muscleGroup` sin recortar con el chip, que sí está recortado: «Pecho » no coincide con el chip «Pecho» (`ExerciseFilter.kt`).
-- **Efecto visible:** en Espacios e Ingredientes, el error se ve dos veces: en el banner y dentro del formulario.
+- ~~**Efecto visible:** en Espacios e Ingredientes, el error se ve dos veces: en el banner y dentro del formulario.~~ **Resuelto** en `agent/guardado-y-errores` (tareas 7 y 9).
 - **Interno:** la marca `catalogRequested` de Deporte no se borra al cerrar el editor de sesión. Cada `observe()` suma una lectura de la versión (`SportViewModel.kt`).
-- **Interno:** si un repositorio lanzara su propia `CancellationException`, el editor se quedaría en «Guardando…». Afecta al patrón `if (error is CancellationException) throw` de los ViewModels.
+- ~~**Interno:** si un repositorio lanzara su propia `CancellationException`, el editor se quedaría en «Guardando…». Afecta al patrón `if (error is CancellationException) throw` de los ViewModels.~~ **Resuelto** en `agent/guardado-y-errores` (tareas 1 y 10: `rethrowIfCancelled`).
 - **Interno:** `DataStore<Preferences>` está enlazado en Hilt sin calificador (`DataModule.kt`).
-- **Interno:** el mecanismo `editorSave` está copiado en 13 ViewModels, y la derivación de `errorMessage` en unas 10 pantallas. Falta un helper común.
+- ~~**Interno:** el mecanismo `editorSave` está copiado en 13 ViewModels, y la derivación de `errorMessage` en unas 10 pantallas. Falta un helper común.~~ **Resuelto** en `agent/guardado-y-errores` (tareas 1-10: `SaveState`/`SaveRunner` comunes).
 - **Interno:** el parseo de `SetMeasure` está en 3 sitios, la etiqueta de medida está duplicada y la regex `WHITESPACE` repite la de `TextSearch`.
 - **Interno:** `exercises-selection.json:3` tiene una frase contradictoria.
 
