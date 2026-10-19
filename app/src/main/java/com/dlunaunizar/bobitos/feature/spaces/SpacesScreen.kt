@@ -49,6 +49,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.FailureKind
 import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
 import com.dlunaunizar.bobitos.core.common.UiState
@@ -230,6 +231,8 @@ private fun SpacesContent(
         },
     )
     val saving = managementState.save.isSaving
+    // Se cierra salvo que sea el propio diálogo el que guarda: lo demás no le llega.
+    val dismissible = managementState.save.editor != EditorSaveStatus.SAVING
     val editorError = managementState.save.editorError?.let { stringResource(it.stringResourceId) }
 
     if (showCreateDialog) {
@@ -239,6 +242,7 @@ private fun SpacesContent(
             initialName = "",
             enabled = canWrite,
             saving = saving,
+            dismissible = dismissible,
             serverError = editorError,
             onEdited = feedback::resetEditor,
             onDismiss = closeCreate,
@@ -251,6 +255,7 @@ private fun SpacesContent(
             initialCode = invitationCode,
             enabled = canWrite,
             saving = saving,
+            dismissible = dismissible,
             serverError = editorError,
             serverErrorOnField = managementState.save.editorError?.isInvitationCodeError() == true,
             onEdited = feedback::resetEditor,
@@ -281,6 +286,7 @@ internal fun InvitationCodeDialog(
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
     serverErrorOnField: Boolean = false,
+    dismissible: Boolean = !saving,
 ) {
     var code by rememberSaveable(initialCode) { mutableStateOf(initialCode) }
     val form = rememberFormValidationState()
@@ -292,8 +298,8 @@ internal fun InvitationCodeDialog(
         serverError.takeIf { serverErrorOnField }
     }
     AlertDialog(
-        // Mientras guarda no se puede cerrar: el resultado llega al diálogo.
-        onDismissRequest = { if (!saving) onDismiss() },
+        // Mientras guarda el propio diálogo no se puede cerrar: el resultado le llega a él.
+        onDismissRequest = { if (dismissible) onDismiss() },
         title = { Text(text = stringResource(R.string.invitation_join_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -334,7 +340,7 @@ internal fun InvitationCodeDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !saving) {
+            TextButton(onClick = onDismiss, enabled = dismissible) {
                 Text(text = stringResource(R.string.cancel))
             }
         },
@@ -429,6 +435,7 @@ internal fun SpaceNameDialog(
     onEdited: () -> Unit,
     enabled: Boolean = true,
     saving: Boolean = false,
+    dismissible: Boolean = !saving,
 ) {
     var name by rememberSaveable(initialName) { mutableStateOf(initialName) }
     val form = rememberFormValidationState()
@@ -436,8 +443,8 @@ internal fun SpaceNameDialog(
     val nameError = SpaceValidation.validateName(name)
     val fieldError = form.visible(nameError)?.let { stringResource(it.stringResourceId) }
     AlertDialog(
-        // Mientras guarda no se puede cerrar: el resultado llega al diálogo.
-        onDismissRequest = { if (!saving) onDismiss() },
+        // Mientras guarda el propio diálogo no se puede cerrar: el resultado le llega a él.
+        onDismissRequest = { if (dismissible) onDismiss() },
         title = { Text(text = title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -471,7 +478,7 @@ internal fun SpaceNameDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !saving) {
+            TextButton(onClick = onDismiss, enabled = dismissible) {
                 Text(text = stringResource(R.string.cancel))
             }
         },

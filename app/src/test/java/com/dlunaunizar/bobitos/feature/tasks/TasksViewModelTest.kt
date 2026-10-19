@@ -513,6 +513,22 @@ class TasksViewModelTest {
     }
 
     @Test
+    fun `an editor create after a failed mark keeps the mark error pending`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            taskRepository.nextFailure = TaskRepositoryException(TaskFailure.PermissionDenied)
+            viewModel.setCompleted("home", task("t1", "Leche", null), true)
+            advanceUntilIdle()
+            assertEquals(TaskUiMessage.PermissionDenied, viewModel.uiState.value.save.error)
+            taskRepository.nextFailure = null
+
+            editorCreate("Fregar")
+            advanceUntilIdle()
+
+            assertEquals(TaskUiMessage.PermissionDenied, viewModel.uiState.value.save.error)
+            assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.save.editor)
+        }
+
+    @Test
     fun editingDoesNotOfferUndo() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.updateTask("home", "t1", "Leche", null, "ana", null, TaskPriority.MEDIUM, null, null, null)
         advanceUntilIdle()

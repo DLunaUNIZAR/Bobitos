@@ -207,10 +207,15 @@ class RecipesViewModel @Inject constructor(
         }
     }
 
+    /** Suelta el error de importación pendiente; el de otra acción sigue esperando. */
+    fun consumeImportError() {
+        if (mutableUiState.value.save.error?.isImport == true) saver.consumeError()
+    }
+
     /** Descarga la receta de [url] (schema.org/Recipe) y, si tiene éxito, la deja en `importDraft`. */
     fun importFromUrl(url: String) {
         if (mutableUiState.value.isImporting) return
-        saver.clearFeedback()
+        consumeImportError()
         mutableUiState.update { it.copy(isImporting = true) }
         viewModelScope.launch {
             try {

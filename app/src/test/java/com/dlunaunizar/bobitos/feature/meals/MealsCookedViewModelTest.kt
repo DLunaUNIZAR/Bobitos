@@ -249,7 +249,8 @@ class MealsCookedViewModelTest {
 
             assertSame(review, viewModel.uiState.value.cooked)
             assertEquals(MealUiMessage.NetworkError, viewModel.uiState.value.save.error)
-            assertNull(viewModel.uiState.value.save.notice)
+            // El fallo no borra el aviso que esperaba tras la hoja («Comida marcada como cocinada»).
+            assertEquals(MealUiMessage.MealCooked, viewModel.uiState.value.save.notice)
             assertFalse(viewModel.uiState.value.save.isSaving)
             assertTrue(shoppingRepository.purchasedIds.isEmpty())
 

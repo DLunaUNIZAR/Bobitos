@@ -198,7 +198,7 @@ fun RecipesScreen(
             SaveFeedbackEffect(
                 save = state.save,
                 controls = viewModel.feedback,
-                covered = editorOpen || showImport,
+                covered = editorOpen || importDialogCovers(showImport, state.save.error),
                 errorText = { stringResource(it.stringResourceId) },
                 noticeText = { stringResource(it.stringResourceId) },
             )
@@ -294,11 +294,11 @@ fun RecipesScreen(
     if (showImport) {
         ImportUrlDialog(
             importing = state.isImporting,
-            errorRes = state.save.error?.takeIf(RecipeUiMessage::isImport)?.stringResourceId,
+            errorRes = state.save.error?.takeIf { it.isImport }?.stringResourceId,
             onImport = viewModel::importFromUrl,
             onDismiss = {
                 showImport = false
-                viewModel.feedback.consumeError()
+                viewModel.consumeImportError()
             },
         )
     }
@@ -569,16 +569,6 @@ private fun ImportUrlDialog(
 }
 
 private fun UiState<List<Recipe>>.contentOrEmpty(): List<Recipe> = (this as? UiState.Content)?.value.orEmpty()
-
-private fun RecipeUiMessage.isImport(): Boolean = this in IMPORT_MESSAGES
-
-private val IMPORT_MESSAGES = setOf(
-    RecipeUiMessage.ImportInvalidUrl,
-    RecipeUiMessage.ImportNetwork,
-    RecipeUiMessage.ImportNotHtml,
-    RecipeUiMessage.ImportNoRecipe,
-    RecipeUiMessage.ImportTooLarge,
-)
 
 internal val RecipeUiMessage.stringResourceId: Int
     get() = when (this) {

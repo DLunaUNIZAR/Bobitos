@@ -297,6 +297,26 @@ class PantryViewModelTest {
     }
 
     @Test
+    fun `a retry that works after a failed add leaves no stale error`() = runTest(mainDispatcherRule.testDispatcher) {
+        pantry.addFailure = PantryRepositoryException(PantryFailure.Network)
+        viewModel.observe("home")
+        advanceUntilIdle()
+        viewModel.openPicker()
+        viewModel.togglePick(PantryEntry("Sal", "Especias y hierbas"))
+        viewModel.confirmPicker()
+        advanceUntilIdle()
+        assertEquals(PantryUiMessage.NetworkError, viewModel.uiState.value.save.error)
+
+        pantry.addFailure = null
+        viewModel.confirmPicker()
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.picker)
+        assertNull(viewModel.uiState.value.save.error)
+        assertEquals(PantryUiMessage.ItemsAdded, viewModel.uiState.value.save.notice)
+    }
+
+    @Test
     fun `confirming with nothing selected writes nothing`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.observe("home")
         advanceUntilIdle()

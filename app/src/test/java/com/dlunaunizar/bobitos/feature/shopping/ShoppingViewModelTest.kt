@@ -567,6 +567,25 @@ class ShoppingViewModelTest {
     }
 
     @Test
+    fun `skipping a duplicate closes the editor and its failed state does not reach the screen`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.itemState.value = emptyList()
+            viewModel.observe("home")
+            advanceUntilIdle()
+            repository.nextFailure = ShoppingRepositoryException(ShoppingFailure.Network)
+            viewModel.addItem("home", "Leche", null, null, null, null)
+            advanceUntilIdle()
+            assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+
+            viewModel.skipDuplicate()
+
+            assertNull(viewModel.uiState.value.duplicate)
+            assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
+            assertNull(viewModel.uiState.value.save.editorError)
+            assertNull(viewModel.uiState.value.save.error)
+        }
+
+    @Test
     fun `summing a duplicate updates only the quantity of the existing item`() =
         runTest(mainDispatcherRule.testDispatcher) {
             repository.itemState.value = listOf(listItem(quantity = "1 l"))

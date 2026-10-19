@@ -448,7 +448,7 @@ fun ShoppingScreen(
             dismissButton = {
                 // «No añadir» cierra también el editor; tocar fuera del aviso vuelve al editor.
                 TextButton(onClick = {
-                    viewModel.dismissDuplicate()
+                    viewModel.skipDuplicate()
                     editorVisible = false
                 }) { Text(stringResource(R.string.shopping_duplicate_skip)) }
             },

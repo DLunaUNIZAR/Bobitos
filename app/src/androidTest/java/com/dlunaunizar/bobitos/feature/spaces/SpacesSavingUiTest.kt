@@ -1,6 +1,8 @@
 package com.dlunaunizar.bobitos.feature.spaces
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
@@ -47,6 +49,32 @@ class SpacesSavingUiTest {
         compose.onNode(hasSetTextAction()).performTextInput("Casa")
         // Con otra acción en curso el botón del diálogo ya dice «Guardando…» y no deja confirmar.
         compose.onNode(hasText(text(R.string.write_saving)) and hasAnyAncestor(isDialog())).assertIsNotEnabled()
+    }
+
+    // M3: lo que guarda es otra acción (el editor sigue IDLE), así que el diálogo se puede cancelar.
+    @Test fun createCanBeCancelledWhileAnotherActionIsSaving() {
+        compose.setContent {
+            BobitosTheme {
+                SpacesScreen(
+                    state = UiState.Content(emptyList()),
+                    managementState = SpaceManagementUiState(save = SaveState(running = 1)),
+                    syncStatus = SyncStatus.ONLINE,
+                    canWrite = true,
+                    onSpaceSelected = {},
+                    onCreateSpace = {},
+                    onAcceptInvitation = {},
+                    pendingInvitationCode = null,
+                    onInvitationCodeConsumed = {},
+                    onProfileClick = {},
+                    feedback = NoOpFeedback,
+                )
+            }
+        }
+        compose.onNodeWithText(text(R.string.space_create), useUnmergedTree = true).performClick()
+        val cancel = compose.onNode(hasText(text(R.string.cancel)) and hasAnyAncestor(isDialog()))
+        cancel.assertIsEnabled()
+        cancel.performClick()
+        compose.onAllNodes(hasSetTextAction()).assertCountEquals(0)
     }
 }
 

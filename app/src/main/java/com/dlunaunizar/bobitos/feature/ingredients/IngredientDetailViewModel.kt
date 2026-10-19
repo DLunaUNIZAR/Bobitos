@@ -285,7 +285,6 @@ class IngredientDetailViewModel @Inject constructor(
         mutableUiState.update {
             it.copy(barcodeConflict = BarcodeConflict(brand.name, owner?.name ?: brand.ingredientId))
         }
-        saver.clearFeedback()
         saver.showNotice(IngredientUiMessage.BarcodeInOtherIngredient)
     }
 

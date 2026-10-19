@@ -195,7 +195,6 @@ class IngredientsViewModel @Inject constructor(
             mutableUiState.update { it.copy(openBrand = OpenBrand(brand.ingredientId, brand.id)) }
             return
         }
-        saver.clearFeedback()
         mutableUiState.update { it.copy(isLookingUp = true, existingName = null) }
         viewModelScope.launch {
             try {

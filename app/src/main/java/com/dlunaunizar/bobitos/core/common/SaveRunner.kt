@@ -36,7 +36,8 @@ class SaveRunner<S, E, N>(
     }
 
     /**
-     * Lanza [action] como acción en curso. Devuelve false sin hacer nada si ya hay otra y no es [force].
+     * Lanza [action] como acción en curso: empezar o fallar no borra el aviso ni el error que otra acción dejó
+     * pendientes, y acabar bien sin aviso propio tampoco. Devuelve false sin hacer nada si ya hay otra y no es [force].
      * Con [editor], mueve también el estado del editor y la acción lleva tiempo máximo; un fallo va a
      * `editorError` y no a `error`. [afterSuccess] se llama después de actualizar el estado.
      */
@@ -93,8 +94,6 @@ class SaveRunner<S, E, N>(
                 current.write(
                     save.copy(
                         running = save.running + 1,
-                        error = null,
-                        notice = null,
                         editor = if (editor) EditorSaveStatus.SAVING else save.editor,
                         editorError = if (editor) null else save.editorError,
                     ),
@@ -120,7 +119,7 @@ class SaveRunner<S, E, N>(
                     current.write(
                         save.copy(
                             running = save.running - 1,
-                            notice = noticeOf(value),
+                            notice = noticeOf(value) ?: save.notice,
                             editor = if (editor) EditorSaveStatus.SAVED else save.editor,
                             created = created?.invoke(value) ?: save.created,
                         ),
@@ -135,12 +134,11 @@ class SaveRunner<S, E, N>(
                         if (editor) {
                             save.copy(
                                 running = save.running - 1,
-                                notice = null,
                                 editor = EditorSaveStatus.FAILED,
                                 editorError = error,
                             )
                         } else {
-                            save.copy(running = save.running - 1, notice = null, error = error)
+                            save.copy(running = save.running - 1, error = error)
                         },
                     ).onFailure(e)
                 }

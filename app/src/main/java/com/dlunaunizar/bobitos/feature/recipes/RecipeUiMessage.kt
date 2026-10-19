@@ -30,3 +30,20 @@ enum class RecipeUiMessage {
     NothingToAddToShopping,
     NoIngredients,
 }
+
+// El diálogo de importar solo muestra y consume sus propios errores.
+internal val RecipeUiMessage.isImport: Boolean get() = this in IMPORT_MESSAGES
+
+private val IMPORT_MESSAGES = setOf(
+    RecipeUiMessage.ImportInvalidUrl,
+    RecipeUiMessage.ImportNetwork,
+    RecipeUiMessage.ImportNotHtml,
+    RecipeUiMessage.ImportNoRecipe,
+    RecipeUiMessage.ImportTooLarge,
+)
+
+/** El diálogo de importar tapa la pantalla salvo que haya un error pendiente que no es de importación. */
+internal fun RecipeUiMessage?.coveredByImportDialog(): Boolean = this == null || isImport
+
+internal fun importDialogCovers(showImport: Boolean, error: RecipeUiMessage?): Boolean =
+    showImport && error.coveredByImportDialog()

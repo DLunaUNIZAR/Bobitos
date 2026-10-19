@@ -147,7 +147,6 @@ class TasksViewModel @Inject constructor(
         onCompleted: (TaskItem) -> Unit = {},
     ): Boolean {
         if (task.id in completingIds) return false
-        saver.clearFeedback()
         return viewModelScope.launchPerIdWrite(
             completingIds,
             task.id,

@@ -35,6 +35,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.BobitosDates
+import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
 import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
@@ -219,6 +220,7 @@ fun SpaceSettingsScreen(
             initialName = space.name,
             enabled = canWrite,
             saving = state.save.isSaving,
+            dismissible = state.save.editor != EditorSaveStatus.SAVING,
             serverError = state.save.editorError?.let { stringResource(it.stringResourceId) },
             onEdited = feedback::resetEditor,
             onDismiss = {

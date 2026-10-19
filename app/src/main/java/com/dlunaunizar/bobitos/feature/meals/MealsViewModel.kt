@@ -286,6 +286,8 @@ class MealsViewModel @Inject constructor(
             saver.consumeError()
             return
         }
+        // El error que el diálogo mostraba (el del «Listo» anterior) se suelta al reintentar; el aviso no se toca.
+        saver.consumeError()
         saver.run(
             notice = MealUiMessage.CookedReviewApplied,
             onSuccess = { copy(cooked = null) },

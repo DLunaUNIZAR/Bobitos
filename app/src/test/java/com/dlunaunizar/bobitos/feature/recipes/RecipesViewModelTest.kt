@@ -233,6 +233,43 @@ class RecipesViewModelTest {
     }
 
     @Test
+    fun `starting an import keeps the error pending from another action`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.nextFailure = RecipeRepositoryException(RecipeFailure.Network)
+            viewModel.deleteRecipe(recipe("r1", RecipeVisibility.PRIVATE, "Tortilla"))
+            advanceUntilIdle()
+            importer.result = ImportedRecipe("Tortilla", null, null, emptyList(), "https://example.com/t")
+
+            viewModel.importFromUrl("https://example.com/t")
+            advanceUntilIdle()
+
+            assertEquals(RecipeUiMessage.NetworkError, viewModel.uiState.value.save.error)
+        }
+
+    @Test
+    fun `a new import drops the import error of the previous try`() = runTest(mainDispatcherRule.testDispatcher) {
+        importer.failure = ImportFailure.NoRecipeFound
+        viewModel.importFromUrl("https://example.com/a")
+        advanceUntilIdle()
+        importer.failure = null
+        importer.result = ImportedRecipe("Tortilla", null, null, emptyList(), "https://example.com/t")
+
+        viewModel.importFromUrl("https://example.com/t")
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.save.error)
+    }
+
+    @Test
+    fun `the import dialog covers the screen only for an import error or none`() {
+        assertTrue(null.coveredByImportDialog())
+        assertTrue(RecipeUiMessage.ImportNoRecipe.coveredByImportDialog())
+        assertFalse(RecipeUiMessage.NetworkError.coveredByImportDialog())
+        assertTrue(RecipeUiMessage.ImportNetwork.isImport)
+        assertFalse(RecipeUiMessage.NetworkError.isImport)
+    }
+
+    @Test
     fun `the imported source url is forwarded on save`() = runTest(mainDispatcherRule.testDispatcher) {
         viewModel.createRecipe(
             RecipeVisibility.PRIVATE,

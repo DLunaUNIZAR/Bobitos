@@ -254,6 +254,12 @@ class ShoppingViewModel @Inject constructor(
     /** «No añadir» o cerrar el aviso de repetido: no se escribe nada. */
     fun dismissDuplicate() = mutableUiState.update { it.copy(duplicate = null) }
 
+    /** «No añadir»: como [dismissDuplicate] y, además, suelta el estado del editor que se cierra. */
+    fun skipDuplicate() {
+        dismissDuplicate()
+        saver.resetEditor()
+    }
+
     // La lista ya leída. Si aún carga, o si su lectura ha fallado (y entonces se vuelve a escuchar), lo dice en el
     // editor y devuelve null: sin ella no se pueden buscar repetidos.
     private fun itemsForAdd(spaceId: String): List<ShoppingItem>? = when (val items = mutableUiState.value.items) {
@@ -311,7 +317,6 @@ class ShoppingViewModel @Inject constructor(
     ): Boolean {
         if (itemId in purchasingIds) return false
         val item = (mutableUiState.value.items as? UiState.Content)?.value?.firstOrNull { it.id == itemId }
-        saver.clearFeedback()
         return viewModelScope.launchPerIdWrite(
             purchasingIds,
             itemId,

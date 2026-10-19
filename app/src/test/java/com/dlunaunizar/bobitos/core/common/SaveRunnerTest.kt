@@ -53,6 +53,49 @@ class SaveRunnerTest {
     }
 
     @Test
+    fun `an action that starts does not clear the notice nor the error pending from another`() {
+        val gate = CompletableDeferred<Unit>()
+        state.value = TestState(SaveState(error = "e", notice = "n"))
+
+        runner.run<Unit> { gate.await() }
+        runCurrent()
+
+        assertEquals("e", save.error)
+        assertEquals("n", save.notice)
+    }
+
+    @Test
+    fun `an action that fails does not clear the notice pending from another`() {
+        state.value = TestState(SaveState(notice = "n"))
+
+        runner.run<Unit> { error("fallo") }
+        runCurrent()
+
+        assertEquals("n", save.notice)
+        assertEquals("IllegalStateException", save.error)
+    }
+
+    @Test
+    fun `an action that ends without notice leaves the notice pending from another`() {
+        state.value = TestState(SaveState(notice = "n"))
+
+        runner.run<Unit> { }
+        runCurrent()
+
+        assertEquals("n", save.notice)
+    }
+
+    @Test
+    fun `an action that ends with its own notice replaces the pending one`() {
+        state.value = TestState(SaveState(notice = "n"))
+
+        runner.run(notice = "propio") { }
+        runCurrent()
+
+        assertEquals("propio", save.notice)
+    }
+
+    @Test
     fun `a second action does not start while another is in flight`() {
         val gate = CompletableDeferred<Unit>()
         var ran = false
