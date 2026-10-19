@@ -94,14 +94,19 @@ jobs:
           restore-keys: firebase-emulators-
 
       - name: Install dependencies
+        id: install
         run: npm ci
 
       # Ejecuta la suite de reglas contra el proyecto ficticio demo-bobitos: sin secretos.
       - name: Firestore rules tests
         run: npm run test:emulators
 
+      # Se ejecutan aunque falle la suite de reglas; el job sigue en rojo igualmente.
       - name: Catalog scripts tests
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run test:scripts
 
+      # Se ejecutan aunque falle la suite de reglas; el job sigue en rojo igualmente.
       - name: Catalog import tests (emulator)
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run test:catalog-import

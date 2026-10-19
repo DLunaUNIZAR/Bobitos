@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Sin google-services.json (en la CI) no se aplica el plugin de Crashlytics, y sin esto la app de debug se cae al arrancar. -->
+    <bool name="com.crashlytics.RequireBuildId">false</bool>
+</resources>
