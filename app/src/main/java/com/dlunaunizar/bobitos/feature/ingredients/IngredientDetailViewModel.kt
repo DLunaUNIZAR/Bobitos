@@ -3,11 +3,9 @@ package com.dlunaunizar.bobitos.feature.ingredients
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dlunaunizar.bobitos.core.common.CreatedItem
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
-import com.dlunaunizar.bobitos.core.common.failed
-import com.dlunaunizar.bobitos.core.common.started
-import com.dlunaunizar.bobitos.core.common.succeeded
-import com.dlunaunizar.bobitos.core.common.withEditorSaveTimeout
+import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
+import com.dlunaunizar.bobitos.core.common.SaveRunner
+import com.dlunaunizar.bobitos.core.common.rethrowIfCancelled
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.Supermarket
@@ -22,7 +20,6 @@ import com.dlunaunizar.bobitos.data.repository.IngredientRepository
 import com.dlunaunizar.bobitos.data.repository.PersonalIngredientRepository
 import com.dlunaunizar.bobitos.data.repository.sortedForBrands
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,6 +41,15 @@ class IngredientDetailViewModel @Inject constructor(
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(IngredientDetailUiState())
     val uiState: StateFlow<IngredientDetailUiState> = mutableUiState.asStateFlow()
+
+    private val saver = SaveRunner(
+        viewModelScope,
+        mutableUiState,
+        IngredientDetailUiState::save,
+        { copy(save = it) },
+        Throwable::toDetailUiMessage,
+    )
+    val feedback: SaveFeedbackControls get() = saver
 
     private var ingredientId: String = ""
     private var catalogJob: Job? = null
@@ -146,10 +152,10 @@ class IngredientDetailViewModel @Inject constructor(
 
     fun updateIngredient(name: String, category: String?, defaultUnit: String?) {
         if (name.trim().isEmpty()) {
-            showError(IngredientUiMessage.NameRequired, editor = true)
+            saver.showEditorError(IngredientUiMessage.NameRequired)
             return
         }
-        runAction(IngredientUiMessage.Saved, editor = true) {
+        saver.run(notice = IngredientUiMessage.Saved, editor = true) {
             if (isPersonal()) {
                 personalRepository.update(ingredientId, name.trim(), category, defaultUnit)
             } else {
@@ -164,10 +170,10 @@ class IngredientDetailViewModel @Inject constructor(
         val current = mutableUiState.value
         val snapshot = current.ingredient?.takeIf(CatalogIngredient::personal)
             ?.let { DeletedIngredient(it, current.brands, current.stores, repository.currentUserId()) }
-        runAction(
-            if (snapshot == null) IngredientUiMessage.Deleted else null,
-            finishOnSuccess = true,
-            onSuccess = { snapshot?.let(deletedRelay::post) },
+        saver.run(
+            notice = if (snapshot == null) IngredientUiMessage.Deleted else null,
+            onSuccess = { copy(finished = true) },
+            afterSuccess = { snapshot?.let(deletedRelay::post) },
         ) {
             if (snapshot != null) personalRepository.delete(ingredientId) else repository.deleteIngredient(ingredientId)
         }
@@ -177,7 +183,7 @@ class IngredientDetailViewModel @Inject constructor(
 
     /**
      * Añade o quita [store] de «Dónde lo compro»; la lista guardada conserva el orden de elección.
-     * Escritura optimista: la lista cambia al instante y no pasa por `isSaving` (cada toque es independiente);
+     * Escritura optimista: la lista cambia al instante y no pasa por `save.isSaving` (cada toque es independiente);
      * si falla, se avisa y el siguiente snapshot del listener restaura el estado real.
      */
     fun toggleStore(store: Supermarket) {
@@ -189,7 +195,7 @@ class IngredientDetailViewModel @Inject constructor(
         writeOptimistically { prefsRepository.setStores(id, stores) }
     }
 
-    /** Igual que [toggleStore]: la estrella cambia al instante y la escritura no usa `isSaving`. */
+    /** Igual que [toggleStore]: la estrella cambia al instante y la escritura no usa `save.isSaving`. */
     fun setFavorite(brandId: String, favorite: Boolean) {
         mutableUiState.update { state ->
             state.copy(
@@ -204,8 +210,8 @@ class IngredientDetailViewModel @Inject constructor(
     private fun writeOptimistically(action: suspend () -> Unit) {
         viewModelScope.launch {
             runCatching { action() }.onFailure { error ->
-                if (error is CancellationException) throw error
-                mutableUiState.update { it.copy(error = error.toDetailUiMessage(), notice = null) }
+                error.rethrowIfCancelled()
+                saver.showError(error.toDetailUiMessage())
             }
         }
     }
@@ -213,34 +219,32 @@ class IngredientDetailViewModel @Inject constructor(
     /** Alta ([brandId] nulo) o edición de una marca desde el editor. */
     internal fun saveBrand(brandId: String?, draft: BrandDraft) {
         if (draft.name.trim().isEmpty()) {
-            showError(IngredientUiMessage.BrandNameRequired, editor = true)
+            saver.showEditorError(IngredientUiMessage.BrandNameRequired)
             return
         }
         val input = draft.toInput(ingredientId)
         val name = draft.name.trim()
         // Una marca nueva deja `created` (con «Deshacer») en lugar del aviso de marca guardada; editarla, el de siempre.
-        runAction(if (brandId == null) null else IngredientUiMessage.BrandSaved, editor = true) {
-            if (brandId == null) {
-                CreatedItem(brandRepository.addBrand(input), name)
-            } else {
+        if (brandId == null) {
+            saver.create(editor = true) { CreatedItem(brandRepository.addBrand(input), name) }
+        } else {
+            saver.run(notice = IngredientUiMessage.BrandSaved, editor = true) {
                 brandRepository.updateBrand(brandId, input)
             }
         }
     }
 
-    fun consumeCreated() = mutableUiState.update { it.copy(created = null) }
-
     // «Deshacer» el alta de la marca: la borra con el borrado de siempre (sin aviso; si falla, sale el error).
-    fun undoCreate(id: String) = runAction(null, force = true) { brandRepository.deleteBrand(id) }
+    fun undoCreate(id: String) = saver.run(force = true) { brandRepository.deleteBrand(id) }
 
     // onDeleted se llama solo si el borrado termina bien: así el «Deshacer» no se ofrece para un borrado fallido.
     fun deleteBrand(brandId: String, onDeleted: () -> Unit = {}) {
-        runAction(null, onSuccess = onDeleted) { brandRepository.deleteBrand(brandId) }
+        saver.run(afterSuccess = { onDeleted() }) { brandRepository.deleteBrand(brandId) }
     }
 
     // «Deshacer» el borrado de una marca (con el mismo id).
     fun restoreBrand(brand: IngredientBrand) {
-        runAction(null, force = true) { brandRepository.restoreBrand(brand) }
+        saver.run(force = true) { brandRepository.restoreBrand(brand) }
     }
 
     /**
@@ -253,7 +257,8 @@ class IngredientDetailViewModel @Inject constructor(
             showKnownBrand(brand)
             return
         }
-        mutableUiState.update { it.copy(isLookingUp = true, error = null, notice = null) }
+        saver.clearFeedback()
+        mutableUiState.update { it.copy(isLookingUp = true, barcodeConflict = null) }
         viewModelScope.launch {
             try {
                 val product = openFoodFactsClient.lookup(barcode)
@@ -262,17 +267,11 @@ class IngredientDetailViewModel @Inject constructor(
                     barcode = barcode,
                     nutrition = product?.nutrition,
                 )
-                mutableUiState.update {
-                    it.copy(
-                        isLookingUp = false,
-                        scannedBrand = draft,
-                        notice = if (product == null) IngredientUiMessage.ScanNotFound else null,
-                    )
-                }
+                mutableUiState.update { it.copy(isLookingUp = false, scannedBrand = draft) }
+                if (product == null) saver.showNotice(IngredientUiMessage.ScanNotFound)
             } catch (_: OffException) {
-                mutableUiState.update {
-                    it.copy(isLookingUp = false, error = IngredientUiMessage.ScanFailed)
-                }
+                mutableUiState.update { it.copy(isLookingUp = false) }
+                saver.showError(IngredientUiMessage.ScanFailed)
             }
         }
     }
@@ -284,12 +283,10 @@ class IngredientDetailViewModel @Inject constructor(
         }
         val owner = findIngredient(brand.ingredientId)
         mutableUiState.update {
-            it.copy(
-                error = null,
-                notice = IngredientUiMessage.BarcodeInOtherIngredient,
-                barcodeConflict = BarcodeConflict(brand.name, owner?.name ?: brand.ingredientId),
-            )
+            it.copy(barcodeConflict = BarcodeConflict(brand.name, owner?.name ?: brand.ingredientId))
         }
+        saver.clearFeedback()
+        saver.showNotice(IngredientUiMessage.BarcodeInOtherIngredient)
     }
 
     fun consumeOpenBrand() {
@@ -298,52 +295,6 @@ class IngredientDetailViewModel @Inject constructor(
 
     fun consumeScannedBrand() {
         mutableUiState.update { it.copy(scannedBrand = null) }
-    }
-
-    fun consumeEditorSave() = mutableUiState.update { it.copy(editorSave = EditorSaveStatus.IDLE) }
-
-    fun clearFeedback() {
-        mutableUiState.update { it.copy(error = null, notice = null, barcodeConflict = null) }
-    }
-
-    private fun showError(message: IngredientUiMessage, editor: Boolean = false) {
-        mutableUiState.update {
-            it.copy(isSaving = false, error = message, notice = null, editorSave = it.editorSave.failed(editor))
-        }
-    }
-
-    private fun runAction(
-        notice: IngredientUiMessage?,
-        finishOnSuccess: Boolean = false,
-        editor: Boolean = false,
-        force: Boolean = false,
-        onSuccess: () -> Unit = {},
-        // Si la acción devuelve un [CreatedItem], es un alta desde la hoja y queda en `created`.
-        action: suspend () -> Any?,
-    ) {
-        if (mutableUiState.value.isSaving && !force) return
-        mutableUiState.update {
-            it.copy(isSaving = true, error = null, notice = null, editorSave = it.editorSave.started(editor))
-        }
-        viewModelScope.launch {
-            runCatching { withEditorSaveTimeout(editor) { action() } }
-                .onSuccess { result ->
-                    mutableUiState.update {
-                        it.copy(
-                            isSaving = false,
-                            notice = notice,
-                            created = result as? CreatedItem,
-                            finished = it.finished || finishOnSuccess,
-                            editorSave = it.editorSave.succeeded(editor),
-                        )
-                    }
-                    onSuccess()
-                }
-                .onFailure { error ->
-                    if (error is CancellationException) throw error
-                    showError(error.toDetailUiMessage(), editor)
-                }
-        }
     }
 }
 

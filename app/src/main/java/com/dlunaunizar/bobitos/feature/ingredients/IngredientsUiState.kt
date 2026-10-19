@@ -1,7 +1,6 @@
 package com.dlunaunizar.bobitos.feature.ingredients
 
-import com.dlunaunizar.bobitos.core.common.CreatedItem
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.SaveState
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
@@ -23,8 +22,8 @@ data class IngredientsUiState(
     val catalogError: IngredientUiMessage? = null,
     // La cuenta activa puede crear ingredientes comunes.
     val isAdmin: Boolean = false,
-    val isSaving: Boolean = false,
-    val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
+    // Guardado, editor, error, aviso y alta recién hecha (la pantalla la avisa con «Deshacer» y la consume).
+    val save: SaveState<IngredientUiMessage, IngredientUiMessage> = SaveState(),
     // Consulta a Open Food Facts en curso tras escanear desde la lista.
     val isLookingUp: Boolean = false,
     // Producto escaneado pendiente de elegir ingrediente, y el ingrediente elegido (editor de marca).
@@ -32,10 +31,6 @@ data class IngredientsUiState(
     val scanBrandTarget: String? = null,
     // Evento: marca conocida a la que navegar.
     val openBrand: OpenBrand? = null,
-    val error: IngredientUiMessage? = null,
-    val notice: IngredientUiMessage? = null,
-    // Alta recién hecha desde la hoja: la pantalla la avisa con «Deshacer» y la consume.
-    val created: CreatedItem? = null,
     // Evento: ficha existente a la que navegar tras un alta duplicada, y su nombre para el aviso.
     val openIngredientId: String? = null,
     val existingName: String? = null,

@@ -40,8 +40,9 @@ class IngredientsViewModelTest {
     private val brandRepository = FakeIngredientBrandRepository()
     private val offClient = FakeOffClient()
     private val relay = DeletedIngredientRelay()
-    private val viewModel =
+    private val viewModel by lazy {
         IngredientsViewModel(repository, personalRepository, prefsRepository, brandRepository, offClient, relay)
+    }
 
     @Test
     fun `observe merges common and personal and carries brands and prefs`() =
@@ -79,7 +80,7 @@ class IngredientsViewModelTest {
         advanceUntilIdle()
 
         assertEquals(deleted, personalRepository.restored)
-        assertNull(viewModel.uiState.value.error)
+        assertNull(viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -91,7 +92,7 @@ class IngredientsViewModelTest {
         viewModel.restoreIngredient(deleted)
         advanceUntilIdle()
 
-        assertEquals(IngredientUiMessage.AlreadyExists, viewModel.uiState.value.error)
+        assertEquals(IngredientUiMessage.AlreadyExists, viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -158,7 +159,7 @@ class IngredientsViewModelTest {
         assertEquals(1, personalRepository.createCount)
         assertEquals("Cebolla", personalRepository.lastCreatedName)
         assertEquals(0, repository.createCount)
-        assertNull(viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -169,11 +170,11 @@ class IngredientsViewModelTest {
         viewModel.createIngredient("  Cebolla  ", null, "ud", common = false)
         advanceUntilIdle()
 
-        assertEquals(CreatedItem("cebolla", "Cebolla"), viewModel.uiState.value.created)
-        assertNull(viewModel.uiState.value.notice)
+        assertEquals(CreatedItem("cebolla", "Cebolla"), viewModel.uiState.value.save.created)
+        assertNull(viewModel.uiState.value.save.notice)
 
-        viewModel.consumeCreated()
-        assertNull(viewModel.uiState.value.created)
+        viewModel.feedback.consumeCreated()
+        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
@@ -193,12 +194,12 @@ class IngredientsViewModelTest {
 
         viewModel.createIngredient("Tomate", null, null, common = false)
         advanceUntilIdle()
-        viewModel.consumeCreated()
+        viewModel.feedback.consumeCreated()
         // Un nombre que ya existe no escribe nada: abre la ficha existente y no ofrece deshacer.
         viewModel.createIngredient("Tomate", null, null, common = false)
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.created)
+        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
@@ -210,8 +211,8 @@ class IngredientsViewModelTest {
         viewModel.createIngredient("Cebolla", null, null, common = true)
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.created)
-        assertEquals(IngredientUiMessage.Saved, viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.save.created)
+        assertEquals(IngredientUiMessage.Saved, viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -255,12 +256,52 @@ class IngredientsViewModelTest {
             assertEquals(0, personalRepository.createCount)
             val state = viewModel.uiState.value
             assertEquals("limon", state.openIngredientId)
-            assertEquals(IngredientUiMessage.AlreadyExists, state.error)
+            assertEquals(IngredientUiMessage.AlreadyExists, state.save.editorError)
+            assertNull(state.save.error)
             assertEquals("Limón", state.existingName)
-            assertEquals(EditorSaveStatus.FAILED, state.editorSave)
+            assertEquals(EditorSaveStatus.FAILED, state.save.editor)
 
             viewModel.consumeOpenIngredient()
             assertNull(viewModel.uiState.value.openIngredientId)
+        }
+
+    @Test
+    fun `a duplicate name shows the error only in the form`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.catalogState.value = listOf(ingredient("limon", "Limón"))
+        viewModel.observe()
+        advanceUntilIdle()
+
+        viewModel.createIngredient("limones", null, null, common = false)
+        advanceUntilIdle()
+
+        val save = viewModel.uiState.value.save
+        assertEquals(IngredientUiMessage.AlreadyExists, save.editorError)
+        assertNull(save.error)
+        assertNull(save.notice)
+        assertEquals("limon", viewModel.uiState.value.openIngredientId)
+    }
+
+    @Test
+    fun `undoing a delete runs while another write is in flight and keeps saving on until both end`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel.observe()
+            advanceUntilIdle()
+            val gate = CompletableDeferred<Unit>()
+            personalRepository.createGate = gate
+            viewModel.createIngredient("Cebolla", null, null, common = false)
+            runCurrent()
+            assertTrue(viewModel.uiState.value.save.isSaving)
+            val canela = CatalogIngredient("canela", "Canela", personal = true)
+            val deleted = DeletedIngredient(canela, emptyList(), emptyList(), "me")
+
+            viewModel.restoreIngredient(deleted)
+            runCurrent()
+
+            assertEquals(deleted, personalRepository.restored)
+            assertTrue(viewModel.uiState.value.save.isSaving)
+            gate.complete(Unit)
+            advanceUntilIdle()
+            assertFalse(viewModel.uiState.value.save.isSaving)
         }
 
     @Test
@@ -268,7 +309,8 @@ class IngredientsViewModelTest {
         viewModel.createIngredient("   ", null, null, common = false)
 
         assertEquals(0, personalRepository.createCount)
-        assertEquals(IngredientUiMessage.NameRequired, viewModel.uiState.value.error)
+        assertEquals(IngredientUiMessage.NameRequired, viewModel.uiState.value.save.editorError)
+        assertNull(viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -334,7 +376,7 @@ class IngredientsViewModelTest {
         advanceUntilIdle()
 
         assertEquals(ScanPick("8410000000000", "", "", null), viewModel.uiState.value.scanPick)
-        assertEquals(IngredientUiMessage.ScanFailed, viewModel.uiState.value.error)
+        assertEquals(IngredientUiMessage.ScanFailed, viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -361,8 +403,8 @@ class IngredientsViewModelTest {
             val state = viewModel.uiState.value
             assertNull(state.scanPick)
             assertNull(state.scanBrandTarget)
-            assertEquals(EditorSaveStatus.SAVED, state.editorSave)
-            assertEquals(IngredientUiMessage.BrandSaved, state.notice)
+            assertEquals(EditorSaveStatus.SAVED, state.save.editor)
+            assertEquals(IngredientUiMessage.BrandSaved, state.save.notice)
         }
 
     @Test
@@ -403,7 +445,7 @@ class IngredientsViewModelTest {
             assertEquals(0, personalRepository.createCount)
             assertEquals(0, repository.createCount)
             assertEquals("tomate-frito", viewModel.uiState.value.scanBrandTarget)
-            assertNull(viewModel.uiState.value.error)
+            assertNull(viewModel.uiState.value.save.error)
         }
 
     @Test
@@ -428,13 +470,13 @@ class IngredientsViewModelTest {
         personalRepository.createGate = gate
 
         viewModel.createIngredient("Cebolla", null, null, common = false)
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
-        assertTrue(viewModel.uiState.value.isSaving)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
+        assertTrue(viewModel.uiState.value.save.isSaving)
         gate.complete(Unit)
         advanceUntilIdle()
-        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
-        viewModel.consumeEditorSave()
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.save.editor)
+        viewModel.feedback.resetEditor()
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
     }
 
     @Test
@@ -442,18 +484,19 @@ class IngredientsViewModelTest {
         viewModel.observe()
         advanceUntilIdle()
         viewModel.createIngredient("  ", null, null, common = false)
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        viewModel.consumeEditorSave()
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        viewModel.feedback.resetEditor()
 
         personalRepository.hang = true
         viewModel.createIngredient("Cebolla", null, null, common = false)
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
         advanceTimeBy(EDITOR_SAVE_TIMEOUT_MILLIS + 1)
         runCurrent()
 
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        assertEquals(IngredientUiMessage.SaveTimeout, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.isSaving)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        assertEquals(IngredientUiMessage.SaveTimeout, viewModel.uiState.value.save.editorError)
+        assertNull(viewModel.uiState.value.save.error)
+        assertFalse(viewModel.uiState.value.save.isSaving)
     }
 }
 

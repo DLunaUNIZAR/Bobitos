@@ -44,7 +44,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dlunaunizar.bobitos.R
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.SaveFeedbackControls
+import com.dlunaunizar.bobitos.core.common.SaveState
 import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.messageRes
 import com.dlunaunizar.bobitos.core.designsystem.component.AddFab
@@ -54,7 +55,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.CreatedUndoEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
-import com.dlunaunizar.bobitos.core.designsystem.component.FeedbackSnackbarEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdown
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
@@ -62,11 +62,11 @@ import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.RowPosition
+import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SearchField
 import com.dlunaunizar.bobitos.core.designsystem.component.SectionHeader
 import com.dlunaunizar.bobitos.core.designsystem.component.SwitchRow
-import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberFormValidationState
@@ -108,7 +108,7 @@ fun IngredientsScreen(
     val editorOpen = showEditor || showScanCreate || state.scanBrandTarget != null
     val closeEditor: () -> Unit = {
         // Cerrar tras un guardado fallido descarta ese error (ya se veía en el diálogo).
-        state.editorSave.discardFailure(viewModel::clearFeedback)
+        viewModel.feedback.resetEditor()
         showEditor = false
         showScanCreate = false
     }
@@ -119,7 +119,7 @@ fun IngredientsScreen(
         title = stringResource(R.string.ingredients_title),
         onBack = onBack,
         modifier = modifier,
-        saving = savingOutsideEditor(state.isSaving, editorOpen),
+        saving = savingOutsideEditor(state.save.isSaving, editorOpen),
         actions = { ScanButton(enabled = !state.isLookingUp, onScanned = viewModel::lookupBarcode) },
         floatingActionButton = {
             val fabExpanded = rememberFabExpanded(listState)
@@ -130,7 +130,7 @@ fun IngredientsScreen(
             )
         },
     ) { padding ->
-        CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
+        CreatedUndoEffect(state.save.created, viewModel.feedback::consumeCreated) { viewModel.undoCreate(it.id) }
         DeletedUndoEffect(viewModel)
         Column(
             modifier = Modifier
@@ -138,12 +138,9 @@ fun IngredientsScreen(
                 .padding(padding),
         ) {
             IngredientsMessageEffect(
-                error = state.error,
-                notice = state.notice,
-                editorSave = state.editorSave,
-                editorOpen = editorOpen,
-                onShown = viewModel::clearFeedback,
-                existingName = state.existingName,
+                save = state.save,
+                controls = viewModel.feedback,
+                covered = editorOpen,
             )
             IngredientCatalog(
                 state = state,
@@ -157,20 +154,20 @@ fun IngredientsScreen(
     }
 
     EditorSaveEffect(
-        status = state.editorSave,
+        editor = state.save.editor,
         editorOpen = editorOpen,
+        controls = viewModel.feedback,
         onClose = {
             showEditor = false
             showScanCreate = false
         },
-        onConsume = viewModel::consumeEditorSave,
     )
-    val editorError = editorErrorMessage(state.error, state.editorSave, state.existingName)
+    val editorError = editorErrorMessage(state.save, state.existingName)
 
     if (showEditor) {
         IngredientEditorDialog(
             ingredient = null,
-            saving = state.isSaving,
+            saving = state.save.isSaving,
             errorMessage = editorError,
             onDismiss = closeEditor,
             onSave = { name, category, unit -> viewModel.createIngredient(name, category, unit, createCommon) },
@@ -233,7 +230,7 @@ private fun ScanFlow(
         state.scanBrandTarget != null -> BrandEditorDialog(
             brandId = null,
             initial = BrandDraft.of(pick.brandName, pick.barcode, pick.nutrition),
-            saving = state.isSaving,
+            saving = state.save.isSaving,
             errorMessage = editorError,
             onDismiss = viewModel::cancelScan,
             onSave = viewModel::saveScannedBrand,
@@ -241,7 +238,7 @@ private fun ScanFlow(
         showCreate -> IngredientEditorDialog(
             ingredient = null,
             initialName = pick.productName,
-            saving = state.isSaving,
+            saving = state.save.isSaving,
             errorMessage = editorError,
             onDismiss = closeCreate,
             onSave = viewModel::createPersonalForScan,
@@ -551,26 +548,26 @@ internal class CommonToggle(val checked: Boolean, val onChange: (Boolean) -> Uni
 /** Resultado de una acción del catálogo, en el snackbar de la pantalla. */
 @Composable
 internal fun IngredientsMessageEffect(
-    error: IngredientUiMessage?,
-    notice: IngredientUiMessage?,
-    editorSave: EditorSaveStatus,
-    editorOpen: Boolean,
-    onShown: () -> Unit,
-    existingName: String? = null,
+    save: SaveState<IngredientUiMessage, IngredientUiMessage>,
+    controls: SaveFeedbackControls,
+    covered: Boolean,
     barcodeConflict: BarcodeConflict? = null,
 ) {
-    FeedbackSnackbarEffect(error, notice, editorSave, editorOpen, onShown) {
-        ingredientMessageText(it, existingName, barcodeConflict)
-    }
+    SaveFeedbackEffect(
+        save = save,
+        controls = controls,
+        covered = covered,
+        errorText = { ingredientMessageText(it, null, barcodeConflict) },
+        noticeText = { ingredientMessageText(it, null, barcodeConflict) },
+    )
 }
 
-/** El error del guardado del editor abierto (solo con FAILED); los demás se ven en el snackbar. */
+/** El error del guardado del editor abierto; los demás se ven en el snackbar. */
 @Composable
 internal fun editorErrorMessage(
-    error: IngredientUiMessage?,
-    editorSave: EditorSaveStatus,
+    save: SaveState<IngredientUiMessage, IngredientUiMessage>,
     existingName: String? = null,
-): String? = error?.takeIf { editorSave == EditorSaveStatus.FAILED }?.let { ingredientMessageText(it, existingName) }
+): String? = save.editorError?.let { ingredientMessageText(it, existingName) }
 
 /** Texto del mensaje; «ya existe» nombra la ficha encontrada si se conoce. */
 @Composable

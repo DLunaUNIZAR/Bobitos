@@ -58,7 +58,6 @@ import com.dlunaunizar.bobitos.core.designsystem.component.InfoChip
 import com.dlunaunizar.bobitos.core.designsystem.component.LocalSnackbarHostState
 import com.dlunaunizar.bobitos.core.designsystem.component.ScreenScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.SwitchRow
-import com.dlunaunizar.bobitos.core.designsystem.component.discardFailure
 import com.dlunaunizar.bobitos.core.designsystem.component.errorSupportingText
 import com.dlunaunizar.bobitos.core.designsystem.component.launchUndo
 import com.dlunaunizar.bobitos.core.designsystem.component.rememberEditorItem
@@ -111,9 +110,9 @@ fun IngredientDetailScreen(
         title = ingredient?.name ?: stringResource(R.string.ingredients_title),
         onBack = onBack,
         modifier = modifier,
-        saving = savingOutsideEditor(state.isSaving, showFichaEditor || brandInitial != null),
+        saving = savingOutsideEditor(state.save.isSaving, showFichaEditor || brandInitial != null),
     ) { padding ->
-        CreatedUndoEffect(state.created, viewModel::consumeCreated) { viewModel.undoCreate(it.id) }
+        CreatedUndoEffect(state.save.created, viewModel.feedback::consumeCreated) { viewModel.undoCreate(it.id) }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -123,11 +122,9 @@ fun IngredientDetailScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             IngredientsMessageEffect(
-                error = state.error,
-                notice = state.notice,
-                editorSave = state.editorSave,
-                editorOpen = showFichaEditor || brandInitial != null,
-                onShown = viewModel::clearFeedback,
+                save = state.save,
+                controls = viewModel.feedback,
+                covered = showFichaEditor || brandInitial != null,
                 barcodeConflict = state.barcodeConflict,
             )
             IngredientContent(
@@ -160,7 +157,7 @@ fun IngredientDetailScreen(
             message = stringResource(R.string.ingredients_delete_body, common.name),
             confirmLabel = stringResource(R.string.ingredients_delete),
             destructive = true,
-            confirmEnabled = !state.isSaving,
+            confirmEnabled = !state.save.isSaving,
             onConfirm = {
                 viewModel.deleteIngredient()
                 confirmDeleteIngredient = false
@@ -182,22 +179,22 @@ private fun DetailEditors(
     onCloseBrand: () -> Unit,
 ) {
     EditorSaveEffect(
-        status = state.editorSave,
+        editor = state.save.editor,
         editorOpen = fichaIngredient != null || brandInitial != null,
+        controls = viewModel.feedback,
         onClose = {
             onCloseFicha()
             onCloseBrand()
         },
-        onConsume = viewModel::consumeEditorSave,
     )
-    val editorError = editorErrorMessage(state.error, state.editorSave)
+    val editorError = editorErrorMessage(state.save)
     if (fichaIngredient != null) {
         IngredientEditorDialog(
             ingredient = fichaIngredient,
-            saving = state.isSaving,
+            saving = state.save.isSaving,
             errorMessage = editorError,
             onDismiss = {
-                state.editorSave.discardFailure(viewModel::clearFeedback)
+                viewModel.feedback.resetEditor()
                 onCloseFicha()
             },
             onSave = viewModel::updateIngredient,
@@ -206,10 +203,10 @@ private fun DetailEditors(
     BrandEditorHost(
         brandId = brandId,
         initial = brandInitial,
-        saving = state.isSaving,
+        saving = state.save.isSaving,
         errorMessage = editorError,
         onClose = {
-            state.editorSave.discardFailure(viewModel::clearFeedback)
+            viewModel.feedback.resetEditor()
             onCloseBrand()
         },
         onSave = viewModel::saveBrand,
@@ -243,7 +240,7 @@ private fun IngredientContent(
         canEdit = state.canEditIngredient,
         onEdit = onEditFicha,
         onDelete = onDeleteIngredient,
-        deleteEnabled = !state.isSaving,
+        deleteEnabled = !state.save.isSaving,
     )
     if (onAddToShopping != null) {
         OutlinedButton(onClick = { onAddToShopping(ingredient.name) }, modifier = Modifier.fillMaxWidth()) {
@@ -259,7 +256,7 @@ private fun IngredientContent(
         onAdd = { onOpenBrandEditor(null, BrandDraft.of("", "", null)) },
         onScan = { scope.launch { scanBarcode(context)?.let(viewModel::lookupBarcode) } },
         onEdit = { onOpenBrandEditor(it.id, BrandDraft.of(it)) },
-        deleteEnabled = !state.isSaving,
+        deleteEnabled = !state.save.isSaving,
         onDelete = { brand ->
             viewModel.deleteBrand(brand.id) {
                 scope.launchUndo(snackbar, brandDeletedMessage, undoLabel) { viewModel.restoreBrand(brand) }

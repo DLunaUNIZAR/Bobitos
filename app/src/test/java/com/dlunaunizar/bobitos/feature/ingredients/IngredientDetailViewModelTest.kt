@@ -42,8 +42,9 @@ class IngredientDetailViewModelTest {
     private val brandRepository = FakeIngredientBrandRepository()
     private val offClient = FakeOffClient()
     private val relay = DeletedIngredientRelay()
-    private val viewModel =
+    private val viewModel by lazy {
         IngredientDetailViewModel(repository, personalRepository, prefsRepository, brandRepository, offClient, relay)
+    }
 
     @Test
     fun `observe resolves a common ingredient before a personal one with the same id`() =
@@ -155,7 +156,7 @@ class IngredientDetailViewModelTest {
             advanceUntilIdle()
 
             assertEquals("tomate" to listOf(Supermarket.DIA, Supermarket.MERCADONA), prefsRepository.lastSet)
-            assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+            assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
 
             viewModel.toggleStore(Supermarket.DIA)
             advanceUntilIdle()
@@ -192,7 +193,7 @@ class IngredientDetailViewModelTest {
                 prefsRepository.calls,
             )
             assertEquals(listOf(Supermarket.MERCADONA, Supermarket.DIA), viewModel.uiState.value.stores)
-            assertFalse(viewModel.uiState.value.isSaving)
+            assertFalse(viewModel.uiState.value.save.isSaving)
         }
 
     @Test
@@ -204,13 +205,13 @@ class IngredientDetailViewModelTest {
 
             viewModel.toggleStore(Supermarket.MERCADONA)
             advanceUntilIdle()
-            assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+            assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
 
             viewModel.saveBrand("b1", BrandDraft.of("Otra", "", null))
             advanceUntilIdle()
 
             assertEquals("b1", brandRepository.lastUpdateId)
-            assertEquals(IngredientUiMessage.BrandSaved, viewModel.uiState.value.notice)
+            assertEquals(IngredientUiMessage.BrandSaved, viewModel.uiState.value.save.notice)
         }
 
     @Test
@@ -230,7 +231,7 @@ class IngredientDetailViewModelTest {
             val brands = viewModel.uiState.value.brands
             assertEquals(listOf("b2", "b1"), brands.map { it.id })
             assertTrue(brands.first().favorite)
-            assertFalse(viewModel.uiState.value.isSaving)
+            assertFalse(viewModel.uiState.value.save.isSaving)
         }
 
     @Test
@@ -242,8 +243,8 @@ class IngredientDetailViewModelTest {
         viewModel.toggleStore(Supermarket.MERCADONA)
         advanceUntilIdle()
 
-        assertEquals(IngredientUiMessage.NetworkError, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.isSaving)
+        assertEquals(IngredientUiMessage.NetworkError, viewModel.uiState.value.save.error)
+        assertFalse(viewModel.uiState.value.save.isSaving)
     }
 
     @Test
@@ -255,7 +256,7 @@ class IngredientDetailViewModelTest {
         advanceUntilIdle()
 
         assertEquals("b1" to true, brandRepository.lastFavorite)
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
     }
 
     @Test
@@ -276,7 +277,7 @@ class IngredientDetailViewModelTest {
         assertEquals(Nutrition(energyKcal = 30.0), input?.nutrition)
         assertEquals(true, input?.favorite)
         assertEquals(listOf(Supermarket.ALCAMPO, Supermarket.DIA), input?.stores)
-        assertNull(viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -287,11 +288,11 @@ class IngredientDetailViewModelTest {
         viewModel.saveBrand(null, BrandDraft.of("  Hacendado ", "", null))
         advanceUntilIdle()
 
-        assertEquals(CreatedItem("new", "Hacendado"), viewModel.uiState.value.created)
-        assertNull(viewModel.uiState.value.notice)
+        assertEquals(CreatedItem("new", "Hacendado"), viewModel.uiState.value.save.created)
+        assertNull(viewModel.uiState.value.save.notice)
 
-        viewModel.consumeCreated()
-        assertNull(viewModel.uiState.value.created)
+        viewModel.feedback.consumeCreated()
+        assertNull(viewModel.uiState.value.save.created)
     }
 
     @Test
@@ -301,7 +302,7 @@ class IngredientDetailViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf("new"), brandRepository.deleted)
-        assertNull(viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -312,8 +313,8 @@ class IngredientDetailViewModelTest {
         viewModel.saveBrand("b1", BrandDraft.of("Otra", "", null))
         advanceUntilIdle()
 
-        assertNull(viewModel.uiState.value.created)
-        assertEquals(IngredientUiMessage.BrandSaved, viewModel.uiState.value.notice)
+        assertNull(viewModel.uiState.value.save.created)
+        assertEquals(IngredientUiMessage.BrandSaved, viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -338,7 +339,8 @@ class IngredientDetailViewModelTest {
         viewModel.saveBrand(null, BrandDraft.of("  ", "", null))
 
         assertEquals(0, brandRepository.addCount)
-        assertEquals(IngredientUiMessage.BrandNameRequired, viewModel.uiState.value.error)
+        assertEquals(IngredientUiMessage.BrandNameRequired, viewModel.uiState.value.save.editorError)
+        assertNull(viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -350,8 +352,9 @@ class IngredientDetailViewModelTest {
         viewModel.saveBrand(null, BrandDraft.of("x".repeat(61), "", null))
         advanceUntilIdle()
 
-        assertEquals(IngredientUiMessage.BrandNameTooLong, viewModel.uiState.value.error)
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
+        assertEquals(IngredientUiMessage.BrandNameTooLong, viewModel.uiState.value.save.editorError)
+        assertNull(viewModel.uiState.value.save.error)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
     }
 
     @Test
@@ -424,8 +427,30 @@ class IngredientDetailViewModelTest {
         advanceUntilIdle()
 
         assertEquals(brand, brandRepository.restoredBrand)
-        assertNull(viewModel.uiState.value.error)
+        assertNull(viewModel.uiState.value.save.error)
     }
+
+    @Test
+    fun `undoing a brand delete runs while another write is in flight and keeps saving on until both end`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel.observe("tomate")
+            advanceUntilIdle()
+            val gate = CompletableDeferred<Unit>()
+            brandRepository.addGate = gate
+            viewModel.saveBrand(null, BrandDraft.of("Hacendado", "", null))
+            runCurrent()
+            assertTrue(viewModel.uiState.value.save.isSaving)
+            val brand = detailBrand("b1", "tomate", "Hacendado")
+
+            viewModel.restoreBrand(brand)
+            runCurrent()
+
+            assertEquals(brand, brandRepository.restoredBrand)
+            assertTrue(viewModel.uiState.value.save.isSaving)
+            gate.complete(Unit)
+            advanceUntilIdle()
+            assertFalse(viewModel.uiState.value.save.isSaving)
+        }
 
     @Test
     fun `a failed brand undo shows the error`() = runTest(mainDispatcherRule.testDispatcher) {
@@ -434,7 +459,7 @@ class IngredientDetailViewModelTest {
         viewModel.restoreBrand(detailBrand("b1", "tomate", "Hacendado"))
         advanceUntilIdle()
 
-        assertEquals(IngredientUiMessage.NetworkError, viewModel.uiState.value.error)
+        assertEquals(IngredientUiMessage.NetworkError, viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -506,7 +531,7 @@ class IngredientDetailViewModelTest {
         advanceUntilIdle()
 
         assertEquals("0000000000000", viewModel.uiState.value.scannedBrand?.barcode)
-        assertEquals(IngredientUiMessage.ScanNotFound, viewModel.uiState.value.notice)
+        assertEquals(IngredientUiMessage.ScanNotFound, viewModel.uiState.value.save.notice)
     }
 
     @Test
@@ -519,7 +544,7 @@ class IngredientDetailViewModelTest {
         advanceUntilIdle()
 
         assertNull(viewModel.uiState.value.scannedBrand)
-        assertEquals(IngredientUiMessage.ScanFailed, viewModel.uiState.value.error)
+        assertEquals(IngredientUiMessage.ScanFailed, viewModel.uiState.value.save.error)
     }
 
     @Test
@@ -552,7 +577,7 @@ class IngredientDetailViewModelTest {
             advanceUntilIdle()
 
             val state = viewModel.uiState.value
-            assertEquals(IngredientUiMessage.BarcodeInOtherIngredient, state.notice)
+            assertEquals(IngredientUiMessage.BarcodeInOtherIngredient, state.save.notice)
             assertEquals(BarcodeConflict(brandName = "Ajena", ingredientName = "Sal"), state.barcodeConflict)
             assertNull(state.openBrandId)
             assertNull(state.scannedBrand)
@@ -576,13 +601,13 @@ class IngredientDetailViewModelTest {
         repository.updateGate = gate
 
         viewModel.updateIngredient("Tomate", null, null)
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
         gate.complete(Unit)
         advanceUntilIdle()
 
-        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
-        viewModel.consumeEditorSave()
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.save.editor)
+        viewModel.feedback.resetEditor()
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
     }
 
     @Test
@@ -593,19 +618,19 @@ class IngredientDetailViewModelTest {
         brandRepository.addGate = gate
 
         viewModel.saveBrand(null, BrandDraft.of("Hacendado", "", null))
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
         gate.complete(Unit)
         advanceUntilIdle()
-        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
-        viewModel.consumeEditorSave()
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.save.editor)
+        viewModel.feedback.resetEditor()
 
         val updateGate = CompletableDeferred<Unit>()
         brandRepository.updateGate = updateGate
         viewModel.saveBrand("b1", BrandDraft.of("Otra", "", null))
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
         updateGate.complete(Unit)
         advanceUntilIdle()
-        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVED, viewModel.uiState.value.save.editor)
     }
 
     @Test
@@ -614,18 +639,19 @@ class IngredientDetailViewModelTest {
         viewModel.observe("tomate")
         advanceUntilIdle()
         viewModel.saveBrand(null, BrandDraft.of("  ", "", null))
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        viewModel.consumeEditorSave()
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        viewModel.feedback.resetEditor()
 
         repository.hang = true
         viewModel.updateIngredient("Tomate", null, null)
-        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.SAVING, viewModel.uiState.value.save.editor)
         advanceTimeBy(EDITOR_SAVE_TIMEOUT_MILLIS + 1)
         runCurrent()
 
-        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.editorSave)
-        assertEquals(IngredientUiMessage.SaveTimeout, viewModel.uiState.value.error)
-        assertFalse(viewModel.uiState.value.isSaving)
+        assertEquals(EditorSaveStatus.FAILED, viewModel.uiState.value.save.editor)
+        assertEquals(IngredientUiMessage.SaveTimeout, viewModel.uiState.value.save.editorError)
+        assertNull(viewModel.uiState.value.save.error)
+        assertFalse(viewModel.uiState.value.save.isSaving)
     }
 
     @Test
@@ -640,7 +666,7 @@ class IngredientDetailViewModelTest {
         viewModel.deleteIngredient()
         advanceUntilIdle()
 
-        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.editorSave)
+        assertEquals(EditorSaveStatus.IDLE, viewModel.uiState.value.save.editor)
         assertTrue(viewModel.uiState.value.finished)
     }
 }

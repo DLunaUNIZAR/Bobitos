@@ -1,7 +1,6 @@
 package com.dlunaunizar.bobitos.feature.ingredients
 
-import com.dlunaunizar.bobitos.core.common.CreatedItem
-import com.dlunaunizar.bobitos.core.common.EditorSaveStatus
+import com.dlunaunizar.bobitos.core.common.SaveState
 import com.dlunaunizar.bobitos.core.model.CatalogIngredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.Nutrition
@@ -22,8 +21,8 @@ data class IngredientDetailUiState(
     // Tiendas del ingrediente en orden de preferencia (de las preferencias del usuario).
     val stores: List<Supermarket> = emptyList(),
     val isAdmin: Boolean = false,
-    val isSaving: Boolean = false,
-    val editorSave: EditorSaveStatus = EditorSaveStatus.IDLE,
+    // Guardado, editor, error, aviso y alta recién hecha (la pantalla la avisa con «Deshacer» y la consume).
+    val save: SaveState<IngredientUiMessage, IngredientUiMessage> = SaveState(),
     // Consulta a Open Food Facts en curso tras escanear.
     val isLookingUp: Boolean = false,
     // Borrador pendiente de abrir en el editor de marca tras un escaneo.
@@ -31,10 +30,6 @@ data class IngredientDetailUiState(
     // Evento: marca de este ingrediente cuyo código se acaba de escanear, para abrir su editor.
     val openBrandId: String? = null,
     val barcodeConflict: BarcodeConflict? = null,
-    val error: IngredientUiMessage? = null,
-    val notice: IngredientUiMessage? = null,
-    // Alta recién hecha desde la hoja: la pantalla la avisa con «Deshacer» y la consume.
-    val created: CreatedItem? = null,
     // El ingrediente se borró: la pantalla debe cerrarse.
     val finished: Boolean = false,
 ) {
