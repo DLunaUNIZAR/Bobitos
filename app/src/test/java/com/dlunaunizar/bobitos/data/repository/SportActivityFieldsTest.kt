@@ -78,6 +78,31 @@ class SportActivityFieldsTest {
         assertEquals("me", restoredEvent["createdBy"])
     }
 
+    @Test
+    fun `the organizer stays in the restored event although they do not take part in the activity`() {
+        val records = listOf(MembershipRecord("a", "ACTIVE", "Ana"), MembershipRecord("owner", "ACTIVE", "David"))
+        val active = activeMembers(listOf("a", "owner"), records)
+        val event = linkedEvent(participantIds = listOf("a", "owner"))
+        val activityActive = activeMembers(listOf("a"), records)
+
+        val activity = activityData(
+            me,
+            date,
+            SportType.PADEL,
+            "Pádel",
+            activityActive.map(ActiveMember::id),
+            activityActive.map(ActiveMember::name),
+            gym,
+            event.id,
+            false,
+        )
+        val restoredEvent = eventDataForRestore(me, event, active)
+
+        assertEquals(listOf("a"), activity["participantIds"])
+        assertEquals(listOf("a", "owner"), restoredEvent["participantIds"])
+        assertEquals(listOf("Ana", "David"), restoredEvent["participantNames"])
+    }
+
     private fun linkedEvent(participantIds: List<String>) = CalendarEvent(
         id = "e1",
         title = "Pádel (editado)",

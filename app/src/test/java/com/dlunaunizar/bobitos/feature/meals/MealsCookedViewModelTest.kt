@@ -31,6 +31,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -376,6 +377,25 @@ class MealsCookedViewModelTest {
 
             assertNull(viewModel.uiState.value.cooked)
             assertNull(viewModel.uiState.value.save.error)
+        }
+
+    @Test
+    fun `cancelling the cooked dialog without a previous error keeps the cooked notice`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            recipeRepository.mineState.value = listOf(recipe("r1", listOf(Ingredient("Leche", "1", "l"))))
+            pantryRepository.serverIds = setOf(pantryId("Leche"))
+            viewModel.observe("home")
+            advanceUntilIdle()
+            viewModel.markCooked(meal("m1", LocalDate.now(), MealSlot.DESAYUNO, "Café con leche").copy(recipeId = "r1"))
+            advanceUntilIdle()
+            assertNotNull(viewModel.uiState.value.cooked)
+            assertEquals(MealUiMessage.MealCooked, viewModel.uiState.value.save.notice)
+
+            viewModel.dismissCooked()
+
+            assertNull(viewModel.uiState.value.cooked)
+            assertNull(viewModel.uiState.value.save.error)
+            assertEquals(MealUiMessage.MealCooked, viewModel.uiState.value.save.notice)
         }
 
     @Test
