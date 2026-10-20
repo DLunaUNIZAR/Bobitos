@@ -4,6 +4,22 @@ Menores que las revisiones de cada rama dejaron sin arreglar. Cada línea dice s
 
 Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalogo-ejercicios-wger`) se cerraron en la rama `agent/menores-aplazados` (plan `docs/superpowers/plans/2026-10-10-menores-aplazados.md`).
 
+## 2026-10-20 — `agent/red-de-seguridad-r2`
+
+- **Interno:** la CI ejecuta los instrumentados en la API 36, no en la 37: las imágenes x86_64 de la 37.0 y la 36.1 abortan en `hasReadColorBufferDma` (rock3r/clockblock#122). Volver a la 37 en `instrumented.yml` y en el ADR-0001 cuando haya un emulador arreglado (ruling R5).
+- **Interno:** `RecipeRestoreTest` no fija `source.provider == "bobitos"`, que la regla exige: una errata en `CATALOG_PROVIDER` pasaría los tests y «Deshacer» perdería la común importada (`RecipeRestoreTest.kt` ~134; M1).
+- **Interno:** dos tests nuevos no se han visto fallar con ninguna mutación (`RecipeRestoreTest.kt` ~140, fechas nulas; `IngredientBrandFirestoreTest.kt` ~168, nada que borrar) (M2).
+- **Interno:** el test del organizador en el evento restaurado llama a `eventDataForRestore` directamente y no pasa por `FirestoreSportActivityRepository.kt` ~259, donde se decide (M3).
+- **Interno:** en `BetaUpdateProgressTrackerTest`, el nombre del test de ~línea 52 parece un duplicado del de ~33; una limpieza podría borrarlo (M4).
+- **Interno:** `instrumented.yml` sube siempre el logcat entero (~22 MB) al artefacto, y el comentario del paso de subida no dice que lo vuelca el script (M5).
+- **Interno:** en `IngredientReviewTest`, la precondición de la fila pendiente larga calcula la suma con una cadena escrita a mano, no con la cantidad de la fila (M6).
+- **Interno:** `app/src/debug/res/values/crashlytics.xml` apaga `RequireBuildId` en todas las builds de debug, no solo en las que no tienen `google-services.json`; un `resValue` en el `else` del `apply` condicional de Crashlytics (`app/build.gradle.kts` ~16-21) lo acotaría (CR1).
+- **Interno:** `assertFalse(isLineEllipsized(0))` en `WorkspaceNavigationBarTest` no puede fallar con el código actual (etiqueta con `maxLines = 1` y `Clip`); solo protege si alguien añade `Ellipsis` (CR2).
+- **Interno:** `cancel-in-progress: true` en `instrumented.yml` también cancela la ejecución de un push a `main` si llega otro detrás; `${{ github.event_name == 'pull_request' }}` lo limitaría a los PR (CR3).
+- **Interno:** el filtro `paths` de `instrumented.yml` dejaría pendiente para siempre el check en los PR de solo docs si se marca como obligatorio en `main` (hoy `main` no tiene protección; ruling R11; CR4).
+- **Interno:** `FirestoreRecipeRepository.kt` reparte las constantes de campo entre el nivel de fichero y el `companion`; `toRecipe` sigue con literales para `visibility`, `title` y `description` (CR5).
+- **Interno:** `toMillisInstant()` y `toTimestamp()` solo se usan en recetas; los demás repositorios repiten `toDate()?.toInstant()` (~20 sitios) y copias privadas de `toTimestamp` (p. ej. `FirestoreTaskRepository.kt` ~368) (CR6).
+
 ## 2026-10-19 — `agent/revision-compra-avisos`
 
 - **Efecto visible (TalkBack):** los controles de cada fila de la revisión de «Añadir a la compra» («No añadir a la lista», «Añadir»/«Sumar», «Cantidad», marca y tienda) no dicen de qué ingrediente son; ahora hay un selector por fila. La spec fija «No añadir a la lista»; casi todos esos controles son anteriores a la rama (`IngredientReview.kt` `ReviewRowContent`/`SkipOrIncludePicker`; M4, D1, CR4; ruling R7).
@@ -12,7 +28,7 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - **Efecto visible:** «De varias comidas» también sale en la revisión abierta desde Recetario (`meals_review_multi`, texto heredado; D4).
 - **Efecto visible:** «Volver a apuntar» salta a 2 líneas en el selector en la revisión más estrecha (232 dp) con la letra al 130 % (entra entero; ruling R9).
 - **Interno:** los KDoc de `ReviewRowKind.NEW` («se añade») y de `ReviewHint` están desfasados (`IngredientReview.kt` ~56 y ~382; M2, CR3).
-- **Interno:** ningún test pide `badges()` con `pantryIds` vacío (si no se pudo leer la despensa); se prueba por equivalencia (M3).
+- ~~**Interno:** ningún test pide `badges()` con `pantryIds` vacío (si no se pudo leer la despensa); se prueba por equivalencia (M3).~~ **Resuelto** en `agent/red-de-seguridad-r2` (tarea 4).
 - **Interno:** `kind` y `badges()` derivan por separado la misma clasificación (despensa, lista, comprado) (CR5).
 - **Interno:** el icono y el módulo de cada etiqueta se eligen en dos sitios y los iconos repiten los de `BobitosDestination.Pantry`/`Shopping`; si cambia el de la navegación, la etiqueta se queda con el viejo (CR6).
 - **Interno:** `chipColors` (par `container`/`onContainer` del módulo para un `InfoChip`) vive en la feature y no en el design system (CR7).
@@ -29,7 +45,7 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - **Interno:** el conjunto `shown` de `UndoOfferEffect` es redundante con `consumeOffer` y la clave por `serial` (D-M2, CR9).
 - **Interno:** `launchUndo`/`showUndo` siguen públicos aunque solo los usa `UndoOfferEffect`; las ramas `is Undoable.Completed -> Unit` de 11 ViewModels que no completan no pueden ocurrir (separar el tipo); `EVENT_CHANGED`, propio del Calendario, vive en el enum común `FailureKind` (M7, D-M1, CR10).
 - **Interno:** ningún test falla si se rompe `!restoring` en `writeNewTask`, `writeNewMeal`, `writeNewEvent` y `writeNewActivity` (al restaurar se quita a quien ya no está; al dar de alta, error); falta el test puro del responsable de una tarea restaurada (M3).
-- **Interno:** `SportActivityFieldsTest` no prueba que el organizador siga en el evento restaurado aunque no participe en la actividad (ruling R6; M4).
+- ~~**Interno:** `SportActivityFieldsTest` no prueba que el organizador siga en el evento restaurado aunque no participe en la actividad (ruling R6; M4).~~ **Resuelto** en `agent/red-de-seguridad-r2` (tarea 6).
 - **Interno:** `addItem` (Compra) y `addNote` (Notas) validan los campos antes de comprobar la sesión: sin sesión y con datos inválidos sale el fallo de validación en vez de `NotAuthenticated` (R4, M5).
 - **Interno:** en `IngredientDetailViewModel`, un ingrediente personal sin cuenta actual se borra por el repositorio común (inalcanzable; M2).
 - **Interno:** `writeNewTask` repite la búsqueda del responsable activo en vez de reutilizar `resolveAssigneeName` (CR7).
@@ -59,12 +75,12 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 ## 2026-10-19 — `agent/red-de-seguridad`
 
 - **Interno:** `SpaceHomeAnchorTest` usa `createAndroidComposeRule` de `junit4`, obsoleto, en vez de `junit4.v2`, y añade un aviso del compilador.
-- **Interno:** el ancla de «Hoy» (`needsSpaceHomeAnchor`, `BobitosNavHost.kt`) solo la protege un test instrumentado, y la CI no ejecuta instrumentados: una subida de Navigation que cambie `getBackStackEntry` no pondría la CI en rojo.
+- ~~**Interno:** el ancla de «Hoy» (`needsSpaceHomeAnchor`, `BobitosNavHost.kt`) solo la protege un test instrumentado, y la CI no ejecuta instrumentados: una subida de Navigation que cambie `getBackStackEntry` no pondría la CI en rojo.~~ **Resuelto** en `agent/red-de-seguridad-r2` (tarea 1 (L62 queda cubierta al correr `SpaceHomeAnchorTest` en la CI)).
 - **Interno:** el ancla de «Hoy» es un caso especial en `openShoppingWithName`; la causa es que `navigateToWorkspace` hace `popUpTo(SpaceHome)`, que se ignora si `SpaceHome` no está en la pila. Moverla a `navigateToWorkspace` cubriría cualquier entrada futura a un módulo del espacio desde fuera de él (`BobitosNavHost.kt`).
-- **Interno:** en `firebase-emulators.test.mjs`, el `setDoc` sobre una receta ajena del test «un setDoc de cliente no pisa…» falla por los campos inmutables, no por la comprobación de dueño (sin hueco: otro test ya fija el dueño).
-- **Interno:** en `WorkspaceNavigationBarTest`, `labelsAreNotEllipsizedAt130PercentFontScale` ya no mide puntos suspensivos sino el recorte, y es redundante con `todasLasEtiquetasTienenElMismoTamano` a 130 % (misma composición, misma comprobación).
-- **Interno:** la CI ejecuta las tres suites de Node en serie en el mismo job: si falla la de reglas, no se ejecutan las de scripts e importadores (el job sale en rojo igualmente) (`ci.yml`).
-- **Interno:** `BetaUpdateProgressTrackerTest` repite casos de `afterDownload` que ya están en `BetaDistributionMappingTest`; `afterDownload` podría ser privada del tracker.
+- ~~**Interno:** en `firebase-emulators.test.mjs`, el `setDoc` sobre una receta ajena del test «un setDoc de cliente no pisa…» falla por los campos inmutables, no por la comprobación de dueño (sin hueco: otro test ya fija el dueño).~~ **Resuelto** en `agent/red-de-seguridad-r2` (tarea 2).
+- ~~**Interno:** en `WorkspaceNavigationBarTest`, `labelsAreNotEllipsizedAt130PercentFontScale` ya no mide puntos suspensivos sino el recorte, y es redundante con `todasLasEtiquetasTienenElMismoTamano` a 130 % (misma composición, misma comprobación).~~ **Resuelto** en `agent/red-de-seguridad-r2` (tarea 3).
+- ~~**Interno:** la CI ejecuta las tres suites de Node en serie en el mismo job: si falla la de reglas, no se ejecutan las de scripts e importadores (el job sale en rojo igualmente) (`ci.yml`).~~ **Resuelto** en `agent/red-de-seguridad-r2` (tarea 1).
+- ~~**Interno:** `BetaUpdateProgressTrackerTest` repite casos de `afterDownload` que ya están en `BetaDistributionMappingTest`; `afterDownload` podría ser privada del tracker.~~ **Resuelto** en `agent/red-de-seguridad-r2` (tarea 3).
 - **Interno:** en `SpaceHomeAnchorTest`, el nombre `onlyTheStartDestinationNeedsTheAnchor` no dice lo que comprueba (que una pila con solo el destino inicial necesita el ancla).
 - **Interno:** en `ShoppingQuantityTest`, `every word of the unit agrees in number up to the first preposition` y `only the words before any preposition of the unit change in number` tienen nombres casi iguales con casos distintos.
 
@@ -209,7 +225,7 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 ## 2026-10-14 — `agent/menores-listo-has-cocinado`
 
 - ~~**Efecto visible (raro):** lo que «Listo» vuelve a apuntar a la compra (`ShoppingWrite.Add`) no lleva precondición: si otro miembro apunta el mismo artículo entre la lectura de la lista (`currentItems`) y la transacción de `applyCooked`, sale duplicado. La rama cerró la ventana de hasta 5 s de espera al catálogo; queda la de milisegundos (`MealsViewModel.confirmCooked`, `FirestoreShoppingRepository.applyCooked`).~~ **Resuelto** en `agent/menores-listo-duplicado`. Justo antes de escribir, «Listo» vuelve a leer la lista dentro de la transacción. Si ya tiene algo de lo que añade, no escribe nada y pide volver a pulsar «Listo» (rulings 1 y 2). Queda la ventana entre esa lectura y el commit: no se puede cerrar sin cambiar el esquema.
-- **Interno:** ningún test protege que «Cancelar» sin error previo conserve el aviso «Comida marcada como cocinada» (ruling 2 del plan; `MealsCookedViewModelTest`).
+- ~~**Interno:** ningún test protege que «Cancelar» sin error previo conserve el aviso «Comida marcada como cocinada» (ruling 2 del plan; `MealsCookedViewModelTest`).~~ **Resuelto** en `agent/red-de-seguridad-r2` (tarea 6).
 - ~~**Interno:** la lambda `toMessage` de `confirmCooked` escribe estado (`changedItemName`) además de traducir el error; depende de que `runAction` la llame una sola vez y justo antes de `showError`, y ese contrato no está comentado (`MealsViewModel.runAction`).~~ **Resuelto** en `agent/guardado-y-errores` (tarea 6).
 
 ## 2026-10-14 — `agent/menores-has-cocinado`
@@ -278,7 +294,7 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - ~~**Efecto visible:** la lista de la Compra con un error de lectura no se reintenta sola; solo vuelve a escuchar al pulsar «Guardar» en el editor (`ShoppingViewModel.observe`). Viene de antes de la rama.~~ **Resuelto** en `agent/menores-compra-membresia-y-comunes`.
 - ~~**Efecto visible (previo, visto en el recorrido del emulador):** si el usuario pierde la membresía del espacio con la Compra abierta, la app muestra a pantalla completa el texto crudo «com.google.firebase.firestore.FirebaseFirestoreException: PERMISSION_DENIED: evaluation error at L818…», sin navegación; al devolverle la membresía no se recupera y «Atrás» sale de la app. Por eso no se pudo probar el paso 4 (lectura fallida en el editor) en el emulador.~~ **Resuelto** en `agent/menores-compra-membresia-y-comunes`.
 - ~~**Efecto visible (seguridad, previo):** un admin retirado de `recipeAdmins()` aún puede borrar sus comunes por la rama de dueño de `ownsOrCuratesRecipe` (`firestore.rules`), aunque ya no puede deshacer ese borrado.~~ **Resuelto** en `agent/menores-compra-membresia-y-comunes`.
-- **Interno:** ningún test ejercita `restoredFields` en Kotlin ni el redondeo `Timestamp` → `Instant` → `Timestamp` a milisegundos frente al importador; lo cubre a mano el recorrido de punta a punta (paso 6).
+- ~~**Interno:** ningún test ejercita `restoredFields` en Kotlin ni el redondeo `Timestamp` → `Instant` → `Timestamp` a milisegundos frente al importador; lo cubre a mano el recorrido de punta a punta (paso 6).~~ **Resuelto** en `agent/red-de-seguridad-r2` (tarea 5).
 - **Interno:** `catalogImportedAt()` repite los literales de `source` del companion privado, e `Instant.toTimestamp()` duplica el de `FirestoreTaskRepository.kt`. `MAX_BRAND_LENGTH` está en tres sitios (reglas, `FirestoreShoppingRepository`, `ShoppingValidation`), y `feature/common` depende de `feature/shopping` por él.
 - **Interno:** el comentario de `firestore.rules` en `validRecipeShape()` y `docs/DATA_MODEL.md` («un admin solo lo conserva al deshacer») describen la app, no la regla: `validRecipeRestore` deja a un admin crear cualquier común nueva con `source` y fechas pasadas.
 - **Interno:** `RecipeAdmins.uids` ya decide el dueño al deshacer, no es solo un filtro de interfaz como dicen `docs/RECIPES_ADMIN.md` y el KDoc de `RecipeAdmins.kt`. Entre desplegar las reglas y publicar la app, una app desfasada sigue fallando al deshacer una común de un admin retirado.
@@ -309,7 +325,7 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - ~~**Efecto visible (solo con un segundo admin):** si un admin deshace el borrado de una común, `ownerUid` y `createdBy` pasan a ser los suyos, y el importador la vería como «ficha de usuario». Arreglarlo exige cambiar permisos en `firestore.rules`.~~ **Resuelto** en `agent/menores-compra-y-deshacer-comunes`: «Deshacer» recrea la común tal como era (dueño, autor, fechas y `source`), con la regla `validRecipeRestore`.
 - ~~**Efecto visible (admin, CLI del catálogo):** con `"quantity": null`, el validador dice «tiene que ser texto («null» entre comillas)» en vez de pedir que se quite la clave (`scripts/catalog/recipes.mjs`, `amountProblem`).~~ **Resuelto** en `agent/menores-recetas-compra`: pide quitar la clave.
 - ~~**Efecto visible (sin confirmar):** en el recorrido de punta a punta del emulador, el Snackbar «Receta eliminada / Deshacer» no apareció nunca, ni en el Recetario ni al borrar un producto en Compra (`launchUndo`, `UndoSnackbar.kt`). Este código no lo toca la rama, y puede ser del emulador, que iba lento. Hay que comprobarlo en un móvil con la beta 20 y, si se reproduce, depurarlo.~~ **Descartado** el 2026-10-12: en un móvil con la beta 21, «Deshacer» sale y funciona al borrar un producto de la Compra. Era el emulador.
-- **Interno:** `RecipeUnitsFixtureTest` no cubre singular + singular («1 diente» + «1 diente» = «2 dientes», que sale de `pluralOf`).
+- ~~**Interno:** `RecipeUnitsFixtureTest` no cubre singular + singular («1 diente» + «1 diente» = «2 dientes», que sale de `pluralOf`).~~ **Resuelto** en `agent/red-de-seguridad-r2` (tarea 5).
 - ~~**Interno:** ningún test de reglas fija que un `setDoc` de cliente no pise una receta existente, propia o ajena. Hoy lo impide `validRecipeUpdate` (`createdAt`, `ownerUid` y `createdBy` iguales).~~ **Resuelto** en `agent/red-de-seguridad` (tarea 7).
 - **Interno:** el importador de recetas lee la colección `recipes` entera, privadas incluidas. Bastaría `where("ownerUid", "==", CATALOG_ADMIN_UID)` más `getAll` de los slugs del catálogo (`import-recipes.mjs`).
 - **Interno:** `runRecipeImport` copia línea a línea `runRoutineImport`. Falta un `runGlobalCatalogImport` en `import-core.mjs`.
@@ -343,7 +359,7 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - ~~**Efecto visible:** la fila «Ya comprado» de la revisión no tiene «Omitir». Si se vuelve a añadir la semana después de comprar, todo lo comprado vuelve a quedar pendiente. Es decisión de producto (spec A3, decisión 7). **Decidido** el 2026-10-12 por el usuario: la fila «Ya comprado» gana «Omitir», marcado por defecto como en «Ya en la lista»; volver a apuntar pasa a ser la opción que hay que elegir.~~ **Aplicado** en `agent/menores-recetas-compra`.
 - ~~**Efecto visible:** el aviso «Ya en la lista» del editor parte «(cantidad: 5 / ud)» en dos líneas (visto en el emulador).~~ **Resuelto** en `agent/menores-recetas-compra`.
 - ~~**Efecto visible:** si un ingrediente sin cantidad ya está pendiente, la revisión muestra «Ya en la lista: — · receta: —».~~ **Resuelto** en `agent/menores-recetas-compra`.
-- **Interno:** huecos de test del Review Focus. El punto 1 solo prueba el predicado sobre un `ReviewRowState` sintético y no recorre una fila PENDING larga → `withInclude(true)`. El punto 3 no tiene test del ViewModel del editor con el mismo producto comprado y pendiente.
+- ~~**Interno:** huecos de test del Review Focus. El punto 1 solo prueba el predicado sobre un `ReviewRowState` sintético y no recorre una fila PENDING larga → `withInclude(true)`. El punto 3 no tiene test del ViewModel del editor con el mismo producto comprado y pendiente.~~ **Resuelto** en `agent/red-de-seguridad-r2` (tarea 4).
 - **Interno:** `FirestoreShoppingRepository.MAX_QUANTITY_LENGTH = 40` no reutiliza `ShoppingQuantity.MAX_LENGTH`.
 - **Interno:** `relistItem` recibe un `name` que valida pero no escribe.
 - **Interno:** `findShoppingMatch` recalcula `shoppingMatchKey` de toda la lista en cada búsqueda: una vez por grupo de la revisión y otra por cada tecla del editor. Falta un índice clave → artículo.
@@ -363,7 +379,7 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - **Efecto visible:** contraste de los colores de tienda: Carrefour en oscuro (2,25 sobre el fondo, 2,12 sobre su tarjeta); Eroski, Frutería e Indiferente sobre su tarjeta en claro (2,7-2,9); y los iconos sobre las tarjetas por defecto de Ingredientes y sobre los chips seleccionados en oscuro quedan por debajo de 3:1 (llevan etiqueta de texto). DIA y Carnicería ya se arreglaron (plan `2026-10-11-contraste-dia-carniceria.md`); si se aborda, ampliar `SupermarketContrastTest` a `Supermarket.entries`.
 - **Interno:** `SupermarketContrastTest` copia el alfa del tinte (0.12f) en vez de usar `CATEGORY_TINT_ALPHA`, duplica los cálculos WCAG de `ModuleColorsTest`, mezcla el tinte a mano en vez de `compositeOver` y usa el umbral 0.03928 en vez de 0.04045.
 - **Interno:** los comentarios de `firestore.rules` junto a las listas de tiendas citan `APP/core/model/ShoppingItem.kt` (abreviatura del plan); deberían citar la ruta real y `SupermarketRulesSyncTest`.
-- **Interno:** falta un test de reglas que acepte justo 6 tiendas incluyendo las nuevas.
+- ~~**Interno:** falta un test de reglas que acepte justo 6 tiendas incluyendo las nuevas.~~ **Resuelto** en `agent/red-de-seguridad-r2` (tarea 2).
 - **Interno:** quedan menciones a «supermercado(s)» en `docs/DATA_MODEL.md:574` y en comentarios (`ShoppingScreen`, `SupermarketTokens`, `IngredientPrefsRepository`).
 - **Interno:** el «6» de las pistas está escrito a mano en `strings.xml` (no sale de `MAX_STORES`).
 
@@ -403,7 +419,7 @@ Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalog
 - **Efecto visible:** renombrar un ingrediente a un nombre que coincide por clave con otro no se comprueba (la spec solo lo exige al crear): pueden quedar dos fichas con la misma clave.
 - **Efecto visible:** mientras «Crear ficha de ingrediente» carga el catálogo en la Compra (hasta 30 s, normalmente al instante desde la caché), `isSaving` bloquea las demás acciones de la Compra.
 - **Efecto visible:** el botón de editar de cada tarjeta de marca dice «Editar ficha» (`ingredients_edit`), igual que el del ingrediente; ya pasaba antes de esta rama.
-- **Interno:** `BrandInput.toUpdateFields()` (no escribe `ingredientId`, borra código y nutrientes ausentes) no tiene test JVM.
+- ~~**Interno:** `BrandInput.toUpdateFields()` (no escribe `ingredientId`, borra código y nutrientes ausentes) no tiene test JVM.~~ **Resuelto** en `agent/red-de-seguridad-r2` (tarea 5).
 - **Interno:** borrar un ingrediente personal con 499 marcas o más supera las 500 operaciones del lote (`FirestorePersonalIngredientRepository.delete` no trocea como `deletePersonalData`).
 - **Interno:** hay tres `Collator` es-ES iguales (marcas, ingredientes, ejercicios) y `requireVerifiedUid` está copiado en los repositorios de personales, marcas y preferencias.
 

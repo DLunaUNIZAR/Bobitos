@@ -53,8 +53,8 @@
 
 ## Puesta en marcha
 
-1. [ ] Workflow `instrumented.yml` (tarea del plan R2).
-2. [ ] Primera ejecución en verde en un PR en borrador antes del merge (instrucción del usuario para R2).
+1. [x] Workflow `instrumented.yml` (tarea del plan R2).
+2. [x] Primera ejecución en verde en un PR en borrador antes del merge (instrucción del usuario para R2).
 
 ## Actualización (2026-10-20)
 
