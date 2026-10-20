@@ -1370,12 +1370,17 @@ test("un setDoc de cliente no pisa una receta existente, propia o ajena", async 
   const ref = doc(ownerDb, "recipes", "pisar-propia");
   await assertSucceeds(setDoc(ref, recipeData(owner)));
 
-  // Recrearla cambiaría su fecha de alta (createdAt); otro usuario ni siquiera es el dueño.
+  // Los datos actuales los lee el dueño: una receta privada no la lee otro.
+  const current = (await getDoc(ref)).data();
+
+  // Recrearla cambiaría su fecha de alta (createdAt). El otro usuario conserva los campos inmutables
+  // (dueño, visibilidad, autor y fecha de alta), así que solo lo para no ser el dueño.
   await assertFails(setDoc(ref, recipeData(owner, { title: "Otra" })));
-  await assertFails(setDoc(doc(otherDb, "recipes", "pisar-propia"), recipeData(otherId)));
+  await assertFails(setDoc(doc(otherDb, "recipes", "pisar-propia"), {
+    ...current, title: "Otra", updatedBy: otherId, updatedAt: serverTimestamp(),
+  }));
 
   // El camino legítimo: reescribirla conservando dueño, autor y fecha de alta.
-  const current = (await getDoc(ref)).data();
   await assertSucceeds(setDoc(ref, {
     ...current, title: "Otra", updatedBy: owner, updatedAt: serverTimestamp(),
   }));
@@ -1950,6 +1955,7 @@ test("una marca personal admite tiendas de barrio y sigue limitada a 6", async (
   const path = (id) => doc(alice, "users", "pb-barrio", "brands", id);
 
   await assertSucceeds(setDoc(path("barrio"), personalBrand({ stores: ["CARNICERIA", "MERCADONA"] })));
+  await assertSucceeds(setDoc(path("seis-barrio"), personalBrand({ stores: ["CARNICERIA", "PESCADERIA", "FRUTERIA", "PANADERIA", "DIA", "OTROS"] })));
   await assertFails(setDoc(path("siete"), personalBrand({
     stores: ["DIA", "EROSKI", "MERCADONA", "CARNICERIA", "PESCADERIA", "FRUTERIA", "PANADERIA"],
   })));
