@@ -58,11 +58,11 @@ jobs:
       - name: Instrumented tests
         uses: reactivecircus/android-emulator-runner@v2.38.0
         with:
-          # No es la 37: su imagen x86_64 aborta en la CI (`mapper.ranchu`: «Assertion failed:
-          # !rcEnc->featureInfo()->hasReadColorBufferDma», surfaceflinger cae), sin arreglo sin GPU:
-          # https://github.com/rock3r/clockblock/issues/122. La 37 se prueba en local. Volver a
-          # ella cuando haya un emulador arreglado. Entre comillas para que el runner lea 36.1.
-          api-level: '36.1'
+          # Ni la 37 ni la 36.1: sus imágenes x86_64 abortan en la CI (`mapper.ranchu`: «Assertion
+          # failed: !rcEnc->featureInfo()->hasReadColorBufferDma», surfaceflinger cae), sin arreglo
+          # sin GPU: https://github.com/rock3r/clockblock/issues/122. Se usa la 36; la 37 se prueba
+          # en local. Volver a ella cuando haya un emulador arreglado.
+          api-level: '36'
           target: google_apis
           arch: x86_64
           profile: pixel_6
