@@ -101,12 +101,11 @@ jobs:
       - name: Firestore rules tests
         run: npm run test:emulators
 
-      # Se ejecutan aunque falle la suite de reglas; el job sigue en rojo igualmente.
+      # Los dos pasos siguientes se ejecutan aunque falle uno anterior; el job sigue en rojo igualmente.
       - name: Catalog scripts tests
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run test:scripts
 
-      # Se ejecutan aunque falle la suite de reglas; el job sigue en rojo igualmente.
       - name: Catalog import tests (emulator)
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run test:catalog-import

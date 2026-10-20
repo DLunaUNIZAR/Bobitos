@@ -318,21 +318,21 @@ internal fun RecipeRestoreAudit.toRestoredFields(): Map<String, Any?> = buildMap
 
 // Recetas del importador: `source.importedAt` con proveedor «bobitos»; null en las demás.
 private fun DocumentSnapshot.catalogImportedAt(): Instant? {
-    val source = get("source") as? Map<*, *> ?: return null
-    if (source["provider"] != "bobitos") return null
-    return (source["importedAt"] as? Timestamp)?.toMillisInstant()
+    val source = get(FIELD_SOURCE) as? Map<*, *> ?: return null
+    if (source[SOURCE_PROVIDER] != CATALOG_PROVIDER) return null
+    return (source[SOURCE_IMPORTED_AT] as? Timestamp)?.toMillisInstant()
 }
 
 private fun DocumentSnapshot.toRecipe(): Recipe? {
-    val createdAt = getTimestamp("createdAt")?.toMillisInstant() ?: return null
-    val updatedStamp = getTimestamp("updatedAt")
+    val createdAt = getTimestamp(FIELD_CREATED_AT)?.toMillisInstant() ?: return null
+    val updatedStamp = getTimestamp(FIELD_UPDATED_AT)
     val updatedAt = updatedStamp?.toMillisInstant() ?: createdAt
     val visibility = getString("visibility")?.let { value ->
         runCatching { RecipeVisibility.valueOf(value) }.getOrNull()
     } ?: return null
     return Recipe(
         id = id,
-        ownerUid = getString("ownerUid") ?: return null,
+        ownerUid = getString(FIELD_OWNER_UID) ?: return null,
         visibility = visibility,
         title = getString("title") ?: return null,
         description = getString("description"),
@@ -350,7 +350,7 @@ private fun DocumentSnapshot.toRecipe(): Recipe? {
         updatedAt = updatedAt,
         importedAt = catalogImportedAt(),
         // Una edición aún sin confirmar deja `updatedAt` con la hora del servidor pendiente, que se lee null.
-        updatePending = updatedStamp == null && contains("updatedAt"),
+        updatePending = updatedStamp == null && contains(FIELD_UPDATED_AT),
     )
 }
 
