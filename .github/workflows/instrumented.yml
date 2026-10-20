@@ -58,20 +58,20 @@ jobs:
       - name: Instrumented tests
         uses: reactivecircus/android-emulator-runner@v2.38.0
         with:
-          api-level: '37.0'
+          # No es la 37: su imagen x86_64 aborta en la CI (`mapper.ranchu`: «Assertion failed:
+          # !rcEnc->featureInfo()->hasReadColorBufferDma», surfaceflinger cae), sin arreglo sin GPU:
+          # https://github.com/rock3r/clockblock/issues/122. La 37 se prueba en local. Volver a
+          # ella cuando haya un emulador arreglado. Entre comillas para que el runner lea 36.1.
+          api-level: '36.1'
           target: google_apis
           arch: x86_64
           profile: pixel_6
           disable-animations: true
-          # El runner solo espera a sys.boot_completed; en API 37 `package` y `activity`
-          # pueden tardar más en registrarse (ReactiveCircus/android-emulator-runner#473).
-          # Cada línea se ejecuta por separado con `sh -c` y la primera que falla corta el script.
-          # La espera tiene tope (300 s) y falla si se agota; no reintenta nada.
-          # `: found` evita casar con «not found». Gradle vuelca el logcat aunque falle y
-          # conserva su código de salida.
+          # El disco por defecto (~800 MB) no admite los dos APK ni los datos de los tests
+          # («not enough space»); 6000M basta.
+          disk-size: 6000M
+          # Gradle vuelca el logcat aunque falle y conserva su código de salida.
           script: |
-            timeout 300 sh -c 'until adb shell service check package | grep -q ": found"; do sleep 2; done'
-            timeout 300 sh -c 'until adb shell service check activity | grep -q ": found"; do sleep 2; done'
             ./gradlew :app:connectedDebugAndroidTest; rc=$?; mkdir -p app/build/outputs/androidTest-results/connected/debug; adb logcat -d > app/build/outputs/androidTest-results/connected/debug/logcat.txt; exit $rc
 
       - name: Upload test reports

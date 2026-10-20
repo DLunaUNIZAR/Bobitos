@@ -113,6 +113,7 @@ Depende de: ninguna
        - `script: ./gradlew :app:connectedDebugAndroidTest`;
        - sin caché de AVD ni reintentos.
        - **Ruling R3 (ejecución):** en la CI, el sistema del emulador se cayó ~25 s después de `sys.boot_completed` («Can't find service: package/activity», 0 tests). Se permite ajustar `ram-size`, `cores`, `heap-size`, `disk-size` y `emulator-options`, y una espera acotada a que respondan los servicios `package` y `activity` antes de Gradle (no es un reintento de tests), y un volcado de `adb logcat -d` al artefacto si falla. Siguen fijos `target`, `arch`, `profile` y `api-level: '37.0'`.
+       - **Ruling R5 (ejecución, decisión del usuario):** la imagen `android-37.0;google_apis;x86_64` aborta en la CI (`Assertion failed: !rcEnc->featureInfo()->hasReadColorBufferDma`, rock3r/clockblock#122) y no hay arreglo sin GPU. El job usa la API x86_64 más alta que pase la suite (`36.1`, o `36` si cae igual), apuntada en el workflow y en el ADR-0001, con `disk-size: 6000M`.
        - Un comentario de una línea remite al ADR-0001.
     5. «Upload test reports», con `if: always()` y `actions/upload-artifact@v4`, nombre `instrumented-test-reports`, rutas `app/build/reports/androidTests/connected/debug/` y `app/build/outputs/androidTest-results/connected/debug/`, e `if-no-files-found: warn`.
 

@@ -55,3 +55,7 @@
 
 1. [ ] Workflow `instrumented.yml` (tarea del plan R2).
 2. [ ] Primera ejecución en verde en un PR en borrador antes del merge (instrucción del usuario para R2).
+
+## Actualización (2026-10-20)
+
+La imagen `system-images;android-37.0;google_apis;x86_64` aborta en la CI: `mapper.ranchu` falla en `Assertion failed: !rcEnc->featureInfo()->hasReadColorBufferDma`, `surfaceflinger` se cae y el `system_server` se reinicia. No hay arreglo sin GPU (https://github.com/rock3r/clockblock/issues/122). Se aplica el plan B del punto 3 («la más alta que exista y pase la suite») con `api-level: '36.1'` y `disk-size: 6000M`, porque la partición de datos por defecto (~800 MB) no deja instalar el APK. Se volverá a la 37 cuando haya un emulador arreglado.
