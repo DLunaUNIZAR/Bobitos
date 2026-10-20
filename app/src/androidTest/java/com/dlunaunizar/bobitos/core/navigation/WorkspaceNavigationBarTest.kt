@@ -28,29 +28,6 @@ class WorkspaceNavigationBarTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
     @Test
-    fun labelsAreNotEllipsizedAt130PercentFontScale() {
-        compose.setContent {
-            val base = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(base.density, fontScale = 1.3f)) {
-                BobitosTheme {
-                    Box(Modifier.width(411.dp)) {
-                        WorkspaceNavigationBar(selectedTab = BobitosDestination.SpaceHome, onTabSelected = {})
-                    }
-                }
-            }
-        }
-        BobitosDestination.workspaceTabs.forEach { tab ->
-            val title = compose.activity.getString(tab.titleRes)
-            val results = mutableListOf<TextLayoutResult>()
-            val node = compose.onNodeWithText(title, useUnmergedTree = true).fetchSemanticsNode()
-            val action = node.config.getOrNull(SemanticsActions.GetTextLayoutResult)?.action
-            assertNotNull("$title sin GetTextLayoutResult", action)
-            action!!(results)
-            assertCabeEntera(title, results.first())
-        }
-    }
-
-    @Test
     fun todasLasEtiquetasTienenElMismoTamano() {
         var labelMedium = TextUnit.Unspecified
         // A 130 % no caben a labelMedium: encogen todas juntas y ninguna se corta.
@@ -72,9 +49,10 @@ class WorkspaceNavigationBarTest {
         }
     }
 
-    // La etiqueta lleva maxLines = 1 y Clip: isLineEllipsized nunca sería true. Se mira el recorte real.
+    // Comprueba que la etiqueta no lleva puntos suspensivos y que tampoco se corta: sin salto de línea ni desborde.
     // hasVisualOverflow no sirve: didOverflowWidth sale true siempre que el texto es más estrecho que el máximo.
     private fun assertCabeEntera(title: String, layout: TextLayoutResult) {
+        assertFalse("$title con puntos suspensivos", layout.isLineEllipsized(0))
         assertFalse("$title cortada", layout.didOverflowHeight)
         assertTrue("$title cortada", layout.getLineRight(0) <= layout.layoutInput.constraints.maxWidth)
         assertEquals("$title cortada", title.length, layout.getLineEnd(0))

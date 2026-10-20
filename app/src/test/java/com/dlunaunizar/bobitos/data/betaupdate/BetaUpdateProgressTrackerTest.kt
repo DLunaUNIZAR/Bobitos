@@ -40,6 +40,25 @@ class BetaUpdateProgressTrackerTest {
     }
 
     @Test
+    fun `an install failure reported by progress without a download is still an error`() {
+        val tracker = BetaUpdateProgressTracker()
+        assertEquals(
+            BetaUpdateProgress.Failed(BetaUpdateError.INSTALL_FAILED),
+            tracker.onProgress(UpdateStatus.INSTALL_FAILED, 0, 10),
+        )
+    }
+
+    @Test
+    fun `a download failure after downloading is still a download error`() {
+        val tracker = BetaUpdateProgressTracker()
+        tracker.onProgress(UpdateStatus.DOWNLOADED, 10, 10)
+        assertEquals(
+            BetaUpdateProgress.Failed(BetaUpdateError.DOWNLOAD_FAILED),
+            tracker.onProgress(UpdateStatus.DOWNLOAD_FAILED, 10, 10),
+        )
+    }
+
+    @Test
     fun `an unknown failure is unknown`() {
         val tracker = BetaUpdateProgressTracker()
         assertEquals(BetaUpdateProgress.Failed(BetaUpdateError.UNKNOWN), tracker.onFailure(null))

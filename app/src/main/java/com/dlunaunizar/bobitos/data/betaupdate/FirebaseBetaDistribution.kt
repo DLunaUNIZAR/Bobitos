@@ -82,7 +82,7 @@ internal fun FirebaseAppDistributionException.Status.toFailureProgress(): BetaUp
  * Con un APK, el SDK no distingue cancelar el instalador de que falle: ambos llegan como fallo de
  * instalación. Si la descarga ya había terminado, se trata como cancelación («Instalar»).
  */
-internal fun BetaUpdateProgress.afterDownload(downloaded: Boolean): BetaUpdateProgress =
+private fun BetaUpdateProgress.afterDownload(downloaded: Boolean): BetaUpdateProgress =
     if (downloaded && this == BetaUpdateProgress.Failed(BetaUpdateError.INSTALL_FAILED)) {
         BetaUpdateProgress.InstallCanceled
     } else {

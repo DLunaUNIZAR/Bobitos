@@ -78,22 +78,4 @@ class BetaDistributionMappingTest {
         assertTrue(e is BetaUpdateException)
         assertEquals(BetaUpdateError.NOT_AVAILABLE, (e as BetaUpdateException).error)
     }
-
-    @Test
-    fun `tras descargar, un fallo de instalacion cuenta como cancelado`() {
-        val failed = BetaUpdateProgress.Failed(BetaUpdateError.INSTALL_FAILED)
-        assertEquals(BetaUpdateProgress.InstallCanceled, failed.afterDownload(downloaded = true))
-        assertEquals(
-            BetaUpdateProgress.InstallCanceled,
-            Status.INSTALLATION_FAILURE.toFailureProgress().afterDownload(downloaded = true),
-        )
-    }
-
-    @Test
-    fun `sin descargar, un fallo de instalacion sigue siendo un fallo`() {
-        val failed = BetaUpdateProgress.Failed(BetaUpdateError.INSTALL_FAILED)
-        assertEquals(failed, failed.afterDownload(downloaded = false))
-        val download = BetaUpdateProgress.Failed(BetaUpdateError.DOWNLOAD_FAILED)
-        assertEquals(download, download.afterDownload(downloaded = true))
-    }
 }
