@@ -3,6 +3,7 @@ package com.dlunaunizar.bobitos.data.repository
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.Nutrition
 import com.dlunaunizar.bobitos.core.model.Supermarket
+import com.google.firebase.firestore.FieldValue
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -148,5 +149,27 @@ class IngredientBrandFirestoreTest {
 
         assertEquals(listOf("5", "4", "2", "0", "3", "1"), sorted.map(IngredientBrand::id))
         assertTrue(sorted.first().favorite)
+    }
+
+    @Test
+    fun `update fields leave out the ingredient and delete the barcode and nutrients that are missing`() {
+        val fields = input(barcode = null, nutrition = Nutrition(fat = 1.2), stores = listOf(Supermarket.DIA))
+            .toUpdateFields()
+
+        assertFalse(fields.containsKey("ingredientId"))
+        assertEquals(FieldValue.delete(), fields["barcode"])
+        assertEquals(1.2, fields["fat"])
+        for (key in NUTRITION_FIELDS - "fat") assertEquals(key, FieldValue.delete(), fields[key])
+        assertEquals("Hacendado", fields["name"])
+        assertEquals(listOf(Supermarket.DIA.name), fields["stores"])
+    }
+
+    @Test
+    fun `update fields with every value present delete nothing`() {
+        val nutrition = Nutrition(1.0, 2.0, 3.0, 4.0, 5.0, 6.0)
+        val fields = input(barcode = "123", nutrition = nutrition).toUpdateFields()
+
+        assertTrue(fields.values.none { it == FieldValue.delete() })
+        assertEquals("123", fields["barcode"])
     }
 }

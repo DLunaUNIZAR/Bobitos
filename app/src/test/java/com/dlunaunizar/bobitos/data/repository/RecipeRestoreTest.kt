@@ -2,8 +2,12 @@ package com.dlunaunizar.bobitos.data.repository
 
 import com.dlunaunizar.bobitos.core.model.Recipe
 import com.dlunaunizar.bobitos.core.model.RecipeVisibility
+import com.google.firebase.Timestamp
+import com.google.firebase.firestore.FieldValue
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 
@@ -116,5 +120,32 @@ class RecipeRestoreTest {
 
         assertEquals(imported, audit.updatedAt)
         assertEquals(imported, audit.importedAt)
+    }
+
+    @Test
+    fun `restored dates keep the millisecond the app read from Firestore`() {
+        val stored = Timestamp(1_760_000_000L, 123_456_789)
+        val read = stored.toMillisInstant()
+        val fields = RecipeRestoreAudit("owner", "author", read, "editor", read, read).toRestoredFields()
+
+        val expected = Timestamp(1_760_000_000L, 123_000_000)
+        assertEquals(expected, fields["createdAt"])
+        assertEquals(expected, fields["updatedAt"])
+        val source = fields["source"] as Map<*, *>
+        assertEquals(expected, source["importedAt"])
+        assertFalse((source["importedAt"] as Timestamp) > (fields["updatedAt"] as Timestamp))
+    }
+
+    @Test
+    fun `restored fields use the server time for missing dates and carry the source only for imported recipes`() {
+        val fields = RecipeRestoreAudit("owner", "author", null, "editor", null, null).toRestoredFields()
+
+        assertEquals(FieldValue.serverTimestamp(), fields["createdAt"])
+        assertEquals(FieldValue.serverTimestamp(), fields["updatedAt"])
+        assertFalse(fields.containsKey("source"))
+        assertEquals("owner", fields["ownerUid"])
+        assertEquals("author", fields["createdBy"])
+        assertEquals("editor", fields["updatedBy"])
+        assertTrue(fields.keys.containsAll(listOf("ownerUid", "createdBy", "updatedBy")))
     }
 }

@@ -30,6 +30,7 @@ class RecipeUnitsFixtureTest {
             val plural = counted.getJSONObject(i).getString("plural")
             assertEquals(singular, "3 $plural", ShoppingQuantity.sum("1 $singular", "2 $plural"))
             assertEquals(singular, "3 $plural", ShoppingQuantity.sum("2 $plural", "1 $singular"))
+            assertEquals(singular, "2 $plural", ShoppingQuantity.sum("1 $singular", "1 $singular"))
             assertEquals(singular, "1 $singular", ShoppingQuantity.sum("1/2 $singular", "1/2 $singular"))
         }
     }

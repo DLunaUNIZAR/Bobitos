@@ -129,7 +129,7 @@ class FirestoreRecipeRepository @Inject constructor(
             steps = recipe.steps.orEmpty(),
             servings = recipe.servings,
             totalMinutes = recipe.totalMinutes,
-        ) + restoredFields(recipe.restoreAudit(user.id, RecipeAdmins.uids))
+        ) + recipe.restoreAudit(user.id, RecipeAdmins.uids).toRestoredFields()
         recipesCollection().document(recipe.id).set(fields).await()
         Unit
     }
@@ -216,20 +216,6 @@ class FirestoreRecipeRepository @Inject constructor(
         )
     }
 
-    // Dueño, autor y fechas de la receta recreada; las fechas null, la hora del servidor. `source` solo si venía del
-    // importador.
-    private fun restoredFields(audit: RecipeRestoreAudit): Map<String, Any?> = buildMap {
-        put(FIELD_OWNER_UID, audit.ownerUid)
-        put(FIELD_CREATED_BY, audit.createdBy)
-        put(FIELD_CREATED_AT, audit.createdAt?.toTimestamp() ?: FieldValue.serverTimestamp())
-        put(FIELD_UPDATED_BY, audit.updatedBy)
-        put(FIELD_UPDATED_AT, audit.updatedAt?.toTimestamp() ?: FieldValue.serverTimestamp())
-        audit.importedAt?.let { importedAt ->
-            val source = mapOf(SOURCE_PROVIDER to CATALOG_PROVIDER, SOURCE_IMPORTED_AT to importedAt.toTimestamp())
-            put(FIELD_SOURCE, source)
-        }
-    }
-
     private fun validate(title: String, description: String?, category: String?): RecipeValues {
         val normalizedTitle = title.trim()
         val normalizedDescription = description?.trim()?.takeIf(String::isNotEmpty)
@@ -275,17 +261,12 @@ class FirestoreRecipeRepository @Inject constructor(
 
     private companion object {
         const val RECIPES = "recipes"
-        const val FIELD_OWNER_UID = "ownerUid"
         const val FIELD_VISIBILITY = "visibility"
         const val FIELD_TITLE = "title"
         const val FIELD_DESCRIPTION = "description"
         const val FIELD_CATEGORY = "category"
         const val FIELD_SOURCE_RECIPE_ID = "sourceRecipeId"
         const val FIELD_SOURCE_URL = "sourceUrl"
-        const val FIELD_SOURCE = "source"
-        const val SOURCE_PROVIDER = "provider"
-        const val SOURCE_IMPORTED_AT = "importedAt"
-        const val CATALOG_PROVIDER = "bobitos"
         const val FIELD_INGREDIENTS = "ingredients"
         const val FIELD_STEPS = "steps"
         const val FIELD_SERVINGS = "servings"
@@ -294,11 +275,7 @@ class FirestoreRecipeRepository @Inject constructor(
         const val FIELD_INGREDIENT_QUANTITY = "quantity"
         const val FIELD_INGREDIENT_UNIT = "unit"
         const val MAX_INGREDIENTS = 50
-        const val FIELD_CREATED_BY = "createdBy"
         const val FIELD_CREATED_BY_NAME = "createdByName"
-        const val FIELD_CREATED_AT = "createdAt"
-        const val FIELD_UPDATED_BY = "updatedBy"
-        const val FIELD_UPDATED_AT = "updatedAt"
         const val MAX_TITLE_LENGTH = 120
         const val MAX_DESCRIPTION_LENGTH = 1000
         const val MAX_CATEGORY_LENGTH = 60
@@ -306,6 +283,15 @@ class FirestoreRecipeRepository @Inject constructor(
     }
 }
 
+private const val FIELD_OWNER_UID = "ownerUid"
+private const val FIELD_CREATED_BY = "createdBy"
+private const val FIELD_CREATED_AT = "createdAt"
+private const val FIELD_UPDATED_BY = "updatedBy"
+private const val FIELD_UPDATED_AT = "updatedAt"
+private const val FIELD_SOURCE = "source"
+private const val SOURCE_PROVIDER = "provider"
+private const val SOURCE_IMPORTED_AT = "importedAt"
+private const val CATALOG_PROVIDER = "bobitos"
 private const val MAX_AUTHOR_NAME_LENGTH = 60
 
 private val AuthUser.recipeDisplayName: String
@@ -313,17 +299,34 @@ private val AuthUser.recipeDisplayName: String
 
 private fun Instant.toTimestamp(): Timestamp = Timestamp(epochSecond, nano)
 
+// No se llama `toInstant`: `Timestamp` ya tiene ese miembro, que conserva los nanosegundos y taparía la extensión.
+internal fun Timestamp.toMillisInstant(): Instant = toDate().toInstant()
+
+// Dueño, autor y fechas de la receta recreada; las fechas null, la hora del servidor. `source` solo si venía del
+// importador.
+internal fun RecipeRestoreAudit.toRestoredFields(): Map<String, Any?> = buildMap {
+    put(FIELD_OWNER_UID, ownerUid)
+    put(FIELD_CREATED_BY, createdBy)
+    put(FIELD_CREATED_AT, createdAt?.toTimestamp() ?: FieldValue.serverTimestamp())
+    put(FIELD_UPDATED_BY, updatedBy)
+    put(FIELD_UPDATED_AT, updatedAt?.toTimestamp() ?: FieldValue.serverTimestamp())
+    importedAt?.let { importedAt ->
+        val source = mapOf(SOURCE_PROVIDER to CATALOG_PROVIDER, SOURCE_IMPORTED_AT to importedAt.toTimestamp())
+        put(FIELD_SOURCE, source)
+    }
+}
+
 // Recetas del importador: `source.importedAt` con proveedor «bobitos»; null en las demás.
 private fun DocumentSnapshot.catalogImportedAt(): Instant? {
     val source = get("source") as? Map<*, *> ?: return null
     if (source["provider"] != "bobitos") return null
-    return (source["importedAt"] as? Timestamp)?.toDate()?.toInstant()
+    return (source["importedAt"] as? Timestamp)?.toMillisInstant()
 }
 
 private fun DocumentSnapshot.toRecipe(): Recipe? {
-    val createdAt = getTimestamp("createdAt")?.toDate()?.toInstant() ?: return null
+    val createdAt = getTimestamp("createdAt")?.toMillisInstant() ?: return null
     val updatedStamp = getTimestamp("updatedAt")
-    val updatedAt = updatedStamp?.toDate()?.toInstant() ?: createdAt
+    val updatedAt = updatedStamp?.toMillisInstant() ?: createdAt
     val visibility = getString("visibility")?.let { value ->
         runCatching { RecipeVisibility.valueOf(value) }.getOrNull()
     } ?: return null
