@@ -6,6 +6,7 @@ import com.dlunaunizar.bobitos.core.model.Ingredient
 import com.dlunaunizar.bobitos.core.model.IngredientBrand
 import com.dlunaunizar.bobitos.core.model.IngredientPref
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
+import com.dlunaunizar.bobitos.core.model.ShoppingQuantity
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.core.model.pantryId
 import com.dlunaunizar.bobitos.data.repository.ShoppingWrite
@@ -218,6 +219,45 @@ class IngredientReviewTest {
             ),
             rows.map { it.badges() },
         )
+    }
+
+    @Test
+    fun `without a readable pantry no row carries the pantry badge but keeps the list badge`() {
+        val ingredients = listOf(Ingredient("Sal", "200", "g"), Ingredient("Arroz"))
+        val items = listOf(item("s1", "Sal", quantity = "1 kg"))
+        val pantry = ReviewBadge(ReviewBadgeSource.PANTRY, R.string.meals_review_badge_pantry)
+        val listed = ReviewBadge(ReviewBadgeSource.SHOPPING, R.string.meals_review_badge_listed, listOf("1 kg"))
+
+        val withPantry = buildIngredientReviewRows(
+            ingredients,
+            items,
+            data,
+            setOf(pantryId("Sal"), pantryId("Arroz")),
+        )
+        val withoutPantry = buildIngredientReviewRows(ingredients, items, data, emptySet())
+
+        assertEquals(listOf(listOf(pantry, listed), listOf(pantry)), withPantry.map { it.badges() })
+        assertEquals(listOf(listOf(listed), emptyList<ReviewBadge>()), withoutPantry.map { it.badges() })
+        assertTrue(withoutPantry.none { it.inPantry })
+    }
+
+    @Test
+    fun `a long pending row blocks confirming only once Sumar is chosen`() {
+        val pending = "10 botes de tomate frito casero"
+        val recipe = "5 latas de atún claro en aceite"
+        val rows = buildIngredientReviewRows(
+            listOf(Ingredient("Sal", "5", "latas de atún claro en aceite")),
+            listOf(item("s1", "Sal", quantity = pending)),
+            data,
+        )
+        val row = rows.single()
+        assertTrue(ShoppingQuantity.sum(pending, recipe).orEmpty().length > ShoppingQuantity.MAX_LENGTH)
+        assertEquals(ReviewRowKind.PENDING, row.kind)
+
+        val omitted = row.initialState()
+
+        assertTrue(canConfirmReview(rows, listOf(omitted)))
+        assertFalse(canConfirmReview(rows, listOf(omitted.withInclude(true))))
     }
 
     @Test

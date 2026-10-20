@@ -650,6 +650,24 @@ class ShoppingViewModelTest {
     }
 
     @Test
+    fun `adding a product that is both purchased and pending asks about the pending one`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.itemState.value = listOf(
+                listItem(purchased = true).copy(id = "b", name = "Tomates"),
+                listItem().copy(id = "p", name = "tomate"),
+            )
+            viewModel.observe("home")
+            advanceUntilIdle()
+
+            viewModel.addItem("home", "Tomate", "2", null, null, null)
+            advanceUntilIdle()
+
+            assertEquals("p", viewModel.uiState.value.duplicate?.existing?.id)
+            assertNull(repository.relisted)
+            assertNull(repository.addedName)
+        }
+
+    @Test
     fun `adding a purchased product relists it with the editor values and keeps its name`() =
         runTest(mainDispatcherRule.testDispatcher) {
             repository.itemState.value = listOf(listItem(quantity = "6 l", purchased = true))
