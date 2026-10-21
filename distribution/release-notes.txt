@@ -1,13 +1,19 @@
-Beta de Bobitos — al añadir ingredientes a la compra ves si ya los tienes y puedes quitar cualquiera.
+Beta de Bobitos — en la vista Día del calendario cada evento ocupa lo que dura.
 
 Novedades desde la beta anterior:
 
-Añadir a la compra (Recetario y Comidas)
-- Cada ingrediente dice a la vez si está en la despensa y si está en la lista, con etiquetas de color: «En la despensa», «En la lista: 2» o «Ya comprado».
-- Todos los ingredientes se pueden dejar fuera con «No añadir», también los que no están en la lista ni en la despensa. Antes se llamaba «Omitir».
-- Si vuelves a «Añadir», la fila recupera la cantidad, la marca y la tienda que tenía.
-- Debajo de las etiquetas solo queda lo que pide la receta: «Receta: 3» o «De varias comidas: 1 + 2».
+Calendario, vista Día (en cada espacio y en el personal)
+- Cada evento ocupa en vertical lo que dura: uno de 16:30 a 18:30 va de las 16:30 a las 18:30. Antes todos parecían de una hora.
+- Los eventos que coinciden se ven uno al lado del otro.
+- Cada tarjeta enseña el rango, por ejemplo «16:30 – 18:30». Un evento que cruza la medianoche sale en los dos días.
+- Al abrir un día, la vista se coloca en la hora de su primer evento, o en las 08:00 si no tiene ninguno.
+- «Todo el día» y las tareas quedan fijos arriba, encima de las horas.
+- Cuando coinciden muchos eventos, sus tarjetas son más estrechas: mantén pulsada una para «Editar» o «Eliminar».
+- Mantener pulsado un hueco sigue creando un evento a esa hora.
 
-Si ya tienes la beta 25, puedes instalar esta desde Perfil, con «Buscar actualizaciones».
+Calendario, vista Semana
+- Cada evento enseña también su hora de fin.
+
+Si ya tienes la beta 26, puedes instalar esta desde Perfil, con «Buscar actualizaciones».
 
 Comunica cualquier error indicando el modelo del dispositivo, la versión de Android y los pasos para reproducirlo.
