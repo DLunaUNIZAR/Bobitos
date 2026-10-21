@@ -45,9 +45,11 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -214,10 +216,10 @@ private fun lineHeightOf(style: TextStyle): Dp {
 }
 
 /**
- * La tarjeta de un evento: barra de color, título y rango (en una línea con puntos suspensivos si no cabe); el título
+ * La tarjeta de un evento: barra de color, título y rango (entero o, si no cabe, solo la hora de inicio: una hora nunca se corta); el título
  * gana líneas y aparecen los participantes solo si la altura y el ancho sobran. Con permiso de escritura, tocarla abre
  * el editor y mantenerla pulsada (o las acciones de TalkBack) ofrece «Editar» y «Eliminar». Si comparte columna y el
- * texto quedaría por debajo de [CompactTextWidth] con un ⋮ al lado, la tarjeta es compacta: sin ⋮, márgenes finos,
+ * rango entero no cabe con un ⋮ de 48 dp al lado, la tarjeta es compacta: sin ⋮, márgenes finos,
  * título en una línea y solo la hora de inicio. El contenido va arriba para que el título se vea al abrir el día.
  */
 @Composable
@@ -234,6 +236,9 @@ internal fun TimelineEventCard(
     val haptics = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
     val actions = cardActions(canWrite, deleteEnabled, onEdit, onDelete)
+    val zone = ZoneId.systemDefault()
+    val start = event.startAt.atZone(zone).toLocalDateTime()
+    val fullRange = BobitosDates.timeRange(start, event.endAt.atZone(zone).toLocalDateTime())
     Card(
         modifier = modifier
             .pressScale(interactionSource, rememberReduceMotion())
@@ -259,7 +264,7 @@ internal fun TimelineEventCard(
                     },
                 ),
         ) {
-            val layout = cardLayout(item.columns, canWrite, maxWidth, maxHeight)
+            val layout = cardLayout(item.columns, canWrite, maxWidth, maxHeight, fullRange)
             Row(Modifier.fillMaxSize().padding(start = layout.pad), verticalAlignment = Alignment.Top) {
                 Box(
                     Modifier
@@ -269,7 +274,7 @@ internal fun TimelineEventCard(
                         .clip(RoundedCornerShape(2.dp))
                         .background(event.color.accent()),
                 )
-                CardTexts(event, layout, Modifier.weight(1f))
+                CardTexts(event, fullRange, BobitosDates.time(start.toLocalTime()), layout, Modifier.weight(1f))
                 if (layout.showMenuButton) {
                     MoreOptionsButton(
                         itemName = event.title,
@@ -317,15 +322,24 @@ private class CardLayout(
     val showMenuButton: Boolean,
     val showParticipants: Boolean,
     val titleLines: Int,
+    /** `true` si el rango entero cabe en una línea; si no, la tarjeta enseña solo la hora de inicio. */
+    val showFullRange: Boolean,
 )
 
 @Composable
-private fun cardLayout(columns: Int, canWrite: Boolean, width: Dp, height: Dp): CardLayout {
+private fun cardLayout(columns: Int, canWrite: Boolean, width: Dp, height: Dp, fullRange: String): CardLayout {
     val titleLine = lineHeightOf(MaterialTheme.typography.titleSmall)
     val rangeLine = lineHeightOf(MaterialTheme.typography.labelMedium)
     val participantsLine = lineHeightOf(MaterialTheme.typography.bodySmall)
-    val menuWidth = if (columns > 1) 36.dp else 48.dp
-    val compact = columns > 1 && width - FullChrome - menuWidth < CompactTextWidth
+    val density = LocalDensity.current
+    val measurer = rememberTextMeasurer()
+    val rangeStyle = MaterialTheme.typography.labelMedium
+    val rangeWidth = with(density) { measurer.measure(fullRange, rangeStyle, maxLines = 1).size.width.toDp() }
+    // El ⋮ mide siempre 48 dp (mínimo de toque); si con él el rango entero no cabe, la tarjeta es compacta, sin ⋮.
+    val menuWidth = 48.dp
+    val textRoom = width - FullChrome - if (canWrite) menuWidth else CardPadding
+    val fits = textRoom >= rangeWidth
+    val compact = columns > 1 && !fits
     val pad = if (compact) CompactPadding else CardPadding
     val available = height - pad * 2
     val showParticipants = !compact && width >= 140.dp && available >= titleLine + rangeLine + participantsLine
@@ -334,19 +348,22 @@ private fun cardLayout(columns: Int, canWrite: Boolean, width: Dp, height: Dp): 
     } else {
         ((available - rangeLine - if (showParticipants) participantsLine else 0.dp) / titleLine).toInt().coerceIn(1, 3)
     }
-    return CardLayout(compact, pad, menuWidth, canWrite && !compact, showParticipants, titleLines)
+    return CardLayout(compact, pad, menuWidth, canWrite && !compact, showParticipants, titleLines, fits && !compact)
 }
 
-/** Título, rango (o solo la hora de inicio si la tarjeta es compacta) y participantes de una tarjeta. */
+/**
+ * Título, rango y participantes de una tarjeta. Una hora nunca se corta: se pinta [fullRange] entero o, si no cabe,
+ * solo [startTime]; en ese caso TalkBack sigue recibiendo el rango entero.
+ */
 @Composable
-private fun CardTexts(event: CalendarEvent, layout: CardLayout, modifier: Modifier = Modifier) {
-    val zone = ZoneId.systemDefault()
-    val start = event.startAt.atZone(zone).toLocalDateTime()
-    val range = if (layout.compact) {
-        BobitosDates.time(start.toLocalTime())
-    } else {
-        BobitosDates.timeRange(start, event.endAt.atZone(zone).toLocalDateTime())
-    }
+private fun CardTexts(
+    event: CalendarEvent,
+    fullRange: String,
+    startTime: String,
+    layout: CardLayout,
+    modifier: Modifier = Modifier,
+) {
+    val range = if (layout.showFullRange) fullRange else startTime
     Column(
         modifier.padding(
             start = if (layout.compact) CompactPadding else 8.dp,
@@ -366,6 +383,7 @@ private fun CardTexts(event: CalendarEvent, layout: CardLayout, modifier: Modifi
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+            modifier = if (layout.showFullRange) Modifier else Modifier.semantics { contentDescription = fullRange },
         )
         if (layout.showParticipants) {
             Text(
@@ -379,9 +397,6 @@ private fun CardTexts(event: CalendarEvent, layout: CardLayout, modifier: Modifi
         }
     }
 }
-
-/** Ancho que debe quedar al texto, con el ⋮ al lado, para que la tarjeta no sea compacta. */
-private val CompactTextWidth = 72.dp
 
 /** Márgenes de la tarjeta compacta (los de la normal son [CardPadding]). */
 private val CompactPadding = 4.dp

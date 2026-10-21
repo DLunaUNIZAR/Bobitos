@@ -23,12 +23,14 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
@@ -365,5 +367,94 @@ class DayTimelineTest {
         compose.onNodeWithText("Eliminar").performClick()
         compose.waitForIdle()
         assertEquals(listOf("cine"), deleted)
+    }
+
+    private var wideEvents by mutableStateOf(emptyList<CalendarEvent>())
+    private var wideScale by mutableStateOf(1f)
+
+    /** Monta una vez la vista a 328 dp; los eventos y la letra se cambian después con [wideEvents] y [wideScale]. */
+    private fun setWide(events: List<CalendarEvent>, fontScale: Float = 1f) {
+        wideEvents = events
+        wideScale = fontScale
+        compose.setContent {
+            CompositionLocalProvider(
+                LocalDensity provides Density(LocalDensity.current.density, fontScale = wideScale),
+            ) {
+                BobitosTheme {
+                    Box(Modifier.size(width = 328.dp, height = 640.dp)) {
+                        DayHourGrid(
+                            events = wideEvents,
+                            tasks = emptyList(),
+                            canWrite = true,
+                            onEdit = {},
+                            onDelete = {},
+                            onCreateAt = {},
+                            day = day,
+                        )
+                    }
+                }
+            }
+        }
+        compose.waitForIdle()
+    }
+
+    private fun sameTime(count: Int) = (0 until count).map { event("e$it", "Evento $it", at(10, 0), at(11, 0)) }
+
+    @Test fun aSharedCardNeverCutsATime() {
+        setWide(listOf(event("a", "Reunión", at(10, 0), at(11, 0)), event("b", "Dentista", at(10, 30), at(11, 30))))
+        listOf(1f, 1.3f).forEach { scale ->
+            wideScale = scale
+            compose.waitForIdle()
+            listOf("a" to ("10:00 – 11:00" to "10:00"), "b" to ("10:30 – 11:30" to "10:30")).forEach { (id, times) ->
+                val node = compose.onNode(
+                    (
+                        hasText(
+                            times.first,
+                        ) or hasText(times.second)
+                        ) and hasAnyAncestor(hasTestTag(timelineEventTag(id))),
+                    useUnmergedTree = true,
+                )
+                val results = mutableListOf<TextLayoutResult>()
+                node.fetchSemanticsNode().config.getOrNull(SemanticsActions.GetTextLayoutResult)!!.action!!(results)
+                val layout = results.single()
+                assertTrue("recortado en $id con letra $scale: ${layout.layoutInput.text}", !layout.isLineEllipsized(0))
+                assertEquals("líneas en $id con letra $scale", 1, layout.lineCount)
+            }
+        }
+    }
+
+    @Test fun everyMenuButtonIsAtLeast48dp() {
+        setWide(sameTime(1))
+        compose.onNodeWithContentDescription("Más opciones de «Evento 0»").assertExists()
+        listOf(1, 2, 3).forEach { count ->
+            wideEvents = sameTime(count)
+            compose.waitForIdle()
+            (0 until count).forEach { i ->
+                val menu = compose.onAllNodesWithContentDescription("Más opciones de «Evento $i»")
+                if (menu.fetchSemanticsNodes().isNotEmpty()) {
+                    val box = menu[0].getUnclippedBoundsInRoot()
+                    assertTrue(
+                        "⋮ de $count columnas: ${box.width} x ${box.height}",
+                        box.width >= 48.dp && box.height >= 48.dp,
+                    )
+                }
+            }
+        }
+    }
+
+    @Test fun aCompactCardAnnouncesItsFullRange() {
+        setWide(sameTime(4), fontScale = 1.3f)
+        (0 until 4).forEach { i ->
+            // Con permiso de escritura, el nodo fusionado que TalkBack lee es el de la zona pulsable de la tarjeta.
+            compose.onNode(hasText("Evento $i") and hasAnyAncestor(hasTestTag(timelineEventTag("e$i")))).assert(
+                SemanticsMatcher("announces title and full range") { node ->
+                    val spoken = (
+                        node.config.getOrNull(SemanticsProperties.Text).orEmpty().map { it.text } +
+                            node.config.getOrNull(SemanticsProperties.ContentDescription).orEmpty()
+                        )
+                    spoken.any { it == "Evento $i" } && spoken.any { it.contains("10:00 – 11:00") }
+                },
+            )
+        }
     }
 }
