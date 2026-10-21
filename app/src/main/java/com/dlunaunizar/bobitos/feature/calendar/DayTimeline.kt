@@ -192,6 +192,7 @@ internal fun DayTimeline(
                 ) {
                     TimelineEventCard(
                         item = item,
+                        day = day,
                         canWrite = canWrite,
                         onEdit = { onEdit(item.event) },
                         onDelete = { onDelete(item.event.id) },
@@ -216,7 +217,7 @@ private fun lineHeightOf(style: TextStyle): Dp {
 }
 
 /**
- * La tarjeta de un evento: barra de color, título y rango (entero o, si no cabe, solo la hora de inicio: una hora nunca se corta); el título
+ * La tarjeta de un evento: barra de color, título y rango (entero o, si no cabe, solo la hora de inicio: una hora nunca se corta; si el evento empezó antes de [day], «– HH:MM» de su fin o nada); el título
  * gana líneas y aparecen los participantes solo si la altura y el ancho sobran. Con permiso de escritura, tocarla abre
  * el editor y mantenerla pulsada (o las acciones de TalkBack) ofrece «Editar» y «Eliminar». Si comparte columna y el
  * rango entero no cabe con un ⋮ de 48 dp al lado, la tarjeta es compacta: sin ⋮, márgenes finos,
@@ -225,6 +226,7 @@ private fun lineHeightOf(style: TextStyle): Dp {
 @Composable
 internal fun TimelineEventCard(
     item: TimelineEvent,
+    day: LocalDate,
     canWrite: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -238,7 +240,14 @@ internal fun TimelineEventCard(
     val actions = cardActions(canWrite, deleteEnabled, onEdit, onDelete)
     val zone = ZoneId.systemDefault()
     val start = event.startAt.atZone(zone).toLocalDateTime()
-    val fullRange = BobitosDates.timeRange(start, event.endAt.atZone(zone).toLocalDateTime())
+    val end = event.endAt.atZone(zone).toLocalDateTime()
+    val fullRange = BobitosDates.timeRange(start, end)
+    // Respaldo si el rango entero no cabe: nunca una hora de inicio que no es de este día (ver [CardTexts]).
+    val fallbackRange = when {
+        !start.toLocalDate().isBefore(day) -> BobitosDates.time(start.toLocalTime())
+        !end.isAfter(day.plusDays(1).atStartOfDay()) -> "– ${BobitosDates.time(end.toLocalTime())}"
+        else -> null
+    }
     Card(
         modifier = modifier
             .pressScale(interactionSource, rememberReduceMotion())
@@ -274,7 +283,7 @@ internal fun TimelineEventCard(
                         .clip(RoundedCornerShape(2.dp))
                         .background(event.color.accent()),
                 )
-                CardTexts(event, fullRange, BobitosDates.time(start.toLocalTime()), layout, Modifier.weight(1f))
+                CardTexts(event, fullRange, fallbackRange, layout, Modifier.weight(1f))
                 if (layout.showMenuButton) {
                     MoreOptionsButton(
                         itemName = event.title,
@@ -353,17 +362,18 @@ private fun cardLayout(columns: Int, canWrite: Boolean, width: Dp, height: Dp, f
 
 /**
  * Título, rango y participantes de una tarjeta. Una hora nunca se corta: se pinta [fullRange] entero o, si no cabe,
- * solo [startTime]; en ese caso TalkBack sigue recibiendo el rango entero.
+ * [fallbackRange] (la hora de inicio, «– HH:MM» si el evento empezó otro día y acaba hoy, o `null` para no pintar
+ * rango); en ese caso TalkBack sigue recibiendo el rango entero.
  */
 @Composable
 private fun CardTexts(
     event: CalendarEvent,
     fullRange: String,
-    startTime: String,
+    fallbackRange: String?,
     layout: CardLayout,
     modifier: Modifier = Modifier,
 ) {
-    val range = if (layout.showFullRange) fullRange else startTime
+    val range = if (layout.showFullRange) fullRange else fallbackRange
     Column(
         modifier.padding(
             start = if (layout.compact) CompactPadding else 8.dp,
@@ -376,15 +386,24 @@ private fun CardTexts(
             style = MaterialTheme.typography.titleSmall,
             maxLines = layout.titleLines,
             overflow = TextOverflow.Ellipsis,
+            modifier = if (range == null) Modifier.semantics { contentDescription = fullRange } else Modifier,
         )
-        Text(
-            text = range,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = if (layout.showFullRange) Modifier else Modifier.semantics { contentDescription = fullRange },
-        )
+        if (range != null) {
+            Text(
+                text = range,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = if (layout.showFullRange) {
+                    Modifier
+                } else {
+                    Modifier.semantics {
+                        contentDescription = fullRange
+                    }
+                },
+            )
+        }
         if (layout.showParticipants) {
             Text(
                 text = event.participantNames.takeIf { it.isNotEmpty() }?.joinToString()

@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -67,6 +68,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -628,42 +630,50 @@ internal fun DayHourGrid(
             listState.scrollToItem(0, with(density) { (hourHeight * firstHour).roundToPx() })
         }
     }
-    Column(modifier) {
-        // Franja fija: aviso, «Todo el día» y tareas siempre a la vista; si son muchos, se desplazan dentro de ella.
-        if (canWrite || allDay.isNotEmpty() || tasks.isNotEmpty()) {
-            Column(Modifier.heightIn(max = AllDayStripMaxHeight).verticalScroll(rememberScrollState())) {
-                if (canWrite) {
-                    Text(
-                        text = stringResource(R.string.calendar_hold_hint),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = Spacing.sm),
-                    )
-                }
-                if (allDay.isNotEmpty() || tasks.isNotEmpty()) {
-                    Text(
-                        text = stringResource(R.string.calendar_all_day),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 4.dp),
-                    )
-                    tasks.forEach { task -> key("task-${task.id}") { TaskOnDayRow(task) } }
-                    allDay.forEach { event ->
-                        key("allday-${event.id}") {
-                            EventRow(event, canWrite, { onEdit(event) }, { onDelete(event.id) }, deleteEnabled)
+    BoxWithConstraints(modifier) {
+        // El tope de la franja crece con el alto disponible (en horizontal la línea de tiempo no se queda sin sitio).
+        val stripMaxHeight = minOf(AllDayStripMaxHeight, maxHeight * ALL_DAY_STRIP_MAX_FRACTION)
+        Column(Modifier.fillMaxSize()) {
+            // Franja fija: aviso, «Todo el día» y tareas siempre a la vista; si son muchos, se desplazan dentro de ella.
+            if (canWrite || allDay.isNotEmpty() || tasks.isNotEmpty()) {
+                Column(
+                    Modifier.testTag(
+                        "dayFixedStrip",
+                    ).heightIn(max = stripMaxHeight).verticalScroll(rememberScrollState()),
+                ) {
+                    if (canWrite) {
+                        Text(
+                            text = stringResource(R.string.calendar_hold_hint),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = Spacing.sm),
+                        )
+                    }
+                    if (allDay.isNotEmpty() || tasks.isNotEmpty()) {
+                        Text(
+                            text = stringResource(R.string.calendar_all_day),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 4.dp),
+                        )
+                        tasks.forEach { task -> key("task-${task.id}") { TaskOnDayRow(task) } }
+                        allDay.forEach { event ->
+                            key("allday-${event.id}") {
+                                EventRow(event, canWrite, { onEdit(event) }, { onDelete(event.id) }, deleteEnabled)
+                            }
                         }
                     }
                 }
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
             }
-            HorizontalDivider(Modifier.padding(vertical = 8.dp))
-        }
-        LazyColumn(
-            Modifier.weight(1f),
-            state = listState,
-            contentPadding = PaddingValues(bottom = Spacing.fabClearance),
-        ) {
-            item(key = "timeline") {
-                DayTimeline(day, events, canWrite, onEdit, onDelete, onCreateAt, deleteEnabled)
+            LazyColumn(
+                Modifier.weight(1f).testTag("dayTimelineList"),
+                state = listState,
+                contentPadding = PaddingValues(bottom = Spacing.fabClearance),
+            ) {
+                item(key = "timeline") {
+                    DayTimeline(day, events, canWrite, onEdit, onDelete, onCreateAt, deleteEnabled)
+                }
             }
         }
     }
@@ -671,6 +681,9 @@ internal fun DayHourGrid(
 
 /** Alto máximo de la franja fija de encima de la línea de tiempo (aviso, «Todo el día» y tareas). */
 private val AllDayStripMaxHeight = 188.dp
+
+/** Parte del alto disponible que como mucho ocupa la franja fija. */
+private const val ALL_DAY_STRIP_MAX_FRACTION = 0.4f
 
 /** Hora a la que se abre un día sin eventos con hora. */
 private const val DEFAULT_FIRST_HOUR = 8

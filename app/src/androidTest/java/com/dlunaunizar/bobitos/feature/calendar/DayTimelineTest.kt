@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -456,5 +457,85 @@ class DayTimelineTest {
                 },
             )
         }
+    }
+
+    /** Textos de la tarjeta [id] y su semántica fusionada (la de la zona pulsable, con la que habla TalkBack). */
+    private fun cardTexts(id: String, title: String): Pair<List<String>, List<String>> {
+        val inside = hasAnyAncestor(hasTestTag(timelineEventTag(id)))
+        val texts = compose.onAllNodes(hasText("", substring = true) and inside, useUnmergedTree = true)
+            .fetchSemanticsNodes().flatMap {
+                it.config.getOrNull(SemanticsProperties.Text).orEmpty().map { t -> t.text }
+            }
+        val merged = compose.onNode(hasText(title) and inside).fetchSemanticsNode().config
+        val spoken = merged.getOrNull(SemanticsProperties.Text).orEmpty().map { it.text } +
+            merged.getOrNull(SemanticsProperties.ContentDescription).orEmpty()
+        return texts to spoken
+    }
+
+    @Test fun aCardThatStartedTheDayBeforeNeverShowsThatStartAlone() {
+        val previous = day.minusDays(1)
+        setWide(
+            listOf(
+                event("n", "Guardia", at(22, 0, previous), at(2, 0)),
+                event("s", "Madrugada", at(0, 30), at(1, 30)),
+                event("m", "Congreso", at(10, 0, previous), at(10, 0, day.plusDays(1))),
+                event("t", "Tarde", at(12, 0), at(13, 0)),
+            ),
+        )
+        compose.waitForIdle()
+        val (night, nightSpoken) = cardTexts("n", "Guardia")
+        assertTrue("sin «22:00» suelto: $night", "22:00" !in night)
+        assertTrue("con «– 02:00»: $night", "– 02:00" in night)
+        assertTrue(
+            "TalkBack con el rango entero: $nightSpoken",
+            nightSpoken.any {
+                it.contains("22:00") &&
+                    it.contains("02:00")
+            },
+        )
+        val (long, longSpoken) = cardTexts("m", "Congreso")
+        assertTrue("sin hora suelta: $long", long.none { Regex("^\\d\\d:\\d\\d$").matches(it) || it.startsWith("–") })
+        assertTrue(
+            "TalkBack con el rango entero: $longSpoken",
+            longSpoken.any {
+                it.contains("10:00") &&
+                    it.contains("oct")
+            },
+        )
+    }
+
+    @Test fun theFixedStripLeavesRoomForTheTimelineOnShortScreens() {
+        val allDay = (0 until 3).map {
+            event("d$it", "Todo $it", at(0), at(0, date = day.plusDays(1)))
+                .copy(allDay = true, startDate = day, endDateExclusive = day.plusDays(1))
+        }
+        val tasks = (0 until 2).map { i ->
+            TaskItem(
+                id = "t$i", title = "Tarea $i", description = null, assigneeId = null, assigneeName = null,
+                dueAt = at(12), priority = TaskPriority.MEDIUM, status = TaskStatus.TODO, createdBy = "u",
+                createdByName = "U", createdAt = Instant.EPOCH, updatedBy = "u", updatedAt = Instant.EPOCH,
+                completedBy = null, completedByName = null, completedAt = null,
+            )
+        }
+        compose.setContent {
+            BobitosTheme {
+                Box(Modifier.size(width = 328.dp, height = 300.dp).testTag("host")) {
+                    DayHourGrid(
+                        events = allDay + event("a", "Inglés", at(9), at(10)),
+                        tasks = tasks,
+                        canWrite = true,
+                        onEdit = {},
+                        onDelete = {},
+                        onCreateAt = {},
+                        day = day,
+                    )
+                }
+            }
+        }
+        compose.waitForIdle()
+        val strip = compose.onNodeWithTag("dayFixedStrip").getUnclippedBoundsInRoot().height
+        val timeline = compose.onNodeWithTag("dayTimelineList").getUnclippedBoundsInRoot().height
+        assertTrue("franja $strip de 300 dp", strip <= 125.dp)
+        assertTrue("línea de tiempo $timeline de 300 dp", timeline >= 150.dp)
     }
 }
