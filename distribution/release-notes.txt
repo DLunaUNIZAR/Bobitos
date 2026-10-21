@@ -1,26 +1,13 @@
-Beta de Bobitos — las betas nuevas se instalan desde la propia app, y «Deshacer» es más fiable.
+Beta de Bobitos — al añadir ingredientes a la compra ves si ya los tienes y puedes quitar cualquiera.
 
 Novedades desde la beta anterior:
 
-Betas nuevas desde la app
-- Al abrir Bobitos, si hay una beta nueva, sale el aviso «Hay una beta nueva» con «Actualizar» y «Más tarde».
-- En Perfil, la fila «Versión» tiene «Buscar actualizaciones». Desde ahí se descarga e instala la beta sin pasar por el correo.
-- Para buscar, inicia sesión con la cuenta de Google en la que te llegan las invitaciones de la beta.
-- Cerrar la hoja no cancela la descarga: sigue en segundo plano. Android te pedirá confirmar la instalación.
-- Esta beta se instala como siempre; las siguientes ya podrás instalarlas desde la app.
+Añadir a la compra (Recetario y Comidas)
+- Cada ingrediente dice a la vez si está en la despensa y si está en la lista, con etiquetas de color: «En la despensa», «En la lista: 2» o «Ya comprado».
+- Todos los ingredientes se pueden dejar fuera con «No añadir», también los que no están en la lista ni en la despensa. Antes se llamaba «Omitir».
+- Si vuelves a «Añadir», la fila recupera la cantidad, la marca y la tienda que tenía.
+- Debajo de las etiquetas solo queda lo que pide la receta: «Receta: 3» o «De varias comidas: 1 + 2».
 
-Deshacer
-- Si giras la pantalla o cambias de área mientras se borra algo, el «Deshacer» sale al volver, si no han pasado 10 segundos.
-- Si borras o completas varias cosas seguidas, cada aviso deshace lo suyo.
-- Deshacer el borrado de una tarea completada, un producto comprado o una actividad hecha la devuelve tal como estaba, de una sola vez.
-- Si cambias de espacio antes de deshacer, lo borrado vuelve al espacio donde estaba.
-- Si el responsable, el cocinero o un participante ya no está en el espacio, lo borrado vuelve sin esa persona, en lugar de fallar.
-- Deshacer lo que acabas de añadir ya no lo borra si otro miembro lo ha cambiado entretanto: te avisa de que ha cambiado. Vale para tareas, compra, notas, comidas, deporte y calendario.
-- Al deshacer el completar de una tarea que se repite, vuelve con sus fechas de antes.
-
-Guardar y avisos
-- Guardar una cosa ya no borra el aviso o el error de otra que se estaba guardando a la vez.
-- En Espacios e Ingredientes, un error sale una sola vez, no en el aviso y dentro del formulario a la vez.
-- En la Despensa, los avisos y los errores van por separado: cerrar uno no borra el otro.
+Si ya tienes la beta 25, puedes instalar esta desde Perfil, con «Buscar actualizaciones».
 
 Comunica cualquier error indicando el modelo del dispositivo, la versión de Android y los pasos para reproducirlo.
