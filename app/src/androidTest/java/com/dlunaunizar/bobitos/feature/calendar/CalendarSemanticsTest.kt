@@ -19,6 +19,7 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import com.dlunaunizar.bobitos.core.designsystem.theme.BobitosTheme
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.EventColor
@@ -104,19 +105,12 @@ class CalendarSemanticsTest {
         )
     }
 
-    @Test fun anHourRowIsNotAnEmptyButton() {
+    @Test fun anHourSlotIsNotAnEmptyButton() {
         var writable by androidx.compose.runtime.mutableStateOf(false)
         var created = 0
         compose.setContent {
             BobitosTheme {
-                HourRow(
-                    hour = 10,
-                    events = emptyList(),
-                    canWrite = writable,
-                    onEdit = {},
-                    onDelete = {},
-                    onLongPress = { created++ },
-                )
+                HourSlot(hour = 10, height = 64.dp, canWrite = writable, onLongPress = { created++ })
             }
         }
         compose.onNodeWithText("10:00").assertIsDisplayed()
@@ -131,6 +125,16 @@ class CalendarSemanticsTest {
         assertTrue(action.label.contains("10:00"))
         compose.runOnUiThread { assertTrue(action.action()) }
         assertEquals(1, created)
+    }
+
+    @Test fun aTimedEventRowShowsItsRange() {
+        val zone = java.time.ZoneId.systemDefault()
+        val timed = event.copy(
+            startAt = java.time.LocalDateTime.of(2026, 10, 17, 19, 0).atZone(zone).toInstant(),
+            endAt = java.time.LocalDateTime.of(2026, 10, 17, 20, 0).atZone(zone).toInstant(),
+        )
+        compose.setContent { BobitosTheme { EventRow(timed, canWrite = false, edit = {}, delete = {}) } }
+        compose.onNodeWithText("17 oct, 19:00 – 20:00").assertIsDisplayed()
     }
 
     @Test fun anEventRowNamesItsMenu() {
