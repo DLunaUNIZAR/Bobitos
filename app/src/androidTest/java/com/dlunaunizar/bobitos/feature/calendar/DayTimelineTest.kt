@@ -3,11 +3,14 @@ package com.dlunaunizar.bobitos.feature.calendar
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
@@ -15,13 +18,18 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
@@ -30,6 +38,9 @@ import androidx.compose.ui.unit.width
 import com.dlunaunizar.bobitos.core.designsystem.theme.BobitosTheme
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import com.dlunaunizar.bobitos.core.model.EventColor
+import com.dlunaunizar.bobitos.core.model.TaskItem
+import com.dlunaunizar.bobitos.core.model.TaskPriority
+import com.dlunaunizar.bobitos.core.model.TaskStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -189,5 +200,170 @@ class DayTimelineTest {
         compose.waitForIdle()
         compose.onNodeWithText("08:00").assertIsDisplayed()
         compose.onNodeWithText("07:00").assertIsNotDisplayed()
+    }
+
+    @Test fun arrowsOpenTheNewDayAtItsFirstEventWhenItsEventsArrive() {
+        var shown by mutableStateOf(day)
+        var ready by mutableStateOf(true)
+        var events by mutableStateOf(listOf(event("a", "Inglés", at(16, 30), at(18, 30))))
+        compose.setContent {
+            BobitosTheme {
+                Box(Modifier.size(width = 360.dp, height = 640.dp)) {
+                    DayHourGrid(
+                        events = events,
+                        tasks = emptyList(),
+                        canWrite = false,
+                        onEdit = {},
+                        onDelete = {},
+                        onCreateAt = {},
+                        day = shown,
+                        ready = ready,
+                    )
+                }
+            }
+        }
+        compose.waitForIdle()
+        compose.onNodeWithText("16:00").assertIsDisplayed()
+
+        // Con las flechas el día cambia primero y sus eventos llegan después; entretanto siguen los del día anterior.
+        ready = false
+        shown = day.plusDays(1)
+        compose.waitForIdle()
+        val next = day.plusDays(1)
+        events = listOf(event("c", "Cena", at(20, 0, next), at(21, 0, next)))
+        ready = true
+        compose.waitForIdle()
+        compose.onNodeWithText("20:00").assertIsDisplayed()
+        compose.onNodeWithText("08:00").assertIsNotDisplayed()
+    }
+
+    @Test fun narrowOverlappingCardsKeepTitleAndTimeReadable() {
+        val deleted = mutableListOf<String>()
+        val titles = listOf(
+            "Fútbol del peque" to "f",
+            "Inglés con Marta" to "i",
+            "Dentista de Ana" to "d",
+            "Compra semanal" to "c",
+        )
+        val list = titles.map { (title, id) -> event(id, title, at(17, 0), at(19, 0)) }
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale = 1.3f)) {
+                BobitosTheme {
+                    Box(Modifier.size(width = 328.dp, height = 640.dp)) {
+                        DayHourGrid(
+                            events = list,
+                            tasks = emptyList(),
+                            canWrite = true,
+                            onEdit = {},
+                            onDelete = { deleted += it },
+                            onCreateAt = {},
+                            day = day,
+                        )
+                    }
+                }
+            }
+        }
+        compose.waitForIdle()
+        titles.forEach { (title, id) ->
+            compose.onNodeWithContentDescription("Más opciones de «$title»").assertDoesNotExist()
+            val text = compose.onNode(hasText(title) and hasAnyAncestor(hasTestTag(timelineEventTag(id))), true)
+            val box = text.getUnclippedBoundsInRoot()
+            assertTrue("texto de $title: ${box.width}", box.width >= 40.dp)
+            assertTrue("título de $title en una línea: ${box.height}", box.height < 40.dp)
+            compose.onNodeWithTag(timelineEventTag(id)).assert(
+                SemanticsMatcher("has TalkBack edit and delete") { node ->
+                    val labels = node.config.getOrNull(SemanticsActions.CustomActions)?.map { it.label }
+                    labels?.containsAll(listOf("Editar", "Eliminar")) == true
+                },
+            )
+        }
+        compose.onNodeWithTag(timelineEventTag("i")).performTouchInput { longClick(center) }
+        compose.onNodeWithText("Eliminar").performClick()
+        compose.waitForIdle()
+        assertEquals(listOf("i"), deleted)
+    }
+
+    @Test fun aSingleEventKeepsItsMenuButton() {
+        setGrid(listOf(event("a", "Inglés", at(16, 30), at(18, 30))), canWrite = true)
+        compose.onNodeWithContentDescription("Más opciones de «Inglés»").assertIsDisplayed()
+    }
+
+    @Test fun allDayBlockStaysVisibleWhenTheDayOpensAtTheFirstEvent() {
+        val birthday = event("b", "Cumpleaños de Ana", at(0), at(0, date = day.plusDays(1)))
+            .copy(allDay = true, startDate = day, endDateExclusive = day.plusDays(1))
+        val task = TaskItem(
+            id = "t",
+            title = "Llamar al dentista",
+            description = null,
+            assigneeId = null,
+            assigneeName = null,
+            dueAt = at(12),
+            priority = TaskPriority.MEDIUM,
+            status = TaskStatus.TODO,
+            createdBy = "u",
+            createdByName = "U",
+            createdAt = Instant.EPOCH,
+            updatedBy = "u",
+            updatedAt = Instant.EPOCH,
+            completedBy = null,
+            completedByName = null,
+            completedAt = null,
+        )
+        compose.setContent {
+            BobitosTheme {
+                Box(Modifier.size(width = 360.dp, height = 640.dp)) {
+                    DayHourGrid(
+                        events = listOf(birthday, event("a", "Inglés", at(16, 30), at(18, 30))),
+                        tasks = listOf(task),
+                        canWrite = true,
+                        onEdit = {},
+                        onDelete = {},
+                        onCreateAt = {},
+                        day = day,
+                    )
+                }
+            }
+        }
+        compose.waitForIdle()
+        compose.onNodeWithText("Cumpleaños de Ana").assertIsDisplayed()
+        compose.onNodeWithText("Llamar al dentista").assertIsDisplayed()
+        compose.onNodeWithText("16:00").assertIsDisplayed()
+    }
+
+    @Test fun aLongEventShowsItsTitleAtTheTop() {
+        setGrid(listOf(event("v", "Viaje a Asturias", at(0), at(12))))
+        compose.waitForIdle()
+        val card = bounds("v")
+        val title = compose
+            .onNode(hasText("Viaje a Asturias") and hasAnyAncestor(hasTestTag(timelineEventTag("v"))), true)
+            .getUnclippedBoundsInRoot()
+        assertTrue("título a ${title.top - card.top} de la parte alta", title.top - card.top < 24.dp)
+    }
+
+    @Test fun theOpenMenuStaysWithItsEventWhenAnEarlierOneArrives() {
+        val deleted = mutableListOf<String>()
+        var events by mutableStateOf(listOf(event("cine", "Cine", at(18, 30), at(20, 0))))
+        compose.setContent {
+            BobitosTheme {
+                Box(Modifier.size(width = 360.dp, height = 640.dp)) {
+                    DayHourGrid(
+                        events = events,
+                        tasks = emptyList(),
+                        canWrite = true,
+                        onEdit = {},
+                        onDelete = { deleted += it },
+                        onCreateAt = {},
+                        day = day,
+                    )
+                }
+            }
+        }
+        compose.waitForIdle()
+        compose.onNodeWithContentDescription("Más opciones de «Cine»").performClick()
+        events = listOf(event("des", "Desayuno", at(8, 0), at(9, 0))) + events
+        compose.waitForIdle()
+        compose.onNodeWithText("Eliminar").performClick()
+        compose.waitForIdle()
+        assertEquals(listOf("cine"), deleted)
     }
 }

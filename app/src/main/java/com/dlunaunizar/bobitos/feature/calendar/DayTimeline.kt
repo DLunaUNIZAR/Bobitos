@@ -4,11 +4,11 @@ package com.dlunaunizar.bobitos.feature.calendar
 
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -29,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -52,8 +54,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import com.dlunaunizar.bobitos.R
 import com.dlunaunizar.bobitos.core.common.BobitosDates
-import com.dlunaunizar.bobitos.core.designsystem.component.ClickableCard
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
+import com.dlunaunizar.bobitos.core.designsystem.pressScale
+import com.dlunaunizar.bobitos.core.designsystem.rememberReduceMotion
 import com.dlunaunizar.bobitos.core.model.CalendarEvent
 import java.time.LocalDate
 import java.time.LocalTime
@@ -175,22 +178,25 @@ internal fun DayTimeline(
         }
         placed.forEach { item ->
             val slotWidth = columnsWidth / item.columns
-            Box(
-                Modifier
-                    .offset(
-                        x = labelWidth + slotWidth * item.column,
-                        y = hourHeight * item.topMinute / 60,
+            // La clave ata el estado de la tarjeta (su menú abierto) a su evento, no a su posición en la lista.
+            key(item.event.id) {
+                Box(
+                    Modifier
+                        .offset(
+                            x = labelWidth + slotWidth * item.column,
+                            y = hourHeight * item.topMinute / 60,
+                        )
+                        .size(slotWidth, hourHeight * (item.bottomMinute - item.topMinute) / 60),
+                ) {
+                    TimelineEventCard(
+                        item = item,
+                        canWrite = canWrite,
+                        onEdit = { onEdit(item.event) },
+                        onDelete = { onDelete(item.event.id) },
+                        deleteEnabled = deleteEnabled,
+                        modifier = Modifier.fillMaxSize().padding(1.dp),
                     )
-                    .size(slotWidth, hourHeight * (item.bottomMinute - item.topMinute) / 60),
-            ) {
-                TimelineEventCard(
-                    item = item,
-                    canWrite = canWrite,
-                    onEdit = { onEdit(item.event) },
-                    onDelete = { onDelete(item.event.id) },
-                    deleteEnabled = deleteEnabled,
-                    modifier = Modifier.fillMaxSize().padding(1.dp),
-                )
+                }
             }
         }
     }
@@ -208,9 +214,11 @@ private fun lineHeightOf(style: TextStyle): Dp {
 }
 
 /**
- * La tarjeta de un evento: barra de color, título y rango siempre (en una línea con puntos suspensivos si no cabe);
- * el título gana líneas y aparecen los participantes solo si la altura y el ancho sobran. Si hay columnas, el ⋮ se
- * encoge para dejar sitio al texto: la propia tarjeta (de 48 dp o más) sigue siendo el objetivo de toque principal.
+ * La tarjeta de un evento: barra de color, título y rango (en una línea con puntos suspensivos si no cabe); el título
+ * gana líneas y aparecen los participantes solo si la altura y el ancho sobran. Con permiso de escritura, tocarla abre
+ * el editor y mantenerla pulsada (o las acciones de TalkBack) ofrece «Editar» y «Eliminar». Si comparte columna y el
+ * texto quedaría por debajo de [CompactTextWidth] con un ⋮ al lado, la tarjeta es compacta: sin ⋮, márgenes finos,
+ * título en una línea y solo la hora de inicio. El contenido va arriba para que el título se vea al abrir el día.
  */
 @Composable
 internal fun TimelineEventCard(
@@ -222,112 +230,189 @@ internal fun TimelineEventCard(
     modifier: Modifier = Modifier,
 ) {
     val event = item.event
-    val zone = ZoneId.systemDefault()
-    val range = BobitosDates.timeRange(
-        event.startAt.atZone(zone).toLocalDateTime(),
-        event.endAt.atZone(zone).toLocalDateTime(),
-    )
-    val titleStyle = MaterialTheme.typography.titleSmall
-    val rangeStyle = MaterialTheme.typography.labelMedium
-    val participantsStyle = MaterialTheme.typography.bodySmall
-    val titleLine = lineHeightOf(titleStyle)
-    val rangeLine = lineHeightOf(rangeStyle)
-    val participantsLine = lineHeightOf(participantsStyle)
-    ClickableCard(
-        onClick = onEdit.takeIf { canWrite },
-        modifier = modifier.semantics(mergeDescendants = true) {}.testTag(timelineEventTag(event.id)),
+    var menuExpanded by remember { mutableStateOf(false) }
+    val haptics = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val actions = cardActions(canWrite, deleteEnabled, onEdit, onDelete)
+    Card(
+        modifier = modifier
+            .pressScale(interactionSource, rememberReduceMotion())
+            .semantics(mergeDescendants = true) { if (actions.isNotEmpty()) customActions = actions }
+            .testTag(timelineEventTag(event.id)),
     ) {
-        BoxWithConstraints(Modifier.fillMaxSize()) {
-            val menuWidth = if (!canWrite) {
-                0.dp
-            } else if (item.columns > 1) {
-                36.dp
-            } else {
-                48.dp
-            }
-            val available = maxHeight - CardPadding * 2
-            val showParticipants = maxWidth >= 140.dp &&
-                available >= titleLine + rangeLine + participantsLine
-            val titleLines = ((available - rangeLine - if (showParticipants) participantsLine else 0.dp) / titleLine)
-                .toInt().coerceIn(1, 3)
-            Row(Modifier.fillMaxSize().padding(start = CardPadding), verticalAlignment = Alignment.CenterVertically) {
+        BoxWithConstraints(
+            Modifier
+                .fillMaxSize()
+                .then(
+                    if (canWrite) {
+                        Modifier.combinedClickable(
+                            interactionSource = interactionSource,
+                            indication = LocalIndication.current,
+                            onClick = onEdit,
+                            onLongClick = {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                menuExpanded = true
+                            },
+                        )
+                    } else {
+                        Modifier
+                    },
+                ),
+        ) {
+            val layout = cardLayout(item.columns, canWrite, maxWidth, maxHeight)
+            Row(Modifier.fillMaxSize().padding(start = layout.pad), verticalAlignment = Alignment.Top) {
                 Box(
                     Modifier
-                        .padding(vertical = CardPadding)
+                        .padding(vertical = layout.pad)
                         .width(4.dp)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(2.dp))
                         .background(event.color.accent()),
                 )
-                Column(
-                    Modifier
-                        .weight(1f)
-                        .padding(start = 8.dp, end = if (canWrite) 0.dp else CardPadding),
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    Text(event.title, style = titleStyle, maxLines = titleLines, overflow = TextOverflow.Ellipsis)
-                    Text(
-                        text = range,
-                        style = rangeStyle,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (showParticipants) {
-                        Text(
-                            text = event.participantNames.takeIf { it.isNotEmpty() }?.joinToString()
-                                ?: stringResource(R.string.calendar_general_event),
-                            style = participantsStyle,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-                if (canWrite) {
-                    TimelineCardMenu(
-                        event.title,
-                        menuWidth,
-                        onEdit,
-                        onDelete,
-                        deleteEnabled,
-                        Modifier.align(Alignment.Top),
+                CardTexts(event, layout, Modifier.weight(1f))
+                if (layout.showMenuButton) {
+                    MoreOptionsButton(
+                        itemName = event.title,
+                        onClick = { menuExpanded = true },
+                        modifier = Modifier.size(layout.menuWidth),
                     )
                 }
+            }
+            // El menú se ancla arriba a la derecha (junto al ⋮) o, sin ⋮, arriba a la izquierda.
+            Box(Modifier.align(if (layout.showMenuButton) Alignment.TopEnd else Alignment.TopStart)) {
+                TimelineCardMenu(menuExpanded, { menuExpanded = false }, onEdit, onDelete, deleteEnabled)
             }
         }
     }
 }
 
-/** El ⋮ de la tarjeta con «Editar» y «Eliminar»; [size] es su lado (36 dp si la tarjeta comparte ancho). */
+/** Acciones de TalkBack de una tarjeta editable: las mismas que el menú (vacías sin permiso de escritura). */
+@Composable
+private fun cardActions(
+    canWrite: Boolean,
+    deleteEnabled: Boolean,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+): List<CustomAccessibilityAction> {
+    val editLabel = stringResource(R.string.calendar_edit)
+    val deleteLabel = stringResource(R.string.calendar_delete)
+    if (!canWrite) return emptyList()
+    return listOf(
+        CustomAccessibilityAction(editLabel) {
+            onEdit()
+            true
+        },
+        CustomAccessibilityAction(deleteLabel) {
+            if (deleteEnabled) onDelete()
+            deleteEnabled
+        },
+    )
+}
+
+/** Cómo se dibuja una tarjeta según el sitio que tiene (ver [TimelineEventCard]). */
+private class CardLayout(
+    val compact: Boolean,
+    val pad: Dp,
+    val menuWidth: Dp,
+    val showMenuButton: Boolean,
+    val showParticipants: Boolean,
+    val titleLines: Int,
+)
+
+@Composable
+private fun cardLayout(columns: Int, canWrite: Boolean, width: Dp, height: Dp): CardLayout {
+    val titleLine = lineHeightOf(MaterialTheme.typography.titleSmall)
+    val rangeLine = lineHeightOf(MaterialTheme.typography.labelMedium)
+    val participantsLine = lineHeightOf(MaterialTheme.typography.bodySmall)
+    val menuWidth = if (columns > 1) 36.dp else 48.dp
+    val compact = columns > 1 && width - FullChrome - menuWidth < CompactTextWidth
+    val pad = if (compact) CompactPadding else CardPadding
+    val available = height - pad * 2
+    val showParticipants = !compact && width >= 140.dp && available >= titleLine + rangeLine + participantsLine
+    val titleLines = if (compact) {
+        1
+    } else {
+        ((available - rangeLine - if (showParticipants) participantsLine else 0.dp) / titleLine).toInt().coerceIn(1, 3)
+    }
+    return CardLayout(compact, pad, menuWidth, canWrite && !compact, showParticipants, titleLines)
+}
+
+/** Título, rango (o solo la hora de inicio si la tarjeta es compacta) y participantes de una tarjeta. */
+@Composable
+private fun CardTexts(event: CalendarEvent, layout: CardLayout, modifier: Modifier = Modifier) {
+    val zone = ZoneId.systemDefault()
+    val start = event.startAt.atZone(zone).toLocalDateTime()
+    val range = if (layout.compact) {
+        BobitosDates.time(start.toLocalTime())
+    } else {
+        BobitosDates.timeRange(start, event.endAt.atZone(zone).toLocalDateTime())
+    }
+    Column(
+        modifier.padding(
+            start = if (layout.compact) CompactPadding else 8.dp,
+            top = layout.pad,
+            end = if (layout.showMenuButton) 0.dp else layout.pad,
+        ),
+    ) {
+        Text(
+            event.title,
+            style = MaterialTheme.typography.titleSmall,
+            maxLines = layout.titleLines,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = range,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        if (layout.showParticipants) {
+            Text(
+                text = event.participantNames.takeIf { it.isNotEmpty() }?.joinToString()
+                    ?: stringResource(R.string.calendar_general_event),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+/** Ancho que debe quedar al texto, con el ⋮ al lado, para que la tarjeta no sea compacta. */
+private val CompactTextWidth = 72.dp
+
+/** Márgenes de la tarjeta compacta (los de la normal son [CardPadding]). */
+private val CompactPadding = 4.dp
+
+/** Márgenes fijos de la tarjeta normal sin contar el ⋮: 6 de la izquierda, 4 de la barra y 8 hasta el texto. */
+private val FullChrome = 18.dp
+
+/** El menú «Editar» / «Eliminar» de una tarjeta; se abre con su ⋮ o manteniéndola pulsada. */
 @Composable
 private fun TimelineCardMenu(
-    title: String,
-    size: Dp,
+    expanded: Boolean,
+    onDismiss: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     deleteEnabled: Boolean,
-    modifier: Modifier = Modifier,
 ) {
-    var menuExpanded by remember { mutableStateOf(false) }
-    Box(modifier) {
-        MoreOptionsButton(itemName = title, onClick = { menuExpanded = true }, modifier = Modifier.size(size))
-        DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.calendar_edit)) },
-                onClick = {
-                    menuExpanded = false
-                    onEdit()
-                },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.calendar_delete)) },
-                enabled = deleteEnabled,
-                onClick = {
-                    menuExpanded = false
-                    onDelete()
-                },
-            )
-        }
+    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.calendar_edit)) },
+            onClick = {
+                onDismiss()
+                onEdit()
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.calendar_delete)) },
+            enabled = deleteEnabled,
+            onClick = {
+                onDismiss()
+                onDelete()
+            },
+        )
     }
 }

@@ -203,6 +203,7 @@ fun PersonalCalendarScreen(
                             modifier = Modifier.weight(1f),
                             deleteEnabled = !state.save.isSaving,
                             listState = dayListState,
+                            ready = !state.refreshing,
                         )
                         CalendarDisplayMode.WEEK -> PersonalWeekEventList(
                             events = events,

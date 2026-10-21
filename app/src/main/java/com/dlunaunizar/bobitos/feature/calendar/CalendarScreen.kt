@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -55,6 +56,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -241,6 +243,7 @@ fun CalendarScreen(
                             modifier = Modifier.weight(1f),
                             deleteEnabled = !state.save.isSaving,
                             listState = dayListState,
+                            ready = !state.refreshing,
                         )
                         CalendarDisplayMode.WEEK -> WeekEventList(
                             focusedDate = state.focusedDate,
@@ -609,53 +612,65 @@ internal fun DayHourGrid(
     modifier: Modifier = Modifier,
     deleteEnabled: Boolean = true,
     listState: LazyListState = rememberLazyListState(),
+    ready: Boolean = true,
 ) {
     val zone = ZoneId.systemDefault()
     val allDay = events.filter(CalendarEvent::allDay)
     val hourHeight = rememberTimelineHourHeight()
     val density = LocalDensity.current
     // Desplazamiento inicial: una sola vez por día mostrado (sobrevive a la rotación; un evento nuevo no lo repite).
+    // Espera a [ready] porque, al cambiar de día con las flechas, los eventos del día nuevo llegan después.
     var scrolledForDay by rememberSaveable(day) { mutableStateOf(false) }
-    LaunchedEffect(day) {
-        if (!scrolledForDay) {
+    LaunchedEffect(day, ready) {
+        if (ready && !scrolledForDay) {
             scrolledForDay = true
-            val timelineIndex = (if (canWrite) 1 else 0) +
-                (if (allDay.isNotEmpty() || tasks.isNotEmpty()) 2 + tasks.size + allDay.size else 0)
             val firstHour = firstTimedHour(events, day, zone) ?: DEFAULT_FIRST_HOUR
-            listState.scrollToItem(timelineIndex, with(density) { (hourHeight * firstHour).roundToPx() })
+            listState.scrollToItem(0, with(density) { (hourHeight * firstHour).roundToPx() })
         }
     }
-    LazyColumn(modifier, state = listState, contentPadding = PaddingValues(bottom = Spacing.fabClearance)) {
-        if (canWrite) {
-            item(key = "hold-hint") {
-                Text(
-                    text = stringResource(R.string.calendar_hold_hint),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = Spacing.sm),
-                )
+    Column(modifier) {
+        // Franja fija: aviso, «Todo el día» y tareas siempre a la vista; si son muchos, se desplazan dentro de ella.
+        if (canWrite || allDay.isNotEmpty() || tasks.isNotEmpty()) {
+            Column(Modifier.heightIn(max = AllDayStripMaxHeight).verticalScroll(rememberScrollState())) {
+                if (canWrite) {
+                    Text(
+                        text = stringResource(R.string.calendar_hold_hint),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = Spacing.sm),
+                    )
+                }
+                if (allDay.isNotEmpty() || tasks.isNotEmpty()) {
+                    Text(
+                        text = stringResource(R.string.calendar_all_day),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 4.dp),
+                    )
+                    tasks.forEach { task -> key("task-${task.id}") { TaskOnDayRow(task) } }
+                    allDay.forEach { event ->
+                        key("allday-${event.id}") {
+                            EventRow(event, canWrite, { onEdit(event) }, { onDelete(event.id) }, deleteEnabled)
+                        }
+                    }
+                }
             }
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
         }
-        if (allDay.isNotEmpty() || tasks.isNotEmpty()) {
-            item(key = "allday-header") {
-                Text(
-                    text = stringResource(R.string.calendar_all_day),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 4.dp),
-                )
+        LazyColumn(
+            Modifier.weight(1f),
+            state = listState,
+            contentPadding = PaddingValues(bottom = Spacing.fabClearance),
+        ) {
+            item(key = "timeline") {
+                DayTimeline(day, events, canWrite, onEdit, onDelete, onCreateAt, deleteEnabled)
             }
-            items(tasks, key = { "task-${it.id}" }) { task -> TaskOnDayRow(task) }
-            items(allDay, key = { "allday-${it.id}" }) { event ->
-                EventRow(event, canWrite, { onEdit(event) }, { onDelete(event.id) }, deleteEnabled)
-            }
-            item(key = "hours-divider") { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
-        }
-        item(key = "timeline") {
-            DayTimeline(day, events, canWrite, onEdit, onDelete, onCreateAt, deleteEnabled)
         }
     }
 }
+
+/** Alto máximo de la franja fija de encima de la línea de tiempo (aviso, «Todo el día» y tareas). */
+private val AllDayStripMaxHeight = 188.dp
 
 /** Hora a la que se abre un día sin eventos con hora. */
 private const val DEFAULT_FIRST_HOUR = 8
