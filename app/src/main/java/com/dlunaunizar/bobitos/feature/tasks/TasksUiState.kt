@@ -16,6 +16,10 @@ data class TasksUiState(
     val members: UiState<List<SpaceMember>> = UiState.Loading,
     val filters: TaskFilters = TaskFilters(),
     val save: SaveState<TaskUiMessage, TaskUiMessage> = SaveState(),
+    /** Hay completadas más antiguas sin leer: la sección «Completadas» ofrece «Ver más». */
+    val hasMoreCompleted: Boolean = false,
+    /** Hay más pendientes que el tope de seguridad: la lista avisa de que no están todas. */
+    val pendingCapReached: Boolean = false,
 )
 
 data class TaskFilters(

@@ -18,9 +18,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.Transaction
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import java.time.Instant
 import java.time.ZoneId
@@ -37,29 +36,39 @@ class FirestoreTaskRepository @Inject constructor(
 ) : TaskRepository {
     private val firestore = FirebaseFirestore.getInstance()
 
-    override fun tasks(spaceId: String): Flow<List<TaskItem>> = callbackFlow {
-        val metricId = realtimeMetrics.listenerStarted("tasks:active")
-        val registration = tasksCollection(spaceId)
-            .orderBy(FIELD_CREATED_AT, Query.Direction.DESCENDING)
-            .limit(MAX_VISIBLE_TASKS)
-            .addSnapshotListener { snapshot, error ->
-                when {
-                    error != null -> close(error.toTaskRepositoryException())
-                    snapshot != null -> {
-                        realtimeMetrics.snapshotReceived(
-                            scope = "tasks:active",
-                            changedDocuments = snapshot.documentChanges.size,
-                            fromCache = snapshot.metadata.isFromCache,
-                        )
-                        trySend(snapshot.documents.mapNotNull(DocumentSnapshot::toTaskItem))
-                    }
-                }
-            }
-        awaitClose {
-            registration.remove()
-            realtimeMetrics.listenerStopped(metricId)
+    override fun tasks(spaceId: String): Flow<List<TaskItem>> = taskPage(spaceId, TASKS_COMPLETED_PAGE).map { it.items }
+
+    // Dos consultas para que las pendientes no se pierdan entre las completadas (antes, las 250 más nuevas de todas):
+    // - Todas las pendientes: igualdad sobre un solo campo, la sirve el índice automático de `status`.
+    // - Las completadas más recientes: solo orderBy sobre `completedAt` (sin filtro), la sirve su índice automático
+    //   descendente. No se filtra con `completedAt > 0` porque, al completar, la fecha es un serverTimestamp pendiente
+    //   que la caché local no da por mayor que 0 hasta que responde el servidor: la tarea desaparecería de la lista
+    //   un momento (o del todo sin conexión). Ordenado así, el valor pendiente va primero y la tarea salta de una
+    //   consulta a la otra sin hueco. Las pendientes (completedAt null) quedan al final y el merge las descarta.
+    // Ninguna necesita índice compuesto ni cambios en firestore.indexes.json (no hay fieldOverrides).
+    override fun taskPage(spaceId: String, completedLimit: Int): Flow<PendingAndRecent<TaskItem>> =
+        pendingAndRecentFlow(
+            pending = tasksCollection(spaceId)
+                .whereEqualTo(FIELD_STATUS, STATUS_TODO)
+                .limit(TASKS_PENDING_CAP + 1L),
+            recent = tasksCollection(spaceId)
+                .orderBy(FIELD_COMPLETED_AT, Query.Direction.DESCENDING)
+                .limit(completedLimit + 1L),
+            metrics = realtimeMetrics,
+            scope = "tasks:active",
+            toException = Throwable::toTaskRepositoryException,
+            mapper = { documents -> documents.mapNotNull(DocumentSnapshot::toTaskItem) },
+        ) { pending, recent ->
+            mergePendingAndRecent(
+                pending = pending,
+                recent = recent,
+                pendingCap = TASKS_PENDING_CAP,
+                doneLimit = completedLimit,
+                id = TaskItem::id,
+                isDone = { it.status == TaskStatus.DONE },
+                order = TASK_ORDER,
+            )
         }
-    }
 
     override suspend fun createTask(
         spaceId: String,
@@ -360,12 +369,14 @@ private const val STATUS_TODO = "TODO"
 private const val STATUS_DONE = "DONE"
 private const val MAX_TITLE_LENGTH = 120
 private const val MAX_DESCRIPTION_LENGTH = 1000
-private const val MAX_VISIBLE_TASKS = 250L
 
 private val AuthUser.taskDisplayName: String
     get() = displayName.ifBlank { email.substringBefore('@') }.take(60)
 
 private fun Instant.toTimestamp() = Timestamp(Date.from(this))
+
+/** El orden de siempre: de la más nueva a la más vieja por creación, con el id de desempate. */
+private val TASK_ORDER = compareByDescending(TaskItem::createdAt).thenBy(TaskItem::id)
 
 private fun DocumentSnapshot.toTaskItem(): TaskItem? {
     val createdAt = getTimestamp("createdAt")?.toDate()?.toInstant() ?: return null

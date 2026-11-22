@@ -18,7 +18,9 @@ import com.dlunaunizar.bobitos.core.model.TaskPriority
 import com.dlunaunizar.bobitos.core.model.TaskRecurrence
 import com.dlunaunizar.bobitos.core.model.TaskStatus
 import com.dlunaunizar.bobitos.core.model.TaskType
+import com.dlunaunizar.bobitos.data.repository.PendingAndRecent
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
+import com.dlunaunizar.bobitos.data.repository.TASKS_COMPLETED_PAGE
 import com.dlunaunizar.bobitos.data.repository.TaskDates
 import com.dlunaunizar.bobitos.data.repository.TaskFailure
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
@@ -31,6 +33,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -64,6 +67,50 @@ class TasksViewModelTest {
         assertEquals("home", taskRepository.observedSpaceId)
         assertEquals(listOf("Fregar"), (state.tasks as UiState.Content).value.map(TaskItem::title))
         assertEquals(listOf("Ana"), (state.members as UiState.Content).value.map(SpaceMember::displayName))
+    }
+
+    @Test
+    fun `see more asks for the next page of completed tasks and keeps the list on screen`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            taskRepository.tasksState.value = listOf(task("t1", "Fregar", TaskType.LIMPIEZA))
+            taskRepository.hasMoreCompleted = true
+            taskRepository.pendingCapReached = true
+
+            viewModel.observe("home")
+            advanceUntilIdle()
+            assertTrue(viewModel.uiState.value.hasMoreCompleted)
+            assertTrue(viewModel.uiState.value.pendingCapReached)
+
+            taskRepository.hasMoreCompleted = false
+            viewModel.loadMoreCompleted()
+            runCurrent()
+
+            assertEquals(
+                listOf(TASKS_COMPLETED_PAGE, 2 * TASKS_COMPLETED_PAGE),
+                taskRepository.requestedCompletedLimits,
+            )
+            assertTrue(viewModel.uiState.value.tasks is UiState.Content)
+            advanceUntilIdle()
+            assertFalse(viewModel.uiState.value.hasMoreCompleted)
+
+            // Sin más completadas, «Ver más» no vuelve a pedir nada.
+            viewModel.loadMoreCompleted()
+            advanceUntilIdle()
+            assertEquals(2, taskRepository.requestedCompletedLimits.size)
+        }
+
+    @Test
+    fun `observing again starts from the first page of completed tasks`() = runTest(mainDispatcherRule.testDispatcher) {
+        taskRepository.hasMoreCompleted = true
+        viewModel.observe("home")
+        advanceUntilIdle()
+        viewModel.loadMoreCompleted()
+        advanceUntilIdle()
+
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        assertEquals(TASKS_COMPLETED_PAGE, taskRepository.requestedCompletedLimits.last())
     }
 
     @Test
@@ -678,6 +725,15 @@ private class FakeTaskRepository : TaskRepository {
         observedSpaceId = spaceId
         loadFailure?.let { return flow { throw it } }
         return tasksState
+    }
+
+    val requestedCompletedLimits = mutableListOf<Int>()
+    var hasMoreCompleted = false
+    var pendingCapReached = false
+
+    override fun taskPage(spaceId: String, completedLimit: Int): Flow<PendingAndRecent<TaskItem>> {
+        requestedCompletedLimits += completedLimit
+        return tasks(spaceId).map { PendingAndRecent(it, hasMoreCompleted, pendingCapReached) }
     }
 
     override suspend fun createTask(

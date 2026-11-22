@@ -18,16 +18,19 @@ import com.dlunaunizar.bobitos.core.model.TaskPriority
 import com.dlunaunizar.bobitos.core.model.TaskRecurrence
 import com.dlunaunizar.bobitos.core.model.TaskType
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
+import com.dlunaunizar.bobitos.data.repository.TASKS_COMPLETED_PAGE
 import com.dlunaunizar.bobitos.data.repository.TaskFailure
 import com.dlunaunizar.bobitos.data.repository.TaskRepository
 import com.dlunaunizar.bobitos.data.repository.TaskRepositoryException
 import com.dlunaunizar.bobitos.data.repository.completedWith
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -49,15 +52,33 @@ class TasksViewModel @Inject constructor(
     val undoOffers: StateFlow<List<UndoOffer<TaskItem>>> = undo.offers
     val undoControls: UndoOfferControls get() = undo
     private val completingIds = mutableSetOf<String>()
+    private val completedLimit = MutableStateFlow(TASKS_COMPLETED_PAGE)
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun observe(spaceId: String) {
         stopObserving()
-        mutableUiState.update { it.copy(tasks = UiState.Loading, members = UiState.Loading) }
+        completedLimit.value = TASKS_COMPLETED_PAGE
+        mutableUiState.update {
+            it.copy(
+                tasks = UiState.Loading,
+                members = UiState.Loading,
+                hasMoreCompleted = false,
+                pendingCapReached = false,
+            )
+        }
         tasksJob = viewModelScope.launch {
-            taskRepository.tasks(spaceId).catch { error ->
+            // «Ver más» sube el límite y se vuelve a escuchar; la lista de antes sigue en pantalla hasta que llega
+            // la nueva (no pasa por «Cargando»).
+            completedLimit.flatMapLatest { limit -> taskRepository.taskPage(spaceId, limit) }.catch { error ->
                 mutableUiState.update { it.copy(tasks = UiState.Error(error.toFailureKind())) }
-            }.collect { tasks ->
-                mutableUiState.update { it.copy(tasks = UiState.Content(tasks)) }
+            }.collect { page ->
+                mutableUiState.update {
+                    it.copy(
+                        tasks = UiState.Content(page.items),
+                        hasMoreCompleted = page.hasMoreDone,
+                        pendingCapReached = page.pendingCapReached,
+                    )
+                }
             }
         }
         membersJob = viewModelScope.launch {
@@ -67,6 +88,11 @@ class TasksViewModel @Inject constructor(
                 mutableUiState.update { it.copy(members = UiState.Content(members)) }
             }
         }
+    }
+
+    /** Lee la siguiente página de completadas (las [TASKS_COMPLETED_PAGE] siguientes más antiguas). */
+    fun loadMoreCompleted() {
+        if (uiState.value.hasMoreCompleted) completedLimit.update { it + TASKS_COMPLETED_PAGE }
     }
 
     fun stopObserving() {

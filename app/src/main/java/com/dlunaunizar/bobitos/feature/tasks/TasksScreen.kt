@@ -90,6 +90,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdown
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
 import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
+import com.dlunaunizar.bobitos.core.designsystem.component.ListLimitNotice
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
@@ -120,6 +121,7 @@ import com.dlunaunizar.bobitos.core.model.TaskPriority
 import com.dlunaunizar.bobitos.core.model.TaskRecurrence
 import com.dlunaunizar.bobitos.core.model.TaskStatus
 import com.dlunaunizar.bobitos.core.model.TaskType
+import com.dlunaunizar.bobitos.data.repository.TASKS_PENDING_CAP
 import com.dlunaunizar.bobitos.feature.spaces.pendingDueTodayOrEarlier
 import java.time.Instant
 import java.time.LocalDate
@@ -296,6 +298,18 @@ fun TasksScreen(
                             contentPadding = PaddingValues(bottom = Spacing.fabClearance),
                         ) {
                             item(key = "air") { Spacer(Modifier.height(Spacing.sm)) }
+                            if (state.pendingCapReached) {
+                                item(key = "pending-cap") {
+                                    ListLimitNotice(
+                                        text = pluralStringResource(
+                                            R.plurals.tasks_pending_cap,
+                                            TASKS_PENDING_CAP,
+                                            TASKS_PENDING_CAP,
+                                        ),
+                                        modifier = Modifier.padding(horizontal = Spacing.lg),
+                                    )
+                                }
+                            }
                             if (queried.isEmpty()) {
                                 item(key = "empty") {
                                     TasksEmptyContent(
@@ -329,6 +343,21 @@ fun TasksScreen(
                                 if (!collapsible || completedExpanded) {
                                     itemsIndexed(sectionTasks, key = { _, task -> task.id }) { index, task ->
                                         taskRow(task, rowPosition(index, sectionTasks.size))
+                                    }
+                                    if (collapsible && state.hasMoreCompleted) {
+                                        item(key = "completed-more") {
+                                            val loaded = allTasks.count { it.status == TaskStatus.DONE }
+                                            ListLimitNotice(
+                                                text = pluralStringResource(
+                                                    R.plurals.tasks_completed_limit,
+                                                    loaded,
+                                                    loaded,
+                                                ),
+                                                actionLabel = stringResource(R.string.tasks_load_more_completed),
+                                                onAction = viewModel::loadMoreCompleted,
+                                                modifier = Modifier.padding(horizontal = Spacing.lg),
+                                            )
+                                        }
                                     }
                                 }
                             }
