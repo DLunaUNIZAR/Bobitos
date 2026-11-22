@@ -28,6 +28,8 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit,
+  orderBy,
   query,
   serverTimestamp,
   setDoc,
@@ -506,6 +508,98 @@ test("un espacio con 10 miembros no admite invitaciones ni nuevas membresías", 
   await assertFails(createInvitation(owner, token, "invite-full", "full-owner"));
   await seedInvitation(token, "invite-full", "full-owner");
   await assertFails(acceptInvitation(guest, token, "full-guest"));
+});
+
+// Las consultas de las listas sin corte (Tareas, Compra y Notas). El emulador no exige índices compuestos, así que
+// aquí solo se comprueban las reglas y la forma del resultado: que ninguna pida un índice compuesto se razona junto a
+// cada consulta en el repositorio (igualdad sobre un campo u orderBy sobre un campo, sin filtro de otro campo).
+async function seedListLimitSpace(spaceId, ownerId, memberId) {
+  await seedSpace(spaceId, ownerId, [memberId]);
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const firestore = context.firestore();
+    const at = (seconds) => new Timestamp(1_700_000_000 + seconds, 0);
+    for (const [id, seconds] of [["p1", 1], ["p2", 2]]) {
+      await setDoc(doc(firestore, "spaces", spaceId, "tasks", id), seededTaskData(ownerId, null, {
+        createdAt: at(seconds),
+        updatedAt: at(seconds),
+      }));
+    }
+    for (const [id, seconds] of [["d1", 10], ["d2", 30], ["d3", 20]]) {
+      await setDoc(doc(firestore, "spaces", spaceId, "tasks", id), seededTaskData(ownerId, null, {
+        status: "DONE",
+        completedBy: ownerId,
+        completedByName: ownerId,
+        completedAt: at(seconds),
+      }));
+    }
+    for (const [id, seconds] of [["n1", 1], ["n2", 3], ["n3", 2]]) {
+      await setDoc(doc(firestore, "spaces", spaceId, "notes", id), {
+        ...noteData(ownerId),
+        createdAt: at(seconds),
+        updatedAt: at(seconds),
+      });
+    }
+  });
+  await seedShoppingItem(spaceId, "s-pending", ownerId);
+  await seedShoppingItem(spaceId, "s-old", ownerId, { purchased: true, purchasedAt: new Timestamp(1_700_000_010, 0) });
+  await seedShoppingItem(spaceId, "s-new", ownerId, { purchased: true, purchasedAt: new Timestamp(1_700_000_020, 0) });
+}
+
+function listLimitQueries(firestore, spaceId) {
+  const tasks = collection(firestore, "spaces", spaceId, "tasks");
+  const items = collection(firestore, "spaces", spaceId, "shoppingItems");
+  return {
+    pendingTasks: query(tasks, where("status", "==", "TODO"), limit(1001)),
+    recentTasks: (size) => query(tasks, orderBy("completedAt", "desc"), limit(size)),
+    pendingItems: query(items, where("purchased", "==", false), limit(1001)),
+    recentItems: (size) => query(items, orderBy("purchasedAt", "desc"), limit(size)),
+    notes: (size) => query(collection(firestore, "spaces", spaceId, "notes"), orderBy("updatedAt", "desc"), limit(size)),
+  };
+}
+
+test("un miembro activo lee las pendientes y las hechas recientes; un ajeno no", async () => {
+  await seedListLimitSpace("list-limits", "limits-owner", "limits-member");
+  await seedSpace("list-limits-other", "limits-outsider");
+  const member = listLimitQueries(verifiedFirestore("limits-member"), "list-limits");
+  const outsider = listLimitQueries(verifiedFirestore("limits-outsider"), "list-limits");
+
+  const pending = await assertSucceeds(getDocs(member.pendingTasks));
+  assert.deepEqual(pending.docs.map((task) => task.id).sort(), ["p1", "p2"]);
+
+  // Las hechas de la más reciente a la más vieja; con límite de sobra, las pendientes (completedAt null) al final.
+  const recent = await assertSucceeds(getDocs(member.recentTasks(3)));
+  assert.deepEqual(recent.docs.map((task) => task.id), ["d2", "d3", "d1"]);
+  const wide = await assertSucceeds(getDocs(member.recentTasks(10)));
+  assert.deepEqual(wide.docs.slice(0, 3).map((task) => task.id), ["d2", "d3", "d1"]);
+  assert.deepEqual(wide.docs.slice(3).map((task) => task.data().completedAt), [null, null]);
+
+  const pendingItems = await assertSucceeds(getDocs(member.pendingItems));
+  assert.deepEqual(pendingItems.docs.map((item) => item.id), ["s-pending"]);
+  const recentItems = await assertSucceeds(getDocs(member.recentItems(2)));
+  assert.deepEqual(recentItems.docs.map((item) => item.id), ["s-new", "s-old"]);
+
+  // Notas: una de más para saber si hay más antiguas.
+  const notes = await assertSucceeds(getDocs(member.notes(3)));
+  assert.deepEqual(notes.docs.map((note) => note.id), ["n2", "n3", "n1"]);
+
+  await assertFails(getDocs(outsider.pendingTasks));
+  await assertFails(getDocs(outsider.recentTasks(3)));
+  await assertFails(getDocs(outsider.pendingItems));
+  await assertFails(getDocs(outsider.recentItems(2)));
+  await assertFails(getDocs(outsider.notes(3)));
+});
+
+test("una tarea recién completada entra en las hechas recientes y sale de las pendientes", async () => {
+  await seedListLimitSpace("list-limits-move", "move-owner", "move-member");
+  const firestore = verifiedFirestore("move-member");
+  const queries = listLimitQueries(firestore, "list-limits-move");
+
+  await assertSucceeds(completeTask(firestore, "list-limits-move", "p1", "move-member"));
+
+  const pending = await getDocs(queries.pendingTasks);
+  assert.deepEqual(pending.docs.map((task) => task.id), ["p2"]);
+  const recent = await getDocs(queries.recentTasks(1));
+  assert.deepEqual(recent.docs.map((task) => task.id), ["p1"]);
 });
 
 test("los miembros crean, editan y reasignan tareas a miembros activos", async () => {
