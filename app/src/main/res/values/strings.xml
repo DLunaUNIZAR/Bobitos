@@ -210,6 +210,14 @@
     <string name="shopping_title">Compra</string>
     <string name="shopping_pending">Pendientes</string>
     <string name="shopping_purchased">Comprados</string>
+    <plurals name="shopping_purchased_limit">
+        <item quantity="one">Se ve el comprado más reciente. Limpia los comprados para ver el resto.</item>
+        <item quantity="other">Se ven los %1$d comprados más recientes. Limpia los comprados para ver el resto.</item>
+    </plurals>
+    <plurals name="shopping_pending_cap">
+        <item quantity="one">Hay demasiados pendientes y solo se ve %1$d. Marca o borra alguno para ver el resto.</item>
+        <item quantity="other">Hay demasiados pendientes y solo se ven %1$d. Marca o borra algunos para ver el resto.</item>
+    </plurals>
     <string name="shopping_empty">La lista está vacía</string>
     <string name="shopping_empty_description">Añade el primer producto para compartirlo con el espacio.</string>
     <string name="shopping_add">Añadir</string>
@@ -322,6 +330,15 @@
     <string name="task_type_other">Otros</string>
     <string name="tasks_pending">Pendientes</string>
     <string name="tasks_done">Completadas</string>
+    <plurals name="tasks_completed_limit">
+        <item quantity="one">Se ve la completada más reciente.</item>
+        <item quantity="other">Se ven las %1$d completadas más recientes.</item>
+    </plurals>
+    <string name="tasks_load_more_completed">Ver más</string>
+    <plurals name="tasks_pending_cap">
+        <item quantity="one">Hay demasiadas pendientes y solo se ve %1$d. Completa o borra alguna para ver el resto.</item>
+        <item quantity="other">Hay demasiadas pendientes y solo se ven %1$d. Completa o borra algunas para ver el resto.</item>
+    </plurals>
     <string name="tasks_filter_all">Todas</string>
     <string name="tasks_filter_any">Todos</string>
     <string name="tasks_filter_unassigned">Sin asignar</string>
@@ -597,6 +614,10 @@
     <string name="notes_title">Notas</string>
     <string name="notes_add">Nueva nota</string>
     <string name="notes_empty">Todavía no hay notas.</string>
+    <plurals name="notes_limit">
+        <item quantity="one">Solo se ve la nota más reciente.</item>
+        <item quantity="other">Solo se ven las %1$d notas más recientes.</item>
+    </plurals>
     <string name="notes_empty_description">Guarda aquí lo del hogar que no es tarea ni compra: el wifi, recados, ideas…</string>
     <string name="notes_title_label">Título</string>
     <string name="notes_body_label">Contenido (opcional)</string>
