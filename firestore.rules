@@ -1276,21 +1276,26 @@ service cloud.firestore {
         && i.sourceUrl is string && i.sourceUrl.size() <= 300 && i.sourceUrl.matches('https://wger[.]de/media/.*');
     }
 
+    // Solo el admin crea fichas comunes; los usuarios crean las suyas en users/{uid}/exercises.
     function validNewExercise() {
-      return verifiedUser() && validExerciseShape()
+      return isRecipeAdmin() && validExerciseShape()
         && !request.resource.data.keys().hasAny(["source", "image"])
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time
         && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
     }
 
-    function ownsOrCuratesExercise() {
-      return verifiedUser()
-        && (resource.data.ownerUid == request.auth.uid || isRecipeAdmin());
+    // Borrado de una ficha común: el admin, o el dueño de una ficha heredada (creada por un usuario antes de
+    // los ejercicios personales, sin `source`) para que el borrado de cuenta la limpie antes de la migración.
+    function canDeleteCommonExercise() {
+      return isRecipeAdmin()
+        || (verifiedUser()
+          && resource.data.ownerUid == request.auth.uid
+          && !resource.data.keys().hasAny(["source"]));
     }
 
     function validExerciseUpdate() {
-      return ownsOrCuratesExercise() && validExerciseShape()
+      return isRecipeAdmin() && validExerciseShape()
         && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(["name", "nameLower", "type", "muscleGroup", "description", "equipment", "measure", "updatedBy", "updatedAt"])
         && request.resource.data.ownerUid == resource.data.ownerUid
@@ -1405,19 +1410,45 @@ service cloud.firestore {
     }
 
 
-    // Catálogo global de ejercicios (≈ ingredientes): lo lee cualquier verificado; crea/edita el dueño
-    // o un admin. Sin subcolecciones. Sin get()/exists().
+    // Catálogo común de ejercicios (≈ ingredientes): lo lee cualquier verificado y solo lo escribe el admin
+    // (o el importador con el Admin SDK). Los ejercicios de cada usuario viven en users/{uid}/exercises.
+    // Sin subcolecciones. Sin get()/exists().
     match /exercises/{exerciseId} {
       allow get, list: if verifiedUser();
       allow create: if validNewExercise();
       allow update: if validExerciseUpdate();
-      allow delete: if ownsOrCuratesExercise();
+      allow delete: if canDeleteCommonExercise();
     }
 
-    // Versión de los catálogos (caché del cliente). `exercises`: la sube el importador (Admin SDK) en cada
-    // lote con cambios y el cliente en la misma transacción que escribe un ejercicio. `ingredients`: igual,
-    // pero solo el admin (único que escribe ingredientes comunes). De uno en uno, sin list ni delete. Las
-    // reglas de `exercises` e `ingredients` NO exigen subirla (compatibilidad con la beta 17).
+    // Ejercicio personal: la forma del común sin `source` ni `image` y con el dueño de la ruta.
+    function validPersonalExerciseShape(userId) {
+      return validExerciseShape()
+        && !request.resource.data.keys().hasAny(["source", "image"])
+        && request.resource.data.ownerUid == userId;
+    }
+
+    // Ejercicios personales: solo el dueño verificado (la ruta lleva su uid). El id es el slug del nombre
+    // y no puede coincidir con un ejercicio común.
+    match /users/{userId}/exercises/{exerciseId} {
+      allow get, list: if verifiedUser() && userId == request.auth.uid;
+      allow create: if verifiedUser() && userId == request.auth.uid
+        && validPersonalExerciseShape(userId)
+        && exerciseId.matches('^[a-z0-9]+(-[a-z0-9]+)*$') && exerciseId.size() <= 120
+        && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time
+        && !exists(/databases/$(database)/documents/exercises/$(exerciseId));
+      allow update: if verifiedUser() && userId == request.auth.uid
+        && validPersonalExerciseShape(userId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(["name", "nameLower", "type", "muscleGroup", "description", "equipment", "measure", "updatedBy", "updatedAt"])
+        && request.resource.data.updatedBy == request.auth.uid && request.resource.data.updatedAt == request.time;
+      allow delete: if verifiedUser() && userId == request.auth.uid;
+    }
+
+    // Versión de los catálogos (caché del cliente): la sube el importador (Admin SDK) en cada lote con
+    // cambios y el admin en la misma transacción que escribe una ficha común (es el único que las escribe).
+    // De uno en uno, sin list ni delete. Las reglas de `exercises` e `ingredients` NO exigen subirla
+    // (compatibilidad con la beta 17).
     function validCatalogMeta() {
       return verifiedUser()
         && request.resource.data.keys().hasOnly(["version", "updatedAt", "updatedBy"])
@@ -1428,7 +1459,7 @@ service cloud.firestore {
     }
 
     function canWriteCatalogMeta(catalogId) {
-      return catalogId == "exercises" || (catalogId == "ingredients" && isRecipeAdmin());
+      return catalogId in ["exercises", "ingredients"] && isRecipeAdmin();
     }
 
     match /catalogMeta/{catalogId} {

@@ -4,6 +4,13 @@ El catálogo de ejercicios (`exercises/{exerciseId}`, colección top-level globa
 
 El esquema de la colección está en la sección «Ejercicios» de [`DATA_MODEL.md`](DATA_MODEL.md).
 
+## Común y personal
+
+- **Catálogo común** (`exercises/{id}`): lo leen todos los usuarios verificados y solo lo escriben el admin del catálogo (desde la app, con la subida de `catalogMeta/exercises`) y el importador (Admin SDK).
+- **Ejercicios personales** (`users/{uid}/exercises/{id}`): los crea, edita, borra y deshace cada usuario desde la app; **solo los ve su dueño**. Misma forma que los comunes sin `source` ni `image`, con `ownerUid` = el uid de la ruta. El id es el slug del nombre y las reglas rechazan el alta si ya hay un ejercicio común con ese id. La app los escucha en tiempo real (hasta 500) y los mezcla con el común en una sola lista, agrupados en «Mis ejercicios»; si más tarde aparece uno común con el mismo id, el personal se oculta.
+- Las rutinas y las sesiones de gimnasio guardan el nombre y el tipo **copiados** y un `exerciseId` opcional que la app no resuelve contra el catálogo, así que una rutina de otro miembro que apunte a un ejercicio personal suyo se ve igual (con su nombre y su tipo).
+- Borrar la cuenta borra `users/{uid}/exercises` y las fichas comunes heredadas del usuario (las de antes de la migración, sin `source`); las reglas dejan a su dueño borrar esas fichas.
+
 ## Fuente y licencia
 
 - Fuente: API pública de ejercicios de wger (`https://wger.de/api/v2/exerciseinfo/`), solo el idioma español.
@@ -104,7 +111,7 @@ El informe de la simulación agrupa las fichas así:
 | No existe | **Crea** la ficha (dueño: la cuenta admin, autor «Catálogo Bobitos»). |
 | Existe, importada, sin editar en la app y con datos distintos | **Actualiza** los campos gestionados (nombre, tipo, grupo, descripción, material, `measure`, `image` y `source`). |
 | Existe, importada y con los mismos datos | Sin cambios. |
-| Existe con el mismo id pero de **otro usuario** | **Omite**; no toca la ficha del usuario. |
+| Existe con el mismo id pero de **otro usuario** (ficha heredada aún sin migrar) | **Omite**; no toca la ficha del usuario. |
 | Existe del admin pero **sin `source`** (creada a mano en la app) | **Omite**. |
 | Importada y **guardada en la app** después (`updatedAt` posterior a `source.importedAt`) | **Omite**; la ficha queda congelada (ver abajo). |
 | Importada, del admin, pero **ya no está en el JSON** (huérfana) | La **lista**; no la borra. |
@@ -119,7 +126,7 @@ El importador decide si una ficha «se ha editado» comparando `updatedAt` con `
 1. Bórrala en la app con la cuenta admin.
 2. Reimporta (simulación y `--apply`): la ficha se crea de nuevo con los datos del JSON.
 
-Choques de slug con fichas de usuarios: si un usuario creó a mano una ficha con el mismo nombre (mismo id) que una del catálogo, el importador la **omite** y la lista como «de otro usuario» (o «sin `source`», si es del admin). Para que entre la del catálogo, borra la ficha del usuario (con la cuenta admin o pidiéndoselo a su dueño) y reimporta; si prefieres conservar la suya, renombra la del catálogo en `exercises-selection.json` (cambia el id).
+Choques de slug con fichas de usuarios: los ejercicios personales viven fuera del común y no chocan; si un usuario tiene uno personal con el id de una ficha nueva del catálogo, la app muestra la común y oculta la suya. Antes de la migración, una ficha heredada de un usuario con el mismo id que una del catálogo se **omite** y se lista como «de otro usuario» (o «sin `source`», si es del admin). Migra primero (ver «Migrar los ejercicios de los usuarios») y reimporta; si prefieres conservar la suya en el común, renombra la del catálogo en `exercises-selection.json` (cambia el id).
 
 ### Quitar un ejercicio del catálogo
 
@@ -215,7 +222,29 @@ Para los básicos que wger no ofrece en español hay fichas redactadas en el rep
 - Se importan y se congelan igual que las de wger; las edita el admin como cualquier otra.
 - El informe de revisión muestra su texto completo, para revisarlo antes de importar.
 
-## Orden de despliegue y compatibilidad
+## Migrar los ejercicios de los usuarios (ejercicios personales)
+
+Hasta la beta 27 cualquier usuario creaba ejercicios en el común, visibles para todos y con su nombre. El script `scripts/catalog/migrate-personal-exercises.mjs` (Admin SDK) mueve cada ficha de `exercises` **sin `source`** y cuyo `ownerUid` **no es el admin** a `users/{ownerUid}/exercises/{id}` (copia tal cual y borrado del común en el mismo lote) y, si ha movido alguna, sube `catalogMeta/exercises` una vez para que las cachés de los clientes dejen de mostrarlas. Es repetible: una segunda pasada no encuentra nada.
+
+```bash
+npm run catalog:migrate-personal-exercises -- --project dev
+```
+
+```bash
+npm run catalog:migrate-personal-exercises -- --project dev --apply
+```
+
+Sin `--apply` solo lista lo que movería. Con `--project dev` exige `GOOGLE_APPLICATION_CREDENTIALS`, como el importador.
+
+**Orden de despliegue** (obligatorio):
+
+1. **Publicar la app nueva** (beta) y pedir que todos actualicen. Con las reglas viejas, la app nueva lee el común pero **no puede crear ejercicios** (la subcolección personal aún no tiene regla y no ve los personales) y el borrado de cuenta falla sin borrar nada (es repetible); por eso el paso 2 va justo detrás.
+2. **Desplegar las reglas**: `npx firebase deploy --only firestore:rules --project dev`. Desde aquí **las betas antiguas dejan de poder crear, editar y borrar ejercicios** (escribían en el común y subían `catalogMeta/exercises`, que ahora solo puede el admin); siguen leyendo el catálogo.
+3. **Migrar**: simulación, revisión de la lista y `--apply`. Entre el paso 2 y este, las fichas heredadas siguen en el común (solo las edita el admin) y su dueño no las ve como suyas.
+
+## Orden de despliegue y compatibilidad (medida e imágenes)
+
+Lo que sigue es el orden que se usó al añadir la medida, las imágenes y la versión del catálogo; para los ejercicios personales manda el de la sección anterior.
 
 1. **Reglas primero**: `npx firebase deploy --only firestore:rules --project dev`. Con las reglas viejas, la app nueva no puede leer `exerciseImages` (el importador sí escribe, porque el Admin SDK se salta las reglas) y recibe `PERMISSION_DENIED` al guardar un ejercicio (descripción, material, `measure` o la versión del catálogo).
 2. **Importación** del catálogo (simulación, revisión, `--apply`).
@@ -233,11 +262,11 @@ Compatibilidad con versiones antiguas:
 
 Para no leer el catálogo entero en cada apertura, existe el documento `catalogMeta/exercises` (`version`, `updatedAt`, `updatedBy`; esquema en `DATA_MODEL.md`).
 
-- **Quién sube la versión:** el importador (una vez por lote con operaciones) y cada guardado de un ejercicio desde la app (crear, editar o borrar), en la misma transacción que la ficha. Las reglas exigen `version` 1 al crearlo y `anterior + 1` al actualizarlo, y no permiten borrarlo ni listarlo. No exigen subir la versión al escribir en `exercises`, para no romper la app antigua.
+- **Quién sube la versión:** el importador (una vez por lote con operaciones), el script de migración (una vez) y cada guardado de un ejercicio común desde la app (crear, editar o borrar; solo el admin), en la misma transacción que la ficha. Los ejercicios personales no la tocan: van por su propia escucha en tiempo real. Las reglas solo dejan escribirla al admin y exigen `version` 1 al crearlo y `anterior + 1` al actualizarlo, y no permiten borrarlo ni listarlo. No exigen subir la versión al escribir en `exercises`, para no romper la app antigua.
 - **Qué hace la app:** al abrir Ejercicios o un selector, muestra primero la caché local y lee `catalogMeta/exercises` (con un máximo de 10 s). Si la versión coincide con la guardada y la caché está completa, no lee ni un ejercicio más. Si la versión es distinta, o la caché tiene menos documentos de los que había, o han pasado más de 7 días (o el reloj ha retrocedido), relee el catálogo del servidor y guarda la versión y el recuento. Sin conexión, o si falla la lectura de la versión, se queda con la caché.
 - **Sin `catalogMeta`** (o sin permiso para leerlo): se trata como «sin versión» y se lee del servidor, sin guardar nada. Por eso la app nueva sigue leyendo con las reglas viejas.
 - **Cambios de otros dispositivos:** el catálogo **ya no se actualiza en directo**. Los cambios hechos desde otro dispositivo llegan en la **siguiente apertura**. Los propios se ven al momento.
-- **Límite y orden:** la consulta es `collection("exercises").limit(1000)`, sin `orderBy`, y se ordena en el cliente. Así no se pierden las fichas que no tengan `nameLower` (un `orderBy` las excluiría).
+- **Límite y orden:** la consulta es `collection("exercises").orderBy(documentId).limit(1000)` y el orden alfabético se hace en el cliente. Ordenar por id no excluye ninguna ficha (ordenar por `nameLower` dejaría fuera las que no lo tienen) y hace que, si algún día hubiera más de 1000, el límite recorte siempre las mismas.
 
 ## Coste en Firestore (plan Spark)
 
@@ -245,8 +274,9 @@ Para no leer el catálogo entero en cada apertura, existe el documento `catalogM
 - Ver la imagen de un ejercicio: **1 lectura por imagen y dispositivo**; después sale de la caché local. La colección pesa unos 1,3 MB, muy por debajo de los 1 GiB gratuitos de Spark.
 - Abrir el catálogo **sin cambios**: **1 lectura** (la de `catalogMeta/exercises`). Antes costaba unas 250-300.
 - Abrir con cambios (versión nueva, caché incompleta o caducada): 1 + N lecturas, con N el tamaño del catálogo (unas 250-300 para 214 fichas más las de usuarios). El catálogo se carga de forma diferida: solo lo pagan la pantalla Ejercicios y los editores de rutinas y de gimnasio cuando se abren.
-- Cada guardado de un ejercicio (crear, editar o borrar): **+2 lecturas** (la versión dentro de la transacción y la relectura de la ficha para meterla en la caché) y **+1 escritura** (la versión, además de la de la ficha).
-- Las reglas de `exercises` no usan `get()`/`exists()`; las de `catalogMeta` tampoco.
+- Ejercicios personales: una escucha en tiempo real por apertura (1 lectura por documento la primera vez y por cada cambio).
+- Cada guardado de un ejercicio común (crear, editar o borrar; solo el admin): **+2 lecturas** (la versión dentro de la transacción y la relectura de la ficha para meterla en la caché) y **+1 escritura** (la versión, además de la de la ficha).
+- Las reglas de `exercises` no usan `get()`/`exists()`; las de `catalogMeta` tampoco. Las del alta personal hacen un `exists()` del común (1 lectura).
 
 ## Resolución de problemas
 
@@ -268,5 +298,6 @@ Para no leer el catálogo entero en cada apertura, existe el documento `catalogM
 | `PERMISSION_DENIED` al guardar un ejercicio, aunque no cambie la ficha | Las reglas desplegadas no incluyen `catalogMeta`; despliega `firestore.rules`. |
 | Error de precondición (`FAILED_PRECONDITION`) al aplicar | Alguien editó una ficha entre la lectura y la escritura; repite la simulación y el `--apply`. |
 | `PERMISSION_DENIED` en la app al guardar | Las reglas desplegadas son las antiguas; despliega `firestore.rules`. |
+| `PERMISSION_DENIED` en una beta antigua al crear o editar un ejercicio | Esperado tras desplegar las reglas de ejercicios personales: hay que actualizar la app. |
 
 El uid admin con el que se importan las fichas (`CATALOG_ADMIN_UID` en `scripts/catalog/import-plan.mjs`) debe coincidir con `recipeAdmins()`; ver [`RECIPES_ADMIN.md`](RECIPES_ADMIN.md).

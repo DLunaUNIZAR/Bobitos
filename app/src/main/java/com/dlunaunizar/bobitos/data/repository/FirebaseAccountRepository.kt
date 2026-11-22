@@ -50,7 +50,11 @@ class FirebaseAccountRepository @Inject constructor(
             spaces.leaveSpace(spaceId)
         }
 
-        override suspend fun anonymizeOrDeleteOwnedRecipes() = anonymizeOrDeleteOwnedRecipes(currentUser().uid)
+        override suspend fun anonymizeOrDeleteOwnedRecipes() =
+            anonymizeOrDeleteOwnedCatalogItems(RECIPES, currentUser().uid)
+
+        override suspend fun anonymizeOrDeleteOwnedRoutines() =
+            anonymizeOrDeleteOwnedCatalogItems(ROUTINES, currentUser().uid)
 
         override suspend fun deleteUser() {
             currentUser().delete().await()
@@ -65,7 +69,7 @@ class FirebaseAccountRepository @Inject constructor(
         val documents = ANONYMIZED_SPACE_COLLECTIONS.flatMap { name ->
             space.collection(name).get(Source.SERVER).await().documents
         }
-        documents.chunked(400).forEach { chunk ->
+        documents.chunked(BATCH_SIZE).forEach { chunk ->
             val batch = firestore.batch()
             chunk.forEach { document ->
                 val updates = document.anonymousNameUpdates(userId)
@@ -75,19 +79,19 @@ class FirebaseAccountRepository @Inject constructor(
         }
     }
 
-    // Recetas del usuario (colección top-level `recipes`): las PRIVATE se borran y en las GLOBAL
-    // se anonimiza el nombre del autor, conservando la receta en el catálogo común.
-    private suspend fun anonymizeOrDeleteOwnedRecipes(userId: String) {
-        val recipes = firestore.collection(RECIPES)
+    // Recetas o rutinas del usuario (colecciones top-level `recipes` y `routines`): las PRIVATE se borran y
+    // en las GLOBAL se anonimiza el nombre del autor, conservándolas en el catálogo común.
+    private suspend fun anonymizeOrDeleteOwnedCatalogItems(collection: String, userId: String) {
+        val items = firestore.collection(collection)
             .whereEqualTo(FIELD_OWNER_UID, userId)
             .get(Source.SERVER).await().documents
-        recipes.chunked(400).forEach { chunk ->
+        items.chunked(BATCH_SIZE).forEach { chunk ->
             val batch = firestore.batch()
-            chunk.forEach { recipe ->
+            chunk.forEach { item ->
                 when {
-                    recipe.getString(FIELD_VISIBILITY) != GLOBAL -> batch.delete(recipe.reference)
-                    recipe.getString(FIELD_CREATED_BY_NAME) != ANONYMOUS_NAME ->
-                        batch.update(recipe.reference, FIELD_CREATED_BY_NAME, ANONYMOUS_NAME)
+                    item.getString(FIELD_VISIBILITY) != GLOBAL -> batch.delete(item.reference)
+                    item.getString(FIELD_CREATED_BY_NAME) != ANONYMOUS_NAME ->
+                        batch.update(item.reference, FIELD_CREATED_BY_NAME, ANONYMOUS_NAME)
                     else -> Unit
                 }
             }
@@ -99,14 +103,24 @@ class FirebaseAccountRepository @Inject constructor(
     private suspend fun deletePersonalData(userId: String) {
         val user = firestore.collection(USERS).document(userId)
         PERSONAL_USER_COLLECTIONS.forEach { name ->
-            val documents = user.collection(name).get(Source.SERVER).await().documents
-            documents.chunked(400).forEach { chunk ->
-                val batch = firestore.batch()
-                chunk.forEach { batch.delete(it.reference) }
-                batch.commit().await()
-            }
+            deleteAll(user.collection(name).get(Source.SERVER).await().documents)
         }
+        // Ejercicios que el usuario creó en el catálogo común antes de que fueran personales (sin `source`, que
+        // solo pone el importador). Tras la migración ya no queda ninguno; las reglas dejan al dueño borrarlos.
+        val legacyExercises = firestore.collection(EXERCISES)
+            .whereEqualTo(FIELD_OWNER_UID, userId)
+            .get(Source.SERVER).await().documents
+            .filterNot { it.contains(FIELD_SOURCE) }
+        deleteAll(legacyExercises)
         firestore.collection(INGREDIENT_PREFS_COLLECTION).document(userId).delete().await()
+    }
+
+    private suspend fun deleteAll(documents: List<DocumentSnapshot>) {
+        documents.chunked(BATCH_SIZE).forEach { chunk ->
+            val batch = firestore.batch()
+            chunk.forEach { batch.delete(it.reference) }
+            batch.commit().await()
+        }
     }
 
     private companion object {
@@ -114,6 +128,10 @@ class FirebaseAccountRepository @Inject constructor(
         const val MEMBERSHIPS = "memberships"
         const val SPACES = "spaces"
         const val RECIPES = "recipes"
+        const val ROUTINES = "routines"
+        const val EXERCISES = "exercises"
+        const val FIELD_SOURCE = "source"
+        const val BATCH_SIZE = 400
         const val FIELD_USER_ID = "userId"
         const val FIELD_OWNER_UID = "ownerUid"
         const val FIELD_VISIBILITY = "visibility"
@@ -169,5 +187,5 @@ internal val ANONYMIZED_SPACE_COLLECTIONS = listOf("shoppingItems", "tasks", "ev
 
 // Colecciones personales de users/{uid} que se borran con la cuenta; deben ser las que las reglas dan al dueño
 // (lo comprueba PersonalDataPathsTest). Las preferencias viven aparte, en `ingredientPrefs/{uid}`.
-internal val PERSONAL_USER_COLLECTIONS = listOf("ingredients", "brands")
+internal val PERSONAL_USER_COLLECTIONS = listOf("ingredients", "brands", "exercises")
 internal const val INGREDIENT_PREFS_COLLECTION = "ingredientPrefs"

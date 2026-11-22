@@ -124,4 +124,29 @@ class BobitosDatesTest {
             BobitosDates.dayMonth(LocalDate.of(2025, 12, 30), LocalDate.of(2026, 1, 1)),
         )
     }
+
+    @Test
+    fun `timeRange inside a day, ending at midnight and across days`() {
+        val day = LocalDate.of(2026, 10, 22)
+        assertEquals("16:30 – 18:30", BobitosDates.timeRange(day.atTime(16, 30), day.atTime(18, 30)))
+        assertEquals("22:00 – 00:00", BobitosDates.timeRange(day.atTime(22, 0), day.plusDays(1).atStartOfDay()))
+        assertEquals(
+            "21 oct, 22:00 – 22 oct, 02:00",
+            BobitosDates.timeRange(day.minusDays(1).atTime(22, 0), day.atTime(2, 0)),
+        )
+    }
+
+    @Test
+    fun `dateTimeRange inside a day and across days`() {
+        val day = LocalDate.of(2026, 10, 22)
+        assertEquals("22 oct, 16:30 – 18:30", BobitosDates.dateTimeRange(day.atTime(16, 30), day.atTime(18, 30)))
+        assertEquals(
+            "22 oct, 22:00 – 00:00",
+            BobitosDates.dateTimeRange(day.atTime(22, 0), day.plusDays(1).atStartOfDay()),
+        )
+        assertEquals(
+            "21 oct, 22:00 – 22 oct, 02:00",
+            BobitosDates.dateTimeRange(day.minusDays(1).atTime(22, 0), day.atTime(2, 0)),
+        )
+    }
 }

@@ -4,8 +4,10 @@ import com.dlunaunizar.bobitos.core.model.AuthUser
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.dlunaunizar.bobitos.core.model.ExerciseInput
 import com.dlunaunizar.bobitos.core.model.slug
+import com.dlunaunizar.bobitos.data.sync.RealtimeMetrics
 import com.dlunaunizar.bobitos.data.sync.SyncRepository
 import com.dlunaunizar.bobitos.data.sync.WriteNotAllowedException
+import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
@@ -20,6 +22,9 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
@@ -29,6 +34,7 @@ import javax.inject.Singleton
 class FirestoreExerciseRepository @Inject constructor(
     private val authRepository: AuthRepository,
     private val syncRepository: SyncRepository,
+    private val realtimeMetrics: RealtimeMetrics,
     syncStore: CatalogSyncStore,
 ) : ExerciseRepository {
     private val firestore = FirebaseFirestore.getInstance()
@@ -46,46 +52,62 @@ class FirestoreExerciseRepository @Inject constructor(
         now = System::currentTimeMillis,
     )
 
-    // Los cambios de otros dispositivos llegan en la siguiente apertura, no en directo.
-    override fun catalog(): Flow<List<CatalogExercise>> = loader.catalog(localChanges)
+    // Común: los cambios de otros dispositivos llegan en la siguiente apertura, no en directo. Personales: en directo.
+    override fun catalog(): Flow<List<CatalogExercise>> =
+        combine(loader.catalog(localChanges), personalExercises(), ::mergeExerciseCatalog)
+
+    // Un fallo de los personales (p. ej. reglas antiguas sin users/{uid}/exercises) no tumba el catálogo común.
+    private fun personalExercises(): Flow<List<CatalogExercise>> {
+        val uid = authRepository.currentUser.value?.id ?: return flowOf(emptyList())
+        return personalCollection(uid).limit(MAX_PERSONAL_EXERCISES).documentsFlow(
+            metrics = realtimeMetrics,
+            scope = PERSONAL_SCOPE,
+            toException = Throwable::toExerciseRepositoryException,
+        ) { documents -> documents.mapNotNull { it.toCatalogExercise(personal = true) } }
+            .catch { emit(emptyList()) }
+    }
 
     override fun isCurrentUserCatalogAdmin(): Boolean =
         authRepository.currentUser.value?.id?.let(RecipeAdmins.uids::contains) == true
 
     override fun currentUserId(): String? = authRepository.currentUser.value?.id
 
-    override suspend fun exerciseById(id: String): CatalogExercise? =
-        runCatching { exercisesCollection().document(id).get().await().toCatalogExercise() }.getOrNull()
-
     override suspend fun createExercise(input: ExerciseInput): String = runOperation {
         val user = requireVerifiedUser()
         val values = validateExerciseInput(input)
         val id = slug(values.name).ifEmpty { throw ExerciseRepositoryException(ExerciseFailure.NameRequired) }
-        val fields = values.toFirestoreFields() + mapOf(
-            FIELD_OWNER_UID to user.id,
-            FIELD_CREATED_BY to user.id,
-            FIELD_CREATED_BY_NAME to user.catalogDisplayName,
-            FIELD_CREATED_AT to FieldValue.serverTimestamp(),
-            FIELD_UPDATED_BY to user.id,
-            FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
-        )
-        writeWithVersion(user.id, id, isCreate = true) { transaction, ref -> transaction.set(ref, fields) }
+        val fields = values.toFirestoreFields() + newOwnerFields(user)
+        if (user.isCatalogAdmin) {
+            writeWithVersion(user.id, id, isCreate = true) { transaction, ref -> transaction.set(ref, fields) }
+        } else {
+            createPersonal(personalCollection(user.id).document(id), fields)
+        }
         id
     }
 
-    override suspend fun updateExercise(id: String, input: ExerciseInput) = runOperation {
+    override suspend fun updateExercise(id: String, personal: Boolean, input: ExerciseInput) = runOperation {
         val user = requireVerifiedUser()
         val values = validateExerciseInput(input)
         val fields = values.toFirestoreFields() + mapOf(
             FIELD_UPDATED_BY to user.id,
             FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
         )
-        writeWithVersion(user.id, id) { transaction, ref -> transaction.update(ref, fields) }
+        if (personal) {
+            personalCollection(user.id).document(id).update(fields).await()
+        } else {
+            writeWithVersion(user.id, id) { transaction, ref -> transaction.update(ref, fields) }
+        }
+        Unit
     }
 
-    override suspend fun deleteExercise(id: String) = runOperation {
+    override suspend fun deleteExercise(id: String, personal: Boolean) = runOperation {
         val user = requireVerifiedUser()
-        writeWithVersion(user.id, id) { transaction, ref -> transaction.delete(ref) }
+        if (personal) {
+            personalCollection(user.id).document(id).delete().await()
+        } else {
+            writeWithVersion(user.id, id) { transaction, ref -> transaction.delete(ref) }
+        }
+        Unit
     }
 
     override suspend fun restoreExercise(exercise: CatalogExercise) = runOperation {
@@ -100,18 +122,53 @@ class FirestoreExerciseRepository @Inject constructor(
                 measure = exercise.measure,
             ),
         )
-        val fields = values.toFirestoreFields() + mapOf(
-            FIELD_OWNER_UID to user.id,
-            FIELD_CREATED_BY to user.id,
-            FIELD_CREATED_BY_NAME to user.catalogDisplayName,
-            FIELD_CREATED_AT to FieldValue.serverTimestamp(),
-            FIELD_UPDATED_BY to user.id,
-            FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
-        )
-        writeWithVersion(user.id, exercise.id, isCreate = true) { transaction, ref -> transaction.set(ref, fields) }
+        val fields = values.toFirestoreFields() + newOwnerFields(user)
+        if (exercise.personal) {
+            val ref = personalCollection(user.id).document(exercise.id)
+            rejectingCommonCollision(exercise.id) { ref.set(fields).await() }
+        } else {
+            writeWithVersion(user.id, exercise.id, isCreate = true) { transaction, ref -> transaction.set(ref, fields) }
+        }
+        Unit
+    }
+
+    private fun newOwnerFields(user: AuthUser): Map<String, Any> = mapOf(
+        FIELD_OWNER_UID to user.id,
+        FIELD_CREATED_BY to user.id,
+        FIELD_CREATED_BY_NAME to user.catalogDisplayName,
+        FIELD_CREATED_AT to FieldValue.serverTimestamp(),
+        FIELD_UPDATED_BY to user.id,
+        FIELD_UPDATED_AT to FieldValue.serverTimestamp(),
+    )
+
+    // Alta personal: `AlreadyExists` si ya hay uno personal con ese id o si las reglas la rechazan por haber uno común.
+    private suspend fun createPersonal(ref: DocumentReference, fields: Map<String, Any?>) {
+        rejectingCommonCollision(ref.id) {
+            firestore.runTransaction { transaction ->
+                if (transaction.get(ref).exists()) throw ExerciseRepositoryException(ExerciseFailure.AlreadyExists)
+                transaction.set(ref, fields)
+            }.await()
+        }
+    }
+
+    private suspend inline fun rejectingCommonCollision(id: String, write: () -> Unit) {
+        try {
+            write()
+        } catch (error: FirebaseFirestoreException) {
+            val denied = error.code == FirebaseFirestoreException.Code.PERMISSION_DENIED
+            if (denied && exerciseExists(exercisesCollection().document(id))) {
+                throw ExerciseRepositoryException(ExerciseFailure.AlreadyExists, error)
+            }
+            throw error
+        }
     }
 
     private fun exercisesCollection() = firestore.collection(EXERCISES)
+
+    private fun personalCollection(uid: String): CollectionReference =
+        firestore.collection(USERS).document(uid).collection(EXERCISES)
+
+    private val AuthUser.isCatalogAdmin: Boolean get() = id in RecipeAdmins.uids
 
     /**
      * Escribe la ficha y sube `catalogMeta/exercises` en la misma transacción (las reglas exigen
@@ -151,7 +208,7 @@ class FirestoreExerciseRepository @Inject constructor(
         )
     }
 
-    // Un alta rechazada por las reglas porque la ficha ya existe (otro la creó antes) no es falta de permiso.
+    // Un alta rechazada por las reglas porque la ficha común ya existe no es falta de permiso.
     private suspend fun exerciseExists(ref: DocumentReference): Boolean = try {
         withTimeoutOrNull(REFRESH_TIMEOUT_MILLIS) { ref.get(Source.SERVER).await().exists() } ?: false
     } catch (cancelled: CancellationException) {
@@ -206,6 +263,9 @@ class FirestoreExerciseRepository @Inject constructor(
 
     private companion object {
         const val REFRESH_TIMEOUT_MILLIS = 5_000L
+        const val MAX_PERSONAL_EXERCISES = 500L
+        const val PERSONAL_SCOPE = "exercises:personal"
+        const val USERS = "users"
         const val EXERCISES = "exercises"
         const val CATALOG_META = "catalogMeta"
         const val FIELD_VERSION = "version"
@@ -221,11 +281,12 @@ class FirestoreExerciseRepository @Inject constructor(
 private val AuthUser.catalogDisplayName: String
     get() = displayName.ifBlank { email.substringBefore('@') }.take(60)
 
-internal fun DocumentSnapshot.toCatalogExercise(): CatalogExercise? = parseCatalogExercise(
+internal fun DocumentSnapshot.toCatalogExercise(personal: Boolean = false): CatalogExercise? = parseCatalogExercise(
     id = id,
     data = data.orEmpty(),
     createdAt = getTimestamp("createdAt")?.toDate()?.toInstant(),
     updatedAt = getTimestamp("updatedAt")?.toDate()?.toInstant(),
+    personal = personal,
 )
 
 private fun Throwable.toExerciseRepositoryException(): ExerciseRepositoryException = ExerciseRepositoryException(

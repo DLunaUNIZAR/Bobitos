@@ -11,12 +11,16 @@ internal interface AccountDeletionSteps {
 
     suspend fun activeMemberships(): List<ActiveMembership>
 
+    // Lo personal de users/{uid}, las preferencias y las fichas de ejercicio heredadas del catálogo común.
     suspend fun deletePersonalData()
 
     // Anonimiza los nombres del usuario en el espacio y sale de él.
     suspend fun leaveSpace(spaceId: String)
 
     suspend fun anonymizeOrDeleteOwnedRecipes()
+
+    // Rutinas: borra las PRIVATE y anonimiza el autor de las GLOBAL.
+    suspend fun anonymizeOrDeleteOwnedRoutines()
 
     suspend fun deleteUser()
 }
@@ -43,9 +47,10 @@ private suspend fun runAccountDeletion(steps: AccountDeletionSteps, password: St
     }
     // Primero comprobar los espacios propios (si no, el propietario perdería lo personal y la cuenta
     // seguiría viva). Lo que puede fallar por permisos va antes de lo irreversible (salir de espacios,
-    // anonimizar recetas, borrar el usuario); además es repetible.
+    // anonimizar recetas y rutinas, borrar el usuario); además es repetible.
     steps.deletePersonalData()
     memberships.forEach { steps.leaveSpace(it.spaceId) }
     steps.anonymizeOrDeleteOwnedRecipes()
+    steps.anonymizeOrDeleteOwnedRoutines()
     steps.deleteUser()
 }

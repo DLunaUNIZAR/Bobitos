@@ -1,16 +1,12 @@
 package com.dlunaunizar.bobitos.feature.calendar
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.indication
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -20,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -60,9 +57,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -70,16 +67,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -247,9 +241,11 @@ fun CalendarScreen(
                             onEdit = { editorEventId = it.id },
                             onDelete = { id -> filteredEvents.firstOrNull { it.id == id }?.let(deleteWithUndo) },
                             onCreateAt = { creatingAtText = it.toString() },
+                            day = state.focusedDate,
                             modifier = Modifier.weight(1f),
                             deleteEnabled = !state.save.isSaving,
                             listState = dayListState,
+                            ready = !state.refreshing,
                         )
                         CalendarDisplayMode.WEEK -> WeekEventList(
                             focusedDate = state.focusedDate,
@@ -614,131 +610,83 @@ internal fun DayHourGrid(
     onEdit: (CalendarEvent) -> Unit,
     onDelete: (String) -> Unit,
     onCreateAt: (LocalTime) -> Unit,
+    day: LocalDate,
     modifier: Modifier = Modifier,
     deleteEnabled: Boolean = true,
     listState: LazyListState = rememberLazyListState(),
+    ready: Boolean = true,
 ) {
     val zone = ZoneId.systemDefault()
     val allDay = events.filter(CalendarEvent::allDay)
-    val timedByHour = events.filterNot(CalendarEvent::allDay)
-        .groupBy { it.startAt.atZone(zone).toLocalTime().hour }
-    LazyColumn(modifier, state = listState, contentPadding = PaddingValues(bottom = Spacing.fabClearance)) {
-        if (canWrite) {
-            item(key = "hold-hint") {
-                Text(
-                    text = stringResource(R.string.calendar_hold_hint),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = Spacing.sm),
-                )
-            }
+    val hourHeight = rememberTimelineHourHeight()
+    val density = LocalDensity.current
+    // Desplazamiento inicial: una sola vez por día mostrado (sobrevive a la rotación; un evento nuevo no lo repite).
+    // Espera a [ready] porque, al cambiar de día con las flechas, los eventos del día nuevo llegan después.
+    var scrolledForDay by rememberSaveable(day) { mutableStateOf(false) }
+    LaunchedEffect(day, ready) {
+        if (ready && !scrolledForDay) {
+            scrolledForDay = true
+            val firstHour = firstTimedHour(events, day, zone) ?: DEFAULT_FIRST_HOUR
+            listState.scrollToItem(0, with(density) { (hourHeight * firstHour).roundToPx() })
         }
-        if (allDay.isNotEmpty() || tasks.isNotEmpty()) {
-            item(key = "allday-header") {
-                Text(
-                    text = stringResource(R.string.calendar_all_day),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 4.dp),
-                )
+    }
+    BoxWithConstraints(modifier) {
+        // El tope de la franja crece con el alto disponible (en horizontal la línea de tiempo no se queda sin sitio).
+        val stripMaxHeight = minOf(AllDayStripMaxHeight, maxHeight * ALL_DAY_STRIP_MAX_FRACTION)
+        Column(Modifier.fillMaxSize()) {
+            // Franja fija: aviso, «Todo el día» y tareas siempre a la vista; si son muchos, se desplazan dentro de ella.
+            if (canWrite || allDay.isNotEmpty() || tasks.isNotEmpty()) {
+                Column(
+                    Modifier.testTag(
+                        "dayFixedStrip",
+                    ).heightIn(max = stripMaxHeight).verticalScroll(rememberScrollState()),
+                ) {
+                    if (canWrite) {
+                        Text(
+                            text = stringResource(R.string.calendar_hold_hint),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = Spacing.sm),
+                        )
+                    }
+                    if (allDay.isNotEmpty() || tasks.isNotEmpty()) {
+                        Text(
+                            text = stringResource(R.string.calendar_all_day),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 4.dp),
+                        )
+                        tasks.forEach { task -> key("task-${task.id}") { TaskOnDayRow(task) } }
+                        allDay.forEach { event ->
+                            key("allday-${event.id}") {
+                                EventRow(event, canWrite, { onEdit(event) }, { onDelete(event.id) }, deleteEnabled)
+                            }
+                        }
+                    }
+                }
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
             }
-            items(tasks, key = { "task-${it.id}" }) { task -> TaskOnDayRow(task) }
-            items(allDay, key = { "allday-${it.id}" }) { event ->
-                EventRow(event, canWrite, { onEdit(event) }, { onDelete(event.id) }, deleteEnabled)
+            LazyColumn(
+                Modifier.weight(1f).testTag("dayTimelineList"),
+                state = listState,
+                contentPadding = PaddingValues(bottom = Spacing.fabClearance),
+            ) {
+                item(key = "timeline") {
+                    DayTimeline(day, events, canWrite, onEdit, onDelete, onCreateAt, deleteEnabled)
+                }
             }
-            item(key = "hours-divider") { HorizontalDivider(Modifier.padding(vertical = 8.dp)) }
-        }
-        items((0..23).toList(), key = { "hour-$it" }) { hour ->
-            HourRow(
-                hour = hour,
-                events = timedByHour[hour].orEmpty(),
-                canWrite = canWrite,
-                onEdit = onEdit,
-                onDelete = onDelete,
-                onLongPress = { onCreateAt(LocalTime.of(hour, 0)) },
-                deleteEnabled = deleteEnabled,
-            )
         }
     }
 }
 
-@Composable
-internal fun HourRow(
-    hour: Int,
-    events: List<CalendarEvent>,
-    canWrite: Boolean,
-    onEdit: (CalendarEvent) -> Unit,
-    onDelete: (String) -> Unit,
-    onLongPress: () -> Unit,
-    deleteEnabled: Boolean = true,
-) {
-    val createLabel = stringResource(R.string.calendar_create_at, BobitosDates.time(LocalTime.of(hour, 0)))
-    val currentOnLongPress by rememberUpdatedState(onLongPress)
-    val haptics = LocalHapticFeedback.current
-    val pressSource = remember { MutableInteractionSource() }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(
-                if (canWrite) {
-                    // Al pulsar la fila se ilumina y, al completar el mantenido, vibra: así se nota que va a crear.
-                    Modifier
-                        .indication(pressSource, LocalIndication.current)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onPress = { offset ->
-                                    val press = PressInteraction.Press(offset)
-                                    pressSource.emit(press)
-                                    val released = tryAwaitRelease()
-                                    pressSource.emit(
-                                        if (released) {
-                                            PressInteraction.Release(
-                                                press,
-                                            )
-                                        } else {
-                                            PressInteraction.Cancel(press)
-                                        },
-                                    )
-                                },
-                                onLongPress = {
-                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    currentOnLongPress()
-                                },
-                            )
-                        }
-                        .semantics(mergeDescendants = true) {
-                            customActions = listOf(
-                                CustomAccessibilityAction(createLabel) {
-                                    onLongPress()
-                                    true
-                                },
-                            )
-                        }
-                } else {
-                    Modifier
-                },
-            )
-            .padding(vertical = 6.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Text(
-            text = BobitosDates.time(LocalTime.of(hour, 0)),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier
-                .width(52.dp)
-                .padding(top = 4.dp),
-        )
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            events.forEach { event ->
-                EventRow(event, canWrite, { onEdit(event) }, { onDelete(event.id) }, deleteEnabled)
-            }
-        }
-    }
-}
+/** Alto máximo de la franja fija de encima de la línea de tiempo (aviso, «Todo el día» y tareas). */
+private val AllDayStripMaxHeight = 188.dp
+
+/** Parte del alto disponible que como mucho ocupa la franja fija. */
+private const val ALL_DAY_STRIP_MAX_FRACTION = 0.4f
+
+/** Hora a la que se abre un día sin eventos con hora. */
+private const val DEFAULT_FIRST_HOUR = 8
 
 @Composable
 internal fun EventRow(
@@ -768,7 +716,11 @@ internal fun EventRow(
                     text = if (event.allDay) {
                         stringResource(R.string.calendar_all_day)
                     } else {
-                        BobitosDates.dateTime(event.startAt.atZone(ZoneId.systemDefault()).toLocalDateTime())
+                        val zone = ZoneId.systemDefault()
+                        BobitosDates.dateTimeRange(
+                            event.startAt.atZone(zone).toLocalDateTime(),
+                            event.endAt.atZone(zone).toLocalDateTime(),
+                        )
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

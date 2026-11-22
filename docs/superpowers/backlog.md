@@ -4,6 +4,25 @@ Menores que las revisiones de cada rama dejaron sin arreglar. Cada línea dice s
 
 Los 20 menores anteriores (ramas `agent/tareas-sin-alta-rapida` y `agent/catalogo-ejercicios-wger`) se cerraron en la rama `agent/menores-aplazados` (plan `docs/superpowers/plans/2026-10-10-menores-aplazados.md`).
 
+## 2026-10-21 — `agent/calendario-duracion-eventos`
+
+- **Efecto visible:** el FAB «Nuevo evento» pierde el texto al entrar en la vista Día: el `scrollToItem` inicial cuenta como desplazamiento hacia abajo (`CalendarScreen.kt` `rememberFabExpanded`, `core/designsystem/Motion.kt` ~81-110; M1).
+- **Efecto visible (TalkBack):** las tarjetas pequeñas de la línea de tiempo no anuncian los participantes si no caben, cuando `EventRow` siempre lo hacía (`DayTimeline.kt`; M2).
+- **Efecto visible:** un evento con hora de 00:00 a 00:00 del día siguiente se lee «00:00 – 00:00» (también «22 oct, 00:00 – 00:00» en `EventRow`); no aplicar la regla de la medianoche si el inicio también es a las 00:00 (`BobitosDates.kt` ~92; M3, CR6).
+- **Efecto visible:** el menú de mantener pulsada una tarjeta se abre en su esquina de arriba, no donde está el dedo (`DayTimeline.kt`).
+- **Efecto visible (TalkBack):** en una tarjeta compacta, TalkBack podría leer «10:00» y además el rango (`contentDescription` sobre el texto visible); sin comprobar con TalkBack real (`DayTimeline.kt`).
+- **Efecto visible:** con 3 o 4 eventos solapados el título se queda en 3-4 letras («Reu…»), consecuencia de las tarjetas compactas (rulings R6/R9; D-M1).
+- **Efecto visible:** la franja fija de «Todo el día» (tope de 188 dp o el 40 % del alto) esconde parte de sus eventos y deja poca línea de tiempo con la letra grande (`CalendarScreen.kt` `DayHourGrid`; D-M2).
+- **Efecto visible:** un evento de 15 min se ve como uno de 45 min (mínimo de la decisión 3; D-M3).
+- **Efecto visible:** el desplazamiento inicial se hace con la primera emisión con `refreshing = false`; si Firestore emite antes una caché vacía o parcial del día, se queda en las 08:00 (`CalendarScreen.kt` `DayHourGrid`; CR3).
+- **Efecto visible:** un evento corto al final del día sube su inicio para caber (decisión 3) y puede solaparse en falso con otro: 23:00–23:20 y 23:50–23:59 van a media anchura (`DayTimelineLayout.kt` `withMinimum`; CR4).
+- **Efecto visible:** los días de cambio de hora las tarjetas usan la hora de reloj, así que su alto no es la duración real y puede caer al mínimo (`DayTimelineLayout.kt` `minuteInDay`; CR5).
+- **Efecto visible:** en una tarjeta sola de 45 min (46 dp de alto) el ⋮ de 48 dp queda a 46 dp de alto (`DayTimeline.kt`; CR7).
+- **Efecto visible:** cada capa de la vista Día pide `ZoneId.systemDefault()` y el `remember` del layout no tiene la zona como clave: si se cambia la zona con la vista abierta, posiciones y horas no cuadran (`DayTimeline.kt`, `CalendarScreen.kt`; CR10).
+- **Interno:** `holdingAnEmptySpotCreatesAtThatHour` mantiene pulsadas las 10:00 con el único evento a las 16:30: no prueba un hueco entre dos eventos (`DayTimelineTest.kt`; M4).
+- **Interno:** el rango de la tarjeta se mide en cada recomposición sin `remember`, y `layoutDayEvents` se calcula dos veces (`DayHourGrid` y `DayTimeline`) (CR8).
+- **Interno:** la línea de tiempo es una `LazyColumn` de un solo ítem de 24 h; un `Column` con `verticalScroll` haría lo mismo más simple (CR9).
+
 ## 2026-10-20 — `agent/red-de-seguridad-r2`
 
 - **Interno:** la CI ejecuta los instrumentados en la API 36, no en la 37: las imágenes x86_64 de la 37.0 y la 36.1 abortan en `hasReadColorBufferDma` (rock3r/clockblock#122). Volver a la 37 en `instrumented.yml` y en el ADR-0001 cuando haya un emulador arreglado (ruling R5).

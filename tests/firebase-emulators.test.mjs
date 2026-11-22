@@ -2005,24 +2005,82 @@ test("una marca personal no cambia de ingrediente al editarla", async () => {
   assert.equal((await getDoc(ref)).data().ingredientId, "tomate");
 });
 
-test("cualquier usuario crea un ejercicio del catálogo y todos lo leen, pero no a nombre de otro", async () => {
+// Ejercicio personal de `uid` (users/{uid}/exercises/{id}).
+const personalExercise = (db, uid, id) => doc(db, "users", uid, "exercises", id);
+
+test("solo el admin crea ejercicios comunes y todos los verificados los leen", async () => {
+  const admin = verifiedFirestore(RECIPE_ADMIN_UID);
   const alice = verifiedFirestore("ex-alice");
   const bob = verifiedFirestore("ex-bob");
 
-  await assertSucceeds(setDoc(doc(alice, "exercises", "press-banca"), exerciseData("ex-alice")));
+  await assertSucceeds(setDoc(doc(admin, "exercises", "press-banca"), exerciseData(RECIPE_ADMIN_UID)));
   await assertSucceeds(getDoc(doc(bob, "exercises", "press-banca")));
-  await assertFails(setDoc(doc(bob, "exercises", "sentadilla"), exerciseData("ex-alice")));
+  await assertFails(getDoc(doc(unverifiedFirestore("ex-unverified"), "exercises", "press-banca")));
+  await assertFails(setDoc(doc(alice, "exercises", "sentadilla"), exerciseData("ex-alice")));
+  await assertFails(setDoc(doc(admin, "exercises", "a-nombre-de-otro"), exerciseData("ex-alice")));
+  await assertFails(setDoc(doc(unverifiedFirestore(RECIPE_ADMIN_UID), "exercises", "sin-verificar"), exerciseData(RECIPE_ADMIN_UID)));
 });
 
-test("un ejercicio valida el tipo y rechaza campos ajenos o nombre vacío", async () => {
-  const chef = verifiedFirestore("ex-shape");
+test("un ejercicio personal solo lo leen y escriben su dueño verificado", async () => {
+  const alice = verifiedFirestore("pex-alice");
+  const bob = verifiedFirestore("pex-bob");
+  const ref = (db) => personalExercise(db, "pex-alice", "remo");
 
-  await assertSucceeds(setDoc(doc(chef, "exercises", "remo"), exerciseData("ex-shape", { type: "MAQUINA" })));
-  await assertFails(
-    setDoc(doc(chef, "exercises", "bad-type"), exerciseData("ex-shape", { type: "YOGA" })),
-  );
-  await assertFails(setDoc(doc(chef, "exercises", "extra"), exerciseData("ex-shape", { spaceId: "x" })));
-  await assertFails(setDoc(doc(chef, "exercises", "vacio"), exerciseData("ex-shape", { name: "", nameLower: "" })));
+  await assertSucceeds(setDoc(ref(alice), exerciseData("pex-alice", { name: "Remo", nameLower: "remo" })));
+  await assertSucceeds(getDoc(ref(alice)));
+  await assertSucceeds(getDocs(collection(alice, "users", "pex-alice", "exercises")));
+
+  await assertFails(getDoc(ref(bob)));
+  await assertFails(getDocs(collection(bob, "users", "pex-alice", "exercises")));
+  await assertFails(updateDoc(ref(bob), editFields("pex-bob", { description: "Ajena" })));
+  await assertFails(deleteDoc(ref(bob)));
+  await assertFails(setDoc(personalExercise(bob, "pex-alice", "curl"), exerciseData("pex-alice")));
+  // Ni el admin entra en lo personal de otro.
+  await assertFails(getDoc(ref(verifiedFirestore(RECIPE_ADMIN_UID))));
+  await assertFails(getDoc(ref(unverifiedFirestore("pex-alice"))));
+  await assertFails(setDoc(personalExercise(unverifiedFirestore("pex-alice"), "pex-alice", "x"), exerciseData("pex-alice")));
+
+  await assertSucceeds(updateDoc(ref(alice), editFields("pex-alice", { description: "Con control", measure: "SECONDS" })));
+  await assertSucceeds(deleteDoc(ref(alice)));
+});
+
+test("un ejercicio personal exige dueño, autor y fechas propios y no cambia de dueño", async () => {
+  const alice = verifiedFirestore("pex-own");
+  const ref = (id) => personalExercise(alice, "pex-own", id);
+
+  await assertFails(setDoc(ref("dueno-ajeno"), exerciseData("pex-own", { ownerUid: "otro" })));
+  await assertFails(setDoc(ref("autor-ajeno"), exerciseData("pex-own", { createdBy: "otro" })));
+  await assertFails(setDoc(ref("fecha-falsa"), exerciseData("pex-own", { createdAt: Timestamp.fromMillis(1000) })));
+  await assertFails(setDoc(ref("No Slug"), exerciseData("pex-own")));
+  await assertFails(setDoc(ref("a".repeat(121)), exerciseData("pex-own")));
+  await assertFails(setDoc(ref("con-fuente"), exerciseData("pex-own", { source: importedEntry.source })));
+  await assertFails(setDoc(ref("con-imagen"), exerciseData("pex-own", { image: null })));
+
+  await assertSucceeds(setDoc(ref("propio"), exerciseData("pex-own")));
+  await assertFails(updateDoc(ref("propio"), editFields("pex-own", { ownerUid: "otro" })));
+  await assertFails(updateDoc(ref("propio"), editFields("pex-own", { createdByName: "Otro" })));
+  await assertFails(updateDoc(ref("propio"), { description: "x", updatedBy: "otro", updatedAt: serverTimestamp() }));
+});
+
+test("un ejercicio personal no puede ocupar el id de uno común", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "exercises", "comun-ocupado"), {
+      ...exerciseData(RECIPE_ADMIN_UID), createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+    });
+  });
+  const alice = verifiedFirestore("pex-collide");
+  await assertFails(setDoc(personalExercise(alice, "pex-collide", "comun-ocupado"), exerciseData("pex-collide")));
+  await assertSucceeds(setDoc(personalExercise(alice, "pex-collide", "comun-libre"), exerciseData("pex-collide")));
+});
+
+test("un ejercicio personal valida el tipo y rechaza campos ajenos o nombre vacío", async () => {
+  const chef = verifiedFirestore("ex-shape");
+  const ref = (id) => personalExercise(chef, "ex-shape", id);
+
+  await assertSucceeds(setDoc(ref("remo"), exerciseData("ex-shape", { type: "MAQUINA" })));
+  await assertFails(setDoc(ref("bad-type"), exerciseData("ex-shape", { type: "YOGA" })));
+  await assertFails(setDoc(ref("extra"), exerciseData("ex-shape", { spaceId: "x" })));
+  await assertFails(setDoc(ref("vacio"), exerciseData("ex-shape", { name: "", nameLower: "" })));
 });
 
 const metaData = (uid, version, overrides = {}) => ({
@@ -2047,17 +2105,32 @@ test("catalogMeta: crear solo con version 1, updatedAt == request.time y updated
   await testEnvironment.withSecurityRulesDisabled(async (context) => {
     await deleteDoc(doc(context.firestore(), "catalogMeta", "exercises"));
   });
-  const user = verifiedFirestore("meta-creator");
+  const user = verifiedFirestore(RECIPE_ADMIN_UID);
   const ref = (db) => doc(db, "catalogMeta", "exercises");
-  await assertFails(setDoc(ref(user), metaData("meta-creator", 2)));
-  await assertFails(setDoc(ref(user), metaData("meta-creator", 1.5)));
-  await assertFails(setDoc(ref(user), metaData("meta-creator", "1")));
-  await assertFails(setDoc(ref(user), metaData("meta-creator", 1, { updatedBy: "otro" })));
-  await assertFails(setDoc(ref(user), metaData("meta-creator", 1, { updatedAt: Timestamp.fromMillis(1000) })));
-  await assertFails(setDoc(ref(user), metaData("meta-creator", 1, { extra: true })));
+  await assertFails(setDoc(ref(user), metaData(RECIPE_ADMIN_UID, 2)));
+  await assertFails(setDoc(ref(user), metaData(RECIPE_ADMIN_UID, 1.5)));
+  await assertFails(setDoc(ref(user), metaData(RECIPE_ADMIN_UID, "1")));
+  await assertFails(setDoc(ref(user), metaData(RECIPE_ADMIN_UID, 1, { updatedBy: "otro" })));
+  await assertFails(setDoc(ref(user), metaData(RECIPE_ADMIN_UID, 1, { updatedAt: Timestamp.fromMillis(1000) })));
+  await assertFails(setDoc(ref(user), metaData(RECIPE_ADMIN_UID, 1, { extra: true })));
   await assertFails(setDoc(ref(user), { version: 1, updatedAt: serverTimestamp() }));
-  await assertFails(setDoc(ref(unverifiedFirestore("meta-creator-u")), metaData("meta-creator-u", 1)));
-  await assertSucceeds(setDoc(ref(user), metaData("meta-creator", 1)));
+  await assertFails(setDoc(ref(unverifiedFirestore(RECIPE_ADMIN_UID)), metaData(RECIPE_ADMIN_UID, 1)));
+  await assertSucceeds(setDoc(ref(user), metaData(RECIPE_ADMIN_UID, 1)));
+});
+
+test("catalogMeta/exercises: quien no es admin no la crea ni la sube", async () => {
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await deleteDoc(doc(context.firestore(), "catalogMeta", "exercises"));
+  });
+  const user = verifiedFirestore("meta-intruso");
+  const ref = doc(user, "catalogMeta", "exercises");
+  await assertFails(setDoc(ref, metaData("meta-intruso", 1)));
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "catalogMeta", "exercises"), {
+      version: 4, updatedAt: Timestamp.now(), updatedBy: RECIPE_ADMIN_UID,
+    });
+  });
+  await assertFails(updateDoc(ref, metaData("meta-intruso", 5)));
 });
 
 test("catalogMeta: actualizar solo sube de uno en uno (ni igual, ni +2, ni bajar, ni campos extra)", async () => {
@@ -2066,18 +2139,18 @@ test("catalogMeta: actualizar solo sube de uno en uno (ni igual, ni +2, ni bajar
       version: 5, updatedAt: Timestamp.now(), updatedBy: RECIPE_ADMIN_UID,
     });
   });
-  const user = verifiedFirestore("meta-updater");
+  const user = verifiedFirestore(RECIPE_ADMIN_UID);
   const ref = doc(user, "catalogMeta", "exercises");
-  const upd = (v, extra = {}) => updateDoc(ref, { version: v, updatedAt: serverTimestamp(), updatedBy: "meta-updater", ...extra });
+  const upd = (v, extra = {}) => updateDoc(ref, { version: v, updatedAt: serverTimestamp(), updatedBy: RECIPE_ADMIN_UID, ...extra });
   await assertFails(upd(5));
   await assertFails(upd(7));
   await assertFails(upd(4));
   await assertFails(upd(6.5));
   await assertFails(upd(6, { extra: 1 }));
   await assertFails(upd(6, { updatedBy: "otro" }));
-  await assertFails(updateDoc(ref, { version: 6, updatedAt: Timestamp.fromMillis(1000), updatedBy: "meta-updater" }));
-  await assertFails(updateDoc(doc(unverifiedFirestore("meta-updater-u"), "catalogMeta", "exercises"),
-    { version: 6, updatedAt: serverTimestamp(), updatedBy: "meta-updater-u" }));
+  await assertFails(updateDoc(ref, { version: 6, updatedAt: Timestamp.fromMillis(1000), updatedBy: RECIPE_ADMIN_UID }));
+  await assertFails(updateDoc(doc(unverifiedFirestore(RECIPE_ADMIN_UID), "catalogMeta", "exercises"),
+    { version: 6, updatedAt: serverTimestamp(), updatedBy: RECIPE_ADMIN_UID }));
   await assertSucceeds(upd(6));
   await assertFails(upd(6));
   await assertSucceeds(upd(7));
@@ -2095,58 +2168,58 @@ test("catalogMeta: nadie la borra y otro catalogId se rechaza", async () => {
   await assertFails(getDoc(doc(admin, "catalogMeta", "recipes")));
 });
 
-test("catalogMeta: una transacción de alta de ejercicio + subida de versión pasa", async () => {
+test("catalogMeta: una transacción de alta de ejercicio + subida de versión del admin pasa", async () => {
   await testEnvironment.withSecurityRulesDisabled(async (context) => {
     await deleteDoc(doc(context.firestore(), "catalogMeta", "exercises"));
   });
-  const user = verifiedFirestore("meta-tx");
+  const user = verifiedFirestore(RECIPE_ADMIN_UID);
   const metaRef = doc(user, "catalogMeta", "exercises");
   const altaConVersion = (id) =>
     runTransaction(user, async (tx) => {
       const snap = await tx.get(metaRef);
-      tx.set(doc(user, "exercises", id), exerciseData("meta-tx"));
-      if (snap.exists()) tx.update(metaRef, metaData("meta-tx", snap.data().version + 1));
-      else tx.set(metaRef, metaData("meta-tx", 1));
+      tx.set(doc(user, "exercises", id), exerciseData(RECIPE_ADMIN_UID));
+      if (snap.exists()) tx.update(metaRef, metaData(RECIPE_ADMIN_UID, snap.data().version + 1));
+      else tx.set(metaRef, metaData(RECIPE_ADMIN_UID, 1));
     });
   await assertSucceeds(altaConVersion("tx-uno"));
   assert.equal((await getDoc(metaRef)).data().version, 1);
   await assertSucceeds(altaConVersion("tx-dos"));
   assert.equal((await getDoc(metaRef)).data().version, 2);
   // La subida de versión sigue siendo opcional para las reglas de exercises (beta 17).
-  await assertSucceeds(setDoc(doc(user, "exercises", "sin-version"), exerciseData("meta-tx")));
+  await assertSucceeds(setDoc(doc(user, "exercises", "sin-version"), exerciseData(RECIPE_ADMIN_UID)));
 });
 
-test("solo el autor o un admin editan/borran un ejercicio del catálogo", async () => {
+test("una ficha común heredada de un usuario solo la edita el admin y la borran el admin o su dueño", async () => {
   await testEnvironment.withSecurityRulesDisabled(async (context) => {
     const timestamp = Timestamp.now();
-    await setDoc(doc(context.firestore(), "exercises", "curl"), {
-      ...exerciseData("ex-owner"),
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    });
+    for (const id of ["curl", "curl-2"]) {
+      await setDoc(doc(context.firestore(), "exercises", id), {
+        ...exerciseData("ex-owner"),
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      });
+    }
   });
   const owner = verifiedFirestore("ex-owner");
   const other = verifiedFirestore("ex-other");
   const admin = verifiedFirestore(RECIPE_ADMIN_UID);
+  const rename = (uid) => ({ name: "Curl bíceps", nameLower: "curl bíceps", updatedBy: uid, updatedAt: serverTimestamp() });
 
-  await assertSucceeds(
-    updateDoc(doc(owner, "exercises", "curl"), {
-      name: "Curl bíceps",
-      nameLower: "curl bíceps",
-      updatedBy: "ex-owner",
-      updatedAt: serverTimestamp(),
-    }),
-  );
-  await assertFails(
-    updateDoc(doc(other, "exercises", "curl"), {
-      name: "Manipulado",
-      nameLower: "manipulado",
-      updatedBy: "ex-other",
-      updatedAt: serverTimestamp(),
-    }),
-  );
+  await assertFails(updateDoc(doc(owner, "exercises", "curl"), rename("ex-owner")));
+  await assertFails(updateDoc(doc(other, "exercises", "curl"), rename("ex-other")));
+  await assertSucceeds(updateDoc(doc(admin, "exercises", "curl"), rename(RECIPE_ADMIN_UID)));
+
   await assertFails(writeBatch(other).delete(doc(other, "exercises", "curl")).commit());
-  await assertSucceeds(writeBatch(admin).delete(doc(admin, "exercises", "curl")).commit());
+  await assertFails(deleteDoc(doc(unverifiedFirestore("ex-owner"), "exercises", "curl")));
+  // Borrar la cuenta limpia sus fichas heredadas sin necesitar al admin.
+  await assertSucceeds(deleteDoc(doc(owner, "exercises", "curl")));
+  await assertSucceeds(writeBatch(admin).delete(doc(admin, "exercises", "curl-2")).commit());
+});
+
+test("el dueño de una ficha con source (importada) no la borra; el admin sí", async () => {
+  await seedImportedExercise("importada-ajena", importedEntry, { ownerUid: "ex-imp-owner" });
+  await assertFails(deleteDoc(doc(verifiedFirestore("ex-imp-owner"), "exercises", "importada-ajena")));
+  await assertSucceeds(deleteDoc(doc(verifiedFirestore(RECIPE_ADMIN_UID), "exercises", "importada-ajena")));
 });
 
 const importedEntry = {
@@ -2182,7 +2255,7 @@ test("un ejercicio acepta PESO_CORPORAL, descripción y material válidos", asyn
   const user = verifiedFirestore("ex-new-fields");
   await assertSucceeds(
     setDoc(
-      doc(user, "exercises", "dominadas"),
+      personalExercise(user, "ex-new-fields", "dominadas"),
       exerciseData("ex-new-fields", {
         type: "PESO_CORPORAL",
         description: "Colgado de la barra.",
@@ -2191,14 +2264,14 @@ test("un ejercicio acepta PESO_CORPORAL, descripción y material válidos", asyn
     ),
   );
   await assertSucceeds(
-    setDoc(doc(user, "exercises", "flexiones"), exerciseData("ex-new-fields", { description: null, equipment: [] })),
+    setDoc(personalExercise(user, "ex-new-fields", "flexiones"), exerciseData("ex-new-fields", { description: null, equipment: [] })),
   );
 });
 
 test("un ejercicio rechaza descripción >2000, material desconocido, repetido o que no es lista", async () => {
   const user = verifiedFirestore("ex-bad-fields");
   const bad = (id, overrides) =>
-    assertFails(setDoc(doc(user, "exercises", id), exerciseData("ex-bad-fields", overrides)));
+    assertFails(setDoc(personalExercise(user, "ex-bad-fields", id), exerciseData("ex-bad-fields", overrides)));
   await bad("larga", { description: "x".repeat(2001) });
   await bad("no-texto", { description: 5 });
   await bad("desconocido", { equipment: ["TRX"] });
@@ -2206,7 +2279,7 @@ test("un ejercicio rechaza descripción >2000, material desconocido, repetido o 
   await bad("no-lista", { equipment: "BARRA" });
   await bad("mapa", { equipment: { BARRA: true } });
   await assertSucceeds(
-    setDoc(doc(user, "exercises", "limite"), exerciseData("ex-bad-fields", { description: "x".repeat(2000) })),
+    setDoc(personalExercise(user, "ex-bad-fields", "limite"), exerciseData("ex-bad-fields", { description: "x".repeat(2000) })),
   );
 });
 
@@ -2214,7 +2287,7 @@ test("nadie crea un ejercicio con source desde el cliente, ni siquiera el admin"
   const user = verifiedFirestore("ex-src-user");
   const admin = verifiedFirestore(RECIPE_ADMIN_UID);
   await assertFails(
-    setDoc(doc(user, "exercises", "con-fuente"), exerciseData("ex-src-user", { source: importedEntry.source })),
+    setDoc(personalExercise(user, "ex-src-user", "con-fuente"), exerciseData("ex-src-user", { source: importedEntry.source })),
   );
   await assertFails(
     setDoc(doc(admin, "exercises", "con-fuente-admin"), exerciseData(RECIPE_ADMIN_UID, { source: importedEntry.source })),
@@ -2263,22 +2336,21 @@ const ownSource = { provider: "bobitos", id: 1, license: "CC-BY-SA-4.0", author:
 
 test("un ejercicio acepta measure REPS o SECONDS y rechaza MINUTES", async () => {
   const user = verifiedFirestore("ex-measure");
-  await assertSucceeds(setDoc(doc(user, "exercises", "m-reps"), exerciseData("ex-measure", { measure: "REPS" })));
-  await assertSucceeds(setDoc(doc(user, "exercises", "m-secs"), exerciseData("ex-measure", { measure: "SECONDS" })));
-  await assertSucceeds(setDoc(doc(user, "exercises", "m-null"), exerciseData("ex-measure", { measure: null })));
-  await assertFails(setDoc(doc(user, "exercises", "m-min"), exerciseData("ex-measure", { measure: "MINUTES" })));
-  await assertFails(setDoc(doc(user, "exercises", "m-num"), exerciseData("ex-measure", { measure: 30 })));
-  await assertSucceeds(
-    updateDoc(doc(user, "exercises", "m-reps"), editFields("ex-measure", { measure: "SECONDS" })),
-  );
-  await assertFails(updateDoc(doc(user, "exercises", "m-reps"), editFields("ex-measure", { measure: "MINUTES" })));
+  const ref = (id) => personalExercise(user, "ex-measure", id);
+  await assertSucceeds(setDoc(ref("m-reps"), exerciseData("ex-measure", { measure: "REPS" })));
+  await assertSucceeds(setDoc(ref("m-secs"), exerciseData("ex-measure", { measure: "SECONDS" })));
+  await assertSucceeds(setDoc(ref("m-null"), exerciseData("ex-measure", { measure: null })));
+  await assertFails(setDoc(ref("m-min"), exerciseData("ex-measure", { measure: "MINUTES" })));
+  await assertFails(setDoc(ref("m-num"), exerciseData("ex-measure", { measure: 30 })));
+  await assertSucceeds(updateDoc(ref("m-reps"), editFields("ex-measure", { measure: "SECONDS" })));
+  await assertFails(updateDoc(ref("m-reps"), editFields("ex-measure", { measure: "MINUTES" })));
 });
 
 test("nadie crea un ejercicio con image desde el cliente, ni el admin", async () => {
   const user = verifiedFirestore("ex-img-user");
   const admin = verifiedFirestore(RECIPE_ADMIN_UID);
-  await assertFails(setDoc(doc(user, "exercises", "con-imagen"), exerciseData("ex-img-user", { image: wgerImage })));
-  await assertFails(setDoc(doc(user, "exercises", "imagen-nula"), exerciseData("ex-img-user", { image: null })));
+  await assertFails(setDoc(personalExercise(user, "ex-img-user", "con-imagen"), exerciseData("ex-img-user", { image: wgerImage })));
+  await assertFails(setDoc(personalExercise(user, "ex-img-user", "imagen-nula"), exerciseData("ex-img-user", { image: null })));
   await assertFails(
     setDoc(doc(admin, "exercises", "con-imagen-admin"), exerciseData(RECIPE_ADMIN_UID, { image: wgerImage })),
   );
@@ -2374,7 +2446,7 @@ test("una ficha bobitos (sin url, CC BY-SA 4.0) es editable por el admin; bobito
   }
 });
 
-test("el dueño añade descripción y material a un ejercicio antiguo", async () => {
+test("una ficha común antigua de un usuario ya no la edita su dueño (solo el admin)", async () => {
   await testEnvironment.withSecurityRulesDisabled(async (context) => {
     const timestamp = Timestamp.now();
     await setDoc(doc(context.firestore(), "exercises", "antiguo"), {
@@ -2385,10 +2457,16 @@ test("el dueño añade descripción y material a un ejercicio antiguo", async ()
   });
   const owner = verifiedFirestore("ex-old-owner");
   const other = verifiedFirestore("ex-old-other");
-  await assertSucceeds(
+  await assertFails(
     updateDoc(
       doc(owner, "exercises", "antiguo"),
       editFields("ex-old-owner", { description: "Nueva", equipment: ["BARRA"], type: "PESO_CORPORAL" }),
+    ),
+  );
+  await assertSucceeds(
+    updateDoc(
+      doc(verifiedFirestore(RECIPE_ADMIN_UID), "exercises", "antiguo"),
+      editFields(RECIPE_ADMIN_UID, { description: "Nueva", equipment: ["BARRA"], type: "PESO_CORPORAL" }),
     ),
   );
   await assertFails(updateDoc(doc(other, "exercises", "antiguo"), editFields("ex-old-other", { description: "x" })));
@@ -2639,6 +2717,54 @@ test("borrar la cuenta: el dueño borra sus ingredientes, marcas y preferencias;
   await assertSucceeds(deleteDoc(doc(owner, "ingredientPrefs", "pref-del")));
 });
 
+test("borrar la cuenta: el dueño borra sus ejercicios personales y heredados, sus rutinas privadas y anonimiza las comunes", async () => {
+  const uid = "acct-del";
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    const now = Timestamp.now();
+    await setDoc(doc(db, "users", uid, "exercises", "remo-propio"), { ...exerciseData(uid), createdAt: now, updatedAt: now });
+    await setDoc(doc(db, "exercises", "heredado-acct"), { ...exerciseData(uid), createdAt: now, updatedAt: now });
+    await setDoc(doc(db, "exercises", "importado-acct"), {
+      ...toFirestoreDoc(importedEntry, { now, create: true }), ownerUid: uid,
+    });
+    await setDoc(doc(db, "routines", "acct-privada"), { ...routineData(uid), createdAt: now, updatedAt: now });
+    await setDoc(doc(db, "routines", "acct-comun"), {
+      ...routineData(uid, { visibility: "GLOBAL", createdByName: "Ana" }), createdAt: now, updatedAt: now,
+    });
+  });
+  const owner = verifiedFirestore(uid);
+  const other = verifiedFirestore("acct-del-otro");
+
+  // Lo mismo que hace FirebaseAccountRepository: consultar por dueño y borrar o anonimizar.
+  const personal = await getDocs(collection(owner, "users", uid, "exercises"));
+  const legacy = (await getDocs(query(collection(owner, "exercises"), where("ownerUid", "==", uid))))
+    .docs.filter((d) => !("source" in d.data()));
+  const routines = await getDocs(query(collection(owner, "routines"), where("ownerUid", "==", uid)));
+  assert.deepEqual(legacy.map((d) => d.id), ["heredado-acct"]);
+  assert.equal(routines.size, 2);
+
+  await assertFails(deleteDoc(doc(other, "routines", "acct-privada")));
+  await assertFails(updateDoc(doc(other, "routines", "acct-comun"), { createdByName: "Usuario eliminado" }));
+
+  const batch = writeBatch(owner);
+  personal.docs.forEach((d) => batch.delete(d.ref));
+  legacy.forEach((d) => batch.delete(d.ref));
+  routines.docs.forEach((d) => {
+    if (d.data().visibility === "GLOBAL") batch.update(d.ref, { createdByName: "Usuario eliminado" });
+    else batch.delete(d.ref);
+  });
+  await assertSucceeds(batch.commit());
+
+  await testEnvironment.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    assert.equal((await getDoc(doc(db, "users", uid, "exercises", "remo-propio"))).exists(), false);
+    assert.equal((await getDoc(doc(db, "exercises", "heredado-acct"))).exists(), false);
+    assert.equal((await getDoc(doc(db, "exercises", "importado-acct"))).exists(), true);
+    assert.equal((await getDoc(doc(db, "routines", "acct-privada"))).exists(), false);
+    assert.equal((await getDoc(doc(db, "routines", "acct-comun"))).data().createdByName, "Usuario eliminado");
+  });
+});
+
 test("borrar un ingrediente personal se acepta con y sin documento de preferencias previo", async () => {
   const deleteBatch = (db, uid, id) =>
     writeBatch(db)
@@ -2668,27 +2794,36 @@ test("borrar un ingrediente personal se acepta con y sin documento de preferenci
   assert.equal("otro" in entries, true);
 });
 
-test("deshacer el borrado de un ejercicio propio lo devuelve con su id y sube la versión del catálogo", async () => {
+test("deshacer el borrado de un ejercicio común del admin lo devuelve con su id y sube la versión del catálogo", async () => {
   await testEnvironment.withSecurityRulesDisabled(async (context) => {
     await deleteDoc(doc(context.firestore(), "catalogMeta", "exercises"));
   });
-  const user = verifiedFirestore("ex-undo");
+  const user = verifiedFirestore(RECIPE_ADMIN_UID);
   const metaRef = doc(user, "catalogMeta", "exercises");
   const exerciseRef = doc(user, "exercises", "press-banca-2");
   const withVersion = (write) =>
     runTransaction(user, async (tx) => {
       const snap = await tx.get(metaRef);
       write(tx);
-      if (snap.exists()) tx.update(metaRef, metaData("ex-undo", snap.data().version + 1));
-      else tx.set(metaRef, metaData("ex-undo", 1));
+      if (snap.exists()) tx.update(metaRef, metaData(RECIPE_ADMIN_UID, snap.data().version + 1));
+      else tx.set(metaRef, metaData(RECIPE_ADMIN_UID, 1));
     });
-  await assertSucceeds(withVersion((tx) => tx.set(exerciseRef, exerciseData("ex-undo"))));
+  await assertSucceeds(withVersion((tx) => tx.set(exerciseRef, exerciseData(RECIPE_ADMIN_UID))));
   await assertSucceeds(withVersion((tx) => tx.delete(exerciseRef)));
   assert.equal((await getDoc(exerciseRef)).exists(), false);
   // Deshacer: mismo id, el dueño actual y sin source ni image.
-  await assertSucceeds(withVersion((tx) => tx.set(exerciseRef, exerciseData("ex-undo"))));
+  await assertSucceeds(withVersion((tx) => tx.set(exerciseRef, exerciseData(RECIPE_ADMIN_UID))));
   assert.equal((await getDoc(exerciseRef)).exists(), true);
   assert.equal((await getDoc(metaRef)).data().version, 3);
+});
+
+test("deshacer el borrado de un ejercicio personal lo devuelve con su id", async () => {
+  const user = verifiedFirestore("pex-undo");
+  const ref = personalExercise(user, "pex-undo", "press-banca-3");
+  await assertSucceeds(setDoc(ref, exerciseData("pex-undo")));
+  await assertSucceeds(deleteDoc(ref));
+  await assertSucceeds(setDoc(ref, exerciseData("pex-undo")));
+  assert.equal((await getDoc(ref)).exists(), true);
 });
 
 test("deshacer el borrado de un ingrediente personal devuelve sus marcas y sus tiendas", async () => {

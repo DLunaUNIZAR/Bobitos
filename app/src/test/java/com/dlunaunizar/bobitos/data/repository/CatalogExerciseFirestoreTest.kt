@@ -35,6 +35,29 @@ class CatalogExerciseFirestoreTest {
     )
 
     @Test
+    fun `a personal document is marked personal and a common one is not`() {
+        assertEquals(false, parse(legacy())!!.personal)
+        assertEquals(true, parseCatalogExercise("remo", legacy(), created, updated, personal = true)!!.personal)
+    }
+
+    @Test
+    fun `merging hides a personal exercise whose id is now common and sorts by name`() {
+        val common = listOf(
+            parse(legacy())!!,
+            parseCatalogExercise("abdominales", legacy() + ("name" to "Abdominales"), created, updated)!!,
+        )
+        val personal = listOf(
+            parseCatalogExercise("press-banca", legacy() + ("name" to "Mi press"), created, updated, true)!!,
+            parseCatalogExercise("remo", legacy() + ("name" to "Remo"), created, updated, true)!!,
+        )
+
+        val merged = mergeExerciseCatalog(common, personal)
+
+        assertEquals(listOf("Abdominales", "Press banca", "Remo"), merged.map(CatalogExercise::name))
+        assertEquals(listOf(false, false, true), merged.map(CatalogExercise::personal))
+    }
+
+    @Test
     fun `legacy document without description, equipment or source parses with defaults`() {
         val parsed = parse(legacy())!!
         assertEquals("Press banca", parsed.name)

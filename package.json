@@ -24,7 +24,8 @@
     "catalog:import-routines": "node scripts/catalog/import-routines.mjs",
     "catalog:import-recipes": "node scripts/catalog/import-recipes.mjs",
     "catalog:reset-ingredients": "node scripts/catalog/reset-ingredients.mjs",
-    "test:catalog-import": "firebase emulators:exec --only firestore --project demo-bobitos \"node --test --test-concurrency=1 tests/catalog-import.emulator.test.mjs tests/ingredient-import.emulator.test.mjs tests/ingredient-reset.emulator.test.mjs tests/routine-import.emulator.test.mjs tests/recipe-import.emulator.test.mjs\""
+    "catalog:migrate-personal-exercises": "node scripts/catalog/migrate-personal-exercises.mjs",
+    "test:catalog-import": "firebase emulators:exec --only firestore --project demo-bobitos \"node --test --test-concurrency=1 tests/catalog-import.emulator.test.mjs tests/ingredient-import.emulator.test.mjs tests/ingredient-reset.emulator.test.mjs tests/routine-import.emulator.test.mjs tests/recipe-import.emulator.test.mjs tests/personal-exercises-migration.emulator.test.mjs\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "5.0.1",

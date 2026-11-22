@@ -69,6 +69,30 @@ object BobitosDates {
     /** «10:30». */
     fun time(time: LocalTime): String = "%02d:%02d".format(Locale.ROOT, time.hour, time.minute)
 
+    /**
+     * «16:30 – 18:30»; si no es el mismo día, «21 oct, 22:00 – 22 oct, 02:00». Un [end] justo a las 00:00 del día
+     * siguiente cuenta como el mismo día y se escribe «00:00».
+     */
+    fun timeRange(start: LocalDateTime, end: LocalDateTime): String = if (endsSameDay(start, end)) {
+        "${time(start.toLocalTime())} – ${time(end.toLocalTime())}"
+    } else {
+        dateTimeRange(start, end)
+    }
+
+    /**
+     * «22 oct, 16:30 – 18:30»; si no es el mismo día, «21 oct, 22:00 – 22 oct, 02:00». Un [end] justo a las 00:00 del día
+     * siguiente cuenta como el mismo día y se escribe «00:00».
+     */
+    fun dateTimeRange(start: LocalDateTime, end: LocalDateTime): String = if (endsSameDay(start, end)) {
+        "${dateTime(start)} – ${time(end.toLocalTime())}"
+    } else {
+        "${dateTime(start)} – ${dateTime(end)}"
+    }
+
+    private fun endsSameDay(start: LocalDateTime, end: LocalDateTime): Boolean =
+        end.toLocalDate() == start.toLocalDate() ||
+            (end.toLocalTime() == LocalTime.MIDNIGHT && end.toLocalDate() == start.toLocalDate().plusDays(1))
+
     /** «sábado, 17 de octubre de 2026», para descripciones de accesibilidad. */
     fun accessibleDate(date: LocalDate): String =
         "${days[date.dayOfWeek.value - 1]}, ${date.dayOfMonth} de ${months[date.monthValue - 1]} de ${date.year}"

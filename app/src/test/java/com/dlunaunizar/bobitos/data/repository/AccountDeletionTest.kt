@@ -40,6 +40,10 @@ class AccountDeletionTest {
             calls += "recipes"
         }
 
+        override suspend fun anonymizeOrDeleteOwnedRoutines() {
+            calls += "routines"
+        }
+
         override suspend fun deleteUser() {
             calls += "deleteUser"
         }
@@ -67,6 +71,7 @@ class AccountDeletionTest {
                 "leaveSpace(s1)",
                 "leaveSpace(s2)",
                 "recipes",
+                "routines",
                 "deleteUser",
             ),
             steps.calls,

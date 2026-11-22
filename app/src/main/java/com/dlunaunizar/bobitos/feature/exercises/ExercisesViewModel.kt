@@ -103,13 +103,13 @@ class ExercisesViewModel @Inject constructor(
         }
     }
 
-    fun updateExercise(id: String, input: ExerciseInput) {
+    fun updateExercise(exercise: CatalogExercise, input: ExerciseInput) {
         if (input.name.trim().isEmpty()) {
             saver.showEditorError(ExerciseUiMessage.NameRequired)
             return
         }
         saver.run(notice = ExerciseUiMessage.Saved, editor = true) {
-            repository.updateExercise(id, input.copy(name = input.name.trim()))
+            repository.updateExercise(exercise.id, exercise.personal, input.copy(name = input.name.trim()))
         }
     }
 
@@ -118,10 +118,10 @@ class ExercisesViewModel @Inject constructor(
     fun deleteExercise(exercise: CatalogExercise) {
         if (exercise.canUndoDelete(mutableUiState.value.currentUid)) {
             saver.run(afterSuccess = { undo.offer(Undoable.Deleted(null, exercise)) }) {
-                repository.deleteExercise(exercise.id)
+                repository.deleteExercise(exercise.id, exercise.personal)
             }
         } else {
-            saver.run(notice = ExerciseUiMessage.Deleted) { repository.deleteExercise(exercise.id) }
+            saver.run(notice = ExerciseUiMessage.Deleted) { repository.deleteExercise(exercise.id, exercise.personal) }
         }
     }
 
@@ -129,8 +129,9 @@ class ExercisesViewModel @Inject constructor(
     fun undo(undoable: Undoable<CatalogExercise>) {
         saver.run(force = true) {
             when (undoable) {
-                // Borra justo ese ejercicio con el borrado de siempre.
-                is Undoable.Created -> repository.deleteExercise(undoable.item.id)
+                // Borra justo ese ejercicio con el borrado de siempre: el admin crea comunes y el resto, personales.
+                is Undoable.Created ->
+                    repository.deleteExercise(undoable.item.id, personal = !mutableUiState.value.isAdmin)
                 // Con el mismo id; el dueño pasa a ser quien deshace.
                 is Undoable.Deleted -> repository.restoreExercise(undoable.item)
                 is Undoable.Completed -> Unit
@@ -142,8 +143,8 @@ class ExercisesViewModel @Inject constructor(
         (mutableUiState.value.catalog as? UiState.Content)?.value?.any { it.id == id } == true
 }
 
-// Solo se devuelven los propios sin fuente ni imagen: lo que el admin borra del catálogo común se confirma con
-// un diálogo.
+// Solo se devuelven los propios sin fuente ni imagen (todos los personales lo son): lo que el admin borra del
+// catálogo común se confirma con un diálogo.
 internal fun CatalogExercise.canUndoDelete(currentUid: String?): Boolean =
     ownerUid == currentUid && source == null && image == null
 

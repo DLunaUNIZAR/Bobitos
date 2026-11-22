@@ -205,7 +205,7 @@ fun ExercisesScreen(
             errorMessage = state.save.editorError?.let { stringResource(it.stringResourceId) },
             onDismiss = closeEditor,
             onSave = { input ->
-                editorExercise?.let { viewModel.updateExercise(it.id, input) }
+                editorExercise?.let { viewModel.updateExercise(it, input) }
                     ?: viewModel.createExercise(input)
             },
         )
@@ -264,7 +264,7 @@ private fun ExerciseCatalog(
             val groups = remember(filtered, layout, filter.muscleGroup) {
                 groupCatalog(
                     items = filtered,
-                    isMine = { false },
+                    isMine = CatalogExercise::personal,
                     categoryOf = CatalogExercise::muscleGroup,
                     layout = layout,
                     selectedCategory = filter.muscleGroup,
@@ -338,7 +338,7 @@ private fun LazyListScope.exerciseGroups(
 
 @Composable
 private fun CatalogHeader.title(): String = when (this) {
-    CatalogHeader.Mine -> ""
+    CatalogHeader.Mine -> stringResource(R.string.exercises_group_mine)
     is CatalogHeader.Category -> name
     CatalogHeader.Other -> stringResource(R.string.exercises_group_other)
 }
