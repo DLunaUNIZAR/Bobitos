@@ -13,6 +13,7 @@ Bobitos es una aplicación privada en desarrollo gestionada por DLunaUNIZAR. Uti
 - Productos, tareas, eventos y participantes introducidos por los usuarios.
 - Lo que hay en la despensa de cada espacio: lo ven y lo cambian sus miembros, y se borra al eliminar el espacio.
 - Ingredientes personales, marcas (con su código de barras y su información nutricional) y tiendas donde compra cada usuario: solo los ve ese usuario, no se comparten con los miembros de sus espacios. El catálogo común de ingredientes no contiene datos personales.
+- Ejercicios y rutinas personales: solo los ve el usuario que los crea, no se comparten con otros usuarios ni con los miembros de sus espacios. Los catálogos comunes de ejercicios y rutinas los publica el responsable de la aplicación.
 - Datos técnicos mínimos de seguridad, sincronización y funcionamiento proporcionados por Firebase.
 - Informes de fallos y diagnóstico de estabilidad, únicamente en las compilaciones de distribución (release), mediante Firebase Crashlytics.
 - Actualización de betas: únicamente en las compilaciones de distribución (release), y solo si el tester inicia sesión desde Perfil, la aplicación usa Firebase App Distribution con su cuenta de Google para comprobar y descargar versiones beta nuevas. Las compilaciones de desarrollo no lo usan.
@@ -23,7 +24,7 @@ Bobitos no vende datos, no muestra publicidad y no contiene perfiles públicos n
 
 ## Infraestructura y conservación
 
-La autenticación y los datos compartidos se gestionan con Firebase. Firestore está configurado en la región `europe-southwest1` (Madrid). Los datos de un espacio se conservan hasta que su propietario lo elimina. Al borrar una cuenta se eliminan sus credenciales y perfil, sus ingredientes personales, marcas y tiendas, se abandonan sus espacios y su nombre se sustituye por “Usuario eliminado” en el contenido histórico necesario para mantener la coherencia compartida.
+La autenticación y los datos compartidos se gestionan con Firebase. Firestore está configurado en la región `europe-southwest1` (Madrid). Los datos de un espacio se conservan hasta que su propietario lo elimina. Al borrar una cuenta se eliminan sus credenciales y perfil, sus ingredientes personales, marcas y tiendas, sus ejercicios personales, sus rutinas y recetas personales, se abandonan sus espacios y su nombre se sustituye por “Usuario eliminado” en el contenido histórico necesario para mantener la coherencia compartida (incluidas las rutinas y recetas que hubiera publicado en los catálogos comunes).
 
 ## Acceso y seguridad
 

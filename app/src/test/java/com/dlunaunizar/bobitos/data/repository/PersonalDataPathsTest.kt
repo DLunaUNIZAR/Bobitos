@@ -14,7 +14,7 @@ class PersonalDataPathsTest {
         PERSONAL_USER_COLLECTIONS.forEach { name ->
             assertTrue("falta match /users/{userId}/$name/{", rules.contains("match /users/{userId}/$name/{"))
         }
-        assertEquals(listOf("ingredients", "brands"), PERSONAL_USER_COLLECTIONS)
+        assertEquals(listOf("ingredients", "brands", "exercises"), PERSONAL_USER_COLLECTIONS)
     }
 
     @Test
