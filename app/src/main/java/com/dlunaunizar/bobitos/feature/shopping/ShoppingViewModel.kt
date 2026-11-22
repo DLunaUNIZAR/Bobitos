@@ -77,17 +77,21 @@ class ShoppingViewModel @Inject constructor(
         if (spaceId == observedSpaceId && itemsJob?.isActive == true) return
         itemsJob?.cancel()
         observedSpaceId = spaceId
-        mutableUiState.update { it.copy(items = UiState.Loading) }
+        mutableUiState.update { it.copy(items = UiState.Loading, hasMorePurchased = false, pendingCapReached = false) }
         itemsJob = viewModelScope.launch {
-            repository.items(spaceId)
+            repository.itemPage(spaceId)
                 .catch {
                     // Sin el texto de la excepción (técnico y en inglés): la pantalla dice que no se ha podido leer la
                     // lista y ofrece «Reintentar».
                     mutableUiState.update { state -> state.copy(items = UiState.Error()) }
                 }
-                .collect { items ->
+                .collect { page ->
                     mutableUiState.update { state ->
-                        state.copy(items = UiState.Content(items))
+                        state.copy(
+                            items = UiState.Content(page.items),
+                            hasMorePurchased = page.hasMoreDone,
+                            pendingCapReached = page.pendingCapReached,
+                        )
                     }
                 }
         }

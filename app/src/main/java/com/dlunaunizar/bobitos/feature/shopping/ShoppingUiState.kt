@@ -18,6 +18,10 @@ data class ShoppingUiState(
     val pantryIds: Set<String> = emptySet(),
     // Aviso de artículo ya pendiente al crear uno («Sumar cantidad» / «No añadir»); null si no hay.
     val duplicate: ShoppingDuplicate? = null,
+    /** Hay comprados más antiguos que no se leen: la lista lo dice al final (se ven al limpiar comprados). */
+    val hasMorePurchased: Boolean = false,
+    /** Hay más pendientes que el tope de seguridad: la lista avisa de que no están todos. */
+    val pendingCapReached: Boolean = false,
 )
 
 /**
