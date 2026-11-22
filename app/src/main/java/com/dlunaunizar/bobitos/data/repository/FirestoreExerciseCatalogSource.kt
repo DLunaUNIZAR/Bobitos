@@ -2,6 +2,7 @@ package com.dlunaunizar.bobitos.data.repository
 
 import com.dlunaunizar.bobitos.core.model.CatalogExercise
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.QuerySnapshot
@@ -10,8 +11,8 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
- * Catálogo de ejercicios en Firestore. Sin `orderBy`: ordenar en el servidor dejaría fuera las
- * fichas sin `nameLower`; se ordena en el cliente.
+ * Catálogo común de ejercicios en Firestore. Ordena por id (no por `nameLower`, que dejaría fuera las fichas
+ * sin ese campo) para que el límite recorte siempre las mismas; el orden alfabético se hace en el cliente.
  */
 class FirestoreExerciseCatalogSource(private val firestore: FirebaseFirestore) : CatalogSource<CatalogExercise> {
     override suspend fun readCache(): CatalogPage<CatalogExercise> = try {
@@ -39,7 +40,10 @@ class FirestoreExerciseCatalogSource(private val firestore: FirebaseFirestore) :
     }
 
     private suspend fun query(source: Source): CatalogPage<CatalogExercise> {
-        val snapshot: QuerySnapshot = firestore.collection(EXERCISES).limit(MAX_VISIBLE_EXERCISES).get(source).await()
+        val snapshot: QuerySnapshot = firestore.collection(EXERCISES)
+            .orderBy(FieldPath.documentId())
+            .limit(MAX_VISIBLE_EXERCISES)
+            .get(source).await()
         return CatalogPage(
             items = snapshot.documents.mapNotNull(DocumentSnapshot::toCatalogExercise).sortedForCatalog(),
             rawCount = snapshot.size(),

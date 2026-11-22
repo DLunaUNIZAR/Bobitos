@@ -614,10 +614,9 @@ private class FakeSportExerciseRepository : ExerciseRepository {
     }
     override fun isCurrentUserCatalogAdmin(): Boolean = false
     override fun currentUserId(): String? = "u"
-    override suspend fun exerciseById(id: String): CatalogExercise? = null
     override suspend fun createExercise(input: ExerciseInput): String = "new-1"
-    override suspend fun updateExercise(id: String, input: ExerciseInput) = Unit
-    override suspend fun deleteExercise(id: String) = Unit
+    override suspend fun updateExercise(id: String, personal: Boolean, input: ExerciseInput) = Unit
+    override suspend fun deleteExercise(id: String, personal: Boolean) = Unit
 
     override suspend fun restoreExercise(exercise: CatalogExercise) = Unit
 }

@@ -145,11 +145,74 @@ class ExercisesViewModelTest {
     }
 
     @Test
+    fun `undoing the delete of a personal exercise restores it as personal`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val deleted = exercise("remo", "Remo", ExerciseType.MAQUINA).copy(personal = true)
+
+            viewModel.undo(Undoable.Deleted(null, deleted))
+            advanceUntilIdle()
+
+            assertEquals(true, repository.restored?.personal)
+        }
+
+    @Test
     fun editingDoesNotOfferUndo() = runTest(mainDispatcherRule.testDispatcher) {
-        viewModel.updateExercise("sentadilla", input("Sentadilla", ExerciseType.PESO_LIBRE))
+        viewModel.updateExercise(
+            exercise("sentadilla", "Sentadilla", ExerciseType.PESO_LIBRE),
+            input("Sentadilla", ExerciseType.PESO_LIBRE),
+        )
         advanceUntilIdle()
 
         assertTrue(viewModel.undoOffers.value.isEmpty())
+    }
+
+    @Test
+    fun `editing and deleting a personal exercise go to the personal ones`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val mine = exercise("remo", "Remo", ExerciseType.MAQUINA).copy(personal = true)
+            viewModel.observe()
+            runCurrent()
+
+            viewModel.updateExercise(mine, input(" Remo ", ExerciseType.MAQUINA))
+            runCurrent()
+            assertEquals(Triple("remo", true, "Remo"), repository.updated)
+
+            viewModel.deleteExercise(mine)
+            runCurrent()
+            assertEquals("remo" to true, repository.deleted)
+            assertEquals(listOf(Undoable.Deleted(null, mine)), viewModel.undoOffers.value.map { it.undoable })
+        }
+
+    @Test
+    fun `undoing a create deletes a personal one unless the user is the admin`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            viewModel.observe()
+            advanceUntilIdle()
+            viewModel.undo(Undoable.Created(null, CreatedItem("remo", "Remo")))
+            advanceUntilIdle()
+            assertEquals("remo" to true, repository.deleted)
+
+            val adminRepository = FakeExerciseRepository().apply { admin = true }
+            val adminViewModel = ExercisesViewModel(adminRepository, imageRepository)
+            adminViewModel.observe()
+            advanceUntilIdle()
+            adminViewModel.undo(Undoable.Created(null, CreatedItem("remo", "Remo")))
+            advanceUntilIdle()
+            assertEquals("remo" to false, adminRepository.deleted)
+        }
+
+    @Test
+    fun `a personal exercise can be edited by its owner and a common one only by the admin`() {
+        val common = exercise("press-banca", "Press banca", ExerciseType.PESO_LIBRE)
+        val personal = common.copy(id = "remo", personal = true)
+        val user = ExercisesUiState(isAdmin = false, currentUid = "me")
+        val admin = ExercisesUiState(isAdmin = true, currentUid = "me")
+
+        assertTrue(user.canEdit(personal))
+        // Una ficha común heredada del usuario ya no la edita él (las reglas solo dejan al admin).
+        assertFalse(user.canEdit(common))
+        assertTrue(admin.canEdit(common))
+        assertTrue(personal.canUndoDelete("me"))
     }
 
     @Test
@@ -381,12 +444,14 @@ private class FakeExerciseRepository : ExerciseRepository {
     var restoreFailure: Throwable? = null
 
     var catalogFailure: Throwable? = null
+    var admin = false
+    var updated: Triple<String, Boolean, String>? = null
+    var deleted: Pair<String, Boolean>? = null
 
     override fun catalog(): Flow<List<CatalogExercise>> =
         catalogFailure?.let { failure -> kotlinx.coroutines.flow.flow { throw failure } } ?: catalogState
-    override fun isCurrentUserCatalogAdmin(): Boolean = false
+    override fun isCurrentUserCatalogAdmin(): Boolean = admin
     override fun currentUserId(): String? = "me"
-    override suspend fun exerciseById(id: String): CatalogExercise? = catalogState.value.firstOrNull { it.id == id }
 
     override suspend fun createExercise(input: ExerciseInput): String {
         createFailure?.let { throw it }
@@ -402,11 +467,14 @@ private class FakeExerciseRepository : ExerciseRepository {
         return slug(input.name)
     }
 
-    override suspend fun updateExercise(id: String, input: ExerciseInput) = Unit
+    override suspend fun updateExercise(id: String, personal: Boolean, input: ExerciseInput) {
+        updated = Triple(id, personal, input.name)
+    }
 
-    override suspend fun deleteExercise(id: String) {
+    override suspend fun deleteExercise(id: String, personal: Boolean) {
         deleteFailure?.let { throw it }
         deletedId = id
+        deleted = id to personal
     }
 
     override suspend fun restoreExercise(exercise: CatalogExercise) {

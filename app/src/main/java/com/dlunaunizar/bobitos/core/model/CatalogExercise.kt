@@ -67,7 +67,8 @@ data class ExerciseInput(
     val measure: SetMeasure = SetMeasure.REPS,
 )
 
-// Ficha del catálogo global de ejercicios (≈ CatalogIngredient; id = slug del nombre).
+// Ficha de ejercicio (≈ CatalogIngredient; id = slug del nombre): del catálogo común (`exercises`) o
+// personal del usuario (`personal = true`, en users/{uid}/exercises), que solo ve y edita él.
 data class CatalogExercise(
     val id: String,
     val name: String,
@@ -84,4 +85,5 @@ data class CatalogExercise(
     val createdAt: Instant,
     val updatedBy: String,
     val updatedAt: Instant,
+    val personal: Boolean = false,
 )

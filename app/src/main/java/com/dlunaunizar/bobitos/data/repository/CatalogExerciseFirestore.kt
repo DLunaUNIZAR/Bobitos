@@ -25,6 +25,7 @@ internal fun parseCatalogExercise(
     data: Map<String, Any?>,
     createdAt: Instant?,
     updatedAt: Instant?,
+    personal: Boolean = false,
 ): CatalogExercise? {
     val createdBy = data["createdBy"] as? String
     val name = data["name"] as? String
@@ -47,6 +48,7 @@ internal fun parseCatalogExercise(
         createdAt = createdAt,
         updatedBy = data["updatedBy"] as? String ?: createdBy,
         updatedAt = updatedAt ?: createdAt,
+        personal = personal,
     )
 }
 
@@ -116,6 +118,15 @@ internal fun ExerciseInput.toFirestoreFields(): Map<String, Any?> = mapOf(
     "equipment" to equipment.map(ExerciseEquipment::name),
     "measure" to measure.name,
 )
+
+// Comunes y personales en una lista: el personal cuyo id ya es común (lo ocupó el admin después) se oculta.
+internal fun mergeExerciseCatalog(
+    common: List<CatalogExercise>,
+    personal: List<CatalogExercise>,
+): List<CatalogExercise> {
+    val commonIds = common.mapTo(HashSet(), CatalogExercise::id)
+    return (common + personal.filterNot { it.id in commonIds }).sortedForCatalog()
+}
 
 // Orden alfabético en español sin distinguir tildes ni mayúsculas; desempata por id.
 internal fun List<CatalogExercise>.sortedForCatalog(): List<CatalogExercise> =
