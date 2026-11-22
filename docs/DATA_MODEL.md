@@ -227,10 +227,26 @@ acción. Evitan lecturas adicionales y conservan el contexto histórico aunque e
 cambie después su perfil. `purchasedBy` solo registra quién marcó el producto, sin
 convertirlo en responsable.
 
-### Consultas previstas
+### Consultas
 
-- Todos los productos del espacio activo, ordenados por `purchased` y fecha.
-- El volumen esperado es pequeño; si crece, se separarán activos y archivados.
+La lista se lee con dos escuchas que se unen en el cliente (`mergePendingAndRecent`), sin duplicados por id y en
+el orden de siempre (pendientes primero y, dentro, por `createdAt`):
+
+- **Todos los pendientes**: `purchased == false`, con un tope de seguridad de 1000 (`SHOPPING_PENDING_CAP`; se lee
+  uno más para saberlo). Si se llega al tope, la pantalla lo avisa arriba en vez de cortar en silencio.
+- **Los 100 comprados más recientes** (`SHOPPING_PURCHASED_PAGE`): `orderBy(purchasedAt desc)` sin filtro, con uno
+  de más para saber si hay más. Si los hay, una línea al final de «Comprados» dice que solo se ven los más recientes
+  (el resto aparece al limpiar comprados).
+
+`currentItems` (revisión de ingredientes) y la relectura de `applyCooked` hacen esas mismas dos lecturas desde el
+servidor. Antes había una sola consulta `orderBy(createdAt asc).limit(250)`: al pasar de 250 dejaba de verse lo
+último apuntado.
+
+Ninguna consulta necesita índice compuesto (igualdad sobre un campo, u orden sobre un campo sin filtro de otro):
+las sirven los índices automáticos de un solo campo. Los comprados no se filtran con `purchasedAt > 0` porque, al
+marcar, la fecha es un `serverTimestamp` pendiente que la caché local no da por mayor que 0 hasta que responde el
+servidor; ordenado sin filtro, el valor pendiente va primero y el artículo pasa de una sección a otra sin
+desaparecer. Los pendientes (`purchasedAt` a `null`) quedan al final de esa consulta y la unión los descarta.
 
 ### Limpiar comprados
 
@@ -293,14 +309,26 @@ completedAt: timestamp | null
 - `assigneeName`, `createdByName` y `completedByName` conservan el nombre visible en el
   momento de la acción y evitan lecturas adicionales para presentar la lista.
 
-### Consultas previstas
+### Consultas
 
-- Tareas pendientes del espacio.
-- Tareas por responsable y estado.
-- Tareas por fecha límite.
-- Tareas completadas con límite o paginación.
+Las tareas se leen con dos escuchas que se unen en el cliente (`mergePendingAndRecent`), sin duplicados por id y
+por `createdAt` descendente:
 
-Estas combinaciones probablemente requerirán índices compuestos.
+- **Todas las pendientes**: `status == "TODO"`, con un tope de seguridad de 1000 (`TASKS_PENDING_CAP`; se lee una
+  más para saberlo). Las recurrentes siguen pendientes para siempre (se reprograman al completarlas), así que nunca
+  se pierden. Si se llega al tope, la pantalla de Tareas lo avisa arriba.
+- **Las completadas más recientes**, por páginas de 100 (`TASKS_COMPLETED_PAGE`): `orderBy(completedAt desc)` sin
+  filtro, con una de más para saber si hay más. La pantalla de Tareas ofrece «Ver más» al final de «Completadas»,
+  que pide la página siguiente.
+
+Hoy (las hechas de la semana por miembro), el Calendario (las tacha) y los recordatorios leen todas las pendientes y
+la primera página de completadas. Antes había una sola consulta `orderBy(createdAt desc).limit(250)`: al pasar de
+250 tareas creadas dejaban de leerse las pendientes más antiguas, recurrentes incluidas.
+
+Ninguna consulta necesita índice compuesto (igualdad sobre un campo, u orden sobre un campo sin filtro de otro). Las
+completadas no se filtran con `completedAt > 0` por la misma razón que los comprados de la compra: el
+`serverTimestamp` pendiente no cumpliría el filtro en la caché y la tarea desaparecería hasta que respondiese el
+servidor.
 
 ## 10. Eventos
 
@@ -725,7 +753,10 @@ La regla deberá verificar:
 - Membresías por `userId + status`.
 - Membresías por `spaceId + status`.
 - Invitaciones por `spaceId + status`.
-- Compra por `purchased + createdAt`.
+- Compra: `purchased` (igualdad) y `purchasedAt` (orden): índices automáticos de un solo campo.
+- Tareas: `status` (igualdad) y `completedAt` (orden): índices automáticos de un solo campo.
+- Notas: `updatedAt` (orden): índice automático de un solo campo. Se leen las 250 más recientes
+  (`MAX_VISIBLE_NOTES`) y una más para saber si hay más; si las hay, la lista lo avisa al final.
 - Tareas por `status + dueAt`.
 - Tareas por `assigneeId + status + dueAt`.
 - Eventos por rango temporal.
