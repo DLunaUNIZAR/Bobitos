@@ -41,7 +41,7 @@ catalogMeta/ingredients
 invitations/{inviteToken}
 ```
 
-Las colecciones **top-level globales** (no cuelgan de un espacio) son `recipes`, `routines`, `ingredients`, `exercises`, `catalogMeta` e `ingredientPrefs`. `recipes` agrupa el catálogo común y las recetas personales de todos los usuarios (ver sección 11 · Recetario); `exercises` es el catálogo común de ejercicios (ver la sección «Ejercicios» tras el Recetario). Los ingredientes personales y las marcas cuelgan de `users/{userId}` (ver «Ingredientes» tras el Recetario).
+Las colecciones **top-level globales** (no cuelgan de un espacio) son `recipes`, `routines`, `ingredients`, `exercises`, `catalogMeta` e `ingredientPrefs`. `recipes` agrupa el catálogo común y las recetas personales de todos los usuarios (ver sección 11 · Recetario); `exercises` es el catálogo común de ejercicios (ver la sección «Ejercicios» tras el Recetario). Los ingredientes personales, las marcas y los ejercicios personales cuelgan de `users/{userId}` (ver «Ingredientes» y «Ejercicios» tras el Recetario).
 
 ## 3. Convenciones
 
@@ -482,12 +482,21 @@ updatedAt: timestamp
 Valores de `equipment`: `BARRA`, `BARRA_Z`, `MANCUERNAS`, `KETTLEBELL`, `DISCO`, `POLEA`, `MAQUINA`, `BANCO`, `BANCO_INCLINADO`, `BARRA_DOMINADAS`, `ESTERILLA`, `FITBALL`, `BANDA_ELASTICA`.
 
 - **Lectura:** cualquier usuario verificado.
-- **Creación:** el propio usuario (`ownerUid == uid`, marcas de tiempo = `request.time`). Los clientes **no pueden crear `source` ni `image`**: los escribe solo el importador con el Admin SDK, que se salta las reglas.
-- **Edición:** el dueño o un admin. Solo cambian `name`, `nameLower`, `type`, `muscleGroup`, `description`, `equipment`, `measure`, `updatedBy` y `updatedAt`; `source`, `image` y la autoría son inmutables para los clientes (y, si la ficha tiene `image`, debe seguir siendo válida).
-- **Borrado:** el dueño o un admin.
+- **Creación:** solo el admin del catálogo (`ownerUid == uid`, marcas de tiempo = `request.time`). Los clientes **no pueden crear `source` ni `image`**: los escribe solo el importador con el Admin SDK, que se salta las reglas.
+- **Edición:** solo el admin. Solo cambian `name`, `nameLower`, `type`, `muscleGroup`, `description`, `equipment`, `measure`, `updatedBy` y `updatedAt`; `source`, `image` y la autoría son inmutables para los clientes (y, si la ficha tiene `image`, debe seguir siendo válida).
+- **Borrado:** el admin, o el dueño de una ficha heredada sin `source` (creada por un usuario antes de los ejercicios personales), para que el borrado de cuenta la limpie antes de la migración.
 - Los campos `description`, `equipment`, `measure`, `image` y `source` son opcionales y retrocompatibles; la app antigua los ignora, pero descarta las fichas `PESO_CORPORAL` (ver `EXERCISE_CATALOG.md`).
 - Sin `get()`/`exists()` en las reglas y sin índices compuestos.
-- La app lista el catálogo con `limit(1000)` y sin `orderBy` (ordena en el cliente), para no perder las fichas sin `nameLower`.
+- La app lista el catálogo con `orderBy(documentId).limit(1000)` (orden alfabético en el cliente); ordenar por id no pierde las fichas sin `nameLower`.
+
+#### Ejercicios personales (`users/{userId}/exercises/{exerciseId}`)
+
+Misma forma que el común **sin `source` ni `image`**, con `ownerUid` = `userId`. Solo los ve su dueño.
+
+- **Lectura y borrado:** solo el dueño verificado.
+- **Creación:** el dueño verificado, con id slug (`^[a-z0-9]+(-[a-z0-9]+)*$`, ≤120), `createdBy`/`updatedBy` propios y marcas de tiempo = `request.time`, y **sin ejercicio común con ese id** (`exists()`).
+- **Edición:** el dueño; solo los campos editables, con `updatedBy`/`updatedAt` propios. Dueño y autoría inmutables.
+- Se borran con la cuenta. Los movió del común el script `migrate-personal-exercises.mjs` (ver `EXERCISE_CATALOG.md`).
 
 ### Rutinas (colección `routines`)
 
@@ -571,9 +580,9 @@ updatedBy: string                      # uid de quien lo sube (la cuenta admin e
 ```
 
 - **Lectura:** solo `get` del documento `exercises`, para cualquier usuario verificado. Sin `list`.
-- **Creación:** solo `exercises`, con `version == 1`, `updatedAt == request.time`, `updatedBy == uid` y sin más campos.
+- **Creación:** solo el admin del catálogo, con `version == 1`, `updatedAt == request.time`, `updatedBy == uid` y sin más campos.
 - **Actualización:** `version == anterior + 1`, con las mismas guardas. **Sin borrado.**
-- Lo suben el importador (una vez por lote) y cada guardado de un ejercicio desde la app, en la misma transacción que la ficha. Las reglas de `exercises` no exigen subirla, para no romper las escrituras de la app antigua; a cambio, la caché de la app caduca a los 7 días.
+- Lo suben el importador (una vez por lote), el script de migración de ejercicios personales (una vez) y cada guardado de un ejercicio común desde la app (solo el admin), en la misma transacción que la ficha. Las reglas de `exercises` no exigen subirla, para no romper las escrituras de la app antigua; a cambio, la caché de la app caduca a los 7 días.
 - Cada guardado cuesta +2 lecturas y +1 escritura; abrir el catálogo sin cambios, 1 lectura.
 
 ### Ingredientes
@@ -656,7 +665,7 @@ Para detectar casi duplicados («Limón» y «Limones», «Nuez» y «Nueces») 
 #### Reglas
 
 - `ingredients/{id}`: `get` y `list` a verificados; `create`, `update` y `delete` solo el admin, con forma validada y `updatedBy`/`updatedAt` del servidor.
-- `catalogMeta/{id}`: `get` solo de `exercises` e `ingredients`; la escritura de `ingredients` solo el admin, con `version` 1 al crear y `+1` al actualizar; sin `list` ni borrado.
+- `catalogMeta/{id}`: `get` solo de `exercises` e `ingredients`; la escritura de ambos solo el admin, con `version` 1 al crear y `+1` al actualizar; sin `list` ni borrado.
 - `users/{uid}/ingredients/{slug}`: lectura (`get` y `list`) y escritura solo el dueño verificado; `create` con `slug` válido (`^[a-z0-9]+(-[a-z0-9]+)*$`, ≤120), `createdAt`/`updatedAt` del servidor y sin ingrediente común homónimo; `update` limitado a los campos editables.
 - `users/{uid}/brands/{id}`: lectura y escritura solo el dueño verificado; forma validada (nombre ≤60, ≤6 tiendas del enum sin repetidos, nutrientes numéricos); `ingredientId` inmutable.
 - `ingredientPrefs/{uid}`: lectura, escritura y borrado solo el dueño verificado; al escribir, solo el campo `entries` (puede faltar, p. ej. `{}`), un mapa de ≤2000 entradas.
