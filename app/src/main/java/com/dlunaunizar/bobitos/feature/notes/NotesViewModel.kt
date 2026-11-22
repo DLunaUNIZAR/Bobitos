@@ -43,11 +43,15 @@ class NotesViewModel @Inject constructor(private val repository: NoteRepository)
         if (spaceId == observedSpaceId && notesJob?.isActive == true) return
         notesJob?.cancel()
         observedSpaceId = spaceId
-        mutableUiState.update { it.copy(notes = UiState.Loading) }
+        mutableUiState.update { it.copy(notes = UiState.Loading, notesTruncated = false) }
         notesJob = viewModelScope.launch {
-            repository.notes(spaceId)
+            repository.notePage(spaceId)
                 .catch { error -> mutableUiState.update { it.copy(notes = UiState.Error(error.toFailureKind())) } }
-                .collect { notes -> mutableUiState.update { it.copy(notes = UiState.Content(notes)) } }
+                .collect { page ->
+                    mutableUiState.update {
+                        it.copy(notes = UiState.Content(page.notes), notesTruncated = page.truncated)
+                    }
+                }
         }
     }
 

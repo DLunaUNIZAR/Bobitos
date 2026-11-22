@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -46,6 +47,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.ClickableCard
 import com.dlunaunizar.bobitos.core.designsystem.component.EditorSaveEffect
 import com.dlunaunizar.bobitos.core.designsystem.component.EmptyState
 import com.dlunaunizar.bobitos.core.designsystem.component.ErrorState
+import com.dlunaunizar.bobitos.core.designsystem.component.ListLimitNotice
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
 import com.dlunaunizar.bobitos.core.designsystem.component.SaveFeedbackEffect
@@ -59,6 +61,7 @@ import com.dlunaunizar.bobitos.core.designsystem.theme.AppModule
 import com.dlunaunizar.bobitos.core.designsystem.theme.Spacing
 import com.dlunaunizar.bobitos.core.designsystem.theme.moduleTint
 import com.dlunaunizar.bobitos.core.model.Note
+import com.dlunaunizar.bobitos.data.repository.MAX_VISIBLE_NOTES
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -160,6 +163,17 @@ fun NotesScreen(
                                 onEdit = openEditor,
                                 onDelete = { viewModel.deleteNote(note) },
                             )
+                        }
+                        if (state.notesTruncated) {
+                            item(key = "notes-limit") {
+                                ListLimitNotice(
+                                    text = pluralStringResource(
+                                        R.plurals.notes_limit,
+                                        MAX_VISIBLE_NOTES,
+                                        MAX_VISIBLE_NOTES,
+                                    ),
+                                )
+                            }
                         }
                     }
                 }
