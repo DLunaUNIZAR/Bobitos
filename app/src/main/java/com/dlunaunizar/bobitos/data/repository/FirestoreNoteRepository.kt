@@ -11,9 +11,8 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Query
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -26,36 +25,18 @@ class FirestoreNoteRepository @Inject constructor(
 ) : NoteRepository {
     private val firestore = FirebaseFirestore.getInstance()
 
-    override fun notes(spaceId: String): Flow<List<Note>> = callbackFlow {
-        val metricId = realtimeMetrics.listenerStarted("notes:active")
-        val registration = notesCollection(spaceId)
-            .orderBy(FIELD_UPDATED_AT, Query.Direction.DESCENDING)
-            .limit(MAX_VISIBLE_NOTES)
-            .addSnapshotListener { snapshot, error ->
-                when {
-                    error != null -> close(error.toNoteRepositoryException())
-                    snapshot != null -> {
-                        realtimeMetrics.snapshotReceived(
-                            scope = "notes:active",
-                            changedDocuments = snapshot.documentChanges.size,
-                            fromCache = snapshot.metadata.isFromCache,
-                        )
-                        // Fijadas primero; dentro, por actualización descendente (orden estable por id).
-                        val notes = snapshot.documents.mapNotNull(DocumentSnapshot::toNote)
-                            .sortedWith(
-                                compareByDescending<Note> { it.pinned }
-                                    .thenByDescending(Note::updatedAt)
-                                    .thenBy(Note::id),
-                            )
-                        trySend(notes)
-                    }
-                }
-            }
-        awaitClose {
-            registration.remove()
-            realtimeMetrics.listenerStopped(metricId)
+    override fun notes(spaceId: String): Flow<List<Note>> = notePage(spaceId).map { it.notes }
+
+    // Se lee una de más para saber si hay notas más antiguas sin pedir un recuento aparte.
+    override fun notePage(spaceId: String): Flow<NotePage> = notesCollection(spaceId)
+        .orderBy(FIELD_UPDATED_AT, Query.Direction.DESCENDING)
+        .limit(MAX_VISIBLE_NOTES + 1L)
+        .documentsFlow(realtimeMetrics, "notes:active", Throwable::toNoteRepositoryException) { documents ->
+            NotePage(
+                notes = documents.take(MAX_VISIBLE_NOTES).mapNotNull(DocumentSnapshot::toNote).sortedForList(),
+                truncated = documents.size > MAX_VISIBLE_NOTES,
+            )
         }
-    }
 
     override suspend fun addNote(spaceId: String, title: String, body: String?): String = runNoteOperation {
         val noteReference = notesCollection(spaceId).document()
@@ -194,7 +175,6 @@ class FirestoreNoteRepository @Inject constructor(
         const val FIELD_UPDATED_AT = "updatedAt"
         const val MAX_TITLE_LENGTH = 120
         const val MAX_BODY_LENGTH = 5000
-        const val MAX_VISIBLE_NOTES = 250L
     }
 }
 
@@ -238,4 +218,11 @@ private fun Throwable.toNoteRepositoryException() = NoteRepositoryException(
         else -> NoteFailure.Unknown
     },
     cause = this,
+)
+
+/** Fijadas primero; dentro, por actualización descendente (orden estable por id). */
+internal fun List<Note>.sortedForList(): List<Note> = sortedWith(
+    compareByDescending<Note> { it.pinned }
+        .thenByDescending(Note::updatedAt)
+        .thenBy(Note::id),
 )

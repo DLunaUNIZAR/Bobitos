@@ -8,6 +8,7 @@ import com.google.firebase.firestore.Query
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.combine
 
 /**
  * Envoltorio común de las escrituras: exige poder escribir y traduce cualquier fallo con [writeFailure].
@@ -69,3 +70,23 @@ internal fun <T> Query.documentsFlow(
         metrics.listenerStopped(metricId)
     }
 }
+
+/**
+ * Escucha a la vez la consulta de pendientes y la de hechas recientes y emite su unión ([merge], normalmente
+ * [mergePendingAndRecent]). No emite hasta tener las dos primeras respuestas, para que la lista no aparezca primero
+ * sin las hechas. Cuando un elemento cambia de estado sale de una consulta y entra en la otra con la misma escritura
+ * local; si entre las dos emisiones está en las dos, manda la de pendientes (el merge lo deduplica).
+ */
+internal fun <T, R> pendingAndRecentFlow(
+    pending: Query,
+    recent: Query,
+    metrics: RealtimeMetrics,
+    scope: String,
+    toException: (Throwable) -> Throwable,
+    mapper: (List<DocumentSnapshot>) -> List<T>,
+    merge: (pending: List<T>, recent: List<T>) -> R,
+): Flow<R> = combine(
+    pending.documentsFlow(metrics, "$scope:pending", toException, mapper),
+    recent.documentsFlow(metrics, "$scope:recent", toException, mapper),
+    merge,
+)

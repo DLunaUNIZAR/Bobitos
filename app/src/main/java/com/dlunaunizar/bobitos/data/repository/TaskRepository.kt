@@ -5,10 +5,25 @@ import com.dlunaunizar.bobitos.core.model.TaskPriority
 import com.dlunaunizar.bobitos.core.model.TaskRecurrence
 import com.dlunaunizar.bobitos.core.model.TaskType
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import java.time.Instant
 
+/** Cuántas completadas se leen por página (la primera es la que usan Hoy, el Calendario y los recordatorios). */
+const val TASKS_COMPLETED_PAGE = 100
+
+/** Tope de seguridad de las pendientes: se leen todas hasta aquí y, si hay más, la pantalla lo avisa. */
+const val TASKS_PENDING_CAP = 1000
+
 interface TaskRepository {
+    /** Todas las pendientes y las [TASKS_COMPLETED_PAGE] completadas más recientes, de la más nueva a la más vieja. */
     fun tasks(spaceId: String): Flow<List<TaskItem>>
+
+    /**
+     * Como [tasks], pero con hasta [completedLimit] completadas y las banderas de «hay más completadas» y «se ha
+     * llegado al tope de pendientes», para la pantalla de Tareas.
+     */
+    fun taskPage(spaceId: String, completedLimit: Int): Flow<PendingAndRecent<TaskItem>> =
+        tasks(spaceId).map { PendingAndRecent(it) }
 
     suspend fun createTask(
         spaceId: String,

@@ -17,6 +17,7 @@ import com.dlunaunizar.bobitos.data.repository.IngredientFailure
 import com.dlunaunizar.bobitos.data.repository.IngredientRepositoryException
 import com.dlunaunizar.bobitos.data.repository.PantryFailure
 import com.dlunaunizar.bobitos.data.repository.PantryRepositoryException
+import com.dlunaunizar.bobitos.data.repository.PendingAndRecent
 import com.dlunaunizar.bobitos.data.repository.ShoppingCrossOff
 import com.dlunaunizar.bobitos.data.repository.ShoppingFailure
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
@@ -35,6 +36,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -86,6 +88,21 @@ class ShoppingViewModelTest {
             pantryRepository.itemsState.value = emptyList()
             advanceUntilIdle()
             assertEquals(setOf("tomat"), viewModel.uiState.value.pantryIds)
+        }
+
+    @Test
+    fun `the list says when there are older purchased items or too many pending ones`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            repository.hasMorePurchased = true
+            repository.pendingCapReached = true
+
+            viewModel.observe("home")
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertTrue(state.hasMorePurchased)
+            assertTrue(state.pendingCapReached)
+            assertEquals(listOf(shoppingItem()), (state.items as UiState.Content).value)
         }
 
     @Test
@@ -1065,6 +1082,12 @@ internal class FakeShoppingRepository : ShoppingRepository {
         }
         return itemState
     }
+
+    var hasMorePurchased = false
+    var pendingCapReached = false
+
+    override fun itemPage(spaceId: String): Flow<PendingAndRecent<ShoppingItem>> =
+        items(spaceId).map { PendingAndRecent(it, hasMorePurchased, pendingCapReached) }
 
     override suspend fun currentItems(spaceId: String): List<ShoppingItem> = itemState.value
 

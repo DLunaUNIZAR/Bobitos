@@ -9,6 +9,7 @@ import com.dlunaunizar.bobitos.data.repository.IngredientBrandRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientPrefsRepository
 import com.dlunaunizar.bobitos.data.repository.IngredientRepository
 import com.dlunaunizar.bobitos.data.repository.PantryRepository
+import com.dlunaunizar.bobitos.data.repository.PendingAndRecent
 import com.dlunaunizar.bobitos.data.repository.PersonalIngredientRepository
 import com.dlunaunizar.bobitos.data.repository.ShoppingRepository
 import com.dlunaunizar.bobitos.data.repository.SpaceRepository
@@ -19,6 +20,7 @@ import com.dlunaunizar.bobitos.feature.tasks.TasksViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
@@ -28,7 +30,8 @@ import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.coroutines.resume
 
 // Repositorios falsos mínimos para montar las pantallas reales sin Hilt. Lo que un test no usa responde `error`;
-// las lecturas (Flow) sin más respuesta salen vacías.
+// las lecturas (Flow) sin más respuesta salen vacías. El proxy también intercepta los métodos por defecto de la
+// interfaz (como `taskPage` o `itemPage`), así que cada lectura que use la pantalla necesita su respuesta aquí.
 private object Unhandled
 
 private inline fun <reified T : Any> fake(crossinline handler: (name: String, args: List<Any?>) -> Any?): T =
@@ -68,6 +71,7 @@ class FakeTasks(initial: List<TaskItem>) {
     private val repository: TaskRepository = fake { name, args ->
         when (name) {
             "tasks" -> tasks
+            "taskPage" -> tasks.map { PendingAndRecent(it) }
             "setCompleted" -> {
                 val id = args[1] as String
                 completed += id
@@ -91,6 +95,7 @@ class FakeShopping(initial: List<ShoppingItem>) {
     private val repository: ShoppingRepository = fake { name, args ->
         when (name) {
             "items" -> items
+            "itemPage" -> items.map { PendingAndRecent(it) }
             "setPurchased" -> {
                 val id = args[1] as String
                 purchased += id

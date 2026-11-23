@@ -69,6 +69,7 @@ import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdown
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterDropdownRow
 import com.dlunaunizar.bobitos.core.designsystem.component.FilterOption
 import com.dlunaunizar.bobitos.core.designsystem.component.GroupedRow
+import com.dlunaunizar.bobitos.core.designsystem.component.ListLimitNotice
 import com.dlunaunizar.bobitos.core.designsystem.component.LoadingState
 import com.dlunaunizar.bobitos.core.designsystem.component.ModuleScaffold
 import com.dlunaunizar.bobitos.core.designsystem.component.MoreOptionsButton
@@ -96,6 +97,7 @@ import com.dlunaunizar.bobitos.core.model.Supermarket
 import com.dlunaunizar.bobitos.core.model.findShoppingMatch
 import com.dlunaunizar.bobitos.core.model.ingredientKey
 import com.dlunaunizar.bobitos.core.model.isInPantry
+import com.dlunaunizar.bobitos.data.repository.SHOPPING_PENDING_CAP
 import com.dlunaunizar.bobitos.feature.common.BrandStorePicker
 import com.dlunaunizar.bobitos.feature.common.BrandStoreSelection
 import com.dlunaunizar.bobitos.feature.common.IngredientShoppingData
@@ -254,6 +256,18 @@ fun ShoppingScreen(
                                 contentPadding = PaddingValues(bottom = Spacing.fabClearance),
                             ) {
                                 item(key = "air") { Spacer(Modifier.height(Spacing.sm)) }
+                                if (state.pendingCapReached) {
+                                    item(key = "pending-cap") {
+                                        ListLimitNotice(
+                                            text = pluralStringResource(
+                                                R.plurals.shopping_pending_cap,
+                                                SHOPPING_PENDING_CAP,
+                                                SHOPPING_PENDING_CAP,
+                                            ),
+                                            modifier = Modifier.padding(horizontal = Spacing.lg),
+                                        )
+                                    }
+                                }
                                 item(key = "pending-heading") {
                                     SectionHeader(
                                         title = stringResource(R.string.shopping_pending),
@@ -361,6 +375,19 @@ fun ShoppingScreen(
                                                 modifier = accessibilityModifier,
                                             )
                                         }
+                                    }
+                                }
+                                if (state.hasMorePurchased) {
+                                    item(key = "purchased-more") {
+                                        val loaded = allItems.count(ShoppingItem::purchased)
+                                        ListLimitNotice(
+                                            text = pluralStringResource(
+                                                R.plurals.shopping_purchased_limit,
+                                                loaded,
+                                                loaded,
+                                            ),
+                                            modifier = Modifier.padding(horizontal = Spacing.lg),
+                                        )
                                     }
                                 }
                             }

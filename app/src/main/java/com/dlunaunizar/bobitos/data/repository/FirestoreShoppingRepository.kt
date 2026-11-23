@@ -17,11 +17,11 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.Transaction
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import java.util.concurrent.ExecutionException
 import javax.inject.Inject
@@ -35,38 +35,48 @@ class FirestoreShoppingRepository @Inject constructor(
 ) : ShoppingRepository {
     private val firestore = FirebaseFirestore.getInstance()
 
-    override fun items(spaceId: String): Flow<List<ShoppingItem>> = callbackFlow {
-        val metricId = realtimeMetrics.listenerStarted("shopping:active")
-        val registration = itemsCollection(spaceId)
-            .orderBy(FIELD_CREATED_AT, Query.Direction.ASCENDING)
-            .limit(MAX_VISIBLE_ITEMS)
-            .addSnapshotListener { snapshot, error ->
-                when {
-                    error != null -> close(error.toShoppingRepositoryException())
-                    snapshot != null -> {
-                        realtimeMetrics.snapshotReceived(
-                            scope = "shopping:active",
-                            changedDocuments = snapshot.documentChanges.size,
-                            fromCache = snapshot.metadata.isFromCache,
-                        )
-                        trySend(snapshot.documents.toSortedShoppingItems())
-                    }
-                }
-            }
-        awaitClose {
-            registration.remove()
-            realtimeMetrics.listenerStopped(metricId)
-        }
-    }
+    override fun items(spaceId: String): Flow<List<ShoppingItem>> = itemPage(spaceId).map { it.items }
+
+    // Dos consultas para que lo último que se apunta no se pierda tras los comprados (antes, los 250 más viejos de
+    // todos). Las dos las sirve un índice automático de un solo campo (no hay índice compuesto ni fieldOverrides):
+    // - Todos los pendientes: igualdad sobre `purchased`.
+    // - Los comprados más recientes: solo orderBy descendente sobre `purchasedAt`. Sin filtro `purchasedAt > 0`
+    //   porque al marcar un comprado la fecha es un serverTimestamp pendiente que la caché no da por mayor que 0
+    //   hasta que responde el servidor (el artículo desaparecería un momento, o del todo sin conexión). Así el valor
+    //   pendiente va primero; los pendientes (purchasedAt null) quedan al final y el merge los descarta.
+    override fun itemPage(spaceId: String): Flow<PendingAndRecent<ShoppingItem>> = pendingAndRecentFlow(
+        pending = pendingItemsQuery(spaceId),
+        recent = recentPurchasedQuery(spaceId),
+        metrics = realtimeMetrics,
+        scope = "shopping:active",
+        toException = Throwable::toShoppingRepositoryException,
+        mapper = { documents -> documents.mapNotNull(DocumentSnapshot::toShoppingItem) },
+        merge = ::mergeShoppingItems,
+    )
 
     override suspend fun currentItems(spaceId: String): List<ShoppingItem> = runShoppingOperation {
-        itemsCollection(spaceId)
-            .orderBy(FIELD_CREATED_AT, Query.Direction.ASCENDING)
-            .limit(MAX_VISIBLE_ITEMS)
-            .get(Source.SERVER)
-            .await()
-            .documents
-            .toSortedShoppingItems()
+        val pending = pendingItemsQuery(spaceId).get(Source.SERVER).await().shoppingItems()
+        val recent = recentPurchasedQuery(spaceId).get(Source.SERVER).await().shoppingItems()
+        mergeShoppingItems(pending, recent).items
+    }
+
+    private fun pendingItemsQuery(spaceId: String): Query = itemsCollection(spaceId)
+        .whereEqualTo(FIELD_PURCHASED, false)
+        .limit(SHOPPING_PENDING_CAP + 1L)
+
+    private fun recentPurchasedQuery(spaceId: String): Query = itemsCollection(spaceId)
+        .orderBy(FIELD_PURCHASED_AT, Query.Direction.DESCENDING)
+        .limit(SHOPPING_PURCHASED_PAGE + 1L)
+
+    // La lectura de currentItems, desde la función de una transacción: corre en un hilo de fondo y puede esperar,
+    // como Transaction.get. Los fallos salen sin envolver, también como en Transaction.get: sin conexión sigue siendo
+    // ShoppingFailure.Network y no «error inesperado».
+    private fun serverItemsBlocking(spaceId: String): List<ShoppingItem> = try {
+        val pending = Tasks.await(pendingItemsQuery(spaceId).get(Source.SERVER)).shoppingItems()
+        val recent = Tasks.await(recentPurchasedQuery(spaceId).get(Source.SERVER)).shoppingItems()
+        mergeShoppingItems(pending, recent).items
+    } catch (error: ExecutionException) {
+        throw error.cause ?: error
     }
 
     override suspend fun addItem(
@@ -251,10 +261,6 @@ class FirestoreShoppingRepository @Inject constructor(
         val added = restock.filterIsInstance<ShoppingWrite.Add>().map(ShoppingWrite.Add::name)
         val spaceReference = firestore.collection(SPACES).document(spaceId)
         val pantry = firestore.pantryCollection(spaceId)
-        // La misma lectura que currentItems: con ella se comprueba lo que se añade, justo antes de escribir.
-        val list = itemsCollection(spaceId)
-            .orderBy(FIELD_CREATED_AT, Query.Direction.ASCENDING)
-            .limit(MAX_VISIBLE_ITEMS)
 
         firestore.runTransaction { transaction ->
             // Firestore exige hacer todas las lecturas antes de la primera escritura.
@@ -272,8 +278,8 @@ class FirestoreShoppingRepository @Inject constructor(
             planned.forEach { plan -> plan.seen?.let { requireUnchanged(transaction.get(plan.reference), it) } }
             // Lo último antes de escribir: si otro miembro ha apuntado algo de lo que se añade después de que
             // se leyera la lista, no se escribe nada. Firestore no deja consultar dentro de una transacción,
-            // así que la lista se lee aparte (serverItemsBlocking).
-            if (added.isNotEmpty()) listedMeanwhileFailure(list.serverItemsBlocking(), added)?.let { throw it }
+            // así que la lista se lee aparte (serverItemsBlocking, la misma lectura que currentItems).
+            if (added.isNotEmpty()) listedMeanwhileFailure(serverItemsBlocking(spaceId), added)?.let { throw it }
             crossed.forEach { (item, _) -> markPurchased(transaction, item.reference, true, user) }
             pantryReads.forEach { (item, entry, snapshot) ->
                 snapshot?.let { writePantry(transaction, it, entry, user.id, item) }
@@ -461,7 +467,6 @@ class FirestoreShoppingRepository @Inject constructor(
         const val MAX_QUANTITY_LENGTH = 40
         const val MAX_NOTES_LENGTH = 500
         const val MAX_BRAND_LENGTH = 60
-        const val MAX_VISIBLE_ITEMS = 250L
         const val MAX_CLEAR_ITEMS = 100L
     }
 }
@@ -497,13 +502,22 @@ private val AuthUser.shoppingDisplayName: String
     get() = displayName.ifBlank { email.substringBefore('@') }.take(60)
 
 // Mapeo y orden de la lista: pendientes antes que comprados, y por antigüedad.
-private fun List<DocumentSnapshot>.toSortedShoppingItems(): List<ShoppingItem> =
-    mapNotNull(DocumentSnapshot::toShoppingItem)
-        .sortedWith(
-            compareBy<ShoppingItem> { it.purchased }
-                .thenBy(ShoppingItem::createdAt)
-                .thenBy(ShoppingItem::id),
-        )
+/** El orden de siempre: pendientes primero y, dentro, por fecha de alta (el id desempata). */
+private val SHOPPING_ORDER = compareBy<ShoppingItem> { it.purchased }
+    .thenBy(ShoppingItem::createdAt)
+    .thenBy(ShoppingItem::id)
+
+private fun QuerySnapshot.shoppingItems() = documents.mapNotNull(DocumentSnapshot::toShoppingItem)
+
+private fun mergeShoppingItems(pending: List<ShoppingItem>, recent: List<ShoppingItem>) = mergePendingAndRecent(
+    pending = pending,
+    recent = recent,
+    pendingCap = SHOPPING_PENDING_CAP,
+    doneLimit = SHOPPING_PURCHASED_PAGE,
+    id = ShoppingItem::id,
+    isDone = ShoppingItem::purchased,
+    order = SHOPPING_ORDER,
+)
 
 private fun DocumentSnapshot.toShoppingItem(): ShoppingItem? {
     val createdAt = getTimestamp("createdAt")?.toDate()?.toInstant() ?: return null
@@ -558,12 +572,3 @@ internal fun staleItemFailure(current: ShoppingItem?, seen: ShoppingItem): Shopp
 internal fun listedMeanwhileFailure(current: List<ShoppingItem>, added: List<String>): ShoppingRepositoryException? =
     added.firstNotNullOfOrNull { name -> findShoppingMatch(current, name) }
         ?.let { ShoppingRepositoryException(ShoppingFailure.ItemChanged, itemName = it.name) }
-
-// La lista del servidor, leída desde la función de una transacción: corre en un hilo de fondo y puede esperar, como
-// Transaction.get. Los fallos salen sin envolver, también como en Transaction.get: sin conexión sigue siendo
-// ShoppingFailure.Network y no «error inesperado».
-private fun Query.serverItemsBlocking(): List<ShoppingItem> = try {
-    Tasks.await(get(Source.SERVER)).documents.toSortedShoppingItems()
-} catch (error: ExecutionException) {
-    throw error.cause ?: error
-}

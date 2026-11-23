@@ -2,9 +2,19 @@ package com.dlunaunizar.bobitos.data.repository
 
 import com.dlunaunizar.bobitos.core.model.Note
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+/** Cuántas notas se leen: las más recientemente actualizadas. Si hay más, la pantalla lo avisa. */
+const val MAX_VISIBLE_NOTES = 250
+
+/** Las notas que se ven y si hay más antiguas que no caben en [MAX_VISIBLE_NOTES]. */
+data class NotePage(val notes: List<Note>, val truncated: Boolean = false)
 
 interface NoteRepository {
     fun notes(spaceId: String): Flow<List<Note>>
+
+    /** Como [notes], con la bandera de que hay notas más antiguas que no se leen. */
+    fun notePage(spaceId: String): Flow<NotePage> = notes(spaceId).map { NotePage(it) }
 
     suspend fun addNote(spaceId: String, title: String, body: String?): String
 

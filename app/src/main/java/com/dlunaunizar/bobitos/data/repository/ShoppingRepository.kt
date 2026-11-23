@@ -4,13 +4,25 @@ import com.dlunaunizar.bobitos.core.model.PantryEntry
 import com.dlunaunizar.bobitos.core.model.ShoppingItem
 import com.dlunaunizar.bobitos.core.model.Supermarket
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+/** Cuántos comprados se leen (los más recientes); el resto sigue ahí hasta «Limpiar comprados». */
+const val SHOPPING_PURCHASED_PAGE = 100
+
+/** Tope de seguridad de los pendientes: se leen todos hasta aquí y, si hay más, la pantalla lo avisa. */
+const val SHOPPING_PENDING_CAP = 1000
 
 interface ShoppingRepository {
+    /** Todos los pendientes y los [SHOPPING_PURCHASED_PAGE] comprados más recientes, en el orden de la lista. */
     fun items(spaceId: String): Flow<List<ShoppingItem>>
+
+    /** Como [items], con las banderas de «hay más comprados» y «se ha llegado al tope de pendientes». */
+    fun itemPage(spaceId: String): Flow<PendingAndRecent<ShoppingItem>> = items(spaceId).map { PendingAndRecent(it) }
 
     /**
      * Lectura puntual de la lista tal como está en el servidor, para la revisión de ingredientes: el primer
-     * snapshot de [items] puede salir de la caché local (vieja) y la revisión se haría sobre datos caducados.
+     * snapshot de [items] puede salir de la caché local (vieja) y la revisión se haría sobre datos caducados. Lee lo
+     * mismo que [items] (todos los pendientes y los comprados más recientes).
      */
     suspend fun currentItems(spaceId: String): List<ShoppingItem>
 

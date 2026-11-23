@@ -9,6 +9,7 @@ import com.dlunaunizar.bobitos.core.common.UiState
 import com.dlunaunizar.bobitos.core.common.Undoable
 import com.dlunaunizar.bobitos.core.model.Note
 import com.dlunaunizar.bobitos.data.repository.NoteFailure
+import com.dlunaunizar.bobitos.data.repository.NotePage
 import com.dlunaunizar.bobitos.data.repository.NoteRepository
 import com.dlunaunizar.bobitos.data.repository.NoteRepositoryException
 import kotlinx.coroutines.CancellationException
@@ -18,6 +19,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -49,6 +51,18 @@ class NotesViewModelTest {
             listOf("Wifi"),
             (viewModel.uiState.value.notes as UiState.Content).value.map(Note::title),
         )
+    }
+
+    @Test
+    fun `the list says when older notes are left out`() = runTest(mainDispatcherRule.testDispatcher) {
+        repository.notesState.value = listOf(note("n1", "Wifi"))
+        repository.truncated = true
+
+        viewModel.observe("home")
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.notesTruncated)
+        assertEquals(listOf("Wifi"), (viewModel.uiState.value.notes as UiState.Content).value.map(Note::title))
     }
 
     @Test
@@ -304,6 +318,10 @@ private class FakeNoteRepository : NoteRepository {
 
     override fun notes(spaceId: String): Flow<List<Note>> =
         loadFailure?.let { error -> flow { throw error } } ?: notesState
+
+    var truncated = false
+
+    override fun notePage(spaceId: String): Flow<NotePage> = notes(spaceId).map { NotePage(it, truncated) }
 
     override suspend fun addNote(spaceId: String, title: String, body: String?): String {
         throwNextFailure()
